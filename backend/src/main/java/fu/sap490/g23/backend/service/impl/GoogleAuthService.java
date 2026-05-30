@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service;
+package fu.sap490.g23.backend.service.impl;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -15,8 +15,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,17 +30,17 @@ public class GoogleAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${google.client-id}")
     private String googleClientId;
 
     public AuthResponse loginWithGoogle(GoogleAuthRequest request) {
-        // Verify the ID token sent from the frontend
-        GoogleIdToken.Payload payload = verifyIdToken(request.getIdToken());
+        GoogleProfile profile = resolveGoogleProfile(request);
 
-        String email    = payload.getEmail();
-        String googleId = payload.getSubject();
-        String name     = (String) payload.get("name");
+        String email = profile.email();
+        String googleId = profile.googleId();
+        String name = profile.name();
         if (name == null || name.isBlank()) {
             name = email.split("@")[0];
         }
@@ -72,6 +75,11 @@ public class GoogleAuthService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .phoneNumber(user.getPhoneNumber())
+                .targetExam(user.getTargetExam())
+                .targetScore(user.getTargetScore())
+                .studyGoal(user.getStudyGoal())
+                .profileCompleted(user.isProfileCompleted())
                 .build();
 
         return AuthResponse.builder()
@@ -80,6 +88,42 @@ public class GoogleAuthService {
                 .tokenType("Bearer")
                 .user(userResponse)
                 .build();
+    }
+
+    private GoogleProfile resolveGoogleProfile(GoogleAuthRequest request) {
+        if (request.getIdToken() != null && !request.getIdToken().isBlank()) {
+            GoogleIdToken.Payload payload = verifyIdToken(request.getIdToken());
+            return new GoogleProfile(
+                    payload.getSubject(),
+                    payload.getEmail(),
+                    (String) payload.get("name")
+            );
+        }
+
+        if (request.getAccessToken() != null && !request.getAccessToken().isBlank()) {
+            return verifyAccessToken(request.getAccessToken());
+        }
+
+        throw new RuntimeException("Missing Google credential");
+    }
+
+    private GoogleProfile verifyAccessToken(String accessToken) {
+        String url = UriComponentsBuilder
+                .fromUriString("https://www.googleapis.com/oauth2/v3/userinfo")
+                .queryParam("access_token", accessToken)
+                .build()
+                .toUriString();
+
+        Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
+        if (profile == null || profile.get("sub") == null || profile.get("email") == null) {
+            throw new RuntimeException("Invalid Google access token");
+        }
+
+        return new GoogleProfile(
+                String.valueOf(profile.get("sub")),
+                String.valueOf(profile.get("email")),
+                profile.get("name") == null ? null : String.valueOf(profile.get("name"))
+        );
     }
 
     private GoogleIdToken.Payload verifyIdToken(String idTokenString) {
@@ -101,5 +145,8 @@ public class GoogleAuthService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to verify Google ID token: " + e.getMessage(), e);
         }
+    }
+
+    private record GoogleProfile(String googleId, String email, String name) {
     }
 }

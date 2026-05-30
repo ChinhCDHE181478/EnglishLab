@@ -1,10 +1,12 @@
 package fu.sap490.g23.backend.controller;
 
+import fu.sap490.g23.backend.dto.request.FacebookAuthRequest;
 import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
-import fu.sap490.g23.backend.service.GoogleAuthService;
+import fu.sap490.g23.backend.service.impl.FacebookAuthService;
+import fu.sap490.g23.backend.service.impl.GoogleAuthService;
 import fu.sap490.g23.backend.service.IAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ public class AuthController {
 
     private final IAuthService authService;
     private final GoogleAuthService googleAuthService;
+    private final FacebookAuthService facebookAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
@@ -37,6 +40,12 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request) {
         AuthResponse response = googleAuthService.loginWithGoogle(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/facebook")
+    public ResponseEntity<AuthResponse> facebookLogin(@RequestBody FacebookAuthRequest request) {
+        AuthResponse response = facebookAuthService.loginWithFacebook(request);
         return ResponseEntity.ok(response);
     }
 }

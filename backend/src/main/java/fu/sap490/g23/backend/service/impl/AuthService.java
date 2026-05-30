@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service;
+package fu.sap490.g23.backend.service.impl;
 
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
@@ -8,6 +8,7 @@ import fu.sap490.g23.backend.entity.Role;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.security.JwtService;
+import fu.sap490.g23.backend.service.IAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -43,6 +44,11 @@ public class AuthService implements IAuthService {
                 .fullName(savedUser.getFullName())
                 .email(savedUser.getEmail())
                 .role(savedUser.getRole().name())
+                .phoneNumber(savedUser.getPhoneNumber())
+                .targetExam(savedUser.getTargetExam())
+                .targetScore(savedUser.getTargetScore())
+                .studyGoal(savedUser.getStudyGoal())
+                .profileCompleted(savedUser.isProfileCompleted())
                 .build();
 
         return AuthResponse.builder()
@@ -67,6 +73,11 @@ public class AuthService implements IAuthService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .phoneNumber(user.getPhoneNumber())
+                .targetExam(user.getTargetExam())
+                .targetScore(user.getTargetScore())
+                .studyGoal(user.getStudyGoal())
+                .profileCompleted(user.isProfileCompleted())
                 .build();
 
         return AuthResponse.builder()

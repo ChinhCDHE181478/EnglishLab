@@ -46,8 +46,27 @@ public class User implements UserDetails {
     @Column(name = "google_id", unique = true, length = 255)
     private String googleId;
 
+    @Column(name = "facebook_id", unique = true, length = 255)
+    private String facebookId;
+
     @Column(length = 255)
     private String password;
+
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
+    @Column(name = "target_exam", length = 30)
+    private String targetExam;
+
+    @Column(name = "target_score", length = 30)
+    private String targetScore;
+
+    @Column(name = "study_goal", length = 500)
+    private String studyGoal;
+
+    @Column(name = "profile_completed", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean profileCompleted = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
