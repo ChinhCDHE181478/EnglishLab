@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { LogOut, Menu, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getStoredUser, clearSession } from '../../utils/auth';
+import { getCurrentUser } from '../../api/authApi';
+import { getStoredUser, clearSession, hasAccessToken } from '../../utils/auth';
 
-const navItems = ['Khóa học', 'IELTS', 'TOEIC', 'Giáo viên', 'Lịch khai giảng', 'Về trung tâm'];
+const navItems = [
+  { label: 'Khóa học', to: '/courses' },
+  { label: 'IELTS', href: '/#courses' },
+  { label: 'TOEIC', href: '/#courses' },
+  { label: 'Giáo viên', href: '/#teachers' },
+  { label: 'Lịch khai giảng', href: '/#courses' },
+  { label: 'Về trung tâm', href: '/#testimonials' },
+];
 
 const Header = () => {
   const navigate = useNavigate();
@@ -11,6 +19,23 @@ const Header = () => {
 
   useEffect(() => {
     const syncUser = () => setUser(getStoredUser());
+    const refreshUser = () => {
+      if (!hasAccessToken()) {
+        setUser(null);
+        return;
+      }
+
+      getCurrentUser()
+        .then((response) => {
+          localStorage.setItem('user', JSON.stringify(response.data));
+          setUser(response.data);
+        })
+        .catch(() => {
+          setUser(getStoredUser());
+        });
+    };
+
+    refreshUser();
     window.addEventListener('storage', syncUser);
     window.addEventListener('focus', syncUser);
     window.addEventListener('englishlab:user-updated', syncUser);
@@ -43,13 +68,23 @@ const Header = () => {
 
         <nav className="flex flex-1 items-center justify-center gap-6 xl:gap-9" aria-label="Main navigation">
           {navItems.map((item) => (
-            <a
-              key={item}
-              className="cursor-pointer whitespace-nowrap text-sm font-bold text-[#6a5553] transition-colors hover:text-[#8a0018]"
-              href="#"
-            >
-              {item}
-            </a>
+            item.to ? (
+              <Link
+                key={item.label}
+                className="cursor-pointer whitespace-nowrap text-sm font-bold text-[#6a5553] transition-colors hover:text-[#8a0018]"
+                to={item.to}
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <a
+                key={item.label}
+                className="cursor-pointer whitespace-nowrap text-sm font-bold text-[#6a5553] transition-colors hover:text-[#8a0018]"
+                href={item.href}
+              >
+                {item.label}
+              </a>
+            )
           ))}
         </nav>
 

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import CompleteProfile from './pages/CompleteProfile';
+import Courses from './pages/Courses';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,6 +12,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/courses" element={<Courses />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<Home />} />
         </Route>
