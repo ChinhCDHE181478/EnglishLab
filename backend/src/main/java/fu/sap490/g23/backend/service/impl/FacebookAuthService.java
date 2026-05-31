@@ -1,7 +1,6 @@
 package fu.sap490.g23.backend.service.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import fu.sap490.g23.backend.dto.request.FacebookAuthRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
 import fu.sap490.g23.backend.entity.Role;
@@ -28,8 +27,8 @@ public class FacebookAuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthResponse loginWithFacebook(FacebookAuthRequest request) {
-        FacebookProfile profile = verifyAccessToken(request.getAccessToken());
+    public AuthResponse loginWithFacebook(String accessToken) {
+        FacebookProfile profile = verifyAccessToken(accessToken);
 
         String facebookId = profile.getId();
         String email = profile.getEmail();

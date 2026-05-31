@@ -1,95 +1,63 @@
 import { useRef } from 'react';
-import MaterialIcon from './MaterialIcon';
+import StatCard from './StatCard';
 
-const buildDashboardStats = (user) => [
-  {
-    icon: 'school',
-    value: user?.targetExam || 'Chưa chọn',
-    label: 'Mục tiêu học',
-  },
-  {
-    icon: 'target',
-    value: user?.targetScore || 'Chưa đặt',
-    label: 'Điểm mục tiêu',
-  },
-  {
-    icon: 'verified',
-    value: user?.profileCompleted ? 'Đã đủ' : 'Cần bổ sung',
-    label: 'Hồ sơ',
-  },
-];
-
-const CourseHero = ({ user }) => {
-  const heroRef = useRef(null);
-  const displayName = user?.fullName || user?.email || 'bạn';
-  const learningTarget = user?.targetExam || 'tiếng Anh';
-  const studyGoal =
-    user?.studyGoal ||
-    `Hôm nay là một ngày tuyệt vời để tiến thêm một bước trên lộ trình ${learningTarget} của bạn.`;
-  const dashboardStats = buildDashboardStats(user);
+const CourseHero = ({ user, registeredCount = 0 }) => {
+  const sectionRef = useRef(null);
+  const isAuthenticated = Boolean(user);
+  const displayName = user?.fullName?.split(' ')?.slice(-1)?.[0] || user?.fullName || user?.email || 'bạn';
+  const targetExam = user?.targetExam || 'IELTS / TOEIC';
+  const targetScore = user?.targetScore || '7.5+';
+  const studyGoal = isAuthenticated
+    ? user?.studyGoal || `Hôm nay là một ngày tuyệt vời để chinh phục những cột mốc mới trên lộ trình ${targetExam} của bạn.`
+    : 'Khám phá các khóa học IELTS, TOEIC và giao tiếp được thiết kế theo lộ trình rõ ràng, phù hợp cho cả người mới bắt đầu.';
 
   const handleMouseMove = (event) => {
-    const rect = heroRef.current?.getBoundingClientRect();
-    if (!rect || !heroRef.current) return;
-
-    heroRef.current.style.setProperty('--mouse-x', `${event.clientX - rect.left}px`);
-    heroRef.current.style.setProperty('--mouse-y', `${event.clientY - rect.top}px`);
+    const section = sectionRef.current;
+    if (!section) return;
+    const rect = section.getBoundingClientRect();
+    section.style.setProperty('--mouse-x', `${event.clientX - rect.left}px`);
+    section.style.setProperty('--mouse-y', `${event.clientY - rect.top}px`);
   };
 
   return (
     <section
-      ref={heroRef}
+      ref={sectionRef}
       onMouseMove={handleMouseMove}
       className="glow-card relative mb-10 overflow-hidden rounded-3xl bg-[#4b0009] p-10 text-white shadow-2xl"
     >
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background:
-            'radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.05) 0%, rgba(255, 114, 116, 0.03) 40%, transparent 80%)',
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 opacity-10"
-        style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }}
-      />
-
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(600px_circle_at_var(--mouse-x,50%)_var(--mouse-y,50%),rgba(255,255,255,0.05)_0%,rgba(255,114,116,0.03)_40%,transparent_80%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-10" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')" }} />
       <div className="relative z-10 flex flex-col items-center justify-between gap-10 lg:flex-row">
         <div className="flex-1 space-y-6 text-center lg:text-left">
           <div className="space-y-2">
-            <h1 className="font-['Manrope'] text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
-              Chào mừng trở lại, {displayName}!
+            <h1 className="font-headline-lg text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+              {isAuthenticated ? `Chào mừng trở lại, ${displayName}!` : 'Khám phá khóa học tại EnglishLab'}
             </h1>
-            <p className="max-w-xl font-['Inter'] text-lg leading-[1.6] text-white/80">
-              {studyGoal}
-            </p>
+            <p className="max-w-xl text-lg leading-[1.6] text-white/80">{studyGoal}</p>
           </div>
-
           <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
-            <button className="flex cursor-pointer items-center gap-2 rounded-xl bg-white px-6 py-3 font-['Inter'] text-sm font-semibold leading-none tracking-[0.02em] text-[#4b0009] shadow-lg transition-all hover:bg-[#eeeeed]">
-              Bắt đầu bài học mới
-            </button>
-            <button className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 font-['Inter'] text-sm font-semibold leading-none tracking-[0.02em] text-white backdrop-blur-md transition-all hover:bg-white/20">
-              Cập nhật mục tiêu học
-            </button>
+            <a className="flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-[14px] font-semibold tracking-[0.02em] text-[#4b0009] shadow-lg transition-all hover:bg-[#eeeeed]" href="#popular-courses">
+              {isAuthenticated ? 'Bắt đầu bài học mới' : 'Xem khóa học nổi bật'}
+            </a>
+            <a className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-[14px] font-semibold tracking-[0.02em] text-white backdrop-blur-md transition-all hover:bg-white/20" href="#catalog">
+              Khám phá khóa học phù hợp
+            </a>
           </div>
         </div>
-
         <div className="flex flex-wrap justify-center gap-6">
-          {dashboardStats.map((stat) => (
-            <div
-              key={stat.label}
-              className="group flex w-40 cursor-default flex-col items-center rounded-2xl border border-white/20 bg-white/10 p-6 text-center backdrop-blur-xl transition-all hover:bg-white/20"
-            >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#730014]/50 transition-transform group-hover:scale-110">
-                <MaterialIcon name={stat.icon} className="text-white" />
-              </div>
-              <p className="mb-1 max-w-full truncate text-2xl font-bold text-white">{stat.value}</p>
-              <p className="font-['Inter'] text-[10px] font-semibold uppercase leading-none tracking-[0.1em] text-white/60">
-                {stat.label}
-              </p>
-            </div>
-          ))}
+          {isAuthenticated ? (
+            <>
+              <StatCard icon="school" value={registeredCount} label="Khóa đã đăng ký" />
+              <StatCard icon="flag" value={targetExam} label="Mục tiêu học" />
+              <StatCard icon="target" value={targetScore} label="Điểm mục tiêu" />
+            </>
+          ) : (
+            <>
+              <StatCard icon="menu_book" value="12+" label="Khóa học online" />
+              <StatCard icon="verified" value="IELTS" label="Lộ trình chính" />
+              <StatCard icon="school" value="0đ" label="Có khóa miễn phí" />
+            </>
+          )}
         </div>
       </div>
     </section>

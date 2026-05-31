@@ -1,6 +1,5 @@
 package fu.sap490.g23.backend.controller;
 
-import fu.sap490.g23.backend.dto.request.FacebookAuthRequest;
 import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
@@ -15,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -44,8 +45,8 @@ public class AuthController {
     }
 
     @PostMapping("/facebook")
-    public ResponseEntity<AuthResponse> facebookLogin(@RequestBody FacebookAuthRequest request) {
-        AuthResponse response = facebookAuthService.loginWithFacebook(request);
+    public ResponseEntity<AuthResponse> facebookLogin(@RequestBody Map<String, String> request) {
+        AuthResponse response = facebookAuthService.loginWithFacebook(request.get("accessToken"));
         return ResponseEntity.ok(response);
     }
 }

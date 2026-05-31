@@ -1,0 +1,37 @@
+package fu.sap490.g23.backend.dto.request.course;
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class LessonRequest {
+
+    @NotBlank(message = "Lesson title is required")
+    @Size(max = 180)
+    private String title;
+
+    @Size(max = 500)
+    private String description;
+
+    @Size(max = 700)
+    private String videoUrl;
+
+    @Size(max = 700)
+    private String materialUrl;
+
+    @Min(0)
+    private Integer durationMinutes;
+
+    @Min(0)
+    private Integer displayOrder;
+
+    private Boolean preview;
+}

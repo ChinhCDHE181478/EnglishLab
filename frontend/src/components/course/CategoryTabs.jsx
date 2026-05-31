@@ -1,16 +1,16 @@
-import { categoryTabs } from './courseData';
+import { COURSE_CATEGORIES } from './courseConstants';
 
-const CategoryTabs = () => (
-  <section className="course-scrollbar mb-12 overflow-x-auto whitespace-nowrap pb-4 scroll-smooth">
+const CategoryTabs = ({ activeCategory, onChange }) => (
+  <section className="mb-12 overflow-x-auto whitespace-nowrap pb-4 scroll-smooth">
     <div className="flex justify-start gap-3 md:justify-center">
-      {categoryTabs.map((tab, index) => (
+      {COURSE_CATEGORIES.map((category) => (
         <button
-          key={tab}
-          className={`rounded-full border border-[#dfbfbd]/30 px-6 py-2 font-['Inter'] text-sm font-semibold leading-none tracking-[0.02em] transition-all ${
-            index === 0 ? 'bg-[#730014] text-white' : 'bg-white text-[#1a1c1c] hover:bg-[#eeeeed]'
-          }`}
+          key={category.label}
+          className={`category-chip rounded-full border border-[#dfbfbd]/30 px-6 py-2 text-[14px] font-semibold leading-none tracking-[0.02em] transition-all ${activeCategory === category.value ? 'active' : 'bg-white hover:bg-[#eeeeed]'}`}
+          type="button"
+          onClick={() => onChange(category.value)}
         >
-          {tab}
+          {category.label}
         </button>
       ))}
     </div>

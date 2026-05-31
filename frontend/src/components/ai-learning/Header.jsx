@@ -1,41 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { LogOut, Menu, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getCurrentUser } from '../../api/authApi';
-import { getStoredUser, clearSession, hasAccessToken } from '../../utils/auth';
+import { getStoredUser, clearSession } from '../../utils/auth';
 
 const navItems = [
   { label: 'Khóa học', to: '/courses' },
   { label: 'IELTS', href: '/#courses' },
   { label: 'TOEIC', href: '/#courses' },
   { label: 'Giáo viên', href: '/#teachers' },
-  { label: 'Lịch khai giảng', href: '/#courses' },
+  { label: 'Lịch khai giảng', href: '/#cta' },
   { label: 'Về trung tâm', href: '/#testimonials' },
 ];
 
-const Header = () => {
+const Header = ({ hideTeacherLinks = false }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => getStoredUser());
 
   useEffect(() => {
     const syncUser = () => setUser(getStoredUser());
-    const refreshUser = () => {
-      if (!hasAccessToken()) {
-        setUser(null);
-        return;
-      }
-
-      getCurrentUser()
-        .then((response) => {
-          localStorage.setItem('user', JSON.stringify(response.data));
-          setUser(response.data);
-        })
-        .catch(() => {
-          setUser(getStoredUser());
-        });
-    };
-
-    refreshUser();
     window.addEventListener('storage', syncUser);
     window.addEventListener('focus', syncUser);
     window.addEventListener('englishlab:user-updated', syncUser);
@@ -53,6 +35,10 @@ const Header = () => {
     navigate('/');
   };
 
+  const visibleNavItems = hideTeacherLinks
+    ? navItems.filter((item) => item.href !== '/#teachers')
+    : navItems;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#dfbfbd]/30 bg-[#f9f9f9]/95 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center px-6 md:px-10">
@@ -67,7 +53,7 @@ const Header = () => {
         </Link>
 
         <nav className="flex flex-1 items-center justify-center gap-6 xl:gap-9" aria-label="Main navigation">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             item.to ? (
               <Link
                 key={item.label}

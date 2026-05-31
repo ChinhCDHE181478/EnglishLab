@@ -7,7 +7,7 @@ const axiosClient = axios.create({
   },
 });
 
-// Request interceptor - attach access token to every request
+// Request interceptor - attach access token to every authenticated request.
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -16,20 +16,22 @@ axiosClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle 401 unauthorized globally
+// Response interceptor - handle 401 unauthorized globally.
+// Public/optional requests can set skipAuthRedirect=true so guest pages do not get forced to login.
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const shouldSkipRedirect = error.config?.skipAuthRedirect;
+
+    if (error.response && error.response.status === 401 && !shouldSkipRedirect) {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+
     return Promise.reject(error);
   }
 );

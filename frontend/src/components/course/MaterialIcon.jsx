@@ -1,7 +1,5 @@
-const MaterialIcon = ({ name, className = '', ...props }) => (
-  <span className={`material-symbols-outlined ${className}`} aria-hidden="true" {...props}>
-    {name}
-  </span>
+const MaterialIcon = ({ name, className = '' }) => (
+  <span className={`material-symbols-outlined ${className}`}>{name}</span>
 );
 
 export default MaterialIcon;

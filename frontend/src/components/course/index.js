@@ -7,6 +7,5 @@ export { default as RecommendationBanner } from './RecommendationBanner';
 export { default as PopularCourses } from './PopularCourses';
 export { default as CourseCatalog } from './CourseCatalog';
 export { default as LearningPaths } from './LearningPaths';
-export { default as FeaturedTeachers } from './FeaturedTeachers';
 export { default as FinalCourseCta } from './FinalCourseCta';
 export { default as CourseFooter } from './CourseFooter';
