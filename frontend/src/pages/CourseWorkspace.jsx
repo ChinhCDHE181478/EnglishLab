@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
+import WorkspaceFlashcards, { extractVocabularyTerms } from '../components/course-workspace/WorkspaceFlashcards';
 import WorkspaceLessonPanel from '../components/course-workspace/WorkspaceLessonPanel';
 import WorkspaceOverview from '../components/course-workspace/WorkspaceOverview';
 import WorkspaceRightRail from '../components/course-workspace/WorkspaceRightRail';
@@ -23,6 +25,8 @@ const CourseWorkspace = () => {
   const [activeLessonId, setActiveLessonId] = useState(null);
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
+  const [workspaceMode, setWorkspaceMode] = useState(() => localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
+  const [vocabularyCount, setVocabularyCount] = useState(0);
 
   const lessonItems = useMemo(() => {
     if (!course?.modules?.length) return [];
@@ -43,6 +47,10 @@ const CourseWorkspace = () => {
     return lessonItems.find((item) => String(item.id) === String(activeLessonId)) ?? lessonItems[0];
   }, [activeLessonId, lessonItems]);
 
+  const parsedVocabularyTerms = useMemo(() => extractVocabularyTerms(course), [course]);
+  const flashcardCount = Math.max(parsedVocabularyTerms.length, vocabularyCount);
+  const hasVocabularyTerms = flashcardCount > 0;
+
   const applyEnrollment = (nextEnrollment) => {
     const normalizedEnrollment = normalizeEnrollment(nextEnrollment);
     setEnrollment(normalizedEnrollment);
@@ -54,6 +62,14 @@ const CourseWorkspace = () => {
   }, [slugOrId]);
 
   useEffect(() => {
+    setWorkspaceMode(localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
+  }, [slugOrId]);
+
+  useEffect(() => {
+    localStorage.setItem(`englishlab.workspaceMode.${slugOrId}`, workspaceMode);
+  }, [slugOrId, workspaceMode]);
+
+  useEffect(() => {
     if (!lessonItems.length) return;
 
     const activeLessonStillExists = lessonItems.some((item) => String(item.id) === String(activeLessonId));
@@ -61,6 +77,34 @@ const CourseWorkspace = () => {
       setActiveLessonId(lessonItems[0].id);
     }
   }, [activeLessonId, lessonItems]);
+
+  useEffect(() => {
+    if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
+      setWorkspaceMode('learn');
+    }
+  }, [course, hasVocabularyTerms, workspaceMode]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!course?.id || !hasAccessToken()) {
+      setVocabularyCount(parsedVocabularyTerms.length);
+      return undefined;
+    }
+
+    setVocabularyCount(parsedVocabularyTerms.length);
+    courseApi.getVocabularyTerms(course.id)
+      .then((terms) => {
+        if (active) setVocabularyCount(Array.isArray(terms) ? terms.length : 0);
+      })
+      .catch(() => {
+        if (active) setVocabularyCount(parsedVocabularyTerms.length);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [course?.id, parsedVocabularyTerms.length]);
 
   useEffect(() => {
     if (!hasAccessToken()) {
@@ -214,7 +258,7 @@ const CourseWorkspace = () => {
         <main className="min-w-0 flex-1 px-4 py-8 md:px-8">
           <div className="mb-6">
             <Link className="group inline-flex items-center gap-2 text-sm font-bold text-[#8a0018]" to={`/courses/${course.slug}`} state={{ course }}>
-              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <ArrowLeft className="h-4 w-4 shrink-0" />
               <span className="group-hover:underline">Quay lại chi tiết khóa học</span>
             </Link>
           </div>
@@ -223,19 +267,46 @@ const CourseWorkspace = () => {
               {error}
             </div>
           ) : null}
-          <div className="grid gap-8 xl:grid-cols-[1fr_340px]">
+          {hasVocabularyTerms ? (
+            <div className="mb-6 inline-flex rounded-2xl bg-[#f4f3f3] p-1">
+              <button
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-5 py-3 text-sm font-extrabold transition ${workspaceMode === 'learn' ? 'bg-white text-[#8a0018] shadow-sm' : 'text-[#584140] hover:text-[#8a0018]'}`}
+                type="button"
+                onClick={() => setWorkspaceMode('learn')}
+              >
+                <span className="material-symbols-outlined text-[18px]">school</span>
+                Bài học
+              </button>
+              <button
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-5 py-3 text-sm font-extrabold transition ${workspaceMode === 'flashcards' ? 'bg-white text-[#8a0018] shadow-sm' : 'text-[#584140] hover:text-[#8a0018]'}`}
+                type="button"
+                onClick={() => setWorkspaceMode('flashcards')}
+              >
+                <span className="material-symbols-outlined text-[18px]">style</span>
+                Flashcards
+                <span className="rounded-full bg-[#fff0f1] px-2 py-0.5 text-xs text-[#8a0018]">{flashcardCount}</span>
+              </button>
+            </div>
+          ) : null}
+          <div className="grid items-start gap-8 xl:grid-cols-[1fr_340px]">
             <div className="space-y-8">
-              <WorkspaceOverview course={course} enrollment={enrollment} />
-              <WorkspaceLessonPanel
-                activeLessonItem={activeLessonItem}
-                completedLessonIds={completedLessonIds}
-                course={course}
-                lessonItems={lessonItems}
-                savingLessonId={savingLessonId}
-                onMoveLesson={handleMoveLesson}
-                onSelectLesson={handleSelectLesson}
-                onToggleComplete={handleToggleComplete}
-              />
+              {workspaceMode === 'flashcards' ? (
+                <WorkspaceFlashcards course={course} />
+              ) : (
+                <>
+                  <WorkspaceOverview course={course} enrollment={enrollment} />
+                  <WorkspaceLessonPanel
+                    activeLessonItem={activeLessonItem}
+                    completedLessonIds={completedLessonIds}
+                    course={course}
+                    lessonItems={lessonItems}
+                    savingLessonId={savingLessonId}
+                    onMoveLesson={handleMoveLesson}
+                    onSelectLesson={handleSelectLesson}
+                    onToggleComplete={handleToggleComplete}
+                  />
+                </>
+              )}
             </div>
             <WorkspaceRightRail enrollment={enrollment} />
           </div>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import CourseActionButton from './CourseActionButton';
 
+const PAGE_SIZE = 5;
+
 const tabs = [
   { id: 'current', label: 'Khóa học hiện tại' },
   { id: 'mine', label: 'Các khóa học của bạn' },
@@ -34,6 +36,12 @@ const EnrollmentCard = ({ enrollment, compact = false }) => (
 
 const CurrentCourse = ({ enrollments = [], isAuthenticated }) => {
   const [activeTab, setActiveTab] = useState('current');
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(enrollments.length / PAGE_SIZE));
+  const pagedEnrollments = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return enrollments.slice(start, start + PAGE_SIZE);
+  }, [currentPage, enrollments]);
   const currentEnrollment = useMemo(() => {
     if (!enrollments.length) return null;
     return enrollments.find((item) => (item.progressPercent || 0) < 100) || enrollments[0];
@@ -76,7 +84,10 @@ const CurrentCourse = ({ enrollments = [], isAuthenticated }) => {
               key={tab.id}
               className={`cursor-pointer rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === tab.id ? 'bg-[#4b0009] text-white' : 'text-[#584140] hover:bg-[#fff0f1] hover:text-[#4b0009]'}`}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setCurrentPage(1);
+              }}
             >
               {tab.label}
             </button>
@@ -87,11 +98,38 @@ const CurrentCourse = ({ enrollments = [], isAuthenticated }) => {
       {activeTab === 'current' ? (
         <EnrollmentCard enrollment={currentEnrollment} />
       ) : (
-        <div className="grid gap-4">
-          {enrollments.map((enrollment) => (
-            <EnrollmentCard key={enrollment.id ?? enrollment.courseId ?? enrollment.courseSlug} compact enrollment={enrollment} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4">
+            {pagedEnrollments.map((enrollment) => (
+              <EnrollmentCard key={enrollment.id ?? enrollment.courseId ?? enrollment.courseSlug} compact enrollment={enrollment} />
+            ))}
+          </div>
+          {totalPages > 1 ? (
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-semibold text-[#584140]">
+                Trang {currentPage} / {totalPages} · {enrollments.length} khóa học
+              </p>
+              <div className="flex gap-2">
+                <button
+                  className="cursor-pointer rounded-xl border border-[#dfbfbd]/40 bg-white px-4 py-2 text-sm font-bold text-[#4b0009] transition hover:bg-[#fff0f1] disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                >
+                  Trước
+                </button>
+                <button
+                  className="cursor-pointer rounded-xl bg-[#4b0009] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#9E001F] disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
     </section>
   );

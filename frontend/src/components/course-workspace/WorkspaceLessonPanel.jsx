@@ -1,8 +1,29 @@
-const getYoutubeEmbedUrl = (url) => {
+const getVideoEmbedUrl = (url) => {
   if (!url) return '';
 
-  const match = String(url).match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
-  return match?.[1] ? `https://www.youtube.com/embed/${match[1]}` : '';
+  const value = String(url).trim();
+  if (/iframe\.mediadelivery\.net\/embed\//i.test(value)) return value;
+
+  const youtubeMatch = value.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
+  return youtubeMatch?.[1] ? `https://www.youtube.com/embed/${youtubeMatch[1]}` : '';
+};
+
+const LessonContent = ({ content }) => {
+  if (!content) return null;
+
+  return (
+    <div className="mt-6 rounded-[24px] border border-[#dfbfbd]/20 bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030]">
+      {content.split('\n').map((line, index) => {
+        const key = `${index}-${line.slice(0, 12)}`;
+        if (!line.trim()) return <div key={key} className="h-3" />;
+        if (line.startsWith('### ')) return <h4 key={key} className="mt-4 text-base font-extrabold text-[#2b2828]">{line.slice(4)}</h4>;
+        if (line.startsWith('## ')) return <h3 key={key} className="mt-5 text-lg font-extrabold text-[#2b2828]">{line.slice(3)}</h3>;
+        if (line.startsWith('# ')) return <h2 key={key} className="text-2xl font-extrabold text-[#2b2828]">{line.slice(2)}</h2>;
+        if (line.startsWith('- ')) return <p key={key} className="pl-4 before:mr-2 before:content-['•']">{line.slice(2)}</p>;
+        return <p key={key}>{line}</p>;
+      })}
+    </div>
+  );
 };
 
 const WorkspaceLessonPanel = ({
@@ -18,7 +39,8 @@ const WorkspaceLessonPanel = ({
   const activeModule = activeLessonItem?.module;
   const activeLessonId = activeLessonItem?.id;
   const activeIndex = lessonItems.findIndex((item) => String(item.id) === String(activeLessonId));
-  const embedUrl = getYoutubeEmbedUrl(activeLesson?.videoUrl);
+  const embedUrl = getVideoEmbedUrl(activeLesson?.videoUrl);
+  const directVideoUrl = activeLesson?.videoUrl && !embedUrl ? activeLesson.videoUrl : '';
   const hasMaterial = Boolean(activeLesson?.materialUrl);
   const isCompleted = activeLessonId ? completedLessonIds.has(activeLessonId) : false;
   const isSaving = activeLessonId && String(savingLessonId) === String(activeLessonId);
@@ -47,6 +69,16 @@ const WorkspaceLessonPanel = ({
             </div>
           </div>
         ) : null}
+
+        {directVideoUrl ? (
+          <div className="mt-6 overflow-hidden rounded-[24px] bg-black">
+            <video className="aspect-video h-full w-full" controls preload="metadata" src={directVideoUrl}>
+              <track kind="captions" />
+            </video>
+          </div>
+        ) : null}
+
+        <LessonContent content={activeLesson?.contentText} />
 
         {hasMaterial ? (
           <a

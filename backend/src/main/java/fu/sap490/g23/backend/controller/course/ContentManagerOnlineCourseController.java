@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.controller.course;
 
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.response.ApiResponse;
+import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
@@ -25,7 +26,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/content-manager/online-courses")
@@ -44,6 +47,11 @@ public class ContentManagerOnlineCourseController {
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return ResponseEntity.ok(onlineCourseService.getManagerCourses(keyword, category, status, pageable));
+    }
+
+    @GetMapping("/{slugOrId}")
+    public ResponseEntity<OnlineCourseResponse> getCourse(@PathVariable String slugOrId) {
+        return ResponseEntity.ok(onlineCourseService.getManagerCourse(slugOrId));
     }
 
     @GetMapping("/stats")
@@ -78,5 +86,15 @@ public class ContentManagerOnlineCourseController {
                 .message("Online course deleted successfully")
                 .description("The package was soft-deleted and archived.")
                 .build());
+    }
+
+    @PostMapping("/{courseId}/lessons/{lessonId}/bunny-video")
+    public ResponseEntity<BunnyVideoUploadResponse> uploadLessonVideo(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestParam(required = false) String title,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(onlineCourseService.uploadLessonVideo(courseId, lessonId, title, file));
     }
 }

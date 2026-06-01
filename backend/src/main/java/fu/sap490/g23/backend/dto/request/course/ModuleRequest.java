@@ -18,6 +18,8 @@ import java.util.List;
 @Builder
 public class ModuleRequest {
 
+    private Long id;
+
     @NotBlank(message = "Module title is required")
     @Size(max = 180)
     private String title;

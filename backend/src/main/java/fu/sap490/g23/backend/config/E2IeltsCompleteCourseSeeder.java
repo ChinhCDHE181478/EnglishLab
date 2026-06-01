@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,16 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
+    @Value("${app.seed.enabled:false}")
+    private boolean seedEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled) {
+            return;
+        }
+
         PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
                 .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
                         .code(PackageTypeCode.ONLINE_COURSE)

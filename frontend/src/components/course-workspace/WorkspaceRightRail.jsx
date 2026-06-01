@@ -5,7 +5,7 @@ const mascotItems = [
 ];
 
 const WorkspaceRightRail = ({ enrollment }) => (
-  <aside className="space-y-6">
+  <aside className="sticky top-[112px] self-start space-y-6">
     <div className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3">
         <span className="material-symbols-outlined text-3xl text-[#ff7a00]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>

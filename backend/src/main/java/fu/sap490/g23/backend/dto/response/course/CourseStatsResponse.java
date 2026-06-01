@@ -13,5 +13,7 @@ public class CourseStatsResponse {
     private long totalCourses;
     private long publishedCourses;
     private long draftCourses;
+    private long archivedCourses;
+    private long totalLessons;
     private long totalEnrollments;
 }

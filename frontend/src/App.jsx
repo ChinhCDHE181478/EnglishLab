@@ -8,12 +8,16 @@ import Courses from './pages/Courses';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ContentManagerRoutes from './pages/content-manager/ContentManagerRoutes';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
+          <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
+        </Route>
         <Route path="/courses" element={<Courses />} />
         <Route path="/courses/:slugOrId" element={<CourseDetail />} />
         <Route path="/courses/:slugOrId/learn" element={<CourseWorkspace />} />

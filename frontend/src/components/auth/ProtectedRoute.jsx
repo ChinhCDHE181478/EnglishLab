@@ -3,10 +3,10 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../../api/authApi';
 import { getStoredUser, hasAccessToken, needsProfileCompletion } from '../../utils/auth';
 
-const ProtectedRoute = ({ requireCompleteProfile = true }) => {
+const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) => {
   const location = useLocation();
-  const [status, setStatus] = useState('checking');
   const [user, setUser] = useState(() => getStoredUser());
+  const [status, setStatus] = useState(() => (hasAccessToken() && getStoredUser() ? 'authenticated' : 'checking'));
 
   useEffect(() => {
     let active = true;
@@ -14,6 +14,10 @@ const ProtectedRoute = ({ requireCompleteProfile = true }) => {
     if (!hasAccessToken()) {
       setStatus('guest');
       return undefined;
+    }
+
+    if (getStoredUser()) {
+      setStatus('authenticated');
     }
 
     getCurrentUser()
@@ -37,7 +41,7 @@ const ProtectedRoute = ({ requireCompleteProfile = true }) => {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (status === 'checking') {
+  if (status === 'checking' && !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f9f9f9] font-['Inter'] text-[#584140]">
         Đang kiểm tra tài khoản...
@@ -49,7 +53,11 @@ const ProtectedRoute = ({ requireCompleteProfile = true }) => {
     return <Navigate to="/complete-profile" replace />;
   }
 
-  if (!requireCompleteProfile && !needsProfileCompletion(user)) {
+  if (allowedRoles?.length && !allowedRoles.includes(String(user?.role || '').toUpperCase())) {
+    return <Navigate to="/home" replace />;
+  }
+
+  if (!allowedRoles?.length && !requireCompleteProfile && !needsProfileCompletion(user)) {
     return <Navigate to="/home" replace />;
   }
 

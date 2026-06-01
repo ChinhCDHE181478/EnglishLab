@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 
 const WorkspaceSidebar = ({ course, activeLessonId, completedLessonIds, onSelectLesson }) => (
-  <aside className="hidden h-[calc(100vh-96px)] w-80 shrink-0 overflow-y-auto border-r border-[#dfbfbd]/20 bg-[#fffdfc] p-6 xl:block">
+  <aside className="sticky top-[96px] hidden h-[calc(100vh-96px)] w-80 shrink-0 self-start overflow-y-auto overscroll-contain border-r border-[#dfbfbd]/20 bg-[#fffdfc] p-6 xl:block">
     <div className="rounded-3xl border border-[#dfbfbd]/20 bg-[#fcf8f7] p-5">
       <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Đang học</p>
       <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{course.title}</h2>

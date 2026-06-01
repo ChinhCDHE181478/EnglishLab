@@ -2,6 +2,8 @@ package fu.sap490.g23.backend.controller.course;
 
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.entity.course.VocabularyProgressStatus;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -41,5 +43,24 @@ public class StudentOnlineCourseController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(onlineCourseService.updateLessonProgress(courseId, lessonId, completed, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/vocabulary")
+    public ResponseEntity<List<VocabularyTermResponse>> getVocabularyTerms(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getVocabularyTerms(courseId, authentication.getName()));
+    }
+
+    @PatchMapping("/{courseId}/vocabulary/{termKey}/progress")
+    public ResponseEntity<VocabularyTermResponse> updateVocabularyProgress(
+            @PathVariable Long courseId,
+            @PathVariable String termKey,
+            @RequestParam(required = false) VocabularyProgressStatus status,
+            @RequestParam(required = false) Boolean starred,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.updateVocabularyProgress(courseId, termKey, status, starred, authentication.getName()));
     }
 }

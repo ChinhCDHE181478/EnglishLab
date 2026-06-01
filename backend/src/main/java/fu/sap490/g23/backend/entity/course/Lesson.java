@@ -25,8 +25,23 @@ public class Lesson {
     @Column(length = 500)
     private String description;
 
+    @Column(name = "content_type", length = 40)
+    private String contentType;
+
+    @Column(name = "content_text", columnDefinition = "text")
+    private String contentText;
+
     @Column(name = "video_url", length = 700)
     private String videoUrl;
+
+    @Column(name = "bunny_video_id", length = 80)
+    private String bunnyVideoId;
+
+    @Column(name = "bunny_library_id", length = 80)
+    private String bunnyLibraryId;
+
+    @Column(name = "bunny_cdn_url", length = 700)
+    private String bunnyCdnUrl;
 
     @Column(name = "material_url", length = 700)
     private String materialUrl;

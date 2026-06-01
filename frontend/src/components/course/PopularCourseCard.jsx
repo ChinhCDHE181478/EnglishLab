@@ -9,7 +9,7 @@ const PopularCourseCard = ({ course }) => (
       <img alt={course.title} className="h-full w-full object-cover grayscale-[20%] transition-all duration-500 hover:grayscale-0" src={course.thumbnailUrl} />
       <div className="absolute left-4 top-4 flex gap-2">
         <span className="rounded bg-[#4b0009] px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.1em] text-white">
-          {course.featured ? 'Pho bien' : categoryLabels[course.category] || course.category}
+          {course.featured ? 'Phổ biến' : categoryLabels[course.category] || course.category}
         </span>
       </div>
     </div>
