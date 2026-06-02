@@ -1,0 +1,11 @@
+export { default as CourseGlobalStyles } from './CourseGlobalStyles';
+export { default as CourseHero } from './CourseHero';
+export { default as CurrentCourse } from './CurrentCourse';
+export { default as LearningJourney } from './LearningJourney';
+export { default as CategoryTabs } from './CategoryTabs';
+export { default as RecommendationBanner } from './RecommendationBanner';
+export { default as PopularCourses } from './PopularCourses';
+export { default as CourseCatalog } from './CourseCatalog';
+export { default as LearningPaths } from './LearningPaths';
+export { default as FinalCourseCta } from './FinalCourseCta';
+export { default as CourseFooter } from './CourseFooter';

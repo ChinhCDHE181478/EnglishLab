@@ -1,0 +1,234 @@
+package fu.sap490.g23.backend.config;
+
+import fu.sap490.g23.backend.entity.course.CourseCategory;
+import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
+import fu.sap490.g23.backend.entity.course.CourseLevel;
+import fu.sap490.g23.backend.entity.course.CourseModule;
+import fu.sap490.g23.backend.entity.course.LearningPackage;
+import fu.sap490.g23.backend.entity.course.Lesson;
+import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.PackageType;
+import fu.sap490.g23.backend.entity.course.PackageTypeCode;
+import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
+import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.Comparator;
+
+@Component
+@Order(40)
+@RequiredArgsConstructor
+public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
+
+    private static final String COURSE_SLUG = "e2-ielts-practice-tests";
+
+    private final PackageTypeRepository packageTypeRepository;
+    private final CourseCategoryRepository courseCategoryRepository;
+    private final LearningPackageRepository learningPackageRepository;
+    private final OnlineCourseRepository onlineCourseRepository;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
+                .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
+                        .code(PackageTypeCode.ONLINE_COURSE)
+                        .name("Online Course")
+                        .description("Self-paced online learning package")
+                        .active(true)
+                        .build()));
+
+        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS)
+                .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
+                        .code(CourseCategoryCode.IELTS)
+                        .name("IELTS")
+                        .description("IELTS exam preparation courses")
+                        .displayOrder(1)
+                        .active(true)
+                        .build()));
+
+        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(COURSE_SLUG)
+                .orElseGet(() -> LearningPackage.builder()
+                        .slug(COURSE_SLUG)
+                        .packageType(packageType)
+                        .build());
+
+        learningPackage.setPackageType(packageType);
+        learningPackage.setTitle("E2 IELTS Practice Tests");
+        learningPackage.setShortDescription("Free IELTS practice course curated from public E2 IELTS YouTube videos.");
+        learningPackage.setDescription("A free online course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
+        learningPackage.setTargetScore("IELTS 5.5 - 7.0");
+        learningPackage.setDuration("5 hours 32 minutes");
+        learningPackage.setStudyMode("Self-paced online video course");
+        learningPackage.setPrice(BigDecimal.ZERO);
+        learningPackage.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
+        learningPackage.setStatus(PackageStatus.PUBLISHED);
+        learningPackage.setDisplayOrder(5);
+        learningPackage.setFeatured(true);
+        learningPackage.setDeleted(false);
+        learningPackage = learningPackageRepository.save(learningPackage);
+        LearningPackage savedPackage = learningPackage;
+
+        OnlineCourse onlineCourse = onlineCourseRepository.findByLearningPackage(savedPackage)
+                .orElseGet(() -> OnlineCourse.builder()
+                        .learningPackage(savedPackage)
+                        .build());
+
+        onlineCourse.setLearningPackage(savedPackage);
+        onlineCourse.setCategory(category);
+        onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
+        onlineCourse.setTotalLessons(18);
+        onlineCourse.setTotalHours(6);
+
+        addModule(onlineCourse, 1,
+                "IELTS Listening Practice Test with Answers",
+                "Practice a full Listening test and focus on main ideas, details, and answer checking.",
+                "Listening",
+                "https://www.youtube.com/watch?v=v3axTdVoYkY",
+                29,
+                true,
+                "Review the Listening test format and a quick question-reading strategy before you start.",
+                "Log mistakes by type: keyword, synonym, number, spelling, and distractor.");
+
+        addModule(onlineCourse, 2,
+                "IELTS Reading Practice Test with Answer Explanations",
+                "Reading practice with answer explanations for scanning, skimming, and locating evidence.",
+                "Reading",
+                "https://www.youtube.com/watch?v=kCthrwUz68w",
+                26,
+                false,
+                "Review how to identify keywords and predict where evidence appears in the passage.",
+                "Create a short review sheet with keywords, paraphrases, and the reason each answer is correct.");
+
+        addModule(onlineCourse, 3,
+                "Full IELTS Listening Test with Answers | 2024",
+                "A full Listening test to build pacing and time control under test-like conditions.",
+                "Listening",
+                "https://www.youtube.com/watch?v=VUtUOTrJ2Kk",
+                33,
+                false,
+                "Prepare an answer sheet and complete the test in one pass without pausing the video.",
+                "Score your work, replay difficult segments, and write short transcripts for the hardest questions.");
+
+        addModule(onlineCourse, 4,
+                "IELTS Speaking Practice Test with Answers",
+                "A simulated Speaking test to improve structure, examples, and natural delivery.",
+                "Speaking",
+                "https://www.youtube.com/watch?v=L520xwhFGiI",
+                33,
+                false,
+                "Review Fluency, Lexical Resource, Grammar Range, and Pronunciation before watching.",
+                "Record your own answers for three prompts and self-assess with the IELTS criteria.");
+
+        addModule(onlineCourse, 5,
+                "IELTS Listening: Techniques and Practice Questions",
+                "Learn core Listening techniques and apply them in guided practice questions.",
+                "Listening",
+                "https://www.youtube.com/watch?v=6fk6W7Knld8",
+                36,
+                false,
+                "Focus on predicting, signposting, paraphrasing, and avoiding distractors.",
+                "Collect ten useful keywords or paraphrases and turn them into a personal strategy note.");
+
+        addModule(onlineCourse, 6,
+                "100 IELTS Speaking Questions | Part 1 - 20+ IELTS Speaking Topics",
+                "A speaking prompt bank across common Part 1 topics to build faster response habits.",
+                "Speaking",
+                "https://www.youtube.com/watch?v=OTjzR2QCc_E",
+                35,
+                false,
+                "Choose five familiar topics and outline short answers with the Answer-Explain-Example pattern.",
+                "Build a personal speaking bank with twenty questions, idea prompts, and strong vocabulary.");
+
+        onlineCourseRepository.save(onlineCourse);
+    }
+
+    private void addModule(
+            OnlineCourse onlineCourse,
+            int order,
+            String videoTitle,
+            String moduleDescription,
+            String skill,
+            String videoUrl,
+            int videoDurationMinutes,
+            boolean preview,
+            String preLessonDescription,
+            String postLessonDescription
+    ) {
+        CourseModule module = findModule(onlineCourse, order);
+        module.setTitle("Module " + order + ": " + videoTitle);
+        module.setDescription(moduleDescription);
+        module.setDisplayOrder(order);
+
+        upsertLesson(
+                module,
+                1,
+                "Lesson " + order + ".1: Goals and strategy for " + skill,
+                preLessonDescription,
+                null,
+                10,
+                preview
+        );
+
+        upsertLesson(
+                module,
+                2,
+                "Lesson " + order + ".2: Video practice - " + videoTitle,
+                "Watch the original E2 IELTS video and track mistakes while following the guided practice flow.",
+                videoUrl,
+                videoDurationMinutes,
+                preview
+        );
+
+        upsertLesson(
+                module,
+                3,
+                "Lesson " + order + ".3: Review and post-video practice",
+                postLessonDescription,
+                null,
+                15,
+                false
+        );
+
+        module.getLessons().sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(moduleItem -> moduleItem.getId() == null ? Long.MAX_VALUE : moduleItem.getId()));
+    }
+
+    private CourseModule findModule(OnlineCourse onlineCourse, int order) {
+        return onlineCourse.getModules().stream()
+                .filter(module -> module.getDisplayOrder() != null && module.getDisplayOrder() == order)
+                .findFirst()
+                .orElseGet(() -> {
+                    CourseModule module = new CourseModule();
+                    onlineCourse.addModule(module);
+                    return module;
+                });
+    }
+
+    private void upsertLesson(CourseModule module, int order, String title, String description, String videoUrl, int durationMinutes, boolean preview) {
+        Lesson lesson = module.getLessons().stream()
+                .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder() == order)
+                .findFirst()
+                .orElseGet(() -> {
+                    Lesson newLesson = new Lesson();
+                    module.addLesson(newLesson);
+                    return newLesson;
+                });
+
+        lesson.setTitle(title);
+        lesson.setDescription(description);
+        lesson.setVideoUrl(videoUrl);
+        lesson.setMaterialUrl(null);
+        lesson.setDurationMinutes(durationMinutes);
+        lesson.setDisplayOrder(order);
+        lesson.setPreview(preview);
+    }
+}
