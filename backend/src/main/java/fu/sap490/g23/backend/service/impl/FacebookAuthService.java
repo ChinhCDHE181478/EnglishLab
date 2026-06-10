@@ -64,7 +64,7 @@ public class FacebookAuthService {
                     .email(email)
                     .facebookId(facebookId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                    .role(Role.USER)
+                    .role(Role.LEARNER)
                     .build();
             user = userRepository.save(user);
         }

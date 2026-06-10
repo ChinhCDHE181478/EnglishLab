@@ -34,7 +34,7 @@ public class AuthService implements IAuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
+                .role(Role.LEARNER)
                 .build();
 
         User savedUser = userRepository.save(user);
