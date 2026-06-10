@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.exception;
 
 import fu.sap490.g23.backend.dto.response.ErrorResponse;
+import fu.sap490.g23.backend.service.ai.AiEvaluationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -52,6 +53,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(AiEvaluationException.class)
+    public ResponseEntity<ErrorResponse> handleAiEvaluationException(AiEvaluationException ex) {
+        HttpStatus status = resolveAiStatus(ex);
+        ErrorResponse response = ErrorResponse.builder()
+                .status(status.value())
+                .message(resolveAiMessage(ex, status))
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(status).body(response);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         ErrorResponse response = ErrorResponse.builder()
@@ -72,5 +85,39 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    private HttpStatus resolveAiStatus(AiEvaluationException ex) {
+        Integer statusCode = ex.getStatusCode();
+        if (statusCode != null) {
+            if (statusCode == 404) {
+                return HttpStatus.BAD_GATEWAY;
+            }
+            if (statusCode == 429 || statusCode == 500 || statusCode == 502 || statusCode == 503 || statusCode == 504) {
+                return HttpStatus.SERVICE_UNAVAILABLE;
+            }
+        }
+        String message = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase();
+        if (message.contains("api key is missing") || message.contains("unsupported ai provider")) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        if (message.contains("temporarily unavailable")) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
+        return HttpStatus.BAD_GATEWAY;
+    }
+
+    private String resolveAiMessage(AiEvaluationException ex, HttpStatus status) {
+        String message = ex.getMessage() == null ? "" : ex.getMessage();
+        if (status == HttpStatus.SERVICE_UNAVAILABLE) {
+            return "Dich vu AI dang tam thoi gian doan hoac qua tai. Hay thu nop bai lai sau it phut.";
+        }
+        if (message.toLowerCase().contains("model is unavailable or unsupported")) {
+            return "Cau hinh model Gemini hien tai khong con ho tro. Hay cap nhat model AI trong backend roi thu lai.";
+        }
+        if (message.toLowerCase().contains("api key is missing")) {
+            return "Backend chua duoc cau hinh Gemini API key.";
+        }
+        return "Khong the cham bai bang AI luc nay. Vui long kiem tra cau hinh AI hoac thu lai sau.";
     }
 }

@@ -47,6 +47,7 @@ public class AuthService implements IAuthService {
                 .phoneNumber(savedUser.getPhoneNumber())
                 .targetExam(savedUser.getTargetExam())
                 .targetScore(savedUser.getTargetScore())
+                .currentBand(savedUser.getCurrentBand())
                 .studyGoal(savedUser.getStudyGoal())
                 .profileCompleted(savedUser.isProfileCompleted())
                 .build();
@@ -76,6 +77,7 @@ public class AuthService implements IAuthService {
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())
+                .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
                 .build();

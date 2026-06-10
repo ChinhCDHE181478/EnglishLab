@@ -12,6 +12,14 @@ const emptyForm = {
   level: 'ADVANCED',
   status: 'DRAFT',
   targetScore: '',
+  recommendedCurrentBandMin: '',
+  recommendedCurrentBandMax: '',
+  targetBand: '',
+  learningPathCode: '',
+  learningPathName: '',
+  learningPathOrder: '0',
+  targetOutcome: '',
+  recommendedNextCourseSlug: '',
   duration: '',
   studyMode: 'Online',
   price: '0',
@@ -50,6 +58,14 @@ export default function ContentManagerCourseEditorPage() {
           level: course.level ?? 'ADVANCED',
           status: course.status ?? 'DRAFT',
           targetScore: course.targetScore ?? '',
+          recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
+          recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
+          targetBand: course.targetBand ?? '',
+          learningPathCode: course.learningPathCode ?? '',
+          learningPathName: course.learningPathName ?? '',
+          learningPathOrder: String(course.learningPathOrder ?? 0),
+          targetOutcome: course.targetOutcome ?? '',
+          recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
           duration: course.duration ?? '',
           studyMode: course.studyMode ?? 'Online',
           price: course.price ?? '0',
@@ -87,6 +103,10 @@ export default function ContentManagerCourseEditorPage() {
     const payload = {
       ...form,
       price: Number(form.price || 0),
+      recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
+      recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
+      targetBand: form.targetBand === '' ? null : Number(form.targetBand),
+      learningPathOrder: Number(form.learningPathOrder || 0),
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
@@ -137,7 +157,14 @@ export default function ContentManagerCourseEditorPage() {
             <SelectField label="Category" onChange={handleChange('category')} options={['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE']} value={form.category} />
             <TextField label="Short description" onChange={handleChange('shortDescription')} value={form.shortDescription} />
             <SelectField label="Level" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
-            <TextField label="Target band / outcome" onChange={handleChange('targetScore')} value={form.targetScore} />
+            <TextField label="Target label / outcome" onChange={handleChange('targetScore')} value={form.targetScore} />
+            <TextField label="Recommended current band min" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
+            <TextField label="Recommended current band max" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
+            <TextField label="Target band number" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
+            <TextField label="Learning path code" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
+            <TextField label="Learning path name" onChange={handleChange('learningPathName')} value={form.learningPathName} />
+            <TextField label="Learning path order" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
+            <TextField label="Recommended next course slug" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
             <TextField label="Estimated duration" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Study mode" onChange={handleChange('studyMode')} value={form.studyMode} />
             <TextField label="Price" onChange={handleChange('price')} value={String(form.price)} />
@@ -148,6 +175,7 @@ export default function ContentManagerCourseEditorPage() {
           </div>
           <div className="mt-4 grid gap-4">
             <TextField label="Full description" onChange={handleChange('description')} rows={5} textarea value={form.description} />
+            <TextField label="Target output / course completion outcome" onChange={handleChange('targetOutcome')} rows={3} textarea value={form.targetOutcome} />
           </div>
         </Panel>
       </div>
@@ -155,7 +183,7 @@ export default function ContentManagerCourseEditorPage() {
       <div className="space-y-6">
         <Panel className="p-6">
           <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fcfbfb] p-5 text-sm text-[#584140]">
-            Publishing note: save metadata here, then use the builder page to manage modules and lessons.
+            Publishing note: set entry band, target band, learning path and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
           </div>
           {hasNoStructure ? (
             <div className="mt-4 rounded-2xl border border-[#f0d8db] bg-[#fff7f7] p-4 text-sm text-[#730014]">

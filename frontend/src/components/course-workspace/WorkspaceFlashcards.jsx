@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import courseApi from '../../api/courseApi';
 
@@ -96,29 +97,60 @@ const WorkspaceFlashcards = ({ course }) => {
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [textToSpeech, setTextToSpeech] = useState(false);
   const [speakingKey, setSpeakingKey] = useState('');
+  const [quizOptionKeys, setQuizOptionKeys] = useState([]);
+  const [learnQueue, setLearnQueue] = useState([]);
+  const [learnSessionStep, setLearnSessionStep] = useState(0);
 
   const visibleTerms = useMemo(() => (starredOnly ? terms.filter((term) => term.starred) : terms), [starredOnly, terms]);
   const baseStudyTerms = useMemo(() => (visibleTerms.length ? visibleTerms : terms), [terms, visibleTerms]);
+  const prioritizedBaseTerms = useMemo(() => (
+    [...baseStudyTerms].sort((left, right) => {
+      const rank = (term) => {
+        if ((term.incorrectCount || 0) > 0 && term.lastResultCorrect === false) return 0;
+        if (term.status === 'NEW') return 1;
+        if (term.status === 'LEARNING') return 2;
+        return 3;
+      };
+      const rankDiff = rank(left) - rank(right);
+      if (rankDiff !== 0) return rankDiff;
+      return String(left.term || '').localeCompare(String(right.term || ''));
+    })
+  ), [baseStudyTerms]);
   const studyTerms = useMemo(() => {
-    if (!shuffleEnabled) return baseStudyTerms;
-    const byKey = new Map(baseStudyTerms.map((term) => [term.termKey, term]));
+    if (!shuffleEnabled) return prioritizedBaseTerms;
+    const byKey = new Map(prioritizedBaseTerms.map((term) => [term.termKey, term]));
     const ordered = shuffledOrder.map((key) => byKey.get(key)).filter(Boolean);
-    const missing = baseStudyTerms.filter((term) => !shuffledOrder.includes(term.termKey));
+    const missing = prioritizedBaseTerms.filter((term) => !shuffledOrder.includes(term.termKey));
     return [...ordered, ...missing];
-  }, [baseStudyTerms, shuffleEnabled, shuffledOrder]);
+  }, [prioritizedBaseTerms, shuffleEnabled, shuffledOrder]);
+  const termMap = useMemo(() => new Map(terms.map((term) => [term.termKey, term])), [terms]);
+  const learnSeedKeys = useMemo(() => prioritizedBaseTerms.map((term) => term.termKey), [prioritizedBaseTerms]);
+  const learnSeedSignature = useMemo(() => learnSeedKeys.join('|'), [learnSeedKeys]);
   const activeTerm = studyTerms[Math.min(activeIndex, studyTerms.length - 1)];
   const newTerms = terms.filter((term) => term.status === 'NEW');
   const learningTerms = terms.filter((term) => term.status === 'LEARNING');
   const masteredTerms = terms.filter((term) => term.status === 'MASTERED');
-  const masteredPercent = terms.length ? Math.round((masteredTerms.length / terms.length) * 100) : 0;
+  const reviewedTerms = terms.filter((term) => (term.reviewCount || 0) > 0);
+  const incorrectTerms = terms.filter((term) => (term.incorrectCount || 0) > 0 && term.lastResultCorrect === false);
+  const reviewedPercent = terms.length ? Math.round((reviewedTerms.length / terms.length) * 100) : 0;
+  const learnBaseCount = learnSeedKeys.length;
+  const learnActiveTerm = termMap.get(learnQueue[0]) || null;
+  const currentQuizTerm = mode === 'learn' ? learnActiveTerm : activeTerm;
+  const learnTurn = learnBaseCount ? Math.floor(learnSessionStep / learnBaseCount) + 1 : 1;
+  const learnTurnProgress = learnBaseCount ? (learnSessionStep % learnBaseCount) : 0;
   const frontText = frontSide === 'term' ? activeTerm?.term : activeTerm?.meaning;
   const backTitle = frontSide === 'term' ? activeTerm?.meaning : activeTerm?.term;
   const backBody = frontSide === 'term' ? activeTerm?.example : activeTerm?.meaning;
 
   const quizOptions = useMemo(() => {
-    if (!activeTerm) return [];
-    return shuffleArray([activeTerm, ...shuffleArray(terms.filter((term) => term.termKey !== activeTerm.termKey)).slice(0, 3)]);
-  }, [activeTerm, terms]);
+    if (!currentQuizTerm) return [];
+    const byKey = new Map(terms.map((term) => [term.termKey, term]));
+    const ordered = quizOptionKeys.map((key) => byKey.get(key)).filter(Boolean);
+    if (ordered.length) return ordered;
+    return [currentQuizTerm, ...terms.filter((term) => term.termKey !== currentQuizTerm.termKey).slice(0, 3)];
+  }, [currentQuizTerm, quizOptionKeys, terms]);
+  const hasAnsweredQuiz = Boolean(quizChoice);
+  const answeredCorrectly = hasAnsweredQuiz && quizChoice === currentQuizTerm?.termKey;
 
   useEffect(() => {
     let mounted = true;
@@ -155,6 +187,25 @@ const WorkspaceFlashcards = ({ course }) => {
     setFlipped(false);
     setQuizChoice('');
   }, [activeIndex, studyTerms.length, mode]);
+
+  useEffect(() => {
+    if (!currentQuizTerm) {
+      setQuizOptionKeys([]);
+      return;
+    }
+    const nextOptions = shuffleArray([
+      currentQuizTerm,
+      ...shuffleArray(terms.filter((term) => term.termKey !== currentQuizTerm.termKey)).slice(0, 3),
+    ]);
+    setQuizOptionKeys(nextOptions.map((term) => term.termKey));
+  }, [currentQuizTerm?.termKey, terms]);
+
+  useEffect(() => {
+    if (mode !== 'learn') return;
+    setLearnQueue(learnSeedKeys);
+    setLearnSessionStep(0);
+    setQuizChoice('');
+  }, [course?.id, learnSeedSignature, mode]);
 
   useEffect(() => {
     if (!shuffleNotice) return undefined;
@@ -229,7 +280,11 @@ const WorkspaceFlashcards = ({ course }) => {
   const handleArrow = async (direction) => {
     if (!activeTerm) return;
     if (trackingEnabled) {
-      await persistTerm(activeTerm.termKey, { status: direction < 0 ? 'LEARNING' : 'MASTERED' });
+      await persistTerm(activeTerm.termKey, {
+        status: direction < 0 ? 'LEARNING' : 'MASTERED',
+        reviewed: true,
+        correct: direction > 0,
+      });
       moveCard(1);
       return;
     }
@@ -239,6 +294,56 @@ const WorkspaceFlashcards = ({ course }) => {
   const toggleStar = (term = activeTerm) => {
     if (!term) return;
     persistTerm(term.termKey, { starred: !term.starred });
+  };
+
+  const handleQuizSelect = (optionTermKey) => {
+    if (!currentQuizTerm || hasAnsweredQuiz) return;
+    setQuizChoice(optionTermKey);
+  };
+
+  const advanceLearnQueue = (answeredRight) => {
+    setLearnQueue((current) => {
+      if (!current.length) return current;
+      const [currentKey, ...rest] = current;
+      return answeredRight ? rest : [...rest, currentKey];
+    });
+    setLearnSessionStep((current) => current + 1);
+    setQuizChoice('');
+  };
+
+  const handleQuizNext = async () => {
+    if (!currentQuizTerm || !hasAnsweredQuiz) return;
+    if (mode === 'learn') {
+      advanceLearnQueue(answeredCorrectly);
+      return;
+    }
+    await persistTerm(activeTerm.termKey, {
+      status: answeredCorrectly ? 'MASTERED' : 'LEARNING',
+      reviewed: true,
+      correct: answeredCorrectly,
+    });
+    moveCard(1);
+  };
+
+  const handleLearnAnswer = async (optionTermKey) => {
+    if (!currentQuizTerm || hasAnsweredQuiz) return;
+    const isCorrect = optionTermKey === currentQuizTerm.termKey;
+    setQuizChoice(optionTermKey);
+    await persistTerm(currentQuizTerm.termKey, {
+      status: isCorrect ? 'MASTERED' : 'LEARNING',
+      reviewed: true,
+      correct: isCorrect,
+    });
+  };
+
+  const handleLearnSkip = async () => {
+    if (!currentQuizTerm || hasAnsweredQuiz) return;
+    setQuizChoice('__skip__');
+    await persistTerm(currentQuizTerm.termKey, {
+      status: 'LEARNING',
+      reviewed: true,
+      correct: false,
+    });
   };
 
   const toggleShuffle = () => {
@@ -282,7 +387,7 @@ const WorkspaceFlashcards = ({ course }) => {
     }
     if (selectedMatch.termKey === card.termKey && selectedMatch.type !== card.type) {
       setMatchFeedback({ termKey: card.termKey, status: 'correct' });
-      persistTerm(card.termKey, { status: 'MASTERED' });
+      persistTerm(card.termKey, { status: 'MASTERED', reviewed: true, correct: true });
       window.setTimeout(() => {
         setMatchedKeys((current) => new Set(current).add(card.termKey));
         setMatchFeedback(null);
@@ -367,10 +472,13 @@ const WorkspaceFlashcards = ({ course }) => {
   );
 
   const renderCard = (fullscreen = false) => (
-    <div
+    <motion.div
       className={`relative ${fullscreen ? 'h-[62vh]' : 'h-[430px]'} w-full cursor-pointer rounded-[18px] text-left [perspective:1200px]`}
       role="button"
       tabIndex={0}
+      initial={{ opacity: 0, y: 16, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={() => setFlipped((value) => !value)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -380,7 +488,9 @@ const WorkspaceFlashcards = ({ course }) => {
       }}
     >
       <div key={activeTerm?.termKey} className="flashcard-card-enter relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]" style={{ transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-        <div className="absolute inset-0 overflow-hidden rounded-[18px] border border-[#e8e8e8] bg-white p-10 shadow-[0_20px_60px_rgba(26,28,28,0.08)] [backface-visibility:hidden]">
+        <div className="absolute inset-0 overflow-hidden rounded-[18px] border border-[#e8e8e8] bg-[linear-gradient(135deg,#fff8f5_0%,#ffffff_55%,#fff3f5_100%)] p-10 shadow-[0_20px_60px_rgba(26,28,28,0.08)] [backface-visibility:hidden]">
+          <div className="pointer-events-none absolute -left-12 top-10 h-36 w-36 rounded-full bg-[#ffd7df]/55 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-8 right-8 h-24 w-24 rounded-full bg-[#ffe6b5]/45 blur-2xl" />
           <div className="absolute right-8 top-7 flex items-center gap-4">
             <button className="cursor-pointer" type="button" onClick={(event) => { event.stopPropagation(); playSpeech(`front-${activeTerm?.termKey}`, frontText); }}>
               {renderSpeaker(`front-${activeTerm?.termKey}`)}
@@ -394,7 +504,9 @@ const WorkspaceFlashcards = ({ course }) => {
           </div>
         </div>
 
-        <div className="absolute inset-0 overflow-hidden rounded-[18px] border border-[#e8e8e8] bg-white p-10 shadow-[0_20px_60px_rgba(26,28,28,0.08)] [backface-visibility:hidden]" style={{ transform: 'rotateY(180deg)' }}>
+        <div className="absolute inset-0 overflow-hidden rounded-[18px] border border-[#e8e8e8] bg-[linear-gradient(160deg,#fffdf7_0%,#ffffff_60%,#fff4ef_100%)] p-10 shadow-[0_20px_60px_rgba(26,28,28,0.08)] [backface-visibility:hidden]" style={{ transform: 'rotateY(180deg)' }}>
+          <div className="pointer-events-none absolute -right-10 top-10 h-32 w-32 rounded-full bg-[#ffe1cc]/55 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-10 left-8 h-20 w-20 rounded-full bg-[#ffd7df]/45 blur-2xl" />
           <div className="absolute right-8 top-7 flex items-center gap-4">
             <button className="cursor-pointer" type="button" onClick={(event) => { event.stopPropagation(); playSpeech(`back-${activeTerm?.termKey}`, backTitle); }}>
               {renderSpeaker(`back-${activeTerm?.termKey}`)}
@@ -417,7 +529,7 @@ const WorkspaceFlashcards = ({ course }) => {
           {shuffleNotice}
         </div>
       ) : null}
-    </div>
+    </motion.div>
   );
 
   const renderControls = (compact = false) => (
@@ -495,10 +607,10 @@ const WorkspaceFlashcards = ({ course }) => {
           <div className="min-w-[240px]">
             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.1em] text-[#8c716f]">
               <span>Tiến độ</span>
-              <span>{masteredTerms.length}/{terms.length}</span>
+              <span>{reviewedTerms.length}/{terms.length}</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#f1f1f0]">
-              <div className="h-full rounded-full bg-[#8a0018] transition-all duration-500" style={{ width: `${masteredPercent}%` }} />
+              <div className="h-full rounded-full bg-[#8a0018] transition-all duration-500" style={{ width: `${reviewedPercent}%` }} />
             </div>
           </div>
         </div>
@@ -522,7 +634,7 @@ const WorkspaceFlashcards = ({ course }) => {
       ) : null}
 
       {mode === 'learn' ? (
-        <div className="fixed inset-0 z-[95] min-h-screen overflow-y-auto bg-white px-6 py-5 md:px-8">
+        <div className="fixed inset-0 z-[95] min-h-screen overflow-y-auto bg-[#fffaf6] px-6 py-5 md:px-8">
           <div className="mb-8 flex items-center justify-between">
             <button className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#f1f3f8] px-5 py-3 text-sm font-extrabold text-[#59627a]" type="button">
               <span className="material-symbols-outlined text-[20px] text-[#8a0018]">school</span>
@@ -530,7 +642,7 @@ const WorkspaceFlashcards = ({ course }) => {
               <span className="material-symbols-outlined text-[18px]">expand_more</span>
             </button>
             <div className="flex items-center gap-4 text-[#59627a]">
-              <button className="rounded-full bg-[#ffc928] px-5 py-3 text-sm font-extrabold text-[#2b2828]" type="button">Bắt đầu dùng thử</button>
+              {/* <button className="rounded-full bg-[#ffc928] px-5 py-3 text-sm font-extrabold text-[#2b2828]" type="button">Bắt đầu dùng thử</button> */}
               <button className="cursor-pointer" type="button" onClick={() => setSettingsOpen(true)}>
                 <span className="material-symbols-outlined">settings</span>
               </button>
@@ -541,54 +653,90 @@ const WorkspaceFlashcards = ({ course }) => {
           </div>
 
           <div className="mx-auto max-w-[960px]">
-            <div className="mb-6 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#11835f] text-sm font-extrabold text-white">0</span>
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="h-4 flex-1 rounded-full bg-[#dfe3ee]">
-                  <div className={`h-full rounded-full ${index === 0 ? 'w-1/2 bg-[#8a0018]' : 'w-0'}`} />
-                </div>
-              ))}
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#dfe3ee] text-sm font-extrabold text-[#252b3a]">{studyTerms.length}</span>
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-[#11835f] px-2 text-sm font-extrabold text-white">{reviewedTerms.length}</span>
+              <div className="h-4 flex-1 overflow-hidden rounded-full bg-[#dfe3ee]">
+                <div className="h-full rounded-full bg-[#8a0018] transition-all duration-500" style={{ width: `${reviewedPercent}%` }} />
+              </div>
+              <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-[#dfe3ee] px-2 text-sm font-extrabold text-[#252b3a]">{terms.length}</span>
             </div>
+            <p className="mb-4 text-sm text-[#584140]">
+              Đã học {reviewedTerms.length}/{terms.length} từ. Cần ôn lại: {incorrectTerms.length}. Đã thuộc: {masteredTerms.length}.
+            </p>
 
+            {learnActiveTerm ? (
             <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm font-bold text-[#59627a]">Thuật ngữ</p>
-                <span className="text-sm font-extrabold text-[#8a0018]">{activeIndex + 1}/{studyTerms.length}</span>
+                <span className="text-sm font-extrabold text-[#8a0018]">{Math.min(learnTurnProgress + 1, learnBaseCount || 1)}/{learnBaseCount || 1}</span>
               </div>
-              <h3 className="mt-6 min-h-[170px] text-2xl font-medium leading-10 text-[#0f1b3d]">{activeTerm.meaning}</h3>
+              <h3 className="mt-6 min-h-[170px] text-2xl font-medium leading-10 text-[#0f1b3d]">{learnActiveTerm?.meaning}</h3>
               <p className="mt-4 text-sm font-bold text-[#59627a]">Chọn đáp án đúng</p>
               <div className="mt-5 grid gap-4 md:grid-cols-2">
                 {quizOptions.map((option, index) => {
                   const selected = quizChoice === option.termKey;
-                  const correct = quizChoice && option.termKey === activeTerm.termKey;
-                  const wrong = selected && option.termKey !== activeTerm.termKey;
+                  const correct = hasAnsweredQuiz && option.termKey === learnActiveTerm?.termKey;
+                  const wrong = selected && option.termKey !== learnActiveTerm?.termKey;
                   return (
-                    <button
+                    <motion.button
                       key={option.termKey}
-                      className={`cursor-pointer rounded-xl border px-5 py-4 text-left font-bold transition hover:border-[#8a0018]/40 ${correct ? 'border-[#176b3a] bg-[#e7f6ec] text-[#176b3a]' : wrong ? 'border-[#ba1a1a] bg-[#ffdad6] text-[#93000a]' : 'border-[#dfe3ee] bg-white text-[#0f1b3d]'}`}
+                      className={`cursor-pointer rounded-2xl border px-5 py-4 text-left font-bold transition ${hasAnsweredQuiz ? '' : 'hover:-translate-y-0.5 hover:border-[#8a0018]/40 hover:shadow-sm'} ${correct ? 'border-[#176b3a] bg-[#e7f6ec] text-[#176b3a]' : wrong ? 'border-[#ba1a1a] bg-[#ffdad6] text-[#93000a]' : selected ? 'border-[#8a0018] bg-[#fff0f1] text-[#8a0018]' : 'border-[#dfe3ee] bg-white text-[#0f1b3d]'}`}
                       type="button"
-                      onClick={() => {
-                        setQuizChoice(option.termKey);
-                        persistTerm(activeTerm.termKey, { status: option.termKey === activeTerm.termKey ? 'MASTERED' : 'LEARNING' });
-                      }}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.05 * index, duration: 0.2 }}
+                      onClick={() => handleLearnAnswer(option.termKey)}
                     >
-                      <span className="mr-3 rounded-full bg-[#eef1f7] px-3 py-1 text-xs">{index + 1}</span>
+                      <span className={`mr-3 rounded-full px-3 py-1 text-xs ${selected || correct ? 'bg-white/80' : 'bg-[#eef1f7]'}`}>{index + 1}</span>
                       {option.term}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
+              <AnimatePresence>
+                {hasAnsweredQuiz ? (
+                  <motion.div
+                    className={`mt-5 rounded-2xl border px-5 py-4 ${answeredCorrectly ? 'border-[#176b3a]/20 bg-[#f2fbf5]' : 'border-[#ba1a1a]/20 bg-[#fff6f5]'}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <p className={`text-sm font-extrabold ${answeredCorrectly ? 'text-[#176b3a]' : 'text-[#93000a]'}`}>
+                      Đáp án đúng là "{learnActiveTerm?.term}".
+                    </p>
+                    {learnActiveTerm?.example ? (
+                      <p className="mt-2 text-sm leading-7 text-[#584140]">{learnActiveTerm.example}</p>
+                    ) : null}
+                    {learnActiveTerm?.commonError ? (
+                      <p className="mt-2 text-sm font-semibold leading-7 text-[#8a0018]">Lưu ý: {learnActiveTerm.commonError}</p>
+                    ) : null}
+                    {!answeredCorrectly ? (
+                      <p className="mt-2 text-sm font-semibold text-[#93000a]">Câu này sẽ quay lại ở lượt ôn tiếp theo.</p>
+                    ) : null}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
               <div className="mt-6 flex items-center justify-end gap-8">
-                <button className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-[#3155ff]" type="button" onClick={() => { persistTerm(activeTerm.termKey, { status: 'LEARNING' }); moveCard(1); }}>
+                <button className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-[#3155ff]" type="button" onClick={handleLearnSkip}>
                   <span className="material-symbols-outlined text-[18px] text-[#59627a]">flag</span>
                   Bạn không biết?
                 </button>
                 {quizChoice ? (
-                  <button className="cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={() => moveCard(1)}>Câu tiếp theo</button>
+                  <button className="cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={handleQuizNext}>Câu tiếp theo</button>
                 ) : null}
               </div>
             </div>
+            ) : (
+              <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#8c716f]">Turn complete</p>
+                <h3 className="mt-3 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn đã hoàn thành lượt học này</h3>
+                <p className="mt-3 text-sm leading-7 text-[#584140]">Tất cả câu trong hàng chờ hiện tại đã được xử lý. Bạn có thể bắt đầu thêm một lượt để ôn lại và củng cố tiếp.</p>
+                <button className="mt-5 cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={() => { setLearnQueue(learnSeedKeys); setLearnSessionStep(0); setQuizChoice(''); }}>
+                  Học thêm một lượt nữa
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

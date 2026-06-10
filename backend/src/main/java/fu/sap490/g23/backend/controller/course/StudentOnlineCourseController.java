@@ -59,8 +59,10 @@ public class StudentOnlineCourseController {
             @PathVariable String termKey,
             @RequestParam(required = false) VocabularyProgressStatus status,
             @RequestParam(required = false) Boolean starred,
+            @RequestParam(required = false) Boolean reviewed,
+            @RequestParam(required = false) Boolean correct,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(onlineCourseService.updateVocabularyProgress(courseId, termKey, status, starred, authentication.getName()));
+        return ResponseEntity.ok(onlineCourseService.updateVocabularyProgress(courseId, termKey, status, starred, reviewed, correct, authentication.getName()));
     }
 }

@@ -16,5 +16,6 @@ public class UpdateProfileRequest {
     private String targetExam;
 
     private String targetScore;
+    private Double currentBand;
     private String studyGoal;
 }

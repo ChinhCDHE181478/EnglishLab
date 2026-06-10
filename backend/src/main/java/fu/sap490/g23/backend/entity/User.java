@@ -61,6 +61,9 @@ public class User implements UserDetails {
     @Column(name = "target_score", length = 30)
     private String targetScore;
 
+    @Column(name = "current_band")
+    private Double currentBand;
+
     @Column(name = "study_goal", length = 500)
     private String studyGoal;
 

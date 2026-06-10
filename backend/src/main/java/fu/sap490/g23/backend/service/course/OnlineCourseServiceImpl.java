@@ -123,6 +123,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .learningPackage(learningPackage)
                 .category(category)
                 .level(request.getLevel())
+                .recommendedCurrentBandMin(request.getRecommendedCurrentBandMin())
+                .recommendedCurrentBandMax(request.getRecommendedCurrentBandMax())
+                .targetBand(request.getTargetBand())
+                .learningPathCode(request.getLearningPathCode())
+                .learningPathName(request.getLearningPathName())
+                .learningPathOrder(request.getLearningPathOrder())
+                .targetOutcome(request.getTargetOutcome())
+                .recommendedNextCourseSlug(request.getRecommendedNextCourseSlug())
                 .totalLessons(defaultInt(request.getTotalLessons()))
                 .totalHours(defaultInt(request.getTotalHours()))
                 .build();
@@ -151,6 +159,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
         course.setCategory(category);
         course.setLevel(request.getLevel());
+        course.setRecommendedCurrentBandMin(request.getRecommendedCurrentBandMin());
+        course.setRecommendedCurrentBandMax(request.getRecommendedCurrentBandMax());
+        course.setTargetBand(request.getTargetBand());
+        course.setLearningPathCode(request.getLearningPathCode());
+        course.setLearningPathName(request.getLearningPathName());
+        course.setLearningPathOrder(request.getLearningPathOrder());
+        course.setTargetOutcome(request.getTargetOutcome());
+        course.setRecommendedNextCourseSlug(request.getRecommendedNextCourseSlug());
         course.setTotalLessons(defaultInt(request.getTotalLessons()));
         course.setTotalHours(defaultInt(request.getTotalHours()));
         synchronizeModules(course, request.getModules());
@@ -291,7 +307,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     @Override
-    public VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, String studentEmail) {
+    public VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findCourse(courseId);
@@ -315,12 +331,24 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (starred != null) {
             progress.setStarred(starred);
         }
-        progress.setLastReviewedAt(LocalDateTime.now());
+        if (Boolean.TRUE.equals(reviewed)) {
+            progress.setReviewCount((progress.getReviewCount() == null ? 0 : progress.getReviewCount()) + 1);
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
+        if (correct != null) {
+            progress.setLastResultCorrect(correct);
+            if (correct) {
+                progress.setCorrectCount((progress.getCorrectCount() == null ? 0 : progress.getCorrectCount()) + 1);
+            } else {
+                progress.setIncorrectCount((progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount()) + 1);
+            }
+        }
+        if (progress.getLastReviewedAt() == null) {
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
         VocabularyProgress savedProgress = vocabularyProgressRepository.save(progress);
 
-        term.setStatus(savedProgress.getStatus());
-        term.setStarred(savedProgress.isStarred());
-        return term;
+        return applyVocabularyProgress(term, List.of(savedProgress));
     }
 
     private OnlineCourse findCourse(Long id) {
@@ -416,6 +444,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                     .moduleTitle(module.getTitle())
                     .status(VocabularyProgressStatus.NEW)
                     .starred(false)
+                    .reviewCount(0)
+                    .correctCount(0)
+                    .incorrectCount(0)
+                    .lastResultCorrect(null)
                     .build());
         }
 
@@ -429,6 +461,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .ifPresent(progress -> {
                     term.setStatus(progress.getStatus());
                     term.setStarred(progress.isStarred());
+                    term.setReviewCount(progress.getReviewCount() == null ? 0 : progress.getReviewCount());
+                    term.setCorrectCount(progress.getCorrectCount() == null ? 0 : progress.getCorrectCount());
+                    term.setIncorrectCount(progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount());
+                    term.setLastResultCorrect(progress.getLastResultCorrect());
                 });
         return term;
     }

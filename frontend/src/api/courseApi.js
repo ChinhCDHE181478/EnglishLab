@@ -90,6 +90,29 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
+  async getCourseAssessments(courseId) {
+    const response = await axiosClient.get(`/api/student/courses/${courseId}/assessments`);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async submitAssessment(assessmentId, payload) {
+    const response = await axiosClient.post(`/api/student/assessments/${assessmentId}/submit`, payload);
+    return unwrapData(response);
+  },
+
+  async uploadAssessmentAudio(file, onUploadProgress) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post('/api/student/assessments/audio', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
+    return unwrapData(response);
+  },
+
   async updateVocabularyProgress(courseId, termKey, payload = {}) {
     const response = await axiosClient.patch(`/api/student/online-courses/${courseId}/vocabulary/${encodeURIComponent(termKey)}/progress`, null, {
       params: payload,

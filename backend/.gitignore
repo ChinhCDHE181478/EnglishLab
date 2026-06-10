@@ -34,3 +34,10 @@ build/
 
 ### Local secrets ###
 .env
+
+### Local runtime artifacts ###
+*.log
+*.err
+*.pid
+backend/
+uploads/

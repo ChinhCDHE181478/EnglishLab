@@ -22,4 +22,8 @@ public class VocabularyTermResponse {
     private String moduleTitle;
     private VocabularyProgressStatus status;
     private boolean starred;
+    private int reviewCount;
+    private int correctCount;
+    private int incorrectCount;
+    private Boolean lastResultCorrect;
 }

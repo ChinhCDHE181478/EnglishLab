@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BookOpen, Phone, Target, User } from 'lucide-react';
+import BrandedSelect from '../components/ui/BrandedSelect';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateCurrentUser } from '../api/authApi';
 import { getStoredUser } from '../utils/auth';
@@ -112,19 +113,14 @@ const CompleteProfile = () => {
               </label>
               <div className="relative">
                 <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 text-[#584140]/50" size={20} />
-                <select
-                  className="w-full cursor-pointer appearance-none rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-4 outline-none transition focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
+                <BrandedSelect
+                  buttonClassName="pl-10 pr-4"
                   id="targetExam"
                   name="targetExam"
                   onChange={handleChange}
+                  options={targetOptions}
                   value={formData.targetExam}
-                >
-                  {targetOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
 

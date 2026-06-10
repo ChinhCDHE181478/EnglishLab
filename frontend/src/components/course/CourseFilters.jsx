@@ -1,8 +1,12 @@
+import BrandedSelect from '../ui/BrandedSelect';
+
 const filterGroups = [
   { title: 'Mục tiêu', options: ['IELTS Academic', 'TOEIC Listening & Reading', 'Giao tiếp đi làm'] },
   { title: 'Trình độ', options: ['Mới bắt đầu', 'Trung cấp (4.5 - 5.5)', 'Nâng cao (6.0+)'] },
   { title: 'Hình thức', options: ['Học tại trung tâm', 'Học trực tuyến (Live)'] },
 ];
+
+const durationOptions = ['Mọi thời lượng', 'Dưới 2 tháng', '2 - 4 tháng', 'Trên 4 tháng'];
 
 const CourseFilters = ({ keyword, onKeywordChange, onClear }) => (
   <aside className="hidden space-y-8 lg:block">
@@ -16,9 +20,9 @@ const CourseFilters = ({ keyword, onKeywordChange, onClear }) => (
           <p className="mb-3 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-[#584140]">Tìm kiếm</p>
           <input
             className="w-full rounded-lg border border-[#dfbfbd]/50 bg-white px-3 py-2 outline-none transition focus:border-[#4b0009] focus:ring-1 focus:ring-[#4b0009]"
+            onChange={(event) => onKeywordChange(event.target.value)}
             placeholder="Tên khóa học..."
             value={keyword}
-            onChange={(event) => onKeywordChange(event.target.value)}
           />
         </div>
         {filterGroups.map((group) => (
@@ -36,15 +40,10 @@ const CourseFilters = ({ keyword, onKeywordChange, onClear }) => (
         ))}
         <div>
           <p className="mb-3 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-[#584140]">Thời lượng</p>
-          <select className="w-full rounded-lg border border-[#dfbfbd]/50 bg-white px-3 py-2 outline-none focus:border-[#4b0009] focus:ring-1 focus:ring-[#4b0009]">
-            <option>Mọi thời lượng</option>
-            <option>Dưới 2 tháng</option>
-            <option>2 - 4 tháng</option>
-            <option>Trên 4 tháng</option>
-          </select>
+          <BrandedSelect onChange={() => {}} options={durationOptions} value={durationOptions[0]} />
         </div>
       </div>
-      <button className="mt-8 w-full rounded-lg border border-[#4b0009] py-3 text-[14px] font-semibold leading-none tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009]/5" type="button" onClick={onClear}>
+      <button className="mt-8 w-full rounded-lg border border-[#4b0009] py-3 text-[14px] font-semibold leading-none tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009]/5" onClick={onClear} type="button">
         Xóa tất cả bộ lọc
       </button>
     </div>

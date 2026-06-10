@@ -30,6 +30,6 @@ public interface OnlineCourseService {
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     PackageEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail);
     List<VocabularyTermResponse> getVocabularyTerms(Long courseId, String studentEmail);
-    VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, String studentEmail);
+    VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail);
     BunnyVideoUploadResponse uploadLessonVideo(Long courseId, Long lessonId, String title, MultipartFile file);
 }

@@ -48,6 +48,21 @@ public class VocabularyProgress {
     @Column(name = "last_reviewed_at")
     private LocalDateTime lastReviewedAt;
 
+    @Column(name = "review_count")
+    @Builder.Default
+    private Integer reviewCount = 0;
+
+    @Column(name = "correct_count")
+    @Builder.Default
+    private Integer correctCount = 0;
+
+    @Column(name = "incorrect_count")
+    @Builder.Default
+    private Integer incorrectCount = 0;
+
+    @Column(name = "last_result_correct")
+    private Boolean lastResultCorrect;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
