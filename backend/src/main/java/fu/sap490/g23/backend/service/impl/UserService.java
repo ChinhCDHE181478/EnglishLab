@@ -31,6 +31,7 @@ public class UserService implements IUserService {
         user.setPhoneNumber(request.getPhoneNumber().trim());
         user.setTargetExam(request.getTargetExam().trim());
         user.setTargetScore(trimToNull(request.getTargetScore()));
+        user.setCurrentBand(request.getCurrentBand());
         user.setStudyGoal(trimToNull(request.getStudyGoal()));
         user.setProfileCompleted(true);
 
@@ -46,6 +47,7 @@ public class UserService implements IUserService {
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())
+                .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
                 .build();

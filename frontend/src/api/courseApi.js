@@ -84,9 +84,55 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getVocabularyTerms(courseId) {
+    const response = await axiosClient.get(`/api/student/online-courses/${courseId}/vocabulary`);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getCourseAssessments(courseId) {
+    const response = await axiosClient.get(`/api/student/courses/${courseId}/assessments`);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async submitAssessment(assessmentId, payload) {
+    const response = await axiosClient.post(`/api/student/assessments/${assessmentId}/submit`, payload);
+    return unwrapData(response);
+  },
+
+  async uploadAssessmentAudio(file, onUploadProgress) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post('/api/student/assessments/audio', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
+    return unwrapData(response);
+  },
+
+  async updateVocabularyProgress(courseId, termKey, payload = {}) {
+    const response = await axiosClient.patch(`/api/student/online-courses/${courseId}/vocabulary/${encodeURIComponent(termKey)}/progress`, null, {
+      params: payload,
+    });
+    return unwrapData(response);
+  },
+
   async getManagedOnlineCourses(params = {}) {
     const response = await axiosClient.get('/api/content-manager/online-courses', { params });
     return normalizePage(unwrapData(response));
+  },
+
+  async getManagedOnlineCourse(slugOrId) {
+    const response = await axiosClient.get(`/api/content-manager/online-courses/${slugOrId}`);
+    return unwrapData(response);
+  },
+
+  async getManagedCourseStats() {
+    const response = await axiosClient.get('/api/content-manager/online-courses/stats');
+    return unwrapData(response);
   },
 
   async createOnlineCourse(payload) {
@@ -111,6 +157,19 @@ export const courseApi = {
 
   async deleteOnlineCourse(id) {
     const response = await axiosClient.delete(`/api/content-manager/online-courses/${id}`);
+    return unwrapData(response);
+  },
+
+  async uploadLessonVideo(courseId, lessonId, file, title, onUploadProgress) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post(`/api/content-manager/online-courses/${courseId}/lessons/${lessonId}/bunny-video`, formData, {
+      params: title ? { title } : undefined,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
     return unwrapData(response);
   },
 };

@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,16 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
+    @Value("${app.seed.enabled:false}")
+    private boolean seedEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled) {
+            return;
+        }
+
         PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
                 .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
                         .code(PackageTypeCode.ONLINE_COURSE)
@@ -85,6 +93,14 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setLearningPackage(savedPackage);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
+        onlineCourse.setRecommendedCurrentBandMin(5.5);
+        onlineCourse.setRecommendedCurrentBandMax(6.5);
+        onlineCourse.setTargetBand(7.0);
+        onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
+        onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");
+        onlineCourse.setLearningPathOrder(2);
+        onlineCourse.setTargetOutcome("Complete IELTS-style practice tests, analyze mistakes, and build a personal review plan before the final mock.");
+        onlineCourse.setRecommendedNextCourseSlug(null);
         onlineCourse.setTotalLessons(18);
         onlineCourse.setTotalHours(6);
 

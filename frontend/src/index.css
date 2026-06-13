@@ -89,6 +89,22 @@ button:not(:disabled),
   animation: float-up 0.55s ease forwards;
 }
 
+@keyframes flashcard-card-enter {
+  from {
+    opacity: 0.72;
+    transform: translateX(26px) rotateY(-8deg) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0deg) scale(1);
+  }
+}
+
+.flashcard-card-enter {
+  animation: flashcard-card-enter 0.28s ease-out;
+}
+
 .cursor-glow-wrapper {
   overflow: hidden;
 }

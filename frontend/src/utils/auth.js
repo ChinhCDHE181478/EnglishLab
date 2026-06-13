@@ -16,6 +16,9 @@ export const needsProfileCompletion = (user) => {
   return !user.profileCompleted || !user.fullName || !user.phoneNumber || !user.targetExam;
 };
 
+export const isContentManagerUser = (user) =>
+  ['CONTENT_MANAGER', 'MANAGER', 'ADMIN'].includes(String(user?.role || '').toUpperCase());
+
 export const clearSession = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('user');

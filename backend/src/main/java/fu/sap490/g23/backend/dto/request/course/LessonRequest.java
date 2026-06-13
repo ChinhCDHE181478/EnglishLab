@@ -14,12 +14,19 @@ import lombok.NoArgsConstructor;
 @Builder
 public class LessonRequest {
 
+    private Long id;
+
     @NotBlank(message = "Lesson title is required")
     @Size(max = 180)
     private String title;
 
     @Size(max = 500)
     private String description;
+
+    @Size(max = 40)
+    private String contentType;
+
+    private String contentText;
 
     @Size(max = 700)
     private String videoUrl;

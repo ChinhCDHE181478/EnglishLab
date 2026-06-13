@@ -45,6 +45,25 @@ public class OnlineCourseRequest {
     @Size(max = 80)
     private String targetScore;
 
+    private Double recommendedCurrentBandMin;
+    private Double recommendedCurrentBandMax;
+    private Double targetBand;
+
+    @Size(max = 80)
+    private String learningPathCode;
+
+    @Size(max = 180)
+    private String learningPathName;
+
+    @Min(0)
+    private Integer learningPathOrder;
+
+    @Size(max = 700)
+    private String targetOutcome;
+
+    @Size(max = 220)
+    private String recommendedNextCourseSlug;
+
     @Size(max = 80)
     private String duration;
 

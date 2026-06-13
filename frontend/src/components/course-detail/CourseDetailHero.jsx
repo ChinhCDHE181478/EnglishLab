@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
 import { formatCoursePrice, isPaidCourse } from '../course/courseFormatters';
 
+const formatBandRange = (course) => {
+  if (course.recommendedCurrentBandMin && course.recommendedCurrentBandMax) {
+    return `Band ${course.recommendedCurrentBandMin} - ${course.recommendedCurrentBandMax}`;
+  }
+  return course.level || 'Tự học';
+};
+
 const statItems = (course) => [
-  { label: 'Trình độ', value: course.level || 'Tự học' },
-  { label: 'Mục tiêu', value: course.targetScore || course.categoryName || course.category || 'Online' },
+  { label: 'Band đầu vào', value: formatBandRange(course) },
+  { label: 'Target band', value: course.targetBand ? `Band ${course.targetBand}` : course.targetScore || course.categoryName || course.category || 'Online' },
   { label: 'Thời lượng', value: course.duration || 'Tự học linh hoạt' },
   { label: 'Bài học', value: `${course.totalLessons || 0} bài` },
   { label: 'Hình thức', value: 'Tự học 100%' },
@@ -36,6 +43,21 @@ const CourseDetailHero = ({ course, isAuthenticated, purchasing, onPurchase }) =
           <p className="mt-5 max-w-3xl text-base leading-8 text-[#584140] md:text-lg">
             {course.description || course.shortDescription}
           </p>
+          {course.targetOutcome ? (
+            <div className="mt-5 rounded-2xl border border-[#8a0018]/15 bg-white/85 p-4 text-sm leading-7 text-[#584140]">
+              <span className="font-extrabold text-[#4b0009]">Target đầu ra:</span> {course.targetOutcome}
+            </div>
+          ) : null}
+          {course.learningPathName ? (
+            <div className="mt-3 inline-flex rounded-full bg-[#fff0f1] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[#8a0018]">
+              Lộ trình: {course.learningPathName} · Step {course.learningPathOrder || 1}
+            </div>
+          ) : null}
+          {course.recommendedNextCourseSlug ? (
+            <div className="mt-3 rounded-2xl border border-[#dfbfbd]/25 bg-white/85 p-4 text-sm leading-7 text-[#584140]">
+              <span className="font-extrabold text-[#4b0009]">Recommended next course:</span> {course.recommendedNextCourseSlug}
+            </div>
+          ) : null}
           <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {statItems(course).map((item) => (
               <div key={item.label} className="rounded-2xl border border-[#dfbfbd]/25 bg-white/80 p-4 shadow-sm">

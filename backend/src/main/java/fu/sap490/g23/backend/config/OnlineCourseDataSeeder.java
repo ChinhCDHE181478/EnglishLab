@@ -14,6 +14,7 @@ import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +35,16 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     private final OnlineCourseService onlineCourseService;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.seed.enabled:false}")
+    private boolean seedEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled) {
+            return;
+        }
+
         seedPackageTypes();
         seedCourseCategories();
         backfillMissingCourseCategories();

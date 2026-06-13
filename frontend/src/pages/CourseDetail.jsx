@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
@@ -113,7 +114,7 @@ const CourseDetail = () => {
       <main className="mx-auto max-w-[1320px] px-4 pb-[80px] pt-8 md:px-10">
         <div className="mb-6">
           <Link className="group inline-flex items-center gap-2 text-sm font-bold text-[#8a0018]" to="/courses">
-            <span className="material-symbols-outlined text-base">arrow_back</span>
+            <ArrowLeft className="h-4 w-4 shrink-0" />
             <span className="group-hover:underline">Quay lại danh sách khóa học</span>
           </Link>
         </div>

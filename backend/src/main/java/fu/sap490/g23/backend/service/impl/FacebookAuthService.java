@@ -64,7 +64,7 @@ public class FacebookAuthService {
                     .email(email)
                     .facebookId(facebookId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                    .role(Role.USER)
+                    .role(Role.LEARNER)
                     .build();
             user = userRepository.save(user);
         }
@@ -79,6 +79,7 @@ public class FacebookAuthService {
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())
+                .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
                 .build();

@@ -61,6 +61,9 @@ public class User implements UserDetails {
     @Column(name = "target_score", length = 30)
     private String targetScore;
 
+    @Column(name = "current_band")
+    private Double currentBand;
+
     @Column(name = "study_goal", length = 500)
     private String studyGoal;
 
@@ -71,7 +74,7 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
-    private Role role = Role.USER;
+    private Role role = Role.LEARNER;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

@@ -14,6 +14,7 @@ public class UserResponse {
     private String phoneNumber;
     private String targetExam;
     private String targetScore;
+    private Double currentBand;
     private String studyGoal;
     private boolean profileCompleted;
 }

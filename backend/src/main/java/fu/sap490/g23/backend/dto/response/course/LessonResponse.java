@@ -13,7 +13,12 @@ public class LessonResponse {
     private Long id;
     private String title;
     private String description;
+    private String contentType;
+    private String contentText;
     private String videoUrl;
+    private String bunnyVideoId;
+    private String bunnyLibraryId;
+    private String bunnyCdnUrl;
     private String materialUrl;
     private Integer durationMinutes;
     private Integer displayOrder;
