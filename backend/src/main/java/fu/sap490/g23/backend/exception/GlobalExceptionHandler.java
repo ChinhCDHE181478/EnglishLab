@@ -110,14 +110,14 @@ public class GlobalExceptionHandler {
     private String resolveAiMessage(AiEvaluationException ex, HttpStatus status) {
         String message = ex.getMessage() == null ? "" : ex.getMessage();
         if (status == HttpStatus.SERVICE_UNAVAILABLE) {
-            return "Dich vu AI dang tam thoi gian doan hoac qua tai. Hay thu nop bai lai sau it phut.";
+            return "Dịch vụ AI đang tạm thời gián đoạn hoặc quá tải. Hãy thử nộp bài lại sau ít phút.";
         }
         if (message.toLowerCase().contains("model is unavailable or unsupported")) {
-            return "Cau hinh model Gemini hien tai khong con ho tro. Hay cap nhat model AI trong backend roi thu lai.";
+            return "Cấu hình model Gemini hiện tại không còn hỗ trợ. Hãy cập nhật model AI trong backend rồi thử lại.";
         }
         if (message.toLowerCase().contains("api key is missing")) {
-            return "Backend chua duoc cau hinh Gemini API key.";
+            return "Backend chưa được cấu hình Gemini API key.";
         }
-        return "Khong the cham bai bang AI luc nay. Vui long kiem tra cau hinh AI hoac thu lai sau.";
+        return "Không thể chấm bài bằng AI lúc này. Vui lòng kiểm tra cấu hình AI hoặc thử lại sau.";
     }
 }

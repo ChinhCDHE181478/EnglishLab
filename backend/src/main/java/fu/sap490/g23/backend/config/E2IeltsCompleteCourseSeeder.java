@@ -145,14 +145,14 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Record your own answers for three prompts and self-assess with the IELTS criteria.");
 
         addModule(onlineCourse, 5,
-                "IELTS Listening: Techniques and Practice Questions",
-                "Learn core Listening techniques and apply them in guided practice questions.",
-                "Listening",
-                "https://www.youtube.com/watch?v=6fk6W7Knld8",
+                "IELTS Reading: Techniques and Practice Questions",
+                "Learn core Reading techniques and apply them in guided practice questions.",
+                "Reading",
+                "https://www.youtube.com/watch?v=kCthrwUz68w",
                 36,
                 false,
-                "Focus on predicting, signposting, paraphrasing, and avoiding distractors.",
-                "Collect ten useful keywords or paraphrases and turn them into a personal strategy note.");
+                "Focus on skimming, scanning, keyword matching, and avoiding common True/False/Not Given traps.",
+                "Collect ten useful keyword-paraphrase pairs and turn them into a personal reading strategy note.");
 
         addModule(onlineCourse, 6,
                 "100 IELTS Speaking Questions | Part 1 - 20+ IELTS Speaking Topics",

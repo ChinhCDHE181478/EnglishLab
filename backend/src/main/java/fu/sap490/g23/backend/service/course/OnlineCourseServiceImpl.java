@@ -53,6 +53,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final BunnyStreamService bunnyStreamService;
+    private final CourseProgressService courseProgressService;
 
     @Override
     @Transactional(readOnly = true)
@@ -242,6 +243,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                        .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
+                        .orElse(enrollment))
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
@@ -283,12 +287,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
         lessonProgressRepository.save(progress);
 
-        int totalLessons = course.getModules().stream()
-                .mapToInt(module -> module.getLessons().size())
-                .sum();
-        long completedLessons = lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED);
-        enrollment.setProgressPercent(totalLessons == 0 ? 0 : (int) Math.round((completedLessons * 100.0) / totalLessons));
-        PackageEnrollment savedEnrollment = enrollmentRepository.save(enrollment);
+        PackageEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
         return mapper.toEnrollmentResponse(savedEnrollment);
     }
 
