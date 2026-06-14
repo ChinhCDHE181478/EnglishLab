@@ -68,7 +68,7 @@ const CourseDetailHero = ({ course, isAuthenticated, purchasing, onPurchase }) =
           </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             {course.registered ? (
-              <Link className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-[#8a0018] px-8 py-4 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-[#650012]" to={`/courses/${course.slug}/learn`} state={{ course }}>
+              <Link className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-[#8a0018] px-8 py-4 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-[#650012]" to={`/courses/${course.slug}/learn`} state={{ course, workspaceMode: 'learn' }}>
                 {ctaLabel}
               </Link>
             ) : isAuthenticated ? (

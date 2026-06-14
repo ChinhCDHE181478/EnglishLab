@@ -50,6 +50,8 @@ const modeTabs = [
   { id: 'learn', label: 'Học', icon: 'school' },
   { id: 'match', label: 'Ghép thẻ', icon: 'extension' },
 ];
+const LEARN_TURN_SIZE = 10;
+const MATCH_TURN_SIZE = 6;
 
 const shuffleArray = (items) =>
   [...items]
@@ -75,7 +77,7 @@ const Toggle = ({ checked, onChange }) => (
 const WorkspaceFlashcards = ({ course }) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
   const [terms, setTerms] = useState(fallbackTerms);
-  const [loading, setLoading] = useState(Boolean(course?.id));
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('cards');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -89,6 +91,10 @@ const WorkspaceFlashcards = ({ course }) => {
   const [matchedKeys, setMatchedKeys] = useState(() => new Set());
   const [matchFeedback, setMatchFeedback] = useState(null);
   const [matchRound, setMatchRound] = useState(0);
+  const [matchTurnKeys, setMatchTurnKeys] = useState([]);
+  const [matchIntroducedCount, setMatchIntroducedCount] = useState(0);
+  const [matchTurnNumber, setMatchTurnNumber] = useState(1);
+  const [matchAdvancing, setMatchAdvancing] = useState(false);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
@@ -99,7 +105,14 @@ const WorkspaceFlashcards = ({ course }) => {
   const [speakingKey, setSpeakingKey] = useState('');
   const [quizOptionKeys, setQuizOptionKeys] = useState([]);
   const [learnQueue, setLearnQueue] = useState([]);
-  const [learnSessionStep, setLearnSessionStep] = useState(0);
+  const [learnNextQueue, setLearnNextQueue] = useState([]);
+  const [learnIntroducedCount, setLearnIntroducedCount] = useState(0);
+  const [learnTurnNumber, setLearnTurnNumber] = useState(1);
+  const [learnTurnAnsweredCount, setLearnTurnAnsweredCount] = useState(0);
+  const [learnMasteryMap, setLearnMasteryMap] = useState({});
+  const [learnCheckpoint, setLearnCheckpoint] = useState(null);
+  const [learnRetryMode, setLearnRetryMode] = useState(false);
+  const [learnRoundKeys, setLearnRoundKeys] = useState([]);
 
   const visibleTerms = useMemo(() => (starredOnly ? terms.filter((term) => term.starred) : terms), [starredOnly, terms]);
   const baseStudyTerms = useMemo(() => (visibleTerms.length ? visibleTerms : terms), [terms, visibleTerms]);
@@ -124,8 +137,10 @@ const WorkspaceFlashcards = ({ course }) => {
     return [...ordered, ...missing];
   }, [prioritizedBaseTerms, shuffleEnabled, shuffledOrder]);
   const termMap = useMemo(() => new Map(terms.map((term) => [term.termKey, term])), [terms]);
-  const learnSeedKeys = useMemo(() => prioritizedBaseTerms.map((term) => term.termKey), [prioritizedBaseTerms]);
+  const learnSeedKeys = useMemo(() => baseStudyTerms.map((term) => term.termKey), [baseStudyTerms]);
   const learnSeedSignature = useMemo(() => learnSeedKeys.join('|'), [learnSeedKeys]);
+  const matchSeedKeys = useMemo(() => baseStudyTerms.map((term) => term.termKey), [baseStudyTerms]);
+  const matchSeedSignature = useMemo(() => matchSeedKeys.join('|'), [matchSeedKeys]);
   const activeTerm = studyTerms[Math.min(activeIndex, studyTerms.length - 1)];
   const newTerms = terms.filter((term) => term.status === 'NEW');
   const learningTerms = terms.filter((term) => term.status === 'LEARNING');
@@ -136,8 +151,14 @@ const WorkspaceFlashcards = ({ course }) => {
   const learnBaseCount = learnSeedKeys.length;
   const learnActiveTerm = termMap.get(learnQueue[0]) || null;
   const currentQuizTerm = mode === 'learn' ? learnActiveTerm : activeTerm;
-  const learnTurn = learnBaseCount ? Math.floor(learnSessionStep / learnBaseCount) + 1 : 1;
-  const learnTurnProgress = learnBaseCount ? (learnSessionStep % learnBaseCount) : 0;
+  const learnProgressSegments = Math.max(1, Math.ceil(Math.max(learnBaseCount, 1) / LEARN_TURN_SIZE));
+  const learnMasteredCount = learnSeedKeys.filter((key) => (learnMasteryMap[key]?.correctCount || 0) > 0).length;
+  const learnNeedsReviewCount = learnSeedKeys.filter((key) => {
+    const mastery = learnMasteryMap[key];
+    return mastery?.seen && (mastery.correctCount || 0) === 0;
+  }).length;
+  const matchTurnTotal = Math.max(1, matchTurnKeys.length);
+  const matchTotalTurns = Math.max(1, Math.ceil(Math.max(matchSeedKeys.length, 1) / MATCH_TURN_SIZE));
   const frontText = frontSide === 'term' ? activeTerm?.term : activeTerm?.meaning;
   const backTitle = frontSide === 'term' ? activeTerm?.meaning : activeTerm?.term;
   const backBody = frontSide === 'term' ? activeTerm?.example : activeTerm?.meaning;
@@ -161,7 +182,7 @@ const WorkspaceFlashcards = ({ course }) => {
         return;
       }
 
-      setLoading(true);
+      setLoading(!fallbackTerms.length);
       setError('');
       try {
         const apiTerms = await courseApi.getVocabularyTerms(course.id);
@@ -198,12 +219,22 @@ const WorkspaceFlashcards = ({ course }) => {
       ...shuffleArray(terms.filter((term) => term.termKey !== currentQuizTerm.termKey)).slice(0, 3),
     ]);
     setQuizOptionKeys(nextOptions.map((term) => term.termKey));
-  }, [currentQuizTerm?.termKey, terms]);
+  }, [currentQuizTerm?.termKey]);
 
   useEffect(() => {
     if (mode !== 'learn') return;
-    setLearnQueue(learnSeedKeys);
-    setLearnSessionStep(0);
+    const firstRoundKeys = learnSeedKeys.slice(0, LEARN_TURN_SIZE);
+    setLearnQueue(firstRoundKeys);
+    setLearnNextQueue([]);
+    setLearnIntroducedCount(Math.min(LEARN_TURN_SIZE, learnSeedKeys.length));
+    setLearnTurnNumber(1);
+    setLearnTurnAnsweredCount(0);
+    setLearnMasteryMap(
+      Object.fromEntries(learnSeedKeys.map((key) => [key, { correctCount: 0, wrongCount: 0, seen: false }]))
+    );
+    setLearnCheckpoint(null);
+    setLearnRetryMode(false);
+    setLearnRoundKeys(firstRoundKeys);
     setQuizChoice('');
   }, [course?.id, learnSeedSignature, mode]);
 
@@ -236,7 +267,18 @@ const WorkspaceFlashcards = ({ course }) => {
   }, [fullscreenOpen, mode]);
 
   useEffect(() => {
-    const sample = shuffleArray(terms).slice(0, Math.min(6, terms.length));
+    if (mode !== 'match') return;
+    const firstTurnKeys = matchSeedKeys.slice(0, MATCH_TURN_SIZE);
+    setMatchTurnKeys(firstTurnKeys);
+    setMatchIntroducedCount(Math.min(MATCH_TURN_SIZE, matchSeedKeys.length));
+    setMatchTurnNumber(1);
+    setMatchRound((current) => current + 1);
+  }, [course?.id, matchSeedSignature, mode]);
+
+  useEffect(() => {
+    if (mode !== 'match') return;
+    const byKey = new Map(terms.map((term) => [term.termKey, term]));
+    const sample = matchTurnKeys.map((key) => byKey.get(key)).filter(Boolean);
     setMatchPairs(shuffleArray([
       ...sample.map((term) => ({ id: `${term.termKey}-term`, termKey: term.termKey, type: 'term', text: term.term })),
       ...sample.map((term) => ({ id: `${term.termKey}-meaning`, termKey: term.termKey, type: 'meaning', text: term.meaning })),
@@ -244,7 +286,8 @@ const WorkspaceFlashcards = ({ course }) => {
     setSelectedMatch(null);
     setMatchedKeys(new Set());
     setMatchFeedback(null);
-  }, [mode, terms, matchRound]);
+    setMatchAdvancing(false);
+  }, [mode, matchRound, matchTurnKeys]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -301,13 +344,54 @@ const WorkspaceFlashcards = ({ course }) => {
     setQuizChoice(optionTermKey);
   };
 
+  const finishLearnRound = (nextTurnAnsweredCount) => {
+    const masteredNow = learnSeedKeys.filter((key) => (learnMasteryMap[key]?.correctCount || 0) > 0).length;
+    setLearnCheckpoint({
+      answeredCount: nextTurnAnsweredCount,
+      masteredCount: masteredNow,
+      learnedKeys: learnRoundKeys,
+      allDone: masteredNow >= learnBaseCount && learnIntroducedCount >= learnBaseCount,
+    });
+    setLearnTurnAnsweredCount(nextTurnAnsweredCount);
+  };
+
+  const continueLearnAfterCheckpoint = () => {
+    const nextRoundKeys = learnSeedKeys.slice(learnIntroducedCount, learnIntroducedCount + LEARN_TURN_SIZE);
+    setLearnQueue(nextRoundKeys);
+    setLearnNextQueue([]);
+    setLearnIntroducedCount(Math.min(learnIntroducedCount + nextRoundKeys.length, learnBaseCount));
+    setLearnTurnNumber((current) => (nextRoundKeys.length ? current + 1 : current));
+    setLearnTurnAnsweredCount(0);
+    setLearnCheckpoint(null);
+    setLearnRetryMode(false);
+    setLearnRoundKeys(nextRoundKeys);
+    setQuizChoice('');
+  };
+
   const advanceLearnQueue = (answeredRight) => {
     setLearnQueue((current) => {
       if (!current.length) return current;
       const [currentKey, ...rest] = current;
-      return answeredRight ? rest : [...rest, currentKey];
+      const queuedForNextTurn = answeredRight ? learnNextQueue : [...learnNextQueue, currentKey];
+      const nextTurnAnsweredCount = learnTurnAnsweredCount + 1;
+
+      if (rest.length) {
+        setLearnNextQueue(queuedForNextTurn);
+        setLearnTurnAnsweredCount(nextTurnAnsweredCount);
+        return rest;
+      }
+
+      const retryKeys = [...new Set(queuedForNextTurn)];
+      if (retryKeys.length) {
+        setLearnNextQueue([]);
+        setLearnRetryMode(true);
+        setLearnTurnAnsweredCount(0);
+        return retryKeys;
+      }
+
+      finishLearnRound(nextTurnAnsweredCount);
+      return [];
     });
-    setLearnSessionStep((current) => current + 1);
     setQuizChoice('');
   };
 
@@ -328,7 +412,17 @@ const WorkspaceFlashcards = ({ course }) => {
   const handleLearnAnswer = async (optionTermKey) => {
     if (!currentQuizTerm || hasAnsweredQuiz) return;
     const isCorrect = optionTermKey === currentQuizTerm.termKey;
+    const currentMastery = learnMasteryMap[currentQuizTerm.termKey] || { correctCount: 0, wrongCount: 0, seen: false };
+    const nextCorrectCount = currentMastery.correctCount + (isCorrect ? 1 : 0);
     setQuizChoice(optionTermKey);
+    setLearnMasteryMap((current) => ({
+      ...current,
+      [currentQuizTerm.termKey]: {
+        correctCount: isCorrect ? Math.max(1, nextCorrectCount) : currentMastery.correctCount,
+        wrongCount: currentMastery.wrongCount + (isCorrect ? 0 : 1),
+        seen: true,
+      },
+    }));
     await persistTerm(currentQuizTerm.termKey, {
       status: isCorrect ? 'MASTERED' : 'LEARNING',
       reviewed: true,
@@ -338,12 +432,37 @@ const WorkspaceFlashcards = ({ course }) => {
 
   const handleLearnSkip = async () => {
     if (!currentQuizTerm || hasAnsweredQuiz) return;
+    const currentMastery = learnMasteryMap[currentQuizTerm.termKey] || { correctCount: 0, wrongCount: 0, seen: false };
     setQuizChoice('__skip__');
+    setLearnMasteryMap((current) => ({
+      ...current,
+      [currentQuizTerm.termKey]: {
+        correctCount: currentMastery.correctCount,
+        wrongCount: currentMastery.wrongCount + 1,
+        seen: true,
+      },
+    }));
     await persistTerm(currentQuizTerm.termKey, {
       status: 'LEARNING',
       reviewed: true,
       correct: false,
     });
+  };
+
+  const startNextMatchTurn = () => {
+    const nextKeys = matchSeedKeys.slice(matchIntroducedCount, matchIntroducedCount + MATCH_TURN_SIZE);
+    if (nextKeys.length) {
+      setMatchTurnKeys(nextKeys);
+      setMatchIntroducedCount((current) => Math.min(current + MATCH_TURN_SIZE, matchSeedKeys.length));
+      setMatchTurnNumber((current) => current + 1);
+      setMatchRound((current) => current + 1);
+      return;
+    }
+
+    setMatchTurnKeys(matchSeedKeys.slice(0, MATCH_TURN_SIZE));
+    setMatchIntroducedCount(Math.min(MATCH_TURN_SIZE, matchSeedKeys.length));
+    setMatchTurnNumber(1);
+    setMatchRound((current) => current + 1);
   };
 
   const toggleShuffle = () => {
@@ -376,7 +495,7 @@ const WorkspaceFlashcards = ({ course }) => {
 
   const selectMatch = (card) => {
     if (matchedKeys.has(card.termKey)) return;
-    if (matchFeedback) return;
+    if (matchFeedback || matchAdvancing) return;
     if (!selectedMatch) {
       setSelectedMatch(card);
       return;
@@ -389,7 +508,17 @@ const WorkspaceFlashcards = ({ course }) => {
       setMatchFeedback({ termKey: card.termKey, status: 'correct' });
       persistTerm(card.termKey, { status: 'MASTERED', reviewed: true, correct: true });
       window.setTimeout(() => {
-        setMatchedKeys((current) => new Set(current).add(card.termKey));
+        setMatchedKeys((current) => {
+          const nextMatchedKeys = new Set(current).add(card.termKey);
+          const totalPairs = new Set(matchPairs.map((item) => item.termKey)).size;
+          if (totalPairs > 0 && nextMatchedKeys.size === totalPairs) {
+            setMatchAdvancing(true);
+            window.setTimeout(() => {
+              startNextMatchTurn();
+            }, 900);
+          }
+          return nextMatchedKeys;
+        });
         setMatchFeedback(null);
       }, 420);
     } else {
@@ -398,16 +527,6 @@ const WorkspaceFlashcards = ({ course }) => {
     }
     setSelectedMatch(null);
   };
-
-  useEffect(() => {
-    if (mode !== 'match' || !matchPairs.length) return;
-    const totalPairs = new Set(matchPairs.map((card) => card.termKey)).size;
-    if (totalPairs > 0 && matchedKeys.size === totalPairs) {
-      const timer = window.setTimeout(() => setMatchRound((current) => current + 1), 850);
-      return () => window.clearTimeout(timer);
-    }
-    return undefined;
-  }, [matchedKeys, matchPairs, mode]);
 
   const renderStar = (term, size = 22) => (
     <span
@@ -583,7 +702,7 @@ const WorkspaceFlashcards = ({ course }) => {
     </div>
   );
 
-  if (loading) return <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-8 text-center text-[#584140] shadow-sm">Đang mở flashcards...</section>;
+  if (loading && !terms.length) return <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-8 text-center text-[#584140] shadow-sm">Đang mở flashcards...</section>;
 
   if (!terms.length) {
     return (
@@ -653,22 +772,42 @@ const WorkspaceFlashcards = ({ course }) => {
           </div>
 
           <div className="mx-auto max-w-[960px]">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-[#11835f] px-2 text-sm font-extrabold text-white">{reviewedTerms.length}</span>
-              <div className="h-4 flex-1 overflow-hidden rounded-full bg-[#dfe3ee]">
-                <div className="h-full rounded-full bg-[#8a0018] transition-all duration-500" style={{ width: `${reviewedPercent}%` }} />
+            <div className="mb-6 flex items-center gap-2 md:gap-3">
+              <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-[#11835f] px-2 text-sm font-extrabold text-white">
+                {learnMasteredCount}
+              </span>
+              <div className="flex flex-1 items-center gap-2">
+                {Array.from({ length: learnProgressSegments }).map((_, index) => {
+                  const segmentStart = index * LEARN_TURN_SIZE;
+                  const segmentEnd = Math.min(segmentStart + LEARN_TURN_SIZE, learnBaseCount || LEARN_TURN_SIZE);
+                  const segmentSize = Math.max(1, segmentEnd - segmentStart);
+                  const segmentDone = Math.max(0, Math.min(segmentSize, learnMasteredCount - segmentStart));
+                  return (
+                    <div key={`learn-segment-${index}`} className="h-4 flex-1 overflow-hidden rounded-full bg-[#dfe3ee]">
+                      <div
+                        className="h-full rounded-full bg-[#8a0018] transition-all duration-500"
+                        style={{ width: `${Math.round((segmentDone / segmentSize) * 100)}%` }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-              <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-[#dfe3ee] px-2 text-sm font-extrabold text-[#252b3a]">{terms.length}</span>
+              <span className="flex h-10 min-w-10 items-center justify-center rounded-full bg-[#dfe3ee] px-2 text-sm font-extrabold text-[#252b3a]">
+                {learnBaseCount}
+              </span>
             </div>
             <p className="mb-4 text-sm text-[#584140]">
-              Đã học {reviewedTerms.length}/{terms.length} từ. Cần ôn lại: {incorrectTerms.length}. Đã thuộc: {masteredTerms.length}.
+              Hệ thống sẽ tự chia bộ từ thành các lượt học ngắn. Mỗi lượt có tối đa 10 câu mới; câu nào sai sẽ được làm lại ngay trước khi sang lượt tiếp theo.
+              {learnNeedsReviewCount ? ` Hiện có ${learnNeedsReviewCount} từ cần ôn lại.` : ''}
             </p>
 
             {learnActiveTerm ? (
             <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
                 <p className="text-sm font-bold text-[#59627a]">Thuật ngữ</p>
-                <span className="text-sm font-extrabold text-[#8a0018]">{Math.min(learnTurnProgress + 1, learnBaseCount || 1)}/{learnBaseCount || 1}</span>
+                {learnRetryMode ? (
+                  <span className="rounded-full bg-[#fff4d8] px-3 py-1 text-xs font-extrabold text-[#9a5b00]">Hãy thử lại lần nữa</span>
+                ) : null}
               </div>
               <h3 className="mt-6 min-h-[170px] text-2xl font-medium leading-10 text-[#0f1b3d]">{learnActiveTerm?.meaning}</h3>
               <p className="mt-4 text-sm font-bold text-[#59627a]">Chọn đáp án đúng</p>
@@ -703,7 +842,7 @@ const WorkspaceFlashcards = ({ course }) => {
                     transition={{ duration: 0.2 }}
                   >
                     <p className={`text-sm font-extrabold ${answeredCorrectly ? 'text-[#176b3a]' : 'text-[#93000a]'}`}>
-                      Đáp án đúng là "{learnActiveTerm?.term}".
+                      {answeredCorrectly ? 'Chính xác.' : 'Chưa đúng.'} Đáp án đúng là "{learnActiveTerm?.term}".
                     </p>
                     {learnActiveTerm?.example ? (
                       <p className="mt-2 text-sm leading-7 text-[#584140]">{learnActiveTerm.example}</p>
@@ -712,28 +851,117 @@ const WorkspaceFlashcards = ({ course }) => {
                       <p className="mt-2 text-sm font-semibold leading-7 text-[#8a0018]">Lưu ý: {learnActiveTerm.commonError}</p>
                     ) : null}
                     {!answeredCorrectly ? (
-                      <p className="mt-2 text-sm font-semibold text-[#93000a]">Câu này sẽ quay lại ở lượt ôn tiếp theo.</p>
+                      <p className="mt-2 text-sm font-semibold text-[#93000a]">Câu này sẽ được làm lại ngay trong lượt này.</p>
                     ) : null}
                   </motion.div>
                 ) : null}
               </AnimatePresence>
               <div className="mt-6 flex items-center justify-end gap-8">
-                <button className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-[#3155ff]" type="button" onClick={handleLearnSkip}>
+                <button
+                  className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-[#3155ff] disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={hasAnsweredQuiz}
+                  type="button"
+                  onClick={handleLearnSkip}
+                >
                   <span className="material-symbols-outlined text-[18px] text-[#59627a]">flag</span>
                   Bạn không biết?
                 </button>
                 {quizChoice ? (
-                  <button className="cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={handleQuizNext}>Câu tiếp theo</button>
+                  <button className="cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={handleQuizNext}>
+                    {learnQueue.length <= 1 ? 'Xem kết quả lượt này' : 'Câu tiếp theo'}
+                  </button>
                 ) : null}
               </div>
             </div>
+            ) : learnCheckpoint ? (
+              <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
+                <h3 className="font-['Manrope'] text-2xl font-black text-[#0f1b3d]">
+                  {learnCheckpoint.allDone ? 'Bạn đã hoàn thành bộ từ này.' : 'Mạnh mẽ lên, bạn có thể thành công.'}
+                </h3>
+                <p className="mt-4 text-sm font-bold text-[#0f1b3d]">
+                  Tiến trình tổng thể: {learnBaseCount ? Math.round((learnCheckpoint.masteredCount / learnBaseCount) * 100) : 0}%
+                </p>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-[#11835f] px-2 text-xs font-extrabold text-white">{learnCheckpoint.masteredCount}</span>
+                  <div className="h-3 flex-1 overflow-hidden rounded-full bg-[#dfe3ee]">
+                    <div className="h-full rounded-full bg-[#11835f] transition-all duration-500" style={{ width: `${learnBaseCount ? Math.round((learnCheckpoint.masteredCount / learnBaseCount) * 100) : 0}%` }} />
+                  </div>
+                  <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-[#dfe3ee] px-2 text-xs font-extrabold text-[#252b3a]">{learnBaseCount}</span>
+                </div>
+                <div className="mt-2 flex justify-between text-xs font-extrabold text-[#59627a]">
+                  <span>Đúng</span>
+                  <span>Tổng số câu hỏi</span>
+                </div>
+                <div className="mt-8 border-t border-[#edf0f5] pt-6">
+                  <p className="mb-4 text-sm font-bold text-[#59627a]">Thuật ngữ đã học trong vòng này</p>
+                  <div className="space-y-3">
+                    {learnCheckpoint.learnedKeys.map((key) => {
+                      const item = termMap.get(key);
+                      if (!item) return null;
+                      return (
+                        <div key={`learned-${key}`} className="grid gap-4 rounded-xl border border-[#dfe3ee] bg-white px-5 py-4 text-sm shadow-sm md:grid-cols-[1.2fr_1fr_auto] md:items-center">
+                          <p className="leading-6 text-[#0f1b3d]">{item.meaning}</p>
+                          <p className="border-[#edf0f5] font-bold text-[#0f1b3d] md:border-l md:pl-5">{item.term}</p>
+                          <div className="flex items-center gap-3 text-[#8c9ab7]">
+                            <button className="cursor-pointer transition hover:text-[#8a0018]" type="button" onClick={() => toggleStar(item)}>
+                              <span className="material-symbols-outlined text-[18px]">{item.starred ? 'star' : 'star_outline'}</span>
+                            </button>
+                            <button className="cursor-pointer transition hover:text-[#8a0018]" type="button" onClick={() => playSpeech(`learned-${key}`, item.term)}>
+                              <span className="material-symbols-outlined text-[18px]">volume_up</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+                  {learnCheckpoint.allDone ? (
+                    <button className="cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={() => {
+                      const firstRoundKeys = learnSeedKeys.slice(0, LEARN_TURN_SIZE);
+                      setLearnQueue(firstRoundKeys);
+                      setLearnNextQueue([]);
+                      setLearnIntroducedCount(Math.min(LEARN_TURN_SIZE, learnSeedKeys.length));
+                      setLearnTurnNumber(1);
+                      setLearnTurnAnsweredCount(0);
+                      setLearnMasteryMap(
+                        Object.fromEntries(learnSeedKeys.map((key) => [key, { correctCount: 0, wrongCount: 0, seen: false }]))
+                      );
+                      setLearnCheckpoint(null);
+                      setLearnRetryMode(false);
+                      setLearnRoundKeys(firstRoundKeys);
+                      setQuizChoice('');
+                    }}>
+                      Học lại từ đầu
+                    </button>
+                  ) : (
+                    <button className="cursor-pointer rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-[#8a0018]/15 transition hover:-translate-y-0.5 hover:bg-[#6f0014]" type="button" onClick={continueLearnAfterCheckpoint}>
+                      Tiếp tục học
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
               <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#8c716f]">Turn complete</p>
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#8c716f]">Hoàn thành lượt học</p>
                 <h3 className="mt-3 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn đã hoàn thành lượt học này</h3>
-                <p className="mt-3 text-sm leading-7 text-[#584140]">Tất cả câu trong hàng chờ hiện tại đã được xử lý. Bạn có thể bắt đầu thêm một lượt để ôn lại và củng cố tiếp.</p>
-                <button className="mt-5 cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={() => { setLearnQueue(learnSeedKeys); setLearnSessionStep(0); setQuizChoice(''); }}>
-                  Học thêm một lượt nữa
+                <p className="mt-3 text-sm leading-7 text-[#584140]">Bạn đã xử lý hết các lượt học hiện tại. Có thể bắt đầu lại để ôn toàn bộ bộ từ một lượt mới.</p>
+                <button className="mt-5 cursor-pointer rounded-2xl bg-[#2b2828] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#8a0018]" type="button" onClick={() => {
+                  const firstRoundKeys = learnSeedKeys.slice(0, LEARN_TURN_SIZE);
+                  setLearnQueue(firstRoundKeys);
+                  setLearnNextQueue([]);
+                  setLearnIntroducedCount(Math.min(LEARN_TURN_SIZE, learnSeedKeys.length));
+                  setLearnTurnNumber(1);
+                  setLearnTurnAnsweredCount(0);
+                  setLearnMasteryMap(
+                    Object.fromEntries(learnSeedKeys.map((key) => [key, { correctCount: 0, wrongCount: 0, seen: false }]))
+                  );
+                  setLearnCheckpoint(null);
+                  setLearnRetryMode(false);
+                  setLearnRoundKeys(firstRoundKeys);
+                  setQuizChoice('');
+                }}>
+                  Học lại từ đầu
                 </button>
               </div>
             )}
@@ -793,10 +1021,19 @@ const WorkspaceFlashcards = ({ course }) => {
               <span className="material-symbols-outlined text-[18px]">expand_more</span>
             </button>
             <div className="text-sm font-extrabold text-[#0f1b3d]">
-              {matchedKeys.size}/{new Set(matchPairs.map((card) => card.termKey)).size}
+              Lượt {matchTurnNumber}/{matchTotalTurns} · Đã ghép {matchedKeys.size}/{matchTurnTotal}
             </div>
             <div className="flex items-center gap-4 text-[#59627a]">
-              <button className="cursor-pointer" type="button" onClick={() => setMatchRound((current) => current + 1)}>
+              <button
+                className="cursor-pointer"
+                type="button"
+                onClick={() => {
+                  setMatchTurnKeys(matchSeedKeys.slice(0, MATCH_TURN_SIZE));
+                  setMatchIntroducedCount(Math.min(MATCH_TURN_SIZE, matchSeedKeys.length));
+                  setMatchTurnNumber(1);
+                  setMatchRound((current) => current + 1);
+                }}
+              >
                 <span className="material-symbols-outlined">restart_alt</span>
               </button>
               <button className="cursor-pointer" type="button" onClick={() => setSettingsOpen(true)}>
@@ -816,17 +1053,18 @@ const WorkspaceFlashcards = ({ course }) => {
               return (
                 <button
                   key={card.id}
-                  className={`flex min-h-[150px] cursor-pointer items-center justify-center rounded-2xl border p-5 text-center text-lg font-semibold leading-7 shadow-sm transition ${correct ? 'border-[#176b3a] bg-[#e7f6ec] text-[#176b3a]' : wrong ? 'translate-x-1 border-[#ba1a1a] bg-[#ffdad6] text-[#93000a]' : selected ? 'scale-[1.02] border-[#8a0018] bg-[#fff0f1] text-[#8a0018]' : 'border-[#d8deea] bg-white text-[#0f1b3d] hover:border-[#8a0018]/30'}`}
+                  className={`flex min-h-[150px] items-center justify-center rounded-2xl border p-5 text-center text-lg font-semibold leading-7 shadow-sm transition ${matched ? 'cursor-default border-[#dfe3ee] bg-white text-transparent shadow-none' : correct ? 'cursor-default scale-[1.02] border-[#176b3a] bg-[#e7f6ec] text-[#176b3a] shadow-[0_12px_26px_rgba(23,107,58,0.12)]' : wrong ? 'translate-x-1 cursor-pointer border-[#ba1a1a] bg-[#ffdad6] text-[#93000a]' : selected ? 'scale-[1.02] cursor-pointer border-[#8a0018] bg-[#fff0f1] text-[#8a0018]' : 'cursor-pointer border-[#d8deea] bg-white text-[#0f1b3d] hover:border-[#8a0018]/30'}`}
+                  disabled={matched || matchAdvancing}
                   type="button"
                   onClick={() => selectMatch(card)}
                 >
-                  {card.text}
+                  <span className={matched ? 'opacity-0' : ''}>{card.text}</span>
                 </button>
               );
             })}
           </div>
-          {matchedKeys.size === new Set(matchPairs.map((card) => card.termKey)).size && matchPairs.length ? (
-            <p className="mt-4 text-center text-sm font-bold text-[#176b3a]">Hoàn thành round này. Đang chuyển sang round mới...</p>
+          {matchAdvancing ? (
+            <p className="mt-4 text-center text-sm font-bold text-[#176b3a]">Hoàn thành lượt này. Chuẩn bị sang lượt tiếp theo...</p>
           ) : null}
         </div>
       ) : null}

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng ký khóa học thành công - EnglishLab</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f3f3;
+      -webkit-font-smoothing: antialiased;
+      font-family: "Segoe UI", Tahoma, Arial, Helvetica, sans-serif;
+      color: #1a1c1c;
+    }
+
+    table {
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+
+    img {
+      border: 0;
+      display: block;
+      max-width: 100%;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+    }
+
+    .wrapper {
+      width: 100%;
+      padding: 32px 12px;
+      box-sizing: border-box;
+    }
+
+    .email-shell {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border: 1px solid #e5e2e0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(26, 28, 28, 0.04);
+    }
+
+    .header {
+      padding: 24px 24px 20px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #dfbfbd;
+      text-align: center;
+    }
+
+    .logo {
+      width: 32px;
+      height: 32px;
+      margin: 0;
+    }
+
+    .brand-name {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 800;
+      color: #2b2828;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-accent {
+      color: #8a0018;
+    }
+
+    .content {
+      padding: 40px 32px 32px;
+      background: #ffffff;
+    }
+
+    .headline {
+      margin: 0 0 10px;
+      font-family: "Segoe UI", Tahoma, Arial, Helvetica, sans-serif;
+      font-size: 34px;
+      line-height: 1.35;
+      font-weight: 700;
+      color: #4b0009;
+      text-align: center;
+      letter-spacing: -0.02em;
+    }
+
+    .subheadline {
+      margin: 0 0 28px;
+      font-size: 18px;
+      line-height: 1.65;
+      color: #584140;
+      text-align: center;
+    }
+
+    .hero {
+      margin: 0 auto 28px;
+      text-align: center;
+    }
+
+    .hero img {
+      width: 320px;
+      margin: 0 auto;
+    }
+
+    .activation-box {
+      margin: 0 0 28px;
+      padding: 18px 18px 18px 20px;
+      background: #f4f3f3;
+      border-left: 4px solid #730014;
+      border-radius: 12px;
+    }
+
+    .activation-text {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1a1c1c;
+      font-weight: 600;
+    }
+
+    .activation-text strong {
+      color: #4b0009;
+    }
+
+    .section-label {
+      margin: 0 0 14px;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #584140;
+    }
+
+    .details-box {
+      margin: 0 0 30px;
+      border: 1px solid #dfbfbd;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .details-row td {
+      padding: 14px 16px;
+      font-size: 15px;
+      line-height: 1.5;
+      border-bottom: 1px solid #dfbfbd;
+    }
+
+    .details-row:last-child td {
+      border-bottom: none;
+    }
+
+    .details-label {
+      width: 42%;
+      color: #584140;
+      background: #eeeeed;
+    }
+
+    .details-value {
+      text-align: right;
+      font-weight: 700;
+      color: #1a1c1c;
+      background: #ffffff;
+    }
+
+    .total-row .details-label,
+    .total-row .details-value {
+      background: rgba(115, 0, 20, 0.05);
+      color: #4b0009;
+      font-family: "Segoe UI", Tahoma, Arial, Helvetica, sans-serif;
+      font-weight: 700;
+    }
+
+    .total-row .details-value {
+      font-size: 24px;
+      line-height: 1.3;
+    }
+
+    .cta-wrap {
+      margin: 0 0 32px;
+      text-align: center;
+    }
+
+    .cta {
+      display: inline-block;
+      padding: 16px 32px;
+      border-radius: 12px;
+      background: #730014;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      box-shadow: 0 8px 20px rgba(115, 0, 20, 0.18);
+    }
+
+    .quote-box {
+      padding-top: 24px;
+      border-top: 1px solid #dfbfbd;
+      text-align: center;
+    }
+
+    .quote {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #584140;
+      font-style: italic;
+    }
+
+    .footer {
+      padding: 32px;
+      background: #252111;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .footer-grid {
+      width: 100%;
+    }
+
+    .footer-title {
+      margin: 0 0 12px;
+      font-size: 24px;
+      line-height: 1.3;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .footer-copy {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .footer-support-title {
+      margin: 0 0 10px;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.56);
+    }
+
+    .footer-link {
+      color: #ffffff !important;
+      text-decoration: underline;
+      font-size: 14px;
+      line-height: 1.9;
+    }
+
+    .footer-bottom {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+    }
+
+    @media screen and (max-width: 600px) {
+      .content,
+      .footer {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
+
+      .headline {
+        font-size: 28px !important;
+      }
+
+      .subheadline {
+        font-size: 16px !important;
+      }
+
+      .hero img {
+        width: 100% !important;
+        max-width: 280px !important;
+      }
+
+      .details-row td {
+        display: block;
+        width: auto !important;
+        text-align: left !important;
+      }
+
+      .details-label,
+      .details-value {
+        background: #ffffff !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" class="email-shell">
+            <tr>
+              <td class="header">
+                <table role="presentation" align="center">
+                  <tr>
+                    <td style="padding-right: 10px; vertical-align: middle;">
+                      <img class="logo" src="{{logoUrl}}" alt="EnglishLab Logo" />
+                    </td>
+                    <td style="vertical-align: middle;">
+                      <p class="brand-name">English<span class="brand-accent">Lab</span></p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="content">
+                <h1 class="headline">Cảm ơn bạn đã đăng ký, {{studentName}}!</h1>
+                <p class="subheadline">
+                  Chào mừng bạn đến với cộng đồng học tập chuyên nghiệp của EnglishLab.
+                </p>
+
+                <div class="hero">
+                  <img src="{{heroImageUrl}}" alt="Welcome to EnglishLab" />
+                </div>
+
+                <div class="activation-box">
+                  <p class="activation-text">
+                    Khóa học <strong>{{courseTitle}}</strong> đã được kích hoạt thành công trong tài khoản của bạn.
+                  </p>
+                </div>
+
+                <p class="section-label">Chi tiết đăng ký</p>
+                <table role="presentation" width="100%" class="details-box">
+                  <tr class="details-row">
+                    <td class="details-label">Mã đăng ký</td>
+                    <td class="details-value">{{enrollmentCode}}</td>
+                  </tr>
+                  <tr class="details-row">
+                    <td class="details-label">Ngày kích hoạt</td>
+                    <td class="details-value">{{activatedAt}}</td>
+                  </tr>
+                  <tr class="details-row">
+                    <td class="details-label">Thời lượng</td>
+                    <td class="details-value">{{courseDuration}}</td>
+                  </tr>
+                  <tr class="details-row">
+                    <td class="details-label">Lộ trình</td>
+                    <td class="details-value">{{courseOutcome}}</td>
+                  </tr>
+                  <tr class="details-row total-row">
+                    <td class="details-label">Khóa học</td>
+                    <td class="details-value">{{courseTitle}}</td>
+                  </tr>
+                </table>
+
+                <div class="cta-wrap">
+                  <a class="cta" href="{{courseUrl}}">Bắt đầu học ngay</a>
+                </div>
+
+                <div class="quote-box">
+                  <p class="quote">
+                    "Giáo dục không phải là việc chuẩn bị cho cuộc sống; giáo dục chính là cuộc sống."
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="footer">
+                <table role="presentation" width="100%" class="footer-grid">
+                  <tr>
+                    <td style="padding-right: 16px; vertical-align: top;">
+                      <p class="footer-title">EnglishLab</p>
+                      <p class="footer-copy">
+                        Học viện Anh ngữ chuyên sâu, cam kết chất lượng đào tạo và sự phát triển của học viên.
+                      </p>
+                    </td>
+                    <td style="vertical-align: top; width: 220px;">
+                      <p class="footer-support-title">Hỗ trợ</p>
+                      <a class="footer-link" href="{{supportCenterUrl}}">Support Center</a><br />
+                      <a class="footer-link" href="{{privacyPolicyUrl}}">Privacy Policy</a><br />
+                      <a class="footer-link" href="mailto:{{supportEmail}}">{{supportEmail}}</a>
+                    </td>
+                  </tr>
+                </table>
+
+                <div class="footer-bottom">
+                  © {{copyrightYear}} EnglishLab. All rights reserved.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

@@ -35,7 +35,11 @@ const CourseWorkspace = () => {
   const [activeLessonId, setActiveLessonId] = useState(null);
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
-  const [workspaceMode, setWorkspaceMode] = useState(() => localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
+  const [workspaceMode, setWorkspaceMode] = useState(() => (
+    ['learn', 'flashcards'].includes(location.state?.workspaceMode)
+      ? location.state.workspaceMode
+      : localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn'
+  ));
   const [vocabularyCount, setVocabularyCount] = useState(0);
   const [assessments, setAssessments] = useState([]);
 
@@ -141,8 +145,12 @@ const CourseWorkspace = () => {
   }, [slugOrId]);
 
   useEffect(() => {
+    if (['learn', 'flashcards'].includes(location.state?.workspaceMode)) {
+      setWorkspaceMode(location.state.workspaceMode);
+      return;
+    }
     setWorkspaceMode(localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
-  }, [slugOrId]);
+  }, [slugOrId, location.state?.workspaceMode]);
 
   useEffect(() => {
     localStorage.setItem(`englishlab.workspaceMode.${slugOrId}`, workspaceMode);

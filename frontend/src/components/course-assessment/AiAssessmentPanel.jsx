@@ -1017,6 +1017,30 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const isLastSpeakingPart = activeSpeakingPartIndex >= 0 && activeSpeakingPartIndex === (activeSpeakingVariant?.parts?.length ?? 0) - 1;
   const isFinalSpeakingPrompt = isSpeakingMockFlow && isLastSpeakingPart && isLastSpeakingQuestionInPart;
   const showSpeakingResultOnly = isSpeakingMockFlow && isLockedAfterResult;
+  const vocabularySentences = answer
+    .split(/[.!?]+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.split(/\s+/).filter(Boolean).length >= 3);
+  const vocabularySentenceCount = vocabularySentences.length;
+  const vocabularyWordCount = answer.trim() ? answer.trim().split(/\s+/).filter(Boolean).length : 0;
+  const vocabularyReadinessPercent = Math.min(100, Math.round((vocabularySentenceCount / 5) * 100));
+  const vocabularyChecks = [
+    {
+      label: '5-7 câu',
+      done: vocabularySentenceCount >= 5 && vocabularySentenceCount <= 7,
+      hint: `${vocabularySentenceCount}/7 câu`,
+    },
+    {
+      label: 'Đủ ngữ cảnh',
+      done: vocabularyWordCount >= 45,
+      hint: `${vocabularyWordCount} từ`,
+    },
+    {
+      label: 'Tự nhiên',
+      done: /because|although|while|when|if|so|therefore|however|nhưng|vì|khi|nếu/i.test(answer),
+      hint: 'Có liên kết ý',
+    },
+  ];
   const activeFallbackPromptVideoUrl = SPEAKING_PROMPT_VIDEO_MAP[selectedSpeakingMockKey]?.[activeSpeakingPartKey]?.[speakingQuestionIndex] || '';
   const activeSpeakingVideoUrl = currentSpeakingQuestion?.videoUrl
     || activeFallbackPromptVideoUrl
@@ -2575,6 +2599,98 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                     ) : null}
 
                   </>
+                ) : selected.skill === 'VOCABULARY' ? (
+                  <div className="overflow-hidden rounded-[30px] border border-[#dfbfbd]/35 bg-[radial-gradient(circle_at_top_left,_rgba(138,0,24,0.12),_transparent_34%),linear-gradient(135deg,#fff9f8,#ffffff)] shadow-[0_18px_50px_rgba(75,0,9,0.06)]">
+                    <div className="grid gap-5 border-b border-[#f0e2e2] p-5 lg:grid-cols-[1fr_320px]">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#8a0018] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                            Vocabulary output
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#8a0018] ring-1 ring-[#dfbfbd]/50">
+                            AI checks meaning + collocation
+                          </span>
+                        </div>
+                        <h4 className="mt-4 font-['Manrope'] text-2xl font-black text-[#2b2828]">
+                          Viết câu để chứng minh bạn thật sự dùng được từ
+                        </h4>
+                        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                          Hãy viết 5-7 câu ngắn, mỗi câu nên có ngữ cảnh rõ ràng. Bài chấm sẽ tập trung vào nghĩa, collocation,
+                          độ tự nhiên và mức độ bám chủ đề của module.
+                        </p>
+                      </div>
+
+                      <div className="rounded-[24px] border border-[#dfbfbd]/40 bg-white/85 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">Độ sẵn sàng</p>
+                          <span className="font-['Manrope'] text-2xl font-black text-[#8a0018]">{vocabularyReadinessPercent}%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f1dce0]">
+                          <div
+                            className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#c62845)] transition-all duration-300"
+                            style={{ width: `${vocabularyReadinessPercent}%` }}
+                          />
+                        </div>
+                        <div className="mt-4 grid gap-2">
+                          {vocabularyChecks.map((check) => (
+                            <div key={check.label} className="flex items-center justify-between gap-3 rounded-2xl bg-[#fff7f7] px-3 py-2">
+                              <span className={`text-sm font-bold ${check.done ? 'text-[#4b0009]' : 'text-[#8c716f]'}`}>
+                                {check.done ? '✓' : '•'} {check.label}
+                              </span>
+                              <span className="text-xs font-semibold text-[#8c716f]">{check.hint}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 p-5 lg:grid-cols-[1fr_300px]">
+                      <div>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <label className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">
+                            Câu trả lời của bạn
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-bold text-[#8a0018]">
+                              {vocabularySentenceCount} câu
+                            </span>
+                            <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-bold text-[#8a0018]">
+                              {vocabularyWordCount} từ
+                            </span>
+                          </div>
+                        </div>
+                        <textarea
+                          className={`min-h-[280px] w-full resize-y rounded-[26px] border px-5 py-4 text-base leading-8 shadow-inner outline-none transition ${isSubmissionLocked ? 'border-[#ebe3e2] bg-[#f7f3f2] text-[#7a6766]' : 'border-[#8a0018]/70 bg-white focus:border-[#8a0018] focus:shadow-[0_0_0_4px_rgba(138,0,24,0.08)]'}`}
+                          value={answer}
+                          onChange={(event) => setAnswer(event.target.value)}
+                          readOnly={isSubmissionLocked || submitting}
+                          placeholder="Ví dụ: The new policy has a significant impact on students because it encourages them to manage their time more effectively..."
+                        />
+                        <p className="mt-3 text-sm leading-6 text-[#7a6766]">
+                          Mẹo nhỏ: đừng chỉ liệt kê từ vựng. Hãy đặt từ vào tình huống cụ thể để AI kiểm tra được bạn dùng đúng nghĩa hay chưa.
+                        </p>
+                      </div>
+
+                      <aside className="space-y-3">
+                        <div className="rounded-[24px] border border-[#dfbfbd]/35 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">Checklist trước khi nộp</p>
+                          <div className="mt-4 space-y-3 text-sm leading-6 text-[#584140]">
+                            <p><span className="font-black text-[#8a0018]">1.</span> Mỗi câu có ít nhất một từ/cụm từ mục tiêu.</p>
+                            <p><span className="font-black text-[#8a0018]">2.</span> Có collocation tự nhiên, không dịch từng chữ từ tiếng Việt.</p>
+                            <p><span className="font-black text-[#8a0018]">3.</span> Câu đủ ngữ cảnh để người đọc hiểu tình huống.</p>
+                            <p><span className="font-black text-[#8a0018]">4.</span> Ưu tiên câu rõ ràng hơn câu quá dài và rối.</p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-[24px] border border-[#f0d7a6] bg-[#fffaf0] p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#9b6400]">Chế độ thi</p>
+                          <p className="mt-3 text-sm leading-6 font-semibold text-[#7a4e00]">
+                            Hệ thống vẫn ghi nhận rời tab, thoát toàn màn hình, quay lại trang khác, copy/paste và phím tắt điều hướng.
+                          </p>
+                        </div>
+                      </aside>
+                    </div>
+                  </div>
                 ) : (
                   <textarea
                     className={`min-h-[190px] w-full rounded-2xl border px-4 py-3 text-sm leading-7 outline-none transition ${isSubmissionLocked ? 'border-[#ebe3e2] bg-[#f7f3f2] text-[#7a6766]' : 'border-[#dfbfbd]/60 bg-white focus:border-[#8a0018]'}`}
@@ -2586,7 +2702,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                 )}
               </div>
             )}
-            {!isSpeakingMockFlow && !isDedicatedExamMode ? (
+            {!isSpeakingMockFlow && !isDedicatedExamMode && selected.skill !== 'VOCABULARY' ? (
               <p className="mt-2 text-sm leading-6 text-[#7a6766]">{inputCopy.helper}</p>
             ) : null}
             {selected.skill === 'SPEAKING' && speakingStage === 'recording' && !isSpeakingMockFlow ? (

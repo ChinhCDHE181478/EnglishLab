@@ -8,7 +8,7 @@ const CourseActionButton = ({ course, className = '', children }) => {
     <Link
       className={className}
       to={to}
-      state={{ course }}
+      state={{ course, workspaceMode: course.registered ? 'learn' : undefined }}
     >
       {children || (course.registered ? 'Đến khóa học' : 'Xem chi tiết khóa học')}
     </Link>

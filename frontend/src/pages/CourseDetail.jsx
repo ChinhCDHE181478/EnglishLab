@@ -83,6 +83,7 @@ const CourseDetail = () => {
         state: {
           course: { ...course, registered: true, progressPercent: enrollment?.progressPercent ?? 0 },
           enrollment,
+          workspaceMode: 'learn',
         },
       });
     } catch (err) {
@@ -96,7 +97,7 @@ const CourseDetail = () => {
       if (status === 409) {
         navigate(`/courses/${course.slug}/learn`, {
           replace: true,
-          state: { course: { ...course, registered: true } },
+          state: { course: { ...course, registered: true }, workspaceMode: 'learn' },
         });
         return;
       }

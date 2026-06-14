@@ -13,6 +13,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.*;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.*;
+import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final OnlineCourseMapper mapper;
     private final BunnyStreamService bunnyStreamService;
     private final CourseProgressService courseProgressService;
+    private final CourseEnrollmentMailService courseEnrollmentMailService;
 
     @Override
     @Transactional(readOnly = true)
@@ -227,13 +229,18 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (!course.getLearningPackage().isPublished()) {
             throw new RuntimeException("This online course is not available for enrollment");
         }
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+        var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage());
+        boolean isNewEnrollment = existingEnrollment.isEmpty();
+        PackageEnrollment enrollment = existingEnrollment
                 .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
                         .student(student)
                         .learningPackage(course.getLearningPackage())
                         .status(EnrollmentStatus.ACTIVE)
                         .progressPercent(0)
                         .build()));
+        if (isNewEnrollment) {
+            courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
+        }
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
