@@ -10,6 +10,7 @@ const WorkspaceSidebar = ({
   assessmentModuleIds,
   completedLessonIds,
   lessonItems = [],
+  moduleProgress,
   hasAssessments,
   collapsed = false,
   onCollapse,
@@ -93,6 +94,7 @@ const WorkspaceSidebar = ({
             const assessmentStepId = getAssessmentStepId(module.id);
             const hasModuleAssessment = hasAssessments && assessmentModuleIds?.has(String(module.id));
             const assessmentLocked = assessmentLockByModule?.get(String(module.id));
+            const moduleUnlocked = moduleProgress?.get(String(module.id))?.moduleUnlocked ?? true;
             const open = openModuleIds.has(moduleKey);
 
             return (
@@ -118,6 +120,11 @@ const WorkspaceSidebar = ({
                       const isActive = String(lessonId) === String(activeLessonId);
                       const isCompleted = completedLessonIds.has(lessonId);
                       const isLocked = lockedLessonIds.has(String(lessonId));
+                      const statusText = isLocked
+                        ? lessonIndex === 0 && !moduleUnlocked
+                          ? 'Hoàn thành và đạt yêu cầu ở bài đánh giá cuối mô-đun trước để mở.'
+                          : 'Hoàn thành bài học trước để mở.'
+                        : `${lesson.videoUrl ? 'Video' : lesson.materialUrl ? 'Tài liệu' : 'Bài học'} • ${lesson.durationMinutes || 0} phút`;
 
                       return (
                         <button
@@ -134,9 +141,7 @@ const WorkspaceSidebar = ({
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block line-clamp-2 text-sm font-semibold leading-6 text-[#1f2430]">{lesson.title}</span>
-                            <span className="mt-1 block text-xs text-[#63718a]">
-                              {isLocked ? 'Hoàn thành bài trước để mở.' : `${lesson.videoUrl ? 'Video' : lesson.materialUrl ? 'Tài liệu' : 'Bài học'} • ${lesson.durationMinutes || 0} phút`}
-                            </span>
+                            <span className="mt-1 block text-xs text-[#63718a]">{statusText}</span>
                           </span>
                         </button>
                       );
@@ -157,7 +162,11 @@ const WorkspaceSidebar = ({
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-semibold leading-6 text-[#1f2430]">Bài đánh giá cuối mô-đun</span>
                           <span className="mt-1 block text-xs text-[#63718a]">
-                            {assessmentLocked ? 'Hoàn thành các bài trước để mở.' : 'Nộp bài để hoàn tất mô-đun.'}
+                            {assessmentLocked
+                              ? moduleUnlocked
+                                ? 'Hoàn thành toàn bộ bài học trong mô-đun để mở.'
+                                : 'Hoàn thành và đạt yêu cầu ở mô-đun trước để mở.'
+                              : 'Nộp bài để hoàn tất mô-đun.'}
                           </span>
                         </span>
                       </button>

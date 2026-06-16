@@ -13,15 +13,10 @@ import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { hasAccessToken } from '../utils/auth';
 import { findFallbackCourse, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { readEnrollments } from '../utils/learnerStore';
+import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
-
-const isModuleCompleted = (module, completedLessonIds) => {
-  const moduleLessons = module?.lessons || [];
-  if (!moduleLessons.length) return true;
-  return moduleLessons.every((lesson, lessonIndex) => completedLessonIds.has(getLessonId(module, lesson, lessonIndex)));
-};
 
 const isTemporaryAssessmentError = (error) => {
   const status = error?.response?.status;
@@ -72,24 +67,6 @@ const CourseWorkspace = () => {
   const [videoSeekRequest, setVideoSeekRequest] = useState(null);
   const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
 
-  const lessonItems = useMemo(() => {
-    if (!course?.modules?.length) return [];
-    const baseItems = course.modules.flatMap((module, moduleIndex) =>
-      (module.lessons || []).map((lesson, lessonIndex) => ({
-        id: getLessonId(module, lesson, lessonIndex),
-        module,
-        moduleIndex,
-        lesson,
-        lessonIndex,
-      }))
-    );
-    return baseItems.map((item, index) => ({
-      ...item,
-      isLocked: index > 0 && !completedLessonIds.has(baseItems[index - 1].id),
-    }));
-  }, [completedLessonIds, course]);
-
-  const hasAssessments = assessments.length > 0;
   const assessmentsByModule = useMemo(() => {
     const grouped = new Map();
     assessments.forEach((assessment) => {
@@ -100,6 +77,64 @@ const CourseWorkspace = () => {
     });
     return grouped;
   }, [assessments]);
+
+  const moduleProgress = useMemo(() => {
+    const modules = course?.modules || [];
+    const progressByModule = new Map();
+    let canEnterCurrentModule = true;
+
+    modules.forEach((module, moduleIndex) => {
+      const lessons = module.lessons || [];
+      const lessonItemsForModule = lessons.map((lesson, lessonIndex) => ({
+        id: getLessonId(module, lesson, lessonIndex),
+        module,
+        moduleIndex,
+        lesson,
+        lessonIndex,
+      }));
+      const lessonIds = lessonItemsForModule.map((item) => item.id);
+      const lessonsCompleted = lessonIds.every((lessonId) => completedLessonIds.has(lessonId));
+      const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
+      const moduleAssessmentsPassed = moduleAssessments.every(isAssessmentPassed);
+      const readyForNextModule = lessonsCompleted && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
+
+      progressByModule.set(String(module.id), {
+        moduleUnlocked: canEnterCurrentModule,
+        lessonsCompleted,
+        moduleAssessmentsPassed,
+        readyForNextModule,
+        lessonItems: lessonItemsForModule,
+      });
+
+      canEnterCurrentModule = readyForNextModule;
+    });
+
+    return progressByModule;
+  }, [assessmentsByModule, completedLessonIds, course?.modules]);
+
+  const lessonItems = useMemo(() => {
+    if (!course?.modules?.length) return [];
+
+    return course.modules.flatMap((module) => {
+      const moduleState = moduleProgress.get(String(module.id));
+      const moduleUnlocked = moduleState?.moduleUnlocked ?? false;
+      const moduleLessonItems = moduleState?.lessonItems || [];
+
+      return moduleLessonItems.map((item, lessonIndex) => {
+        const previousLessonId = lessonIndex > 0 ? moduleLessonItems[lessonIndex - 1]?.id : null;
+        const isLocked = lessonIndex === 0
+          ? !moduleUnlocked
+          : !completedLessonIds.has(previousLessonId);
+
+        return {
+          ...item,
+          isLocked,
+        };
+      });
+    });
+  }, [completedLessonIds, course?.modules, moduleProgress]);
+
+  const hasAssessments = assessments.length > 0;
 
   const moduleAssessmentIds = useMemo(() => new Set(
     course?.modules
@@ -114,10 +149,13 @@ const CourseWorkspace = () => {
   const assessmentLockByModule = useMemo(() => {
     const lockMap = new Map();
     (course?.modules || []).forEach((module) => {
-      lockMap.set(String(module.id), !isModuleCompleted(module, completedLessonIds));
+      const moduleState = moduleProgress.get(String(module.id));
+      const moduleUnlocked = moduleState?.moduleUnlocked ?? false;
+      const lessonsCompleted = moduleState?.lessonsCompleted ?? false;
+      lockMap.set(String(module.id), !moduleUnlocked || !lessonsCompleted);
     });
     return lockMap;
-  }, [completedLessonIds, course?.modules]);
+  }, [course?.modules, moduleProgress]);
 
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
@@ -218,7 +256,8 @@ const CourseWorkspace = () => {
 
     if (!activeLessonId || !activeLessonStillExists) {
       const storedItem = workspaceItems.find((item) => String(item.id) === String(storedLessonId) && !item.isLocked);
-      setActiveLessonId(storedItem?.id || workspaceItems[0].id);
+      const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
+      setActiveLessonId(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
       return;
     }
 
@@ -575,6 +614,7 @@ const CourseWorkspace = () => {
             assessmentModuleIds={moduleAssessmentIds}
             completedLessonIds={completedLessonIds}
             lessonItems={lessonItems}
+            moduleProgress={moduleProgress}
             hasAssessments={hasAssessments}
             collapsed={sidebarCollapsed}
             onCollapse={() => setSidebarCollapsed(true)}

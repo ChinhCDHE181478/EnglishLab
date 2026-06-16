@@ -193,6 +193,24 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getManagedCourseAssessments(courseId) {
+    const response = await axiosClient.get(`/api/content-manager/online-courses/${courseId}/assessments`);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async saveManagedCourseAssessments(courseId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/online-courses/${courseId}/assessments`, payload);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getManagedAssessmentRubrics() {
+    const response = await axiosClient.get('/api/content-manager/online-courses/assessment-rubrics');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
   async createOnlineCourse(payload) {
     const response = await axiosClient.post('/api/content-manager/online-courses', payload);
     return unwrapData(response);

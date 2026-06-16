@@ -1,5 +1,8 @@
 package fu.sap490.g23.backend.service.course;
 
+import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
@@ -24,6 +27,9 @@ public interface OnlineCourseService {
     CourseCertificateResponse verifyCourseCertificate(String verificationCode);
     Page<OnlineCourseResponse> getManagerCourses(String keyword, CourseCategoryCode category, PackageStatus status, Pageable pageable);
     OnlineCourseResponse getManagerCourse(String slugOrId);
+    List<CourseAssessmentResponse> getManagerCourseAssessments(Long courseId);
+    List<AssessmentRubricResponse> getManagerAssessmentRubrics();
+    List<CourseAssessmentResponse> saveManagerCourseAssessments(Long courseId, List<ContentManagerCourseAssessmentRequest> requests);
     CourseStatsResponse getStats();
     OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);

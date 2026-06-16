@@ -72,7 +72,7 @@ export const getBandFitInfo = (course, currentBand) => {
   };
 };
 
-const isAssessmentPassed = (assessment) => {
+export const isAssessmentPassed = (assessment) => {
   const latestStatus = String(assessment?.latestSubmission?.status || '');
   if (latestStatus === 'PASSED') return true;
   if (latestStatus === 'AI_EVALUATED' && (assessment?.passingScore == null || assessment?.passingScore === '')) {

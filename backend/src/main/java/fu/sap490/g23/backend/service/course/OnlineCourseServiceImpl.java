@@ -2,10 +2,15 @@ package fu.sap490.g23.backend.service.course;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.LessonRequest;
 import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
+import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sap490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
@@ -16,10 +21,16 @@ import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.course.*;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.*;
 import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
@@ -38,6 +49,7 @@ import java.security.MessageDigest;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.HashSet;
 import java.util.List;
@@ -63,10 +75,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final LessonRepository lessonRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final VocabularyProgressRepository vocabularyProgressRepository;
+    private final CourseAssessmentRepository courseAssessmentRepository;
+    private final AssessmentRubricRepository assessmentRubricRepository;
+    private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final BunnyStreamService bunnyStreamService;
     private final CourseProgressService courseProgressService;
+    private final CourseProgressionGuard courseProgressionGuard;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
     private final YouTubeTranscriptService youTubeTranscriptService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -111,6 +127,37 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public OnlineCourseResponse getManagerCourse(String slugOrId) {
         return mapper.toResponse(findManagerCourse(slugOrId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseAssessmentResponse> getManagerCourseAssessments(Long courseId) {
+        OnlineCourse course = findCourse(courseId);
+        return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
+                .map(this::toManagerAssessmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssessmentRubricResponse> getManagerAssessmentRubrics() {
+        return assessmentRubricRepository.findAll().stream()
+                .filter(AssessmentRubric::isActive)
+                .sorted(Comparator
+                        .comparing((AssessmentRubric rubric) -> rubric.getSkill() == null ? "" : rubric.getSkill().name())
+                        .thenComparing(AssessmentRubric::getId))
+                .map(this::toRubricResponse)
+                .toList();
+    }
+
+    @Override
+    public List<CourseAssessmentResponse> saveManagerCourseAssessments(Long courseId, List<ContentManagerCourseAssessmentRequest> requests) {
+        OnlineCourse course = findCourse(courseId);
+        synchronizeAssessments(course, requests == null ? List.of() : requests);
+        onlineCourseRepository.save(course);
+        return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
+                .map(this::toManagerAssessmentResponse)
+                .toList();
     }
 
     @Override
@@ -349,12 +396,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
         progress.setLastAccessedAt(LocalDateTime.now());
         if (completed) {
+            courseProgressionGuard.ensureLessonCanBeCompleted(student, course, lesson);
             progress.setStatus(LessonProgressStatus.COMPLETED);
             progress.setProgressPercent(100);
             if (progress.getCompletedAt() == null) {
                 progress.setCompletedAt(LocalDateTime.now());
             }
         } else {
+            courseProgressionGuard.ensureLessonCanBeMarkedIncomplete(student, course, lesson);
             progress.setStatus(LessonProgressStatus.IN_PROGRESS);
             progress.setProgressPercent(0);
             progress.setCompletedAt(null);
@@ -694,6 +743,54 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         nextLessons.forEach(module::addLesson);
     }
 
+    private void synchronizeAssessments(OnlineCourse course, List<ContentManagerCourseAssessmentRequest> requests) {
+        List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
+        Set<Long> incomingAssessmentIds = new HashSet<>();
+        List<CourseModule> modules = new ArrayList<>(course.getModules());
+
+        for (int index = 0; index < requests.size(); index++) {
+            ContentManagerCourseAssessmentRequest request = requests.get(index);
+            CourseAssessment assessment = findExistingAssessment(existingAssessments, request.getId());
+
+            if (assessment == null) {
+                assessment = CourseAssessment.builder().onlineCourse(course).build();
+            } else if (assessment.getId() != null) {
+                incomingAssessmentIds.add(assessment.getId());
+            }
+
+            CourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
+            AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
+
+            assessment.setOnlineCourse(course);
+            assessment.setModule(targetModule);
+            assessment.setRubric(rubric);
+            assessment.setTitle(request.getTitle().trim());
+            assessment.setDescription(request.getDescription());
+            assessment.setType(request.getType());
+            assessment.setSkill(request.getSkill());
+            assessment.setAiEvaluationMode(request.getAiEvaluationMode());
+            assessment.setInstructions(request.getInstructions());
+            assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
+            assessment.setPassingScore(request.getPassingScore());
+            assessment.setMaxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore());
+            assessment.setTimeLimitMinutes(defaultInt(request.getTimeLimitMinutes()));
+            assessment.setDisplayOrder(request.getDisplayOrder() == null ? index + 1 : request.getDisplayOrder());
+            assessment.setActive(request.getActive() == null || request.getActive());
+            courseAssessmentRepository.save(assessment);
+        }
+
+        for (CourseAssessment existingAssessment : existingAssessments) {
+            if (existingAssessment.getId() == null || incomingAssessmentIds.contains(existingAssessment.getId())) {
+                continue;
+            }
+            if (assessmentSubmissionRepository.existsByAssessmentId(existingAssessment.getId())) {
+                existingAssessment.setActive(false);
+                continue;
+            }
+            courseAssessmentRepository.delete(existingAssessment);
+        }
+    }
+
     private CourseModule findExistingModule(List<CourseModule> modules, Long moduleId) {
         if (moduleId == null) {
             return null;
@@ -714,6 +811,38 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Lesson not found in this module"));
     }
 
+    private CourseAssessment findExistingAssessment(List<CourseAssessment> assessments, Long assessmentId) {
+        if (assessmentId == null) {
+            return null;
+        }
+        return assessments.stream()
+                .filter(assessment -> assessmentId.equals(assessment.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Assessment not found in this course"));
+    }
+
+    private CourseModule resolveAssessmentModule(List<CourseModule> modules, Long moduleId) {
+        if (moduleId == null) {
+            return null;
+        }
+        return modules.stream()
+                .filter(module -> moduleId.equals(module.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Assessment module does not belong to this course"));
+    }
+
+    private AssessmentRubric resolveAssessmentRubric(Long rubricId) {
+        if (rubricId == null) {
+            return null;
+        }
+        AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
+                .orElseThrow(() -> new RuntimeException("Rubric not found"));
+        if (!rubric.isActive()) {
+            throw new RuntimeException("Rubric is not active");
+        }
+        return rubric;
+    }
+
     private void ensureModuleCanBeRemoved(CourseModule module) {
         for (Lesson lesson : module.getLessons()) {
             ensureLessonCanBeRemoved(lesson);
@@ -724,6 +853,56 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (lesson.getId() != null && lessonProgressRepository.existsByLessonId(lesson.getId())) {
             throw new RuntimeException("Cannot remove lesson \"" + lesson.getTitle() + "\" because learner progress already exists.");
         }
+    }
+
+    private CourseAssessmentResponse toManagerAssessmentResponse(CourseAssessment assessment) {
+        return CourseAssessmentResponse.builder()
+                .id(assessment.getId())
+                .courseId(assessment.getOnlineCourse().getId())
+                .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .title(assessment.getTitle())
+                .description(assessment.getDescription())
+                .type(assessment.getType())
+                .skill(assessment.getSkill())
+                .aiEvaluationMode(assessment.getAiEvaluationMode())
+                .instructions(assessment.getInstructions())
+                .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
+                .passingScore(assessment.getPassingScore())
+                .maxScore(assessment.getMaxScore())
+                .timeLimitMinutes(assessment.getTimeLimitMinutes())
+                .displayOrder(assessment.getDisplayOrder())
+                .active(assessment.isActive())
+                .rubric(toRubricResponse(assessment.getRubric()))
+                .latestSubmission((AiAssessmentSubmissionResponse) null)
+                .previousSubmission((AiAssessmentSubmissionResponse) null)
+                .build();
+    }
+
+    private AssessmentRubricResponse toRubricResponse(AssessmentRubric rubric) {
+        if (rubric == null) {
+            return null;
+        }
+        return AssessmentRubricResponse.builder()
+                .id(rubric.getId())
+                .name(rubric.getName())
+                .examType(rubric.getExamType())
+                .skill(rubric.getSkill())
+                .taskType(rubric.getTaskType())
+                .scoringScale(rubric.getScoringScale())
+                .description(rubric.getDescription())
+                .criteria(rubric.getCriteria().stream()
+                        .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
+                        .map(criterion -> RubricCriterionResponse.builder()
+                                .id(criterion.getId())
+                                .name(criterion.getName())
+                                .weight(criterion.getWeight())
+                                .description(criterion.getDescription())
+                                .bandDescriptors(criterion.getBandDescriptors())
+                                .displayOrder(criterion.getDisplayOrder())
+                                .build())
+                        .toList())
+                .build();
     }
 
     private LessonResponse toLessonResponse(Lesson lesson) {
