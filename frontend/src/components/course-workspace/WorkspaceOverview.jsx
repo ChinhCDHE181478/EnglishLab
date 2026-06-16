@@ -1,35 +1,70 @@
-const WorkspaceOverview = ({ course, enrollment }) => (
-  <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm">
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-      <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
-        <svg className="h-full w-full -rotate-90" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" fill="transparent" r="52" stroke="#f1f1f0" strokeWidth="10" />
-          <circle
-            cx="60"
-            cy="60"
-            fill="transparent"
-            r="52"
-            stroke="#8a0018"
-            strokeDasharray={326.7}
-            strokeDashoffset={326.7 - (326.7 * (enrollment?.progressPercent || 0)) / 100}
-            strokeLinecap="round"
-            strokeWidth="10"
-          />
-        </svg>
-        <div className="absolute text-center">
-          <p className="text-2xl font-extrabold text-[#2b2828]">{enrollment?.progressPercent || 0}%</p>
-          <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Hoàn thành</p>
+import { Link } from 'react-router-dom';
+
+const WorkspaceOverview = ({
+  course,
+  enrollment,
+  workspaceMode,
+  hasVocabularyTerms,
+  onWorkspaceModeChange,
+}) => {
+  const progressPercent = Math.min(100, Math.max(0, Number(enrollment?.progressPercent || 0)));
+  const detailPath = `/courses/${course?.slug || course?.id}`;
+
+  return (
+    <section className="rounded-[14px] border border-[#e5d7d9] bg-white px-4 py-3 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <Link
+          className="group inline-flex w-fit shrink-0 items-center gap-2 text-sm font-extrabold text-[#8a0018] transition hover:text-[#4b0009] lg:min-w-[260px]"
+          to={detailPath}
+          reloadDocument
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <span className="group-hover:underline">Quay lại chi tiết khóa học</span>
+        </Link>
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-[#8c716f]">Tiến trình</span>
+            <span className="text-sm font-extrabold text-[#4b0009]">{progressPercent}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-[#f0e5e7]">
+            <div
+              className="h-full rounded-full bg-[#4b0009] transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex shrink-0 justify-start lg:justify-end">
+          <div className="inline-flex rounded-full border border-[#e4d5d7] bg-[#f9f9f9] p-1">
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-extrabold transition ${
+                workspaceMode === 'learn'
+                  ? 'bg-[#4b0009] text-white shadow-sm'
+                  : 'text-[#584140] hover:bg-white'
+              }`}
+              type="button"
+              onClick={() => onWorkspaceModeChange?.('learn')}
+            >
+              Học theo bài
+            </button>
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-extrabold transition ${
+                workspaceMode === 'flashcards'
+                  ? 'bg-[#4b0009] text-white shadow-sm'
+                  : 'text-[#584140] hover:bg-white'
+              } disabled:cursor-not-allowed disabled:opacity-45`}
+              type="button"
+              disabled={!hasVocabularyTerms}
+              onClick={() => onWorkspaceModeChange?.('flashcards')}
+            >
+              Thẻ ghi nhớ
+            </button>
+          </div>
         </div>
       </div>
-      <div className="flex-1">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Workspace tự học</p>
-        <h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Tiếp tục học {course.title}</h1>
-        <p className="mt-3 text-sm leading-7 text-[#584140]">
-          Toàn bộ khóa học được thiết kế cho trải nghiệm tự học. Bạn có thể học video, đọc tài liệu, làm bài tập và giữ streak mỗi ngày.
-        </p>
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 export default WorkspaceOverview;

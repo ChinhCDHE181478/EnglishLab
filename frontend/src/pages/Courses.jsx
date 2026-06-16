@@ -9,31 +9,36 @@ import {
   CourseGlobalStyles,
   CourseHero,
   CurrentCourse,
-  FinalCourseCta,
-  LearningPaths,
   PopularCourses,
-  RecommendationBanner,
 } from '../components/course';
+import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
-import { fallbackCourses, mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { recommendCoursesForLearner } from '../utils/selfPacedHelpers';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 100;
+const defaultFilters = {
+  category: '',
+  currentBand: '',
+  targetBand: '',
+  skill: '',
+  promotion: '',
+};
 
 const Courses = () => {
-  const [courses, setCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState(defaultFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [usingFallback, setUsingFallback] = useState(false);
   const [user, setUser] = useState(() => (hasAccessToken() ? getStoredUser() : null));
 
   const isAuthenticated = Boolean(user && hasAccessToken());
 
   useEffect(() => {
     let active = true;
-
     if (!hasAccessToken()) {
       setUser(null);
       setMyEnrollments([]);
@@ -57,18 +62,6 @@ const Courses = () => {
     };
   }, []);
 
-  const getFilteredFallbackCourses = useCallback(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    return fallbackCourses.filter((course) => {
-      const matchedCategory = !activeCategory || course.category === activeCategory || activeCategory === 'ONLINE';
-      const matchedKeyword =
-        !normalizedKeyword ||
-        course.title.toLowerCase().includes(normalizedKeyword) ||
-        course.shortDescription.toLowerCase().includes(normalizedKeyword);
-      return matchedCategory && matchedKeyword;
-    });
-  }, [activeCategory, keyword]);
-
   const loadMyEnrollments = useCallback(async () => {
     if (!hasAccessToken()) {
       setMyEnrollments([]);
@@ -89,73 +82,110 @@ const Courses = () => {
   const loadCourses = useCallback(async () => {
     setLoading(true);
     setError('');
-    setUsingFallback(false);
 
     try {
+      const params = {
+        page: 0,
+        size: PAGE_SIZE,
+      };
+
+      const selectedCategory = activeCategory || filters.category;
+      if (keyword.trim()) params.keyword = keyword.trim();
+      if (selectedCategory) params.category = selectedCategory;
+      if (filters.currentBand) params.currentBand = Number(filters.currentBand);
+      if (filters.targetBand) params.targetBand = Number(filters.targetBand);
+      if (filters.skill) params.skill = filters.skill;
+
       const [pageData, enrollments] = await Promise.all([
-        courseApi.getOnlineCourses({
-          page: 0,
-          size: PAGE_SIZE,
-          category: activeCategory || undefined,
-          keyword: keyword.trim() || undefined,
-        }),
+        courseApi.getOnlineCourses(params),
         loadMyEnrollments(),
       ]);
 
       const normalizedCourses = mergeCourseRegistrations((pageData.content || []).map(normalizeCourse), enrollments);
-      setCourses(normalizedCourses);
+      setAllCourses(normalizedCourses);
     } catch (err) {
-      setCourses(getFilteredFallbackCourses());
-      setUsingFallback(true);
+      setAllCourses([]);
       setError(
         err?.response?.status === 401
-          ? 'API danh sách khóa học đang yêu cầu đăng nhập. Trang vẫn hiển thị dữ liệu mẫu để không chặn trải nghiệm.'
-          : 'Chưa kết nối được API khóa học. Trang đang hiển thị dữ liệu mẫu để kiểm tra giao diện.'
+          ? 'Bạn cần đăng nhập để tải đầy đủ dữ liệu khóa học và trạng thái đăng ký.'
+          : 'Không thể tải danh sách khóa học. Vui lòng thử lại.'
       );
     } finally {
       setLoading(false);
     }
-  }, [activeCategory, keyword, loadMyEnrollments, getFilteredFallbackCourses]);
+  }, [activeCategory, filters.category, filters.currentBand, filters.skill, filters.targetBand, keyword, loadMyEnrollments]);
 
   useEffect(() => {
-    const timeoutId = setTimeout(loadCourses, 250);
-    return () => clearTimeout(timeoutId);
+    loadCourses();
   }, [loadCourses]);
 
+  const visibleCourses = useMemo(() => {
+    if (filters.promotion === 'promotion') {
+      return allCourses.filter((course) => Number(course.discountPercent || 0) > 0);
+    }
+    if (filters.promotion === 'standard') {
+      return allCourses.filter((course) => Number(course.discountPercent || 0) <= 0);
+    }
+    return allCourses;
+  }, [allCourses, filters.promotion]);
+
   const featuredCourses = useMemo(() => {
-    const featured = courses.filter((course) => course.featured);
-    return (featured.length ? featured : courses).slice(0, 4);
-  }, [courses]);
+    const featured = visibleCourses.filter((course) => course.featured);
+    return (featured.length ? featured : visibleCourses).slice(0, 4);
+  }, [visibleCourses]);
+
+  const recommendedCourses = useMemo(
+    () => recommendCoursesForLearner({
+      courses: allCourses,
+      enrollments: myEnrollments,
+      currentBand: user?.currentBand ?? null,
+      targetBand: user?.targetBand ?? null,
+    }),
+    [allCourses, myEnrollments, user?.currentBand, user?.targetBand],
+  );
 
   const handleClearFilters = () => {
     setKeyword('');
     setActiveCategory('');
+    setFilters(defaultFilters);
+  };
+
+  const handleFilterChange = ({ target }) => {
+    const { name, value } = target;
+    setFilters((current) => ({ ...current, [name]: value }));
   };
 
   return (
     <div id="top" className="course-page min-h-screen overflow-x-hidden bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
-      <Header hideTeacherLinks />
+      <Header />
       <main className="mx-auto max-w-[1320px] px-4 pb-[80px] pt-6 md:px-10">
         <CourseHero user={user} registeredCount={myEnrollments.length} />
-        <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
         <CategoryTabs activeCategory={activeCategory} onChange={setActiveCategory} />
+        <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
         {error ? (
-          <div className={`mb-8 rounded-2xl border px-5 py-4 text-sm font-semibold ${usingFallback ? 'border-[#dfbfbd]/40 bg-white text-[#584140]' : 'border-[#ba1a1a]/20 bg-[#ffdad6] text-[#93000a]'}`}>
+          <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
             {error}
           </div>
         ) : null}
-        <RecommendationBanner />
+        <RecommendedCoursesSection
+          courses={recommendedCourses}
+          currentBand={user?.currentBand ?? null}
+          loading={loading}
+          error={error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
+          onRetry={loadCourses}
+        />
         <PopularCourses courses={featuredCourses} />
         <CourseCatalog
-          courses={courses}
+          courses={visibleCourses}
           keyword={keyword}
+          filters={filters}
           onKeywordChange={setKeyword}
+          onFilterChange={handleFilterChange}
           onClear={handleClearFilters}
           loading={loading}
+          currentBand={user?.currentBand ?? null}
         />
-        <LearningPaths />
-        <FinalCourseCta />
       </main>
       <CourseFooter />
     </div>

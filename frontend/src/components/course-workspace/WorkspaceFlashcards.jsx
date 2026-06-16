@@ -46,9 +46,9 @@ export const extractVocabularyTerms = (course) =>
   );
 
 const modeTabs = [
-  { id: 'cards', label: 'Thẻ ghi nhớ', icon: 'style' },
+  { id: 'cards', label: 'Thẻ', icon: 'style' },
   { id: 'learn', label: 'Học', icon: 'school' },
-  { id: 'match', label: 'Ghép thẻ', icon: 'extension' },
+  { id: 'match', label: 'Ghép', icon: 'extension' },
 ];
 const LEARN_TURN_SIZE = 10;
 const MATCH_TURN_SIZE = 6;
@@ -716,7 +716,7 @@ const WorkspaceFlashcards = ({ course }) => {
 
   return (
     <section className="space-y-8">
-      <div className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm">
+      <div className="mx-auto max-w-[980px] rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">New words</p>
@@ -796,10 +796,10 @@ const WorkspaceFlashcards = ({ course }) => {
                 {learnBaseCount}
               </span>
             </div>
-            <p className="mb-4 text-sm text-[#584140]">
+            {/* <p className="mb-4 text-sm text-[#584140]">
               Hệ thống sẽ tự chia bộ từ thành các lượt học ngắn. Mỗi lượt có tối đa 10 câu mới; câu nào sai sẽ được làm lại ngay trước khi sang lượt tiếp theo.
               {learnNeedsReviewCount ? ` Hiện có ${learnNeedsReviewCount} từ cần ôn lại.` : ''}
-            </p>
+            </p> */}
 
             {learnActiveTerm ? (
             <div className="rounded-[18px] border border-[#dfe3ee] bg-white p-8 shadow-sm">
@@ -1114,7 +1114,7 @@ const WorkspaceFlashcards = ({ course }) => {
         </div>
       ) : null}
 
-      <div className="space-y-6 rounded-[28px] bg-[#f6f7fb] p-5">
+      <div className="mx-auto max-w-[980px] space-y-6 rounded-[28px] bg-[#f6f7fb] p-5">
         <section>
           <div className="mb-4 flex items-center justify-between">
             <div>

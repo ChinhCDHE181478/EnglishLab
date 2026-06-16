@@ -1,6 +1,6 @@
 const streakCards = [
   { image: '/streaks/streak-3-days.png', label: '3 ngày', title: 'Khởi động thói quen học đều' },
-  { image: '/streaks/streak-7-days.png', label: '7 ngày', title: 'Bắt nhịp vững vàng với lộ trình' },
+  { image: '/streaks/streak-7-days.png', label: '7 ngày', title: 'Bắt nhịp vững vàng với nhịp học' },
   { image: '/streaks/streak-60-days.png', label: '60 ngày', title: 'Giữ lửa đường dài cho mục tiêu lớn' },
 ];
 

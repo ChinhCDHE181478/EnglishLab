@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.controller.course;
 
+import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
+import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
@@ -33,6 +35,22 @@ public class StudentOnlineCourseController {
     @GetMapping({"/my-enrollments", "/my-courses"})
     public ResponseEntity<List<PackageEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/completion")
+    public ResponseEntity<CourseCompletionResponse> getCourseCompletion(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getCourseCompletion(courseId, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/certificate")
+    public ResponseEntity<CourseCertificateResponse> getCourseCertificate(
+            @PathVariable Long courseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.getCourseCertificate(courseId, authentication.getName()));
     }
 
     @PatchMapping("/{courseId}/lessons/{lessonId}/progress")

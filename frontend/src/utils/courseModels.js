@@ -1,125 +1,72 @@
-import { catalogCourses, popularCourses } from '../components/course/courseData';
+const normalizeText = (value, fallback = '') => (typeof value === 'string' && value.trim() ? value.trim() : fallback);
 
-const buildFallbackModules = (course) => {
-  const totalLessons = Math.max(Number(course.totalLessons || 0), 6);
-  const moduleCount = Math.max(2, Math.min(4, Math.ceil(totalLessons / 6)));
+export const fallbackCourses = [];
 
-  return Array.from({ length: moduleCount }, (_, moduleIndex) => {
-    const lessonCount = Math.max(2, Math.ceil(totalLessons / moduleCount));
-    return {
-      id: `${course.id}-module-${moduleIndex + 1}`,
-      title:
-        moduleIndex === 0
-          ? 'Khoi dong va dinh huong'
-          : moduleIndex === moduleCount - 1
-            ? 'Tong hop va luyen tap'
-            : `Module ${moduleIndex + 1}`,
-      description:
-        moduleIndex === 0
-          ? 'Lam quen muc tieu khoa hoc, cach hoc va cac tai nguyen tu hoc.'
-          : 'He thong bai giang video, tai lieu va bai tap tu luyen theo tung muc tieu.',
-      displayOrder: moduleIndex + 1,
-      lessons: Array.from({ length: lessonCount }, (_, lessonIndex) => ({
-        id: `${course.id}-lesson-${moduleIndex + 1}-${lessonIndex + 1}`,
-        title: `Bai hoc ${moduleIndex + 1}.${lessonIndex + 1}`,
-        description: 'Noi dung video, tai lieu doc va bai tap thuc hanh.',
-        durationMinutes: 18 + lessonIndex * 6,
-        displayOrder: lessonIndex + 1,
-        preview: moduleIndex === 0 && lessonIndex === 0,
-      })),
-    };
-  });
-};
+export const normalizeCourse = (course = {}) => {
+  const id = course.id ?? course.courseId ?? course.packageId ?? course.slug ?? null;
+  const slug = course.slug ?? course.courseSlug ?? (id != null ? String(id) : '');
+  const modules = Array.isArray(course.modules) ? course.modules : Array.isArray(course.sections) ? course.sections : [];
 
-const buildFallbackCourse = (course, index) => ({
-  id: `demo-${index + 1}`,
-  slug: course.title.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, ''),
-  title: course.title,
-  shortDescription: course.description,
-  description: `${course.description} EnglishLab xay dung lo trinh tu hoc ro rang, gom video bai giang, tai lieu doc va bai tap thuc hanh theo tung module.`,
-  thumbnailUrl: course.image,
-  category:
-    course.title.toLowerCase().includes('toeic')
-      ? 'TOEIC'
-      : course.title.toLowerCase().includes('communication') || course.title.toLowerCase().includes('speaking') || course.title.toLowerCase().includes('pronunciation')
-        ? 'COMMUNICATION'
-        : 'IELTS',
-  level: index < 2 ? 'BEGINNER' : 'INTERMEDIATE',
-  targetScore: course.level || course.category || 'IELTS / TOEIC',
-  recommendedCurrentBandMin: index < 2 ? 4.5 : 5.5,
-  recommendedCurrentBandMax: index < 2 ? 5.5 : 6.5,
-  targetBand: index < 2 ? 6.0 : 7.0,
-  learningPathCode: 'IELTS_BAND_55_TO_70',
-  learningPathName: 'IELTS 5.5 to 7.0 Self-Paced Path',
-  learningPathOrder: index + 1,
-  targetOutcome: 'Hoàn thành module test, nhận AI feedback và biết chính xác phần cần ôn lại.',
-  recommendedNextCourseSlug: null,
-  duration: course.duration || '8 Tuan',
-  price: index % 3 === 0 ? 0 : 2500000,
-  totalLessons: index < 4 ? 24 : 12,
-  totalHours: index < 4 ? 36 : 18,
-  featured: index < 4,
-  registered: false,
-});
-
-export const fallbackCourses = [...popularCourses, ...catalogCourses].map(buildFallbackCourse).map((course) => ({
-  ...course,
-  modules: buildFallbackModules(course),
-}));
-
-export const normalizeCourse = (course) => {
   const normalized = {
     ...course,
-    id: course.id ?? course.courseId ?? course.packageId ?? course.slug,
-    slug: course.slug ?? course.courseSlug ?? course.packageSlug,
-    title: course.title ?? course.courseTitle ?? course.name ?? 'Khóa học EnglishLab',
-    shortDescription: course.shortDescription ?? course.description ?? course.summary ?? 'Khóa học online tại EnglishLab.',
-    description: course.description ?? course.shortDescription ?? course.summary ?? 'Khóa học online tại EnglishLab.',
-    thumbnailUrl: course.thumbnailUrl ?? course.imageUrl ?? course.coverImageUrl ?? course.thumbnail ?? fallbackCourses[0]?.thumbnailUrl,
+    id,
+    slug,
+    title: normalizeText(course.title ?? course.courseTitle ?? course.name, 'Khóa học EnglishLab'),
+    shortDescription: normalizeText(course.shortDescription ?? course.summary ?? course.description, 'Khóa học trực tuyến tại EnglishLab.'),
+    description: normalizeText(course.description ?? course.shortDescription ?? course.summary, 'Khóa học trực tuyến tại EnglishLab.'),
+    thumbnailUrl: normalizeText(course.thumbnailUrl ?? course.imageUrl ?? course.coverImageUrl ?? course.thumbnail),
     category: course.category ?? course.categoryCode ?? course.type ?? 'ONLINE',
-    categoryName: course.categoryName ?? course.category ?? 'Online',
+    categoryName: normalizeText(course.categoryName ?? course.category, 'Trực tuyến'),
     level: course.level ?? 'BEGINNER',
-    duration: course.duration ?? course.durationText ?? '8 Tuan',
+    duration: normalizeText(course.duration ?? course.durationText, 'Tự học linh hoạt'),
     recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? course.currentBandMin ?? null,
     recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? course.currentBandMax ?? null,
     targetBand: course.targetBand ?? null,
     learningPathCode: course.learningPathCode ?? null,
     learningPathName: course.learningPathName ?? null,
     learningPathOrder: course.learningPathOrder ?? null,
-    targetOutcome: course.targetOutcome ?? course.outcome ?? '',
+    targetOutcome: normalizeText(course.targetOutcome ?? course.outcome),
     recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? null,
-    price: course.price ?? course.salePrice ?? course.tuitionFee ?? 0,
-    totalLessons: course.totalLessons ?? course.lessonCount ?? 0,
-    totalHours: course.totalHours ?? course.hours ?? 0,
+    focusSkills: Array.isArray(course.focusSkills) ? course.focusSkills : [],
+    prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
+    price: Number(course.salePrice ?? course.price ?? course.tuitionFee ?? 0),
+    salePrice: Number(course.salePrice ?? course.price ?? course.tuitionFee ?? 0),
+    originalPrice: Number(course.originalPrice ?? course.listPrice ?? course.price ?? course.salePrice ?? course.tuitionFee ?? 0),
+    discountPercent: Number(course.discountPercent ?? 0),
+    totalLessons: Number(course.totalLessons ?? course.lessonCount ?? 0),
+    totalHours: Number(course.totalHours ?? course.hours ?? 0),
     featured: Boolean(course.featured ?? course.isFeatured),
     registered: Boolean(course.registered ?? course.enrolled),
-    progressPercent: course.progressPercent ?? course.progress ?? 0,
-    enrollmentCount: course.enrollmentCount ?? course.studentCount ?? course.totalEnrollments ?? 0,
-    modules: course.modules ?? course.sections ?? [],
+    status: course.status ?? (course.registered || course.enrolled ? 'ENROLLED' : 'AVAILABLE'),
+    progressPercent: Number(course.progressPercent ?? course.progress ?? 0),
+    enrollmentCount: Number(course.enrollmentCount ?? course.studentCount ?? course.totalEnrollments ?? 0),
+    averageRating: Number(course.averageRating ?? course.rating ?? 0),
+    reviewCount: Number(course.reviewCount ?? course.totalReviews ?? 0),
+    modules,
   };
 
-  if (!normalized.modules?.length) {
-    normalized.modules = buildFallbackModules(normalized);
+  if (!normalized.discountPercent && normalized.originalPrice > normalized.salePrice && normalized.originalPrice > 0) {
+    normalized.discountPercent = Math.round(((normalized.originalPrice - normalized.salePrice) / normalized.originalPrice) * 100);
   }
 
   return normalized;
 };
 
-export const normalizeEnrollment = (enrollment) => ({
+export const normalizeEnrollment = (enrollment = {}) => ({
   ...enrollment,
   id: enrollment.id ?? enrollment.packageId ?? enrollment.courseId,
   courseId: enrollment.courseId ?? enrollment.id ?? enrollment.packageId,
-  courseSlug: enrollment.courseSlug ?? enrollment.slug,
-  courseTitle: enrollment.courseTitle ?? enrollment.title ?? 'Khóa học EnglishLab',
-  thumbnailUrl: enrollment.thumbnailUrl ?? fallbackCourses[0]?.thumbnailUrl,
-  progressPercent: enrollment.progressPercent ?? 0,
-  streakDays: enrollment.streakDays ?? 0,
-  completedLessonIds: enrollment.completedLessonIds ?? [],
+  courseSlug: enrollment.courseSlug ?? enrollment.slug ?? '',
+  courseTitle: normalizeText(enrollment.courseTitle ?? enrollment.title, 'Khóa học EnglishLab'),
+  thumbnailUrl: normalizeText(enrollment.thumbnailUrl),
+  progressPercent: Number(enrollment.progressPercent ?? 0),
+  streakDays: Number(enrollment.streakDays ?? 0),
+  completedLessonIds: Array.isArray(enrollment.completedLessonIds) ? enrollment.completedLessonIds : [],
 });
 
 export const getCourseId = (course) => course?.id ?? course?.courseId ?? course?.packageId;
 
-export const getCourseSlug = (course) => course?.slug ?? course?.courseSlug ?? String(getCourseId(course));
+export const getCourseSlug = (course) => course?.slug ?? course?.courseSlug ?? String(getCourseId(course) ?? '');
 
 export const buildCourseDetailPath = (course) => `/courses/${getCourseSlug(course)}`;
 
@@ -131,11 +78,10 @@ export const mergeCourseRegistrations = (courses, enrollments) => {
   return courses.map((course) => ({
     ...course,
     registered:
-      course.registered
+      Boolean(course.registered)
       || registeredIds.has(String(getCourseId(course)))
       || registeredSlugs.has(getCourseSlug(course)),
   }));
 };
 
-export const findFallbackCourse = (slugOrId) =>
-  fallbackCourses.find((course) => course.slug === slugOrId || String(course.id) === String(slugOrId));
+export const findFallbackCourse = () => null;

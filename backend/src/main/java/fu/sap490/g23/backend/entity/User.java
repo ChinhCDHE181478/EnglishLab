@@ -71,6 +71,10 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean profileCompleted = false;
 
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean emailVerified = true;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
@@ -111,6 +115,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return emailVerified;
     }
 }

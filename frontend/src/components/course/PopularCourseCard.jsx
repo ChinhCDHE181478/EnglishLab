@@ -1,4 +1,4 @@
-import CourseActionButton from './CourseActionButton';
+import CourseActionButton, { detailCourseButtonClassName } from './CourseActionButton';
 import MaterialIcon from './MaterialIcon';
 import { categoryLabels, levelLabels } from './courseConstants';
 import { formatCoursePrice } from './courseFormatters';
@@ -24,8 +24,8 @@ const PopularCourseCard = ({ course }) => (
           <span className="font-bold text-[#4b0009]">{course.duration}</span>
           <span className="text-sm font-bold text-[#4b0009]">{formatCoursePrice(course.price)}</span>
         </div>
-        <CourseActionButton className="block w-full cursor-pointer rounded bg-[#eeeeed] px-4 py-2 text-center text-[14px] font-semibold leading-none tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009] hover:text-white" course={course}>
-          {course.registered ? 'Đến khóa học' : 'Xem chi tiết khóa học'}
+        <CourseActionButton className={course.registered ? 'block w-full cursor-pointer rounded bg-[#4b0009] px-4 py-2 text-center text-[14px] font-semibold leading-none tracking-[0.02em] text-white transition-all hover:bg-[#730014]' : `w-full ${detailCourseButtonClassName}`} course={course}>
+          {course.registered ? 'Tiếp tục học' : 'Xem chi tiết khóa học'}
         </CourseActionButton>
       </div>
     </div>

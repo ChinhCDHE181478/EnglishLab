@@ -1,6 +1,7 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 const getVideoEmbedUrl = (url) => {
   if (!url) return '';
-
   const value = String(url).trim();
   if (/iframe\.mediadelivery\.net\/embed\//i.test(value)) return value;
 
@@ -32,7 +33,10 @@ const LessonContent = ({ content }) => {
   if (!content) return null;
 
   return (
-    <div className="mt-6 rounded-[24px] border border-[#dfbfbd]/20 bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030]">
+    <div
+      id="khu-vuc-noi-dung-bai-hoc"
+      className="mt-5 select-text rounded-[24px] border border-[#ead9db] bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030] selection:bg-[#fff0f1] selection:text-[#4b0009]"
+    >
       {String(content).split('\n').map((line, index) => renderLine(line, `${index}-${line.slice(0, 16)}`))}
     </div>
   );
@@ -43,72 +47,196 @@ const WorkspaceLessonPanel = ({
   completedLessonIds,
   lessonItems,
   savingLessonId,
+  canPersist = false,
   onMoveLesson,
-  onSelectLesson,
   onToggleComplete,
+  onSaveLessonNote,
+  onOpenNotes,
+  seekRequest,
 }) => {
+  const directVideoRef = useRef(null);
+  const lessonContentRef = useRef(null);
   const activeLesson = activeLessonItem?.lesson;
   const activeModule = activeLessonItem?.module;
   const activeLessonId = activeLessonItem?.id;
   const activeIndex = lessonItems.findIndex((item) => String(item.id) === String(activeLessonId));
   const embedUrl = getVideoEmbedUrl(activeLesson?.videoUrl);
+  const [iframeStartSeconds, setIframeStartSeconds] = useState(0);
   const directVideoUrl = activeLesson?.videoUrl && !embedUrl ? activeLesson.videoUrl : '';
   const hasMaterial = Boolean(activeLesson?.materialUrl);
   const isCompleted = activeLessonId ? completedLessonIds.has(activeLessonId) : false;
   const isSaving = activeLessonId && String(savingLessonId) === String(activeLessonId);
+  const nextLessonItem = lessonItems[activeIndex + 1];
+  const nextLessonLocked = Boolean(nextLessonItem?.isLocked);
+  const [selectedLessonText, setSelectedLessonText] = useState('');
+  const [selectionButton, setSelectionButton] = useState(null);
+  const [lessonNoteMessage, setLessonNoteMessage] = useState('');
+  const iframeSrc = useMemo(() => {
+    if (!embedUrl) return '';
+    if (!iframeStartSeconds) return embedUrl;
+    const separator = embedUrl.includes('?') ? '&' : '?';
+    return `${embedUrl}${separator}start=${Math.floor(iframeStartSeconds)}&autoplay=1`;
+  }, [embedUrl, iframeStartSeconds]);
+
+  useEffect(() => {
+    if (!seekRequest) return;
+    const seconds = Number(seekRequest.seconds || 0);
+    if (directVideoRef.current) {
+      directVideoRef.current.currentTime = seconds;
+      directVideoRef.current.play?.().catch(() => {});
+      return;
+    }
+    if (embedUrl) setIframeStartSeconds(seconds);
+  }, [embedUrl, seekRequest]);
+
+  useEffect(() => {
+    setSelectedLessonText('');
+    setSelectionButton(null);
+    setLessonNoteMessage('');
+    window.getSelection?.()?.removeAllRanges?.();
+  }, [activeLessonId]);
+
+  const captureLessonSelection = () => {
+    const selection = window.getSelection?.();
+    const text = selection?.toString().trim();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const container = lessonContentRef.current;
+
+    if (!text || !range || !container || !container.contains(range.commonAncestorContainer)) {
+      setSelectionButton(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const preferAbove = rect.bottom > containerRect.bottom - 70;
+    const top = preferAbove
+      ? rect.top - containerRect.top + container.scrollTop - 44
+      : rect.bottom - containerRect.top + container.scrollTop + 8;
+    const left = Math.min(
+      Math.max(12, rect.left - containerRect.left + container.scrollLeft),
+      Math.max(12, container.clientWidth - 150),
+    );
+
+    setSelectedLessonText(text);
+    setSelectionButton({ top: Math.max(8, top), left });
+    setLessonNoteMessage('');
+  };
+
+  const saveSelectedLessonText = () => {
+    if (!canPersist) {
+      setLessonNoteMessage('Bạn cần đăng nhập để lưu ghi chú.');
+      return;
+    }
+    if (!selectedLessonText.trim()) {
+      setLessonNoteMessage('Vui lòng bôi đen một đoạn trong bài học trước khi lưu.');
+      return;
+    }
+
+    onSaveLessonNote?.({
+      content: selectedLessonText.trim(),
+      selectedText: selectedLessonText.trim(),
+    });
+    setSelectedLessonText('');
+    setSelectionButton(null);
+    window.getSelection?.()?.removeAllRanges?.();
+    setLessonNoteMessage('Đã lưu đoạn đã chọn vào ghi chú.');
+    onOpenNotes?.();
+  };
 
   return (
-    <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white shadow-sm">
-      <div className="p-6">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">{activeModule?.title || 'Đang học'}</p>
-          <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">{activeLesson?.title || 'Bài học đầu tiên'}</h2>
+    <section className="space-y-5">
+      {embedUrl || directVideoUrl ? (
+        <div className="rounded-[8px] bg-[#eef2f7] p-4 md:p-5">
+          {embedUrl ? (
+            <div className="overflow-hidden rounded-[26px] bg-black">
+              <div className="aspect-video">
+                <iframe
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="h-full w-full"
+                  src={iframeSrc}
+                  title={activeLesson?.title || 'Video bài học'}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {directVideoUrl ? (
+            <div className="overflow-hidden rounded-[26px] bg-black">
+              <video ref={directVideoRef} className="aspect-video h-full w-full" controls preload="metadata" src={directVideoUrl}>
+                <track kind="captions" />
+              </video>
+            </div>
+          ) : null}
         </div>
+      ) : null}
 
-        <p className="mt-3 text-sm leading-7 text-[#584140]">
-          {activeLesson?.description || 'Nội dung bài học gồm video, tài liệu PDF và các bài tập tự luyện theo module.'}
-        </p>
+      <div className="rounded-[8px] border border-[#e0e6ef] bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8c716f]">
+              {activeModule?.title || 'Bài học'}
+            </p>
+            <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold leading-tight text-[#1f2430]">
+              {activeLesson?.title || 'Bài học hiện tại'}
+            </h2>
+            <p className="mt-3 text-sm leading-7 text-[#5f5353]">
+              {activeLesson?.description || 'Nội dung bài học gồm video, phần giải thích và các bước tự luyện tập theo tiến độ của bạn.'}
+            </p>
+          </div>
 
-        {embedUrl ? (
-          <div className="mt-6 overflow-hidden rounded-[24px] bg-black">
-            <div className="aspect-video">
-              <iframe
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                className="h-full w-full"
-                src={embedUrl}
-                title={activeLesson?.title}
-              />
+          <div className="grid min-w-[220px] grid-cols-2 gap-3 rounded-[8px] bg-[#f4f7fb] p-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Loại bài</p>
+              <p className="mt-1 text-sm font-extrabold text-[#4b0009]">
+                {activeLesson?.videoUrl ? 'Video' : activeLesson?.materialUrl ? 'Tài liệu' : 'Bài học'}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Thời lượng</p>
+              <p className="mt-1 text-sm font-extrabold text-[#4b0009]">{activeLesson?.durationMinutes || 0} phút</p>
             </div>
           </div>
+        </div>
+
+        <div ref={lessonContentRef} className="relative" onMouseUp={captureLessonSelection}>
+          <LessonContent content={activeLesson?.contentText} />
+          {selectionButton ? (
+            <button
+              className="absolute z-10 rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(75,0,9,0.22)] transition hover:bg-[#730014]"
+              style={{ top: selectionButton.top, left: selectionButton.left }}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={saveSelectedLessonText}
+            >
+              Lưu ghi chú
+            </button>
+          ) : null}
+        </div>
+
+        {lessonNoteMessage ? (
+          <p className="mt-3 text-sm font-semibold text-[#730014]">{lessonNoteMessage}</p>
         ) : null}
 
-        {directVideoUrl ? (
-          <div className="mt-6 overflow-hidden rounded-[24px] bg-black">
-            <video className="aspect-video h-full w-full" controls preload="metadata" src={directVideoUrl}>
-              <track kind="captions" />
-            </video>
+        {hasMaterial ? (
+          <div id="khu-vuc-tai-lieu" className="mt-5">
+            <a
+              className="inline-flex items-center gap-2 rounded-2xl border border-[#dcb6bb] bg-[#fff8f8] px-4 py-3 text-sm font-extrabold text-[#8a0018] transition hover:bg-[#fff0f1]"
+              href={activeLesson.materialUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <span className="material-symbols-outlined text-[18px]">description</span>
+              Mở tài liệu bài học
+            </a>
           </div>
         ) : null}
 
-        <LessonContent content={activeLesson?.contentText} />
-
-        {hasMaterial ? (
-          <a
-            className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[#8a0018]/20 px-4 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-            href={activeLesson.materialUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <span className="material-symbols-outlined text-[18px]">description</span>
-            Mở tài liệu bài học
-          </a>
-        ) : null}
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-3">
             <button
-              className="cursor-pointer rounded-2xl border border-[#8a0018]/20 px-4 py-2 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-[8px] border border-[#dcb6bb] bg-white px-4 py-3 text-sm font-extrabold text-[#8a0018] transition hover:bg-[#fff0f1] disabled:cursor-not-allowed disabled:opacity-40"
               type="button"
               disabled={activeIndex <= 0}
               onClick={() => onMoveLesson(-1)}
@@ -116,49 +244,28 @@ const WorkspaceLessonPanel = ({
               Bài trước
             </button>
             <button
-              className="cursor-pointer rounded-2xl bg-[#2b2828] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#8a0018] disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-[8px] border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:border-[#730014] hover:bg-[#fff0f1] disabled:cursor-not-allowed disabled:opacity-40"
               type="button"
-              disabled={activeIndex < 0 || activeIndex >= lessonItems.length - 1}
+              disabled={activeIndex < 0 || activeIndex >= lessonItems.length - 1 || nextLessonLocked}
               onClick={() => onMoveLesson(1)}
             >
-              Bài tiếp theo
+              {nextLessonLocked ? 'Hoàn thành bài hiện tại để mở bài tiếp theo' : 'Chuyển đến mục tiếp theo'}
             </button>
           </div>
 
           <button
-            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 ${isCompleted ? 'bg-[#e7f6ec] text-[#176b3a]' : 'bg-[#8a0018] text-white hover:bg-[#650012]'}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-[8px] px-5 py-3 text-sm font-extrabold transition disabled:cursor-wait disabled:opacity-70 ${
+              isCompleted ? 'bg-[#fff0f1] text-[#4b0009]' : 'bg-[#4b0009] text-white hover:bg-[#730014]'
+            }`}
             type="button"
             disabled={isSaving}
             onClick={() => activeLessonId && onToggleComplete(activeLessonId)}
           >
-            <span className="material-symbols-outlined text-[18px]">{isCompleted ? 'check_circle' : 'done'}</span>
-            {isSaving ? 'Đang lưu...' : isCompleted ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
+            <span className="material-symbols-outlined text-[18px]">
+              {isCompleted ? 'check_circle' : 'done'}
+            </span>
+            {isSaving ? 'Đang lưu tiến độ...' : isCompleted ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
           </button>
-        </div>
-
-        <div className="mt-6 grid gap-3">
-          {(activeModule?.lessons || []).map((lesson, index) => {
-            const lessonId = lesson.id ?? `${activeModule.id ?? activeModule.title}-${lesson.title}-${index}`;
-            const active = String(lessonId) === String(activeLessonId);
-            const completed = completedLessonIds.has(lessonId);
-
-            return (
-              <button
-                key={lessonId}
-                className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[#8a0018]/30 hover:bg-[#fff7f6] ${active ? 'border-[#8a0018]/20 bg-[#fff0f1]' : 'border-[#dfbfbd]/20 bg-[#fffdfc]'}`}
-                type="button"
-                onClick={() => onSelectLesson(lessonId)}
-              >
-                <div>
-                  <p className="text-sm font-extrabold text-[#2b2828]">{lesson.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-[#584140]">
-                    {lesson.durationMinutes || 0} phút · {lesson.videoUrl ? 'Video tự học' : lesson.materialUrl ? 'Tài liệu học' : 'Bài đọc / thực hành'}
-                  </p>
-                </div>
-                <span className="material-symbols-outlined text-[#8a0018]">{completed ? 'check_circle' : active ? 'play_circle' : 'radio_button_unchecked'}</span>
-              </button>
-            );
-          })}
         </div>
       </div>
     </section>

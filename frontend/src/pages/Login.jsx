@@ -314,7 +314,7 @@ const Login = () => {
         <p className="text-sm text-[#584140]">
           Bạn chưa có tài khoản?{' '}
           <Link className="cursor-pointer font-semibold text-[#730014] transition-colors hover:text-[#8B1722]" to="/register">
-            Đăng kí ngay
+            Đăng ký ngay
           </Link>
         </p>
       </div>

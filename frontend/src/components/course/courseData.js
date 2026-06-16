@@ -18,7 +18,7 @@ export const categoryTabs = ['Tất cả', 'IELTS', 'TOEIC', 'Giao tiếp', 'M�
 
 export const recommendation = {
   title: 'Chưa biết nên bắt đầu từ đâu?',
-  description: 'Làm bài kiểm tra trình độ miễn phí để nhận lộ trình học phù hợp nhất cho riêng bạn.',
+  description: 'Làm bài kiểm tra trình độ miễn phí để nhận gợi ý khóa học phù hợp nhất cho riêng bạn.',
   image:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuAEyyOBVWYDtUkn-p2w5L5cYo_0GxWmYeMco1fQtOd7dPegolBmNeMhN5lYmltXDSbYL3ipHLSEAMGppFL12MlSdfO6SUjuBZX2r356VnZG4gw0rUN3NxGJzpqcKk-QMGE3ZJck741FbOxPL7CPSrLMV0a0SDjCHkzZUYn81wJ64mgiaEZmle5WbtIsjZoi-YeDbGGjLiNnq5fCz9f_uFZ_xHEXvMBLKlNsSKVmhVDIR9rS2fBB949U8OpkmXhsdcTeE5Ll2ktpQHQ',
 };
@@ -51,7 +51,7 @@ export const popularCourses = [
     level: 'TOEIC 750+',
     icon: 'work',
     duration: '10 Tuần',
-    description: 'Lộ trình bứt phá điểm số TOEIC cho môi trường công sở và thăng tiến sự nghiệp.',
+    description: 'Khóa học bứt phá điểm số TOEIC cho môi trường công sở và thăng tiến sự nghiệp.',
     image:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCve_bWMIZ3mkiTsbdf862_uYRiushINo6Pk2zQmZ-XgXyE6HMsPNwnns0m-LWt-3ZIvSegmSC8qYBsimXR92fna0tn_IKc1YoN8eAWruFwILlg4v0xVgSTlZkIu38aV9vBaqiNlha9YWi5rYICeuHp9pZr2Nm2WttdQqUu636uP79sw44kL2NeA3B45pNxUYeft_1BHjVShIjVk4NeetOomtBt-aVHyvKnca81T38w6RrcE8x-F2WUykau5ZlBXBoev9CLK1KW5Dg',
   },
@@ -121,24 +121,6 @@ export const catalogCourses = [
     description: 'Làm chủ bảng ký tự phiên âm quốc tế IPA và ngữ điệu tự nhiên qua lớp học trực tuyến tương tác cao.',
     image:
       'https://lh3.googleusercontent.com/aida-public/AB6AXuD2lhyW6ZJnTS5xOVeJOcdXBjXaPA-sZ4vL2uiMxa_SKdeaJviTtOxiOH-_jt21xied5TsKJdIQ0w3kY4bgI8Pqh0yCjvxgRpCg5_nGh1XdfppcBFOB1fpGPNU3-Sfl76k1O_b2uSP27HV9jjzlkeRPVOy0lfFeJzx5FfcQbojS3D07sRChwFjwTxXiJ5mGZ2l4_9EdBOfMBsjbais-Q3DchbU-tZZsxiDifvl_4ZQPuIbzE7cKG7Ku8EeHfpZqAYhbZzwaWRe1sjo',
-  },
-];
-
-export const learningPaths = [
-  {
-    title: 'Từ mất gốc đến IELTS 5.0',
-    icon: 'leaderboard',
-    description: 'Lộ trình dài hạn tập trung xây dựng nền tảng từ con số 0, giúp bạn làm quen với định dạng bài thi IELTS.',
-  },
-  {
-    title: 'Từ IELTS 5.0 đến 6.5+',
-    icon: 'auto_graph',
-    description: 'Khóa học nâng cao giúp bạn làm chủ các dạng bài khó và đạt được mức điểm mục tiêu để du học hoặc định cư.',
-  },
-  {
-    title: 'Từ TOEIC 450 đến 750+',
-    icon: 'rocket_launch',
-    description: 'Lộ trình chuyên biệt tối ưu điểm số cho sinh viên sắp tốt nghiệp và người đi làm trong thời gian ngắn nhất.',
   },
 ];
 

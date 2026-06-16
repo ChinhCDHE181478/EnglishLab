@@ -107,10 +107,10 @@ const buildSubmissionComparison = (currentSubmission, previousSubmission) => {
 };
 
 const formatSpeakingPartLabel = (partKey) => ({
-  part_1: 'Part 1',
-  part_2: 'Part 2',
-  part_3: 'Part 3',
-}[partKey] || partKey || 'Part');
+  part_1: 'Phần 1',
+  part_2: 'Phần 2',
+  part_3: 'Phần 3',
+}[partKey] || partKey || 'Phần');
 const criterionTranslations = {
   'Meaning Accuracy': 'Độ chính xác về nghĩa',
   'Collocation': 'Cụm từ đi kèm tự nhiên',
@@ -176,9 +176,9 @@ const formatRubricName = (name, skill) => {
 
 const formatAssessmentTitle = (assessment) => {
   const rawTitle = String(assessment?.title || '').trim();
-  if (!rawTitle) return 'Final Module Assessment';
+  if (!rawTitle) return 'Bài kiểm tra cuối module';
   if (/Vocabulary Output Check/i.test(rawTitle)) {
-    return 'Vocabulary Output Check';
+    return 'Kiểm tra đầu ra từ vựng';
   }
   return rawTitle
     .replace(/\bAI\b/gi, '')
@@ -189,10 +189,10 @@ const formatAssessmentTitle = (assessment) => {
 const formatAssessmentDescription = (assessment) => {
   const text = String(assessment?.description || assessment?.instructions || '').trim();
   if (assessment?.skill === 'VOCABULARY') {
-    return 'Write 5-7 sentences using the target vocabulary from this module. Your response will be checked for meaning accuracy, natural collocations, sentence quality, and topic relevance.';
+    return 'Viết 5 đến 7 câu sử dụng từ vựng mục tiêu của module này. Bài làm sẽ được xem xét về độ chính xác, độ tự nhiên, chất lượng câu và mức độ bám chủ đề.';
   }
   if (!text) {
-    return 'Complete the task below and submit your response for feedback.';
+    return 'Hoàn thành yêu cầu bên dưới và nộp bài để nhận phản hồi.';
   }
   return text
     .replace(/\bAI\b/gi, '')
@@ -281,13 +281,13 @@ const SPEAKING_PART_VIDEO_FALLBACKS = {
 const SPEAKING_MOCK_VARIANTS = [
   {
     key: 'jan_2025_test_1',
-    label: 'Mock Test 1',
+    label: 'Đề mô phỏng 1',
     sourceLabel: 'Theo bộ đề January Practice Test 1',
     parts: [
       {
         key: 'part_1',
-        label: 'Part 1',
-        caption: 'Introduction and Interview',
+        label: 'Phần 1',
+        caption: 'Làm quen và trả lời ngắn',
         description: 'Trả lời ngắn, tự nhiên và đi thẳng vào ý. Mỗi câu nên có answer + explain + example.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -309,8 +309,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_2',
-        label: 'Part 2',
-        caption: 'Cue Card',
+        label: 'Phần 2',
+        caption: 'Thẻ gợi ý',
         description: 'Bạn có 1 phút chuẩn bị và khoảng 2 phút nói liên tục.',
         prepSeconds: 60,
         answerSeconds: 120,
@@ -324,9 +324,9 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_3',
-        label: 'Part 3',
-        caption: 'Topic Discussion',
-        description: 'Mở rộng, so sánh, nêu nguyên nhân - hệ quả và ý kiến cá nhân rõ ràng hơn Part 1.',
+        label: 'Phần 3',
+        caption: 'Thảo luận chủ đề',
+        description: 'Mở rộng, so sánh, nêu nguyên nhân - hệ quả và ý kiến cá nhân rõ ràng hơn Phần 1.',
         prepSeconds: 0,
         answerSeconds: 300,
         prompts: [
@@ -340,13 +340,13 @@ const SPEAKING_MOCK_VARIANTS = [
   },
   {
     key: 'jan_2025_test_2',
-    label: 'Mock Test 2',
+    label: 'Đề mô phỏng 2',
     sourceLabel: 'Theo bộ đề January Practice Test 2',
     parts: [
       {
         key: 'part_1',
-        label: 'Part 1',
-        caption: 'Introduction and Interview',
+        label: 'Phần 1',
+        caption: 'Làm quen và trả lời ngắn',
         description: 'Giữ câu trả lời linh hoạt, tránh học thuộc từng câu.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -367,8 +367,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_2',
-        label: 'Part 2',
-        caption: 'Cue Card',
+        label: 'Phần 2',
+        caption: 'Thẻ gợi ý',
         description: 'Dành 1 phút ghi ý chính rồi nói liền mạch trong khoảng 2 phút.',
         prepSeconds: 60,
         answerSeconds: 120,
@@ -382,8 +382,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_3',
-        label: 'Part 3',
-        caption: 'Topic Discussion',
+        label: 'Phần 3',
+        caption: 'Thảo luận chủ đề',
         description: 'Tập trung vào góc nhìn xã hội, xu hướng, lợi ích và sự thay đổi theo thời gian.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -402,7 +402,7 @@ const SPEAKING_MOCK_VARIANTS = [
 
 const SPEAKING_TOPIC_BANK = {
   key: 'part_1_topic_bank',
-  label: 'Part 1 Topic Bank',
+  label: 'Ngân hàng chủ đề phần 1',
   sourceLabel: 'Theo module 100 IELTS Speaking Questions',
   topics: [
     {
@@ -502,8 +502,8 @@ const resolveSpeakingExperience = (assessment, moduleTitle, selectedVariantKey) 
       variants: SPEAKING_MOCK_VARIANTS,
       activeVariant,
       briefing: {
-        title: 'IELTS Speaking Mock Test',
-        summary: 'Complete the device check, then follow Part 1, Part 2, and Part 3 as a speaking mock test.',
+        title: 'Bài nói mô phỏng IELTS',
+        summary: 'Hoàn thành kiểm tra thiết bị, sau đó lần lượt làm Phần 1, Phần 2 và Phần 3.',
       },
       flow: ['mic_check', 'briefing', 'mock_test', 'recording', 'submit'],
     };
@@ -672,7 +672,7 @@ const buildFriendlyError = (error) => {
     return 'Tính năng chấm bài hiện đang tạm thời chưa khả dụng. Hãy thử lại sau.';
   }
   if (/API key is missing|GEMINI_API_KEY|OPENAI_API_KEY/i.test(message)) {
-    return 'Backend chưa có API key của nhà cung cấp AI. Hãy cấu hình key rồi thử lại.';
+    return 'Hệ thống đang bận xử lý bài làm. Bài làm của bạn sẽ được lưu an toàn để gửi lại.';
   }
   return message;
 };
@@ -705,7 +705,16 @@ const persistRecoveredSpeakingAudioUrl = (assessmentId, url) => {
   }
 };
 
-export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLocked = false, onMoveStep, onSubmitAssessment }) {
+export default function AiAssessmentPanel({
+  assessments = [],
+  moduleTitle,
+  isLocked = false,
+  onMoveStep,
+  onSubmitAssessment,
+  draftGetter,
+  onDraftChange,
+  onClearDraft,
+}) {
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState('');
   const [objectiveDraft, setObjectiveDraft] = useState(() => createObjectiveDraft('LISTENING'));
@@ -1084,13 +1093,18 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
 
   useEffect(() => {
     const latestSubmission = selected?.latestSubmission;
+    const localDraft = typeof draftGetter === 'function' ? draftGetter(selected?.id) : null;
     const objectiveSeed = latestSubmission?.objectiveAnswersJson || '';
     const recoveredAudioUrl = selected?.skill === 'SPEAKING'
       ? readRecoveredSpeakingAudioUrl(selected?.id)
       : '';
-    setAnswer(latestSubmission?.submittedText || '');
-    setObjectiveDraft(parseObjectiveDraft(objectiveSeed, selected?.skill || 'LISTENING'));
-    setAudioUrl(latestSubmission?.submittedAudioUrl || recoveredAudioUrl || '');
+    setAnswer(localDraft?.submittedText ?? latestSubmission?.submittedText ?? '');
+    setObjectiveDraft(
+      localDraft?.objectiveDraft
+        ? parseObjectiveDraft(JSON.stringify(localDraft.objectiveDraft), selected?.skill || 'LISTENING')
+        : parseObjectiveDraft(objectiveSeed, selected?.skill || 'LISTENING')
+    );
+    setAudioUrl(localDraft?.submittedAudioUrl ?? latestSubmission?.submittedAudioUrl ?? recoveredAudioUrl ?? '');
     setAudioPreviewUrl('');
     setUploadingAudio(false);
     setRecordingError('');
@@ -1130,7 +1144,19 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     setExamViolations([]);
     setExamExitConfirmOpen(false);
     examIntentionalExitRef.current = false;
-  }, [selected?.id]);
+  }, [selected?.id, draftGetter]);
+
+  useEffect(() => {
+    if (!selected?.id || typeof onDraftChange !== 'function') return;
+    const draftPayload = {
+      assessmentId: selected.id,
+      skill: selected.skill,
+      submittedText: selected?.skill === 'SPEAKING' ? buildSpeakingSubmissionText() : answer,
+      objectiveDraft,
+      submittedAudioUrl: audioUrl || '',
+    };
+    onDraftChange(draftPayload);
+  }, [selected?.id, selected?.skill, answer, objectiveDraft, audioUrl, onDraftChange]);
 
   useEffect(() => {
     if (speakingExperience?.kind !== 'mock_test') return;
@@ -1417,6 +1443,9 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       setResult(response);
       setCreatingNewAttempt(false);
       setExamModeOpen(false);
+      if (typeof onClearDraft === 'function') {
+        onClearDraft(selected.id);
+      }
     } catch (submissionError) {
       setError(buildFriendlyError(submissionError));
     } finally {
@@ -1442,6 +1471,9 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       setResult(response);
       setCreatingNewAttempt(false);
       setExamModeOpen(false);
+      if (typeof onClearDraft === 'function') {
+        onClearDraft(selected.id);
+      }
     } catch (submissionError) {
       setError(buildFriendlyError(submissionError));
     } finally {
@@ -2309,7 +2341,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                             Kiểm tra kỹ micro và nơi ngồi để tiếng nói đủ rõ, ít tạp âm.
                           </div>
                           <div className="rounded-2xl bg-[#faf7f7] p-4 text-sm leading-6 text-[#584140]">
-                            Với Part 2, nên dùng 1 phút chuẩn bị để chốt ý chính chứ không viết thành bài hoàn chỉnh.
+                            Với Phần 2, nên dùng 1 phút chuẩn bị để chốt ý chính chứ không viết thành bài hoàn chỉnh.
                           </div>
                           <div className="rounded-2xl bg-[#faf7f7] p-4 text-sm leading-6 text-[#584140]">
                             Hãy nói tự nhiên như đang thi thật. Phần chấm ưu tiên bản ghi âm, không phải một đoạn text soạn sẵn.
@@ -2396,7 +2428,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                           <div className="mx-auto mt-6 max-w-3xl">
                             {activeSpeakingPart?.cueCardTitle ? (
                               <div className="rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
-                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Cue card</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>
                                 <h5 className="mt-2 text-xl font-extrabold text-[#2b2828]">{activeSpeakingPart.cueCardTitle}</h5>
                                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                                   {(activeSpeakingPart.cueCardBullets || []).map((bullet) => (
@@ -2476,7 +2508,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                       <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-extrabold text-[#2b2828]">Part 1 Speaking Topic Bank</p>
+                            <p className="text-sm font-extrabold text-[#2b2828]">Ngân hàng chủ đề phần 1</p>
                             <p className="mt-2 text-sm leading-6 text-[#584140]">
                               Module này thiên về luyện phản xạ theo chủ đề. Chọn một topic rồi ghi âm liên tiếp 3-4 câu hỏi như lúc warm-up trong IELTS Speaking.
                             </p>
@@ -2664,7 +2696,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                           value={answer}
                           onChange={(event) => setAnswer(event.target.value)}
                           readOnly={isSubmissionLocked || submitting}
-                          placeholder="Ví dụ: The new policy has a significant impact on students because it encourages them to manage their time more effectively..."
+                          placeholder="Ví dụ: Chính sách mới tạo ra tác động rõ rệt với người học vì giúp họ quản lý thời gian hiệu quả hơn..."
                         />
                         <p className="mt-3 text-sm leading-6 text-[#7a6766]">
                           Mẹo nhỏ: đừng chỉ liệt kê từ vựng. Hãy đặt từ vào tình huống cụ thể để AI kiểm tra được bạn dùng đúng nghĩa hay chưa.

@@ -34,7 +34,7 @@ const CTASection = () => {
           <div className="absolute -bottom-32 -left-32 h-[400px] w-[400px] rounded-full bg-[#7a0018]/30 blur-[100px] transition-transform duration-1000 group-hover:scale-110" />
 
           <h2 className="relative z-10 mb-10 max-w-5xl font-['Manrope'] text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:mb-14 lg:text-7xl">
-            Sẵn sàng bứt phá điểm số cùng lộ trình dành riêng cho bạn.
+            Sẵn sàng bứt phá điểm số cùng kế hoạch học dành riêng cho bạn.
           </h2>
           <p className="relative z-10 mb-12 max-w-2xl text-lg font-light leading-8 text-white/60 lg:mb-16 lg:text-xl">
             Bắt đầu bằng bài đánh giá năng lực, nhận kế hoạch học tập rõ ràng
@@ -51,7 +51,7 @@ const CTASection = () => {
               className="btn-hover border border-white/20 bg-white/5 px-10 py-5 text-[10px] font-bold uppercase tracking-[0.3em] text-white backdrop-blur-sm transition-all hover:bg-white hover:text-[#1a1c1d] sm:px-14 sm:py-6"
               href="#"
             >
-              Tư vấn lộ trình
+              Tư vấn học tập
             </a>
           </div>
         </div>

@@ -3,8 +3,8 @@ export const COURSE_CATEGORIES = [
   { label: 'IELTS', value: 'IELTS' },
   { label: 'TOEIC', value: 'TOEIC' },
   { label: 'Giao tiếp', value: 'COMMUNICATION' },
-  { label: 'Mất gốc', value: 'FOUNDATION' },
-  { label: 'Online', value: 'ONLINE' },
+  { label: 'Nền tảng', value: 'FOUNDATION' },
+  { label: 'Trực tuyến', value: 'ONLINE' },
 ];
 
 export const levelLabels = {
@@ -17,6 +17,6 @@ export const categoryLabels = {
   IELTS: 'IELTS',
   TOEIC: 'TOEIC',
   COMMUNICATION: 'Giao tiếp',
-  FOUNDATION: 'Mất gốc',
-  ONLINE: 'Online',
+  FOUNDATION: 'Nền tảng',
+  ONLINE: 'Trực tuyến',
 };

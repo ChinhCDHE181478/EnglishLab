@@ -97,4 +97,12 @@ public class ContentManagerOnlineCourseController {
     ) {
         return ResponseEntity.ok(onlineCourseService.uploadLessonVideo(courseId, lessonId, title, file));
     }
+
+    @PostMapping("/{courseId}/lessons/{lessonId}/transcript/youtube")
+    public ResponseEntity<OnlineCourseResponse> refreshLessonTranscript(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId
+    ) {
+        return ResponseEntity.ok(onlineCourseService.refreshLessonTranscript(courseId, lessonId));
+    }
 }

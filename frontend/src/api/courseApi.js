@@ -77,6 +77,23 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
+  async getCourseCompletion(courseId) {
+    const response = await axiosClient.get(`/api/student/online-courses/${courseId}/completion`);
+    return unwrapData(response);
+  },
+
+  async getCourseCertificate(courseId) {
+    const response = await axiosClient.get(`/api/student/online-courses/${courseId}/certificate`);
+    return unwrapData(response);
+  },
+
+  async verifyCourseCertificate(verificationCode) {
+    const response = await axiosClient.get(`/api/online-courses/certificates/${encodeURIComponent(verificationCode)}`, {
+      skipAuthRedirect: true,
+    });
+    return unwrapData(response);
+  },
+
   async updateLessonProgress(courseId, lessonId, completed = true) {
     const response = await axiosClient.patch(`/api/student/online-courses/${courseId}/lessons/${lessonId}/progress`, null, {
       params: { completed },
@@ -94,6 +111,47 @@ export const courseApi = {
     const response = await axiosClient.get(`/api/student/courses/${courseId}/assessments`);
     const data = unwrapData(response);
     return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getCourseDiscussions(courseId, filter = 'ALL') {
+    const response = await axiosClient.get(`/api/online-courses/${courseId}/discussions`, {
+      params: { filter },
+      skipAuthRedirect: true,
+    });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createCourseDiscussion(courseId, payload) {
+    const response = await axiosClient.post(`/api/student/online-courses/${courseId}/discussions`, payload);
+    return unwrapData(response);
+  },
+
+  async createDiscussionReply(threadId, payload) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/replies`, payload);
+    return unwrapData(response);
+  },
+
+  async markDiscussionResolved(threadId, replyId = null) {
+    const response = await axiosClient.patch(`/api/student/online-courses/discussions/${threadId}/resolved`, null, {
+      params: replyId ? { replyId } : undefined,
+    });
+    return unwrapData(response);
+  },
+
+  async toggleDiscussionReplyHelpful(replyId) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/helpful`);
+    return unwrapData(response);
+  },
+
+  async reportDiscussionThread(threadId, payload = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, payload);
+    return unwrapData(response);
+  },
+
+  async reportDiscussionReply(replyId, payload = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reports`, payload);
+    return unwrapData(response);
   },
 
   async submitAssessment(assessmentId, payload) {

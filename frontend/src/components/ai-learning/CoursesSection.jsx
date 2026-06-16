@@ -52,7 +52,7 @@ const CoursesSection = () => (
           Chương trình nổi bật
         </span>
         <h2 className="font-['Manrope'] text-3xl font-bold text-[#1a1c1c] md:text-4xl">
-          Lộ trình học phù hợp từng mục tiêu
+          Khóa học phù hợp từng mục tiêu
         </h2>
       </div>
 

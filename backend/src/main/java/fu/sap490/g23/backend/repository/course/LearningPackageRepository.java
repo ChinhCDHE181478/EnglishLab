@@ -12,7 +12,9 @@ import java.util.Optional;
 public interface LearningPackageRepository extends JpaRepository<LearningPackage, Long>, JpaSpecificationExecutor<LearningPackage> {
     boolean existsBySlug(String slug);
     Optional<LearningPackage> findByIdAndDeletedFalse(Long id);
+    Optional<LearningPackage> findByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
     Optional<LearningPackage> findBySlugAndDeletedFalse(String slug);
+    Optional<LearningPackage> findBySlugAndDeletedFalseAndStatus(String slug, PackageStatus status);
     long countByDeletedFalse();
     long countByDeletedFalseAndStatus(PackageStatus status);
 }

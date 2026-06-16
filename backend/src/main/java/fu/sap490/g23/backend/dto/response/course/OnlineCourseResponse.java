@@ -53,5 +53,8 @@ public class OnlineCourseResponse {
     private LocalDateTime updatedAt;
 
     @Builder.Default
+    private List<String> focusSkills = new ArrayList<>();
+
+    @Builder.Default
     private List<ModuleResponse> modules = new ArrayList<>();
 }

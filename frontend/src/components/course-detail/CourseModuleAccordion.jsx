@@ -4,9 +4,9 @@ const CourseModuleAccordion = ({ modules = [] }) => {
   const [openId, setOpenId] = useState(modules[0]?.id ?? null);
 
   return (
-    <section className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
+    <section id="noi-dung-khoa-hoc" className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
       <div className="mb-6">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Lộ trình học</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Nội dung khóa học</p>
         <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Modules và bài học</h2>
       </div>
       <div className="space-y-4">

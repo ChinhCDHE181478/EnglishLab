@@ -1,7 +1,33 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../api/authApi';
+
+const passwordRequirements = [
+  { id: 'length', label: 'Ít nhất 8 ký tự', test: (password) => password.length >= 8 },
+  { id: 'uppercase', label: 'Có 1 chữ in hoa', test: (password) => /[A-Z]/.test(password) },
+  { id: 'lowercase', label: 'Có 1 chữ in thường', test: (password) => /[a-z]/.test(password) },
+  { id: 'number', label: 'Có 1 chữ số', test: (password) => /\d/.test(password) },
+  { id: 'special', label: 'Có 1 ký tự đặc biệt', test: (password) => /[^A-Za-z0-9]/.test(password) },
+];
+
+const getPasswordStrength = (password) => {
+  const passedRules = passwordRequirements.filter((rule) => rule.test(password)).length;
+
+  if (!password) {
+    return { label: 'Chưa nhập', color: '#d8c9c7', width: '0%', isValid: false };
+  }
+  if (passedRules <= 2) {
+    return { label: 'Yếu', color: '#d14343', width: '25%', isValid: false };
+  }
+  if (passedRules === 3) {
+    return { label: 'Trung bình', color: '#d98c1f', width: '55%', isValid: false };
+  }
+  if (passedRules === 4) {
+    return { label: 'Khá', color: '#2f8f63', width: '78%', isValid: false };
+  }
+  return { label: 'Mạnh', color: '#167c4d', width: '100%', isValid: true };
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,6 +41,7 @@ const Register = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -26,6 +53,11 @@ const Register = () => {
     event.preventDefault();
     if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Vui lòng nhập đầy đủ thông tin.');
+      return;
+    }
+
+    if (!passwordStrength.isValid) {
+      setError('Mật khẩu phải có ít nhất 8 ký tự, gồm 1 chữ in hoa, 1 chữ in thường, 1 số và 1 ký tự đặc biệt.');
       return;
     }
 
@@ -42,9 +74,9 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
       });
-      navigate('/login');
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}&sent=1`, { replace: true });
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng kí thất bại. Vui lòng thử lại.');
+      setError(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -111,7 +143,7 @@ const Register = () => {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#584140]/50" size={20} />
             <input
-              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-10 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
+              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-12 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="password"
               name="password"
               onChange={handleChange}
@@ -120,13 +152,43 @@ const Register = () => {
               value={formData.password}
             />
             <button
+              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
               className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-[#584140]/50 transition-colors hover:text-[#730014]"
               onClick={() => setShowPassword((current) => !current)}
               type="button"
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+          </div>
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-[#7a6461]">Độ mạnh mật khẩu</span>
+              <span style={{ color: passwordStrength.color }}>{passwordStrength.label}</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#f0e4e1]">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
+              />
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {passwordRequirements.map((rule) => {
+                const passed = rule.test(formData.password);
+                return (
+                  <div
+                    key={rule.id}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                      passed
+                        ? 'border-[#cce8d7] bg-[#eff8f2] text-[#1b6b45]'
+                        : 'border-[#ead8d4] bg-[#fff8f6] text-[#7a6461]'
+                    }`}
+                  >
+                    {rule.label}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
@@ -137,7 +199,7 @@ const Register = () => {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#584140]/50" size={20} />
             <input
-              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-10 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
+              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-12 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="confirmPassword"
               name="confirmPassword"
               onChange={handleChange}
@@ -146,10 +208,10 @@ const Register = () => {
               value={formData.confirmPassword}
             />
             <button
+              aria-label={showConfirm ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
               className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-[#584140]/50 transition-colors hover:text-[#730014]"
               onClick={() => setShowConfirm((current) => !current)}
               type="button"
-              aria-label={showConfirm ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
             >
               {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -161,7 +223,7 @@ const Register = () => {
           disabled={loading}
           type="submit"
         >
-          {loading ? 'Đang tạo tài khoản...' : 'Đăng kí'}
+          {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
         </button>
       </form>
 
