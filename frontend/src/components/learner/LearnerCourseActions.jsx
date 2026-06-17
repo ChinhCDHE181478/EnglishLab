@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { buildCourseDetailPath, buildCourseWorkspacePath } from '../../utils/courseModels';
+import { buildCourseDetailPath, buildCourseHomePath } from '../../utils/courseModels';
 import { detailCourseButtonClassName } from '../course/CourseActionButton';
 
 const baseButtonClassName =
@@ -12,8 +12,8 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
     return (
       <Link
         className={`${baseButtonClassName} bg-[#4b0009] text-white hover:-translate-y-0.5 hover:bg-[#730014] ${sizeClassName} ${className}`}
-        to={buildCourseWorkspacePath(course)}
-        state={{ course, workspaceMode: 'learn' }}
+        to={buildCourseHomePath(course)}
+        state={{ course }}
       >
         Tiếp tục học
       </Link>

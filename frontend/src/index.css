@@ -2,14 +2,24 @@
 @import "tailwindcss";
 
 html {
+  min-height: 100%;
+  background: #ffffff;
+  color-scheme: light;
   scroll-behavior: smooth;
 }
 
 body {
+  min-height: 100%;
   margin: 0;
+  background: #ffffff;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  background: #ffffff;
 }
 
 input[type='password']::-ms-reveal,

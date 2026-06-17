@@ -4,7 +4,7 @@ import paymentApi from '../api/paymentApi';
 import { formatCoursePrice } from '../components/course/courseFormatters';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { readCart, removeCourseFromCart } from '../utils/commerceStore';
-import { buildCourseWorkspacePath, normalizeCourse } from '../utils/courseModels';
+import { buildCourseHomePath, normalizeCourse } from '../utils/courseModels';
 
 const CheckoutPage = () => {
   const location = useLocation();
@@ -43,11 +43,10 @@ const CheckoutPage = () => {
       if (paidDirectly) {
         checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
         const firstCourse = checkoutCourses[0];
-        navigate(buildCourseWorkspacePath(firstCourse), {
+        navigate(buildCourseHomePath(firstCourse), {
           replace: true,
           state: {
             course: firstCourse,
-            workspaceMode: 'learn',
             paymentSuccessMessage: 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.',
           },
         });

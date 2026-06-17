@@ -204,7 +204,7 @@ const MyCoursesPage = () => {
                           </div>
 
                           <div className="mt-4 flex flex-wrap gap-3">
-                            <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}/learn`}>
+                            <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}/home`} state={{ course, enrollment }}>
                               {Number(completion?.progressPercent ?? 0) > 0 ? 'Tiếp tục học' : 'Bắt đầu học'}
                             </Link>
                             {completion?.eligibleForCertificate ? (

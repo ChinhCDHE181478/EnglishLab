@@ -1,0 +1,11 @@
+package fu.sap490.g23.backend.dto.request.course;
+
+import fu.sap490.g23.backend.entity.course.CourseDiscussionReactionType;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class CourseDiscussionReactionRequest {
+    @NotNull(message = "Vui lòng chọn cảm xúc.")
+    private CourseDiscussionReactionType type;
+}
