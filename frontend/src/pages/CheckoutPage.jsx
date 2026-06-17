@@ -17,6 +17,7 @@ const CheckoutPage = () => {
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteMessage, setQuoteMessage] = useState('');
+  const [autoFreeEnrollmentAttempted, setAutoFreeEnrollmentAttempted] = useState(false);
   const [paymentReturn, setPaymentReturn] = useState({
     checked: false,
     loading: false,
@@ -45,6 +46,8 @@ const CheckoutPage = () => {
     [checkoutCourses],
   );
   const payableAmount = Number(quote?.totalAmount ?? totalAmount);
+  const isFreeCourseCheckout = totalAmount <= 0;
+  const isZeroAmountCheckout = payableAmount <= 0;
   const systemDiscountAmount = Number(quote?.systemDiscountAmount ?? 0);
   const couponDiscountAmount = Number(quote?.couponDiscountAmount ?? 0);
   const successCourse = checkoutCourses[0] || null;
@@ -56,7 +59,6 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!hasPaymentReturn) {
-      setPaymentReturn((current) => ({ ...current, checked: false, loading: false }));
       return;
     }
 
@@ -102,7 +104,7 @@ const CheckoutPage = () => {
       orderCode,
     });
 
-    paymentApi.getOrderStatus(orderCode)
+    paymentApi.getPaymentOrderStatus(orderCode)
       .then((result) => {
         if (!active) return;
         const paid = Boolean(result?.paid) || String(result?.status || '').toUpperCase() === 'PAID';
@@ -158,7 +160,9 @@ const CheckoutPage = () => {
           loading: false,
           status: 'PAID',
           paid: true,
-          message: 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.',
+          message: isZeroAmountCheckout
+            ? 'Ghi danh thành công. Khóa học miễn phí đã sẵn sàng trong tài khoản của bạn.'
+            : 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.',
           orderCode: result?.orderCode || null,
         });
         return;
@@ -188,6 +192,29 @@ const CheckoutPage = () => {
     }
   };
 
+  useEffect(() => {
+    if (
+      hasPaymentReturn
+      || !isFreeCourseCheckout
+      || autoFreeEnrollmentAttempted
+      || paymentReturn.checked
+      || submitting
+      || !selectedCourseIds.length
+    ) {
+      return;
+    }
+
+    setAutoFreeEnrollmentAttempted(true);
+    handleConfirmPayment();
+  }, [
+    autoFreeEnrollmentAttempted,
+    hasPaymentReturn,
+    isFreeCourseCheckout,
+    paymentReturn.checked,
+    selectedCourseIds.length,
+    submitting,
+  ]);
+
   const handleApplyCoupon = async () => {
     if (!selectedCourseIds.length || quoteLoading) return;
 
@@ -211,7 +238,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (hasPaymentReturn && paymentReturn.loading) {
+  if (paymentReturn.loading) {
     return (
       <LearnerPageShell
         title="Đang xác nhận thanh toán"
@@ -227,7 +254,7 @@ const CheckoutPage = () => {
     );
   }
 
-  if (hasPaymentReturn && paymentReturn.checked) {
+  if (paymentReturn.checked) {
     const paid = paymentReturn.paid;
     return (
       <LearnerPageShell
@@ -351,11 +378,17 @@ const CheckoutPage = () => {
           </div>
 
           <div className="mt-6">
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Phương thức thanh toán</p>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
+              {isZeroAmountCheckout ? 'Phương thức ghi danh' : 'Phương thức thanh toán'}
+            </p>
             <div className="mt-4 rounded-[24px] border border-[#730014]/30 bg-[#fff4f5] px-5 py-4">
-              <p className="text-sm font-extrabold text-[#2b2828]">Thanh toán qua PayOS</p>
+              <p className="text-sm font-extrabold text-[#2b2828]">
+                {isZeroAmountCheckout ? 'Ghi danh miễn phí' : 'Thanh toán qua PayOS'}
+              </p>
               <p className="mt-2 text-sm leading-6 text-[#584140]">
-                Bạn sẽ được chuyển tới cổng thanh toán PayOS để hoàn tất thanh toán an toàn.
+                {isZeroAmountCheckout
+                  ? 'Khóa học này không cần thanh toán. EnglishLab sẽ kích hoạt khóa học ngay trong tài khoản của bạn.'
+                  : 'Bạn sẽ được chuyển tới cổng thanh toán PayOS để hoàn tất thanh toán an toàn.'}
               </p>
             </div>
           </div>
@@ -428,7 +461,9 @@ const CheckoutPage = () => {
               onClick={handleConfirmPayment}
               type="button"
             >
-              {submitting ? 'Đang chuyển tới PayOS...' : 'Xác nhận thanh toán'}
+              {submitting
+                ? isZeroAmountCheckout ? 'Đang ghi danh...' : 'Đang chuyển tới PayOS...'
+                : isZeroAmountCheckout ? 'Xác nhận ghi danh' : 'Xác nhận thanh toán'}
             </button>
             <Link
               className="rounded-2xl border border-[#dfbfbd]/30 px-6 py-4 text-center text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8]"

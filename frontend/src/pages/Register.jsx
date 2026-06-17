@@ -172,16 +172,16 @@ const Register = () => {
                 style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
               />
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 flex flex-nowrap items-center gap-2 overflow-x-auto rounded-xl border border-[#ead8d4] bg-[#fff8f6] px-3 py-2">
               {passwordRequirements.map((rule) => {
                 const passed = rule.test(formData.password);
                 return (
                   <div
                     key={rule.id}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                    className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold leading-none ${
                       passed
                         ? 'border-[#cce8d7] bg-[#eff8f2] text-[#1b6b45]'
-                        : 'border-[#ead8d4] bg-[#fff8f6] text-[#7a6461]'
+                        : 'border-transparent bg-transparent text-[#7a6461]'
                     }`}
                   >
                     {rule.label}
