@@ -8,6 +8,9 @@ import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.entity.course.PackageStatus;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
@@ -52,7 +55,15 @@ class OnlineCourseServiceImplTest {
     @Mock
     private VocabularyProgressRepository vocabularyProgressRepository;
     @Mock
+    private CourseAssessmentRepository courseAssessmentRepository;
+    @Mock
+    private AssessmentRubricRepository assessmentRubricRepository;
+    @Mock
+    private AssessmentSubmissionRepository assessmentSubmissionRepository;
+    @Mock
     private UserRepository userRepository;
+    @Mock
+    private CourseProgressionGuard courseProgressionGuard;
     @Mock
     private OnlineCourseMapper mapper;
     @Mock
@@ -77,10 +88,14 @@ class OnlineCourseServiceImplTest {
                 lessonRepository,
                 lessonProgressRepository,
                 vocabularyProgressRepository,
+                courseAssessmentRepository,
+                assessmentRubricRepository,
+                assessmentSubmissionRepository,
                 userRepository,
                 mapper,
                 bunnyStreamService,
                 courseProgressService,
+                courseProgressionGuard,
                 courseEnrollmentMailService,
                 youTubeTranscriptService
         );
