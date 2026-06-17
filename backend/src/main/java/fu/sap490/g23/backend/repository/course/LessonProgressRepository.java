@@ -10,12 +10,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface LessonProgressRepository extends JpaRepository<LessonProgress, Long> {
     Optional<LessonProgress> findByStudentAndLesson(User student, Lesson lesson);
     List<LessonProgress> findByEnrollment(PackageEnrollment enrollment);
     List<LessonProgress> findByEnrollmentAndStatusOrderByCompletedAtDesc(PackageEnrollment enrollment, LessonProgressStatus status);
+    List<LessonProgress> findByStudentAndLessonIdInAndStatus(User student, Set<Long> lessonIds, LessonProgressStatus status);
     long countByEnrollmentAndStatus(PackageEnrollment enrollment, LessonProgressStatus status);
     boolean existsByLessonId(Long lessonId);
 }

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,6 +22,7 @@ public class LessonResponse {
     private String bunnyLibraryId;
     private String bunnyCdnUrl;
     private String materialUrl;
+    private List<TranscriptSegmentResponse> transcriptSegments;
     private Integer durationMinutes;
     private Integer displayOrder;
     private boolean preview;

@@ -15,9 +15,6 @@ const emptyForm = {
   recommendedCurrentBandMin: '',
   recommendedCurrentBandMax: '',
   targetBand: '',
-  learningPathCode: '',
-  learningPathName: '',
-  learningPathOrder: '0',
   targetOutcome: '',
   recommendedNextCourseSlug: '',
   duration: '',
@@ -61,9 +58,6 @@ export default function ContentManagerCourseEditorPage() {
           recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
           recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
           targetBand: course.targetBand ?? '',
-          learningPathCode: course.learningPathCode ?? '',
-          learningPathName: course.learningPathName ?? '',
-          learningPathOrder: String(course.learningPathOrder ?? 0),
           targetOutcome: course.targetOutcome ?? '',
           recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
           duration: course.duration ?? '',
@@ -106,7 +100,6 @@ export default function ContentManagerCourseEditorPage() {
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      learningPathOrder: Number(form.learningPathOrder || 0),
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
@@ -161,9 +154,6 @@ export default function ContentManagerCourseEditorPage() {
             <TextField label="Recommended current band min" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
             <TextField label="Recommended current band max" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
             <TextField label="Target band number" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
-            <TextField label="Learning path code" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
-            <TextField label="Learning path name" onChange={handleChange('learningPathName')} value={form.learningPathName} />
-            <TextField label="Learning path order" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
             <TextField label="Recommended next course slug" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
             <TextField label="Estimated duration" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Study mode" onChange={handleChange('studyMode')} value={form.studyMode} />
@@ -183,7 +173,7 @@ export default function ContentManagerCourseEditorPage() {
       <div className="space-y-6">
         <Panel className="p-6">
           <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fcfbfb] p-5 text-sm text-[#584140]">
-            Publishing note: set entry band, target band, learning path and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
+            Publishing note: set entry band, target band and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
           </div>
           {hasNoStructure ? (
             <div className="mt-4 rounded-2xl border border-[#f0d8db] bg-[#fff7f7] p-4 text-sm text-[#730014]">

@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -18,6 +19,10 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, max = 255, message = "Password must be between 6 and 255 characters")
+    @Size(min = 8, max = 255, message = "Mật khẩu phải từ 8 đến 255 ký tự")
+    @Pattern(
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z\\d]).{8,255}$",
+            message = "Mật khẩu phải có ít nhất 1 chữ in hoa, 1 chữ in thường, 1 số và 1 ký tự đặc biệt"
+    )
     private String password;
 }

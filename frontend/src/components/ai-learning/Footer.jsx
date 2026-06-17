@@ -23,7 +23,7 @@ const Footer = () => (
         <div className="font-['Manrope'] text-3xl font-black tracking-tight">EnglishLab</div>
         <p className="max-w-sm text-sm font-light leading-7 text-[#5f5e5e]">
           Trung tâm luyện thi học thuật chuẩn quốc tế, kết hợp chuyên gia và AI
-          để cá nhân hóa lộ trình học.
+          để cá nhân hóa kế hoạch học.
         </p>
         <div className="flex gap-4">
           <a

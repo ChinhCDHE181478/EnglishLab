@@ -11,7 +11,7 @@ const HeroSection = () => (
         Chinh phục IELTS/TOEIC cùng chuyên gia và AI.
       </h1>
       <p className="max-w-xl text-lg leading-8 text-[#584140]">
-        Lộ trình học cá nhân hóa kết hợp công nghệ AI chấm chữa chi tiết. Cam
+        Kế hoạch học cá nhân hóa kết hợp công nghệ AI chấm chữa chi tiết. Cam
         kết đầu ra bằng văn bản.
       </p>
       <div className="flex flex-col gap-4 pt-4 sm:flex-row">

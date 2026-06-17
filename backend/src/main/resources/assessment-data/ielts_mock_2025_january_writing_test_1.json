@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "type": "ielts_writing_exam",
+  "key": "ielts_mock_2025_january_writing_test_1",
+  "title": "IELTS Mock Test 2025 January Writing Practice Test 1",
+  "sourceLabel": "Imported from local HTML sample",
+  "durationMinutes": 60,
+  "rules": [
+    "Stay in full-screen mode until you submit the exam.",
+    "Do not switch tabs, refresh the page, or leave the course window during the test.",
+    "EnglishLab records warnings when focus is lost while the exam is active."
+  ],
+  "tasks": [
+    {
+      "key": "task_1",
+      "title": "Task 1",
+      "heading": "Writing Task 1",
+      "summary": "Summarise the process diagram in at least 150 words.",
+      "recommendedMinutes": 20,
+      "minimumWords": 150,
+      "promptParagraphs": [
+        "You should spend about 20 minutes on this task.",
+        "The diagram below shows how ethanol fuel is produced from corn.",
+        "Summarise the information by selecting and reporting the main features and make comparisons where relevant.",
+        "You should write at least 150 words."
+      ],
+      "imageUrl": "https://ieltsonlinetests.com/sites/default/files/2020-01/2_0.jpg"
+    },
+    {
+      "key": "task_2",
+      "title": "Task 2",
+      "heading": "Writing Task 2",
+      "summary": "Discuss both views and give your own opinion in at least 250 words.",
+      "recommendedMinutes": 40,
+      "minimumWords": 250,
+      "promptParagraphs": [
+        "You should spend about 40 minutes on this task.",
+        "Some people think that physical strength is important for success in sport, while other people think that mental strength is more important.",
+        "Discuss both views and give your own opinion.",
+        "You should write at least 250 words."
+      ]
+    }
+  ]
+}

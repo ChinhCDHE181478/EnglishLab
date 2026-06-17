@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import ListeningExamMode from './ListeningExamMode';
+import ReadingExamMode from './ReadingExamMode';
+import WritingExamMode from './WritingExamMode';
 
 const statusLabels = {
   PASSED: 'Hoàn thành',
@@ -25,6 +28,11 @@ const riskLabel = (value) => ({
   HIGH: 'Cao',
 }[String(value || '').toUpperCase()] || value || 'Chưa có');
 
+const normalizeComparisonText = (value) => String(value || '')
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .trim();
+
 const tryParseFeedback = (feedback) => {
   if (!feedback) return null;
   try {
@@ -37,11 +45,72 @@ const tryParseFeedback = (feedback) => {
 const toArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 const toObject = (value) => (value && typeof value === 'object' && !Array.isArray(value) ? value : null);
 const fallbackText = (value) => value || 'Chưa có';
+const buildSubmissionComparison = (currentSubmission, previousSubmission) => {
+  if (!currentSubmission || !previousSubmission) return null;
+
+  const currentFeedback = tryParseFeedback(currentSubmission.aiFeedbackJson);
+  const previousFeedback = tryParseFeedback(previousSubmission.aiFeedbackJson);
+  const currentCriteria = toArray(currentFeedback?.criteria);
+  const previousCriteriaMap = new Map(
+    toArray(previousFeedback?.criteria).map((criterion) => [normalizeComparisonText(criterion?.name), criterion])
+  );
+  const improvedCriteria = currentCriteria
+    .map((criterion) => {
+      const previousCriterion = previousCriteriaMap.get(normalizeComparisonText(criterion?.name));
+      const currentScore = Number(criterion?.score);
+      const previousScore = Number(previousCriterion?.score);
+      if (!Number.isFinite(currentScore) || !Number.isFinite(previousScore) || currentScore <= previousScore) return null;
+      return {
+        name: criterion?.name,
+        delta: currentScore - previousScore,
+        currentScore,
+        previousScore,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.delta - left.delta);
+  const regressedCriteria = currentCriteria
+    .map((criterion) => {
+      const previousCriterion = previousCriteriaMap.get(normalizeComparisonText(criterion?.name));
+      const currentScore = Number(criterion?.score);
+      const previousScore = Number(previousCriterion?.score);
+      if (!Number.isFinite(currentScore) || !Number.isFinite(previousScore) || currentScore >= previousScore) return null;
+      return {
+        name: criterion?.name,
+        delta: previousScore - currentScore,
+        currentScore,
+        previousScore,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.delta - left.delta);
+
+  const currentStrengths = toArray(currentFeedback?.strengths);
+  const previousStrengths = toArray(previousFeedback?.strengths);
+  const previousStrengthSet = new Set(previousStrengths.map(normalizeComparisonText));
+  const currentStrengthSet = new Set(currentStrengths.map(normalizeComparisonText));
+  const newStrengths = currentStrengths.filter((item) => !previousStrengthSet.has(normalizeComparisonText(item)));
+  const lostStrengths = previousStrengths.filter((item) => !currentStrengthSet.has(normalizeComparisonText(item)));
+
+  const currentScore = Number(currentSubmission?.aiScore ?? currentFeedback?.estimatedScore);
+  const previousScore = Number(previousSubmission?.aiScore ?? previousFeedback?.estimatedScore);
+
+  return {
+    scoreDelta: Number.isFinite(currentScore) && Number.isFinite(previousScore)
+      ? Number((currentScore - previousScore).toFixed(2))
+      : null,
+    improvedCriteria,
+    regressedCriteria,
+    newStrengths,
+    lostStrengths,
+  };
+};
+
 const formatSpeakingPartLabel = (partKey) => ({
-  part_1: 'Part 1',
-  part_2: 'Part 2',
-  part_3: 'Part 3',
-}[partKey] || partKey || 'Part');
+  part_1: 'Phần 1',
+  part_2: 'Phần 2',
+  part_3: 'Phần 3',
+}[partKey] || partKey || 'Phần');
 const criterionTranslations = {
   'Meaning Accuracy': 'Độ chính xác về nghĩa',
   'Collocation': 'Cụm từ đi kèm tự nhiên',
@@ -107,9 +176,9 @@ const formatRubricName = (name, skill) => {
 
 const formatAssessmentTitle = (assessment) => {
   const rawTitle = String(assessment?.title || '').trim();
-  if (!rawTitle) return 'Final Module Assessment';
+  if (!rawTitle) return 'Bài kiểm tra cuối module';
   if (/Vocabulary Output Check/i.test(rawTitle)) {
-    return 'Vocabulary Output Check';
+    return 'Kiểm tra đầu ra từ vựng';
   }
   return rawTitle
     .replace(/\bAI\b/gi, '')
@@ -120,10 +189,10 @@ const formatAssessmentTitle = (assessment) => {
 const formatAssessmentDescription = (assessment) => {
   const text = String(assessment?.description || assessment?.instructions || '').trim();
   if (assessment?.skill === 'VOCABULARY') {
-    return 'Write 5-7 sentences using the target vocabulary from this module. Your response will be checked for meaning accuracy, natural collocations, sentence quality, and topic relevance.';
+    return 'Viết 5 đến 7 câu sử dụng từ vựng mục tiêu của module này. Bài làm sẽ được xem xét về độ chính xác, độ tự nhiên, chất lượng câu và mức độ bám chủ đề.';
   }
   if (!text) {
-    return 'Complete the task below and submit your response for feedback.';
+    return 'Hoàn thành yêu cầu bên dưới và nộp bài để nhận phản hồi.';
   }
   return text
     .replace(/\bAI\b/gi, '')
@@ -143,6 +212,7 @@ const supportsNumericScoring = (assessment) => (
 );
 
 const isObjectiveSkill = (skill) => skill === 'LISTENING' || skill === 'READING';
+const isExamSkill = (skill) => ['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(String(skill || '').toUpperCase());
 const waveformBars = [28, 44, 36, 58, 32, 52, 40, 62, 34, 48, 30, 54];
 const SPEAKING_PROMPT_VIDEO_MAP = {
   jan_2025_test_1: {
@@ -211,13 +281,13 @@ const SPEAKING_PART_VIDEO_FALLBACKS = {
 const SPEAKING_MOCK_VARIANTS = [
   {
     key: 'jan_2025_test_1',
-    label: 'Mock Test 1',
+    label: 'Đề mô phỏng 1',
     sourceLabel: 'Theo bộ đề January Practice Test 1',
     parts: [
       {
         key: 'part_1',
-        label: 'Part 1',
-        caption: 'Introduction and Interview',
+        label: 'Phần 1',
+        caption: 'Làm quen và trả lời ngắn',
         description: 'Trả lời ngắn, tự nhiên và đi thẳng vào ý. Mỗi câu nên có answer + explain + example.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -239,8 +309,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_2',
-        label: 'Part 2',
-        caption: 'Cue Card',
+        label: 'Phần 2',
+        caption: 'Thẻ gợi ý',
         description: 'Bạn có 1 phút chuẩn bị và khoảng 2 phút nói liên tục.',
         prepSeconds: 60,
         answerSeconds: 120,
@@ -254,9 +324,9 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_3',
-        label: 'Part 3',
-        caption: 'Topic Discussion',
-        description: 'Mở rộng, so sánh, nêu nguyên nhân - hệ quả và ý kiến cá nhân rõ ràng hơn Part 1.',
+        label: 'Phần 3',
+        caption: 'Thảo luận chủ đề',
+        description: 'Mở rộng, so sánh, nêu nguyên nhân - hệ quả và ý kiến cá nhân rõ ràng hơn Phần 1.',
         prepSeconds: 0,
         answerSeconds: 300,
         prompts: [
@@ -270,13 +340,13 @@ const SPEAKING_MOCK_VARIANTS = [
   },
   {
     key: 'jan_2025_test_2',
-    label: 'Mock Test 2',
+    label: 'Đề mô phỏng 2',
     sourceLabel: 'Theo bộ đề January Practice Test 2',
     parts: [
       {
         key: 'part_1',
-        label: 'Part 1',
-        caption: 'Introduction and Interview',
+        label: 'Phần 1',
+        caption: 'Làm quen và trả lời ngắn',
         description: 'Giữ câu trả lời linh hoạt, tránh học thuộc từng câu.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -297,8 +367,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_2',
-        label: 'Part 2',
-        caption: 'Cue Card',
+        label: 'Phần 2',
+        caption: 'Thẻ gợi ý',
         description: 'Dành 1 phút ghi ý chính rồi nói liền mạch trong khoảng 2 phút.',
         prepSeconds: 60,
         answerSeconds: 120,
@@ -312,8 +382,8 @@ const SPEAKING_MOCK_VARIANTS = [
       },
       {
         key: 'part_3',
-        label: 'Part 3',
-        caption: 'Topic Discussion',
+        label: 'Phần 3',
+        caption: 'Thảo luận chủ đề',
         description: 'Tập trung vào góc nhìn xã hội, xu hướng, lợi ích và sự thay đổi theo thời gian.',
         prepSeconds: 0,
         answerSeconds: 300,
@@ -332,7 +402,7 @@ const SPEAKING_MOCK_VARIANTS = [
 
 const SPEAKING_TOPIC_BANK = {
   key: 'part_1_topic_bank',
-  label: 'Part 1 Topic Bank',
+  label: 'Ngân hàng chủ đề phần 1',
   sourceLabel: 'Theo module 100 IELTS Speaking Questions',
   topics: [
     {
@@ -432,8 +502,8 @@ const resolveSpeakingExperience = (assessment, moduleTitle, selectedVariantKey) 
       variants: SPEAKING_MOCK_VARIANTS,
       activeVariant,
       briefing: {
-        title: 'IELTS Speaking Mock Test',
-        summary: 'Complete the device check, then follow Part 1, Part 2, and Part 3 as a speaking mock test.',
+        title: 'Bài nói mô phỏng IELTS',
+        summary: 'Hoàn thành kiểm tra thiết bị, sau đó lần lượt làm Phần 1, Phần 2 và Phần 3.',
       },
       flow: ['mic_check', 'briefing', 'mock_test', 'recording', 'submit'],
     };
@@ -602,12 +672,49 @@ const buildFriendlyError = (error) => {
     return 'Tính năng chấm bài hiện đang tạm thời chưa khả dụng. Hãy thử lại sau.';
   }
   if (/API key is missing|GEMINI_API_KEY|OPENAI_API_KEY/i.test(message)) {
-    return 'Backend chưa có API key của nhà cung cấp AI. Hãy cấu hình key rồi thử lại.';
+    return 'Hệ thống đang bận xử lý bài làm. Bài làm của bạn sẽ được lưu an toàn để gửi lại.';
   }
   return message;
 };
 
-export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLocked = false, onMoveStep, onSubmitAssessment }) {
+const speakingAudioRecoveryKey = (assessmentId) => (
+  assessmentId ? `englishlab:speaking-audio:${assessmentId}` : ''
+);
+
+const readRecoveredSpeakingAudioUrl = (assessmentId) => {
+  const key = speakingAudioRecoveryKey(assessmentId);
+  if (!key || typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+};
+
+const persistRecoveredSpeakingAudioUrl = (assessmentId, url) => {
+  const key = speakingAudioRecoveryKey(assessmentId);
+  if (!key || typeof window === 'undefined') return;
+  try {
+    if (url) {
+      window.localStorage.setItem(key, url);
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // localStorage may be blocked in private browsing or strict browser settings.
+  }
+};
+
+export default function AiAssessmentPanel({
+  assessments = [],
+  moduleTitle,
+  isLocked = false,
+  onMoveStep,
+  onSubmitAssessment,
+  draftGetter,
+  onDraftChange,
+  onClearDraft,
+}) {
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState('');
   const [objectiveDraft, setObjectiveDraft] = useState(() => createObjectiveDraft('LISTENING'));
@@ -622,6 +729,8 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const [micPermissionState, setMicPermissionState] = useState('idle');
   const [micTesting, setMicTesting] = useState(false);
   const [micLevel, setMicLevel] = useState(0);
+  const [micCheckPreviewUrl, setMicCheckPreviewUrl] = useState('');
+  const [micCheckCountdown, setMicCheckCountdown] = useState(5);
   const [recordingLevel, setRecordingLevel] = useState(0);
   const [recordingPeakLevel, setRecordingPeakLevel] = useState(0);
   const [completedRecordingDurationSeconds, setCompletedRecordingDurationSeconds] = useState(0);
@@ -646,6 +755,10 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const [error, setError] = useState('');
   const [creatingNewAttempt, setCreatingNewAttempt] = useState(false);
   const [pendingSpeakingSubmit, setPendingSpeakingSubmit] = useState(false);
+  const [examModeOpen, setExamModeOpen] = useState(false);
+  const [examWarning, setExamWarning] = useState(null);
+  const [examViolations, setExamViolations] = useState([]);
+  const [examExitConfirmOpen, setExamExitConfirmOpen] = useState(false);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -653,6 +766,10 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const micCheckAudioContextRef = useRef(null);
   const micCheckAnalyserRef = useRef(null);
   const micCheckFrameRef = useRef(null);
+  const micCheckRecorderRef = useRef(null);
+  const micCheckChunksRef = useRef([]);
+  const micCheckTimeoutRef = useRef(null);
+  const micCheckIntervalRef = useRef(null);
   const recordingAudioContextRef = useRef(null);
   const recordingAnalyserRef = useRef(null);
   const recordingFrameRef = useRef(null);
@@ -660,6 +777,75 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const headphoneAudioContextRef = useRef(null);
   const headphoneTestAudioRef = useRef(null);
   const speakingVideoRef = useRef(null);
+  const examViolationLockRef = useRef(false);
+  const examIntentionalExitRef = useRef(false);
+
+  const restoreAssessmentAttemptState = () => {
+    const latestSubmission = selected?.latestSubmission;
+    const objectiveSeed = latestSubmission?.objectiveAnswersJson || '';
+    const recoveredAudioUrl = selected?.skill === 'SPEAKING'
+      ? readRecoveredSpeakingAudioUrl(selected?.id)
+      : '';
+
+    stopRecordingMeter();
+    stopMediaStream();
+    stopMicCheck();
+    if (audioPreviewUrl) {
+      URL.revokeObjectURL(audioPreviewUrl);
+    }
+    if (mediaRecorderRef.current?.state && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    setAnswer(latestSubmission?.submittedText || '');
+    setObjectiveDraft(parseObjectiveDraft(objectiveSeed, selected?.skill || 'LISTENING'));
+    setAudioUrl(latestSubmission?.submittedAudioUrl || recoveredAudioUrl || '');
+    setAudioPreviewUrl('');
+    setIsRecording(false);
+    setUploadingAudio(false);
+    setRecordingError('');
+    setSelectedSpeakingMockKey(speakingExperience?.activeVariant?.key || '');
+    setActiveSpeakingPartKey(speakingExperience?.activeVariant?.parts?.[0]?.key || 'part_1');
+    setSpeakingStage('mic_check');
+    setMicPermissionState('idle');
+    setMicTesting(false);
+    setMicLevel(0);
+    if (micCheckPreviewUrl) {
+      URL.revokeObjectURL(micCheckPreviewUrl);
+    }
+    setMicCheckPreviewUrl('');
+    setMicCheckCountdown(5);
+    setRecordingLevel(0);
+    setRecordingPeakLevel(0);
+    setCompletedRecordingDurationSeconds(0);
+    setRecordingHasVoiceSignal(false);
+    setMicCheckPassed(false);
+    setHeadphoneCheckPlayed(false);
+    setSpeakingQuestionIndex(0);
+    setRecordingDurationSeconds(0);
+    recordingDurationRef.current = 0;
+    setSpeakingTimer({
+      partKey: null,
+      phase: null,
+      remainingSeconds: 0,
+      running: false,
+      finished: false,
+    });
+    setResult(latestSubmission || null);
+    setError('');
+    setCreatingNewAttempt(false);
+    setPendingSpeakingSubmit(false);
+  };
+
+  const requestExamFullscreen = async () => {
+    if (!document?.documentElement?.requestFullscreen) return false;
+    try {
+      await document.documentElement.requestFullscreen();
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const refreshMediaDevices = async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -722,6 +908,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     }
     setAnswer('');
     setAudioUrl('');
+    persistRecoveredSpeakingAudioUrl(selected?.id, '');
     setAudioPreviewUrl('');
     setIsRecording(false);
     setUploadingAudio(false);
@@ -738,6 +925,11 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     setMicPermissionState('idle');
     setMicTesting(false);
     setMicLevel(0);
+    if (micCheckPreviewUrl) {
+      URL.revokeObjectURL(micCheckPreviewUrl);
+    }
+    setMicCheckPreviewUrl('');
+    setMicCheckCountdown(5);
     setMicCheckPassed(false);
     setHeadphoneCheckPlayed(false);
     setSpeakingQuestionIndex(0);
@@ -759,6 +951,32 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     resetSpeakingAttemptState();
   };
 
+  const handleOpenExamMode = () => {
+    if (isLocked || submitting || isLockedAfterResult) return;
+    setError('');
+    setExamWarning(null);
+    setExamViolations([]);
+    setExamExitConfirmOpen(false);
+    examIntentionalExitRef.current = false;
+    setExamModeOpen(true);
+  };
+
+  const handleCloseExamMode = async () => {
+    if (submitting) return;
+    examIntentionalExitRef.current = true;
+    setExamExitConfirmOpen(false);
+    setExamWarning(null);
+    restoreAssessmentAttemptState();
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen?.();
+      } catch {
+        // Ignore fullscreen exit failures; the guard is already disabled.
+      }
+    }
+    setExamModeOpen(false);
+  };
+
   const orderedAssessments = useMemo(() => (
     [...assessments].sort((left, right) => {
       const leftOrder = Number(left.displayOrder ?? Number.MAX_SAFE_INTEGER);
@@ -771,7 +989,14 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const selected = orderedAssessments.find((item) => String(item.id) === String(selectedId)) || orderedAssessments[0];
   const speakingExperience = resolveSpeakingExperience(selected, moduleTitle, selectedSpeakingMockKey);
   const inputCopy = assessmentInputCopy(selected?.skill);
+  const assessmentUiConfig = parseAssessmentUiConfig(selected);
+  const isReadingExamMode = selected?.skill === 'READING' && assessmentUiConfig?.type === 'ielts_reading_exam';
+  const isListeningExamMode = selected?.skill === 'LISTENING' && assessmentUiConfig?.type === 'ielts_listening_exam';
+  const isWritingExamMode = selected?.skill === 'WRITING' && assessmentUiConfig?.type === 'ielts_writing_exam';
+  const isDedicatedExamMode = isReadingExamMode || isListeningExamMode || isWritingExamMode;
   const feedback = tryParseFeedback(result?.aiFeedbackJson);
+  const previousSubmission = selected?.previousSubmission || null;
+  const submissionComparison = buildSubmissionComparison(result, previousSubmission);
   const criteria = toArray(feedback?.criteria);
   const strengths = toArray(feedback?.strengths);
   const weaknesses = toArray(feedback?.weaknesses);
@@ -783,7 +1008,12 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const sourceSignals = toArray(feedback?.sourceSignals);
   const plagiarismRisk = riskLabel(feedback?.plagiarismRisk || feedback?.plagiarism?.riskLevel || originalityAnalysis?.plagiarismRisk);
   const aiUsageRisk = riskLabel(feedback?.aiUsageRisk || feedback?.aiUsage?.riskLevel || originalityAnalysis?.aiUsageRisk);
-  const showNumericScore = supportsNumericScoring(selected) && (result?.aiScore != null || feedback?.estimatedScore != null);
+  const numericScore = result?.aiScore ?? feedback?.estimatedScore ?? null;
+  const showNumericScore = numericScore != null;
+  const shouldShowExamScoreBadges = isExamSkill(selected?.skill);
+  const scoreDisplay = numericScore ?? 'Chưa có';
+  const bandDisplay = feedback?.estimatedBand || (numericScore != null ? String(numericScore) : 'Chưa có');
+  const usesFixedScoring = isObjectiveSkill(selected?.skill);
   const isLockedAfterResult = Boolean(result) && !creatingNewAttempt;
   const isSubmissionLocked = isLocked || isLockedAfterResult;
   const activeSpeakingVariant = speakingExperience?.kind === 'mock_test' ? speakingExperience.activeVariant : null;
@@ -796,6 +1026,30 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   const isLastSpeakingPart = activeSpeakingPartIndex >= 0 && activeSpeakingPartIndex === (activeSpeakingVariant?.parts?.length ?? 0) - 1;
   const isFinalSpeakingPrompt = isSpeakingMockFlow && isLastSpeakingPart && isLastSpeakingQuestionInPart;
   const showSpeakingResultOnly = isSpeakingMockFlow && isLockedAfterResult;
+  const vocabularySentences = answer
+    .split(/[.!?]+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.split(/\s+/).filter(Boolean).length >= 3);
+  const vocabularySentenceCount = vocabularySentences.length;
+  const vocabularyWordCount = answer.trim() ? answer.trim().split(/\s+/).filter(Boolean).length : 0;
+  const vocabularyReadinessPercent = Math.min(100, Math.round((vocabularySentenceCount / 5) * 100));
+  const vocabularyChecks = [
+    {
+      label: '5-7 câu',
+      done: vocabularySentenceCount >= 5 && vocabularySentenceCount <= 7,
+      hint: `${vocabularySentenceCount}/7 câu`,
+    },
+    {
+      label: 'Đủ ngữ cảnh',
+      done: vocabularyWordCount >= 45,
+      hint: `${vocabularyWordCount} từ`,
+    },
+    {
+      label: 'Tự nhiên',
+      done: /because|although|while|when|if|so|therefore|however|nhưng|vì|khi|nếu/i.test(answer),
+      hint: 'Có liên kết ý',
+    },
+  ];
   const activeFallbackPromptVideoUrl = SPEAKING_PROMPT_VIDEO_MAP[selectedSpeakingMockKey]?.[activeSpeakingPartKey]?.[speakingQuestionIndex] || '';
   const activeSpeakingVideoUrl = currentSpeakingQuestion?.videoUrl
     || activeFallbackPromptVideoUrl
@@ -816,6 +1070,16 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       hasRecordedAudio && completedRecordingDurationSeconds >= 5 && recordingHasVoiceSignal
     )
     : false;
+  const hasMultipleAssessments = orderedAssessments.length > 1;
+  const initialExamObjectiveAnswers = useMemo(() => (
+    (objectiveDraft.responses || []).reduce((accumulator, entry) => ({
+      ...accumulator,
+      [String(entry.questionNumber || entry.id || '')]: entry.answer || '',
+    }), {})
+  ), [objectiveDraft.responses]);
+  const isFullscreenExamMode = examModeOpen && !isDedicatedExamMode;
+  const showStartExamCard = !examModeOpen && !isLockedAfterResult;
+  const startExamButtonLabel = selected?.skill === 'SPEAKING' ? 'Bắt đầu kiểm tra' : 'Vào chế độ làm bài';
 
   useEffect(() => {
     refreshMediaDevices();
@@ -829,10 +1093,18 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
 
   useEffect(() => {
     const latestSubmission = selected?.latestSubmission;
+    const localDraft = typeof draftGetter === 'function' ? draftGetter(selected?.id) : null;
     const objectiveSeed = latestSubmission?.objectiveAnswersJson || '';
-    setAnswer(latestSubmission?.submittedText || '');
-    setObjectiveDraft(parseObjectiveDraft(objectiveSeed, selected?.skill || 'LISTENING'));
-    setAudioUrl(latestSubmission?.submittedAudioUrl || '');
+    const recoveredAudioUrl = selected?.skill === 'SPEAKING'
+      ? readRecoveredSpeakingAudioUrl(selected?.id)
+      : '';
+    setAnswer(localDraft?.submittedText ?? latestSubmission?.submittedText ?? '');
+    setObjectiveDraft(
+      localDraft?.objectiveDraft
+        ? parseObjectiveDraft(JSON.stringify(localDraft.objectiveDraft), selected?.skill || 'LISTENING')
+        : parseObjectiveDraft(objectiveSeed, selected?.skill || 'LISTENING')
+    );
+    setAudioUrl(localDraft?.submittedAudioUrl ?? latestSubmission?.submittedAudioUrl ?? recoveredAudioUrl ?? '');
     setAudioPreviewUrl('');
     setUploadingAudio(false);
     setRecordingError('');
@@ -842,6 +1114,11 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     setMicPermissionState('idle');
     setMicTesting(false);
     setMicLevel(0);
+    if (micCheckPreviewUrl) {
+      URL.revokeObjectURL(micCheckPreviewUrl);
+    }
+    setMicCheckPreviewUrl('');
+    setMicCheckCountdown(5);
     setRecordingLevel(0);
     setRecordingPeakLevel(0);
     setCompletedRecordingDurationSeconds(0);
@@ -862,7 +1139,24 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     setError('');
     setCreatingNewAttempt(false);
     setPendingSpeakingSubmit(false);
-  }, [selected?.id]);
+    setExamModeOpen(false);
+    setExamWarning(null);
+    setExamViolations([]);
+    setExamExitConfirmOpen(false);
+    examIntentionalExitRef.current = false;
+  }, [selected?.id, draftGetter]);
+
+  useEffect(() => {
+    if (!selected?.id || typeof onDraftChange !== 'function') return;
+    const draftPayload = {
+      assessmentId: selected.id,
+      skill: selected.skill,
+      submittedText: selected?.skill === 'SPEAKING' ? buildSpeakingSubmissionText() : answer,
+      objectiveDraft,
+      submittedAudioUrl: audioUrl || '',
+    };
+    onDraftChange(draftPayload);
+  }, [selected?.id, selected?.skill, answer, objectiveDraft, audioUrl, onDraftChange]);
 
   useEffect(() => {
     if (speakingExperience?.kind !== 'mock_test') return;
@@ -885,6 +1179,100 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   useEffect(() => {
     setSpeakingQuestionIndex(0);
   }, [activeSpeakingPartKey]);
+
+  useEffect(() => {
+    if (!examModeOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [examModeOpen]);
+
+  useEffect(() => {
+    if (!isFullscreenExamMode) return undefined;
+
+    examViolationLockRef.current = false;
+    examIntentionalExitRef.current = false;
+    const pushExamState = () => {
+      window.history.pushState({ englishlabExamMode: true }, '', window.location.href);
+    };
+    const recordViolation = (reason) => {
+      if (examViolationLockRef.current) return;
+      examViolationLockRef.current = true;
+      const violation = {
+        reason,
+        at: new Date().toISOString(),
+      };
+      setExamViolations((current) => [...current, violation]);
+      setExamWarning(violation);
+      window.setTimeout(() => {
+        examViolationLockRef.current = false;
+      }, 300);
+    };
+
+    pushExamState();
+    const handlePopState = () => {
+      pushExamState();
+      recordViolation('Bạn không thể quay lại trang khác trong khi đang thi.');
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        recordViolation('Hệ thống ghi nhận bạn đã rời tab hoặc thu nhỏ cửa sổ trong lúc làm bài.');
+      }
+    };
+    const handleWindowBlur = () => {
+      recordViolation('Hệ thống ghi nhận cửa sổ làm bài đã mất focus.');
+    };
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    const handleKeyDown = (event) => {
+      const loweredKey = String(event.key || '').toLowerCase();
+      const isBlockedShortcut = event.key === 'F5'
+        || event.key === 'Escape'
+        || (event.altKey && loweredKey === 'arrowleft')
+        || (event.altKey && loweredKey === 'arrowright')
+        || ((event.ctrlKey || event.metaKey) && ['r', 'w', 't', 'n', 'l', 'c', 'v', 'x', 'a', 'p', 's', 'u'].includes(loweredKey));
+      if (!isBlockedShortcut) return;
+      event.preventDefault();
+      event.stopPropagation();
+      recordViolation(
+        event.key === 'Escape'
+          ? 'Bạn không thể dùng phím Esc để thoát toàn màn hình trong khi đang thi.'
+          : 'Một thao tác điều hướng hoặc sao chép ngoài bài thi vừa bị chặn.'
+      );
+    };
+    const handleFullScreenChange = () => {
+      if (!document.fullscreenElement) {
+        if (examIntentionalExitRef.current) return;
+        recordViolation('Bạn không thể thoát chế độ toàn màn hình trong khi đang thi.');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('keydown', handleKeyDown, true);
+    requestExamFullscreen();
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      if (document.fullscreenElement && !examIntentionalExitRef.current) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+    };
+  }, [isFullscreenExamMode]);
 
   useEffect(() => {
     if (!isSpeakingMockFlow) return;
@@ -977,13 +1365,16 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     if (audioPreviewUrl) {
       URL.revokeObjectURL(audioPreviewUrl);
     }
+    if (micCheckPreviewUrl) {
+      URL.revokeObjectURL(micCheckPreviewUrl);
+    }
     if (mediaRecorderRef.current?.state !== 'inactive') {
       mediaRecorderRef.current?.stop();
     }
     mediaStreamRef.current?.getTracks?.().forEach((track) => track.stop());
     stopMicCheck();
     stopRecordingMeter();
-  }, [audioPreviewUrl]);
+  }, [audioPreviewUrl, micCheckPreviewUrl]);
 
   if (!assessments.length) {
     return (
@@ -1051,6 +1442,38 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       const response = await onSubmitAssessment(selected.id, payload);
       setResult(response);
       setCreatingNewAttempt(false);
+      setExamModeOpen(false);
+      if (typeof onClearDraft === 'function') {
+        onClearDraft(selected.id);
+      }
+    } catch (submissionError) {
+      setError(buildFriendlyError(submissionError));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExamModeSubmit = async (payload) => {
+    if (isLocked) {
+      setError('Hãy hoàn thành các bài học trong module này trước khi làm bài kiểm tra.');
+      return;
+    }
+    if (!selected?.id || !payload) {
+      setError(inputCopy.emptyError);
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+    setResult(null);
+    try {
+      const response = await onSubmitAssessment(selected.id, payload);
+      setResult(response);
+      setCreatingNewAttempt(false);
+      setExamModeOpen(false);
+      if (typeof onClearDraft === 'function') {
+        onClearDraft(selected.id);
+      }
     } catch (submissionError) {
       setError(buildFriendlyError(submissionError));
     } finally {
@@ -1110,6 +1533,18 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       window.cancelAnimationFrame(micCheckFrameRef.current);
       micCheckFrameRef.current = null;
     }
+    if (micCheckIntervalRef.current) {
+      window.clearInterval(micCheckIntervalRef.current);
+      micCheckIntervalRef.current = null;
+    }
+    if (micCheckTimeoutRef.current) {
+      window.clearTimeout(micCheckTimeoutRef.current);
+      micCheckTimeoutRef.current = null;
+    }
+    if (micCheckRecorderRef.current?.state && micCheckRecorderRef.current.state !== 'inactive') {
+      micCheckRecorderRef.current.stop();
+    }
+    micCheckRecorderRef.current = null;
     micCheckStreamRef.current?.getTracks?.().forEach((track) => track.stop());
     micCheckStreamRef.current = null;
     micCheckAnalyserRef.current = null;
@@ -1117,8 +1552,10 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       micCheckAudioContextRef.current.close().catch(() => {});
     }
     micCheckAudioContextRef.current = null;
+    micCheckChunksRef.current = [];
     setMicTesting(false);
     setMicLevel(0);
+    setMicCheckCountdown(5);
   };
 
   const handleStartMicCheck = async () => {
@@ -1127,12 +1564,17 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       return;
     }
     stopMicCheck();
+    if (micCheckPreviewUrl) {
+      URL.revokeObjectURL(micCheckPreviewUrl);
+      setMicCheckPreviewUrl('');
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: selectedInputDeviceId ? { deviceId: { exact: selectedInputDeviceId } } : true,
       });
       const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextCtor) {
+      if (!AudioContextCtor || typeof MediaRecorder === 'undefined') {
+        stream.getTracks?.().forEach((track) => track.stop());
         setMicPermissionState('unsupported');
         return;
       }
@@ -1144,11 +1586,36 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       analyser.fftSize = 256;
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
+      const recorder = new MediaRecorder(stream);
       micCheckStreamRef.current = stream;
       micCheckAudioContextRef.current = audioContext;
       micCheckAnalyserRef.current = analyser;
+      micCheckRecorderRef.current = recorder;
+      micCheckChunksRef.current = [];
       setMicPermissionState('granted');
+      setMicCheckPassed(false);
       setMicTesting(true);
+      setMicCheckCountdown(5);
+
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) {
+          micCheckChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(micCheckChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        micCheckChunksRef.current = [];
+        if (micCheckPreviewUrl) {
+          URL.revokeObjectURL(micCheckPreviewUrl);
+        }
+        if (blob.size > 0) {
+          setMicCheckPreviewUrl(URL.createObjectURL(blob));
+          setMicCheckPassed(true);
+        } else {
+          setMicCheckPreviewUrl('');
+        }
+      };
 
       await refreshMediaDevices();
       const dataArray = new Uint8Array(analyser.fftSize);
@@ -1164,6 +1631,13 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
         micCheckFrameRef.current = window.requestAnimationFrame(tick);
       };
       micCheckFrameRef.current = window.requestAnimationFrame(tick);
+      recorder.start();
+      micCheckIntervalRef.current = window.setInterval(() => {
+        setMicCheckCountdown((current) => (current > 1 ? current - 1 : 0));
+      }, 1000);
+      micCheckTimeoutRef.current = window.setTimeout(() => {
+        stopMicCheck();
+      }, 5000);
     } catch {
       setMicPermissionState('denied');
       setMicCheckPassed(false);
@@ -1264,12 +1738,13 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
       setRecordingError('');
       setRecordingDurationSeconds(0);
       recordingDurationRef.current = 0;
-      setCompletedRecordingDurationSeconds(0);
-      setRecordingPeakLevel(0);
-      setRecordingHasVoiceSignal(false);
-      stopRecordingMeter();
-      setAudioUrl('');
-      const stream = await navigator.mediaDevices.getUserMedia({
+    setCompletedRecordingDurationSeconds(0);
+    setRecordingPeakLevel(0);
+    setRecordingHasVoiceSignal(false);
+    stopRecordingMeter();
+    setAudioUrl('');
+    persistRecoveredSpeakingAudioUrl(selected?.id, '');
+    const stream = await navigator.mediaDevices.getUserMedia({
         audio: selectedInputDeviceId ? { deviceId: { exact: selectedInputDeviceId } } : true,
       });
       const mediaRecorder = new MediaRecorder(stream);
@@ -1332,7 +1807,9 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
           setUploadingAudio(true);
           courseApi.uploadAssessmentAudio(file)
             .then((uploadResponse) => {
-              setAudioUrl(uploadResponse?.url || '');
+              const uploadedUrl = uploadResponse?.url || '';
+              setAudioUrl(uploadedUrl);
+              persistRecoveredSpeakingAudioUrl(selected?.id, uploadedUrl);
               setError('');
             })
             .catch(() => {
@@ -1370,6 +1847,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
     }
     setAudioPreviewUrl('');
     setAudioUrl('');
+    persistRecoveredSpeakingAudioUrl(selected?.id, '');
     setRecordingDurationSeconds(0);
     recordingDurationRef.current = 0;
     setCompletedRecordingDurationSeconds(0);
@@ -1379,8 +1857,17 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
   };
 
   return (
-    <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm">
+    <>
+    <section
+      className={isFullscreenExamMode ? 'fixed inset-0 z-50 overflow-y-auto bg-[#f8f4f1]' : 'rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm'}
+      onContextMenu={isFullscreenExamMode ? (event) => event.preventDefault() : undefined}
+      onCopy={isFullscreenExamMode ? (event) => event.preventDefault() : undefined}
+      onCut={isFullscreenExamMode ? (event) => event.preventDefault() : undefined}
+      onPaste={isFullscreenExamMode ? (event) => event.preventDefault() : undefined}
+    >
+      <div className={isFullscreenExamMode ? 'mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8 md:py-8' : ''}>
       <audio ref={headphoneTestAudioRef} className="hidden" />
+      {!isFullscreenExamMode ? (
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
@@ -1400,13 +1887,35 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
           </div>
         </div>
       </div>
+      ) : (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[28px] border border-[#dfbfbd]/25 bg-white px-5 py-4 shadow-sm">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Chế độ làm bài</p>
+            <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{formatAssessmentTitle(selected)}</h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-full bg-[#8a0018] px-4 py-2 text-xs font-bold text-white shadow-[0_10px_24px_rgba(75,0,9,0.16)] transition hover:brightness-95">
+              Vi phạm đã ghi nhận: {examViolations.length}
+            </div>
+            <button
+              className="rounded-full border border-[#8a0018] bg-white px-4 py-2 text-xs font-bold text-[#8a0018] transition hover:border-[#650012] hover:bg-[#fff0f1] hover:text-[#650012]"
+              onClick={() => setExamExitConfirmOpen(true)}
+              type="button"
+            >
+              Thoát bài thi
+            </button>
+          </div>
+        </div>
+      )}
 
+      {!isFullscreenExamMode ? (
       <div className="mt-5 grid gap-3">
         {orderedAssessments.map((assessment) => (
           <button
             key={assessment.id}
-            className={`rounded-3xl border p-5 text-left transition hover:border-[#8a0018]/30 hover:bg-[#fff7f7] ${String(assessment.id) === String(selected?.id) ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#dfbfbd]/30 bg-[#fffdfc]'}`}
+            className={`rounded-3xl border p-5 text-left transition ${hasMultipleAssessments ? 'hover:border-[#8a0018]/30 hover:bg-[#fff7f7]' : 'cursor-default'} ${String(assessment.id) === String(selected?.id) ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#dfbfbd]/30 bg-[#fffdfc]'}`}
             type="button"
+            disabled={!hasMultipleAssessments}
             onClick={() => {
               setSelectedId(assessment.id);
               setResult(null);
@@ -1431,10 +1940,11 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
           </button>
         ))}
       </div>
+      ) : null}
 
       {selected ? (
         <div className="mt-5 rounded-3xl border border-[#dfbfbd]/25 bg-[#fffdfc] p-5">
-          {!isSpeakingMockFlow ? (
+          {!isSpeakingMockFlow && !isFullscreenExamMode ? (
             <div className="rounded-2xl border border-[#dfbfbd]/25 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-extrabold text-[#2b2828]">Tiêu chí chấm</p>
@@ -1459,12 +1969,142 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
             </div>
           ) : null}
 
-          {!showSpeakingResultOnly ? (
+          {showStartExamCard && !isDedicatedExamMode && !result ? (
+            <div className="mt-5 rounded-[28px] border border-[#dfbfbd]/25 bg-[linear-gradient(135deg,#fff8f8,#ffffff)] p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Exam workspace</p>
+                  <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#2b2828]">{formatAssessmentTitle(selected)}</h4>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                    Khi bắt đầu, bài kiểm tra sẽ chuyển sang chế độ toàn màn hình để người học chỉ tập trung vào phần làm bài. Sau khi nộp thành công, hệ thống sẽ quay lại màn hình tổng quan khóa học.
+                  </p>
+                </div>
+                <button
+                  className="rounded-2xl bg-[#8a0018] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:bg-[#650012] disabled:opacity-60"
+                  disabled={isLocked || submitting}
+                  onClick={handleOpenExamMode}
+                  type="button"
+                >
+                  {startExamButtonLabel}
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {!showSpeakingResultOnly && (isFullscreenExamMode || (isDedicatedExamMode && !isLockedAfterResult)) ? (
           <div className="mt-5">
             {!isSpeakingMockFlow ? (
               <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">{inputCopy.label}</label>
             ) : null}
-            {isObjectiveSkill(selected.skill) ? (
+            {isReadingExamMode ? (
+              <div className="rounded-[28px] border border-[#dfbfbd]/30 bg-[linear-gradient(135deg,#fff7f7,#ffffff)] p-6">
+                <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">IELTS Reading simulation</p>
+                    <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">
+                      {assessmentUiConfig?.title || 'Reading exam mode'}
+                    </h4>
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                      Bài Reading sẽ mở trong màn hình thi riêng với passage bên trái, câu hỏi bên phải,
+                      đồng hồ đếm giờ và thanh theo dõi câu hỏi ở phía dưới.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
+                      <span>40 questions</span>
+                      <span>•</span>
+                      <span>{assessmentUiConfig?.durationMinutes || selected.timeLimitMinutes || 60} minutes</span>
+                      <span>•</span>
+                      <span>Anti copy/paste + focus warning</span>
+                    </div>
+                  </div>
+                  {isLockedAfterResult ? (
+                    <span className="inline-flex rounded-2xl bg-[#ebe3e2] px-6 py-4 text-sm font-black text-[#7a6766]">
+                      Đã có kết quả
+                    </span>
+                  ) : (
+                    <button
+                      className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
+                      disabled={isLocked || submitting}
+                      onClick={() => setExamModeOpen(true)}
+                      type="button"
+                    >
+                      Vào phòng thi Reading
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : isListeningExamMode ? (
+              <div className="rounded-[28px] border border-[#dfbfbd]/30 bg-[linear-gradient(135deg,#fff7f7,#ffffff)] p-6">
+                <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">IELTS Listening simulation</p>
+                    <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">
+                      {assessmentUiConfig?.title || 'Listening exam mode'}
+                    </h4>
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                      Bài Listening sẽ mở trong màn hình thi riêng với audio ở header, câu hỏi theo từng part
+                      và thanh tiến độ câu hỏi ở phía dưới.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
+                      <span>40 questions</span>
+                      <span>•</span>
+                      <span>{assessmentUiConfig?.durationMinutes || selected.timeLimitMinutes || 40} minutes</span>
+                      <span>•</span>
+                      <span>Audio + anti copy/paste + focus warning</span>
+                    </div>
+                  </div>
+                  {isLockedAfterResult ? (
+                    <span className="inline-flex rounded-2xl bg-[#ebe3e2] px-6 py-4 text-sm font-black text-[#7a6766]">
+                      Đã có kết quả
+                    </span>
+                  ) : (
+                    <button
+                      className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
+                      disabled={isLocked || submitting}
+                      onClick={() => setExamModeOpen(true)}
+                      type="button"
+                    >
+                      Vào phòng thi Listening
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : isWritingExamMode ? (
+              <div className="rounded-[28px] border border-[#dfbfbd]/30 bg-[linear-gradient(135deg,#fff7f7,#ffffff)] p-6">
+                <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">IELTS Writing simulation</p>
+                    <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">
+                      {assessmentUiConfig?.title || 'Writing exam mode'}
+                    </h4>
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                      Bài Writing sẽ mở trong màn hình thi riêng với đề bên trái, khung viết bên phải
+                      và chuyển nhanh giữa Task 1, Task 2 ở thanh dưới.
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
+                      <span>{(assessmentUiConfig?.tasks || []).length || 2} tasks</span>
+                      <span>•</span>
+                      <span>{assessmentUiConfig?.durationMinutes || selected.timeLimitMinutes || 60} minutes</span>
+                      <span>•</span>
+                      <span>Split workspace + anti cheat</span>
+                    </div>
+                  </div>
+                  {isLockedAfterResult ? (
+                    <span className="inline-flex rounded-2xl bg-[#ebe3e2] px-6 py-4 text-sm font-black text-[#7a6766]">
+                      Đã có kết quả
+                    </span>
+                  ) : (
+                    <button
+                      className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
+                      disabled={isLocked || submitting}
+                      onClick={() => setExamModeOpen(true)}
+                      type="button"
+                    >
+                      Vào phòng thi Writing
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : isObjectiveSkill(selected.skill) && !isDedicatedExamMode ? (
               <div className="space-y-4">
                 {(objectiveSections[selected.skill] || []).map((section) => (
                   <div key={section.key} className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
@@ -1548,7 +2188,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                         <div className="mt-8 space-y-8">
                           <div className="grid gap-5 md:grid-cols-[60px_1fr]">
                             <div className="flex items-start justify-center">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e8b7c1] text-[#cf6f83]">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
                                 <span className="material-symbols-outlined text-[24px]">headphones</span>
                               </div>
                             </div>
@@ -1557,18 +2197,18 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                               <p className="mt-3 text-sm leading-7 text-[#584140]">
                                 Hãy thử phát âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn nghe rõ trước khi bắt đầu bài thi.
                               </p>
-                              <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#ecd7db] bg-[#fffdfc] px-5 py-5">
+                              <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
                                 <button
-                                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#cf6f83,#b04b63)] text-white shadow-[0_10px_24px_rgba(176,75,99,0.28)]"
+                                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)] transition hover:-translate-y-0.5 hover:brightness-105"
                                   type="button"
                                   onClick={handlePlayHeadphoneCheck}
                                 >
                                   <span className="material-symbols-outlined">play_arrow</span>
                                 </button>
                                 <div className="min-w-[220px] flex-1">
-                                  <div className="h-2 rounded-full bg-[#f1d9de]">
+                                  <div className="h-2 rounded-full bg-[#f3d7dd]">
                                     <div
-                                      className="h-full rounded-full bg-[linear-gradient(90deg,#cf6f83,#e7aab6)] transition-all"
+                                      className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all"
                                       style={{ width: headphoneCheckPlayed ? '100%' : '0%' }}
                                     />
                                   </div>
@@ -1576,7 +2216,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                                 <span className="text-sm font-semibold text-[#7a6766]">{headphoneCheckPlayed ? '00:08' : '00:00'}</span>
                                 <div className="min-w-[220px]">
                                   <BrandedSelect
-                                    buttonClassName="min-w-[220px] border-[#ecd7db] py-3 text-sm font-medium text-[#584140] shadow-none"
+                                    buttonClassName="min-w-[220px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
                                     onChange={(event) => setSelectedOutputDeviceId(event.target.value)}
                                     options={availableOutputDevices.length
                                       ? availableOutputDevices.map((device, index) => ({
@@ -1593,7 +2233,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
 
                           <div className="grid gap-5 md:grid-cols-[60px_1fr]">
                             <div className="flex items-start justify-center">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e8b7c1] text-[#cf6f83]">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
                                 <span className="material-symbols-outlined text-[24px]">mic</span>
                               </div>
                             </div>
@@ -1607,19 +2247,19 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                                 <br />
                                 “I love English. My English is great and I practice it everyday!”
                               </p>
-                              <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#ecd7db] bg-[#fffdfc] px-5 py-5">
+                              <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
                                 <button
-                                  className={`flex h-14 items-center gap-2 rounded-full px-5 text-sm font-extrabold ${micTesting ? 'bg-[#fbe9ed] text-[#cf6f83]' : 'bg-[linear-gradient(135deg,#cf6f83,#b04b63)] text-white shadow-[0_10px_24px_rgba(176,75,99,0.28)]'}`}
+                                  className={`flex h-14 items-center gap-2 rounded-full px-5 text-sm font-extrabold transition ${micTesting ? 'bg-[#fff0f1] text-[#8a0018] hover:bg-[#ffe5e8]' : 'bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)] hover:-translate-y-0.5 hover:brightness-105'}`}
                                   type="button"
                                   onClick={handleStartMicCheck}
                                 >
                                   <span className="material-symbols-outlined">{micTesting ? 'radio_button_checked' : 'mic'}</span>
-                                  {micTesting ? 'Stop check' : 'Start check'}
+                                  {micTesting ? `Đang ghi thử ${micCheckCountdown}s` : 'Bắt đầu test mic'}
                                 </button>
                                 <div className="min-w-[220px] flex-1">
-                                  <div className="h-2 rounded-full bg-[#f1d9de]">
+                                  <div className="h-2 rounded-full bg-[#f3d7dd]">
                                     <div
-                                      className="h-full rounded-full bg-[linear-gradient(90deg,#cf6f83,#e7aab6)] transition-all"
+                                      className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all"
                                       style={{ width: `${micLevel}%` }}
                                     />
                                   </div>
@@ -1627,7 +2267,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                                 <span className="text-sm font-semibold text-[#7a6766]">{micLevel}%</span>
                                 <div className="min-w-[220px]">
                                   <BrandedSelect
-                                    buttonClassName="min-w-[220px] border-[#ecd7db] py-3 text-sm font-medium text-[#584140] shadow-none"
+                                    buttonClassName="min-w-[220px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
                                     onChange={(event) => setSelectedInputDeviceId(event.target.value)}
                                     options={availableInputDevices.length
                                       ? availableInputDevices.map((device, index) => ({
@@ -1639,9 +2279,17 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                                   />
                                 </div>
                               </div>
+                              {micCheckPreviewUrl ? (
+                                <div className="mt-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fff7f7] p-4">
+                                  <p className="text-sm font-bold text-[#4b0009]">Bản ghi thử 5 giây đã sẵn sàng. Bạn nghe lại trực tiếp ở đây để kiểm tra mic.</p>
+                                  <audio className="mt-3 w-full" controls src={micCheckPreviewUrl} />
+                                </div>
+                              ) : null}
                               <p className="mt-3 text-sm leading-7 text-[#7a6766]">
-                                {micPermissionState === 'idle' && 'Bấm Start check để cấp quyền micro và kiểm tra mức tín hiệu đầu vào.'}
-                                {micPermissionState === 'granted' && 'Tín hiệu micro đang được nhận. Nếu thanh mức tín hiệu nhảy ổn, bạn có thể tiếp tục.'}
+                                {micPermissionState === 'idle' && 'Bấm Bắt đầu test mic để cấp quyền micro, ghi thử 5 giây và nghe lại ngay trên thiết bị của bạn.'}
+                                {micPermissionState === 'granted' && (micCheckPassed
+                                  ? 'Micro đã ghi thử xong. Nếu nghe lại rõ và thanh tín hiệu nhảy ổn, bạn có thể tiếp tục.'
+                                  : 'Micro đang được ghi thử trong 5 giây. Hãy đọc câu mẫu thật rõ để kiểm tra chất lượng thu âm.')}
                                 {micPermissionState === 'denied' && 'Trình duyệt chưa được cấp quyền dùng micro. Hãy bật quyền micro rồi thử lại.'}
                                 {micPermissionState === 'unsupported' && 'Trình duyệt hiện không hỗ trợ bước kiểm tra này. Hãy thử trên Chrome hoặc Edge.'}
                               </p>
@@ -1650,13 +2298,16 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
 
                           <div className="grid gap-5 md:grid-cols-[60px_1fr]">
                             <div className="flex items-start justify-center">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#f2d6dc] text-[#e3b0bb]">
-                                <span className="material-symbols-outlined text-[24px]">hourglass_empty</span>
+                              <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${headphoneCheckPlayed && micCheckPassed ? 'border-[#8a0018]/25 bg-[#fff0f1] text-[#8a0018]' : 'border-[#f2d6dc] text-[#e3b0bb]'}`}>
+                                <span className="material-symbols-outlined text-[24px]">{headphoneCheckPlayed && micCheckPassed ? 'check_circle' : 'hourglass_empty'}</span>
                               </div>
                             </div>
                             <div>
-                              <p className="text-2xl font-extrabold text-[#a9b4c2]"><span className="mr-2 text-[#a9b4c2]/70">3.</span>Waiting room</p>
-                              <p className="mt-3 text-sm leading-7 text-[#b2a6a7]">
+                              <p className={`text-2xl font-extrabold ${headphoneCheckPlayed && micCheckPassed ? 'text-[#8a0018]' : 'text-[#a9b4c2]'}`}>
+                                <span className={`mr-2 ${headphoneCheckPlayed && micCheckPassed ? 'text-[#8a0018]/60' : 'text-[#a9b4c2]/70'}`}>3.</span>
+                                Waiting room
+                              </p>
+                              <p className={`mt-3 text-sm leading-7 ${headphoneCheckPlayed && micCheckPassed ? 'text-[#584140]' : 'text-[#b2a6a7]'}`}>
                                 Khi thiết bị đã sẵn sàng, bạn có thể vào phòng thi mô phỏng để bắt đầu từng phần của bài Speaking.
                               </p>
                             </div>
@@ -1665,10 +2316,10 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
 
                         <div className="mt-8 flex justify-end">
                           <button
-                            className="rounded-full bg-[linear-gradient(135deg,#cf6f83,#b04b63)] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(176,75,99,0.28)] transition hover:brightness-95 disabled:opacity-50"
+                            className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)] transition hover:-translate-y-0.5 hover:brightness-105 disabled:opacity-50"
                             type="button"
                             onClick={handleConfirmMicCheck}
-                            disabled={!headphoneCheckPlayed || micPermissionState !== 'granted'}
+                            disabled={!headphoneCheckPlayed || micPermissionState !== 'granted' || !micCheckPassed}
                           >
                             Continue to test
                           </button>
@@ -1690,7 +2341,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                             Kiểm tra kỹ micro và nơi ngồi để tiếng nói đủ rõ, ít tạp âm.
                           </div>
                           <div className="rounded-2xl bg-[#faf7f7] p-4 text-sm leading-6 text-[#584140]">
-                            Với Part 2, nên dùng 1 phút chuẩn bị để chốt ý chính chứ không viết thành bài hoàn chỉnh.
+                            Với Phần 2, nên dùng 1 phút chuẩn bị để chốt ý chính chứ không viết thành bài hoàn chỉnh.
                           </div>
                           <div className="rounded-2xl bg-[#faf7f7] p-4 text-sm leading-6 text-[#584140]">
                             Hãy nói tự nhiên như đang thi thật. Phần chấm ưu tiên bản ghi âm, không phải một đoạn text soạn sẵn.
@@ -1702,7 +2353,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                             type="button"
                             onClick={() => setSpeakingStage('test')}
                           >
-                            Sang phần đề Speaking
+                            Bắt đầu kiểm tra
                           </button>
                           <button
                             className="rounded-2xl border border-[#8a0018]/20 px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
@@ -1777,7 +2428,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                           <div className="mx-auto mt-6 max-w-3xl">
                             {activeSpeakingPart?.cueCardTitle ? (
                               <div className="rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
-                                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Cue card</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>
                                 <h5 className="mt-2 text-xl font-extrabold text-[#2b2828]">{activeSpeakingPart.cueCardTitle}</h5>
                                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                                   {(activeSpeakingPart.cueCardBullets || []).map((bullet) => (
@@ -1857,7 +2508,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                       <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-extrabold text-[#2b2828]">Part 1 Speaking Topic Bank</p>
+                            <p className="text-sm font-extrabold text-[#2b2828]">Ngân hàng chủ đề phần 1</p>
                             <p className="mt-2 text-sm leading-6 text-[#584140]">
                               Module này thiên về luyện phản xạ theo chủ đề. Chọn một topic rồi ghi âm liên tiếp 3-4 câu hỏi như lúc warm-up trong IELTS Speaking.
                             </p>
@@ -1980,6 +2631,98 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                     ) : null}
 
                   </>
+                ) : selected.skill === 'VOCABULARY' ? (
+                  <div className="overflow-hidden rounded-[30px] border border-[#dfbfbd]/35 bg-[radial-gradient(circle_at_top_left,_rgba(138,0,24,0.12),_transparent_34%),linear-gradient(135deg,#fff9f8,#ffffff)] shadow-[0_18px_50px_rgba(75,0,9,0.06)]">
+                    <div className="grid gap-5 border-b border-[#f0e2e2] p-5 lg:grid-cols-[1fr_320px]">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-[#8a0018] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                            Vocabulary output
+                          </span>
+                          <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#8a0018] ring-1 ring-[#dfbfbd]/50">
+                            AI checks meaning + collocation
+                          </span>
+                        </div>
+                        <h4 className="mt-4 font-['Manrope'] text-2xl font-black text-[#2b2828]">
+                          Viết câu để chứng minh bạn thật sự dùng được từ
+                        </h4>
+                        <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                          Hãy viết 5-7 câu ngắn, mỗi câu nên có ngữ cảnh rõ ràng. Bài chấm sẽ tập trung vào nghĩa, collocation,
+                          độ tự nhiên và mức độ bám chủ đề của module.
+                        </p>
+                      </div>
+
+                      <div className="rounded-[24px] border border-[#dfbfbd]/40 bg-white/85 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">Độ sẵn sàng</p>
+                          <span className="font-['Manrope'] text-2xl font-black text-[#8a0018]">{vocabularyReadinessPercent}%</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f1dce0]">
+                          <div
+                            className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#c62845)] transition-all duration-300"
+                            style={{ width: `${vocabularyReadinessPercent}%` }}
+                          />
+                        </div>
+                        <div className="mt-4 grid gap-2">
+                          {vocabularyChecks.map((check) => (
+                            <div key={check.label} className="flex items-center justify-between gap-3 rounded-2xl bg-[#fff7f7] px-3 py-2">
+                              <span className={`text-sm font-bold ${check.done ? 'text-[#4b0009]' : 'text-[#8c716f]'}`}>
+                                {check.done ? '✓' : '•'} {check.label}
+                              </span>
+                              <span className="text-xs font-semibold text-[#8c716f]">{check.hint}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-5 p-5 lg:grid-cols-[1fr_300px]">
+                      <div>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <label className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">
+                            Câu trả lời của bạn
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-bold text-[#8a0018]">
+                              {vocabularySentenceCount} câu
+                            </span>
+                            <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-bold text-[#8a0018]">
+                              {vocabularyWordCount} từ
+                            </span>
+                          </div>
+                        </div>
+                        <textarea
+                          className={`min-h-[280px] w-full resize-y rounded-[26px] border px-5 py-4 text-base leading-8 shadow-inner outline-none transition ${isSubmissionLocked ? 'border-[#ebe3e2] bg-[#f7f3f2] text-[#7a6766]' : 'border-[#8a0018]/70 bg-white focus:border-[#8a0018] focus:shadow-[0_0_0_4px_rgba(138,0,24,0.08)]'}`}
+                          value={answer}
+                          onChange={(event) => setAnswer(event.target.value)}
+                          readOnly={isSubmissionLocked || submitting}
+                          placeholder="Ví dụ: Chính sách mới tạo ra tác động rõ rệt với người học vì giúp họ quản lý thời gian hiệu quả hơn..."
+                        />
+                        <p className="mt-3 text-sm leading-6 text-[#7a6766]">
+                          Mẹo nhỏ: đừng chỉ liệt kê từ vựng. Hãy đặt từ vào tình huống cụ thể để AI kiểm tra được bạn dùng đúng nghĩa hay chưa.
+                        </p>
+                      </div>
+
+                      <aside className="space-y-3">
+                        <div className="rounded-[24px] border border-[#dfbfbd]/35 bg-white p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#8c716f]">Checklist trước khi nộp</p>
+                          <div className="mt-4 space-y-3 text-sm leading-6 text-[#584140]">
+                            <p><span className="font-black text-[#8a0018]">1.</span> Mỗi câu có ít nhất một từ/cụm từ mục tiêu.</p>
+                            <p><span className="font-black text-[#8a0018]">2.</span> Có collocation tự nhiên, không dịch từng chữ từ tiếng Việt.</p>
+                            <p><span className="font-black text-[#8a0018]">3.</span> Câu đủ ngữ cảnh để người đọc hiểu tình huống.</p>
+                            <p><span className="font-black text-[#8a0018]">4.</span> Ưu tiên câu rõ ràng hơn câu quá dài và rối.</p>
+                          </div>
+                        </div>
+
+                        <div className="rounded-[24px] border border-[#f0d7a6] bg-[#fffaf0] p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[#9b6400]">Chế độ thi</p>
+                          <p className="mt-3 text-sm leading-6 font-semibold text-[#7a4e00]">
+                            Hệ thống vẫn ghi nhận rời tab, thoát toàn màn hình, quay lại trang khác, copy/paste và phím tắt điều hướng.
+                          </p>
+                        </div>
+                      </aside>
+                    </div>
+                  </div>
                 ) : (
                   <textarea
                     className={`min-h-[190px] w-full rounded-2xl border px-4 py-3 text-sm leading-7 outline-none transition ${isSubmissionLocked ? 'border-[#ebe3e2] bg-[#f7f3f2] text-[#7a6766]' : 'border-[#dfbfbd]/60 bg-white focus:border-[#8a0018]'}`}
@@ -1991,7 +2734,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
                 )}
               </div>
             )}
-            {!isSpeakingMockFlow ? (
+            {!isSpeakingMockFlow && !isDedicatedExamMode && selected.skill !== 'VOCABULARY' ? (
               <p className="mt-2 text-sm leading-6 text-[#7a6766]">{inputCopy.helper}</p>
             ) : null}
             {selected.skill === 'SPEAKING' && speakingStage === 'recording' && !isSpeakingMockFlow ? (
@@ -2020,7 +2763,7 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
             ) : null}
             {error ? <p className="mt-2 text-sm font-semibold text-[#93000a]">{error}</p> : null}
 
-            {!isSpeakingMockFlow ? (
+            {!isSpeakingMockFlow && !isDedicatedExamMode ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {!isLockedAfterResult ? (
                   <button
@@ -2066,7 +2809,10 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
               </button>
               <button
                 className="rounded-2xl border border-[#8a0018]/20 px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-                onClick={handleRetakeAttempt}
+                onClick={() => {
+                  handleRetakeAttempt();
+                  setExamModeOpen(true);
+                }}
                 type="button"
               >
                 Làm lại bài
@@ -2074,23 +2820,90 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
             </div>
           ) : null}
 
+          {result && !isLocked && !isFullscreenExamMode && !showSpeakingResultOnly ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                className="rounded-2xl bg-[#ebe3e2] px-5 py-3 text-sm font-extrabold text-[#7a6766]"
+                disabled
+                type="button"
+              >
+                Đã có kết quả
+              </button>
+              <button
+                className="rounded-2xl border border-[#8a0018]/20 px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
+                onClick={() => {
+                  handleRetakeAttempt();
+                  setExamModeOpen(true);
+                }}
+                type="button"
+              >
+                Làm lại bài
+              </button>
+            </div>
+          ) : null}
+
+          {result && submissionComparison ? (
+            <div className="mt-5 rounded-2xl border border-[#d7c2b7] bg-[#fffaf6] p-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">So với lần làm trước</span>
+                {submissionComparison.scoreDelta != null ? (
+                  <span className={`rounded-full px-4 py-2 text-sm font-bold ${submissionComparison.scoreDelta >= 0 ? 'bg-[#edf8f0] text-[#1d6b3a]' : 'bg-[#fff0f1] text-[#8a0018]'}`}>
+                    {submissionComparison.scoreDelta >= 0 ? '+' : ''}{submissionComparison.scoreDelta} điểm
+                  </span>
+                ) : null}
+              </div>
+
+              {submissionComparison.improvedCriteria.length ? (
+                <div className="mt-4">
+                  <p className="text-sm font-extrabold text-[#2b2828]">Điểm tiến bộ</p>
+                  <ul className="mt-2 space-y-1 text-sm leading-6 text-[#584140]">
+                    {submissionComparison.improvedCriteria.map((criterion) => (
+                      <li key={`improved-${criterion.name}`}>• {formatCriterionName(criterion.name)} tăng từ {criterion.previousScore} lên {criterion.currentScore}</li>
+                    ))}
+                    {submissionComparison.newStrengths.slice(0, 3).map((item) => (
+                      <li key={`new-strength-${item}`}>• Điểm mạnh mới: {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {submissionComparison.regressedCriteria.length || submissionComparison.lostStrengths.length ? (
+                <div className="mt-4">
+                  <p className="text-sm font-extrabold text-[#2b2828]">Điểm còn thiếu so với bài trước</p>
+                  <ul className="mt-2 space-y-1 text-sm leading-6 text-[#584140]">
+                    {submissionComparison.regressedCriteria.map((criterion) => (
+                      <li key={`regressed-${criterion.name}`}>• {formatCriterionName(criterion.name)} giảm từ {criterion.previousScore} xuống {criterion.currentScore}</li>
+                    ))}
+                    {submissionComparison.lostStrengths.slice(0, 3).map((item) => (
+                      <li key={`lost-strength-${item}`}>• Điểm tốt của bài trước cần giữ lại: {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {result ? (
             <div className="mt-5 rounded-2xl border border-[#8a0018]/15 bg-[#fff7f7] p-5">
               <div className="flex flex-wrap items-center gap-3">
-                {showNumericScore ? (
-                  <span className="rounded-full bg-[#4b0009] px-4 py-2 text-sm font-extrabold text-white">
-                    Điểm ước lượng: {result.aiScore ?? feedback?.estimatedScore ?? 'Chưa có'}
+                {shouldShowExamScoreBadges ? (
+                  <>
+                    <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">
+                      {usesFixedScoring ? 'Điểm' : 'Điểm ước lượng'}: {scoreDisplay}
+                    </span>
+                    <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">
+                      {usesFixedScoring ? 'Band' : 'Band ước lượng'}: {bandDisplay}
+                    </span>
+                  </>
+                ) : showNumericScore ? (
+                  <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">
+                    Điểm ước lượng: {scoreDisplay}
                   </span>
                 ) : (
-                  <span className="rounded-full bg-[#4b0009] px-4 py-2 text-sm font-extrabold text-white">
+                  <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">
                     Đã phân tích bài làm
                   </span>
                 )}
-                {supportsNumericScoring(selected) && feedback?.estimatedBand ? (
-                  <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">
-                    Band ước lượng: {feedback.estimatedBand}
-                  </span>
-                ) : null}
                 <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">{statusLabels[result.status] || result.status}</span>
               </div>
 
@@ -2227,6 +3040,13 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
             </div>
           ) : null}
 
+          {isFullscreenExamMode ? (
+            <div className="mt-4 rounded-2xl border border-[#ffe2b7] bg-[#fff8ea] px-4 py-3 text-sm font-semibold text-[#8a5d00]">
+              Chế độ thi đang bật. Hệ thống sẽ ghi nhận rời tab, thoát toàn màn hình, quay lại trang khác, copy/paste và các phím tắt điều hướng.
+            </div>
+          ) : null}
+
+          {!isFullscreenExamMode ? (
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-3">
               <button
@@ -2245,8 +3065,103 @@ export default function AiAssessmentPanel({ assessments = [], moduleTitle, isLoc
               </button>
             </div>
           </div>
+          ) : null}
         </div>
       ) : null}
+      {examWarning && isFullscreenExamMode ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1c120f]/45 px-4">
+          <div className="max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b26a00]">Cảnh báo bài thi</p>
+            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#2b2828]">Hệ thống đã ghi nhận vi phạm</h3>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">{examWarning.reason}</p>
+            <div className="mt-5 flex flex-col gap-3">
+              <button
+                className="w-full rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white"
+                onClick={async () => {
+                  await requestExamFullscreen();
+                  setExamWarning(null);
+                }}
+                type="button"
+              >
+                Quay lại toàn màn hình và tiếp tục làm bài
+              </button>
+              <button
+                className="w-full rounded-2xl border border-[#dfbfbd]/50 px-5 py-3 text-sm font-bold text-[#584140] transition hover:bg-[#faf7f7]"
+                onClick={() => {
+                  setExamWarning(null);
+                  setExamExitConfirmOpen(true);
+                }}
+                type="button"
+              >
+                Thoát bài thi
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {examExitConfirmOpen && isFullscreenExamMode ? (
+        <div className="fixed inset-0 z-[61] flex items-center justify-center bg-[#1c120f]/55 px-4">
+          <div className="max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8c716f]">Xác nhận thoát</p>
+            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#2b2828]">Thoát khỏi bài thi này?</h3>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">
+              Nếu bạn thoát bây giờ, lần làm bài hiện tại sẽ không được nộp và hệ thống sẽ quay lại màn hình tổng quan của khóa học.
+            </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <button
+                className="flex-1 rounded-2xl border border-[#dfbfbd]/50 px-5 py-3 text-sm font-bold text-[#584140] transition hover:bg-[#faf7f7]"
+                onClick={() => setExamExitConfirmOpen(false)}
+                type="button"
+              >
+                Ở lại làm bài
+              </button>
+              <button
+                className="flex-1 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white"
+                onClick={handleCloseExamMode}
+                type="button"
+              >
+                Thoát bài thi
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      </div>
     </section>
+    {examModeOpen && isReadingExamMode ? (
+      <ReadingExamMode
+        assessment={selected}
+        config={assessmentUiConfig}
+        initialAnswers={initialExamObjectiveAnswers}
+        isLocked={isSubmissionLocked}
+        onClose={() => setExamModeOpen(false)}
+        onSubmit={handleExamModeSubmit}
+        submitting={submitting}
+      />
+    ) : null}
+    {examModeOpen && isListeningExamMode ? (
+      <ListeningExamMode
+        assessment={selected}
+        config={assessmentUiConfig}
+        initialAnswers={initialExamObjectiveAnswers}
+        isLocked={isSubmissionLocked}
+        onClose={() => setExamModeOpen(false)}
+        onSubmit={handleExamModeSubmit}
+        submitting={submitting}
+      />
+    ) : null}
+    {examModeOpen && isWritingExamMode ? (
+      <WritingExamMode
+        assessment={selected}
+        config={assessmentUiConfig}
+        initialSubmissionText={answer}
+        isLocked={isSubmissionLocked}
+        onClose={() => setExamModeOpen(false)}
+        onSubmit={handleExamModeSubmit}
+        submitting={submitting}
+      />
+    ) : null}
+    </>
   );
 }
+
