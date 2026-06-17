@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, LogOut, Menu, ShoppingCart, UserRound } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Menu, ShoppingCart, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
@@ -15,6 +16,7 @@ const navItems = [
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { markAllNotificationsRead, unreadNotificationCount } = useLearnerExperience();
   const menuRef = useRef(null);
   const [user, setUser] = useState(() => getStoredUser());
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -139,6 +141,19 @@ const Header = () => {
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#c5162e] px-1 text-[11px] font-extrabold leading-none text-white">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>
+              ) : null}
+            </Link>
+
+            <Link
+              aria-label="Thông báo"
+              className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+              onClick={markAllNotificationsRead}
+              to="/notifications"
+              reloadDocument={shouldReloadWhenLeavingWorkspace}
+            >
+              <Bell className="h-5 w-5" />
+              {unreadNotificationCount > 0 ? (
+                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#c5162e]" />
               ) : null}
             </Link>
 

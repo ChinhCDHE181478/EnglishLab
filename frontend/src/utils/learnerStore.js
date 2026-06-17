@@ -5,6 +5,7 @@ const storageKeys = {
   recentLessons: 'englishlab_recent_lessons',
   assessmentDrafts: 'englishlab_assessment_drafts',
   assessmentQueue: 'englishlab_assessment_queue',
+  notifications: 'englishlab_notifications',
 };
 
 const safeParse = (value, fallback) => {
@@ -46,6 +47,28 @@ export const writeAssessmentDrafts = (value) => writeJson(storageKeys.assessment
 
 export const readAssessmentQueue = () => readJson(storageKeys.assessmentQueue, []);
 export const writeAssessmentQueue = (value) => writeJson(storageKeys.assessmentQueue, value);
+
+export const readNotifications = () => readJson(storageKeys.notifications, []);
+export const writeNotifications = (value) => writeJson(storageKeys.notifications, value);
+
+export const createLearnerNotification = ({
+  title,
+  message,
+  type = 'success',
+  actionPath = '',
+  courseId = null,
+  courseTitle = '',
+}) => ({
+  id: buildId('thong-bao'),
+  title,
+  message,
+  type,
+  actionPath,
+  courseId,
+  courseTitle,
+  read: false,
+  createdAt: nowIso(),
+});
 
 export const createLessonNote = ({
   courseId,
