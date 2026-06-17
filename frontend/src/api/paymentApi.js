@@ -3,8 +3,13 @@ import axiosClient from './axiosClient';
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
 export const paymentApi = {
-  async createPayosLink(courseIds) {
-    const response = await axiosClient.post('/api/student/payments/payos/link', { courseIds });
+  async quotePayment(courseIds, couponCode = '') {
+    const response = await axiosClient.post('/api/student/payments/quote', { courseIds, couponCode });
+    return unwrapData(response);
+  },
+
+  async createPayosLink(courseIds, couponCode = '') {
+    const response = await axiosClient.post('/api/student/payments/payos/link', { courseIds, couponCode });
     return unwrapData(response);
   },
 

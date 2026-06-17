@@ -2,13 +2,18 @@ package fu.sap490.g23.backend.service.payment;
 
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
+import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.payment.DiscountCode;
+import fu.sap490.g23.backend.entity.payment.DiscountType;
 import fu.sap490.g23.backend.entity.payment.PaymentOrder;
 import fu.sap490.g23.backend.entity.payment.PaymentOrderStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sap490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sap490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +26,7 @@ import vn.payos.model.v2.paymentRequests.PaymentLinkItem;
 import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,33 +44,48 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PayosProperties payosProperties;
     private final PaymentOrderRepository paymentOrderRepository;
+    private final DiscountCodeRepository discountCodeRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final UserRepository userRepository;
     private final OnlineCourseService onlineCourseService;
+
     @Override
-    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, String studentEmail) {
+    @Transactional(readOnly = true)
+    public PaymentQuoteResponse quotePayment(List<Long> courseIds, String couponCode, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-
         List<OnlineCourse> courses = resolvePayableCourses(courseIds, student);
-        long amount = courses.stream()
-                .map(OnlineCourse::getLearningPackage)
-                .map(item -> item.getPrice() == null ? BigDecimal.ZERO : item.getPrice())
-                .mapToLong(BigDecimal::longValue)
-                .sum();
+        return toQuoteResponse(calculateBreakdown(courses, couponCode, false));
+    }
 
-        if (amount <= 0) {
+    @Override
+    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, String couponCode, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
+        List<OnlineCourse> courses = resolvePayableCourses(courseIds, student);
+        PriceBreakdown previewBreakdown = calculateBreakdown(courses, couponCode, false);
+
+        if (previewBreakdown.totalAmount() <= 0) {
+            PriceBreakdown breakdown = calculateBreakdown(courses, couponCode, true);
             courses.forEach(course -> onlineCourseService.registerCourse(course.getId(), studentEmail));
+            consumeCouponReservation(breakdown.discountCode());
             return PaymentLinkResponse.builder()
                     .orderCode(null)
                     .paymentLinkId(null)
                     .checkoutUrl(null)
                     .qrCode(null)
                     .status(PaymentOrderStatus.PAID.name())
+                    .originalAmount(breakdown.originalAmount())
+                    .systemDiscountAmount(breakdown.systemDiscountAmount())
+                    .couponDiscountAmount(breakdown.couponDiscountAmount())
+                    .totalAmount(0L)
+                    .couponCode(breakdown.couponCode())
                     .build();
         }
 
         ensurePayosEnabled();
+        PriceBreakdown breakdown = calculateBreakdown(courses, couponCode, true);
+        long amount = breakdown.totalAmount();
 
         long orderCode = buildOrderCode();
         String orderCodeText = String.valueOf(orderCode);
@@ -75,6 +96,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .courseIdsCsv(courses.stream().map(course -> String.valueOf(course.getId())).collect(Collectors.joining(",")))
                 .courseTitles(courses.stream().map(course -> course.getLearningPackage().getTitle()).collect(Collectors.joining(" | ")))
                 .amount(amount)
+                .originalAmount(breakdown.originalAmount())
+                .systemDiscountAmount(breakdown.systemDiscountAmount())
+                .couponDiscountAmount(breakdown.couponDiscountAmount())
+                .discountCode(breakdown.discountCode())
+                .discountCodeText(breakdown.couponCode())
+                .couponReservationReleased(breakdown.discountCode() == null)
                 .description(description)
                 .status(PaymentOrderStatus.PENDING)
                 .build();
@@ -82,14 +109,12 @@ public class PaymentServiceImpl implements PaymentService {
 
         try {
             PayOS client = createClient();
-            List<PaymentLinkItem> items = courses.stream()
-                    .map(course -> PaymentLinkItem.builder()
-                            .name(course.getLearningPackage().getTitle())
-                            .quantity(1)
-                            .price(resolveCoursePrice(course))
-                            .unit("khóa học")
-                            .build())
-                    .toList();
+            List<PaymentLinkItem> items = List.of(PaymentLinkItem.builder()
+                    .name("EnglishLab order")
+                    .quantity(1)
+                    .price(amount)
+                    .unit("order")
+                    .build());
 
             var request = vn.payos.model.v2.paymentRequests.CreatePaymentLinkRequest.builder()
                     .orderCode(orderCode)
@@ -115,9 +140,15 @@ public class PaymentServiceImpl implements PaymentService {
                     .checkoutUrl(response.getCheckoutUrl())
                     .qrCode(response.getQrCode())
                     .status(paymentOrder.getStatus().name())
+                    .originalAmount(paymentOrder.getOriginalAmount())
+                    .systemDiscountAmount(paymentOrder.getSystemDiscountAmount())
+                    .couponDiscountAmount(paymentOrder.getCouponDiscountAmount())
+                    .totalAmount(paymentOrder.getAmount())
+                    .couponCode(paymentOrder.getDiscountCodeText())
                     .build();
         } catch (PayOSException ex) {
             paymentOrder.setStatus(PaymentOrderStatus.FAILED);
+            releaseCouponReservation(paymentOrder);
             paymentOrderRepository.save(paymentOrder);
             throw new RuntimeException("Không tạo được link thanh toán PayOS: " + ex.getMessage(), ex);
         }
@@ -185,13 +216,12 @@ public class PaymentServiceImpl implements PaymentService {
                 && "00".equalsIgnoreCase(stringValue(data.get("code")));
 
         if (success) {
-            if (order.getStatus() != PaymentOrderStatus.PAID) {
-                order.setStatus(PaymentOrderStatus.PAID);
-                order.setPaidAt(LocalDateTime.now());
-                enrollPurchasedCourses(order);
-            }
+            markOrderPaid(order);
         } else {
             order.setStatus(resolveFailureStatus(payload, data));
+            if (isFinalFailure(order.getStatus())) {
+                releaseCouponReservation(order);
+            }
         }
 
         paymentOrderRepository.save(order);
@@ -209,6 +239,119 @@ public class PaymentServiceImpl implements PaymentService {
         } catch (PayOSException ex) {
             throw new RuntimeException("Không xác nhận được webhook PayOS: " + ex.getMessage(), ex);
         }
+    }
+
+    private PriceBreakdown calculateBreakdown(List<OnlineCourse> courses, String couponCode, boolean reserveCoupon) {
+        long originalAmount = courses.stream().mapToLong(course -> toVnd(resolveOriginalPrice(course))).sum();
+        long subtotalAmount = courses.stream().mapToLong(course -> toVnd(resolveSystemPrice(course))).sum();
+        long systemDiscountAmount = Math.max(0L, originalAmount - subtotalAmount);
+        DiscountCode discountCode = resolveDiscountCode(couponCode, reserveCoupon);
+        long couponDiscountAmount = calculateCouponDiscount(discountCode, subtotalAmount);
+        long totalAmount = Math.max(0L, subtotalAmount - couponDiscountAmount);
+        return new PriceBreakdown(
+                originalAmount,
+                systemDiscountAmount,
+                subtotalAmount,
+                couponDiscountAmount,
+                totalAmount,
+                discountCode,
+                discountCode == null ? null : discountCode.getCode(),
+                discountCode == null ? null : "Mã giảm giá đã được áp dụng."
+        );
+    }
+
+    private DiscountCode resolveDiscountCode(String couponCode, boolean reserveCoupon) {
+        String normalizedCode = normalizeCouponCode(couponCode);
+        if (normalizedCode == null) {
+            return null;
+        }
+
+        DiscountCode discountCode = (reserveCoupon
+                ? discountCodeRepository.findByCodeIgnoreCaseForUpdate(normalizedCode)
+                : discountCodeRepository.findByCodeIgnoreCase(normalizedCode))
+                .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại."));
+        validateDiscountCode(discountCode);
+
+        if (reserveCoupon) {
+            discountCode.setReservedCount(safeCount(discountCode.getReservedCount()) + 1);
+        }
+        return discountCode;
+    }
+
+    private void validateDiscountCode(DiscountCode discountCode) {
+        LocalDateTime now = LocalDateTime.now();
+        if (!discountCode.isActive()) {
+            throw new RuntimeException("Mã giảm giá hiện không hoạt động.");
+        }
+        if (discountCode.getStartsAt() != null && now.isBefore(discountCode.getStartsAt())) {
+            throw new RuntimeException("Mã giảm giá chưa đến thời gian sử dụng.");
+        }
+        if (discountCode.getExpiresAt() != null && now.isAfter(discountCode.getExpiresAt())) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn.");
+        }
+        int usedCount = safeCount(discountCode.getUsedCount());
+        int reservedCount = safeCount(discountCode.getReservedCount());
+        int usageLimit = safeCount(discountCode.getUsageLimit());
+        if (usageLimit <= 0 || usedCount + reservedCount >= usageLimit) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng.");
+        }
+    }
+
+    private long calculateCouponDiscount(DiscountCode discountCode, long subtotalAmount) {
+        if (discountCode == null || subtotalAmount <= 0) {
+            return 0L;
+        }
+        BigDecimal subtotal = BigDecimal.valueOf(subtotalAmount);
+        BigDecimal discount = discountCode.getType() == DiscountType.PERCENTAGE
+                ? subtotal.multiply(discountCode.getValue()).divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+                : discountCode.getValue();
+        return Math.min(subtotalAmount, Math.max(0L, toVnd(discount)));
+    }
+
+    private PaymentQuoteResponse toQuoteResponse(PriceBreakdown breakdown) {
+        return PaymentQuoteResponse.builder()
+                .originalAmount(breakdown.originalAmount())
+                .systemDiscountAmount(breakdown.systemDiscountAmount())
+                .subtotalAmount(breakdown.subtotalAmount())
+                .couponDiscountAmount(breakdown.couponDiscountAmount())
+                .totalAmount(breakdown.totalAmount())
+                .couponCode(breakdown.couponCode())
+                .couponMessage(breakdown.couponMessage())
+                .build();
+    }
+
+    private void markOrderPaid(PaymentOrder order) {
+        if (order.getStatus() != PaymentOrderStatus.PAID) {
+            order.setStatus(PaymentOrderStatus.PAID);
+            order.setPaidAt(LocalDateTime.now());
+            consumeCouponReservation(order);
+            enrollPurchasedCourses(order);
+        }
+    }
+
+    private void consumeCouponReservation(PaymentOrder order) {
+        if (order.getDiscountCode() == null || order.isCouponReservationReleased()) {
+            return;
+        }
+        consumeCouponReservation(order.getDiscountCode());
+        order.setCouponReservationReleased(true);
+    }
+
+    private void consumeCouponReservation(DiscountCode discountCode) {
+        if (discountCode == null) {
+            return;
+        }
+        discountCode.setReservedCount(Math.max(0, safeCount(discountCode.getReservedCount()) - 1));
+        discountCode.setUsedCount(safeCount(discountCode.getUsedCount()) + 1);
+    }
+
+    private void releaseCouponReservation(PaymentOrder order) {
+        if (order.getDiscountCode() == null || order.isCouponReservationReleased()) {
+            return;
+        }
+        DiscountCode discountCode = order.getDiscountCode();
+        discountCode.setReservedCount(Math.max(0, safeCount(discountCode.getReservedCount()) - 1));
+        order.setCouponReservationReleased(true);
     }
 
     private List<OnlineCourse> resolvePayableCourses(List<Long> courseIds, User student) {
@@ -291,12 +434,13 @@ public class PaymentServiceImpl implements PaymentService {
             order.setPaymentLinkId(firstNonBlank(order.getPaymentLinkId(), paymentLink.getId()));
 
             PaymentOrderStatus nextStatus = mapProviderStatus(paymentLink.getStatus());
-            if (nextStatus == PaymentOrderStatus.PAID && order.getStatus() != PaymentOrderStatus.PAID) {
-                order.setStatus(PaymentOrderStatus.PAID);
-                order.setPaidAt(firstNonNull(order.getPaidAt(), LocalDateTime.now()));
-                enrollPurchasedCourses(order);
+            if (nextStatus == PaymentOrderStatus.PAID) {
+                markOrderPaid(order);
             } else if (nextStatus != order.getStatus()) {
                 order.setStatus(nextStatus);
+                if (isFinalFailure(nextStatus)) {
+                    releaseCouponReservation(order);
+                }
             }
 
             paymentOrderRepository.save(order);
@@ -324,6 +468,12 @@ public class PaymentServiceImpl implements PaymentService {
         return status == PaymentOrderStatus.PENDING || status == PaymentOrderStatus.PROCESSING;
     }
 
+    private boolean isFinalFailure(PaymentOrderStatus status) {
+        return status == PaymentOrderStatus.CANCELLED
+                || status == PaymentOrderStatus.EXPIRED
+                || status == PaymentOrderStatus.FAILED;
+    }
+
     private PayOS createClient() {
         return new PayOS(
                 vn.payos.core.ClientOptions.builder()
@@ -343,15 +493,40 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private boolean isBlank(String value) {
-        return value == null || value.isBlank();
+    private BigDecimal resolveOriginalPrice(OnlineCourse course) {
+        LearningPackage learningPackage = course.getLearningPackage();
+        return learningPackage == null || learningPackage.getPrice() == null ? BigDecimal.ZERO : learningPackage.getPrice();
     }
 
-    private long resolveCoursePrice(OnlineCourse course) {
-        if (course.getLearningPackage() == null || course.getLearningPackage().getPrice() == null) {
+    private BigDecimal resolveSystemPrice(OnlineCourse course) {
+        BigDecimal originalPrice = resolveOriginalPrice(course);
+        BigDecimal salePrice = course.getLearningPackage() == null ? null : course.getLearningPackage().getSalePrice();
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return originalPrice;
+        }
+        return salePrice;
+    }
+
+    private long toVnd(BigDecimal value) {
+        if (value == null) {
             return 0L;
         }
-        return course.getLearningPackage().getPrice().longValue();
+        return value.setScale(0, RoundingMode.HALF_UP).longValue();
+    }
+
+    private int safeCount(Integer value) {
+        return Math.max(0, value == null ? 0 : value);
+    }
+
+    private String normalizeCouponCode(String couponCode) {
+        if (couponCode == null || couponCode.isBlank()) {
+            return null;
+        }
+        return couponCode.trim().replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     @SuppressWarnings("unchecked")
@@ -381,10 +556,6 @@ public class PaymentServiceImpl implements PaymentService {
         return first != null && !first.isBlank() ? first : second;
     }
 
-    private LocalDateTime firstNonNull(LocalDateTime first, LocalDateTime second) {
-        return first != null ? first : second;
-    }
-
     private String writePayload(Map<String, Object> payload) {
         return payload == null ? "{}" : payload.toString();
     }
@@ -395,5 +566,17 @@ public class PaymentServiceImpl implements PaymentService {
             orderCode += 1;
         }
         return orderCode;
+    }
+
+    private record PriceBreakdown(
+            long originalAmount,
+            long systemDiscountAmount,
+            long subtotalAmount,
+            long couponDiscountAmount,
+            long totalAmount,
+            DiscountCode discountCode,
+            String couponCode,
+            String couponMessage
+    ) {
     }
 }

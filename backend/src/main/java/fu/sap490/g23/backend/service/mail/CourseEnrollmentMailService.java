@@ -27,6 +27,8 @@ public class CourseEnrollmentMailService {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final String TEMPLATE_PATH = "email-templates/course-enrollment-success.html";
+    private static final String DEFAULT_HERO_IMAGE_PATH = "static/email/course-success-hero.png";
+    private static final String DEFAULT_HERO_CONTENT_ID = "paymentSuccessHero";
 
     private final JavaMailSender mailSender;
 
@@ -44,9 +46,6 @@ public class CourseEnrollmentMailService {
 
     @Value("${englishlab.mail.base-url:http://localhost:5173}")
     private String baseUrl;
-
-    @Value("${englishlab.mail.logo-url:}")
-    private String logoUrl;
 
     @Value("${englishlab.mail.hero-image-url:}")
     private String heroImageUrl;
@@ -82,6 +81,9 @@ public class CourseEnrollmentMailService {
             helper.setTo(student.getEmail());
             helper.setSubject("Đăng ký khóa học thành công - EnglishLab");
             helper.setText(renderTemplate(student, course, enrollment), true);
+            if (useInlineDefaultHero()) {
+                helper.addInline(DEFAULT_HERO_CONTENT_ID, new ClassPathResource(DEFAULT_HERO_IMAGE_PATH));
+            }
 
             mailSender.send(message);
             log.info("Sent course enrollment success email to {}", student.getEmail());
@@ -95,8 +97,7 @@ public class CourseEnrollmentMailService {
         String template = new ClassPathResource(TEMPLATE_PATH).getContentAsString(StandardCharsets.UTF_8);
 
         Map<String, String> values = new LinkedHashMap<>();
-        values.put("logoUrl", absoluteUrl(valueOrDefault(logoUrl, fallbackLogoUrl())));
-        values.put("heroImageUrl", absoluteUrl(heroImageUrl(course)));
+        values.put("heroImageUrl", absoluteUrl(heroImageUrl()));
         values.put("studentName", valueOrDefault(student.getFullName(), "bạn"));
         values.put("courseTitle", valueOrDefault(learningPackage.getTitle(), "khóa học EnglishLab"));
         values.put("enrollmentCode", enrollmentCode(enrollment));
@@ -160,24 +161,20 @@ public class CourseEnrollmentMailService {
         return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
-    private String fallbackLogoUrl() {
-        return "/favicon.svg";
-    }
-
-    private String heroImageUrl(OnlineCourse course) {
+    private String heroImageUrl() {
         String configuredHero = valueOrDefault(heroImageUrl, null);
         if (!isBlank(configuredHero)) {
             return configuredHero;
-        }
-        String thumbnailUrl = course.getLearningPackage().getThumbnailUrl();
-        if (!isBlank(thumbnailUrl)) {
-            return thumbnailUrl;
         }
         return fallbackHeroImageUrl();
     }
 
     private String fallbackHeroImageUrl() {
-        return "/streaks/streak-hug-fire.png";
+        return "cid:" + DEFAULT_HERO_CONTENT_ID;
+    }
+
+    private boolean useInlineDefaultHero() {
+        return isBlank(heroImageUrl);
     }
 
     private String absoluteUrl(String value) {
@@ -185,7 +182,7 @@ public class CourseEnrollmentMailService {
             return normalizedBaseUrl();
         }
         String trimmed = value.trim();
-        if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:") || trimmed.startsWith("cid:")) {
             return trimmed;
         }
         if (trimmed.startsWith("/")) {

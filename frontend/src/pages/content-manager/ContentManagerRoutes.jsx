@@ -4,6 +4,7 @@ import ContentManagerCourseBuilderPage from './ContentManagerCourseBuilderPage';
 import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 import ContentManagerCoursesPage from './ContentManagerCoursesPage';
 import ContentManagerDashboardPage from './ContentManagerDashboardPage';
+import ContentManagerDiscountCodesPage from './ContentManagerDiscountCodesPage';
 import ContentManagerStaticPage from './ContentManagerStaticPage';
 
 export default function ContentManagerRoutes() {
@@ -16,6 +17,7 @@ export default function ContentManagerRoutes() {
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/edit" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/builder" element={<ContentManagerCourseBuilderPage />} />
+        <Route path="discount-codes" element={<ContentManagerDiscountCodesPage />} />
         <Route path="materials" element={<ContentManagerStaticPage pageKey="materials" />} />
         <Route path="flashcards" element={<ContentManagerStaticPage pageKey="flashcards" />} />
         <Route path="listening" element={<ContentManagerStaticPage pageKey="listening" />} />
@@ -31,4 +33,3 @@ export default function ContentManagerRoutes() {
     </ContentManagerLayout>
   );
 }
-

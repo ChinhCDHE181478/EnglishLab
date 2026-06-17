@@ -9,47 +9,62 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class AuthTokenService {
 
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final Duration OTP_RESEND_COOLDOWN = Duration.ofMinutes(1);
+
     private final AuthTokenRepository authTokenRepository;
 
-    @Value("${englishlab.auth.email-verification-expiration-hours:24}")
-    private long emailVerificationExpirationHours;
+    @Value("${englishlab.auth.email-verification-expiration-minutes:15}")
+    private long emailVerificationExpirationMinutes;
 
-    @Value("${englishlab.auth.password-reset-expiration-minutes:30}")
+    @Value("${englishlab.auth.password-reset-expiration-minutes:15}")
     private long passwordResetExpirationMinutes;
 
     @Transactional
     public AuthToken issueEmailVerificationToken(User user) {
+        enforceResendCooldown(user, AuthTokenType.EMAIL_VERIFICATION);
         authTokenRepository.deleteByUserAndType(user, AuthTokenType.EMAIL_VERIFICATION);
         return authTokenRepository.save(AuthToken.builder()
                 .user(user)
                 .type(AuthTokenType.EMAIL_VERIFICATION)
-                .token(UUID.randomUUID().toString())
+                .token(generateEmailVerificationCode())
                 .createdAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusHours(emailVerificationExpirationHours))
+                .expiresAt(LocalDateTime.now().plusMinutes(emailVerificationExpirationMinutes))
                 .build());
     }
 
     @Transactional
     public AuthToken issuePasswordResetToken(User user) {
+        enforceResendCooldown(user, AuthTokenType.PASSWORD_RESET);
         authTokenRepository.deleteByUserAndType(user, AuthTokenType.PASSWORD_RESET);
         return authTokenRepository.save(AuthToken.builder()
                 .user(user)
                 .type(AuthTokenType.PASSWORD_RESET)
-                .token(UUID.randomUUID().toString())
+                .token(generateOneTimeCode(AuthTokenType.PASSWORD_RESET))
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes))
                 .build());
     }
 
-    public AuthToken requireValidToken(String rawToken, AuthTokenType type, String invalidMessage) {
-        AuthToken token = authTokenRepository.findByTokenAndType(rawToken, type)
+    public AuthToken requireValidEmailVerificationCode(User user, String rawCode, String invalidMessage) {
+        return requireValidCode(user, rawCode, AuthTokenType.EMAIL_VERIFICATION, invalidMessage);
+    }
+
+    public AuthToken requireValidPasswordResetCode(User user, String rawCode, String invalidMessage) {
+        return requireValidCode(user, rawCode, AuthTokenType.PASSWORD_RESET, invalidMessage);
+    }
+
+    private AuthToken requireValidCode(User user, String rawCode, AuthTokenType type, String invalidMessage) {
+        String normalizedCode = rawCode == null ? "" : rawCode.trim();
+        AuthToken token = authTokenRepository.findByUserAndTokenAndType(user, normalizedCode, type)
                 .orElseThrow(() -> new RuntimeException(invalidMessage));
 
         if (token.isUsed() || token.isExpired()) {
@@ -63,5 +78,36 @@ public class AuthTokenService {
     public void markUsed(AuthToken token) {
         token.setUsedAt(LocalDateTime.now());
         authTokenRepository.save(token);
+    }
+
+    @Transactional
+    public void deleteTokens(User user, AuthTokenType type) {
+        authTokenRepository.deleteByUserAndType(user, type);
+    }
+
+    private String generateEmailVerificationCode() {
+        return generateOneTimeCode(AuthTokenType.EMAIL_VERIFICATION);
+    }
+
+    private void enforceResendCooldown(User user, AuthTokenType type) {
+        authTokenRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, type)
+                .filter((token) -> token.getCreatedAt() != null)
+                .ifPresent((token) -> {
+                    LocalDateTime nextAllowedAt = token.getCreatedAt().plus(OTP_RESEND_COOLDOWN);
+                    if (LocalDateTime.now().isBefore(nextAllowedAt)) {
+                        long remainingSeconds = Math.max(1, Duration.between(LocalDateTime.now(), nextAllowedAt).toSeconds());
+                        throw new RuntimeException("Vui lòng chờ " + remainingSeconds + " giây trước khi gửi lại OTP.");
+                    }
+                });
+    }
+
+    private String generateOneTimeCode(AuthTokenType type) {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String code = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
+            if (authTokenRepository.findByTokenAndType(code, type).isEmpty()) {
+                return code;
+            }
+        }
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
 }

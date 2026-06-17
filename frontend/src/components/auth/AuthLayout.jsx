@@ -14,7 +14,7 @@ const quotes = {
   },
   '/forgot-password': {
     title: 'Lấy lại quyền truy cập thật nhanh.',
-    text: 'Chúng tôi sẽ gửi liên kết đặt lại mật khẩu về đúng email của bạn.',
+    text: 'Chúng tôi sẽ gửi mã OTP đặt lại mật khẩu về đúng email của bạn.',
   },
   '/reset-password': {
     title: 'Một mật khẩu mới, một khởi đầu mới.',

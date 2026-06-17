@@ -4,7 +4,7 @@ export const login = (data) => axiosClient.post('/api/auth/login', data);
 
 export const register = (data) => axiosClient.post('/api/auth/register', data);
 
-export const verifyEmail = (token) => axiosClient.post(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+export const verifyEmail = (data) => axiosClient.post('/api/auth/verify-email', data);
 
 export const resendVerificationEmail = (email) => axiosClient.post('/api/auth/resend-verification', { email });
 

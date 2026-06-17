@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.controller.payment;
 import fu.sap490.g23.backend.dto.request.payment.CreatePaymentLinkRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
+import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sap490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,15 @@ public class StudentPaymentController {
             @Valid @RequestBody CreatePaymentLinkRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(paymentService.createPaymentLink(request.getCourseIds(), authentication.getName()));
+        return ResponseEntity.ok(paymentService.createPaymentLink(request.getCourseIds(), request.getCouponCode(), authentication.getName()));
+    }
+
+    @PostMapping("/quote")
+    public ResponseEntity<PaymentQuoteResponse> quotePayment(
+            @Valid @RequestBody CreatePaymentLinkRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(paymentService.quotePayment(request.getCourseIds(), request.getCouponCode(), authentication.getName()));
     }
 
     @GetMapping("/orders/{orderCode}")

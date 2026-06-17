@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { Eye, EyeOff, Lock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Eye, EyeOff, KeyRound, Lock, Mail, RefreshCcw } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { resetPassword } from '../api/authApi';
+import { forgotPassword, resetPassword } from '../api/authApi';
 
 const passwordRequirements = [
   { id: 'length', label: 'Ít nhất 8 ký tự', test: (password) => password.length >= 8 },
@@ -32,21 +32,65 @@ const getPasswordStrength = (password) => {
 const ResetPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const token = useMemo(() => new URLSearchParams(location.search).get('token') || '', [location.search]);
-  const email = useMemo(() => new URLSearchParams(location.search).get('email') || '', [location.search]);
-  const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
+  const initialEmail = useMemo(() => new URLSearchParams(location.search).get('email') || '', [location.search]);
+  const [formData, setFormData] = useState({ email: initialEmail, code: '', password: '', confirmPassword: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(initialEmail ? 60 : 0);
   const passwordStrength = useMemo(() => getPasswordStrength(formData.password), [formData.password]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setResendCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResendOtp = async () => {
+    const normalizedEmail = formData.email.trim();
+    if (!normalizedEmail) {
+      setError('Vui lòng nhập email để gửi lại OTP.');
+      return;
+    }
+    if (resendCooldown > 0) {
+      setError(`Vui lòng chờ ${resendCooldown} giây trước khi gửi lại OTP.`);
+      return;
+    }
+
+    setResending(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await forgotPassword(normalizedEmail);
+      setSuccess(response.data?.message || 'Đã gửi lại mã OTP đặt lại mật khẩu.');
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Không thể gửi lại OTP. Vui lòng thử lại.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!token) {
-      setError('Liên kết đặt lại mật khẩu không hợp lệ.');
+    if (!formData.email.trim()) {
+      setError('Vui lòng nhập email đã yêu cầu đặt lại mật khẩu.');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(formData.code.trim())) {
+      setError('Mã OTP phải gồm 6 chữ số.');
       return;
     }
 
@@ -71,7 +115,8 @@ const ResetPassword = () => {
 
     try {
       const response = await resetPassword({
-        token,
+        email: formData.email.trim(),
+        code: formData.code.trim(),
         newPassword: formData.password,
       });
       setSuccess(response.data?.message || 'Đặt lại mật khẩu thành công.');
@@ -90,7 +135,7 @@ const ResetPassword = () => {
           Tạo mật khẩu mới
         </h1>
         <p className="text-base leading-[1.6] text-[#584140]">
-          {email ? `Đặt lại mật khẩu cho ${email}.` : 'Nhập mật khẩu mới để tiếp tục.'}
+          Nhập mã OTP đã gửi qua email và tạo mật khẩu mới.
         </p>
       </div>
 
@@ -107,6 +152,55 @@ const ResetPassword = () => {
       )}
 
       <form className="space-y-4" onSubmit={handleSubmit}>
+        <div>
+          <label className="mb-2 block text-xs font-[600] uppercase leading-none tracking-[0.1em] text-[#1A1C1C]" htmlFor="email">
+            Email
+          </label>
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#584140]/50" size={20} />
+            <input
+              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-4 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
+              id="email"
+              onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
+              placeholder="nhapemail@example.com"
+              type="email"
+              value={formData.email}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-[600] uppercase leading-none tracking-[0.1em] text-[#1A1C1C]" htmlFor="code">
+            Mã OTP
+          </label>
+          <div className="relative">
+            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 text-[#584140]/50" size={20} />
+            <input
+              className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-4 text-base leading-[1.6] tracking-[0.18em] text-[#1A1C1C] outline-none transition-colors placeholder:tracking-normal placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
+              id="code"
+              inputMode="numeric"
+              maxLength={6}
+              onChange={(event) => setFormData((current) => ({ ...current, code: event.target.value.replace(/\D/g, '').slice(0, 6) }))}
+              placeholder="123456"
+              type="text"
+              value={formData.code}
+            />
+          </div>
+          <button
+            className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-[600] text-[#730014] transition-colors hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-70"
+            disabled={resending || resendCooldown > 0}
+            onClick={handleResendOtp}
+            type="button"
+          >
+            <RefreshCcw size={14} />
+            {resending
+              ? 'Đang gửi lại...'
+              : resendCooldown > 0
+                ? `Gửi lại sau ${resendCooldown}s`
+                : 'Gửi lại OTP'}
+          </button>
+        </div>
+
         <div>
           <label className="mb-2 block text-xs font-[600] uppercase leading-none tracking-[0.1em] text-[#1A1C1C]" htmlFor="password">
             Mật khẩu mới
@@ -142,22 +236,8 @@ const ResetPassword = () => {
                 style={{ width: passwordStrength.width, backgroundColor: passwordStrength.color }}
               />
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {passwordRequirements.map((rule) => {
-                const passed = rule.test(formData.password);
-                return (
-                  <div
-                    key={rule.id}
-                    className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
-                      passed
-                        ? 'border-[#cce8d7] bg-[#eff8f2] text-[#1b6b45]'
-                        : 'border-[#ead8d4] bg-[#fff8f6] text-[#7a6461]'
-                    }`}
-                  >
-                    {rule.label}
-                  </div>
-                );
-              })}
+            <div className="mt-3 rounded-xl border border-[#ead8d4] bg-[#fff8f6] px-3 py-2 text-xs font-semibold leading-relaxed text-[#7a6461]">
+              Mật khẩu cần ít nhất 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
             </div>
           </div>
         </div>

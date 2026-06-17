@@ -32,41 +32,38 @@ public class AuthMailService {
     @Value("${englishlab.mail.from-name:EnglishLab}")
     private String fromName;
 
-    @Value("${englishlab.mail.base-url:http://localhost:5173}")
-    private String baseUrl;
-
     @Value("${englishlab.mail.support-email:support@englishlab.vn}")
     private String supportEmail;
 
-    public void sendVerificationEmail(User user, String token) {
-        sendActionEmail(
+    public void sendVerificationEmail(User user, String code) {
+        sendCodeEmail(
                 user,
                 "Xác thực email đăng ký - EnglishLab",
                 "Xác thực tài khoản của bạn",
-                "Cảm ơn bạn đã đăng ký EnglishLab. Hãy xác thực email để kích hoạt tài khoản và bắt đầu học.",
-                "Xác thực email",
-                normalizedBaseUrl() + "/verify-email?token=" + token + "&email=" + user.getEmail()
+                "Cảm ơn bạn đã đăng ký EnglishLab. Nhập mã dưới đây trên trang xác thực để kích hoạt tài khoản và bắt đầu học.",
+                "Mã xác thực của bạn",
+                code
         );
     }
 
-    public void sendPasswordResetEmail(User user, String token) {
-        sendActionEmail(
+    public void sendPasswordResetEmail(User user, String code) {
+        sendCodeEmail(
                 user,
                 "Đặt lại mật khẩu - EnglishLab",
-                "Tạo mật khẩu mới cho tài khoản của bạn",
-                "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu. Nếu đúng là bạn, hãy nhấn nút bên dưới để tiếp tục.",
-                "Đặt lại mật khẩu",
-                normalizedBaseUrl() + "/reset-password?token=" + token + "&email=" + user.getEmail()
+                "Mã đặt lại mật khẩu của bạn",
+                "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu. Nhập mã dưới đây trên trang đặt lại mật khẩu để tiếp tục.",
+                "Mã OTP của bạn",
+                code
         );
     }
 
-    private void sendActionEmail(
+    private void sendCodeEmail(
             User user,
             String subject,
             String heading,
             String description,
-            String buttonLabel,
-            String actionUrl
+            String codeLabel,
+            String code
     ) {
         if (!enabled) {
             log.debug("Auth mail is disabled.");
@@ -87,7 +84,7 @@ public class AuthMailService {
             helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(user.getEmail());
             helper.setSubject(subject);
-            helper.setText(renderHtml(user, heading, description, buttonLabel, actionUrl), true);
+            helper.setText(renderCodeHtml(user, heading, description, codeLabel, code), true);
             mailSender.send(message);
             log.info("Sent auth email '{}' to {}", subject, user.getEmail());
         } catch (Exception ex) {
@@ -95,12 +92,12 @@ public class AuthMailService {
         }
     }
 
-    private String renderHtml(User user, String heading, String description, String buttonLabel, String actionUrl) {
+    private String renderCodeHtml(User user, String heading, String description, String codeLabel, String code) {
         String safeName = escapeHtml(valueOrDefault(user.getFullName(), "bạn"));
         String safeHeading = escapeHtml(heading);
         String safeDescription = escapeHtml(description);
-        String safeButtonLabel = escapeHtml(buttonLabel);
-        String safeActionUrl = escapeHtml(actionUrl);
+        String safeCodeLabel = escapeHtml(codeLabel);
+        String safeCode = escapeHtml(code);
         String safeSupportEmail = escapeHtml(valueOrDefault(supportEmail, "support@englishlab.vn"));
         String year = String.valueOf(LocalDateTime.now().getYear());
 
@@ -118,7 +115,7 @@ public class AuthMailService {
                       <td align="center">
                         <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #ead8d5;">
                           <tr>
-                            <td style="padding:32px 32px 20px;background:linear-gradient(135deg,#fff7f5 0%%,#ffffff 52%%,#f6e3e0 100%%);">
+                            <td style="padding:32px;background:linear-gradient(135deg,#fff7f5 0%%,#ffffff 52%%,#f6e3e0 100%%);">
                               <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
                                 <tr>
                                   <td style="padding:0;vertical-align:middle;">
@@ -133,9 +130,11 @@ public class AuthMailService {
                               <p style="margin:24px 0 0;font-size:14px;line-height:22px;color:#7a5c59;">Xin chào %s,</p>
                               <h1 style="margin:10px 0 0;font-size:28px;line-height:36px;color:#4b0009;">%s</h1>
                               <p style="margin:14px 0 0;font-size:15px;line-height:26px;color:#5f4745;">%s</p>
-                              <a href="%s" style="display:inline-block;margin-top:28px;padding:14px 24px;border-radius:999px;background:#730014;color:#ffffff;text-decoration:none;font-weight:700;">%s</a>
-                              <p style="margin:18px 0 0;font-size:13px;line-height:22px;color:#7a5c59;">Nếu nút không hoạt động, bạn có thể sao chép đường dẫn này vào trình duyệt:</p>
-                              <p style="margin:8px 0 0;word-break:break-all;font-size:13px;line-height:22px;color:#730014;">%s</p>
+                              <div style="margin-top:28px;padding:18px 24px;border-radius:18px;background:#fff1f3;border:1px solid #dfbfbd;text-align:center;">
+                                <p style="margin:0 0 8px;font-size:13px;line-height:20px;color:#7a5c59;font-weight:700;">%s</p>
+                                <p style="margin:0;font-size:36px;line-height:44px;letter-spacing:10px;color:#730014;font-weight:800;font-family:Arial,sans-serif;">%s</p>
+                              </div>
+                              <p style="margin:18px 0 0;font-size:13px;line-height:22px;color:#7a5c59;">Mã này chỉ có hiệu lực trong thời gian ngắn. Nếu bạn không yêu cầu thao tác này, hãy bỏ qua email.</p>
                             </td>
                           </tr>
                           <tr>
@@ -152,12 +151,16 @@ public class AuthMailService {
                   </table>
                 </body>
                 </html>
-                """.formatted(safeName, safeHeading, safeDescription, safeActionUrl, safeButtonLabel, safeActionUrl, safeSupportEmail, safeSupportEmail, year);
-    }
-
-    private String normalizedBaseUrl() {
-        String url = valueOrDefault(baseUrl, "http://localhost:5173").trim();
-        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+                """.formatted(
+                safeName,
+                safeHeading,
+                safeDescription,
+                safeCodeLabel,
+                safeCode,
+                safeSupportEmail,
+                safeSupportEmail,
+                year
+        );
     }
 
     private String valueOrDefault(String value, String fallback) {

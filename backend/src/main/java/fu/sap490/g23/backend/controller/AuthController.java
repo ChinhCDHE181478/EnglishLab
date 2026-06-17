@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
+import fu.sap490.g23.backend.dto.request.VerifyEmailRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.service.impl.FacebookAuthService;
 import fu.sap490.g23.backend.service.impl.GoogleAuthService;
@@ -13,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,8 +42,8 @@ public class AuthController {
     }
 
     @PostMapping("/verify-email")
-    public ResponseEntity<AuthResponse> verifyEmail(@RequestParam String token) {
-        AuthResponse response = authService.verifyEmail(token);
+    public ResponseEntity<AuthResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        AuthResponse response = authService.verifyEmail(request);
         return ResponseEntity.ok(response);
     }
 
