@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.impl;
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
+import fu.sap490.g23.backend.dto.request.VerifyEmailRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
 import fu.sap490.g23.backend.entity.AuthToken;
@@ -35,24 +36,33 @@ public class AuthService implements IAuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         String normalizedEmail = request.getEmail().trim().toLowerCase();
-        if (userRepository.existsByEmail(normalizedEmail)) {
+        User user = userRepository.findByEmail(normalizedEmail).orElse(null);
+
+        if (user != null && user.isEmailVerified()) {
             throw new RuntimeException("Email này đã được đăng ký.");
         }
 
-        User user = User.builder()
-                .fullName(request.getFullName().trim())
-                .email(normalizedEmail)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.LEARNER)
-                .emailVerified(false)
-                .build();
+        if (user == null) {
+            user = User.builder()
+                    .fullName(request.getFullName().trim())
+                    .email(normalizedEmail)
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(Role.LEARNER)
+                    .emailVerified(false)
+                    .build();
+        } else {
+            user.setFullName(request.getFullName().trim());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole(Role.LEARNER);
+            user.setEmailVerified(false);
+        }
 
         User savedUser = userRepository.save(user);
         AuthToken verificationToken = authTokenService.issueEmailVerificationToken(savedUser);
         authMailService.sendVerificationEmail(savedUser, verificationToken.getToken());
 
         return AuthResponse.builder()
-                .message("Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.")
+                .message("Đăng ký thành công. Vui lòng kiểm tra email và nhập mã xác thực để kích hoạt tài khoản.")
                 .user(toUserResponse(savedUser))
                 .build();
     }
@@ -63,7 +73,7 @@ public class AuthService implements IAuthService {
                 .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng."));
 
         if (!user.isEmailVerified()) {
-            throw new RuntimeException("Tài khoản của bạn chưa xác thực email. Vui lòng kiểm tra hộp thư và thử lại.");
+            throw new RuntimeException("Tài khoản của bạn chưa xác thực email. Vui lòng kiểm tra hộp thư, nhập mã xác thực rồi thử lại.");
         }
 
         authenticationManager.authenticate(
@@ -82,13 +92,27 @@ public class AuthService implements IAuthService {
 
     @Override
     @Transactional
-    public AuthResponse verifyEmail(String token) {
-        AuthToken verificationToken = authTokenService.requireValidToken(
-                token,
-                AuthTokenType.EMAIL_VERIFICATION,
-                "Liên kết xác thực không hợp lệ hoặc đã hết hạn."
+    public AuthResponse verifyEmail(VerifyEmailRequest request) {
+        User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản với email này."));
+
+        if (user.isEmailVerified()) {
+            return AuthResponse.builder()
+                    .message("Email này đã được xác thực rồi.")
+                    .user(toUserResponse(user))
+                    .build();
+        }
+
+        AuthToken verificationToken = authTokenService.requireValidEmailVerificationCode(
+                user,
+                request.getCode(),
+                "Mã xác thực không hợp lệ hoặc đã hết hạn."
         );
 
+        return completeEmailVerification(verificationToken);
+    }
+
+    private AuthResponse completeEmailVerification(AuthToken verificationToken) {
         User user = verificationToken.getUser();
         user.setEmailVerified(true);
         userRepository.save(user);
@@ -117,7 +141,7 @@ public class AuthService implements IAuthService {
         authMailService.sendVerificationEmail(user, verificationToken.getToken());
 
         return AuthResponse.builder()
-                .message("Đã gửi lại email xác thực. Vui lòng kiểm tra hộp thư của bạn.")
+                .message("Đã gửi lại mã xác thực. Vui lòng kiểm tra hộp thư của bạn.")
                 .user(toUserResponse(user))
                 .build();
     }
@@ -131,20 +155,22 @@ public class AuthService implements IAuthService {
         });
 
         return AuthResponse.builder()
-                .message("Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.")
+                .message("Nếu email tồn tại trong hệ thống, chúng tôi đã gửi mã OTP đặt lại mật khẩu.")
                 .build();
     }
 
     @Override
     @Transactional
     public AuthResponse resetPassword(ResetPasswordRequest request) {
-        AuthToken resetToken = authTokenService.requireValidToken(
-                request.getToken(),
-                AuthTokenType.PASSWORD_RESET,
-                "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn."
+        User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("Mã OTP không hợp lệ hoặc đã hết hạn."));
+
+        AuthToken resetToken = authTokenService.requireValidPasswordResetCode(
+                user,
+                request.getCode(),
+                "Mã OTP không hợp lệ hoặc đã hết hạn."
         );
 
-        User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setEmailVerified(true);
         userRepository.save(user);

@@ -274,6 +274,26 @@ export const courseApi = {
     });
     return unwrapData(response);
   },
+
+  async getDiscountCodes(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/discount-codes', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async createDiscountCode(payload) {
+    const response = await axiosClient.post('/api/content-manager/discount-codes', payload);
+    return unwrapData(response);
+  },
+
+  async updateDiscountCode(id, payload) {
+    const response = await axiosClient.put(`/api/content-manager/discount-codes/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteDiscountCode(id) {
+    const response = await axiosClient.delete(`/api/content-manager/discount-codes/${id}`);
+    return unwrapData(response);
+  },
 };
 
 export default courseApi;

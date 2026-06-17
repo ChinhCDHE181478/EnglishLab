@@ -1,19 +1,16 @@
 package fu.sap490.g23.backend.dto.response.payment;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 
-@Getter
+@Data
 @Builder
-public class PaymentLinkResponse {
-    private Long orderCode;
-    private String paymentLinkId;
-    private String checkoutUrl;
-    private String qrCode;
-    private String status;
+public class PaymentQuoteResponse {
     private Long originalAmount;
     private Long systemDiscountAmount;
+    private Long subtotalAmount;
     private Long couponDiscountAmount;
     private Long totalAmount;
     private String couponCode;
+    private String couponMessage;
 }

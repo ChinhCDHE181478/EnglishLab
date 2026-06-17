@@ -52,6 +52,9 @@ public class LearningPackage {
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
 
+    @Column(name = "sale_price", precision = 12, scale = 2)
+    private BigDecimal salePrice;
+
     @Column(name = "thumbnail_url", length = 700)
     private String thumbnailUrl;
 

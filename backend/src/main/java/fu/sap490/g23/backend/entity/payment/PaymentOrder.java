@@ -60,6 +60,29 @@ public class PaymentOrder {
     @Column(name = "amount_vnd", nullable = false)
     private Long amount;
 
+    @Column(name = "original_amount_vnd", nullable = false)
+    @Builder.Default
+    private Long originalAmount = 0L;
+
+    @Column(name = "system_discount_amount_vnd", nullable = false)
+    @Builder.Default
+    private Long systemDiscountAmount = 0L;
+
+    @Column(name = "coupon_discount_amount_vnd", nullable = false)
+    @Builder.Default
+    private Long couponDiscountAmount = 0L;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "discount_code_id")
+    private DiscountCode discountCode;
+
+    @Column(name = "discount_code_text", length = 40)
+    private String discountCodeText;
+
+    @Column(name = "coupon_reservation_released", nullable = false)
+    @Builder.Default
+    private boolean couponReservationReleased = false;
+
     @Column(nullable = false, length = 255)
     private String description;
 

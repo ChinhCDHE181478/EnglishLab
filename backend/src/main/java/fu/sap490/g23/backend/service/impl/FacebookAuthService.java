@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.impl;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sap490.g23.backend.entity.AuthTokenType;
 import fu.sap490.g23.backend.entity.Role;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -26,6 +27,7 @@ public class FacebookAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenService authTokenService;
 
     public AuthResponse loginWithFacebook(String accessToken) {
         FacebookProfile profile = verifyAccessToken(accessToken);
@@ -60,6 +62,7 @@ public class FacebookAuthService {
             }
             user.setEmailVerified(true);
             user = userRepository.save(user);
+            authTokenService.deleteTokens(user, AuthTokenType.EMAIL_VERIFICATION);
         } else {
             user = User.builder()
                     .fullName(name)

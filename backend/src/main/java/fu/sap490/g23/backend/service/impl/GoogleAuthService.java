@@ -7,6 +7,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sap490.g23.backend.entity.AuthTokenType;
 import fu.sap490.g23.backend.entity.Role;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -30,6 +31,7 @@ public class GoogleAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenService authTokenService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${google.client-id}")
@@ -55,6 +57,7 @@ public class GoogleAuthService {
             }
             user.setEmailVerified(true);
             user = userRepository.save(user);
+            authTokenService.deleteTokens(user, AuthTokenType.EMAIL_VERIFICATION);
         } else {
             user = User.builder()
                     .fullName(name)

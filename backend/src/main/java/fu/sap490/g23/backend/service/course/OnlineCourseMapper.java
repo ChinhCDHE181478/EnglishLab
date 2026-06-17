@@ -23,6 +23,8 @@ import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
@@ -47,6 +49,8 @@ public class OnlineCourseMapper {
     public OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId) {
         LearningPackage learningPackage = course.getLearningPackage();
         CourseCategory category = course.getCategory();
+        BigDecimal originalPrice = safePrice(learningPackage.getPrice());
+        BigDecimal salePrice = resolveSalePrice(learningPackage);
         return OnlineCourseResponse.builder()
                 .id(course.getId())
                 .packageId(learningPackage.getId())
@@ -69,7 +73,10 @@ public class OnlineCourseMapper {
                 .recommendedNextCourseSlug(course.getRecommendedNextCourseSlug())
                 .duration(learningPackage.getDuration())
                 .studyMode(learningPackage.getStudyMode())
-                .price(learningPackage.getPrice())
+                .price(originalPrice)
+                .originalPrice(originalPrice)
+                .salePrice(salePrice)
+                .discountPercent(resolveDiscountPercent(originalPrice, salePrice))
                 .thumbnailUrl(learningPackage.getThumbnailUrl())
                 .totalLessons(course.getTotalLessons())
                 .totalHours(course.getTotalHours())
@@ -210,6 +217,29 @@ public class OnlineCourseMapper {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private BigDecimal safePrice(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal resolveSalePrice(LearningPackage learningPackage) {
+        BigDecimal originalPrice = safePrice(learningPackage.getPrice());
+        BigDecimal salePrice = learningPackage.getSalePrice();
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return originalPrice;
+        }
+        return salePrice;
+    }
+
+    private Integer resolveDiscountPercent(BigDecimal originalPrice, BigDecimal salePrice) {
+        if (originalPrice == null || salePrice == null || originalPrice.compareTo(BigDecimal.ZERO) <= 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return 0;
+        }
+        return originalPrice.subtract(salePrice)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(originalPrice, 0, RoundingMode.HALF_UP)
+                .intValue();
     }
 
     private List<TranscriptSegmentResponse> parseTranscriptSegments(String transcriptSegmentsJson) {

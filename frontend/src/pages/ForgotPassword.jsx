@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { forgotPassword } from '../api/authApi';
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
@@ -19,11 +19,10 @@ const ForgotPassword = () => {
 
     setLoading(true);
     setError('');
-    setSuccess('');
 
     try {
-      const response = await forgotPassword(email.trim());
-      setSuccess(response.data?.message || 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.');
+      await forgotPassword(email.trim());
+      navigate(`/reset-password?email=${encodeURIComponent(email.trim())}`, { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể gửi email lúc này. Vui lòng thử lại.');
     } finally {
@@ -38,19 +37,13 @@ const ForgotPassword = () => {
           Quên mật khẩu
         </h1>
         <p className="text-base leading-[1.6] text-[#584140]">
-          Nhập email của bạn, EnglishLab sẽ gửi liên kết đặt lại mật khẩu.
+          Nhập email của bạn, EnglishLab sẽ gửi mã OTP đặt lại mật khẩu.
         </p>
       </div>
 
       {error && (
         <div className="mb-5 rounded border border-[#BA1A1A] bg-[#FFDAD6] px-4 py-3 text-sm text-[#93000A]">
           {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="mb-5 rounded border border-[#c7e7d2] bg-[#edf8f1] px-4 py-3 text-sm text-[#185c37]">
-          {success}
         </div>
       )}
 
@@ -77,7 +70,7 @@ const ForgotPassword = () => {
           disabled={loading}
           type="submit"
         >
-          {loading ? 'Đang gửi email...' : 'Gửi liên kết đặt lại mật khẩu'}
+          {loading ? 'Đang gửi email...' : 'Gửi mã OTP đặt lại mật khẩu'}
         </button>
       </form>
 

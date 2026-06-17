@@ -191,6 +191,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .duration(request.getDuration())
                 .studyMode(request.getStudyMode())
                 .price(defaultBigDecimal(request.getPrice()))
+                .salePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()))
                 .thumbnailUrl(request.getThumbnailUrl())
                 .status(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus())
                 .displayOrder(defaultInt(request.getDisplayOrder()))
@@ -231,6 +232,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         learningPackage.setDuration(request.getDuration());
         learningPackage.setStudyMode(request.getStudyMode());
         learningPackage.setPrice(defaultBigDecimal(request.getPrice()));
+        learningPackage.setSalePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()));
         learningPackage.setThumbnailUrl(request.getThumbnailUrl());
         learningPackage.setStatus(request.getStatus() == null ? learningPackage.getStatus() : request.getStatus());
         learningPackage.setDisplayOrder(defaultInt(request.getDisplayOrder()));
@@ -1163,5 +1165,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     private BigDecimal defaultBigDecimal(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal resolveSalePrice(BigDecimal price, BigDecimal salePrice) {
+        BigDecimal originalPrice = defaultBigDecimal(price);
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return null;
+        }
+        return salePrice;
     }
 }

@@ -2,17 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import {
   createAssessmentQueueItem,
+  createLearnerNotification,
   createLessonNote,
   learnerStorageKeys,
   readAssessmentDrafts,
   readAssessmentQueue,
   readLessonFlags,
   readLessonNotes,
+  readNotifications,
   readRecentLessons,
   writeAssessmentDrafts,
   writeAssessmentQueue,
   writeLessonFlags,
   writeLessonNotes,
+  writeNotifications,
   writeRecentLessons,
 } from '../utils/learnerStore';
 
@@ -50,6 +53,7 @@ export const LearnerExperienceProvider = ({ children }) => {
   const [recentLessons, setRecentLessons] = useState(() => readRecentLessons());
   const [assessmentDrafts, setAssessmentDrafts] = useState(() => readAssessmentDrafts());
   const [assessmentQueue, setAssessmentQueue] = useState(() => readAssessmentQueue());
+  const [notifications, setNotifications] = useState(() => readNotifications());
   const [courseAssessmentSnapshots, setCourseAssessmentSnapshots] = useState({});
   const [user, setUser] = useState(() => getStoredUser());
   const [toasts, setToasts] = useState([]);
@@ -60,6 +64,7 @@ export const LearnerExperienceProvider = ({ children }) => {
   useEffect(() => { writeRecentLessons(recentLessons); }, [recentLessons]);
   useEffect(() => { writeAssessmentDrafts(assessmentDrafts); }, [assessmentDrafts]);
   useEffect(() => { writeAssessmentQueue(assessmentQueue); }, [assessmentQueue]);
+  useEffect(() => { writeNotifications(notifications); }, [notifications]);
 
   useEffect(() => {
     const syncStorage = (event) => {
@@ -68,6 +73,7 @@ export const LearnerExperienceProvider = ({ children }) => {
       if (!event.key || event.key === learnerStorageKeys.recentLessons) setRecentLessons(readRecentLessons());
       if (!event.key || event.key === learnerStorageKeys.assessmentDrafts) setAssessmentDrafts(readAssessmentDrafts());
       if (!event.key || event.key === learnerStorageKeys.assessmentQueue) setAssessmentQueue(readAssessmentQueue());
+      if (!event.key || event.key === learnerStorageKeys.notifications) setNotifications(readNotifications());
     };
 
     const syncUser = () => setUser(getStoredUser());
@@ -186,9 +192,27 @@ export const LearnerExperienceProvider = ({ children }) => {
     ].slice(0, 12));
   };
 
-  const addNotification = ({ title, message, type = 'success' }) => {
+  const addNotification = ({ title, message, type = 'success', actionPath = '', courseId = null, courseTitle = '' }) => {
     pushToast({ title, message, type });
+    const notification = createLearnerNotification({
+      title,
+      message,
+      type,
+      actionPath,
+      courseId,
+      courseTitle,
+    });
+    setNotifications((current) => [notification, ...current].slice(0, 50));
   };
+
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications((current) => {
+      if (current.every((notification) => notification.read)) {
+        return current;
+      }
+      return current.map((notification) => ({ ...notification, read: true }));
+    });
+  }, []);
 
   const saveAssessmentDraft = (draft) => {
     setAssessmentDrafts((current) => {
@@ -253,6 +277,8 @@ export const LearnerExperienceProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     user,
+    notifications,
+    unreadNotificationCount: notifications.filter((notification) => !notification.read).length,
     isAuthenticated: hasAccessToken(),
     lessonNotes,
     lessonFlags,
@@ -260,6 +286,7 @@ export const LearnerExperienceProvider = ({ children }) => {
     assessmentDrafts,
     assessmentQueue,
     addNotification,
+    markAllNotificationsRead,
     saveLessonNote,
     updateLessonNote,
     removeLessonNote,
@@ -280,6 +307,7 @@ export const LearnerExperienceProvider = ({ children }) => {
     recentLessons,
     assessmentDrafts,
     assessmentQueue,
+    notifications,
     courseAssessmentSnapshots,
   ]);
 
