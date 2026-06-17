@@ -123,7 +123,7 @@ const TransactionHistoryPage = () => {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}/learn`}>
+                    <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}/home`} state={{ course, enrollment }}>
                       Tiếp tục học
                     </Link>
                     <Link className="rounded-2xl border border-[#dfbfbd]/30 px-5 py-3 text-sm font-extrabold text-[#4b0009]" to={`/courses/${course.slug}`}>

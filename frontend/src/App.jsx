@@ -6,6 +6,7 @@ import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import CompleteProfile from './pages/CompleteProfile';
 import CourseDetail from './pages/CourseDetail';
+import CourseHome from './pages/CourseHome';
 import CourseWorkspace from './pages/CourseWorkspace';
 import Courses from './pages/Courses';
 import ForgotPassword from './pages/ForgotPassword';
@@ -30,6 +31,11 @@ function CourseWorkspaceRoute() {
   return <CourseWorkspace key={`course-workspace-${slugOrId}`} />;
 }
 
+function CourseHomeRoute() {
+  const { slugOrId } = useParams();
+  return <CourseHome key={`course-home-${slugOrId}`} />;
+}
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -41,6 +47,7 @@ function AppRoutes() {
       </Route>
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
+      <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
       <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/wishlist" element={<WishlistPage />} />

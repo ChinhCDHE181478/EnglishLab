@@ -70,6 +70,8 @@ export const getCourseSlug = (course) => course?.slug ?? course?.courseSlug ?? S
 
 export const buildCourseDetailPath = (course) => `/courses/${getCourseSlug(course)}`;
 
+export const buildCourseHomePath = (course) => `/courses/${getCourseSlug(course)}/home`;
+
 export const buildCourseWorkspacePath = (course) => `/courses/${getCourseSlug(course)}/learn`;
 
 export const mergeCourseRegistrations = (courses, enrollments) => {

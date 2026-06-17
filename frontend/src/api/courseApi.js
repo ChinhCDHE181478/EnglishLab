@@ -144,6 +144,32 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async toggleDiscussionThreadReaction(threadId, type) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reactions`, { type });
+    return unwrapData(response);
+  },
+
+  async toggleDiscussionReplyReaction(replyId, type) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reactions`, { type });
+    return unwrapData(response);
+  },
+
+  async getDiscussionThreadReactions(threadId) {
+    const response = await axiosClient.get(`/api/online-courses/discussions/${threadId}/reactions`, {
+      skipAuthRedirect: true,
+    });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getDiscussionReplyReactions(replyId) {
+    const response = await axiosClient.get(`/api/online-courses/discussions/replies/${replyId}/reactions`, {
+      skipAuthRedirect: true,
+    });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
   async reportDiscussionThread(threadId, payload = {}) {
     const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, payload);
     return unwrapData(response);
