@@ -156,8 +156,24 @@ WITH refs AS (
     (6, 2, 'Lesson 6.2: Video practice - 100 IELTS Speaking Questions | Part 1', 'Watch the original E2 IELTS video and track mistakes while following the guided practice flow.', 'https://www.youtube.com/watch?v=OTjzR2QCc_E', 35, false),
     (6, 3, 'Lesson 6.3: Review and post-video practice', 'Build a personal speaking bank with twenty questions, idea prompts, and strong vocabulary.', NULL, 15, false)
 )
-INSERT INTO lessons (module_id, title, description, video_url, material_url, duration_minutes, display_order, preview)
-SELECT inserted_modules.id, lesson_seed.title, lesson_seed.description, lesson_seed.video_url, NULL, lesson_seed.duration_minutes, lesson_seed.display_order, lesson_seed.preview
+INSERT INTO lessons (module_id, title, description, content_type, content_text, video_url, material_url, duration_minutes, display_order, preview)
+SELECT inserted_modules.id,
+       lesson_seed.title,
+       lesson_seed.description,
+       CASE WHEN lesson_seed.video_url IS NULL THEN 'text' ELSE 'video' END,
+       '## ' || lesson_seed.title || E'\n\n' ||
+       lesson_seed.description || E'\n\n' ||
+       CASE
+           WHEN lesson_seed.video_url IS NULL THEN
+               E'### Việc cần làm\n- Đọc mục tiêu bài học và chuẩn bị giấy ghi chú trước khi luyện tập.\n- Viết 3-5 gạch đầu dòng về chiến thuật bạn sẽ dùng trong phần thi này.\n- Sau khi hoàn tất, đánh dấu bài học là hoàn thành để tiếp tục lộ trình.'
+           ELSE
+               E'### Cách học với video\n- Xem video một lượt như bài thi thật, hạn chế tạm dừng khi đang làm bài.\n- Ghi lại câu sai, từ khóa bị bỏ lỡ, và dạng bẫy xuất hiện trong bài.\n- Xem lại phần khó, đối chiếu đáp án, rồi viết một ghi chú ngắn về lỗi cần tránh.\n\n### Sau khi xem\n- Đánh dấu hoàn thành bài học này để mở bước tiếp theo trong module.'
+       END,
+       lesson_seed.video_url,
+       NULL,
+       lesson_seed.duration_minutes,
+       lesson_seed.display_order,
+       lesson_seed.preview
 FROM inserted_modules
 JOIN lesson_seed ON lesson_seed.module_order = inserted_modules.display_order;
 

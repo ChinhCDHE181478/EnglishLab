@@ -409,7 +409,13 @@ const CourseWorkspace = () => {
 
   const handleSelectLesson = (lessonId) => {
     const targetItem = workspaceItems.find((item) => String(item.id) === String(lessonId));
-    if (targetItem?.isLocked) return;
+    if (targetItem?.isLocked) {
+      setError(targetItem.type === 'assessment'
+        ? 'Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.'
+        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.');
+      return;
+    }
+    setError('');
     setActiveLessonId(lessonId);
   };
 

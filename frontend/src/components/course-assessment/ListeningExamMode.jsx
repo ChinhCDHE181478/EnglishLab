@@ -369,19 +369,28 @@ export default function ListeningExamMode({
           <div className="mt-3 grid gap-2">
             {(question.options || []).map((option) => (
               <label key={option.value} className="block cursor-pointer">
-                <input
-                  checked={answers[String(question.number)] === option.value}
-                  className="peer sr-only"
-                  name={`q-${question.number}`}
-                  onChange={() => updateAnswer(question.number, option.value)}
-                  type="radio"
-                />
-                <span className="flex gap-3 rounded-2xl border border-[#ecd7db] bg-[#fff7f7] px-4 py-3 text-sm text-[#40292a] transition peer-checked:border-[#8a0018] peer-checked:bg-[#fff0f1] peer-checked:shadow-[0_10px_20px_rgba(138,0,24,0.08)] hover:border-[#d9b2ba]">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[#d7b6bd] bg-white transition peer-checked:border-[#8a0018] peer-checked:bg-[#8a0018]">
-                    <span className="h-2 w-2 rounded-full bg-white opacity-0 transition peer-checked:opacity-100" />
-                  </span>
-                  <span><b>{option.value}.</b> {option.label}</span>
-                </span>
+                {(() => {
+                  const checked = answers[String(question.number)] === option.value;
+                  return (
+                    <>
+                    <>
+                      <input
+                        checked={checked}
+                        className="peer sr-only"
+                        name={`q-${question.number}`}
+                        onChange={() => updateAnswer(question.number, option.value)}
+                        type="radio"
+                      />
+                      <span className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-[#fff7f7]'}`}>
+                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${checked ? 'border-[#8a0018] bg-[#8a0018]' : 'border-[#d7b6bd] bg-white'}`}>
+                          <span className={`h-2 w-2 rounded-full bg-white transition ${checked ? 'opacity-100' : 'opacity-0'}`} />
+                        </span>
+                        <span><b>{option.value}.</b> {option.label}</span>
+                      </span>
+                    </>
+                    </>
+                  );
+                })()}
               </label>
             ))}
           </div>
@@ -416,18 +425,25 @@ export default function ListeningExamMode({
           <div className="grid gap-2">
             {(group.options || []).map((option) => (
               <label key={option.value} className="block cursor-pointer">
+                {(() => {
+                  const checked = selectedLetters.includes(option.value);
+                  return (
+                    <>
                 <input
-                  checked={selectedLetters.includes(option.value)}
+                  checked={checked}
                   className="peer sr-only"
                   onChange={() => toggleLetter(groupKey, option.value, group.maxSelections || 5)}
                   type="checkbox"
                 />
-                <span className="flex gap-3 rounded-2xl border border-[#ecd7db] bg-white p-4 text-sm leading-6 text-[#40292a] transition peer-checked:border-[#8a0018] peer-checked:bg-[#fff0f1] peer-checked:shadow-[0_10px_20px_rgba(138,0,24,0.08)] hover:border-[#d9b2ba]">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border border-[#d7b6bd] bg-white text-xs font-black text-white transition peer-checked:border-[#8a0018] peer-checked:bg-[#8a0018]">
-                    <span className="opacity-0 transition peer-checked:opacity-100">✓</span>
+                <span className={`flex gap-3 rounded-2xl border p-4 text-sm leading-6 text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-white'}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border text-xs font-black transition ${checked ? 'border-[#8a0018] bg-[#8a0018] text-white' : 'border-[#d7b6bd] bg-white text-white'}`}>
+                    <span className={`transition ${checked ? 'opacity-100' : 'opacity-0'}`}>✓</span>
                   </span>
                   <span><b>{option.value}.</b> {option.label}</span>
                 </span>
+                    </>
+                  );
+                })()}
               </label>
             ))}
           </div>

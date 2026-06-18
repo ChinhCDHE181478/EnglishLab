@@ -323,12 +323,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
-        var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage());
+        LearningPackage learningPackage = learningPackageRepository
+                .findByIdAndDeletedFalseAndStatusForUpdate(course.getLearningPackage().getId(), PackageStatus.PUBLISHED)
+                .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
+        var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage);
         boolean isNewEnrollment = existingEnrollment.isEmpty();
         PackageEnrollment enrollment = existingEnrollment
                 .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
                         .student(student)
-                        .learningPackage(course.getLearningPackage())
+                        .learningPackage(learningPackage)
                         .status(EnrollmentStatus.ACTIVE)
                         .progressPercent(0)
                         .build()));

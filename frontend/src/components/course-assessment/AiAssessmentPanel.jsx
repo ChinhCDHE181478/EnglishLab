@@ -1010,10 +1010,15 @@ export default function AiAssessmentPanel({
   const aiUsageRisk = riskLabel(feedback?.aiUsageRisk || feedback?.aiUsage?.riskLevel || originalityAnalysis?.aiUsageRisk);
   const numericScore = result?.aiScore ?? feedback?.estimatedScore ?? null;
   const showNumericScore = numericScore != null;
-  const shouldShowExamScoreBadges = isExamSkill(selected?.skill);
+  const hasEstimatedBand = Boolean(String(feedback?.estimatedBand || '').trim());
+  const shouldShowExamScoreBadges = isExamSkill(selected?.skill) && (showNumericScore || hasEstimatedBand);
   const scoreDisplay = numericScore ?? 'Chưa có';
   const bandDisplay = feedback?.estimatedBand || (numericScore != null ? String(numericScore) : 'Chưa có');
   const usesFixedScoring = isObjectiveSkill(selected?.skill);
+  const scoreBadgeLabel = usesFixedScoring ? 'Số câu đúng' : (hasEstimatedBand ? 'Band ước lượng' : 'Điểm ước lượng');
+  const scoreBadgeValue = usesFixedScoring && showNumericScore
+    ? `${scoreDisplay}${selected?.maxScore ? `/${selected.maxScore}` : ''}`
+    : scoreDisplay;
   const isLockedAfterResult = Boolean(result) && !creatingNewAttempt;
   const isSubmissionLocked = isLocked || isLockedAfterResult;
   const activeSpeakingVariant = speakingExperience?.kind === 'mock_test' ? speakingExperience.activeVariant : null;
@@ -1144,7 +1149,7 @@ export default function AiAssessmentPanel({
     setExamViolations([]);
     setExamExitConfirmOpen(false);
     examIntentionalExitRef.current = false;
-  }, [selected?.id, draftGetter]);
+  }, [selected?.id]);
 
   useEffect(() => {
     if (!selected?.id || typeof onDraftChange !== 'function') return;
@@ -2889,11 +2894,13 @@ export default function AiAssessmentPanel({
                 {shouldShowExamScoreBadges ? (
                   <>
                     <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">
-                      {usesFixedScoring ? 'Điểm' : 'Điểm ước lượng'}: {scoreDisplay}
+                      {scoreBadgeLabel}: {scoreBadgeValue}
                     </span>
-                    <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">
-                      {usesFixedScoring ? 'Band' : 'Band ước lượng'}: {bandDisplay}
-                    </span>
+                    {!usesFixedScoring ? (
+                      <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">
+                        Band ước lượng: {bandDisplay}
+                      </span>
+                    ) : null}
                   </>
                 ) : showNumericScore ? (
                   <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">

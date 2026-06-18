@@ -26,9 +26,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Service
@@ -82,12 +88,18 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String prompt = buildRubricPrompt(assessment, request, student, speakingAudio.isPresent());
         String submittedText = firstNonBlank(request.getSubmittedText(), request.getObjectiveAnswersJson());
         String targetVocabulary = extractTargetVocabulary(assessment.getModule());
-        AiEvaluationResult aiResult = speakingAudio
-                .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
-                .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
+        AiEvaluationResult aiResult;
+        if (usesObjectiveAnswerKey(assessment, request)) {
+            aiResult = evaluateObjectiveAssessment(assessment, request);
+        } else {
+            aiResult = speakingAudio
+                    .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
+                    .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
+            aiResult = normalizeEvaluationResult(aiResult, assessment);
+            aiResult = applyVocabularyRelevanceGuard(aiResult, assessment, submittedText, targetVocabulary);
+            aiResult = applySpeakingEvidenceGuard(aiResult, assessment, request);
+        }
         aiResult = normalizeEvaluationResult(aiResult, assessment);
-        aiResult = applyVocabularyRelevanceGuard(aiResult, assessment, submittedText, targetVocabulary);
-        aiResult = applySpeakingEvidenceGuard(aiResult, assessment, request);
         BigDecimal score = aiResult.getEstimatedScore();
         SubmissionStatus status = resolveSubmissionStatus(score, assessment);
 
@@ -143,6 +155,319 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return score.compareTo(passingThreshold) >= 0
                 ? SubmissionStatus.PASSED
                 : SubmissionStatus.NEEDS_IMPROVEMENT;
+    }
+
+    private boolean usesObjectiveAnswerKey(CourseAssessment assessment, AssessmentSubmissionRequest request) {
+        if (assessment == null || request == null) {
+            return false;
+        }
+        if (assessment.getSkill() != AssessmentSkill.LISTENING && assessment.getSkill() != AssessmentSkill.READING) {
+            return false;
+        }
+        return hasText(assessment.getObjectiveAnswerKey()) && hasText(request.getObjectiveAnswersJson());
+    }
+
+    private AiEvaluationResult evaluateObjectiveAssessment(CourseAssessment assessment, AssessmentSubmissionRequest request) {
+        try {
+            JsonNode answerKeyRoot = objectMapper.readTree(assessment.getObjectiveAnswerKey());
+            JsonNode submissionRoot = objectMapper.readTree(request.getObjectiveAnswersJson());
+            ObjectiveEvaluationSummary summary = scoreObjectiveAssessment(assessment, answerKeyRoot, submissionRoot);
+            ObjectNode feedback = buildObjectiveFeedback(summary);
+            return AiEvaluationResult.builder()
+                    .estimatedScore(BigDecimal.valueOf(summary.correctCount))
+                    .feedbackJson(objectMapper.writeValueAsString(feedback))
+                    .provider("EnglishLab")
+                    .model("objective-answer-key")
+                    .rawResponse("Deterministic objective scoring from stored answer key")
+                    .audioInputAnalyzed(false)
+                    .build();
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to evaluate objective assessment", ex);
+        }
+    }
+
+    private ObjectiveEvaluationSummary scoreObjectiveAssessment(CourseAssessment assessment, JsonNode answerKeyRoot, JsonNode submissionRoot) {
+        ObjectiveEvaluationSummary summary = new ObjectiveEvaluationSummary();
+        if (submissionRoot == null || !submissionRoot.isObject()) {
+            return summary;
+        }
+
+        JsonNode responses = submissionRoot.path("responses");
+        if (!responses.isArray()) {
+            return summary;
+        }
+
+        for (JsonNode response : responses) {
+            String partKey = response.path("part").asText("");
+            String partLabel = prettyPartLabel(partKey);
+            ObjectivePartSummary partSummary = summary.parts.computeIfAbsent(partKey, key -> new ObjectivePartSummary(partKey, partLabel));
+            String answerType = response.path("answerType").asText("");
+            String questionNumber = response.path("questionNumber").asText("");
+            String studentAnswer = response.path("answer").asText("");
+
+            if ("multi_select_letters".equals(answerType)) {
+                Set<String> expected = resolveExpectedAnswerSet(answerKeyRoot, questionNumber);
+                Set<String> selected = parseAnswerSet(studentAnswer);
+                Set<String> correctSelected = new LinkedHashSet<>(selected);
+                correctSelected.retainAll(expected);
+                Set<String> missing = new LinkedHashSet<>(expected);
+                missing.removeAll(selected);
+                Set<String> extra = new LinkedHashSet<>(selected);
+                extra.removeAll(expected);
+
+                int earned = correctSelected.size();
+                int total = expected.size();
+                summary.correctCount += earned;
+                summary.totalCount += total;
+                partSummary.correctCount += earned;
+                partSummary.totalCount += total;
+
+                if (earned == total && extra.isEmpty() && missing.isEmpty()) {
+                    partSummary.strengths.add("Câu " + questionNumber + " đúng hoàn toàn.");
+                } else {
+                    partSummary.weaknesses.add(buildMultiSelectFeedback(questionNumber, expected, selected, missing, extra, earned, total));
+                }
+                continue;
+            }
+
+            String expected = resolveExpectedAnswer(answerKeyRoot, questionNumber);
+            boolean correct = normalizeAnswer(studentAnswer).equals(normalizeAnswer(expected));
+            summary.totalCount += 1;
+            partSummary.totalCount += 1;
+            if (correct) {
+                summary.correctCount += 1;
+                partSummary.correctCount += 1;
+                partSummary.strengths.add("Câu " + questionNumber + " đúng.");
+            } else {
+                String feedback = "Câu " + questionNumber + ": đáp án đúng là " + fallbackText(expected) + ", bài làm của bạn là " + fallbackText(studentAnswer) + ".";
+                partSummary.weaknesses.add(feedback);
+            }
+        }
+
+        return summary;
+    }
+
+    private ObjectNode buildObjectiveFeedback(ObjectiveEvaluationSummary summary) {
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("estimatedScore", summary.correctCount);
+        root.put("estimatedBand", "");
+
+        ArrayNode criteria = objectMapper.createArrayNode();
+        ArrayNode strengths = objectMapper.createArrayNode();
+        ArrayNode weaknesses = objectMapper.createArrayNode();
+        ArrayNode suggestions = objectMapper.createArrayNode();
+        ArrayNode recommendedReview = objectMapper.createArrayNode();
+        ArrayNode partFeedback = objectMapper.createArrayNode();
+        ArrayNode sourceSignals = objectMapper.createArrayNode();
+        ArrayNode correctedExamples = objectMapper.createArrayNode();
+        ObjectNode originality = objectMapper.createObjectNode();
+
+        summary.parts.values().forEach(partSummary -> {
+            String summaryText = "Đúng " + partSummary.correctCount + "/" + partSummary.totalCount + " câu ở " + partSummary.partLabel + ".";
+            ObjectNode criterion = createCriterionNode(partSummary.partLabel, partSummary.correctCount, summaryText);
+            criteria.add(criterion);
+
+            if (partSummary.correctCount > 0) {
+                strengths.add("Làm tốt " + partSummary.partLabel.toLowerCase(Locale.ROOT) + " với " + partSummary.correctCount + " câu đúng.");
+            }
+            if (partSummary.weaknesses.isEmpty() && partSummary.correctCount < partSummary.totalCount) {
+                partSummary.weaknesses.add("Phần này chưa có lỗi rõ rệt.");
+            }
+
+            ObjectNode partNode = objectMapper.createObjectNode();
+            partNode.put("partKey", partSummary.partKey);
+            partNode.put("partLabel", partSummary.partLabel);
+            partNode.put("summary", summaryText);
+            partNode.set("strengths", listToArrayNode(partSummary.strengths));
+            partNode.set("weaknesses", listToArrayNode(partSummary.weaknesses));
+            partNode.set("suggestions", listToArrayNode(buildPartSuggestions(partSummary)));
+            partFeedback.add(partNode);
+
+            if (partSummary.correctCount < partSummary.totalCount) {
+                weaknesses.add("Cần ôn lại " + partSummary.partLabel + " vì còn " + (partSummary.totalCount - partSummary.correctCount) + " câu chưa đúng.");
+                suggestions.add("Xem lại đáp án chuẩn của " + partSummary.partLabel + " rồi làm lại phần này.");
+                recommendedReview.add(partSummary.partLabel);
+            }
+        });
+
+        if (summary.parts.isEmpty()) {
+            weaknesses.add("Chưa có dữ liệu bài làm để đối chiếu với đáp án chuẩn.");
+            suggestions.add("Hãy nhập đủ đáp án trước khi nộp.");
+        }
+
+        if (!strengths.isEmpty()) {
+            root.set("strengths", strengths);
+        } else {
+            root.set("strengths", objectMapper.createArrayNode());
+        }
+        root.set("weaknesses", weaknesses);
+        root.set("suggestions", suggestions);
+        root.set("recommendedReview", recommendedReview);
+        root.set("partFeedback", partFeedback);
+        root.set("criteria", criteria);
+        root.set("correctedExamples", correctedExamples);
+        root.put("plagiarismRisk", "LOW");
+        root.put("aiUsageRisk", "LOW");
+        root.set("sourceSignals", sourceSignals.add("Đối chiếu trực tiếp từng câu trả lời với đáp án chuẩn được lưu trong đề."));
+        originality.put("summary", "Bài làm là bài trả lời khách quan nên hệ thống đối chiếu trực tiếp với đáp án chuẩn thay vì suy đoán theo văn phong.");
+        originality.put("plagiarismRisk", "LOW");
+        originality.put("aiUsageRisk", "LOW");
+        root.set("originalityAnalysis", originality);
+        root.put("disclaimer", "This is AI-assisted feedback and not an official certification score.");
+        return root;
+    }
+
+    private ArrayNode listToArrayNode(List<String> values) {
+        ArrayNode array = objectMapper.createArrayNode();
+        if (values == null) {
+            return array;
+        }
+        values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .forEach(array::add);
+        return array;
+    }
+
+    private List<String> buildPartSuggestions(ObjectivePartSummary partSummary) {
+        List<String> suggestions = new ArrayList<>();
+        if (partSummary.correctCount == partSummary.totalCount) {
+            suggestions.add("Giữ nhịp làm bài ổn định và tiếp tục luyện phần này để duy trì độ chính xác.");
+            return suggestions;
+        }
+        suggestions.add("Ôn lại các câu sai trong " + partSummary.partLabel + " và đối chiếu với đáp án chuẩn.");
+        suggestions.add("Làm lại " + partSummary.partLabel + " sau khi xem lại những chỗ dễ nhầm.");
+        return suggestions;
+    }
+
+    private Set<String> resolveExpectedAnswerSet(JsonNode answerKeyRoot, String questionNumber) {
+        Set<String> expected = new LinkedHashSet<>();
+        if (answerKeyRoot == null || !answerKeyRoot.isObject()) {
+            return expected;
+        }
+
+        JsonNode directNode = answerKeyRoot.path(questionNumber);
+        if (directNode.isArray()) {
+            directNode.forEach(item -> {
+                String value = normalizeLetter(item.asText(""));
+                if (!value.isBlank()) {
+                    expected.add(value);
+                }
+            });
+            return expected;
+        }
+        if (directNode.isTextual()) {
+            String value = normalizeLetter(directNode.asText(""));
+            if (!value.isBlank()) {
+                expected.add(value);
+            }
+            return expected;
+        }
+
+        Arrays.stream(String.valueOf(questionNumber).split("-"))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .forEach(number -> {
+                    JsonNode node = answerKeyRoot.path(number);
+                    if (node.isArray()) {
+                        node.forEach(item -> {
+                            String value = normalizeLetter(item.asText(""));
+                            if (!value.isBlank()) {
+                                expected.add(value);
+                            }
+                        });
+                    } else {
+                        String value = normalizeLetter(node.asText(""));
+                        if (!value.isBlank()) {
+                            expected.add(value);
+                        }
+                    }
+        });
+        return expected;
+    }
+
+    private Set<String> parseAnswerSet(String studentAnswer) {
+        Set<String> selected = new LinkedHashSet<>();
+        if (studentAnswer == null || studentAnswer.isBlank()) {
+            return selected;
+        }
+        Arrays.stream(studentAnswer.split("[,\\s]+"))
+                .map(this::normalizeLetter)
+                .filter(value -> !value.isBlank())
+                .forEach(selected::add);
+        return selected;
+    }
+
+    private String resolveExpectedAnswer(JsonNode answerKeyRoot, String questionNumber) {
+        if (answerKeyRoot == null || !answerKeyRoot.isObject()) {
+            return "";
+        }
+        JsonNode directNode = answerKeyRoot.path(questionNumber);
+        if (directNode.isMissingNode() || directNode.isNull()) {
+            return "";
+        }
+        if (directNode.isArray()) {
+            List<String> values = new ArrayList<>();
+            directNode.forEach(item -> values.add(item.asText("")));
+            return String.join(", ", values);
+        }
+        return directNode.asText("");
+    }
+
+    private String buildMultiSelectFeedback(String questionNumber, Set<String> expected, Set<String> selected, Set<String> missing, Set<String> extra, int earned, int total) {
+        List<String> parts = new ArrayList<>();
+        parts.add("Câu " + questionNumber + ": đúng " + earned + "/" + total + " đáp án.");
+        if (!missing.isEmpty()) {
+            parts.add("Thiếu " + String.join(", ", missing) + ".");
+        }
+        if (!extra.isEmpty()) {
+            parts.add("Đã chọn thừa " + String.join(", ", extra) + ".");
+        }
+        parts.add("Đáp án chuẩn: " + String.join(", ", expected) + ".");
+        return String.join(" ", parts);
+    }
+
+    private String normalizeAnswer(String value) {
+        return String.valueOf(value == null ? "" : value)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", " ")
+                .replaceAll("[\\p{Punct}&&[^-]]+", "")
+                .trim();
+    }
+
+    private String normalizeLetter(String value) {
+        return String.valueOf(value == null ? "" : value).trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String fallbackText(String value) {
+        return hasText(value) ? value.trim() : "chưa trả lời";
+    }
+
+    private String prettyPartLabel(String partKey) {
+        if (partKey == null || partKey.isBlank()) {
+            return "Phần thi";
+        }
+        String normalized = partKey.replace("part_", "").trim();
+        return "Part " + normalized;
+    }
+
+    private static final class ObjectiveEvaluationSummary {
+        private int correctCount;
+        private int totalCount;
+        private final Map<String, ObjectivePartSummary> parts = new LinkedHashMap<>();
+    }
+
+    private static final class ObjectivePartSummary {
+        private final String partKey;
+        private final String partLabel;
+        private int correctCount;
+        private int totalCount;
+        private final List<String> strengths = new ArrayList<>();
+        private final List<String> weaknesses = new ArrayList<>();
+
+        private ObjectivePartSummary(String partKey, String partLabel) {
+            this.partKey = partKey;
+            this.partLabel = partLabel;
+        }
     }
 
     private java.util.Optional<AssessmentAudioStorageService.StoredAssessmentAudio> resolveSpeakingAudio(CourseAssessment assessment, AssessmentSubmissionRequest request) {
@@ -566,9 +891,13 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     private ObjectNode createCriterionNode(String name, String feedback) {
+        return createCriterionNode(name, 0, feedback);
+    }
+
+    private ObjectNode createCriterionNode(String name, int score, String feedback) {
         ObjectNode criterion = objectMapper.createObjectNode();
         criterion.put("name", name);
-        criterion.put("score", 0);
+        criterion.put("score", score);
         criterion.put("feedback", feedback);
         return criterion;
     }
