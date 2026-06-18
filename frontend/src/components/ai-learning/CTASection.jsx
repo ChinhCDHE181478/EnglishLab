@@ -43,7 +43,7 @@ const CTASection = () => {
           <div className="relative z-10 flex flex-col gap-5 sm:flex-row">
             <a
               className="btn-hover scholar-gradient px-10 py-5 text-[10px] font-bold uppercase tracking-[0.3em] text-white shadow-[0_15px_30px_rgba(158,0,31,0.4)] sm:px-14 sm:py-6"
-              href="#"
+              href="/placement-test"
             >
               Thi thử miễn phí
             </a>

@@ -22,8 +22,10 @@ import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -78,11 +80,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         courseProgressionGuard.ensureAssessmentCanBeSubmitted(student, assessment);
 
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
-            throw new RuntimeException("This assessment does not enable AI evaluation");
+            throw new RuntimeException("Bài đánh giá này chưa bật phản hồi tự động.");
         }
         if (!hasSubmissionContent(request)) {
-            throw new RuntimeException("Student submission is empty. Provide text, transcript, answers, or an audio URL before requesting AI feedback.");
+            throw new RuntimeException("Vui lòng nhập nội dung bài làm trước khi nộp.");
         }
+        validateSkillAssessmentConfiguration(assessment);
 
         var speakingAudio = resolveSpeakingAudio(assessment, request);
         String prompt = buildRubricPrompt(assessment, request, student, speakingAudio.isPresent());
@@ -91,6 +94,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         AiEvaluationResult aiResult;
         if (usesObjectiveAnswerKey(assessment, request)) {
             aiResult = evaluateObjectiveAssessment(assessment, request);
+        } else if (isObjectiveAssessmentSkill(assessment.getSkill())) {
+            aiResult = evaluateObjectiveAssessmentWithoutAnswerKey(assessment);
         } else {
             aiResult = speakingAudio
                     .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
@@ -132,6 +137,31 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         }
     }
 
+    private void validateSkillAssessmentConfiguration(CourseAssessment assessment) {
+        if (assessment.getSkill() == AssessmentSkill.WRITING) {
+            if (assessment.getRubric() == null || assessment.getRubric().getSkill() != AssessmentSkill.WRITING) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Bài Writing này chưa có bộ tiêu chí chấm phù hợp. Bài làm của bạn vẫn đang được giữ trong bản nháp."
+                );
+            }
+        }
+        if (assessment.getSkill() == AssessmentSkill.SPEAKING) {
+            if (assessment.getRubric() == null || assessment.getRubric().getSkill() != AssessmentSkill.SPEAKING) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Bài Speaking này chưa có bộ tiêu chí chấm phù hợp. Bài làm của bạn vẫn đang được giữ trong bản nháp."
+                );
+            }
+        }
+        if (isObjectiveAssessmentSkill(assessment.getSkill()) && assessment.getRubric() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Bài nghe hoặc bài đọc không dùng bộ tiêu chí viết. Hãy kiểm tra lại cấu hình bài đánh giá."
+            );
+        }
+    }
+
     private SubmissionStatus resolveSubmissionStatus(BigDecimal score, CourseAssessment assessment) {
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.EXPLAIN_ONLY) {
             return SubmissionStatus.AI_EVALUATED;
@@ -161,10 +191,47 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         if (assessment == null || request == null) {
             return false;
         }
-        if (assessment.getSkill() != AssessmentSkill.LISTENING && assessment.getSkill() != AssessmentSkill.READING) {
+        if (!isObjectiveAssessmentSkill(assessment.getSkill())) {
             return false;
         }
         return hasText(assessment.getObjectiveAnswerKey()) && hasText(request.getObjectiveAnswersJson());
+    }
+
+    private boolean isObjectiveAssessmentSkill(AssessmentSkill skill) {
+        return skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING;
+    }
+
+    private AiEvaluationResult evaluateObjectiveAssessmentWithoutAnswerKey(CourseAssessment assessment) {
+        ObjectNode feedback = objectMapper.createObjectNode();
+        feedback.put("skill", assessment.getSkill().name());
+        feedback.putNull("estimatedScore");
+        feedback.put("estimatedBand", "");
+        feedback.put("isOfficialScore", false);
+        feedback.put("summary", "Bài làm đã được lưu, nhưng bài đánh giá này chưa có đáp án chuẩn để chấm tự động.");
+        feedback.set("criteria", objectMapper.createArrayNode());
+        feedback.set("strengths", objectMapper.createArrayNode());
+        feedback.set("weaknesses", objectMapper.createArrayNode()
+                .add("Chưa thể tính số câu đúng hoặc band vì thiếu đáp án chuẩn của bài thi."));
+        feedback.set("suggestions", objectMapper.createArrayNode()
+                .add("Hãy kiểm tra lại cấu hình đáp án chuẩn trước khi dùng bài này để chấm điểm."));
+        feedback.set("recommendedReview", objectMapper.createArrayNode());
+        feedback.set("partFeedback", objectMapper.createArrayNode());
+        feedback.set("weakQuestionTypes", objectMapper.createArrayNode());
+        feedback.set("mistakeAnalysis", objectMapper.createArrayNode());
+        feedback.set("correctedExamples", objectMapper.createArrayNode());
+        feedback.put("disclaimer", "Đây là phản hồi hỗ trợ học tập, không phải điểm IELTS chính thức.");
+        try {
+            return AiEvaluationResult.builder()
+                    .estimatedScore(null)
+                    .feedbackJson(objectMapper.writeValueAsString(feedback))
+                    .provider("EnglishLab")
+                    .model("missing-objective-answer-key")
+                    .rawResponse("Objective answer key is missing; no AI scoring was performed.")
+                    .audioInputAnalyzed(false)
+                    .build();
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to create objective fallback feedback", ex);
+        }
     }
 
     private AiEvaluationResult evaluateObjectiveAssessment(CourseAssessment assessment, AssessmentSubmissionRequest request) {
@@ -172,7 +239,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             JsonNode answerKeyRoot = objectMapper.readTree(assessment.getObjectiveAnswerKey());
             JsonNode submissionRoot = objectMapper.readTree(request.getObjectiveAnswersJson());
             ObjectiveEvaluationSummary summary = scoreObjectiveAssessment(assessment, answerKeyRoot, submissionRoot);
-            ObjectNode feedback = buildObjectiveFeedback(summary);
+            ObjectNode feedback = buildObjectiveFeedback(assessment, summary);
             return AiEvaluationResult.builder()
                     .estimatedScore(BigDecimal.valueOf(summary.correctCount))
                     .feedbackJson(objectMapper.writeValueAsString(feedback))
@@ -247,10 +314,18 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return summary;
     }
 
-    private ObjectNode buildObjectiveFeedback(ObjectiveEvaluationSummary summary) {
+    private ObjectNode buildObjectiveFeedback(CourseAssessment assessment, ObjectiveEvaluationSummary summary) {
+        String estimatedBand = estimateObjectiveBand(assessment.getSkill(), summary.correctCount, summary.totalCount);
         ObjectNode root = objectMapper.createObjectNode();
+        root.put("skill", assessment.getSkill().name());
         root.put("estimatedScore", summary.correctCount);
-        root.put("estimatedBand", "");
+        root.put("estimatedBand", estimatedBand);
+        root.put("isOfficialScore", false);
+        root.put("rawScore", summary.correctCount);
+        root.put("totalQuestions", summary.totalCount);
+        root.put("correctCount", summary.correctCount);
+        root.put("incorrectCount", Math.max(0, summary.totalCount - summary.correctCount));
+        root.put("summary", "Hệ thống đã đối chiếu đáp án của bạn với đáp án chuẩn đã lưu cho bài thi.");
 
         ArrayNode criteria = objectMapper.createArrayNode();
         ArrayNode strengths = objectMapper.createArrayNode();
@@ -258,6 +333,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         ArrayNode suggestions = objectMapper.createArrayNode();
         ArrayNode recommendedReview = objectMapper.createArrayNode();
         ArrayNode partFeedback = objectMapper.createArrayNode();
+        ArrayNode weakQuestionTypes = objectMapper.createArrayNode();
+        ArrayNode mistakeAnalysis = objectMapper.createArrayNode();
         ArrayNode sourceSignals = objectMapper.createArrayNode();
         ArrayNode correctedExamples = objectMapper.createArrayNode();
         ObjectNode originality = objectMapper.createObjectNode();
@@ -271,7 +348,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 strengths.add("Làm tốt " + partSummary.partLabel.toLowerCase(Locale.ROOT) + " với " + partSummary.correctCount + " câu đúng.");
             }
             if (partSummary.weaknesses.isEmpty() && partSummary.correctCount < partSummary.totalCount) {
-                partSummary.weaknesses.add("Phần này chưa có lỗi rõ rệt.");
+                partSummary.weaknesses.add("Phần này chưa có lỗi rõ rệt để phân tích thêm.");
             }
 
             ObjectNode partNode = objectMapper.createObjectNode();
@@ -287,6 +364,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 weaknesses.add("Cần ôn lại " + partSummary.partLabel + " vì còn " + (partSummary.totalCount - partSummary.correctCount) + " câu chưa đúng.");
                 suggestions.add("Xem lại đáp án chuẩn của " + partSummary.partLabel + " rồi làm lại phần này.");
                 recommendedReview.add(partSummary.partLabel);
+                weakQuestionTypes.add(partSummary.partLabel);
+                partSummary.weaknesses.forEach(mistakeAnalysis::add);
             }
         });
 
@@ -305,6 +384,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         root.set("recommendedReview", recommendedReview);
         root.set("partFeedback", partFeedback);
         root.set("criteria", criteria);
+        root.set("weakQuestionTypes", weakQuestionTypes);
+        root.set("mistakeAnalysis", mistakeAnalysis);
         root.set("correctedExamples", correctedExamples);
         root.put("plagiarismRisk", "LOW");
         root.put("aiUsageRisk", "LOW");
@@ -313,8 +394,49 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         originality.put("plagiarismRisk", "LOW");
         originality.put("aiUsageRisk", "LOW");
         root.set("originalityAnalysis", originality);
-        root.put("disclaimer", "This is AI-assisted feedback and not an official certification score.");
+        root.put("disclaimer", "Đây là phản hồi hỗ trợ học tập, không phải điểm IELTS chính thức.");
         return root;
+    }
+
+    private String estimateObjectiveBand(AssessmentSkill skill, int correctCount, int totalCount) {
+        if (totalCount <= 0) {
+            return "";
+        }
+        int raw = Math.max(0, Math.min(correctCount, 40));
+        if (skill == AssessmentSkill.LISTENING) {
+            if (raw >= 39) return "9.0";
+            if (raw >= 37) return "8.5";
+            if (raw >= 35) return "8.0";
+            if (raw >= 32) return "7.5";
+            if (raw >= 30) return "7.0";
+            if (raw >= 26) return "6.5";
+            if (raw >= 23) return "6.0";
+            if (raw >= 18) return "5.5";
+            if (raw >= 16) return "5.0";
+            if (raw >= 13) return "4.5";
+            if (raw >= 10) return "4.0";
+            if (raw >= 8) return "3.5";
+            if (raw >= 6) return "3.0";
+            if (raw >= 4) return "2.5";
+            return "";
+        }
+        if (skill == AssessmentSkill.READING) {
+            if (raw >= 39) return "9.0";
+            if (raw >= 37) return "8.5";
+            if (raw >= 35) return "8.0";
+            if (raw >= 33) return "7.5";
+            if (raw >= 30) return "7.0";
+            if (raw >= 27) return "6.5";
+            if (raw >= 23) return "6.0";
+            if (raw >= 19) return "5.5";
+            if (raw >= 15) return "5.0";
+            if (raw >= 13) return "4.5";
+            if (raw >= 10) return "4.0";
+            if (raw >= 8) return "3.5";
+            if (raw >= 6) return "3.0";
+            if (raw >= 4) return "2.5";
+        }
+        return "";
     }
 
     private ArrayNode listToArrayNode(List<String> values) {
@@ -493,6 +615,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String submittedContent = buildSubmittedContent(request, assessment.getSkill(), hasAnalyzableAudio);
         String targetVocabulary = extractTargetVocabulary(assessment.getModule());
         String submissionGuidance = skillSubmissionGuidance(assessment.getSkill());
+        String skillEvaluationPolicy = skillEvaluationPolicy(assessment, hasAnalyzableAudio);
         String speakingAudioState = hasAnalyzableAudio
                 ? "Actual speaking audio is attached in this Gemini request. You must listen to it and use it as primary evidence for pronunciation, fluency, pacing, pauses, stress, intonation, and spoken delivery."
                 : "No actual audio bytes are attached. Treat any audio URL as a reference only.";
@@ -575,7 +698,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                     "aiUsageRisk": "LOW | MEDIUM | HIGH"
                   },
                   "sourceSignals": ["..."],
-                  "disclaimer": "This is AI-assisted feedback and not an official certification score."
+                  "disclaimer": "Đây là phản hồi hỗ trợ học tập, không phải điểm IELTS chính thức."
                 }
 
                 Student profile:
@@ -608,6 +731,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Objective answer key if available: %s
                 - Speaking audio analysis state: %s
                 - Skill-aware submission guidance: %s
+                - Skill-specific scoring policy: %s
 
                 Rubric:
                 %s
@@ -639,9 +763,34 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 safe(assessment.getObjectiveAnswerKey()),
                 safe(speakingAudioState),
                 safe(submissionGuidance),
+                safe(skillEvaluationPolicy),
                 criteriaText,
                 safe(submittedContent)
         );
+    }
+
+    private String skillEvaluationPolicy(CourseAssessment assessment, boolean hasAnalyzableAudio) {
+        AssessmentSkill skill = assessment.getSkill();
+        if (skill == AssessmentSkill.LISTENING) {
+            return "Listening is scored by stored answer key only. Do not invent a band or score. Use AI feedback only to explain wrong answers, weak sections, distractors, missed keywords, and review priorities.";
+        }
+        if (skill == AssessmentSkill.READING) {
+            return "Reading is scored by stored answer key only. Do not invent a band or score. Use AI feedback only to explain wrong answers, passage evidence, weak question types, and review priorities.";
+        }
+        if (skill == AssessmentSkill.WRITING) {
+            String taskType = assessment.getRubric() == null ? "" : safe(assessment.getRubric().getTaskType());
+            return "Writing must be evaluated only with the linked IELTS Writing rubric. Task type: " + taskType + ". Do not create extra criteria outside the rubric.";
+        }
+        if (skill == AssessmentSkill.SPEAKING) {
+            if (hasAnalyzableAudio) {
+                return "Speaking audio is attached. Use audio as primary evidence for pronunciation, fluency, pace, pauses, stress, intonation, clarity, and delivery. Transcript is secondary context.";
+            }
+            return "No analyzable speaking audio is attached. Do not score Pronunciation or claim detailed pronunciation errors. You may only comment on content, grammar, vocabulary, and coherence visible in the provided text or metadata.";
+        }
+        if (skill == AssessmentSkill.MIXED) {
+            return "Mixed assessment is for reflection and review planning only. Do not apply a Writing rubric unless the assessment is explicitly Writing.";
+        }
+        return "Use only the assessment instructions and linked rubric when available.";
     }
 
     private AiEvaluationResult normalizeEvaluationResult(AiEvaluationResult aiResult, CourseAssessment assessment) {
@@ -694,7 +843,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             }
 
             if (!root.has("disclaimer") || root.path("disclaimer").asText().isBlank()) {
-                root.put("disclaimer", "This is AI-assisted feedback and not an official certification score.");
+                root.put("disclaimer", "Đây là phản hồi hỗ trợ học tập, không phải điểm IELTS chính thức.");
             }
 
             return objectMapper.writeValueAsString(root);
@@ -821,13 +970,13 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
         String submittedText = request.getSubmittedText();
         if (submittedText == null || submittedText.isBlank()) {
-            return rewriteSpeakingEvidenceFeedback(aiResult, "Khong co noi dung bai noi du tin cay de cham. Hay ghi am va tra loi day du tung phan cua bai Speaking.");
+            return rewriteSpeakingEvidenceFeedback(aiResult, "Không có nội dung bài nói đủ tin cậy để chấm. Hãy ghi âm và trả lời đầy đủ từng phần của bài Speaking.");
         }
 
         if (isAudioReferenceOnlySpeakingSubmission(request)) {
             return rewriteSpeakingEvidenceFeedback(
                     aiResult,
-                    "He thong hien moi nhan duoc URL ban ghi hoac metadata cua bai Speaking, chu chua phan tich truc tiep am thanh. Vi vay chua the cham chinh xac phat am, tu ban thuc su noi, hoac cac tu bi nhan nham khi phat am chua ro."
+                    "Hệ thống hiện mới nhận được đường dẫn hoặc thông tin bản ghi của bài Speaking, chưa phân tích trực tiếp âm thanh. Vì vậy chưa thể chấm chính xác phát âm, từ bạn thật sự nói hoặc các từ bị nghe nhầm khi phát âm chưa rõ."
             );
         }
 
@@ -839,7 +988,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             return aiResult;
         }
 
-        return rewriteSpeakingEvidenceFeedback(aiResult, "Bai noi hien chua co du bang chung de cham. He thong khong ghi nhan duoc phan noi ro rang hoac thoi luong noi qua ngan.");
+        return rewriteSpeakingEvidenceFeedback(aiResult, "Bài nói hiện chưa có đủ bằng chứng để chấm. Hệ thống không ghi nhận được phần nói rõ ràng hoặc thời lượng nói quá ngắn.");
     }
 
     private boolean isAudioReferenceOnlySpeakingSubmission(AssessmentSubmissionRequest request) {
@@ -866,20 +1015,20 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             criteria.add(createCriterionNode("Fluency and Coherence", evidenceMessage));
             criteria.add(createCriterionNode("Lexical Resource", evidenceMessage));
             criteria.add(createCriterionNode("Grammatical Range and Accuracy", evidenceMessage));
-            criteria.add(createCriterionNode("Pronunciation", "Kh?ng c? ?? d? li?u n?i r? r?ng ?? ??nh gi? ph?t ?m, nh?p ?i?u v? ?? tr?i ch?y."));
+            criteria.add(createCriterionNode("Pronunciation", "Không có đủ dữ liệu nói rõ ràng để đánh giá phát âm, nhịp điệu và độ trôi chảy."));
             root.set("criteria", criteria);
 
             root.set("strengths", objectMapper.createArrayNode());
             root.set("weaknesses", objectMapper.createArrayNode().add(evidenceMessage));
             root.set("suggestions", objectMapper.createArrayNode()
-                    .add("L?m l?i b?i n?i v? tr? l?i th?t t?ng c?u h?i thay v? b? tr?ng ho?c ?? b?n ghi qu? ng?n.")
-                    .add("V?i Part 1, h?y tr? l?i tr?c di?n. V?i Part 2, n?i li?n t?c theo cue card. V?i Part 3, ph?t tri?n ? v?i l? do v? v? d?."));
+                    .add("Làm lại bài nói và trả lời thật từng câu hỏi thay vì bỏ trống hoặc để bản ghi quá ngắn.")
+                    .add("Với Part 1, hãy trả lời trực diện. Với Part 2, nói liên tục theo cue card. Với Part 3, phát triển ý với lý do và ví dụ."));
             root.set("recommendedReview", objectMapper.createArrayNode()
-                    .add("Ki?m tra l?i micro, m?i tr??ng thu ?m v? l?m l?i b?i Speaking t? ??u."));
+                    .add("Kiểm tra lại micro, môi trường thu âm và làm lại bài Speaking từ đầu."));
             root.set("partFeedback", objectMapper.createArrayNode()
-                    .add(createPartFeedbackNode("part_1", "Part 1", "Ch?a c? ?? c?u tr? l?i ?? ??nh gi? ph?n x? v? ?? t? nhi?n ? Part 1.", evidenceMessage))
-                    .add(createPartFeedbackNode("part_2", "Part 2", "Ch?a c? ?? b?ng ch?ng ?? ??nh gi? kh? n?ng n?i li?n t?c theo cue card.", evidenceMessage))
-                    .add(createPartFeedbackNode("part_3", "Part 3", "Ch?a c? ?? b?ng ch?ng ?? ??nh gi? kh? n?ng ph?n bi?n v? ph?t tri?n ? ? Part 3.", evidenceMessage)));
+                    .add(createPartFeedbackNode("part_1", "Part 1", "Chưa có đủ câu trả lời để đánh giá phản xạ và độ tự nhiên ở Part 1.", evidenceMessage))
+                    .add(createPartFeedbackNode("part_2", "Part 2", "Chưa có đủ bằng chứng để đánh giá khả năng nói liên tục theo cue card.", evidenceMessage))
+                    .add(createPartFeedbackNode("part_3", "Part 3", "Chưa có đủ bằng chứng để đánh giá khả năng phản biện và phát triển ý ở Part 3.", evidenceMessage)));
 
             aiResult.setEstimatedScore(null);
             aiResult.setFeedbackJson(objectMapper.writeValueAsString(root));
@@ -910,7 +1059,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         partNode.set("strengths", objectMapper.createArrayNode());
         partNode.set("weaknesses", objectMapper.createArrayNode().add(weakness));
         partNode.set("suggestions", objectMapper.createArrayNode()
-                .add("L?m l?i " + partLabel + " v?i c?u tr? l?i ??y ?? h?n, r? h?n v? c? ph?n tri?n khai ?."));
+                .add("Làm lại " + partLabel + " với câu trả lời đầy đủ hơn, rõ hơn và có phần triển khai ý."));
         return partNode;
     }
 

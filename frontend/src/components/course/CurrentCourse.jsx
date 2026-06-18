@@ -53,7 +53,7 @@ const EmptyCurrentCourse = ({ isAuthenticated }) => (
       </div>
       <a
         className="inline-flex min-w-[160px] items-center justify-center rounded-xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(75,0,9,0.18)] transition hover:bg-[#730014]"
-        href="#top"
+        href="/placement-test"
       >
         Kiểm tra đầu vào
       </a>

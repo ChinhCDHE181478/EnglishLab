@@ -164,6 +164,8 @@ const formatModuleTitle = (value) => {
 const formatRubricName = (name, skill) => {
   const normalizedName = String(name || '').trim();
   if (!normalizedName) {
+    if (skill === 'LISTENING') return 'Chấm bằng đáp án chuẩn Listening';
+    if (skill === 'READING') return 'Chấm bằng đáp án chuẩn Reading';
     return skill === 'VOCABULARY' ? 'Bộ tiêu chí chấm từ vựng của module' : 'Bộ tiêu chí chấm của bài kiểm tra';
   }
 
@@ -202,16 +204,53 @@ const formatAssessmentDescription = (assessment) => {
 
 const modeLabel = (mode) => ({
   EXPLAIN_ONLY: 'Phân tích học tập',
-  RUBRIC_FEEDBACK: 'Chấm theo rubric',
+  RUBRIC_FEEDBACK: 'Chấm theo bộ tiêu chí',
   ESTIMATED_BAND: 'Ước lượng band',
-  NONE: 'Không chấm AI',
-}[mode] || 'Đánh giá AI');
+  NONE: 'Không chấm tự động',
+}[mode] || 'Đánh giá tự động');
 
 const supportsNumericScoring = (assessment) => (
   assessment?.aiEvaluationMode === 'ESTIMATED_BAND' || assessment?.aiEvaluationMode === 'RUBRIC_FEEDBACK'
 );
 
 const isObjectiveSkill = (skill) => skill === 'LISTENING' || skill === 'READING';
+const objectiveScoringCriteria = (assessment) => {
+  const skill = assessment?.skill;
+  if (!isObjectiveSkill(skill)) return [];
+  const totalQuestions = Number(assessment?.maxScore) || 40;
+  const hasAnswerKey = Boolean(assessment?.objectiveAnswerKey);
+  const skillText = skill === 'LISTENING' ? 'nghe' : 'đọc';
+  const evidenceText = skill === 'LISTENING'
+    ? 'Đối chiếu đáp án học viên với đáp án chuẩn của từng câu trong bài nghe.'
+    : 'Đối chiếu đáp án học viên với đáp án chuẩn và bằng chứng trong bài đọc.';
+
+  return [
+    {
+      name: 'Đáp án đúng/sai',
+      weight: `${totalQuestions} câu`,
+      description: hasAnswerKey
+        ? evidenceText
+        : 'Bài này chưa có đáp án chuẩn nên hệ thống chỉ hỗ trợ phân tích ghi chú, không tự quy đổi điểm.',
+    },
+    {
+      name: 'Band quy đổi',
+      weight: '0-9',
+      description: hasAnswerKey
+        ? 'Band được quy đổi từ số câu đúng theo thang tham khảo, không phải điểm IELTS chính thức.'
+        : 'Chưa quy đổi band khi thiếu đáp án chuẩn.',
+    },
+    {
+      name: 'Dạng câu còn yếu',
+      weight: 'Phân tích lỗi',
+      description: `Hệ thống nhóm các câu sai theo phần và dạng câu để gợi ý phần ${skillText} cần ôn lại.`,
+    },
+    {
+      name: 'Gợi ý ôn tập',
+      weight: 'Cá nhân hóa',
+      description: 'Phản hồi tập trung vào lỗi sai, chiến lược làm bài và bước ôn tập tiếp theo.',
+    },
+  ];
+};
 const isExamSkill = (skill) => ['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(String(skill || '').toUpperCase());
 const waveformBars = [28, 44, 36, 58, 32, 52, 40, 62, 34, 48, 30, 54];
 const SPEAKING_PROMPT_VIDEO_MAP = {
@@ -595,38 +634,38 @@ const hasObjectiveContent = (draft) => (
 
 const assessmentInputCopy = (skill) => ({
   LISTENING: {
-    label: 'IELTS Listening Answer Sheet',
-    helper: 'Nhập đáp án cho đủ 40 câu theo kiểu answer sheet của IELTS. Bạn có thể ghi chú lỗi theo từng section ở bên dưới.',
-    placeholder: 'Ghi chú chung: hay bỏ lỡ signposting ở Section 3, nhầm số điện thoại ở Section 1...',
+    label: 'Đáp án hoặc ghi chú lỗi sai',
+    helper: 'Hệ thống sẽ phân tích câu sai, dạng câu hỏi còn yếu và gợi ý phần cần ôn lại.',
+    placeholder: 'Nhập đáp án bạn đã chọn, câu bạn chưa chắc chắn hoặc ghi chú lỗi nghe của bạn...',
     emptyError: 'Hãy nhập đáp án hoặc ghi chú lỗi nghe trước khi gửi chấm.',
     payloadField: 'objectiveAnswersJson',
-    buttonText: 'Gửi phân tích Listening',
+    buttonText: 'Gửi phân tích bài nghe',
   },
   READING: {
-    label: 'IELTS Reading Answer Sheet',
-    helper: 'Nhập đáp án cho đủ 40 câu theo kiểu answer sheet của IELTS. Bạn có thể ghi chú lỗi theo từng passage ở bên dưới.',
-    placeholder: 'Ghi chú chung: hay nhầm FALSE với NOT GIVEN, tìm keyword chậm ở Passage 3...',
+    label: 'Đáp án hoặc ghi chú bài đọc',
+    helper: 'Hệ thống sẽ phân tích lỗi đọc hiểu, evidence và dạng câu hỏi còn yếu.',
+    placeholder: 'Nhập đáp án, bằng chứng trong bài đọc hoặc câu bạn muốn hệ thống giải thích...',
     emptyError: 'Hãy nhập đáp án hoặc ghi chú lỗi đọc trước khi gửi chấm.',
     payloadField: 'objectiveAnswersJson',
-    buttonText: 'Gửi phân tích Reading',
+    buttonText: 'Gửi phân tích bài đọc',
   },
   SPEAKING: {
-    label: 'IELTS Speaking Recording',
-    helper: 'Ghi âm câu trả lời Speaking để làm bài theo trải nghiệm gần với phòng thi.',
-    placeholder: 'Bài Speaking sẽ được chấm dựa trên bản ghi âm bạn nộp.',
+    label: 'Câu trả lời nói của bạn',
+    helper: 'Nếu có âm thanh, hệ thống sẽ nhận xét thêm về độ trôi chảy và phát âm.',
+    placeholder: 'Nhập nội dung đã nói hoặc gửi kèm bản ghi âm nếu có...',
     audioLabel: 'Bản ghi hoặc đường dẫn âm thanh',
     audioPlaceholder: 'https://.../speaking-answer.webm',
     emptyError: 'Hãy ghi âm hoặc dán đường dẫn âm thanh trước khi gửi chấm.',
     payloadField: 'submittedText',
-    buttonText: 'Gửi chấm Speaking',
+    buttonText: 'Gửi chấm bài nói',
   },
   WRITING: {
-    label: 'Bài viết của học viên',
-    helper: 'Viết/dán đoạn văn hoặc essay để AI góp ý theo rubric Writing được gắn với bài kiểm tra.',
-    placeholder: 'Dán bài IELTS Writing Task 1/Task 2 hoặc đoạn văn của bạn vào đây...',
+    label: 'Bài viết của bạn',
+    helper: 'Hệ thống sẽ đánh giá theo các tiêu chí IELTS Writing và đưa ra gợi ý cải thiện.',
+    placeholder: 'Nhập bài viết IELTS Writing của bạn tại đây...',
     emptyError: 'Hãy nhập bài viết trước khi gửi chấm.',
     payloadField: 'submittedText',
-    buttonText: 'Gửi chấm Writing',
+    buttonText: 'Gửi chấm bài viết',
   },
   VOCABULARY: {
     label: 'Câu sử dụng từ vựng mục tiêu',
@@ -637,8 +676,8 @@ const assessmentInputCopy = (skill) => ({
     buttonText: 'Gửi chấm từ vựng',
   },
   MIXED: {
-    label: 'Reflection, đáp án hoặc nhật ký lỗi',
-    helper: 'Tóm tắt đáp án, lỗi sai, dạng câu hỏi khó và mục tiêu ôn tập tiếp theo để AI tạo kế hoạch review.',
+    label: 'Tự đánh giá, đáp án hoặc nhật ký lỗi',
+    helper: 'Tóm tắt đáp án, lỗi sai, dạng câu hỏi khó và mục tiêu ôn tập tiếp theo để hệ thống tạo kế hoạch ôn lại.',
     placeholder: 'Ví dụ: Listening sai map labeling, Reading sai True/False/Not Given, Writing thiếu ví dụ...',
     emptyError: 'Hãy nhập reflection, đáp án hoặc nhật ký lỗi trước khi gửi phân tích.',
     payloadField: 'submittedText',
@@ -668,13 +707,13 @@ const formatCriterionDescription = (description) => {
 
 const buildFriendlyError = (error) => {
   const message = error?.response?.data?.message || error?.message || 'Không thể gửi bài để chấm.';
-  if (/AI is disabled/i.test(message)) {
-    return 'Tính năng chấm bài hiện đang tạm thời chưa khả dụng. Hãy thử lại sau.';
+  if (/Bài (Writing|Speaking)|bộ tiêu chí|đáp án chuẩn|bản nháp/i.test(message)) {
+    return message;
   }
-  if (/API key is missing|GEMINI_API_KEY|OPENAI_API_KEY/i.test(message)) {
-    return 'Hệ thống đang bận xử lý bài làm. Bài làm của bạn sẽ được lưu an toàn để gửi lại.';
+  if (/AI|API key|GEMINI|OPENAI|Gemini|OpenAI|provider|quota|rate limit|internal server|disabled|timeout|network|fetch|500|502|503|504/i.test(message)) {
+    return 'Hiện chưa thể hoàn tất việc gửi bài. Bài làm đã được lưu an toàn và sẽ được gửi lại khi hệ thống sẵn sàng.';
   }
-  return message;
+  return 'Hiện chưa thể hoàn tất việc gửi bài. Vui lòng kiểm tra lại nội dung rồi thử lại.';
 };
 
 const speakingAudioRecoveryKey = (assessmentId) => (
@@ -1016,8 +1055,9 @@ export default function AiAssessmentPanel({
   const bandDisplay = feedback?.estimatedBand || (numericScore != null ? String(numericScore) : 'Chưa có');
   const usesFixedScoring = isObjectiveSkill(selected?.skill);
   const scoreBadgeLabel = usesFixedScoring ? 'Số câu đúng' : (hasEstimatedBand ? 'Band ước lượng' : 'Điểm ước lượng');
+  const objectiveTotalQuestions = feedback?.totalQuestions || selected?.maxScore;
   const scoreBadgeValue = usesFixedScoring && showNumericScore
-    ? `${scoreDisplay}${selected?.maxScore ? `/${selected.maxScore}` : ''}`
+    ? `${scoreDisplay}${objectiveTotalQuestions ? `/${objectiveTotalQuestions}` : ''}`
     : scoreDisplay;
   const isLockedAfterResult = Boolean(result) && !creatingNewAttempt;
   const isSubmissionLocked = isLocked || isLockedAfterResult;
@@ -1387,7 +1427,7 @@ export default function AiAssessmentPanel({
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Bài kiểm tra</p>
         <h3 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Chưa có bài kiểm tra nào được gắn vào module này</h3>
         <p className="mt-3 text-sm leading-7 text-[#584140]">
-          Content Manager cần gắn một bài đánh giá theo rubric thì học viên mới có thể nộp bài và nhận góp ý.
+          Người quản lý nội dung cần gắn một bài đánh giá theo bộ tiêu chí phù hợp thì học viên mới có thể nộp bài và nhận góp ý.
         </p>
       </section>
     );
@@ -1957,7 +1997,16 @@ export default function AiAssessmentPanel({
                 {formatRubricName(selected.rubric?.name, selected.skill)}
               </span>
             </div>
-            {(selected.rubric?.criteria || []).length ? (
+            {isObjectiveSkill(selected.skill) ? (
+              <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {objectiveScoringCriteria(selected).map((criterion) => (
+                  <div key={criterion.name} className="rounded-2xl bg-[#faf7f7] p-4">
+                    <p className="text-sm font-bold text-[#4b0009]">{criterion.name} · {criterion.weight}</p>
+                    <p className="mt-2 text-xs leading-5 text-[#584140]">{criterion.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (selected.rubric?.criteria || []).length ? (
               <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 {(selected.rubric?.criteria || []).map((criterion) => (
                   <div key={criterion.id || criterion.name} className="rounded-2xl bg-[#faf7f7] p-4">
@@ -1968,7 +2017,7 @@ export default function AiAssessmentPanel({
               </div>
             ) : (
               <div className="mt-3 rounded-2xl bg-[#faf7f7] p-4 text-sm leading-6 text-[#584140]">
-                Bài này hiện ưu tiên phân tích lỗi, cách làm và hướng ôn tập tiếp theo. Chưa có rubric chi tiết hoặc thang điểm số đủ tin cậy để chấm tự động như Writing/Speaking.
+                Bài này hiện ưu tiên phân tích lỗi, cách làm và hướng ôn tập tiếp theo. Chưa có bộ tiêu chí chi tiết hoặc thang điểm số đủ tin cậy để chấm tự động như bài viết/bài nói.
               </div>
             )}
             </div>
@@ -2046,7 +2095,7 @@ export default function AiAssessmentPanel({
                       {assessmentUiConfig?.title || 'Listening exam mode'}
                     </h4>
                     <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
-                      Bài Listening sẽ mở trong màn hình thi riêng với audio ở header, câu hỏi theo từng part
+                      Bài Listening sẽ mở trong màn hình thi riêng với âm thanh ở phần đầu, câu hỏi theo từng phần
                       và thanh tiến độ câu hỏi ở phía dưới.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
@@ -2054,7 +2103,7 @@ export default function AiAssessmentPanel({
                       <span>•</span>
                       <span>{assessmentUiConfig?.durationMinutes || selected.timeLimitMinutes || 40} minutes</span>
                       <span>•</span>
-                      <span>Audio + anti copy/paste + focus warning</span>
+                      <span>Bản nghe + hạn chế sao chép + cảnh báo rời màn hình</span>
                     </div>
                   </div>
                   {isLockedAfterResult ? (
@@ -2645,7 +2694,7 @@ export default function AiAssessmentPanel({
                             Vocabulary output
                           </span>
                           <span className="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-[#8a0018] ring-1 ring-[#dfbfbd]/50">
-                            AI checks meaning + collocation
+                            Kiểm tra nghĩa và cụm từ đi kèm
                           </span>
                         </div>
                         <h4 className="mt-4 font-['Manrope'] text-2xl font-black text-[#2b2828]">
@@ -2704,7 +2753,7 @@ export default function AiAssessmentPanel({
                           placeholder="Ví dụ: Chính sách mới tạo ra tác động rõ rệt với người học vì giúp họ quản lý thời gian hiệu quả hơn..."
                         />
                         <p className="mt-3 text-sm leading-6 text-[#7a6766]">
-                          Mẹo nhỏ: đừng chỉ liệt kê từ vựng. Hãy đặt từ vào tình huống cụ thể để AI kiểm tra được bạn dùng đúng nghĩa hay chưa.
+                          Mẹo nhỏ: đừng chỉ liệt kê từ vựng. Hãy đặt từ vào tình huống cụ thể để hệ thống kiểm tra được bạn dùng đúng nghĩa hay chưa.
                         </p>
                       </div>
 
@@ -2896,9 +2945,9 @@ export default function AiAssessmentPanel({
                     <span className="rounded-full bg-[linear-gradient(135deg,#b4233f,#8a0018)] px-4 py-2 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(138,0,24,0.14)]">
                       {scoreBadgeLabel}: {scoreBadgeValue}
                     </span>
-                    {!usesFixedScoring ? (
+                    {hasEstimatedBand ? (
                       <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">
-                        Band ước lượng: {bandDisplay}
+                        {usesFixedScoring ? 'Band quy đổi' : 'Band ước lượng'}: {bandDisplay}
                       </span>
                     ) : null}
                   </>
@@ -3016,7 +3065,7 @@ export default function AiAssessmentPanel({
                     <p className="mt-1 text-sm font-extrabold text-[#4b0009]">{plagiarismRisk}</p>
                   </div>
                   <div className="rounded-xl bg-white p-3">
-                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8c716f]">Mức rủi ro dùng AI</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8c716f]">Mức rủi ro dùng công cụ tự động</p>
                     <p className="mt-1 text-sm font-extrabold text-[#4b0009]">{aiUsageRisk}</p>
                   </div>
                 </div>
