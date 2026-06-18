@@ -75,6 +75,8 @@ export default function WritingExamMode({
   submitting = false,
   onClose,
   onSubmit,
+  preserveFullscreenOnUnmount = false,
+  submitLabel = 'Nộp bài',
 }) {
   const tasks = Array.isArray(config?.tasks) ? config.tasks : [];
   const [activeTaskKey, setActiveTaskKey] = useState(tasks[0]?.key || 'task_1');
@@ -111,11 +113,11 @@ export default function WritingExamMode({
     intentionalExitRef.current = false;
     document.documentElement?.requestFullscreen?.().catch(() => {});
     return () => {
-      if (document.fullscreenElement) {
+      if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
       }
     };
-  }, []);
+  }, [preserveFullscreenOnUnmount]);
 
   useEffect(() => {
     const pushExamState = () => {
@@ -265,7 +267,7 @@ export default function WritingExamMode({
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang nộp...' : 'Nộp bài'}
+            {submitting ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>

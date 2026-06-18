@@ -56,6 +56,8 @@ export default function ReadingExamMode({
   submitting = false,
   onClose,
   onSubmit,
+  preserveFullscreenOnUnmount = false,
+  submitLabel = 'Nộp bài',
 }) {
   const parts = Array.isArray(config?.parts) ? config.parts : [];
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
@@ -99,11 +101,11 @@ export default function ReadingExamMode({
     intentionalExitRef.current = false;
     document.documentElement?.requestFullscreen?.().catch(() => {});
     return () => {
-      if (document.fullscreenElement) {
+      if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
       }
     };
-  }, []);
+  }, [preserveFullscreenOnUnmount]);
 
   useEffect(() => {
     const pushExamState = () => {
@@ -393,7 +395,7 @@ export default function ReadingExamMode({
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang nộp...' : 'Nộp bài'}
+            {submitting ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>

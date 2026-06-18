@@ -46,9 +46,12 @@ export default function ListeningExamMode({
   submitting = false,
   onClose,
   onSubmit,
+  skipAudioCheck = false,
+  preserveFullscreenOnUnmount = false,
+  submitLabel = 'Nộp bài',
 }) {
   const parts = Array.isArray(config?.parts) ? config.parts : [];
-  const [stage, setStage] = useState(() => (config?.audioUrl ? 'check_audio' : 'exam'));
+  const [stage, setStage] = useState(() => (config?.audioUrl && !skipAudioCheck ? 'check_audio' : 'exam'));
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 40)) * 60);
@@ -96,11 +99,11 @@ export default function ListeningExamMode({
     intentionalExitRef.current = false;
     document.documentElement?.requestFullscreen?.().catch(() => {});
     return () => {
-      if (document.fullscreenElement) {
+      if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
       }
     };
-  }, []);
+  }, [preserveFullscreenOnUnmount]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -517,7 +520,7 @@ export default function ListeningExamMode({
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang nộp...' : 'Nộp bài'}
+            {submitting ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>

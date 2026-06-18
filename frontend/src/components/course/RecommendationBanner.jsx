@@ -16,9 +16,9 @@ const RecommendationBanner = () => (
           <p className="text-base leading-[1.6] text-[#584140]">Làm bài kiểm tra trình độ miễn phí để nhận gợi ý khóa học phù hợp nhất cho riêng bạn.</p>
         </div>
       </div>
-      <button className="whitespace-nowrap rounded-xl border-2 border-[#4b0009] bg-[#4b0009] px-10 py-4 text-[14px] font-semibold leading-none tracking-[0.02em] text-white shadow-lg transition-all hover:bg-transparent hover:text-[#4b0009]" type="button">
+      <a className="whitespace-nowrap rounded-xl border-2 border-[#4b0009] bg-[#4b0009] px-10 py-4 text-[14px] font-semibold leading-none tracking-[0.02em] text-white shadow-lg transition-all hover:bg-transparent hover:text-[#4b0009]" href="/placement-test">
         Kiểm tra đầu vào
-      </button>
+      </a>
     </div>
   </section>
 );

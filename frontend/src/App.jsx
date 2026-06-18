@@ -14,6 +14,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
 import NotificationsPage from './pages/NotificationsPage';
+import PlacementTestPage from './pages/PlacementTestPage';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import TransactionHistoryPage from './pages/TransactionHistoryPage';
@@ -57,6 +58,7 @@ function AppRoutes() {
       <Route path="/transaction-history" element={<TransactionHistoryPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<Home />} />
+        <Route path="/placement-test" element={<PlacementTestPage />} />
       </Route>
       <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />
