@@ -33,13 +33,15 @@ const WorkspaceSidebar = ({
     });
 
     if (activeModule) {
-      setOpenModuleIds((current) => new Set([...current, String(activeModule.id ?? activeModule.title)]));
+      const key = String(activeModule.id ?? activeModule.title);
+      setOpenModuleIds((current) => (current.has(key) ? current : new Set([...current, key])));
       return;
     }
 
     const firstModule = course?.modules?.[0];
     if (firstModule) {
-      setOpenModuleIds((current) => new Set([...current, String(firstModule.id ?? firstModule.title)]));
+      const key = String(firstModule.id ?? firstModule.title);
+      setOpenModuleIds((current) => (current.has(key) ? current : new Set([...current, key])));
     }
   }, [activeLessonId, course?.modules]);
 
@@ -153,7 +155,6 @@ const WorkspaceSidebar = ({
                           String(activeLessonId) === assessmentStepId ? 'bg-[#eef4ff]' : 'hover:bg-[#f7f9fc]'
                         } ${assessmentLocked ? 'cursor-not-allowed opacity-70' : ''}`}
                         type="button"
-                        disabled={assessmentLocked}
                         onClick={() => onSelectLesson(assessmentStepId)}
                       >
                         <span className="material-symbols-outlined mt-0.5 text-[20px] text-[#63718a]">

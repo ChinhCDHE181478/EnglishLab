@@ -177,7 +177,7 @@ export const LearnerExperienceProvider = ({ children }) => {
     return true;
   };
 
-  const saveRecentLesson = ({ courseId, lessonId, lessonTitle = '', courseTitle = '' }) => {
+  const saveRecentLesson = useCallback(({ courseId, lessonId, lessonTitle = '', courseTitle = '' }) => {
     const nextItem = {
       id: `gan-day-${lessonId}`,
       courseId,
@@ -190,7 +190,7 @@ export const LearnerExperienceProvider = ({ children }) => {
       nextItem,
       ...current.filter((item) => String(item.lessonId) !== String(lessonId)),
     ].slice(0, 12));
-  };
+  }, []);
 
   const addNotification = ({ title, message, type = 'success', actionPath = '', courseId = null, courseTitle = '' }) => {
     pushToast({ title, message, type });
@@ -214,19 +214,28 @@ export const LearnerExperienceProvider = ({ children }) => {
     });
   }, []);
 
-  const saveAssessmentDraft = (draft) => {
+  const saveAssessmentDraft = useCallback((draft) => {
+    if (!draft?.assessmentId) return;
     setAssessmentDrafts((current) => {
       const filtered = current.filter((item) => String(item.assessmentId) !== String(draft.assessmentId));
-      return [...filtered, { ...draft, updatedAt: new Date().toISOString() }];
+      const nextDraft = { ...draft, updatedAt: new Date().toISOString() };
+      const previousDraft = current.find((item) => String(item.assessmentId) === String(draft.assessmentId));
+      if (previousDraft
+        && previousDraft.submittedText === nextDraft.submittedText
+        && previousDraft.submittedAudioUrl === nextDraft.submittedAudioUrl
+        && JSON.stringify(previousDraft.objectiveDraft || null) === JSON.stringify(nextDraft.objectiveDraft || null)) {
+        return current;
+      }
+      return [...filtered, nextDraft];
     });
-  };
+  }, []);
 
-  const clearAssessmentDraft = (assessmentId) => {
+  const clearAssessmentDraft = useCallback((assessmentId) => {
     setAssessmentDrafts((current) => current.filter((item) => String(item.assessmentId) !== String(assessmentId)));
-  };
+  }, []);
 
-  const getAssessmentDraft = (assessmentId) =>
-    assessmentDrafts.find((item) => String(item.assessmentId) === String(assessmentId)) || null;
+  const getAssessmentDraft = useCallback((assessmentId) =>
+    assessmentDrafts.find((item) => String(item.assessmentId) === String(assessmentId)) || null, [assessmentDrafts]);
 
   const enqueueAssessmentSubmission = ({ assessmentId, courseId, lessonId = null, payload, assessmentTitle = '' }) => {
     const existing = assessmentQueue.find((item) => String(item.assessmentId) === String(assessmentId));

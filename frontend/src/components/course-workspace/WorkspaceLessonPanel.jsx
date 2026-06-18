@@ -21,6 +21,8 @@ const renderInlineMarkdown = (text = '') => {
 
 const renderLine = (line, key) => {
   if (!line.trim()) return <div key={key} className="h-3" />;
+  const boldHeadingMatch = line.match(/^\*\*([^*]+)\*\*:?$/);
+  if (boldHeadingMatch) return <h4 key={key} className="mt-4 text-base font-semibold text-[#2b2828]">{boldHeadingMatch[1]}</h4>;
   if (line.startsWith('### ')) return <h4 key={key} className="mt-4 text-base font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(4))}</h4>;
   if (line.startsWith('## ')) return <h3 key={key} className="mt-5 text-lg font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(3))}</h3>;
   if (line.startsWith('# ')) return <h2 key={key} className="text-2xl font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(2))}</h2>;
@@ -59,6 +61,7 @@ const WorkspaceLessonPanel = ({
   const activeLesson = activeLessonItem?.lesson;
   const activeModule = activeLessonItem?.module;
   const activeLessonId = activeLessonItem?.id;
+  const lessonContent = activeLesson?.contentText || activeLesson?.description;
   const activeIndex = lessonItems.findIndex((item) => String(item.id) === String(activeLessonId));
   const embedUrl = getVideoEmbedUrl(activeLesson?.videoUrl);
   const [iframeStartSeconds, setIframeStartSeconds] = useState(0);
@@ -201,7 +204,7 @@ const WorkspaceLessonPanel = ({
         </div>
 
         <div ref={lessonContentRef} className="relative" onMouseUp={captureLessonSelection}>
-          <LessonContent content={activeLesson?.contentText} />
+          <LessonContent content={lessonContent} />
           {selectionButton ? (
             <button
               className="absolute z-10 rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(75,0,9,0.22)] transition hover:bg-[#730014]"

@@ -148,6 +148,8 @@ class OnlineCourseServiceImplTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
                 .thenReturn(Optional.of(course));
+        when(learningPackageRepository.findByIdAndDeletedFalseAndStatusForUpdate(learningPackage.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(learningPackage));
         when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
         when(enrollmentRepository.save(any(PackageEnrollment.class))).thenReturn(savedEnrollment);
         when(mapper.toResponse(course, true, 0, savedEnrollment.getId())).thenReturn(response);
@@ -157,5 +159,49 @@ class OnlineCourseServiceImplTest {
         assertEquals(savedEnrollment.getId(), result.getEnrollmentId());
         verify(enrollmentRepository).save(any(PackageEnrollment.class));
         verify(courseEnrollmentMailService).sendEnrollmentSuccessEmail(student, course, savedEnrollment);
+    }
+
+    @Test
+    void registerCourse_returnsExistingEnrollmentWithoutSavingAgain() {
+        User student = User.builder().email("learner@example.com").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(10L)
+                .status(PackageStatus.PUBLISHED)
+                .deleted(false)
+                .title("IELTS Intensive")
+                .slug("ielts-intensive")
+                .build();
+        OnlineCourse course = OnlineCourse.builder()
+                .id(5L)
+                .learningPackage(learningPackage)
+                .build();
+        PackageEnrollment existingEnrollment = PackageEnrollment.builder()
+                .id(100L)
+                .student(student)
+                .learningPackage(learningPackage)
+                .status(EnrollmentStatus.ACTIVE)
+                .progressPercent(40)
+                .build();
+        OnlineCourseResponse response = OnlineCourseResponse.builder()
+                .id(course.getId())
+                .registered(true)
+                .enrollmentId(existingEnrollment.getId())
+                .progressPercent(existingEnrollment.getProgressPercent())
+                .build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(course));
+        when(learningPackageRepository.findByIdAndDeletedFalseAndStatusForUpdate(learningPackage.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(learningPackage));
+        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(existingEnrollment));
+        when(mapper.toResponse(course, true, existingEnrollment.getProgressPercent(), existingEnrollment.getId())).thenReturn(response);
+
+        OnlineCourseResponse result = service.registerCourse(course.getId(), student.getEmail());
+
+        assertEquals(existingEnrollment.getId(), result.getEnrollmentId());
+        assertEquals(existingEnrollment.getProgressPercent(), result.getProgressPercent());
+        verify(enrollmentRepository, never()).save(any(PackageEnrollment.class));
+        verify(courseEnrollmentMailService, never()).sendEnrollmentSuccessEmail(any(), any(), any());
     }
 }

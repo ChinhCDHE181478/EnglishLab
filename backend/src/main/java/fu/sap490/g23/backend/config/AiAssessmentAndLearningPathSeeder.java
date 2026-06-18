@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.config;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.entity.assessment.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
@@ -27,6 +29,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private static final String UI_CONFIG_MARKER = "\n\n[ENGLISHLAB_UI_CONFIG]\n";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final AssessmentRubricRepository rubricRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
@@ -201,8 +204,15 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             assessment.setSkill(skill);
             assessment.setAiEvaluationMode(evaluationMode);
             assessment.setInstructions(practiceInstructions(skill, module));
-            assessment.setPassingScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(6.0) : null);
-            assessment.setMaxScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(9.0) : null);
+            if (skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING) {
+                assessment.setObjectiveAnswerKey(loadObjectiveAnswerKey(skill));
+                assessment.setPassingScore(BigDecimal.valueOf(28));
+                assessment.setMaxScore(BigDecimal.valueOf(40));
+            } else {
+                assessment.setObjectiveAnswerKey(null);
+                assessment.setPassingScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(6.0) : null);
+                assessment.setMaxScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(9.0) : null);
+            }
             assessment.setTimeLimitMinutes(skill == AssessmentSkill.READING ? 60 : (skill == AssessmentSkill.SPEAKING ? 15 : 40));
             assessment.setDisplayOrder(module.getDisplayOrder());
             assessment.setActive(true);
@@ -306,6 +316,28 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         return "Complete the IELTS Writing simulation in exam mode. The test opens two writing tasks with a shared timer, minimum word targets, and a dedicated submission flow."
                 + UI_CONFIG_MARKER
                 + loadResourceText("assessment-data/ielts_mock_2025_january_writing_test_1.json");
+    }
+
+    private String loadObjectiveAnswerKey(AssessmentSkill skill) {
+        String resourcePath = switch (skill) {
+            case LISTENING -> "assessment-data/ielts_mock_2025_january_listening_test_1.json";
+            case READING -> "assessment-data/ielts_mock_2025_january_reading_test_1.json";
+            default -> null;
+        };
+        if (resourcePath == null) {
+            return null;
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(new ClassPathResource(resourcePath).getInputStream());
+            JsonNode answerKey = root.path("answerKey");
+            if (!answerKey.isObject()) {
+                return null;
+            }
+            return OBJECT_MAPPER.writeValueAsString(answerKey);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Unable to load objective answer key: " + resourcePath, ex);
+        }
     }
 
     private String loadResourceText(String path) {

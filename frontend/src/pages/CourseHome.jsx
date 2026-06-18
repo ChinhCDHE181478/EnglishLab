@@ -184,6 +184,10 @@ const CourseHome = () => {
     navigate(`/courses/${course.slug}/learn`, { state: { course, enrollment, workspaceMode: 'learn' } });
   };
 
+  const showLockedAssessmentMessage = () => {
+    setError('Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.');
+  };
+
   const openFirstLesson = () => {
     const firstModule = course?.modules?.[0];
     const firstLesson = firstModule?.lessons?.[0];
@@ -297,9 +301,8 @@ const CourseHome = () => {
                         className={`flex w-full items-center justify-between gap-4 border-b border-[#f3f4f6] px-3 py-4 text-left transition last:border-b-0 ${
                           locked ? 'cursor-not-allowed opacity-60' : 'hover:bg-[#fff7f7]'
                         }`}
-                        disabled={locked}
                         key={assessment.id ?? `${moduleKey}-assessment-${assessmentIndex}`}
-                        onClick={() => openAssessment(module)}
+                        onClick={() => (locked ? showLockedAssessmentMessage() : openAssessment(module))}
                         type="button"
                       >
                         <div className="flex min-w-0 items-start gap-4">
