@@ -474,7 +474,7 @@ export default function ListeningExamMode({
     >
       <header className="flex min-h-[78px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">EnglishLab Listening Exam</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi nghe EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -492,12 +492,12 @@ export default function ListeningExamMode({
                 src={config.audioUrl}
               />
               <div className="rounded-full border border-[#ead8d5] bg-[#fff8f8] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#8a0018]">
-                {audioStatus === 'playing' && 'Audio đang tự phát'}
-                {audioStatus === 'ready' && 'Audio sẵn sàng'}
-                {audioStatus === 'loading' && 'Đang tải audio'}
-                {audioStatus === 'blocked' && 'Audio đang chờ tự phát'}
-                {audioStatus === 'paused' && 'Audio tiếp tục phát'}
-                {audioStatus === 'ended' && 'Audio đã phát xong'}
+                {audioStatus === 'playing' && 'Bản nghe đang tự phát'}
+                {audioStatus === 'ready' && 'Bản nghe sẵn sàng'}
+                {audioStatus === 'loading' && 'Đang tải bản nghe'}
+                {audioStatus === 'blocked' && 'Bản nghe đang chờ tự phát'}
+                {audioStatus === 'paused' && 'Bản nghe tiếp tục phát'}
+                {audioStatus === 'ended' && 'Bản nghe đã phát xong'}
               </div>
             </>
           ) : null}
@@ -528,20 +528,20 @@ export default function ListeningExamMode({
             <div className="rounded-[26px] border border-[#ecd7db] bg-[linear-gradient(145deg,#fffdfc,#fff7f7)] p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Bước 1 · Kiểm tra âm thanh</p>
-                  <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#341c1d]">Listening sound check</h1>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Bước 1 · Kiểm tra bản nghe</p>
+                  <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#341c1d]">Kiểm tra âm thanh bài nghe</h1>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
                     Hãy phát đoạn âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn đang hoạt động ổn định trước khi vào bài Listening.
                   </p>
                 </div>
                 <span className="rounded-full bg-[#fff0f1] px-4 py-2 text-sm font-bold text-[#8a0018]">
-                  {sampleStatus === 'playing' ? 'Đang phát âm thanh mẫu' : sampleStatus === 'done' ? 'Đã test âm thanh' : 'Chưa test âm thanh'}
+                  {sampleStatus === 'playing' ? 'Đang phát bản nghe mẫu' : sampleStatus === 'done' ? 'Đã kiểm tra âm thanh' : 'Chưa kiểm tra âm thanh'}
                 </span>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
                 <div className="rounded-2xl border border-[#ead8d5] bg-white px-5 py-4">
-                  <p className="text-sm font-bold text-[#4b0009]">Âm thanh mẫu</p>
+                  <p className="text-sm font-bold text-[#4b0009]">Bản nghe mẫu</p>
                   <p className="mt-2 text-sm leading-6 text-[#584140]">
                     Nhấn phát để nghe 3 tiếng mẫu tăng dần. Nếu bạn nghe rõ cả 3 tiếng, có thể tiếp tục vào bài thi.
                   </p>
@@ -551,7 +551,7 @@ export default function ListeningExamMode({
                   onClick={playSampleAudio}
                   type="button"
                 >
-                  {sampleStatus === 'playing' ? 'Đang phát...' : 'Phát âm thanh mẫu'}
+                  {sampleStatus === 'playing' ? 'Đang phát...' : 'Phát bản nghe mẫu'}
                 </button>
               </div>
 
@@ -580,7 +580,7 @@ export default function ListeningExamMode({
               <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8a0018]">Part {activePart?.partNumber}</p>
               <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#341c1d]">{activePart?.title || 'Listening Part'}</h1>
               <p className="mt-3 text-sm leading-7 text-[#584140]">
-                {activePart?.summary || activePart?.instructions || 'Theo dõi audio, làm câu hỏi theo từng part và nộp toàn bộ bài thi khi hoàn tất.'}
+                {activePart?.summary || activePart?.instructions || 'Theo dõi âm thanh, làm câu hỏi theo từng phần và nộp toàn bộ bài thi khi hoàn tất.'}
               </p>
               <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
                 <span>{answeredCount} / {allQuestionNumbers.length} câu đã điền</span>
@@ -589,8 +589,8 @@ export default function ListeningExamMode({
               </div>
             </div>
             <div className="rounded-[24px] border border-[#ead8d5] bg-[#fff8f8] px-5 py-4 text-right">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#9a6e67]">Audio source</p>
-              <p className="mt-2 font-semibold text-[#4b0009]">{config?.audioLabel || 'Listening track'}</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#9a6e67]">Nguồn âm thanh</p>
+              <p className="mt-2 font-semibold text-[#4b0009]">{config?.audioLabel || 'Bản nghe'}</p>
             </div>
           </div>
 

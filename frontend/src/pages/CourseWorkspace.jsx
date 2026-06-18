@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
@@ -17,6 +17,7 @@ import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
+const isAssessmentStepId = (itemId) => String(itemId || '').startsWith('__ai_assessment__:');
 
 const isTemporaryAssessmentError = (error) => {
   const status = error?.response?.status;
@@ -27,6 +28,7 @@ const CourseWorkspace = () => {
   const { slugOrId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
   const {
     isAuthenticated,
     lessonNotes,
@@ -49,9 +51,15 @@ const CourseWorkspace = () => {
   } = useLearnerExperience();
   const [course, setCourse] = useState(() => (location.state?.course ? normalizeCourse(location.state.course) : null));
   const [enrollment, setEnrollment] = useState(() => (location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null));
-  const [loading, setLoading] = useState(!course);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeLessonId, setActiveLessonId] = useState(null);
+  const [activeLessonId, setActiveLessonId] = useState(() => {
+    try {
+      return localStorage.getItem(activeLessonStorageKey) || null;
+    } catch {
+      return null;
+    }
+  });
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
   const [workspaceMode, setWorkspaceMode] = useState(() => (
@@ -61,11 +69,19 @@ const CourseWorkspace = () => {
   ));
   const [vocabularyCount, setVocabularyCount] = useState(0);
   const [assessments, setAssessments] = useState([]);
+  const [assessmentsLoaded, setAssessmentsLoaded] = useState(false);
   const [retryingQueueId, setRetryingQueueId] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelMode, setRightPanelMode] = useState('transcript');
   const [videoSeekRequest, setVideoSeekRequest] = useState(null);
-  const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
+  const rememberActiveLesson = useCallback((lessonId) => {
+    setActiveLessonId(lessonId);
+    try {
+      if (lessonId) localStorage.setItem(activeLessonStorageKey, String(lessonId));
+    } catch {
+      // Local storage can be unavailable in private browsing; the in-memory state is still enough for this session.
+    }
+  }, [activeLessonStorageKey]);
 
   const assessmentsByModule = useMemo(() => {
     const grouped = new Map();
@@ -198,7 +214,7 @@ const CourseWorkspace = () => {
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
     return workspaceItems.find((item) => String(item.id) === String(activeLessonId)) ?? workspaceItems[0];
-  }, [activeLessonId, workspaceItems]);
+  }, [activeLessonId, rememberActiveLesson, workspaceItems]);
   const isAssessmentMode = activeWorkspaceItem?.type === 'assessment';
   const activeLessonHasVideo = Boolean(activeWorkspaceItem?.lesson?.videoUrl);
   const hideRightRail = isAssessmentMode || workspaceMode === 'flashcards';
@@ -245,28 +261,48 @@ const CourseWorkspace = () => {
   }, [slugOrId, workspaceMode]);
 
   useEffect(() => {
+    try {
+      setActiveLessonId(localStorage.getItem(activeLessonStorageKey) || null);
+    } catch {
+      setActiveLessonId(null);
+    }
+  }, [activeLessonStorageKey]);
+
+  useEffect(() => {
     if (!activeLessonId) return;
-    localStorage.setItem(activeLessonStorageKey, String(activeLessonId));
+    try {
+      localStorage.setItem(activeLessonStorageKey, String(activeLessonId));
+    } catch {
+      // Ignore storage failures; the lesson is still kept in component state.
+    }
   }, [activeLessonId, activeLessonStorageKey]);
 
   useEffect(() => {
     if (!workspaceItems.length) return;
     const activeLessonStillExists = workspaceItems.some((item) => String(item.id) === String(activeLessonId));
     const storedLessonId = localStorage.getItem(activeLessonStorageKey);
+    const waitingForStoredAssessment = (
+      !assessmentsLoaded
+      && isAssessmentStepId(storedLessonId)
+      && String(activeLessonId) === String(storedLessonId)
+      && !activeLessonStillExists
+    );
+
+    if (waitingForStoredAssessment) return;
 
     if (!activeLessonId || !activeLessonStillExists) {
       const storedItem = workspaceItems.find((item) => String(item.id) === String(storedLessonId) && !item.isLocked);
       const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
-      setActiveLessonId(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
+      rememberActiveLesson(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
       return;
     }
 
     const currentItem = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
-    if (currentItem?.isLocked) {
+    if (currentItem?.isLocked && String(activeLessonId) !== String(storedLessonId)) {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
-      if (fallbackLesson) setActiveLessonId(fallbackLesson.id);
+      if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
@@ -310,6 +346,7 @@ const CourseWorkspace = () => {
     let active = true;
     const loadWorkspace = async () => {
       setLoading(true);
+      setAssessmentsLoaded(false);
       setError('');
       try {
         const [courseResponse, myCourses] = await Promise.all([
@@ -331,19 +368,21 @@ const CourseWorkspace = () => {
 
         setCourse(normalizedCourse);
         applyEnrollment(matchedEnrollment);
-        courseApi.getCourseAssessments(normalizedCourse.id)
-          .then((items) => {
-            if (!active) return;
-            setAssessments(items);
-            setCourseAssessmentsSnapshot(normalizedCourse.id, items);
-          })
-          .catch(() => {
-            if (!active) return;
-            setAssessments([]);
-            setCourseAssessmentsSnapshot(normalizedCourse.id, []);
-          });
+        try {
+          const items = await courseApi.getCourseAssessments(normalizedCourse.id);
+          if (!active) return;
+          setAssessments(items);
+          setCourseAssessmentsSnapshot(normalizedCourse.id, items);
+        } catch {
+          if (!active) return;
+          setAssessments([]);
+          setCourseAssessmentsSnapshot(normalizedCourse.id, []);
+        } finally {
+          if (active) setAssessmentsLoaded(true);
+        }
       } catch {
         if (!active) return;
+        setAssessmentsLoaded(true);
         const stateCourse = location.state?.course ? normalizeCourse(location.state.course) : null;
         const stateEnrollment = location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null;
         const localEnrollment = readEnrollments()
@@ -416,7 +455,7 @@ const CourseWorkspace = () => {
       return;
     }
     setError('');
-    setActiveLessonId(lessonId);
+    rememberActiveLesson(lessonId);
   };
 
   const handleToggleComplete = async (lessonId) => {
@@ -451,7 +490,7 @@ const CourseWorkspace = () => {
     while (nextIndex >= 0 && nextIndex < workspaceItems.length) {
       const nextItem = workspaceItems[nextIndex];
       if (!nextItem?.isLocked) {
-        setActiveLessonId(nextItem.id);
+        rememberActiveLesson(nextItem.id);
         return;
       }
       nextIndex += direction;
@@ -469,6 +508,7 @@ const CourseWorkspace = () => {
 
   const refreshAssessments = async (courseId) => {
     if (!courseId) return;
+    setAssessmentsLoaded(false);
     try {
       const items = await courseApi.getCourseAssessments(courseId);
       setAssessments(items);
@@ -476,6 +516,8 @@ const CourseWorkspace = () => {
     } catch {
       setAssessments([]);
       setCourseAssessmentsSnapshot(courseId, []);
+    } finally {
+      setAssessmentsLoaded(true);
     }
   };
 
@@ -487,8 +529,8 @@ const CourseWorkspace = () => {
       removeAssessmentQueueItem(assessmentId);
       addNotification({
         type: 'learning',
-        title: 'Nộp bài thành công',
-        message: 'Bài làm của bạn đã được gửi thành công.',
+        title: 'Đã có phản hồi cho bài làm của bạn',
+        message: 'Hệ thống đã hoàn tất đánh giá bài làm. Bạn có thể xem phản hồi ngay bây giờ.',
         courseId: course?.id,
         courseTitle: course?.title,
         actionPath: `/courses/${course?.slug}/learn`,
@@ -501,7 +543,7 @@ const CourseWorkspace = () => {
           courseId: course?.id,
           lessonId: activeWorkspaceItem?.id || null,
           payload,
-          assessmentTitle: activeWorkspaceItem?.title || 'Bài đánh giá AI',
+          assessmentTitle: activeWorkspaceItem?.title || 'Bài đánh giá',
         });
         addNotification({
           type: 'learning',
@@ -530,8 +572,8 @@ const CourseWorkspace = () => {
         clearAssessmentDraft(item.assessmentId);
         addNotification({
           type: 'learning',
-          title: 'Bài làm đã được gửi thành công',
-          message: 'Bài làm đã được gửi lại thành công.',
+          title: 'Đã có phản hồi cho bài làm của bạn',
+          message: 'Hệ thống đã hoàn tất đánh giá bài làm. Bạn có thể xem phản hồi ngay bây giờ.',
           courseId: course?.id,
           courseTitle: course?.title,
           actionPath: `/courses/${course?.slug}/learn`,
@@ -575,13 +617,25 @@ const CourseWorkspace = () => {
       <main className="mx-auto w-full max-w-[1880px] px-3 pb-10 pt-5 md:px-5 2xl:px-8">
         {queuedItems.length ? (
           <div className="mb-6 rounded-3xl border border-[#f2dfb3] bg-[#fff8e7] p-5 text-sm text-[#9a6700]">
-            <p className="font-extrabold">Có {queuedItems.length} bài làm đang chờ gửi lại.</p>
-            <p className="mt-2">Bài làm đã được lưu an toàn và sẽ được gửi lại khi hệ thống sẵn sàng.</p>
+            <p className="font-extrabold">Bạn có {queuedItems.length} bài làm chưa gửi hoàn tất.</p>
+            <p className="mt-2">Bài làm đã được lưu an toàn. Bạn có thể gửi lại hoặc tiếp tục chỉnh sửa bài đang mở.</p>
             <div className="mt-4 flex flex-wrap gap-3">
               {queuedItems.slice(0, 2).map((item) => (
-                <button key={item.id} className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white" onClick={() => handleRetryQueueItem(item)} type="button">
-                  {retryingQueueId === item.id ? 'Đang gửi lại...' : 'Thử gửi lại'}
-                </button>
+                <div key={item.id} className="flex flex-wrap gap-2">
+                  <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white" onClick={() => handleRetryQueueItem(item)} type="button">
+                    {retryingQueueId === item.id ? 'Đang gửi lại...' : 'Gửi lại bài'}
+                  </button>
+                  <button
+                    className="rounded-2xl border border-[#9a6700]/30 bg-white px-4 py-3 text-sm font-bold text-[#9a6700]"
+                    onClick={() => {
+                      removeAssessmentQueueItem(item.id);
+                      clearAssessmentDraft(item.assessmentId);
+                    }}
+                    type="button"
+                  >
+                    Xóa bản nháp
+                  </button>
+                </div>
               ))}
             </div>
           </div>

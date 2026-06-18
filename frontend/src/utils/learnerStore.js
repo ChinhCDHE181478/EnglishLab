@@ -28,6 +28,48 @@ const writeJson = (key, value) => {
 
 const buildId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const nowIso = () => new Date().toISOString();
+const DAY_MS = 24 * 60 * 60 * 1000;
+const ASSESSMENT_DRAFT_TTL_MS = 14 * DAY_MS;
+const ASSESSMENT_QUEUE_TTL_MS = 7 * DAY_MS;
+const MAX_ASSESSMENT_DRAFTS = 20;
+const MAX_ASSESSMENT_QUEUE_ITEMS = 10;
+
+const isFreshEnough = (item, ttlMs) => {
+  const timestamp = Date.parse(item?.updatedAt || item?.createdAt || '');
+  if (!Number.isFinite(timestamp)) return true;
+  return Date.now() - timestamp <= ttlMs;
+};
+
+const stripLargeAudioPayload = (payload = {}) => {
+  if (!payload || typeof payload !== 'object') return payload;
+  const { audioBase64, submittedAudioBase64, ...rest } = payload;
+  return rest;
+};
+
+const sanitizeAssessmentDraft = (draft) => {
+  if (!draft || typeof draft !== 'object') return null;
+  const { audioBase64, submittedAudioBase64, ...rest } = draft;
+  return rest;
+};
+
+const sanitizeAssessmentQueueItem = (item) => {
+  if (!item || typeof item !== 'object') return null;
+  return {
+    ...item,
+    payload: stripLargeAudioPayload(item.payload),
+  };
+};
+
+const normalizeLimitedList = (items, { ttlMs, maxItems, sanitizer }) => (
+  Array.isArray(items)
+    ? items
+      .map(sanitizer)
+      .filter(Boolean)
+      .filter((item) => isFreshEnough(item, ttlMs))
+      .sort((left, right) => Date.parse(right.updatedAt || right.createdAt || '') - Date.parse(left.updatedAt || left.createdAt || ''))
+      .slice(0, maxItems)
+    : []
+);
 
 export const learnerStorageKeys = storageKeys;
 
@@ -42,11 +84,27 @@ export const writeLessonFlags = (value) => writeJson(storageKeys.lessonFlags, va
 export const readRecentLessons = () => readJson(storageKeys.recentLessons, []);
 export const writeRecentLessons = (value) => writeJson(storageKeys.recentLessons, value);
 
-export const readAssessmentDrafts = () => readJson(storageKeys.assessmentDrafts, []);
-export const writeAssessmentDrafts = (value) => writeJson(storageKeys.assessmentDrafts, value);
+export const readAssessmentDrafts = () => normalizeLimitedList(readJson(storageKeys.assessmentDrafts, []), {
+  ttlMs: ASSESSMENT_DRAFT_TTL_MS,
+  maxItems: MAX_ASSESSMENT_DRAFTS,
+  sanitizer: sanitizeAssessmentDraft,
+});
+export const writeAssessmentDrafts = (value) => writeJson(storageKeys.assessmentDrafts, normalizeLimitedList(value, {
+  ttlMs: ASSESSMENT_DRAFT_TTL_MS,
+  maxItems: MAX_ASSESSMENT_DRAFTS,
+  sanitizer: sanitizeAssessmentDraft,
+}));
 
-export const readAssessmentQueue = () => readJson(storageKeys.assessmentQueue, []);
-export const writeAssessmentQueue = (value) => writeJson(storageKeys.assessmentQueue, value);
+export const readAssessmentQueue = () => normalizeLimitedList(readJson(storageKeys.assessmentQueue, []), {
+  ttlMs: ASSESSMENT_QUEUE_TTL_MS,
+  maxItems: MAX_ASSESSMENT_QUEUE_ITEMS,
+  sanitizer: sanitizeAssessmentQueueItem,
+});
+export const writeAssessmentQueue = (value) => writeJson(storageKeys.assessmentQueue, normalizeLimitedList(value, {
+  ttlMs: ASSESSMENT_QUEUE_TTL_MS,
+  maxItems: MAX_ASSESSMENT_QUEUE_ITEMS,
+  sanitizer: sanitizeAssessmentQueueItem,
+}));
 
 export const readNotifications = () => readJson(storageKeys.notifications, []);
 export const writeNotifications = (value) => writeJson(storageKeys.notifications, value);
@@ -104,7 +162,7 @@ export const createAssessmentQueueItem = ({
   assessmentId,
   courseId,
   lessonId,
-  payload,
+  payload: stripLargeAudioPayload(payload),
   assessmentTitle,
   createdAt: nowIso(),
   updatedAt: nowIso(),

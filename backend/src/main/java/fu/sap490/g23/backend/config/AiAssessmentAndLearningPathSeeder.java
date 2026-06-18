@@ -199,7 +199,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             .active(true)
                             .build());
             assessment.setRubric(rubric);
-            assessment.setTitle("Module AI Check - " + module.getTitle());
+            assessment.setTitle("Bài đánh giá cuối mô-đun - " + module.getTitle());
             assessment.setDescription(practiceDescription(skill));
             assessment.setSkill(skill);
             assessment.setAiEvaluationMode(evaluationMode);
@@ -228,11 +228,11 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                         .active(true)
                         .build());
         finalMock.setRubric(null);
-        finalMock.setTitle("Final AI Mock Reflection");
-        finalMock.setDescription("After completing the practice tests, submit your reflection and error log. AI identifies weak skills and recommends review modules.");
+        finalMock.setTitle("Tổng kết sau bài thi thử");
+        finalMock.setDescription("Sau khi hoàn thành các bài luyện thi, hãy gửi nhật ký lỗi và phần tự đánh giá. Hệ thống sẽ xác định kỹ năng yếu và gợi ý mô-đun cần ôn lại.");
         finalMock.setSkill(AssessmentSkill.MIXED);
         finalMock.setAiEvaluationMode(AiEvaluationMode.EXPLAIN_ONLY);
-        finalMock.setInstructions("Summarize your mock test mistakes, difficult question types, and next target. AI will create a review plan.");
+        finalMock.setInstructions("Tóm tắt lỗi sai, dạng câu hỏi khó và mục tiêu tiếp theo. Hệ thống sẽ tạo kế hoạch ôn tập.");
         finalMock.setPassingScore(null);
         finalMock.setMaxScore(null);
         finalMock.setTimeLimitMinutes(30);
@@ -282,11 +282,11 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
 
     private String practiceDescription(AssessmentSkill skill) {
         return switch (skill) {
-            case LISTENING -> "Submit your listening answers, difficult items, and notes. AI explains likely mistakes and recommends what to review next.";
-            case READING -> "Submit your reading answers, difficult questions, and evidence notes. AI helps analyze mistakes and recommends review steps.";
-            case SPEAKING -> "Submit a speaking transcript or audio URL. AI gives speaking-focused formative feedback using the linked speaking rubric.";
-            case WRITING -> "Submit an IELTS-style writing response. AI gives writing-focused formative feedback using the linked writing rubric.";
-            default -> "Submit your practice-test reflection, answers, or error log. AI identifies weak skills and recommends what to review next.";
+            case LISTENING -> "Nộp đáp án Listening theo từng câu. Hệ thống chấm bằng đáp án chuẩn, phân tích lỗi sai và gợi ý phần cần ôn lại.";
+            case READING -> "Nộp đáp án Reading theo từng câu. Hệ thống chấm bằng đáp án chuẩn, phân tích evidence, lỗi đọc hiểu và dạng câu còn yếu.";
+            case SPEAKING -> "Ghi âm câu trả lời Speaking. Hệ thống nhận xét theo tiêu chí Speaking, dùng âm thanh khi có để đánh giá độ trôi chảy và phát âm.";
+            case WRITING -> "Nộp bài viết IELTS Writing. Hệ thống đánh giá theo bộ tiêu chí Writing phù hợp với task.";
+            default -> "Nộp nhật ký lỗi, đáp án hoặc phần tự đánh giá để nhận kế hoạch ôn tập tiếp theo.";
         };
     }
 
@@ -296,24 +296,24 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             case READING -> readingInstructions();
             case SPEAKING -> speakingInstructions(module);
             case WRITING -> writingInstructions();
-            default -> "Summarize your answers, mistakes, difficult question types, and next target. AI will create a review plan.";
+            default -> "Tóm tắt đáp án, lỗi sai, dạng câu hỏi khó và mục tiêu tiếp theo. Hệ thống sẽ tạo kế hoạch ôn tập.";
         };
     }
 
     private String listeningInstructions() {
-        return "Complete the IELTS Listening simulation in exam mode. The test includes a built-in audio player, four parts, and structured answer inputs for all 40 questions."
+        return "Hoàn thành bài thi mô phỏng IELTS Listening. Bài thi có trình phát âm thanh, bốn phần và ô nhập đáp án cho đủ 40 câu."
                 + UI_CONFIG_MARKER
                 + loadResourceText("assessment-data/ielts_mock_2025_january_listening_test_1.json");
     }
 
     private String readingInstructions() {
-        return "Complete the IELTS Reading simulation in exam mode. The test uses a split passage/question layout, a 60-minute timer, and structured answers for all 40 questions."
+        return "Hoàn thành bài thi mô phỏng IELTS Reading. Bài thi có bố cục bài đọc và câu hỏi riêng, đồng hồ 60 phút và ô nhập đáp án cho đủ 40 câu."
                 + UI_CONFIG_MARKER
                 + loadResourceText("assessment-data/ielts_mock_2025_january_reading_test_1.json");
     }
 
     private String writingInstructions() {
-        return "Complete the IELTS Writing simulation in exam mode. The test opens two writing tasks with a shared timer, minimum word targets, and a dedicated submission flow."
+        return "Hoàn thành bài thi mô phỏng IELTS Writing. Bài thi gồm hai task, đồng hồ chung, mục tiêu số từ tối thiểu và luồng nộp bài riêng."
                 + UI_CONFIG_MARKER
                 + loadResourceText("assessment-data/ielts_mock_2025_january_writing_test_1.json");
     }
@@ -349,7 +349,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     }
 
     private String speakingInstructions(CourseModule module) {
-        String plainInstructions = "Complete the microphone check first, then follow the IELTS Speaking flow for Part 1, Part 2, and Part 3 before submitting your recording.";
+        String plainInstructions = "Kiểm tra micro trước, sau đó làm lần lượt IELTS Speaking Part 1, Part 2 và Part 3 trước khi nộp bản ghi âm.";
         return plainInstructions + UI_CONFIG_MARKER + speakingUiConfig(module);
     }
 

@@ -202,7 +202,15 @@ export const LearnerExperienceProvider = ({ children }) => {
       courseId,
       courseTitle,
     });
-    setNotifications((current) => [notification, ...current].slice(0, 50));
+    setNotifications((current) => {
+      const duplicate = current.some((item) => (
+        item.title === notification.title
+        && item.message === notification.message
+        && String(item.courseId || '') === String(notification.courseId || '')
+        && item.actionPath === notification.actionPath
+      ));
+      return duplicate ? current : [notification, ...current].slice(0, 50);
+    });
   };
 
   const markAllNotificationsRead = useCallback(() => {
