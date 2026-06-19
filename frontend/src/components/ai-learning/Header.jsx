@@ -5,13 +5,16 @@ import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
-const navItems = [
+const baseNavItems = [
   { label: 'Khóa học', to: '/courses' },
+  { label: 'Lớp học', to: '/classrooms' },
   { label: 'IELTS', href: '/#courses' },
   { label: 'TOEIC', href: '/#courses' },
   { label: 'Lịch khai giảng', href: '/#cta' },
   { label: 'Về EnglishLab', href: '/#testimonials' },
 ];
+
+const hasRole = (user, roles) => roles.includes(String(user?.role || '').toUpperCase());
 
 const Header = () => {
   const location = useLocation();
@@ -83,14 +86,39 @@ const Header = () => {
     navigate('/');
   };
 
-  const profileMenuItems = useMemo(
-    () => [
+  const navItems = useMemo(() => {
+    const items = [...baseNavItems];
+    if (user && hasRole(user, ['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN'])) {
+      items.splice(2, 0, { label: 'Giảng dạy', to: '/teacher' });
+    }
+    if (user && hasRole(user, ['TRAINING_MANAGER', 'MANAGER', 'ADMIN'])) {
+      items.splice(3, 0, { label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' });
+      items.splice(4, 0, { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' });
+    }
+    return items;
+  }, [user]);
+
+  const profileMenuItems = useMemo(() => {
+    const items = [
       { label: 'Khóa học của tôi', to: '/my-courses' },
+      { label: 'Lớp của tôi', to: '/my-classrooms' },
+      { label: 'Lịch học', to: '/my-schedule' },
+      { label: 'Bài tập', to: '/my-homework' },
       { label: 'Hồ sơ', to: '/profile' },
       { label: 'Lịch sử giao dịch', to: '/transaction-history' },
-    ],
-    [],
-  );
+    ];
+    if (user && hasRole(user, ['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN'])) {
+      items.unshift({ label: 'Giảng dạy', to: '/teacher' });
+    }
+    if (user && hasRole(user, ['TRAINING_MANAGER', 'MANAGER', 'ADMIN'])) {
+      items.unshift({ label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' });
+      items.unshift({ label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' });
+    }
+    if (user && hasRole(user, ['MANAGER', 'ADMIN'])) {
+      items.unshift({ label: 'Tổng quan lớp', to: '/manager/classrooms' });
+    }
+    return items;
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#dfbfbd]/30 bg-[#f9f9f9]/95 shadow-sm backdrop-blur-md">

@@ -54,6 +54,9 @@ public class PaymentOrder {
     @Column(name = "course_ids_csv", nullable = false, length = 1000)
     private String courseIdsCsv;
 
+    @Column(name = "classroom_offering_ids_csv", length = 1000)
+    private String classroomOfferingIdsCsv;
+
     @Column(name = "course_titles", columnDefinition = "text")
     private String courseTitles;
 

@@ -21,6 +21,19 @@ import TransactionHistoryPage from './pages/TransactionHistoryPage';
 import VerifyEmail from './pages/VerifyEmail';
 import WishlistPage from './pages/WishlistPage';
 import ContentManagerRoutes from './pages/content-manager/ContentManagerRoutes';
+import ClassroomsCatalogPage from './pages/classroom/ClassroomsCatalogPage';
+import ClassroomPublicDetailPage from './pages/classroom/ClassroomPublicDetailPage';
+import MyClassroomsPage from './pages/classroom/MyClassroomsPage';
+import MyClassroomDetailPage from './pages/classroom/MyClassroomDetailPage';
+import MySchedulePage from './pages/classroom/MySchedulePage';
+import MyHomeworkPage from './pages/classroom/MyHomeworkPage';
+import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage';
+import TeacherClassroomPage from './pages/teacher/TeacherClassroomPage';
+import TeacherSessionPage from './pages/teacher/TeacherSessionPage';
+import TeacherRequestsPage from './pages/teacher/TeacherRequestsPage';
+import TrainingManagerRequestsPage from './pages/training-manager/TrainingManagerRequestsPage';
+import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/TrainingManagerClassroomRegistrationsPage';
+import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 
 function CourseDetailRoute() {
   const { slugOrId } = useParams();
@@ -46,6 +59,8 @@ function AppRoutes() {
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
       </Route>
+      <Route path="/classrooms" element={<ClassroomsCatalogPage />} />
+      <Route path="/classrooms/:slugOrId" element={<ClassroomPublicDetailPage />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
       <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
@@ -55,6 +70,25 @@ function AppRoutes() {
       <Route path="/checkout" element={<CheckoutPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/my-courses" element={<MyCoursesPage />} />
+      <Route path="/my-classrooms" element={<MyClassroomsPage />} />
+      <Route path="/my-schedule" element={<MySchedulePage />} />
+      <Route path="/my-homework" element={<MyHomeworkPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN']} />}>
+        <Route path="/teacher" element={<TeacherDashboardPage />} />
+        <Route path="/teacher/classrooms/:id" element={<TeacherClassroomPage />} />
+        <Route path="/teacher/sessions/:sessionId" element={<TeacherSessionPage />} />
+        <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['TRAINING_MANAGER', 'MANAGER', 'ADMIN']} />}>
+        <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
+        <Route path="/training-manager/classroom-registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
+      </Route>
+      <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
+        <Route path="/manager/classrooms" element={<ManagerClassroomsPage />} />
+      </Route>
       <Route path="/transaction-history" element={<TransactionHistoryPage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<Home />} />

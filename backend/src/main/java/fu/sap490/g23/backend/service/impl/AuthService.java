@@ -58,7 +58,7 @@ public class AuthService implements IAuthService {
         }
 
         User savedUser = userRepository.save(user);
-        AuthToken verificationToken = authTokenService.issueEmailVerificationToken(savedUser);
+        AuthToken verificationToken = authTokenService.issueEmailVerificationTokenForRegistration(savedUser);
         authMailService.sendVerificationEmail(savedUser, verificationToken.getToken());
 
         return AuthResponse.builder()

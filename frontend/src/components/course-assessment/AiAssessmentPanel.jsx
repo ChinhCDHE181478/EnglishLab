@@ -753,6 +753,7 @@ export default function AiAssessmentPanel({
   draftGetter,
   onDraftChange,
   onClearDraft,
+  skipSpeakingDeviceCheck = false,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState('');
@@ -1220,6 +1221,18 @@ export default function AiAssessmentPanel({
       finished: false,
     });
   }, [speakingExperience?.kind, speakingExperience?.activeVariant?.key]);
+
+  useEffect(() => {
+    if (!skipSpeakingDeviceCheck) return;
+    if (selected?.skill !== 'SPEAKING') return;
+    if (speakingExperience?.kind !== 'mock_test') return;
+
+    stopMicCheck();
+    setHeadphoneCheckPlayed(true);
+    setMicPermissionState('granted');
+    setMicCheckPassed(true);
+    setSpeakingStage((current) => (current === 'mic_check' ? 'briefing' : current));
+  }, [skipSpeakingDeviceCheck, selected?.id, selected?.skill, speakingExperience?.kind]);
 
   useEffect(() => {
     setSpeakingQuestionIndex(0);

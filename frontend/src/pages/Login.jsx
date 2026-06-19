@@ -36,15 +36,20 @@ const Login = () => {
   const [googleReady, setGoogleReady] = useState(false);
   const [facebookLoading, setFacebookLoading] = useState(false);
 
+  const resolvePostLoginPath = (user) => {
+    const role = String(user?.role || '').toUpperCase();
+    if (isContentManagerUser(user)) return '/content-manager/dashboard';
+    if (role === 'TRAINING_MANAGER') return '/training-manager/classroom-registrations';
+    if (role === 'TEACHER') return '/teacher';
+    if (needsProfileCompletion(user)) return '/complete-profile';
+    return '/home';
+  };
+
   const saveSession = (response) => {
     const { accessToken, user } = response.data;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('user', JSON.stringify(user));
-    if (isContentManagerUser(user)) {
-      navigate('/content-manager/dashboard', { replace: true });
-      return;
-    }
-    navigate(needsProfileCompletion(user) ? '/complete-profile' : '/home', { replace: true });
+    navigate(resolvePostLoginPath(user), { replace: true });
   };
 
   useEffect(() => {

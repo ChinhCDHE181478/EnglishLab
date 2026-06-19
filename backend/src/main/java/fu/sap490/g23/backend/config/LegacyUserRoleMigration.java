@@ -18,11 +18,6 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
     @Override
     public void run(String... args) {
         jdbcTemplate.execute("alter table users drop constraint if exists users_role_check");
-        jdbcTemplate.execute("""
-                alter table users
-                add constraint users_role_check
-                check (role in ('USER', 'LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER', 'TEACHER_MANAGER', 'ADMIN'))
-                """);
 
         int updatedRows = jdbcTemplate.update(
                 "update users set role = ? where upper(role) = ?",
@@ -30,15 +25,23 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
                 "USER"
         );
 
-        jdbcTemplate.execute("alter table users drop constraint if exists users_role_check");
+        int trainingManagerMigrated = jdbcTemplate.update(
+                "update users set role = ? where upper(role) = ?",
+                "TRAINING_MANAGER",
+                "TEACHER_MANAGER"
+        );
+
         jdbcTemplate.execute("""
                 alter table users
                 add constraint users_role_check
-                check (role in ('LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER', 'TEACHER_MANAGER', 'ADMIN'))
+                check (role in ('LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER', 'TRAINING_MANAGER', 'ADMIN'))
                 """);
 
         if (updatedRows > 0) {
             log.info("Migrated {} legacy USER role records to LEARNER.", updatedRows);
+        }
+        if (trainingManagerMigrated > 0) {
+            log.info("Migrated {} TEACHER_MANAGER role records to TRAINING_MANAGER.", trainingManagerMigrated);
         }
     }
 }

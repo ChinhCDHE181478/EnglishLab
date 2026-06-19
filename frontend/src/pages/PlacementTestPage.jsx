@@ -4,6 +4,7 @@ import { BookOpen, Headphones, Mic, PenLine } from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
 import Footer from '../components/ai-learning/Footer';
 import Header from '../components/ai-learning/Header';
+import AiAssessmentPanel from '../components/course-assessment/AiAssessmentPanel';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
@@ -157,6 +158,28 @@ const toWritingSubmissionText = (config = {}, writingAnswers = {}) => {
     ].join('\n');
   }).join('\n\n');
 };
+
+const buildPlacementSpeakingAssessment = (config = {}) => ({
+  id: 'placement-speaking',
+  skill: 'SPEAKING',
+  title: config.title || 'Placement Speaking Test',
+  description: config.description || 'Bài thi thử Speaking cho đánh giá đầu vào.',
+  uiConfigJson: JSON.stringify({
+    type: 'speaking_mock_test',
+    flow: ['mic_check', 'briefing', 'mock_test', 'recording', 'submit'],
+    briefing: {
+      title: config.title || 'Hướng dẫn làm bài Speaking',
+      summary: config.description || 'Đọc nhanh hướng dẫn rồi chuyển sang phần đề trước khi bắt đầu ghi âm.',
+    },
+    variants: [
+      {
+        key: config.key || 'placement-speaking',
+        label: config.label || 'Mock Test 1',
+        parts: Array.isArray(config.parts) ? config.parts : [],
+      },
+    ],
+  }),
+});
 
 function DeviceCheck({ onComplete }) {
   const [inputs, setInputs] = useState([]);
@@ -807,6 +830,47 @@ export default function PlacementTestPage() {
     }
   };
 
+  const handleSpeakingPanelSubmit = async (_assessmentId, payload = {}) => {
+    const nextTranscript = String(payload.submittedText || '').trim();
+    const nextAudioUrl = String(payload.submittedAudioUrl || '').trim();
+
+    setDraft((current) => ({
+      ...current,
+      speakingTranscript: nextTranscript || current.speakingTranscript,
+      speakingAudioUrl: nextAudioUrl || current.speakingAudioUrl,
+    }));
+
+    if (!nextAudioUrl && !nextTranscript) {
+      setSubmitError('Hãy hoàn thành phần Speaking trong đúng giao diện module test trước khi nộp.');
+      throw new Error('Missing speaking evidence');
+    }
+
+    try {
+      const response = await placementTestApi.submitMockOne({
+        testCode: test.testCode,
+        listeningAnswers: draft.listeningAnswers,
+        readingAnswers: draft.readingAnswers,
+        writingAnswers: draft.writingAnswers,
+        speakingTranscript: nextTranscript || draft.speakingTranscript,
+        speakingAudioUrl: nextAudioUrl || draft.speakingAudioUrl,
+        deviceCheck,
+      });
+
+      setResult(response);
+      setStage('result');
+
+      if (response.status === 'COMPLETED') {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+
+      return response;
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Chưa thể nộp bài. Bản nháp vẫn được giữ trên thiết bị này.';
+      setSubmitError(message);
+      throw error;
+    }
+  };
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center bg-[#f8f4f1] font-bold text-[#8a0018]">Đang tải bài đánh giá đầu vào...</div>;
   }
@@ -936,21 +1000,30 @@ export default function PlacementTestPage() {
     }
 
     return (
-      <>
-        <PlacementSpeakingExamMode
-          assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
-          audioUrl={draft.speakingAudioUrl}
-          config={activeConfig}
-          onAudioReady={(value) => setDraft((current) => ({ ...current, speakingAudioUrl: value }))}
-          onClose={() => navigate('/')}
-          onSubmit={(autoSubmitted) => submitAll({ skipSpeakingValidation: autoSubmitted })}
-          onTranscriptChange={(value) => setDraft((current) => ({ ...current, speakingTranscript: value }))}
-          submitLabel="Nộp toàn bộ bài thi"
-          submitting={submitting}
-          transcript={draft.speakingTranscript}
-        />
+      <div className="min-h-screen bg-[#f8f4f1] px-4 py-6">
+        <div className="mx-auto max-w-6xl">
+          <AiAssessmentPanel
+            assessments={[buildPlacementSpeakingAssessment(activeConfig)]}
+            draftGetter={() => ({
+              submittedText: draft.speakingTranscript,
+              submittedAudioUrl: draft.speakingAudioUrl,
+            })}
+            isLocked={false}
+            moduleTitle={test?.title || 'Placement Test'}
+            onClearDraft={() => {}}
+            onDraftChange={(panelDraft) => {
+              setDraft((current) => ({
+                ...current,
+                speakingTranscript: String(panelDraft?.submittedText || current.speakingTranscript || ''),
+                speakingAudioUrl: String(panelDraft?.submittedAudioUrl || current.speakingAudioUrl || ''),
+              }));
+            }}
+            onSubmitAssessment={handleSpeakingPanelSubmit}
+            skipSpeakingDeviceCheck
+          />
+        </div>
         {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
-      </>
+      </div>
     );
   }
 

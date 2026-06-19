@@ -28,7 +28,12 @@ public class StudentPaymentController {
             @Valid @RequestBody CreatePaymentLinkRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(paymentService.createPaymentLink(request.getCourseIds(), request.getCouponCode(), authentication.getName()));
+        return ResponseEntity.ok(paymentService.createPaymentLink(
+                request.getCourseIds(),
+                request.getClassroomOfferingIds(),
+                request.getCouponCode(),
+                authentication.getName()
+        ));
     }
 
     @PostMapping("/quote")
@@ -36,7 +41,12 @@ public class StudentPaymentController {
             @Valid @RequestBody CreatePaymentLinkRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(paymentService.quotePayment(request.getCourseIds(), request.getCouponCode(), authentication.getName()));
+        return ResponseEntity.ok(paymentService.quotePayment(
+                request.getCourseIds(),
+                request.getClassroomOfferingIds(),
+                request.getCouponCode(),
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/orders/{orderCode}")

@@ -5,6 +5,6 @@ public enum Role {
     TEACHER,
     MANAGER,
     CONTENT_MANAGER,
-    TEACHER_MANAGER,
+    TRAINING_MANAGER,
     ADMIN
 }

@@ -5,6 +5,7 @@ import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 import ContentManagerCoursesPage from './ContentManagerCoursesPage';
 import ContentManagerDashboardPage from './ContentManagerDashboardPage';
 import ContentManagerDiscountCodesPage from './ContentManagerDiscountCodesPage';
+import ContentManagerClassroomsPage from './ContentManagerClassroomsPage';
 import ContentManagerStaticPage from './ContentManagerStaticPage';
 
 export default function ContentManagerRoutes() {
@@ -14,6 +15,7 @@ export default function ContentManagerRoutes() {
         <Route index element={<Navigate replace to="dashboard" />} />
         <Route path="dashboard" element={<ContentManagerDashboardPage />} />
         <Route path="courses" element={<ContentManagerCoursesPage />} />
+        <Route path="classrooms" element={<ContentManagerClassroomsPage />} />
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/edit" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/builder" element={<ContentManagerCourseBuilderPage />} />

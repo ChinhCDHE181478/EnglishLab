@@ -31,6 +31,15 @@ public class AuthTokenService {
     @Transactional
     public AuthToken issueEmailVerificationToken(User user) {
         enforceResendCooldown(user, AuthTokenType.EMAIL_VERIFICATION);
+        return replaceEmailVerificationToken(user);
+    }
+
+    @Transactional
+    public AuthToken issueEmailVerificationTokenForRegistration(User user) {
+        return replaceEmailVerificationToken(user);
+    }
+
+    private AuthToken replaceEmailVerificationToken(User user) {
         authTokenRepository.deleteByUserAndType(user, AuthTokenType.EMAIL_VERIFICATION);
         return authTokenRepository.save(AuthToken.builder()
                 .user(user)
