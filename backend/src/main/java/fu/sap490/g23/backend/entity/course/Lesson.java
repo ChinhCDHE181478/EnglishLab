@@ -46,6 +46,9 @@ public class Lesson {
     @Column(name = "material_url", length = 700)
     private String materialUrl;
 
+    @Column(name = "transcript_segments_json", columnDefinition = "text")
+    private String transcriptSegmentsJson;
+
     @Column(name = "duration_minutes", nullable = false)
     @Builder.Default
     private Integer durationMinutes = 0;

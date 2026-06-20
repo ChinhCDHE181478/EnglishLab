@@ -1,0 +1,607 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2025_january_listening_test_1",
+  "title": "IELTS Mock Test 2025 January Listening Practice Test 1",
+  "sourceLabel": "Adapted from local HTML sample",
+  "durationMinutes": 32,
+  "audioLabel": "Practice Test 1 audio track",
+  "audioUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/Audio/IELTS_Practice_Test/9/Practice%20test%201.mp3",
+  "rules": [
+    "Use the built-in audio player and complete all four parts in one sitting.",
+    "Do not switch tabs, refresh the page, or leave the full-screen exam window.",
+    "EnglishLab records warnings when focus is lost or restricted shortcuts are used."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Homestay application",
+      "summary": "The housing officer takes some details from a student applying for a homestay.",
+      "questionGroups": [
+        {
+          "title": "Questions 1-5",
+          "instructions": "Complete the following form with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+          "descriptionHtml": "<p><em>The housing officer takes some details from the girl.</em></p><p><em>Complete the following form with <strong>NO MORE THAN THREE WORDS AND/OR A NUMBER</strong> for each answer.</em></p><p><strong>Personal details for homestay application</strong></p>",
+          "type": "text",
+          "questions": [
+            {
+              "number": 1,
+              "promptBefore": "First name:"
+            },
+            {
+              "number": 2,
+              "promptBefore": "Passport number:"
+            },
+            {
+              "number": 3,
+              "promptBefore": "Course enrolled:"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Length of the course:"
+            },
+            {
+              "number": 5,
+              "promptBefore": "Homestay time:"
+            }
+          ]
+        },
+        {
+          "title": "Question 6",
+          "instructions": "Choose TWO letters that represent the correct answer.",
+          "descriptionHtml": "<p><em>Which kind of family does the girl prefer?</em></p>",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            6
+          ],
+          "maxSelections": 2,
+          "options": [
+            {
+              "value": "A",
+              "label": "A big family with many young children"
+            },
+            {
+              "value": "B",
+              "label": "A family without smokers or drinkers"
+            },
+            {
+              "value": "C",
+              "label": "A family without any pets"
+            },
+            {
+              "value": "D",
+              "label": "A family with many animals or pets"
+            }
+          ]
+        },
+        {
+          "title": "Questions 7-10",
+          "instructions": "Fill in the blanks with NO MORE THAN THREE WORDS for each answer.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 7,
+              "promptBefore": "Although the girl is not a vegetarian, her favourite food is"
+            },
+            {
+              "number": 8,
+              "promptBefore": "She has given up playing handball and now just plays",
+              "promptAfter": "with her friends at weekends."
+            },
+            {
+              "number": 9,
+              "promptBefore": "She does not like taking the bus and would rather"
+            },
+            {
+              "number": 10,
+              "promptBefore": "She can get information about the homestay family she wants"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Travel to Enzina",
+      "summary": "You will hear a talk by a tour guide about travel arrangements, visas, health advice, and transport in Enzina.",
+      "questionGroups": [
+        {
+          "title": "Questions 11-15",
+          "instructions": "Complete the notes with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+          "descriptionHtml": "<p><em>You will hear a talk by a tour guide about travel to Enzina.</em></p><p><strong>Notes: visas</strong></p>",
+          "type": "text",
+          "questions": [
+            {
+              "number": 11,
+              "promptBefore": "Normal visas last for"
+            },
+            {
+              "number": 12,
+              "promptBefore": "You need to pay"
+            },
+            {
+              "number": 13,
+              "promptBefore": "Some consulates require a letter to"
+            },
+            {
+              "number": 14,
+              "promptBefore": "The best time to apply is at least",
+              "promptAfter": "before departure."
+            },
+            {
+              "number": 15,
+              "promptBefore": "Tourists should keep a copy of their",
+              "promptAfter": "with them."
+            }
+          ]
+        },
+        {
+          "title": "Questions 16-20",
+          "instructions": "Complete the notes with NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer.",
+          "descriptionHtml": "<p><strong>Health and travel advice</strong></p>",
+          "type": "text",
+          "questions": [
+            {
+              "number": 16,
+              "promptBefore": "Visitors are advised to drink only"
+            },
+            {
+              "number": 17,
+              "promptBefore": "The recommended insect repellent should contain"
+            },
+            {
+              "number": 18,
+              "promptBefore": "The quickest way to reach the capital from the airport is by"
+            },
+            {
+              "number": 19,
+              "promptBefore": "Local buses usually stop running after"
+            },
+            {
+              "number": 20,
+              "promptBefore": "The emergency number for tourists is"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Study skills seminar",
+      "summary": "Two students discuss project planning and assignment preparation during a college study-skills session.",
+      "questionGroups": [
+        {
+          "title": "Questions 21-25",
+          "instructions": "Choose the correct answer A, B, C, or D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 21,
+              "prompt": "What is the main problem the students mention at the start of the seminar?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They leave assignments until too late."
+                },
+                {
+                  "value": "B",
+                  "label": "They cannot access the course website."
+                },
+                {
+                  "value": "C",
+                  "label": "They do not understand the grading system."
+                },
+                {
+                  "value": "D",
+                  "label": "They have too few classes each week."
+                }
+              ]
+            },
+            {
+              "number": 22,
+              "prompt": "What does the lecturer recommend students do first?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Write the final conclusion immediately."
+                },
+                {
+                  "value": "B",
+                  "label": "Break the task into smaller stages."
+                },
+                {
+                  "value": "C",
+                  "label": "Ask a friend to check every paragraph."
+                },
+                {
+                  "value": "D",
+                  "label": "Memorise the assessment rubric."
+                }
+              ]
+            },
+            {
+              "number": 23,
+              "prompt": "Why do the students say they often feel stressed?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They work long hours at part-time jobs."
+                },
+                {
+                  "value": "B",
+                  "label": "They have to commute from another city."
+                },
+                {
+                  "value": "C",
+                  "label": "Several deadlines arrive at the same time."
+                },
+                {
+                  "value": "D",
+                  "label": "Their lecturers change the topic frequently."
+                }
+              ]
+            },
+            {
+              "number": 24,
+              "prompt": "What tool does the lecturer say is most useful for weekly planning?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A shared message group"
+                },
+                {
+                  "value": "B",
+                  "label": "A weekly planner"
+                },
+                {
+                  "value": "C",
+                  "label": "A voice recorder"
+                },
+                {
+                  "value": "D",
+                  "label": "A colour printer"
+                }
+              ]
+            },
+            {
+              "number": 25,
+              "prompt": "What should students include in the final review stage?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A check of timing, structure, and evidence"
+                },
+                {
+                  "value": "B",
+                  "label": "A new introduction and a second title"
+                },
+                {
+                  "value": "C",
+                  "label": "A fresh bibliography from another topic"
+                },
+                {
+                  "value": "D",
+                  "label": "A comparison with last year's exam paper"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 26-30",
+          "instructions": "Complete the summary with NO MORE THAN THREE WORDS for each answer.",
+          "descriptionHtml": "<p><strong>Seminar summary</strong></p>",
+          "type": "text",
+          "questions": [
+            {
+              "number": 26,
+              "promptBefore": "Students should reserve one regular",
+              "promptAfter": "each week for planning."
+            },
+            {
+              "number": 27,
+              "promptBefore": "A long assignment becomes easier when it is divided into",
+              "promptAfter": "."
+            },
+            {
+              "number": 28,
+              "promptBefore": "The lecturer says a term planner gives an overview of the whole"
+            },
+            {
+              "number": 29,
+              "promptBefore": "A weekly planner helps students organise classes, reading, and"
+            },
+            {
+              "number": 30,
+              "promptBefore": "Daily planning is mainly about the",
+              "promptAfter": "for each day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Time management lecture",
+      "summary": "A lecturer explains how students can manage deadlines more effectively.",
+      "questionGroups": [
+        {
+          "title": "Questions 31-40",
+          "instructions": "Choose the correct answer A, B, C, or D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 31,
+              "prompt": "What is the main topic of the lecture?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Time management for students"
+                },
+                {
+                  "value": "B",
+                  "label": "How to improve note-taking speed"
+                },
+                {
+                  "value": "C",
+                  "label": "The design of university libraries"
+                },
+                {
+                  "value": "D",
+                  "label": "How to choose optional modules"
+                }
+              ]
+            },
+            {
+              "number": 32,
+              "prompt": "According to the lecturer, students should start by trying to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "understand how they currently use their time"
+                },
+                {
+                  "value": "B",
+                  "label": "work faster"
+                },
+                {
+                  "value": "C",
+                  "label": "set an overview of their assignment"
+                },
+                {
+                  "value": "D",
+                  "label": "plan every task in exact detail immediately"
+                }
+              ]
+            },
+            {
+              "number": 33,
+              "prompt": "The lecturer says students often make the mistake of trying to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "organise everything in an over-systematic way"
+                },
+                {
+                  "value": "B",
+                  "label": "work faster"
+                },
+                {
+                  "value": "C",
+                  "label": "set an overview of their assignment"
+                },
+                {
+                  "value": "D",
+                  "label": "make a list, plan for everything, and try to stick rigidly to it"
+                }
+              ]
+            },
+            {
+              "number": 34,
+              "prompt": "In this college, students are assigned ____________ at the end of each semester.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "team projects"
+                },
+                {
+                  "value": "B",
+                  "label": "final term examinations"
+                },
+                {
+                  "value": "C",
+                  "label": "essays"
+                },
+                {
+                  "value": "D",
+                  "label": "time management courses"
+                }
+              ]
+            },
+            {
+              "number": 35,
+              "prompt": "One sign the lecturer mentions that students feel under pressure is",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "library books go missing"
+                },
+                {
+                  "value": "B",
+                  "label": "students get angry for no reason"
+                },
+                {
+                  "value": "C",
+                  "label": "lower class attendance rates"
+                },
+                {
+                  "value": "D",
+                  "label": "trouble at the library"
+                }
+              ]
+            },
+            {
+              "number": 36,
+              "prompt": "What kind of suggestion does the lecturer give to the students?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Making a very detailed plan of their daily activities"
+                },
+                {
+                  "value": "B",
+                  "label": "Not being so stressed just because there is an assignment"
+                },
+                {
+                  "value": "C",
+                  "label": "A regular one-hour session in their personal timetables"
+                },
+                {
+                  "value": "D",
+                  "label": "Wearing comfortable shoes"
+                }
+              ]
+            },
+            {
+              "number": 37,
+              "prompt": "According to the lecturer, there are three kinds of planners. They are:",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "one weekly planner, one daily planner and one hour planner"
+                },
+                {
+                  "value": "B",
+                  "label": "one yearly planner, one weekly planner and one daily planner"
+                },
+                {
+                  "value": "C",
+                  "label": "one term planner, one monthly planner and one weekly planner"
+                },
+                {
+                  "value": "D",
+                  "label": "one term planner, one weekly planner and one daily planner"
+                }
+              ]
+            },
+            {
+              "number": 38,
+              "prompt": "If you want to set an overview of your time, you should need at least",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "one week"
+                },
+                {
+                  "value": "B",
+                  "label": "half a week"
+                },
+                {
+                  "value": "C",
+                  "label": "one month"
+                },
+                {
+                  "value": "D",
+                  "label": "one term"
+                }
+              ]
+            },
+            {
+              "number": 39,
+              "prompt": "The daily planner of time is mainly concerned with",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "the detailed planning"
+                },
+                {
+                  "value": "B",
+                  "label": "how to plan all available time"
+                },
+                {
+                  "value": "C",
+                  "label": "TV schedules"
+                },
+                {
+                  "value": "D",
+                  "label": "an overview of everything you need to do for several days"
+                }
+              ]
+            },
+            {
+              "number": 40,
+              "prompt": "According to the lecturer, wise time management may have the following benefit:",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "having more time to spend on relaxation and other activities"
+                },
+                {
+                  "value": "B",
+                  "label": "improving performance in the final term assignment"
+                },
+                {
+                  "value": "C",
+                  "label": "helping students write better essays"
+                },
+                {
+                  "value": "D",
+                  "label": "improving memory"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "Keiko",
+    "2": "JO6337",
+    "3": "advanced English studies",
+    "4": "5 weeks",
+    "5": "about 4 months",
+    "6": [
+      "B",
+      "D"
+    ],
+    "7": "seafood",
+    "8": "tennis",
+    "9": "take the train",
+    "10": "this afternoon",
+    "11": "90 days",
+    "12": "30 pounds",
+    "13": "confirm your nationality",
+    "14": "two months",
+    "15": "passport",
+    "16": "bottled water",
+    "17": "DEET",
+    "18": "taxi",
+    "19": "12",
+    "20": "112",
+    "21": "A",
+    "22": "B",
+    "23": "C",
+    "24": "B",
+    "25": "A",
+    "26": "hour",
+    "27": "smaller stages",
+    "28": "term",
+    "29": "assignments",
+    "30": "tasks",
+    "31": "A",
+    "32": "A",
+    "33": "D",
+    "34": "C",
+    "35": "D",
+    "36": "C",
+    "37": "D",
+    "38": "A",
+    "39": "A",
+    "40": "A"
+  }
+}

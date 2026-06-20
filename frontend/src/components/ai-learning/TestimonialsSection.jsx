@@ -16,7 +16,7 @@ const testimonials = [
     initial: 'L',
     rating: 5,
     text:
-      'Lộ trình học rất rõ ràng. Thầy cô vô cùng tâm huyết và theo sát từng học viên. Khóa TOEIC Intensive đã giúp mình đạt đủ điểm ra trường chỉ sau 2 tháng.',
+      'Nội dung học rất rõ ràng. Thầy cô vô cùng tâm huyết và theo sát từng học viên. Khóa TOEIC Intensive đã giúp mình đạt đủ điểm ra trường chỉ sau 2 tháng.',
   },
   {
     name: 'Trần Việt',

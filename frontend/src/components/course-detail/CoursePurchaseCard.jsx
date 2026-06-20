@@ -31,7 +31,7 @@ const CoursePurchaseCard = ({ course, isAuthenticated, purchasing, onPurchase })
         </div>
       </div>
       {course.registered ? (
-        <Link className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#8a0018] px-5 py-4 text-center text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-[#650012]" to={`/courses/${course.slug}/learn`} state={{ course }}>
+        <Link className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#8a0018] px-5 py-4 text-center text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:bg-[#650012]" to={`/courses/${course.slug}/home`} state={{ course }}>
           Đến khóa học
         </Link>
       ) : isAuthenticated ? (

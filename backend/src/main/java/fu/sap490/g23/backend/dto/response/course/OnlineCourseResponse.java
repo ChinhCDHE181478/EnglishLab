@@ -40,6 +40,9 @@ public class OnlineCourseResponse {
     private String duration;
     private String studyMode;
     private BigDecimal price;
+    private BigDecimal originalPrice;
+    private BigDecimal salePrice;
+    private Integer discountPercent;
     private String thumbnailUrl;
     private Integer totalLessons;
     private Integer totalHours;
@@ -51,6 +54,9 @@ public class OnlineCourseResponse {
     private Long enrollmentCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    private List<String> focusSkills = new ArrayList<>();
 
     @Builder.Default
     private List<ModuleResponse> modules = new ArrayList<>();

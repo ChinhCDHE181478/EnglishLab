@@ -57,7 +57,12 @@ const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) 
     return <Navigate to="/home" replace />;
   }
 
-  if (!allowedRoles?.length && !requireCompleteProfile && !needsProfileCompletion(user)) {
+  if (
+    !allowedRoles?.length &&
+    !requireCompleteProfile &&
+    !needsProfileCompletion(user) &&
+    location.pathname === '/complete-profile'
+  ) {
     return <Navigate to="/home" replace />;
   }
 

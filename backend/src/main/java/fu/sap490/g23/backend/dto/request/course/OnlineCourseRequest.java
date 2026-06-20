@@ -73,6 +73,9 @@ public class OnlineCourseRequest {
     @DecimalMin(value = "0.00")
     private BigDecimal price;
 
+    @DecimalMin(value = "0.00")
+    private BigDecimal salePrice;
+
     @Size(max = 700)
     private String thumbnailUrl;
 

@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,6 +35,8 @@ public class LessonRequest {
 
     @Size(max = 700)
     private String materialUrl;
+
+    private List<TranscriptSegmentRequest> transcriptSegments;
 
     @Min(0)
     private Integer durationMinutes;

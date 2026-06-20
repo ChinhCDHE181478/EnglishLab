@@ -1,49 +1,100 @@
 import BrandedSelect from '../ui/BrandedSelect';
 
-const filterGroups = [
-  { title: 'Mục tiêu', options: ['IELTS Academic', 'TOEIC Listening & Reading', 'Giao tiếp đi làm'] },
-  { title: 'Trình độ', options: ['Mới bắt đầu', 'Trung cấp (4.5 - 5.5)', 'Nâng cao (6.0+)'] },
-  { title: 'Hình thức', options: ['Học tại trung tâm', 'Học trực tuyến (Live)'] },
+const bandOptions = [
+  { label: 'Tất cả trình độ', value: '' },
+  { label: 'Band 4.5 trở xuống', value: '4.5' },
+  { label: 'Band 5.0 đến 5.5', value: '5.5' },
+  { label: 'Band 6.0 đến 6.5', value: '6.5' },
+  { label: 'Band 7.0 trở lên', value: '7.0' },
 ];
 
-const durationOptions = ['Mọi thời lượng', 'Dưới 2 tháng', '2 - 4 tháng', 'Trên 4 tháng'];
+const targetBandOptions = [
+  { label: 'Tất cả mục tiêu', value: '' },
+  { label: 'Band 6.0', value: '6.0' },
+  { label: 'Band 6.5', value: '6.5' },
+  { label: 'Band 7.0', value: '7.0' },
+  { label: 'Band 7.5 trở lên', value: '7.5' },
+];
 
-const CourseFilters = ({ keyword, onKeywordChange, onClear }) => (
+const skillOptions = [
+  { label: 'Tất cả kỹ năng', value: '' },
+  { label: 'Từ vựng học thuật', value: 'Từ vựng học thuật' },
+  { label: 'Viết luận', value: 'Viết luận' },
+  { label: 'Luyện đề', value: 'Luyện đề' },
+  { label: 'Ngữ pháp', value: 'Ngữ pháp' },
+  { label: 'Đọc hiểu', value: 'Đọc hiểu' },
+  { label: 'Speaking theo chủ đề', value: 'Speaking theo chủ đề' },
+];
+
+const categoryOptions = [
+  { label: 'Tất cả danh mục', value: '' },
+  { label: 'IELTS', value: 'IELTS' },
+  { label: 'TOEIC', value: 'TOEIC' },
+  { label: 'Giao tiếp', value: 'COMMUNICATION' },
+  { label: 'Trực tuyến', value: 'ONLINE' },
+];
+
+const promotionOptions = [
+  { label: 'Tất cả trạng thái', value: '' },
+  { label: 'Đang giảm giá', value: 'promotion' },
+  { label: 'Không ưu đãi', value: 'standard' },
+];
+
+const CourseFilters = ({
+  keyword,
+  filters,
+  onKeywordChange,
+  onFilterChange,
+  onClear,
+}) => (
   <aside className="hidden space-y-8 lg:block">
     <div className="sticky top-28">
       <div className="mb-6">
-        <h3 className="font-headline-md mb-4 text-[24px] font-semibold leading-[1.3]">Bộ lọc</h3>
-        <div className="h-1 w-12 rounded bg-[#4b0009]" />
+        <p className="mb-2 text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Tìm và lọc</p>
+        <h3 className="mb-3 text-[24px] font-semibold leading-[1.3] text-[#2b2828]">Toàn bộ khóa học</h3>
+        <p className="text-sm leading-7 text-[#584140]">
+          Thu hẹp danh sách theo trình độ, kỹ năng và mục tiêu để tìm khóa học phù hợp nhanh hơn.
+        </p>
+        <div className="mt-4 h-1 w-12 rounded bg-[#4b0009]" />
       </div>
-      <div className="space-y-6">
+      <div className="space-y-6 rounded-[28px] border border-[#dfbfbd]/30 bg-white p-5 shadow-sm">
         <div>
-          <p className="mb-3 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-[#584140]">Tìm kiếm</p>
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Tìm kiếm theo tên khóa học</p>
           <input
-            className="w-full rounded-lg border border-[#dfbfbd]/50 bg-white px-3 py-2 outline-none transition focus:border-[#4b0009] focus:ring-1 focus:ring-[#4b0009]"
+            className="w-full rounded-[18px] border border-[#dfbfbd]/50 bg-white px-4 py-3 outline-none transition focus:border-[#4b0009] focus:ring-1 focus:ring-[#4b0009]"
             onChange={(event) => onKeywordChange(event.target.value)}
-            placeholder="Tên khóa học..."
+            placeholder="Nhập tên khóa học..."
             value={keyword}
           />
         </div>
-        {filterGroups.map((group) => (
-          <div key={group.title}>
-            <p className="mb-3 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-[#584140]">{group.title}</p>
-            <div className="space-y-2">
-              {group.options.map((option) => (
-                <label key={option} className="group flex cursor-pointer items-center gap-3">
-                  <input className="h-4 w-4 rounded border-[#dfbfbd] text-[#4b0009] focus:ring-[#4b0009]" type="checkbox" />
-                  <span className="transition-colors group-hover:text-[#4b0009]">{option}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
+
         <div>
-          <p className="mb-3 text-[12px] font-semibold uppercase leading-none tracking-[0.1em] text-[#584140]">Thời lượng</p>
-          <BrandedSelect onChange={() => {}} options={durationOptions} value={durationOptions[0]} />
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Danh mục</p>
+          <BrandedSelect name="category" onChange={onFilterChange} options={categoryOptions} placeholder="Chọn danh mục" value={filters.category} />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Trình độ hiện tại</p>
+          <BrandedSelect name="currentBand" onChange={onFilterChange} options={bandOptions} placeholder="Chọn trình độ hiện tại" value={filters.currentBand} />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Band mục tiêu</p>
+          <BrandedSelect name="targetBand" onChange={onFilterChange} options={targetBandOptions} placeholder="Chọn band mục tiêu" value={filters.targetBand} />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Kỹ năng trọng tâm</p>
+          <BrandedSelect name="skill" onChange={onFilterChange} options={skillOptions} placeholder="Chọn kỹ năng" value={filters.skill} />
+        </div>
+
+        <div>
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Ưu đãi</p>
+          <BrandedSelect name="promotion" onChange={onFilterChange} options={promotionOptions} placeholder="Chọn trạng thái ưu đãi" value={filters.promotion} />
         </div>
       </div>
-      <button className="mt-8 w-full rounded-lg border border-[#4b0009] py-3 text-[14px] font-semibold leading-none tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009]/5" onClick={onClear} type="button">
+
+      <button className="mt-8 w-full rounded-lg border border-[#4b0009] py-3 text-[14px] font-semibold tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009]/5" onClick={onClear} type="button">
         Xóa tất cả bộ lọc
       </button>
     </div>

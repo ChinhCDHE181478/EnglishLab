@@ -1,6 +1,9 @@
 package fu.sap490.g23.backend.controller.course;
 
+import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
@@ -30,6 +33,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/content-manager/online-courses")
 @RequiredArgsConstructor
@@ -52,6 +57,24 @@ public class ContentManagerOnlineCourseController {
     @GetMapping("/{slugOrId}")
     public ResponseEntity<OnlineCourseResponse> getCourse(@PathVariable String slugOrId) {
         return ResponseEntity.ok(onlineCourseService.getManagerCourse(slugOrId));
+    }
+
+    @GetMapping("/{courseId}/assessments")
+    public ResponseEntity<List<CourseAssessmentResponse>> getCourseAssessments(@PathVariable Long courseId) {
+        return ResponseEntity.ok(onlineCourseService.getManagerCourseAssessments(courseId));
+    }
+
+    @PutMapping("/{courseId}/assessments")
+    public ResponseEntity<List<CourseAssessmentResponse>> saveCourseAssessments(
+            @PathVariable Long courseId,
+            @Valid @RequestBody List<ContentManagerCourseAssessmentRequest> requests
+    ) {
+        return ResponseEntity.ok(onlineCourseService.saveManagerCourseAssessments(courseId, requests));
+    }
+
+    @GetMapping("/assessment-rubrics")
+    public ResponseEntity<List<AssessmentRubricResponse>> getAssessmentRubrics() {
+        return ResponseEntity.ok(onlineCourseService.getManagerAssessmentRubrics());
     }
 
     @GetMapping("/stats")
@@ -96,5 +119,13 @@ public class ContentManagerOnlineCourseController {
             @RequestPart("file") MultipartFile file
     ) {
         return ResponseEntity.ok(onlineCourseService.uploadLessonVideo(courseId, lessonId, title, file));
+    }
+
+    @PostMapping("/{courseId}/lessons/{lessonId}/transcript/youtube")
+    public ResponseEntity<OnlineCourseResponse> refreshLessonTranscript(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId
+    ) {
+        return ResponseEntity.ok(onlineCourseService.refreshLessonTranscript(courseId, lessonId));
     }
 }

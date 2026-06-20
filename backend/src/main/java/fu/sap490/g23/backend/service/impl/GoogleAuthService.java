@@ -7,6 +7,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sap490.g23.backend.entity.AuthTokenType;
 import fu.sap490.g23.backend.entity.Role;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -30,6 +31,7 @@ public class GoogleAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenService authTokenService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${google.client-id}")
@@ -38,56 +40,43 @@ public class GoogleAuthService {
     public AuthResponse loginWithGoogle(GoogleAuthRequest request) {
         GoogleProfile profile = resolveGoogleProfile(request);
 
-        String email = profile.email();
+        String email = profile.email().trim().toLowerCase();
         String googleId = profile.googleId();
         String name = profile.name();
         if (name == null || name.isBlank()) {
             name = email.split("@")[0];
         }
 
-        // Find existing user by email or googleId, or create new one
         Optional<User> existing = userRepository.findByEmail(email);
         User user;
 
         if (existing.isPresent()) {
             user = existing.get();
-            // Link googleId if not yet linked
             if (user.getGoogleId() == null) {
                 user.setGoogleId(googleId);
-                userRepository.save(user);
             }
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            authTokenService.deleteTokens(user, AuthTokenType.EMAIL_VERIFICATION);
         } else {
-            // New user — register via Google
             user = User.builder()
                     .fullName(name)
                     .email(email)
                     .googleId(googleId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .role(Role.LEARNER)
+                    .emailVerified(true)
                     .build();
             user = userRepository.save(user);
         }
 
         String token = jwtService.generateToken(user);
 
-        UserResponse userResponse = UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .phoneNumber(user.getPhoneNumber())
-                .targetExam(user.getTargetExam())
-                .targetScore(user.getTargetScore())
-                .currentBand(user.getCurrentBand())
-                .studyGoal(user.getStudyGoal())
-                .profileCompleted(user.isProfileCompleted())
-                .build();
-
         return AuthResponse.builder()
-                .message("Google login successful")
+                .message("Đăng nhập Google thành công.")
                 .accessToken(token)
                 .tokenType("Bearer")
-                .user(userResponse)
+                .user(toUserResponse(user))
                 .build();
     }
 
@@ -105,7 +94,7 @@ public class GoogleAuthService {
             return verifyAccessToken(request.getAccessToken());
         }
 
-        throw new RuntimeException("Missing Google credential");
+        throw new RuntimeException("Thiếu thông tin đăng nhập Google.");
     }
 
     private GoogleProfile verifyAccessToken(String accessToken) {
@@ -117,7 +106,7 @@ public class GoogleAuthService {
 
         Map<?, ?> profile = restTemplate.getForObject(url, Map.class);
         if (profile == null || profile.get("sub") == null || profile.get("email") == null) {
-            throw new RuntimeException("Invalid Google access token");
+            throw new RuntimeException("Access token Google không hợp lệ.");
         }
 
         return new GoogleProfile(
@@ -138,14 +127,29 @@ public class GoogleAuthService {
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
             if (idToken == null) {
-                throw new RuntimeException("Invalid Google ID token");
+                throw new RuntimeException("Google ID token không hợp lệ.");
             }
             return idToken.getPayload();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to verify Google ID token: " + e.getMessage(), e);
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new RuntimeException("Không thể xác minh Google ID token: " + ex.getMessage(), ex);
         }
+    }
+
+    private UserResponse toUserResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .phoneNumber(user.getPhoneNumber())
+                .targetExam(user.getTargetExam())
+                .targetScore(user.getTargetScore())
+                .currentBand(user.getCurrentBand())
+                .studyGoal(user.getStudyGoal())
+                .profileCompleted(user.isProfileCompleted())
+                .build();
     }
 
     private record GoogleProfile(String googleId, String email, String name) {

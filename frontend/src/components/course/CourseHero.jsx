@@ -8,8 +8,8 @@ const CourseHero = ({ user, registeredCount = 0 }) => {
   const targetExam = user?.targetExam || 'IELTS / TOEIC';
   const targetScore = user?.targetScore || '7.5+';
   const studyGoal = isAuthenticated
-    ? user?.studyGoal || `Hôm nay là một ngày tuyệt vời để chinh phục những cột mốc mới trên lộ trình ${targetExam} của bạn.`
-    : 'Khám phá các khóa học IELTS, TOEIC và giao tiếp được thiết kế theo lộ trình rõ ràng, phù hợp cho cả người mới bắt đầu.';
+    ? user?.studyGoal || `Hôm nay là một ngày phù hợp để tiến gần hơn tới mục tiêu ${targetExam} của bạn.`
+    : 'Khám phá các khóa học IELTS, TOEIC và giao tiếp được thiết kế rõ ràng cho người học tự chủ.';
 
   const handleMouseMove = (event) => {
     const section = sectionRef.current;
@@ -30,7 +30,7 @@ const CourseHero = ({ user, registeredCount = 0 }) => {
       <div className="relative z-10 flex flex-col items-center justify-between gap-10 lg:flex-row">
         <div className="flex-1 space-y-6 text-center lg:text-left">
           <div className="space-y-2">
-            <h1 className="font-headline-lg text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl lg:text-6xl">
               {isAuthenticated ? `Chào mừng trở lại, ${displayName}!` : 'Khám phá khóa học tại EnglishLab'}
             </h1>
             <p className="max-w-xl text-lg leading-[1.6] text-white/80">{studyGoal}</p>
@@ -53,8 +53,8 @@ const CourseHero = ({ user, registeredCount = 0 }) => {
             </>
           ) : (
             <>
-              <StatCard icon="menu_book" value="12+" label="Khóa học online" />
-              <StatCard icon="verified" value="IELTS" label="Lộ trình chính" />
+              <StatCard icon="menu_book" value="12+" label="Khóa học trực tuyến" />
+              <StatCard icon="verified" value="IELTS" label="Trọng tâm chính" />
               <StatCard icon="school" value="0đ" label="Có khóa miễn phí" />
             </>
           )}

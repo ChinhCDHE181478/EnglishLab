@@ -4,6 +4,12 @@ import { Link, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 
+const COURSE_LEVEL_KEY = 'course';
+const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
+const ASSESSMENT_TYPE_OPTIONS = ['MODULE_TEST', 'LESSON_PRACTICE', 'MOCK_TEST', 'WRITING_TASK', 'SPEAKING_TASK', 'QUIZ'];
+const ASSESSMENT_SKILL_OPTIONS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING', 'VOCABULARY', 'GRAMMAR', 'MIXED'];
+const AI_MODE_OPTIONS = ['NONE', 'EXPLAIN_ONLY', 'RUBRIC_FEEDBACK', 'ESTIMATED_BAND'];
+
 const createTempId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const reorder = (items, fromIndex, toIndex) => {
@@ -14,9 +20,85 @@ const reorder = (items, fromIndex, toIndex) => {
   return next.map((item, index) => ({ ...item, displayOrder: index + 1 }));
 };
 
+const resolveModuleKey = (module) => String(module?.id ?? module?.tempId ?? COURSE_LEVEL_KEY);
+
+const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1 }) => ({
+  id: null,
+  localKey: createTempId('assessment'),
+  moduleKey,
+  moduleTitle,
+  rubricId: '',
+  title: '',
+  description: '',
+  type: 'MODULE_TEST',
+  skill: 'MIXED',
+  aiEvaluationMode: 'EXPLAIN_ONLY',
+  instructions: '',
+  objectiveAnswerKey: '',
+  passingScore: '',
+  maxScore: '10',
+  timeLimitMinutes: '',
+  displayOrder,
+  active: true,
+});
+
+const normalizeScalar = (value, fallback = '') => (value == null ? fallback : String(value));
+
+const normalizeAssessmentStructure = (items, modules) => {
+  const moduleById = new Map((modules || []).map((module) => [String(module.id), module]));
+  return (items || []).map((assessment, index) => {
+    const matchedModule = assessment.moduleId == null ? null : moduleById.get(String(assessment.moduleId));
+    return {
+      id: assessment.id ?? null,
+      localKey: assessment.id ? `assessment-${assessment.id}` : createTempId('assessment'),
+      moduleKey: matchedModule ? resolveModuleKey(matchedModule) : COURSE_LEVEL_KEY,
+      moduleTitle: matchedModule?.title || assessment.moduleTitle || null,
+      rubricId: assessment.rubric?.id ? String(assessment.rubric.id) : '',
+      title: assessment.title || '',
+      description: assessment.description || '',
+      type: assessment.type || 'MODULE_TEST',
+      skill: assessment.skill || 'MIXED',
+      aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
+      instructions: assessment.instructions || '',
+      objectiveAnswerKey: assessment.objectiveAnswerKey || '',
+      passingScore: normalizeScalar(assessment.passingScore),
+      maxScore: normalizeScalar(assessment.maxScore, '10'),
+      timeLimitMinutes: normalizeScalar(assessment.timeLimitMinutes),
+      displayOrder: assessment.displayOrder ?? index + 1,
+      active: assessment.active !== false,
+    };
+  });
+};
+
+const buildAssessmentPayload = (items, localModules, persistedModules) => {
+  const moduleIdByKey = new Map(
+    (localModules || []).map((module, index) => [resolveModuleKey(module), persistedModules?.[index]?.id ?? module.id ?? null]),
+  );
+
+  return (items || []).map((assessment, index) => ({
+    id: assessment.id || null,
+    moduleId: assessment.moduleKey === COURSE_LEVEL_KEY ? null : moduleIdByKey.get(assessment.moduleKey) ?? null,
+    rubricId: assessment.rubricId ? Number(assessment.rubricId) : null,
+    title: assessment.title?.trim() || `Bài đánh giá ${index + 1}`,
+    description: assessment.description?.trim() || '',
+    type: assessment.type || 'MODULE_TEST',
+    skill: assessment.skill || 'MIXED',
+    aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
+    instructions: assessment.instructions?.trim() || '',
+    objectiveAnswerKey: assessment.objectiveAnswerKey?.trim() || '',
+    passingScore: assessment.passingScore === '' ? null : Number(assessment.passingScore),
+    maxScore: assessment.maxScore === '' ? null : Number(assessment.maxScore),
+    timeLimitMinutes: assessment.timeLimitMinutes === '' ? null : Number(assessment.timeLimitMinutes),
+    displayOrder: Number(assessment.displayOrder || index + 1),
+    active: assessment.active !== false,
+  }));
+};
+
 export default function ContentManagerCourseBuilderPage() {
   const { slugOrId } = useParams();
   const [course, setCourse] = useState(null);
+  const [assessments, setAssessments] = useState([]);
+  const [rubrics, setRubrics] = useState([]);
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
   const [dragState, setDragState] = useState(null);
@@ -43,14 +125,32 @@ export default function ContentManagerCourseBuilderPage() {
   useEffect(() => {
     let active = true;
 
-    courseApi.getManagedOnlineCourse(slugOrId)
-      .then((data) => {
+    const loadBuilder = async () => {
+      try {
+        const [courseData, rubricItems] = await Promise.all([
+          courseApi.getManagedOnlineCourse(slugOrId),
+          courseApi.getManagedAssessmentRubrics(),
+        ]);
         if (!active) return;
-        setCourse(normalizeCourseStructure(data));
-      })
-      .catch(() => {
+
+        const normalizedCourse = normalizeCourseStructure(courseData);
+        setCourse(normalizedCourse);
+        setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
+
+        if (!normalizedCourse.id) {
+          setAssessments([]);
+          return;
+        }
+
+        const assessmentItems = await courseApi.getManagedCourseAssessments(normalizedCourse.id);
+        if (!active) return;
+        setAssessments(normalizeAssessmentStructure(assessmentItems, normalizedCourse.modules));
+      } catch {
         if (active) setError('Không tải được dữ liệu builder.');
-      });
+      }
+    };
+
+    loadBuilder();
 
     return () => {
       active = false;
@@ -61,9 +161,21 @@ export default function ContentManagerCourseBuilderPage() {
   const activeModule = modules[activeModuleIndex] || null;
   const lessons = activeModule?.lessons || [];
   const activeLesson = lessons[activeLessonIndex] || null;
+  const activeModuleKey = resolveModuleKey(activeModule);
+  const moduleAssessments = assessments.filter((assessment) => assessment.moduleKey === activeModuleKey);
+  const courseLevelAssessments = assessments.filter((assessment) => assessment.moduleKey === COURSE_LEVEL_KEY);
 
-  const totalLessons = useMemo(() => modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0), [modules]);
-  const totalHours = useMemo(() => Math.max(1, Math.ceil(modules.reduce((sum, module) => sum + (module.lessons || []).reduce((lessonSum, lesson) => lessonSum + Number(lesson.durationMinutes || 0), 0), 0) / 60)), [modules]);
+  const totalLessons = useMemo(
+    () => modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0),
+    [modules],
+  );
+  const totalHours = useMemo(
+    () => Math.max(1, Math.ceil(modules.reduce(
+      (sum, module) => sum + (module.lessons || []).reduce((lessonSum, lesson) => lessonSum + Number(lesson.durationMinutes || 0), 0),
+      0,
+    ) / 60)),
+    [modules],
+  );
 
   const updateModule = (field) => (event) => {
     const value = event.target.value;
@@ -86,9 +198,27 @@ export default function ContentManagerCourseBuilderPage() {
           if (moduleIndex !== activeModuleIndex) return module;
           return {
             ...module,
-            lessons: (module.lessons || []).map((lesson, lessonIndex) =>
+            lessons: (module.lessons || []).map((lesson, lessonIndex) => (
               lessonIndex === activeLessonIndex ? { ...lesson, [field]: value } : lesson
-            ),
+            )),
+          };
+        }),
+      };
+    });
+  };
+
+  const patchActiveLesson = (patch) => {
+    setCourse((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        modules: current.modules.map((module, moduleIndex) => {
+          if (moduleIndex !== activeModuleIndex) return module;
+          return {
+            ...module,
+            lessons: (module.lessons || []).map((lesson, lessonIndex) => (
+              lessonIndex === activeLessonIndex ? { ...lesson, ...patch } : lesson
+            )),
           };
         }),
       };
@@ -98,25 +228,31 @@ export default function ContentManagerCourseBuilderPage() {
   const addModule = () => {
     setCourse((current) => {
       if (!current) return current;
-      const nextModule = {
-        tempId: createTempId('module'),
-        title: `Module ${current.modules.length + 1}`,
-        description: '',
-        displayOrder: current.modules.length + 1,
-        lessons: [],
+      return {
+        ...current,
+        modules: [
+          ...current.modules,
+          {
+            tempId: createTempId('module'),
+            title: `Module ${current.modules.length + 1}`,
+            description: '',
+            displayOrder: current.modules.length + 1,
+            lessons: [],
+          },
+        ],
       };
-      return { ...current, modules: [...current.modules, nextModule] };
     });
     setActiveModuleIndex(modules.length);
     setActiveLessonIndex(0);
-    pushToast('Đã thêm module mới. Bấm Save Builder Changes để lưu xuống hệ thống.');
+    pushToast('Đã thêm mô-đun mới. Bấm Save Builder Changes để lưu xuống hệ thống.');
   };
 
   const addLesson = () => {
     if (!activeModule) {
-      pushToast('Hãy chọn hoặc tạo module trước khi thêm lesson.', 'warning');
+      pushToast('Hãy chọn hoặc tạo mô-đun trước khi thêm bài học.', 'warning');
       return;
     }
+
     setCourse((current) => {
       if (!current) return current;
       return {
@@ -146,8 +282,45 @@ export default function ContentManagerCourseBuilderPage() {
       };
     });
     setActiveLessonIndex(lessons.length);
-    pushToast('Đã thêm lesson mới. Điền nội dung rồi bấm Save Builder Changes.');
     setLessonModalOpen(true);
+    pushToast('Đã thêm bài học mới. Điền nội dung rồi bấm Save Builder Changes.');
+  };
+
+  const addAssessment = (scope = 'module') => {
+    if (scope === 'module' && !activeModule) {
+      pushToast('Hãy chọn mô-đun trước khi thêm bài đánh giá.', 'warning');
+      return;
+    }
+
+    setAssessments((current) => {
+      const groupKey = scope === 'module' ? activeModuleKey : COURSE_LEVEL_KEY;
+      const existingCount = current.filter((item) => item.moduleKey === groupKey).length;
+      return [
+        ...current,
+        createAssessmentDraft({
+          moduleKey: groupKey,
+          moduleTitle: scope === 'module' ? activeModule?.title || 'Mô-đun hiện tại' : null,
+          displayOrder: existingCount + 1,
+        }),
+      ];
+    });
+
+    pushToast(scope === 'module'
+      ? 'Đã thêm bài đánh giá cuối mô-đun.'
+      : 'Đã thêm bài đánh giá cuối khóa.');
+  };
+
+  const updateAssessment = (assessmentKey, field, value) => {
+    setAssessments((current) => current.map((assessment) => (
+      assessment.localKey === assessmentKey
+        ? { ...assessment, [field]: value }
+        : assessment
+    )));
+  };
+
+  const deleteAssessment = (assessmentKey) => {
+    setAssessments((current) => current.filter((assessment) => assessment.localKey !== assessmentKey));
+    pushToast('Đã gỡ bài đánh giá khỏi builder.', 'warning');
   };
 
   const moveModule = (fromIndex, toIndex) => {
@@ -164,10 +337,9 @@ export default function ContentManagerCourseBuilderPage() {
       if (!current) return current;
       return {
         ...current,
-        modules: current.modules.map((module, moduleIndex) => {
-          if (moduleIndex !== activeModuleIndex) return module;
-          return { ...module, lessons: reorder(module.lessons || [], fromIndex, toIndex) };
-        }),
+        modules: current.modules.map((module, moduleIndex) => (
+          moduleIndex !== activeModuleIndex ? module : { ...module, lessons: reorder(module.lessons || [], fromIndex, toIndex) }
+        )),
       };
     });
     setActiveLessonIndex(toIndex);
@@ -177,7 +349,7 @@ export default function ContentManagerCourseBuilderPage() {
     const lesson = lessons[lessonIndex];
     if (!lesson) return;
 
-    const confirmed = !lesson.id || window.confirm(`Delete lesson "${lesson.title}"? Save Builder Changes to persist this deletion.`);
+    const confirmed = !lesson.id || window.confirm(`Xóa bài học "${lesson.title}"? Save Builder Changes sẽ lưu thay đổi này.`);
     if (!confirmed) return;
 
     setCourse((current) => {
@@ -202,25 +374,7 @@ export default function ContentManagerCourseBuilderPage() {
       setActiveLessonIndex((current) => Math.max(0, current - 1));
     }
 
-    pushToast('Đã xóa lesson khỏi builder. Bấm Save Builder Changes để lưu thay đổi.', 'warning');
-  };
-
-  const patchActiveLesson = (patch) => {
-    setCourse((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        modules: current.modules.map((module, moduleIndex) => {
-          if (moduleIndex !== activeModuleIndex) return module;
-          return {
-            ...module,
-            lessons: (module.lessons || []).map((lesson, lessonIndex) =>
-              lessonIndex === activeLessonIndex ? { ...lesson, ...patch } : lesson
-            ),
-          };
-        }),
-      };
-    });
+    pushToast('Đã xóa bài học khỏi builder. Bấm Save Builder Changes để lưu thay đổi.', 'warning');
   };
 
   const handleBunnyUpload = async () => {
@@ -239,7 +393,7 @@ export default function ContentManagerCourseBuilderPage() {
         (event) => {
           if (!event.total) return;
           setUploadProgress(Math.round((event.loaded * 100) / event.total));
-        }
+        },
       );
       patchActiveLesson({
         ...(response.lesson || {}),
@@ -309,8 +463,13 @@ export default function ContentManagerCourseBuilderPage() {
         })),
       };
 
-      const updated = await courseApi.updateOnlineCourse(course.id, payload);
-      setCourse(normalizeCourseStructure(updated));
+      const updatedCourse = await courseApi.updateOnlineCourse(course.id, payload);
+      const normalizedCourse = normalizeCourseStructure(updatedCourse);
+      const assessmentPayload = buildAssessmentPayload(assessments, modules, normalizedCourse.modules);
+      const updatedAssessments = await courseApi.saveManagedCourseAssessments(normalizedCourse.id, assessmentPayload);
+
+      setCourse(normalizedCourse);
+      setAssessments(normalizeAssessmentStructure(updatedAssessments, normalizedCourse.modules));
       pushToast('Đã lưu thay đổi builder thành công.');
     } catch (err) {
       const message = err?.response?.data?.message || 'Không lưu được thay đổi builder.';
@@ -340,6 +499,7 @@ export default function ContentManagerCourseBuilderPage() {
           </button>
         ) : null}
       </div>
+
       {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
 
       {!course ? (
@@ -403,7 +563,9 @@ export default function ContentManagerCourseBuilderPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-[#1a1c1c]">{module.title}</p>
-                      <p className="mt-1 text-sm text-[#584140]">{module.lessons?.length ?? 0} lessons</p>
+                      <p className="mt-1 text-sm text-[#584140]">
+                        {module.lessons?.length ?? 0} lessons • {assessments.filter((item) => item.moduleKey === resolveModuleKey(module)).length} assessments
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -424,7 +586,11 @@ export default function ContentManagerCourseBuilderPage() {
                   <Plus className="h-4 w-4" />
                   Add lesson
                 </button>
-                <span className="text-sm text-[#584140]">{totalLessons} lessons · {totalHours} hours</span>
+                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessment('module')} type="button">
+                  <Plus className="h-4 w-4" />
+                  Add module assessment
+                </button>
+                <span className="text-sm text-[#584140]">{totalLessons} lessons • {totalHours} hours</span>
               </div>
             </Panel>
 
@@ -466,9 +632,7 @@ export default function ContentManagerCourseBuilderPage() {
                     </div>
                     <button
                       className="min-w-0 flex-1 text-left"
-                      onClick={() => {
-                        setActiveLessonIndex(index);
-                      }}
+                      onClick={() => setActiveLessonIndex(index)}
                       type="button"
                     >
                       <div>
@@ -506,6 +670,68 @@ export default function ContentManagerCourseBuilderPage() {
                 <Panel className="p-6 text-sm text-[#584140]">This module has no lessons yet. Add one from the module header.</Panel>
               )}
             </div>
+
+            <Panel className="p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Module checks</p>
+                  <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">
+                    {activeModule ? `Assessments for ${activeModule.title}` : 'Assessments'}
+                  </h3>
+                </div>
+                <button className="rounded-2xl border border-[#4b0009] px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessment('module')} type="button">
+                  Add assessment
+                </button>
+              </div>
+              {moduleAssessments.length ? (
+                <div className="space-y-4">
+                  {moduleAssessments.map((assessment, index) => (
+                    <AssessmentEditorCard
+                      key={assessment.localKey}
+                      assessment={assessment}
+                      rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
+                      onDelete={() => deleteAssessment(assessment.localKey)}
+                      onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
+                      title={`Module assessment ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#dfbfbd] p-4 text-sm text-[#584140]">
+                  This module does not have an assessment yet.
+                </div>
+              )}
+            </Panel>
+
+            <Panel className="p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Final checks</p>
+                  <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Course-level assessments</h3>
+                </div>
+                <button className="rounded-2xl border border-[#4b0009] px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" onClick={() => addAssessment('course')} type="button">
+                  Add final assessment
+                </button>
+              </div>
+              {courseLevelAssessments.length ? (
+                <div className="space-y-4">
+                  {courseLevelAssessments.map((assessment, index) => (
+                    <AssessmentEditorCard
+                      key={assessment.localKey}
+                      assessment={assessment}
+                      rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
+                      onDelete={() => deleteAssessment(assessment.localKey)}
+                      onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
+                      title={`Course assessment ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-[#dfbfbd] p-4 text-sm text-[#584140]">
+                  No final assessment has been added for this course yet.
+                </div>
+              )}
+            </Panel>
           </div>
 
           <Panel className="p-6">
@@ -579,6 +805,49 @@ function normalizeCourseStructure(course) {
   };
 }
 
+function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title }) {
+  return (
+    <div className="rounded-3xl border border-[#eadcdc] bg-[#fffafb] p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{title}</p>
+          <p className="mt-1 text-sm text-[#584140]">{assessment.moduleTitle || 'Course-level checkpoint'}</p>
+        </div>
+        <button
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#f0c7c7] bg-white text-[#93000a] transition hover:bg-[#ffdad6]"
+          onClick={onDelete}
+          type="button"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextField label="Assessment title" onChange={(event) => onFieldChange('title', event.target.value)} value={assessment.title} />
+        <TextField label="Description" onChange={(event) => onFieldChange('description', event.target.value)} value={assessment.description} />
+        <SelectField label="Assessment type" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS)} value={assessment.type} />
+        <SelectField label="Skill" onChange={(event) => onFieldChange('skill', event.target.value)} options={toSelectOptions(ASSESSMENT_SKILL_OPTIONS)} value={assessment.skill} />
+        <SelectField label="AI mode" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS)} value={assessment.aiEvaluationMode} />
+        <SelectField label="Rubric" onChange={(event) => onFieldChange('rubricId', event.target.value)} options={rubricOptions} value={assessment.rubricId || ''} />
+        <TextField label="Passing score" onChange={(event) => onFieldChange('passingScore', event.target.value)} value={assessment.passingScore} />
+        <TextField label="Max score" onChange={(event) => onFieldChange('maxScore', event.target.value)} value={assessment.maxScore} />
+        <TextField label="Time limit (minutes)" onChange={(event) => onFieldChange('timeLimitMinutes', event.target.value)} value={assessment.timeLimitMinutes} />
+        <TextField label="Display order" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} />
+      </div>
+
+      <div className="mt-4 grid gap-4">
+        <TextField label="Instructions" onChange={(event) => onFieldChange('instructions', event.target.value)} rows={5} textarea value={assessment.instructions} />
+        <TextField label="Objective answer key" onChange={(event) => onFieldChange('objectiveAnswerKey', event.target.value)} rows={4} textarea value={assessment.objectiveAnswerKey} />
+      </div>
+
+      <label className="mt-4 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-white px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
+        <input checked={Boolean(assessment.active)} className="h-4 w-4 accent-[#730014]" onChange={(event) => onFieldChange('active', event.target.checked)} type="checkbox" />
+        Active assessment
+      </label>
+    </div>
+  );
+}
+
 function LessonEditorModal({
   activeLesson,
   onBunnyUpload,
@@ -618,12 +887,12 @@ function LessonEditorModal({
             <div className="space-y-4">
               <TextField label="Lesson title" onChange={onChangeLesson('title')} value={activeLesson.title || ''} />
               <TextField label="Description" onChange={onChangeLesson('description')} rows={4} textarea value={activeLesson.description || ''} />
-              <SelectField label="Content type" onChange={onChangeLesson('contentType')} options={['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ']} value={contentType} />
+              <SelectField label="Content type" onChange={onChangeLesson('contentType')} options={toSelectOptions(CONTENT_TYPE_OPTIONS)} value={contentType} />
               {isVideo ? (
                 <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Duration</p>
                   <p className="mt-1 text-sm font-semibold text-[#4b0009]">Auto from video metadata</p>
-                  <p className="mt-1 text-xs leading-5 text-[#584140]">Không cần nhập tay cho video. Hệ thống sẽ dùng metadata/video provider khi có dữ liệu.</p>
+                  <p className="mt-1 text-xs leading-5 text-[#584140]">Không cần nhập tay cho video. Hệ thống sẽ dùng metadata của nguồn video khi có dữ liệu.</p>
                 </div>
               ) : (
                 <TextField label="Duration minutes" onChange={onChangeLesson('durationMinutes')} value={String(activeLesson.durationMinutes || '')} />
@@ -703,6 +972,9 @@ function LessonEditorModal({
 
 function SelectField({ label, value, onChange, options }) {
   const [open, setOpen] = useState(false);
+  const normalizedOptions = options || [];
+  const selectedOption = normalizedOptions.find((option) => String(option.value) === String(value)) || normalizedOptions[0];
+
   return (
     <label className="relative block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
@@ -712,32 +984,32 @@ function SelectField({ label, value, onChange, options }) {
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        {value}
+        {selectedOption?.label || value || 'Select'}
         <ChevronDown className={`h-4 w-4 text-[#730014] transition ${open ? 'rotate-180' : ''}`} />
       </button>
       {open ? (
         <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.16)]">
-          {options.map((option) => (
+          {normalizedOptions.map((option) => (
             <button
-              key={option}
+              key={option.value}
               className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold transition ${
-                option === value ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#fff2f3]'
+                String(option.value) === String(value) ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#fff2f3]'
               }`}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
-                onChange({ target: { value: option } });
+                onChange({ target: { value: option.value } });
                 setOpen(false);
               }}
               type="button"
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
       ) : null}
       <select className="sr-only" onChange={onChange} value={value}>
-        {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
+        {normalizedOptions.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
     </label>
@@ -798,6 +1070,21 @@ function toastTone(type) {
     iconBg: 'bg-[#e7f6ec]',
     iconText: 'text-[#176b3a]',
   };
+}
+
+function buildRubricOptions(rubrics, skill) {
+  const base = [{ value: '', label: 'No rubric' }];
+  const matched = (rubrics || [])
+    .filter((rubric) => !skill || rubric.skill === skill || rubric.skill === 'MIXED')
+    .map((rubric) => ({
+      value: String(rubric.id),
+      label: `${rubric.name} (${rubric.skill})`,
+    }));
+  return [...base, ...matched];
+}
+
+function toSelectOptions(values) {
+  return values.map((value) => ({ value, label: value }));
 }
 
 function formatContentType(value) {

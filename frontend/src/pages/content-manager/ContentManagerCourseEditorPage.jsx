@@ -15,14 +15,12 @@ const emptyForm = {
   recommendedCurrentBandMin: '',
   recommendedCurrentBandMax: '',
   targetBand: '',
-  learningPathCode: '',
-  learningPathName: '',
-  learningPathOrder: '0',
   targetOutcome: '',
   recommendedNextCourseSlug: '',
   duration: '',
   studyMode: 'Online',
   price: '0',
+  salePrice: '',
   thumbnailUrl: '',
   totalLessons: '0',
   totalHours: '0',
@@ -30,6 +28,31 @@ const emptyForm = {
   featured: false,
   modules: [],
 };
+
+const mapCourseToForm = (course = {}) => ({
+  title: course.title ?? '',
+  shortDescription: course.shortDescription ?? '',
+  description: course.description ?? '',
+  category: course.category ?? 'IELTS',
+  level: course.level ?? 'ADVANCED',
+  status: course.status ?? 'DRAFT',
+  targetScore: course.targetScore ?? '',
+  recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
+  recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
+  targetBand: course.targetBand ?? '',
+  targetOutcome: course.targetOutcome ?? '',
+  recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
+  duration: course.duration ?? '',
+  studyMode: course.studyMode ?? 'Online',
+  price: course.price ?? '0',
+  salePrice: course.salePrice && Number(course.salePrice) < Number(course.price || 0) ? String(course.salePrice) : '',
+  thumbnailUrl: course.thumbnailUrl ?? '',
+  totalLessons: String(course.totalLessons ?? 0),
+  totalHours: String(course.totalHours ?? 0),
+  displayOrder: String(course.displayOrder ?? 0),
+  featured: Boolean(course.featured),
+  modules: course.modules ?? [],
+});
 
 export default function ContentManagerCourseEditorPage() {
   const { slugOrId } = useParams();
@@ -39,7 +62,9 @@ export default function ContentManagerCourseEditorPage() {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(editMode);
   const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (!editMode) return undefined;
@@ -50,32 +75,7 @@ export default function ContentManagerCourseEditorPage() {
       .then((course) => {
         if (!active) return;
         setCourseId(course.id);
-        setForm({
-          title: course.title ?? '',
-          shortDescription: course.shortDescription ?? '',
-          description: course.description ?? '',
-          category: course.category ?? 'IELTS',
-          level: course.level ?? 'ADVANCED',
-          status: course.status ?? 'DRAFT',
-          targetScore: course.targetScore ?? '',
-          recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
-          recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
-          targetBand: course.targetBand ?? '',
-          learningPathCode: course.learningPathCode ?? '',
-          learningPathName: course.learningPathName ?? '',
-          learningPathOrder: String(course.learningPathOrder ?? 0),
-          targetOutcome: course.targetOutcome ?? '',
-          recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
-          duration: course.duration ?? '',
-          studyMode: course.studyMode ?? 'Online',
-          price: course.price ?? '0',
-          thumbnailUrl: course.thumbnailUrl ?? '',
-          totalLessons: String(course.totalLessons ?? 0),
-          totalHours: String(course.totalHours ?? 0),
-          displayOrder: String(course.displayOrder ?? 0),
-          featured: Boolean(course.featured),
-          modules: course.modules ?? [],
-        });
+        setForm(mapCourseToForm(course));
       })
       .catch(() => {
         if (active) setError('Không tải được chi tiết khóa học.');
@@ -96,21 +96,24 @@ export default function ContentManagerCourseEditorPage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSubmit = async (nextStatus) => {
+  const handleSubmit = async (nextStatus = null) => {
     setSaving(true);
+    const targetStatus = nextStatus ?? form.status;
+    setSavingAction(targetStatus === 'PUBLISHED' && nextStatus === 'PUBLISHED' ? 'publish' : 'save');
     setError('');
+    setSuccess('');
 
     const payload = {
       ...form,
       price: Number(form.price || 0),
+      salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      learningPathOrder: Number(form.learningPathOrder || 0),
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
-      status: nextStatus ?? form.status,
+      status: targetStatus,
     };
 
     try {
@@ -122,11 +125,18 @@ export default function ContentManagerCourseEditorPage() {
         ? await courseApi.updateOnlineCourse(courseId, payload)
         : await courseApi.createOnlineCourse(payload);
 
-      navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
+      setCourseId(response.id);
+      setForm(mapCourseToForm(response));
+      setSuccess(targetStatus === 'PUBLISHED' ? 'Khóa học đã được lưu và chuyển sang Published.' : 'Khóa học đã được lưu thành công.');
+
+      if (!editMode) {
+        navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
+      }
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được khóa học.');
     } finally {
       setSaving(false);
+      setSavingAction('');
     }
   };
 
@@ -150,6 +160,7 @@ export default function ContentManagerCourseEditorPage() {
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.55fr]">
       <div className="space-y-6">
         {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
+        {success ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700">{success}</div> : null}
 
         <Panel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
@@ -161,13 +172,11 @@ export default function ContentManagerCourseEditorPage() {
             <TextField label="Recommended current band min" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
             <TextField label="Recommended current band max" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
             <TextField label="Target band number" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
-            <TextField label="Learning path code" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
-            <TextField label="Learning path name" onChange={handleChange('learningPathName')} value={form.learningPathName} />
-            <TextField label="Learning path order" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
             <TextField label="Recommended next course slug" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
             <TextField label="Estimated duration" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Study mode" onChange={handleChange('studyMode')} value={form.studyMode} />
             <TextField label="Price" onChange={handleChange('price')} value={String(form.price)} />
+            <TextField label="System sale price" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
             <TextField label="Thumbnail URL" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
             <SelectField label="Status" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
             <TextField label="Total lessons" onChange={handleChange('totalLessons')} value={String(form.totalLessons)} />
@@ -183,7 +192,7 @@ export default function ContentManagerCourseEditorPage() {
       <div className="space-y-6">
         <Panel className="p-6">
           <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fcfbfb] p-5 text-sm text-[#584140]">
-            Publishing note: set entry band, target band, learning path and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
+            Publishing note: set entry band, target band and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
           </div>
           {hasNoStructure ? (
             <div className="mt-4 rounded-2xl border border-[#f0d8db] bg-[#fff7f7] p-4 text-sm text-[#730014]">
@@ -195,11 +204,11 @@ export default function ContentManagerCourseEditorPage() {
             Mark as featured
           </label>
           <div className="mt-6 grid gap-3">
-            <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white" disabled={saving} onClick={() => handleSubmit('DRAFT')} type="button">
-              {saving ? 'Saving...' : 'Save Draft'}
+            <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white" disabled={saving} onClick={() => handleSubmit()} type="button">
+              {saving && savingAction === 'save' ? 'Saving...' : 'Save Changes'}
             </button>
             <button className="rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009]" disabled={saving} onClick={() => handleSubmit('PUBLISHED')} type="button">
-              Publish
+              {saving && savingAction === 'publish' ? 'Publishing...' : 'Publish'}
             </button>
           </div>
         </Panel>

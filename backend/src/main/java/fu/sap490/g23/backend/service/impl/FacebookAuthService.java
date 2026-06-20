@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.impl;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sap490.g23.backend.entity.AuthTokenType;
 import fu.sap490.g23.backend.entity.Role;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -26,6 +27,7 @@ public class FacebookAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenService authTokenService;
 
     public AuthResponse loginWithFacebook(String accessToken) {
         FacebookProfile profile = verifyAccessToken(accessToken);
@@ -35,12 +37,13 @@ public class FacebookAuthService {
         String name = profile.getName();
 
         if (facebookId == null || facebookId.isBlank()) {
-            throw new RuntimeException("Invalid Facebook access token");
+            throw new RuntimeException("Access token Facebook không hợp lệ.");
         }
 
         if (email == null || email.isBlank()) {
             email = "facebook_" + facebookId + "@facebook.local";
         }
+        email = email.trim().toLowerCase();
 
         if (name == null || name.isBlank()) {
             name = email.split("@")[0];
@@ -56,8 +59,10 @@ public class FacebookAuthService {
             user = existing.get();
             if (user.getFacebookId() == null) {
                 user.setFacebookId(facebookId);
-                userRepository.save(user);
             }
+            user.setEmailVerified(true);
+            user = userRepository.save(user);
+            authTokenService.deleteTokens(user, AuthTokenType.EMAIL_VERIFICATION);
         } else {
             user = User.builder()
                     .fullName(name)
@@ -65,13 +70,41 @@ public class FacebookAuthService {
                     .facebookId(facebookId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .role(Role.LEARNER)
+                    .emailVerified(true)
                     .build();
             user = userRepository.save(user);
         }
 
         String token = jwtService.generateToken(user);
 
-        UserResponse userResponse = UserResponse.builder()
+        return AuthResponse.builder()
+                .message("Đăng nhập Facebook thành công.")
+                .accessToken(token)
+                .tokenType("Bearer")
+                .user(toUserResponse(user))
+                .build();
+    }
+
+    private FacebookProfile verifyAccessToken(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            throw new RuntimeException("Facebook access token là bắt buộc.");
+        }
+
+        String url = UriComponentsBuilder
+                .fromUriString(FACEBOOK_ME_URL)
+                .queryParam("fields", "id,name,email")
+                .queryParam("access_token", accessToken)
+                .toUriString();
+
+        FacebookProfile profile = new RestTemplate().getForObject(url, FacebookProfile.class);
+        if (profile == null) {
+            throw new RuntimeException("Không thể xác minh Facebook access token.");
+        }
+        return profile;
+    }
+
+    private UserResponse toUserResponse(User user) {
+        return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
                 .email(user.getEmail())
@@ -83,31 +116,6 @@ public class FacebookAuthService {
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
                 .build();
-
-        return AuthResponse.builder()
-                .message("Facebook login successful")
-                .accessToken(token)
-                .tokenType("Bearer")
-                .user(userResponse)
-                .build();
-    }
-
-    private FacebookProfile verifyAccessToken(String accessToken) {
-        if (accessToken == null || accessToken.isBlank()) {
-            throw new RuntimeException("Facebook access token is required");
-        }
-
-        String url = UriComponentsBuilder
-                .fromUriString(FACEBOOK_ME_URL)
-                .queryParam("fields", "id,name,email")
-                .queryParam("access_token", accessToken)
-                .toUriString();
-
-        FacebookProfile profile = new RestTemplate().getForObject(url, FacebookProfile.class);
-        if (profile == null) {
-            throw new RuntimeException("Failed to verify Facebook access token");
-        }
-        return profile;
     }
 
     @Data

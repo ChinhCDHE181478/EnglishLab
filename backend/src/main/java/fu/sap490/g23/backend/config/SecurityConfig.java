@@ -33,7 +33,23 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/google", "/api/auth/facebook").permitAll()
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/google",
+                                "/api/auth/facebook",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
+                        ).permitAll()
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+                        .requestMatchers("/api/payos/webhook").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers("/api/content-manager/**").hasAnyRole("CONTENT_MANAGER", "MANAGER", "ADMIN")
                         .requestMatchers("/api/student/**").hasAnyRole("LEARNER", "CONTENT_MANAGER", "MANAGER", "ADMIN")

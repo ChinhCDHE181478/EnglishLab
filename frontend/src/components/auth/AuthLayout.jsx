@@ -10,7 +10,19 @@ const quotes = {
   },
   '/register': {
     title: 'Bắt đầu hành trình với EnglishLab!',
-    text: 'Tạo tài khoản để nhận lộ trình học cá nhân hóa và feedback AI tức thì.',
+    text: 'Tạo tài khoản để nhận gợi ý học cá nhân hóa và feedback AI tức thì.',
+  },
+  '/forgot-password': {
+    title: 'Lấy lại quyền truy cập thật nhanh.',
+    text: 'Chúng tôi sẽ gửi mã OTP đặt lại mật khẩu về đúng email của bạn.',
+  },
+  '/reset-password': {
+    title: 'Một mật khẩu mới, một khởi đầu mới.',
+    text: 'Đặt lại mật khẩu để tiếp tục học mà không làm mất tiến độ.',
+  },
+  '/verify-email': {
+    title: 'Chỉ còn một bước để kích hoạt tài khoản.',
+    text: 'Xác thực email để EnglishLab biết chắc đây là bạn.',
   },
 };
 

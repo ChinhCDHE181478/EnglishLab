@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   FileStack,
   FolderKanban,
+  BadgePercent,
   Headphones,
   LayoutDashboard,
   NotebookPen,
@@ -20,6 +21,7 @@ export const contentManagerNav = [
     items: [
       { label: 'Dashboard', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Online Courses', href: '/content-manager/courses', icon: BookOpen },
+      { label: 'Discount Codes', href: '/content-manager/discount-codes', icon: BadgePercent },
       { label: 'Course Categories', href: '/content-manager/categories', icon: FolderKanban },
       { label: 'Syllabus', href: '/content-manager/syllabus', icon: FileSpreadsheet },
       { label: 'Learning Materials', href: '/content-manager/materials', icon: FileStack },
@@ -69,6 +71,11 @@ export const contentManagerPageMeta = {
     title: 'Course Builder',
     subtitle: 'Organize modules, lessons, and linked assets in the authoring workspace.',
     searchPlaceholder: 'Search module, lesson, or asset...',
+  },
+  '/content-manager/discount-codes': {
+    title: 'Discount Code Management',
+    subtitle: 'Create limited-use coupon codes and track reserved and successful usage.',
+    searchPlaceholder: 'Search discount code...',
   },
   '/content-manager/materials': {
     title: 'Learning Material Management',

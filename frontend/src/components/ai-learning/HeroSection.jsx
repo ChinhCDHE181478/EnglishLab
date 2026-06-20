@@ -11,13 +11,13 @@ const HeroSection = () => (
         Chinh phục IELTS/TOEIC cùng chuyên gia và AI.
       </h1>
       <p className="max-w-xl text-lg leading-8 text-[#584140]">
-        Lộ trình học cá nhân hóa kết hợp công nghệ AI chấm chữa chi tiết. Cam
+        Kế hoạch học cá nhân hóa kết hợp công nghệ AI chấm chữa chi tiết. Cam
         kết đầu ra bằng văn bản.
       </p>
       <div className="flex flex-col gap-4 pt-4 sm:flex-row">
         <a
           className="rounded bg-[#730014] px-8 py-4 text-center text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#4b0009]"
-          href="#"
+          href="/placement-test"
         >
           Thi thử ngay
         </a>

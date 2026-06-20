@@ -1,63 +1,88 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
+import AiAssessmentPanel from '../components/course-assessment/AiAssessmentPanel';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import WorkspaceFlashcards, { extractVocabularyTerms } from '../components/course-workspace/WorkspaceFlashcards';
 import WorkspaceLessonPanel from '../components/course-workspace/WorkspaceLessonPanel';
 import WorkspaceOverview from '../components/course-workspace/WorkspaceOverview';
 import WorkspaceRightRail from '../components/course-workspace/WorkspaceRightRail';
 import WorkspaceSidebar from '../components/course-workspace/WorkspaceSidebar';
-import AiAssessmentPanel from '../components/course-assessment/AiAssessmentPanel';
+import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { hasAccessToken } from '../utils/auth';
 import { findFallbackCourse, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { readEnrollments } from '../utils/learnerStore';
+import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
-const isModuleCompleted = (module, completedLessonIds) => {
-  const moduleLessons = module?.lessons || [];
-  if (!moduleLessons.length) return true;
+const isAssessmentStepId = (itemId) => String(itemId || '').startsWith('__ai_assessment__:');
 
-  return moduleLessons.every((lesson, lessonIndex) => (
-    completedLessonIds.has(getLessonId(module, lesson, lessonIndex))
-  ));
+const isTemporaryAssessmentError = (error) => {
+  const status = error?.response?.status;
+  return !status || status === 408 || status === 429 || status >= 500;
 };
 
 const CourseWorkspace = () => {
   const { slugOrId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
+  const {
+    isAuthenticated,
+    lessonNotes,
+    lessonFlags,
+    recentLessons,
+    assessmentQueue,
+    saveLessonNote,
+    updateLessonNote,
+    removeLessonNote,
+    toggleLessonReviewFlag,
+    saveRecentLesson,
+    addNotification,
+    enqueueAssessmentSubmission,
+    removeAssessmentQueueItem,
+    markAssessmentQueueRetried,
+    saveAssessmentDraft,
+    clearAssessmentDraft,
+    getAssessmentDraft,
+    setCourseAssessmentsSnapshot,
+  } = useLearnerExperience();
   const [course, setCourse] = useState(() => (location.state?.course ? normalizeCourse(location.state.course) : null));
   const [enrollment, setEnrollment] = useState(() => (location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null));
-  const [loading, setLoading] = useState(!course);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeLessonId, setActiveLessonId] = useState(null);
+  const [activeLessonId, setActiveLessonId] = useState(() => {
+    try {
+      return localStorage.getItem(activeLessonStorageKey) || null;
+    } catch {
+      return null;
+    }
+  });
   const [completedLessonIds, setCompletedLessonIds] = useState(() => new Set());
   const [savingLessonId, setSavingLessonId] = useState(null);
-  const [workspaceMode, setWorkspaceMode] = useState(() => localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
+  const [workspaceMode, setWorkspaceMode] = useState(() => (
+    ['learn', 'flashcards'].includes(location.state?.workspaceMode)
+      ? location.state.workspaceMode
+      : localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn'
+  ));
   const [vocabularyCount, setVocabularyCount] = useState(0);
   const [assessments, setAssessments] = useState([]);
+  const [assessmentsLoaded, setAssessmentsLoaded] = useState(false);
+  const [retryingQueueId, setRetryingQueueId] = useState('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [rightPanelMode, setRightPanelMode] = useState('transcript');
+  const [videoSeekRequest, setVideoSeekRequest] = useState(null);
+  const rememberActiveLesson = useCallback((lessonId) => {
+    setActiveLessonId(lessonId);
+    try {
+      if (lessonId) localStorage.setItem(activeLessonStorageKey, String(lessonId));
+    } catch {
+      // Local storage can be unavailable in private browsing; the in-memory state is still enough for this session.
+    }
+  }, [activeLessonStorageKey]);
 
-  const lessonItems = useMemo(() => {
-    if (!course?.modules?.length) return [];
-
-    return course.modules.flatMap((module, moduleIndex) =>
-      (module.lessons || []).map((lesson, lessonIndex) => ({
-        id: getLessonId(module, lesson, lessonIndex),
-        module,
-        moduleIndex,
-        lesson,
-        lessonIndex,
-      }))
-    );
-  }, [course]);
-
-  const activeLessonItem = useMemo(() => {
-    if (!lessonItems.length) return null;
-    return lessonItems.find((item) => String(item.id) === String(activeLessonId)) ?? lessonItems[0];
-  }, [activeLessonId, lessonItems]);
-  const hasAssessments = assessments.length > 0;
   const assessmentsByModule = useMemo(() => {
     const grouped = new Map();
     assessments.forEach((assessment) => {
@@ -68,6 +93,65 @@ const CourseWorkspace = () => {
     });
     return grouped;
   }, [assessments]);
+
+  const moduleProgress = useMemo(() => {
+    const modules = course?.modules || [];
+    const progressByModule = new Map();
+    let canEnterCurrentModule = true;
+
+    modules.forEach((module, moduleIndex) => {
+      const lessons = module.lessons || [];
+      const lessonItemsForModule = lessons.map((lesson, lessonIndex) => ({
+        id: getLessonId(module, lesson, lessonIndex),
+        module,
+        moduleIndex,
+        lesson,
+        lessonIndex,
+      }));
+      const lessonIds = lessonItemsForModule.map((item) => item.id);
+      const lessonsCompleted = lessonIds.every((lessonId) => completedLessonIds.has(lessonId));
+      const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
+      const moduleAssessmentsPassed = moduleAssessments.every(isAssessmentPassed);
+      const readyForNextModule = lessonsCompleted && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
+
+      progressByModule.set(String(module.id), {
+        moduleUnlocked: canEnterCurrentModule,
+        lessonsCompleted,
+        moduleAssessmentsPassed,
+        readyForNextModule,
+        lessonItems: lessonItemsForModule,
+      });
+
+      canEnterCurrentModule = readyForNextModule;
+    });
+
+    return progressByModule;
+  }, [assessmentsByModule, completedLessonIds, course?.modules]);
+
+  const lessonItems = useMemo(() => {
+    if (!course?.modules?.length) return [];
+
+    return course.modules.flatMap((module) => {
+      const moduleState = moduleProgress.get(String(module.id));
+      const moduleUnlocked = moduleState?.moduleUnlocked ?? false;
+      const moduleLessonItems = moduleState?.lessonItems || [];
+
+      return moduleLessonItems.map((item, lessonIndex) => {
+        const previousLessonId = lessonIndex > 0 ? moduleLessonItems[lessonIndex - 1]?.id : null;
+        const isLocked = lessonIndex === 0
+          ? !moduleUnlocked
+          : !completedLessonIds.has(previousLessonId);
+
+        return {
+          ...item,
+          isLocked,
+        };
+      });
+    });
+  }, [completedLessonIds, course?.modules, moduleProgress]);
+
+  const hasAssessments = assessments.length > 0;
+
   const moduleAssessmentIds = useMemo(() => new Set(
     course?.modules
       ?.filter((module, moduleIndex) => {
@@ -77,16 +161,20 @@ const CourseWorkspace = () => {
       })
       .map((module) => String(module.id)) || []
   ), [assessmentsByModule, course?.modules]);
+
   const assessmentLockByModule = useMemo(() => {
     const lockMap = new Map();
     (course?.modules || []).forEach((module) => {
-      lockMap.set(String(module.id), !isModuleCompleted(module, completedLessonIds));
+      const moduleState = moduleProgress.get(String(module.id));
+      const moduleUnlocked = moduleState?.moduleUnlocked ?? false;
+      const lessonsCompleted = moduleState?.lessonsCompleted ?? false;
+      lockMap.set(String(module.id), !moduleUnlocked || !lessonsCompleted);
     });
     return lockMap;
-  }, [completedLessonIds, course?.modules]);
+  }, [course?.modules, moduleProgress]);
+
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
-
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
 
     return course.modules.flatMap((module, moduleIndex) => {
@@ -97,6 +185,7 @@ const CourseWorkspace = () => {
         lesson,
         lessonIndex,
         type: 'lesson',
+        isLocked: lessonItems.find((item) => String(item.id) === String(getLessonId(module, lesson, lessonIndex)))?.isLocked ?? false,
       }));
 
       const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
@@ -116,20 +205,34 @@ const CourseWorkspace = () => {
           isLocked: assessmentLockByModule.get(String(module.id)) ?? false,
           assessments: trailingAssessments,
           title: `Bài kiểm tra cuối module: ${module.title}`,
-          description: 'Nộp bài viết hoặc câu trả lời để nhận nhận xét theo rubric, góp ý học tập và kiểm tra mức độ nguyên bản của bài làm.',
+          description: 'Nộp bài viết hoặc câu trả lời để nhận góp ý theo tiêu chí đánh giá của module.',
         },
       ];
     });
   }, [assessmentLockByModule, assessmentsByModule, course?.modules, lessonItems]);
+
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
     return workspaceItems.find((item) => String(item.id) === String(activeLessonId)) ?? workspaceItems[0];
-  }, [activeLessonId, workspaceItems]);
+  }, [activeLessonId, rememberActiveLesson, workspaceItems]);
+  const isAssessmentMode = activeWorkspaceItem?.type === 'assessment';
+  const activeLessonHasVideo = Boolean(activeWorkspaceItem?.lesson?.videoUrl);
+  const hideRightRail = isAssessmentMode || workspaceMode === 'flashcards';
+  const rightPanelVisible = Boolean(
+    !hideRightRail
+      && (
+    rightPanelMode
+      && (rightPanelMode !== 'transcript' || activeLessonHasVideo)
+      )
+  );
 
   const parsedVocabularyTerms = useMemo(() => extractVocabularyTerms(course), [course]);
   const flashcardCount = Math.max(parsedVocabularyTerms.length, vocabularyCount);
   const hasVocabularyTerms = flashcardCount > 0;
-
+  const courseNotes = useMemo(() => lessonNotes.filter((item) => String(item.courseId) === String(course?.id)), [lessonNotes, course?.id]);
+  const courseReviewFlags = useMemo(() => lessonFlags.filter((item) => String(item.courseId) === String(course?.id)), [lessonFlags, course?.id]);
+  const courseRecentLessons = useMemo(() => recentLessons.filter((item) => String(item.courseId) === String(course?.id)), [recentLessons, course?.id]);
+  const queuedItems = useMemo(() => assessmentQueue.filter((item) => String(item.courseId) === String(course?.id)), [assessmentQueue, course?.id]);
   const applyEnrollment = (nextEnrollment) => {
     const normalizedEnrollment = normalizeEnrollment(nextEnrollment);
     setEnrollment(normalizedEnrollment);
@@ -140,31 +243,66 @@ const CourseWorkspace = () => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [slugOrId]);
 
+  useEffect(() => () => {
+    window.getSelection?.()?.removeAllRanges?.();
+    document.body.style.overflow = '';
+  }, []);
+
   useEffect(() => {
+    if (['learn', 'flashcards'].includes(location.state?.workspaceMode)) {
+      setWorkspaceMode(location.state.workspaceMode);
+      return;
+    }
     setWorkspaceMode(localStorage.getItem(`englishlab.workspaceMode.${slugOrId}`) || 'learn');
-  }, [slugOrId]);
+  }, [slugOrId, location.state?.workspaceMode]);
 
   useEffect(() => {
     localStorage.setItem(`englishlab.workspaceMode.${slugOrId}`, workspaceMode);
   }, [slugOrId, workspaceMode]);
 
   useEffect(() => {
-    if (!workspaceItems.length) return;
+    try {
+      setActiveLessonId(localStorage.getItem(activeLessonStorageKey) || null);
+    } catch {
+      setActiveLessonId(null);
+    }
+  }, [activeLessonStorageKey]);
 
+  useEffect(() => {
+    if (!activeLessonId) return;
+    try {
+      localStorage.setItem(activeLessonStorageKey, String(activeLessonId));
+    } catch {
+      // Ignore storage failures; the lesson is still kept in component state.
+    }
+  }, [activeLessonId, activeLessonStorageKey]);
+
+  useEffect(() => {
+    if (!workspaceItems.length) return;
     const activeLessonStillExists = workspaceItems.some((item) => String(item.id) === String(activeLessonId));
+    const storedLessonId = localStorage.getItem(activeLessonStorageKey);
+    const waitingForStoredAssessment = (
+      !assessmentsLoaded
+      && isAssessmentStepId(storedLessonId)
+      && String(activeLessonId) === String(storedLessonId)
+      && !activeLessonStillExists
+    );
+
+    if (waitingForStoredAssessment) return;
+
     if (!activeLessonId || !activeLessonStillExists) {
-      setActiveLessonId(workspaceItems[0].id);
+      const storedItem = workspaceItems.find((item) => String(item.id) === String(storedLessonId) && !item.isLocked);
+      const firstUnlockedItem = workspaceItems.find((item) => !item.isLocked) || workspaceItems[0];
+      rememberActiveLesson(storedItem?.id || firstUnlockedItem?.id || workspaceItems[0].id);
       return;
     }
 
     const currentItem = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
-    if (currentItem?.type === 'assessment' && currentItem.isLocked) {
-      const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && String(item.module?.id) === String(currentItem.module?.id));
-      if (fallbackLesson) {
-        setActiveLessonId(fallbackLesson.id);
-      }
+    if (currentItem?.isLocked && String(activeLessonId) !== String(storedLessonId)) {
+      const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
+      if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
-  }, [activeLessonId, workspaceItems]);
+  }, [activeLessonId, activeLessonStorageKey, assessmentsLoaded, rememberActiveLesson, workspaceItems]);
 
   useEffect(() => {
     if (course && !hasVocabularyTerms && workspaceMode === 'flashcards') {
@@ -173,8 +311,13 @@ const CourseWorkspace = () => {
   }, [course, hasVocabularyTerms, workspaceMode]);
 
   useEffect(() => {
-    let active = true;
+    if (workspaceMode === 'flashcards' && rightPanelMode) {
+      setRightPanelMode(null);
+    }
+  }, [rightPanelMode, workspaceMode]);
 
+  useEffect(() => {
+    let active = true;
     if (!course?.id || !hasAccessToken()) {
       setVocabularyCount(parsedVocabularyTerms.length);
       return undefined;
@@ -201,9 +344,9 @@ const CourseWorkspace = () => {
     }
 
     let active = true;
-
     const loadWorkspace = async () => {
       setLoading(true);
+      setAssessmentsLoaded(false);
       setError('');
       try {
         const [courseResponse, myCourses] = await Promise.all([
@@ -214,8 +357,8 @@ const CourseWorkspace = () => {
         if (!active) return;
 
         const normalizedCourse = normalizeCourse({ ...courseResponse, registered: true });
-        const matchedEnrollment = myCourses
-          .map(normalizeEnrollment)
+        const localStoredEnrollments = readEnrollments().map(normalizeEnrollment);
+        const matchedEnrollment = [...myCourses.map(normalizeEnrollment), ...localStoredEnrollments]
           .find((item) => item.courseSlug === normalizedCourse.slug || String(item.courseId) === String(normalizedCourse.id));
 
         if (!matchedEnrollment) {
@@ -225,13 +368,26 @@ const CourseWorkspace = () => {
 
         setCourse(normalizedCourse);
         applyEnrollment(matchedEnrollment);
-        courseApi.getCourseAssessments(normalizedCourse.id)
-          .then((items) => { if (active) setAssessments(items); })
-          .catch(() => { if (active) setAssessments([]); });
+        try {
+          const items = await courseApi.getCourseAssessments(normalizedCourse.id);
+          if (!active) return;
+          setAssessments(items);
+          setCourseAssessmentsSnapshot(normalizedCourse.id, items);
+        } catch {
+          if (!active) return;
+          setAssessments([]);
+          setCourseAssessmentsSnapshot(normalizedCourse.id, []);
+        } finally {
+          if (active) setAssessmentsLoaded(true);
+        }
       } catch {
         if (!active) return;
+        setAssessmentsLoaded(true);
         const stateCourse = location.state?.course ? normalizeCourse(location.state.course) : null;
         const stateEnrollment = location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null;
+        const localEnrollment = readEnrollments()
+          .map(normalizeEnrollment)
+          .find((item) => item.courseSlug === slugOrId || String(item.courseId) === String(slugOrId));
 
         if (stateCourse?.registered) {
           setCourse(stateCourse);
@@ -243,17 +399,23 @@ const CourseWorkspace = () => {
                 courseTitle: stateCourse.title,
                 thumbnailUrl: stateCourse.thumbnailUrl,
                 progressPercent: stateCourse.progressPercent ?? 0,
-              })
+              }),
           );
           return;
         }
 
         const fallback = findFallbackCourse(slugOrId);
-        if (fallback && location.state?.course?.registered) {
+        if (fallback && (location.state?.course?.registered || localEnrollment)) {
           setCourse(normalizeCourse({ ...fallback, registered: true }));
-          applyEnrollment(normalizeEnrollment({ courseId: fallback.id, courseSlug: fallback.slug, courseTitle: fallback.title, thumbnailUrl: fallback.thumbnailUrl, progressPercent: 68 }));
+          applyEnrollment(localEnrollment || normalizeEnrollment({
+            courseId: fallback.id,
+            courseSlug: fallback.slug,
+            courseTitle: fallback.title,
+            thumbnailUrl: fallback.thumbnailUrl,
+            progressPercent: 68,
+          }));
         } else {
-          setError('Không mở được workspace của khóa học này.');
+          setError('Không mở được không gian học của khóa học này.');
         }
       } finally {
         if (active) setLoading(false);
@@ -265,17 +427,39 @@ const CourseWorkspace = () => {
     return () => {
       active = false;
     };
-  }, [slugOrId, navigate, location.state]);
+  }, [
+    slugOrId,
+    navigate,
+    location.state?.course,
+    location.state?.enrollment,
+    location.state?.workspaceMode,
+    setCourseAssessmentsSnapshot,
+  ]);
+
+  useEffect(() => {
+    if (activeWorkspaceItem?.type !== 'lesson' || !course) return;
+    saveRecentLesson({
+      courseId: course.id,
+      lessonId: activeWorkspaceItem.id,
+      lessonTitle: activeWorkspaceItem.lesson?.title || '',
+      courseTitle: course.title,
+    });
+  }, [activeWorkspaceItem, course, saveRecentLesson]);
 
   const handleSelectLesson = (lessonId) => {
     const targetItem = workspaceItems.find((item) => String(item.id) === String(lessonId));
-    if (targetItem?.type === 'assessment' && targetItem.isLocked) return;
-    setActiveLessonId(lessonId);
+    if (targetItem?.isLocked) {
+      setError(targetItem.type === 'assessment'
+        ? 'Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.'
+        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.');
+      return;
+    }
+    setError('');
+    rememberActiveLesson(lessonId);
   };
 
   const handleToggleComplete = async (lessonId) => {
     if (!course?.id || !lessonId || savingLessonId) return;
-
     const shouldComplete = !completedLessonIds.has(lessonId);
     setSavingLessonId(lessonId);
     setError('');
@@ -286,18 +470,14 @@ const CourseWorkspace = () => {
         nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
       } catch (err) {
         const message = err?.response?.data?.message || '';
-        if (!/not enrolled|chưa đăng ký|not registered/i.test(message)) {
-          throw err;
-        }
-
+        if (!/not enrolled|chưa đăng ký|not registered/i.test(message)) throw err;
         await courseApi.registerOnlineCourse(course.id);
         nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
       }
       applyEnrollment(nextEnrollment);
     } catch (err) {
-      const status = err?.response?.status;
       const message = err?.response?.data?.message || err?.response?.data?.error || err?.message;
-      setError(message ? `Không lưu được tiến độ bài học: ${message}` : `Không lưu được tiến độ bài học${status ? ` (${status})` : ''}. Vui lòng thử lại.`);
+      setError(message ? `Không lưu được tiến độ học tập: ${message}` : 'Không thể lưu tiến độ học tập. Vui lòng thử lại.');
     } finally {
       setSavingLessonId(null);
     }
@@ -305,140 +485,285 @@ const CourseWorkspace = () => {
 
   const handleMoveLesson = (direction) => {
     if (!activeWorkspaceItem) return;
-
     const currentIndex = workspaceItems.findIndex((item) => String(item.id) === String(activeWorkspaceItem.id));
     let nextIndex = currentIndex + direction;
     while (nextIndex >= 0 && nextIndex < workspaceItems.length) {
       const nextItem = workspaceItems[nextIndex];
-      if (!(nextItem?.type === 'assessment' && nextItem.isLocked)) {
-        setActiveLessonId(nextItem.id);
+      if (!nextItem?.isLocked) {
+        rememberActiveLesson(nextItem.id);
         return;
       }
       nextIndex += direction;
     }
   };
 
+  const handleSeekTranscript = (seconds) => {
+    const parsed = Number(seconds);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    setVideoSeekRequest({
+      seconds: parsed,
+      requestedAt: Date.now(),
+    });
+  };
+
   const refreshAssessments = async (courseId) => {
     if (!courseId) return;
+    setAssessmentsLoaded(false);
     try {
       const items = await courseApi.getCourseAssessments(courseId);
       setAssessments(items);
+      setCourseAssessmentsSnapshot(courseId, items);
     } catch {
       setAssessments([]);
+      setCourseAssessmentsSnapshot(courseId, []);
+    } finally {
+      setAssessmentsLoaded(true);
     }
   };
 
   const handleSubmitAssessment = async (assessmentId, payload) => {
-    const response = await courseApi.submitAssessment(assessmentId, payload);
-    await refreshAssessments(course?.id);
-    return response;
+    try {
+      const response = await courseApi.submitAssessment(assessmentId, payload);
+      await refreshAssessments(course?.id);
+      clearAssessmentDraft(assessmentId);
+      removeAssessmentQueueItem(assessmentId);
+      addNotification({
+        type: 'learning',
+        title: 'Đã có phản hồi cho bài làm của bạn',
+        message: 'Hệ thống đã hoàn tất đánh giá bài làm. Bạn có thể xem phản hồi ngay bây giờ.',
+        courseId: course?.id,
+        courseTitle: course?.title,
+        actionPath: `/courses/${course?.slug}/learn`,
+      });
+      return response;
+    } catch (submissionError) {
+      if (isTemporaryAssessmentError(submissionError)) {
+        enqueueAssessmentSubmission({
+          assessmentId,
+          courseId: course?.id,
+          lessonId: activeWorkspaceItem?.id || null,
+          payload,
+          assessmentTitle: activeWorkspaceItem?.title || 'Bài đánh giá',
+        });
+        addNotification({
+          type: 'learning',
+          title: 'Bài làm đã được lưu tạm thời',
+          message: 'Hệ thống đang xử lý bài làm. Bạn không cần làm lại bài.',
+          courseId: course?.id,
+          courseTitle: course?.title,
+          actionPath: `/courses/${course?.slug}/learn`,
+        });
+        throw new Error('Bài làm của bạn đã được lưu tạm thời. Hệ thống sẽ tự động gửi lại sau ít phút.');
+      }
+
+      throw new Error('Hiện chưa thể hoàn tất việc gửi bài. Vui lòng kiểm tra lại nội dung rồi thử lại.');
+    }
+  };
+
+  const handleRetryQueueItem = async (item) => {
+    if (!item || retryingQueueId) return;
+    setRetryingQueueId(item.id);
+    try {
+      markAssessmentQueueRetried(item.id);
+      const response = await courseApi.submitAssessment(item.assessmentId, item.payload);
+      if (response) {
+        await refreshAssessments(course?.id);
+        removeAssessmentQueueItem(item.id);
+        clearAssessmentDraft(item.assessmentId);
+        addNotification({
+          type: 'learning',
+          title: 'Đã có phản hồi cho bài làm của bạn',
+          message: 'Hệ thống đã hoàn tất đánh giá bài làm. Bạn có thể xem phản hồi ngay bây giờ.',
+          courseId: course?.id,
+          courseTitle: course?.title,
+          actionPath: `/courses/${course?.slug}/learn`,
+        });
+      }
+    } catch {
+      setError('Bài làm đã được lưu an toàn và vẫn đang chờ gửi lại khi hệ thống sẵn sàng.');
+    } finally {
+      setRetryingQueueId('');
+    }
   };
 
   if (loading) {
     return (
       <div className="course-page min-h-screen bg-[#f9f9f9] text-[#1a1c1c]">
         <CourseGlobalStyles />
-        <Header hideTeacherLinks />
+        <Header />
         <main className="mx-auto max-w-[1320px] px-4 py-10 md:px-10">
-          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#584140]">Đang mở workspace khóa học...</div>
+          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#584140]">Đang mở không gian học...</div>
         </main>
       </div>
     );
   }
 
-  if (!course || !enrollment) {
+  if (!course) {
     return (
       <div className="course-page min-h-screen bg-[#f9f9f9] text-[#1a1c1c]">
         <CourseGlobalStyles />
-        <Header hideTeacherLinks />
+        <Header />
         <main className="mx-auto max-w-[1320px] px-4 py-10 md:px-10">
-          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#93000a]">{error || 'Bạn chưa có quyền vào khóa học này.'}</div>
+          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#93000a]">{error || 'Không tìm thấy khóa học.'}</div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="course-page min-h-screen bg-[#faf9f8] text-[#1a1c1c]">
+    <div className="course-page min-h-screen bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
-      <Header hideTeacherLinks />
-      <div className="mx-auto flex max-w-[1600px]">
-        <WorkspaceSidebar
-          activeLessonId={activeWorkspaceItem?.id}
-          assessmentLockByModule={assessmentLockByModule}
-          assessmentModuleIds={moduleAssessmentIds}
-          completedLessonIds={completedLessonIds}
-          course={course}
-          hasAssessments={hasAssessments}
-          onSelectLesson={handleSelectLesson}
-        />
-        <main className="min-w-0 flex-1 px-4 py-8 md:px-8">
-          <div className="mb-6">
-            <Link className="group inline-flex items-center gap-2 text-sm font-bold text-[#8a0018]" to={`/courses/${course.slug}`} state={{ course }}>
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="group-hover:underline">Quay lại chi tiết khóa học</span>
-            </Link>
+      <Header />
+      <main className="mx-auto w-full max-w-[1880px] px-3 pb-10 pt-5 md:px-5 2xl:px-8">
+        {queuedItems.length ? (
+          <div className="mb-6 rounded-3xl border border-[#f2dfb3] bg-[#fff8e7] p-5 text-sm text-[#9a6700]">
+            <p className="font-extrabold">Bạn có {queuedItems.length} bài làm chưa gửi hoàn tất.</p>
+            <p className="mt-2">Bài làm đã được lưu an toàn. Bạn có thể gửi lại hoặc tiếp tục chỉnh sửa bài đang mở.</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {queuedItems.slice(0, 2).map((item) => (
+                <div key={item.id} className="flex flex-wrap gap-2">
+                  <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white" onClick={() => handleRetryQueueItem(item)} type="button">
+                    {retryingQueueId === item.id ? 'Đang gửi lại...' : 'Gửi lại bài'}
+                  </button>
+                  <button
+                    className="rounded-2xl border border-[#9a6700]/30 bg-white px-4 py-3 text-sm font-bold text-[#9a6700]"
+                    onClick={() => {
+                      removeAssessmentQueueItem(item.id);
+                      clearAssessmentDraft(item.assessmentId);
+                    }}
+                    type="button"
+                  >
+                    Xóa bản nháp
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-          {error ? (
-            <div className="mb-6 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-              {error}
+        ) : null}
+
+        {error ? (
+          <div className="mb-6 rounded-3xl border border-[#f0d4d7] bg-white p-5 text-sm font-semibold text-[#93000a]">
+            {error}
+          </div>
+        ) : null}
+
+        <div className="mb-4">
+          <WorkspaceOverview
+            course={course}
+            enrollment={enrollment}
+            hasVocabularyTerms={hasVocabularyTerms}
+            workspaceMode={workspaceMode}
+            onWorkspaceModeChange={setWorkspaceMode}
+          />
+        </div>
+
+        <div className={`grid gap-4 xl:items-start ${
+          hideRightRail
+            ? sidebarCollapsed
+              ? 'xl:grid-cols-[56px_minmax(0,1fr)]'
+              : 'xl:grid-cols-[360px_minmax(0,1fr)]'
+            : sidebarCollapsed
+              ? rightPanelVisible ? 'xl:grid-cols-[56px_minmax(0,1fr)_420px]' : 'xl:grid-cols-[56px_minmax(0,1fr)_76px]'
+              : rightPanelVisible ? 'xl:grid-cols-[360px_minmax(0,1fr)_420px]' : 'xl:grid-cols-[360px_minmax(0,1fr)_76px]'
+        }`}
+        >
+          <WorkspaceSidebar
+            course={course}
+            activeLessonId={activeLessonId}
+            assessmentLockByModule={assessmentLockByModule}
+            assessmentModuleIds={moduleAssessmentIds}
+            completedLessonIds={completedLessonIds}
+            lessonItems={lessonItems}
+            moduleProgress={moduleProgress}
+            hasAssessments={hasAssessments}
+            collapsed={sidebarCollapsed}
+            onCollapse={() => setSidebarCollapsed(true)}
+            onExpand={() => setSidebarCollapsed(false)}
+            onSelectLesson={handleSelectLesson}
+          />
+
+          <div className="min-w-0 flex-1 space-y-6">
+            {workspaceMode === 'flashcards' ? (
+              <WorkspaceFlashcards course={course} totalTerms={flashcardCount} />
+            ) : activeWorkspaceItem?.type === 'assessment' ? (
+              <AiAssessmentPanel
+                assessments={activeWorkspaceItem.assessments}
+                moduleTitle={activeWorkspaceItem.module?.title}
+                isLocked={activeWorkspaceItem.isLocked}
+                onMoveStep={handleMoveLesson}
+                onSubmitAssessment={handleSubmitAssessment}
+                draftGetter={getAssessmentDraft}
+                onDraftChange={saveAssessmentDraft}
+                onClearDraft={clearAssessmentDraft}
+              />
+            ) : (
+              <WorkspaceLessonPanel
+                activeLessonItem={activeWorkspaceItem}
+                completedLessonIds={completedLessonIds}
+                lessonItems={lessonItems}
+                savingLessonId={savingLessonId}
+                canPersist={isAuthenticated}
+                onMoveLesson={handleMoveLesson}
+                onSelectLesson={handleSelectLesson}
+                onToggleComplete={handleToggleComplete}
+                onOpenNotes={() => setRightPanelMode('notes')}
+                onSaveLessonNote={({ content, selectedText }) => saveLessonNote({
+                  courseId: course.id,
+                  lessonId: activeWorkspaceItem?.id,
+                  content,
+                  selectedText,
+                  source: 'lesson',
+                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
+                  courseTitle: course.title,
+                })}
+                seekRequest={videoSeekRequest}
+              />
+            )}
+
+          </div>
+
+          {!hideRightRail ? (
+            <div className="hidden min-w-0 self-stretch xl:block">
+              <WorkspaceRightRail
+                activeLesson={activeWorkspaceItem}
+                mode={rightPanelVisible ? rightPanelMode : null}
+                notes={courseNotes}
+                reviewFlags={courseReviewFlags}
+                recentLessons={courseRecentLessons}
+                canPersist={isAuthenticated}
+                onModeChange={(nextMode) => setRightPanelMode((current) => (current === nextMode ? null : nextMode))}
+                onSeekTranscript={handleSeekTranscript}
+                onSaveTranscriptNote={({ content, selectedText, transcriptStartSeconds }) => saveLessonNote({
+                  courseId: course.id,
+                  lessonId: activeWorkspaceItem?.id,
+                  content,
+                  selectedText,
+                  transcriptStartSeconds,
+                  source: 'transcript',
+                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
+                  courseTitle: course.title,
+                })}
+                onSaveManualNote={(content) => saveLessonNote({
+                  courseId: course.id,
+                  lessonId: activeWorkspaceItem?.id,
+                  content,
+                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
+                  courseTitle: course.title,
+                })}
+                onUpdateNote={updateLessonNote}
+                onDeleteNote={removeLessonNote}
+                onToggleReviewFlag={() => toggleLessonReviewFlag({
+                  courseId: course.id,
+                  lessonId: activeWorkspaceItem?.id,
+                  lessonTitle: activeWorkspaceItem?.lesson?.title || activeWorkspaceItem?.title || '',
+                  courseTitle: course.title,
+                })}
+                onSelectRecentLesson={handleSelectLesson}
+              />
             </div>
           ) : null}
-          {hasVocabularyTerms ? (
-            <div className="mb-6 inline-flex rounded-2xl bg-[#f4f3f3] p-1">
-              <button
-                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-5 py-3 text-sm font-extrabold transition ${workspaceMode === 'learn' ? 'bg-white text-[#8a0018] shadow-sm' : 'text-[#584140] hover:text-[#8a0018]'}`}
-                type="button"
-                onClick={() => setWorkspaceMode('learn')}
-              >
-                <span className="material-symbols-outlined text-[18px]">school</span>
-                Bài học
-              </button>
-              <button
-                className={`inline-flex cursor-pointer items-center gap-2 rounded-xl px-5 py-3 text-sm font-extrabold transition ${workspaceMode === 'flashcards' ? 'bg-white text-[#8a0018] shadow-sm' : 'text-[#584140] hover:text-[#8a0018]'}`}
-                type="button"
-                onClick={() => setWorkspaceMode('flashcards')}
-              >
-                <span className="material-symbols-outlined text-[18px]">style</span>
-                Flashcards
-                <span className="rounded-full bg-[#fff0f1] px-2 py-0.5 text-xs text-[#8a0018]">{flashcardCount}</span>
-              </button>
-            </div>
-          ) : null}
-          <div className="grid items-start gap-8 xl:grid-cols-[1fr_340px]">
-            <div className="space-y-8">
-              {workspaceMode === 'flashcards' ? (
-                <WorkspaceFlashcards course={course} />
-              ) : (
-                <>
-                  <WorkspaceOverview course={course} enrollment={enrollment} />
-                  {activeWorkspaceItem?.type === 'assessment' ? (
-                    <AiAssessmentPanel
-                      assessments={activeWorkspaceItem?.assessments || []}
-                      isLocked={activeWorkspaceItem?.isLocked}
-                      moduleTitle={activeWorkspaceItem?.module?.title}
-                      onMoveStep={handleMoveLesson}
-                      onSubmitAssessment={handleSubmitAssessment}
-                    />
-                  ) : (
-                    <WorkspaceLessonPanel
-                      activeLessonItem={activeLessonItem}
-                      completedLessonIds={completedLessonIds}
-                      course={course}
-                      lessonItems={lessonItems}
-                      savingLessonId={savingLessonId}
-                      onMoveLesson={handleMoveLesson}
-                      onSelectLesson={handleSelectLesson}
-                      onToggleComplete={handleToggleComplete}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-            <WorkspaceRightRail enrollment={enrollment} />
-          </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
