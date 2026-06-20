@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.repository;
 
 import fu.sap490.g23.backend.entity.AuthToken;
-import fu.sap490.g23.backend.entity.AuthTokenType;
+import fu.sap490.g23.backend.entity.enums.AuthTokenType;
 import fu.sap490.g23.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 

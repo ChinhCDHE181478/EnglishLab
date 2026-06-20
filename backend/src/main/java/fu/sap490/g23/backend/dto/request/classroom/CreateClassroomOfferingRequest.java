@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOfferingStatus;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -49,7 +49,6 @@ public class CreateClassroomOfferingRequest {
     private LocalDate endDate;
 
     private Long primaryTeacherId;
-    private Long defaultCampusId;
     private Long defaultRoomId;
 
     @Size(max = 500)

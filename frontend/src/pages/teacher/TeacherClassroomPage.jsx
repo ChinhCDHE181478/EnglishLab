@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Calendar,
@@ -39,7 +40,9 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
+  formatGradebookFinalResult,
   formatSessionStatus,
+  isGradebookPassed,
 } from '../../utils/classroomHelpers';
 
 const teacherTabs = [
@@ -139,7 +142,7 @@ export default function TeacherClassroomPage() {
       hwScore: entry.homeworkScore ?? '—',
       quizScore: entry.quizScore ?? '—',
       participation: entry.participationScore ?? '—',
-      result: entry.finalResult || 'CHƯA CÓ',
+      result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
     }));
   }, [gradebook]);
@@ -383,7 +386,7 @@ export default function TeacherClassroomPage() {
           {homework.map((item) => (
             <article
               key={item.id}
-              className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm flex flex-col justify-between hover:border-[#dfbfbd]/40 transition"
+              className="rounded-xl border border-[#e5e7eb] bg-white p-5 flex flex-col justify-between hover:border-[#d0c4c3] transition"
             >
               <div>
                 <div className="flex items-center justify-between gap-3">
@@ -452,11 +455,11 @@ export default function TeacherClassroomPage() {
                       <td className="px-6 py-4 font-bold">{entry.participationScore ?? '—'}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          entry.finalResult === 'PASSED' || entry.finalResult === 'ĐẠT'
+                          isGradebookPassed(entry.finalResult)
                             ? 'bg-emerald-50 text-emerald-700'
                             : 'bg-amber-50 text-amber-700'
                         }`}>
-                          {entry.finalResult ?? 'CHƯA ĐÁNH GIÁ'}
+                          {formatGradebookFinalResult(entry.finalResult)}
                         </span>
                       </td>
                     </tr>
@@ -554,33 +557,74 @@ export default function TeacherClassroomPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {/* Class Header */}
-        <section className="relative overflow-hidden rounded-[32px] border border-[#dfbfbd]/20 bg-gradient-to-br from-white via-[#fffafb] to-[#fff3f4] p-8 shadow-sm">
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-[#730014]/5 blur-3xl"></div>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <section className="border-b border-[#ebebeb] bg-white pb-6 pt-2">
+          <div className="flex flex-col gap-4">
             <div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Link className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b706e] hover:text-[#8a0018] transition" to="/teacher">
+                  <ArrowLeft className="h-3.5 w-3.5" /> Giảng dạy
+                </Link>
+                <span className="text-[#d0c4c3]">›</span>
                 {classroom && <ClassroomTypeBadge mode={classroom.deliveryMode} />}
                 {classroom && <StatusBadge status={classroom.classroomStatus} />}
               </div>
-              <h1 className="mt-4 font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#2b2828] md:text-4xl">
-                {classroom?.title || 'Đang tải thông tin lớp...'}
-              </h1>
-              {classroom && (
-                <p className="mt-2 text-sm text-[#584140]">
-                  Sĩ số hiện tại: <strong className="text-[#2b2828]">{classroom.enrolledCount ?? 0} / {classroom.maxCapacity ?? '—'} học viên</strong>
-                </p>
-              )}
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
+                  {classroom?.title || 'Đang tải thông tin lớp...'}
+                </h1>
+                {classroom && (
+                  <Link
+                    className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
+                    to="/teacher/schedule"
+                  >
+                    <Calendar className="h-4 w-4" /> Lịch dạy
+                  </Link>
+                )}
+              </div>
             </div>
 
-            <Link
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-[#dfbfbd] bg-white px-5 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
-              to="/teacher"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Quay lại cockpit
-            </Link>
+            {/* Operational stats row */}
+            {classroom && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <HeaderStat
+                  icon={Users}
+                  label="Sĩ số"
+                  value={`${classroom.enrolledCount ?? 0}/${classroom.maxCapacity ?? '—'}`}
+                  tone="rose"
+                />
+                <HeaderStat
+                  icon={AlertCircle}
+                  label="Cần chú ý"
+                  value={teacherStats.atRisk}
+                  tone={teacherStats.atRisk > 0 ? 'amber' : 'gray'}
+                />
+                <HeaderStat
+                  icon={FileText}
+                  label="Bài chờ chấm"
+                  value={teacherStats.pendingGrading}
+                  tone={teacherStats.pendingGrading > 0 ? 'blue' : 'gray'}
+                />
+                <HeaderStat
+                  icon={CheckCircle2}
+                  label="Buổi đã học"
+                  value={teacherStats.completed}
+                  tone="emerald"
+                />
+                <HeaderStat
+                  icon={Clock}
+                  label="Buổi sắp tới"
+                  value={teacherStats.upcoming}
+                  tone="purple"
+                />
+              </div>
+            )}
           </div>
         </section>
 
@@ -609,20 +653,20 @@ export default function TeacherClassroomPage() {
               ) : null}
 
               {/* Tab Content Panel */}
-              <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm min-h-[300px]">
+              <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm min-h-[300px]">
                 {renderContent()}
               </section>
             </div>
 
             {/* Change Request Section */}
-            <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
                   <Settings className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Gửi yêu cầu thay đổi lịch trình</h2>
-                  <p className="mt-1 text-xs text-[#8b706e] leading-5">Đề xuất thay đổi lịch học, phòng học, giáo viên thay thế hoặc hủy buổi học. Đề xuất sẽ được gửi tới Training Manager phê duyệt.</p>
+                  <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Gửi yêu cầu thay đổi</h2>
+                  <p className="mt-1 text-xs text-[#8b706e] leading-5">Đề xuất thay đổi lịch, phòng học, giáo viên thay thế hoặc hủy buổi học. Đề xuất sẽ được gửi tới Training Manager phê duyệt.</p>
                 </div>
               </div>
 
@@ -675,8 +719,30 @@ export default function TeacherClassroomPage() {
             </section>
           </>
         ) : null}
-      </main>
+      </motion.main>
       <CourseFooter />
+    </div>
+  );
+}
+
+function HeaderStat({ icon: Icon, label, value, tone = 'rose' }) {
+  const toneMap = {
+    rose: 'bg-rose-50 text-[#8a0018]',
+    amber: 'bg-amber-50 text-amber-700',
+    blue: 'bg-blue-50 text-blue-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
+    purple: 'bg-purple-50 text-purple-700',
+    gray: 'bg-gray-100 text-gray-500',
+  };
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#e5e7eb] bg-white px-4 py-3">
+      <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${toneMap[tone] || toneMap.rose}`}>
+        <Icon className="h-4.5 w-4.5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a8b8a] truncate">{label}</p>
+        <p className="font-['Manrope'] text-lg font-extrabold leading-tight text-[#1a1c1c]">{value}</p>
+      </div>
     </div>
   );
 }

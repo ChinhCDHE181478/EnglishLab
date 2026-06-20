@@ -54,8 +54,38 @@ public class StudentClassroomController {
     }
 
     @GetMapping("/{id}/sessions")
-    public ResponseEntity<List<ClassroomSessionResponse>> getSessions(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomOfferingService.getSessions(id));
+    public ResponseEntity<List<ClassroomSessionResponse>> getSessions(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.getLearnerSessions(
+                id,
+                authentication.getName()
+        ));
+    }
+
+    @PostMapping("/sessions/{sessionId}/join")
+    public ResponseEntity<ClassroomSessionResponse> joinVirtualSession(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.joinVirtualSession(
+                sessionId,
+                authentication.getName()
+        ));
+    }
+
+    @PostMapping("/{id}/join")
+    public ResponseEntity<ClassroomSessionResponse> joinVirtualClass(
+            @PathVariable Long id,
+            @RequestParam Long sessionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.joinVirtualClass(
+                id,
+                sessionId,
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/{id}/homework")

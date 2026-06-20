@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.classroom;
 
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import jakarta.persistence.*;

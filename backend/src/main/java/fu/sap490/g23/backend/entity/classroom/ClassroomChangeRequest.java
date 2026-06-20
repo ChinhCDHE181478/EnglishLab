@@ -1,6 +1,8 @@
 package fu.sap490.g23.backend.entity.classroom;
 
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,7 +35,7 @@ public class ClassroomChangeRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "requester_role", nullable = false, length = 30)
-    private Role requesterRole;
+    private RoleEnum requesterRole;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "classroom_offering_id", nullable = false)

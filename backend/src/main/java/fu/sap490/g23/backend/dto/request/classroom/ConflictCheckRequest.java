@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomChangeRequestType;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import lombok.Builder;
 import lombok.Data;
 

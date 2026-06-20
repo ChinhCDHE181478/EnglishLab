@@ -50,6 +50,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers("/api/payos/webhook").permitAll()
+                        .requestMatchers("/api/lark/events").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-offerings", "/api/classroom-offerings/**").permitAll()
                         .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "TRAINING_MANAGER", "MANAGER", "ADMIN")

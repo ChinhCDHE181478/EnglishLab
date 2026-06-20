@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, loginWithFacebook, loginWithGoogle } from '../api/authApi';
-import { isContentManagerUser, needsProfileCompletion } from '../utils/auth';
+import { hasAnyUserRole, isContentManagerUser, needsProfileCompletion } from '../utils/auth';
 
 const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
@@ -37,10 +37,9 @@ const Login = () => {
   const [facebookLoading, setFacebookLoading] = useState(false);
 
   const resolvePostLoginPath = (user) => {
-    const role = String(user?.role || '').toUpperCase();
     if (isContentManagerUser(user)) return '/content-manager/dashboard';
-    if (role === 'TRAINING_MANAGER') return '/training-manager/classroom-registrations';
-    if (role === 'TEACHER') return '/teacher';
+    if (hasAnyUserRole(user, ['TRAINING_MANAGER'])) return '/training-manager/classroom-registrations';
+    if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
     if (needsProfileCompletion(user)) return '/complete-profile';
     return '/home';
   };

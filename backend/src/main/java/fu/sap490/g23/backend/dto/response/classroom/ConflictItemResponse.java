@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ConflictType;
+import fu.sap490.g23.backend.entity.classroom.enums.ConflictType;
 import lombok.Builder;
 import lombok.Data;
 

@@ -41,7 +41,7 @@ import {
 // ==========================================
 
 export const ClassroomLoadingState = ({ message = 'Đang tải dữ liệu...' }) => (
-  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-[32px] border border-[#dfbfbd]/20 bg-white px-6 py-16 text-center shadow-sm">
+  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-xl border border-[#e5e7eb] bg-white px-6 py-16 text-center shadow-sm">
     <div className="relative flex h-16 w-16 items-center justify-center">
       <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-[#dfbfbd]/30 border-t-[#730014]"></div>
       <div className="h-6 w-6 rounded-full bg-[#4b0009]/10"></div>
@@ -57,7 +57,7 @@ export const LoadingSkeleton = ({ count = 3, type = 'card' }) => {
     return (
       <div className="space-y-4 w-full animate-pulse">
         {items.map((_, i) => (
-          <div key={i} className="flex items-center justify-between rounded-[24px] border border-[#dfbfbd]/15 bg-white p-5 shadow-sm">
+          <div key={i} className="flex items-center justify-between rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="h-12 w-12 rounded-2xl bg-gray-100"></div>
               <div className="space-y-2">
@@ -75,7 +75,7 @@ export const LoadingSkeleton = ({ count = 3, type = 'card' }) => {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 w-full animate-pulse">
       {items.map((_, i) => (
-        <div key={i} className="flex flex-col rounded-[28px] border border-[#dfbfbd]/15 bg-white p-6 shadow-sm">
+        <div key={i} className="flex flex-col rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
           <div className="h-4 w-1/3 rounded bg-gray-200 mb-4"></div>
           <div className="h-6 w-3/4 rounded bg-gray-200 mb-2"></div>
           <div className="h-4 w-1/2 rounded bg-gray-100 mb-6"></div>
@@ -98,7 +98,7 @@ export const LoadingSkeleton = ({ count = 3, type = 'card' }) => {
 // ==========================================
 
 export const ClassroomErrorState = ({ message, onRetry }) => (
-  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-[32px] border border-[#f0d4d7] bg-[#fffafb] px-6 py-16 text-center shadow-sm">
+  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-xl border border-[#f0d4d7] bg-[#fffafb] px-6 py-16 text-center shadow-sm">
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fff1f3] text-[#93000a]">
       <AlertCircle className="h-8 w-8" />
     </div>
@@ -125,7 +125,7 @@ export const ClassroomEmptyState = ({
   onAction,
   icon: Icon = BookOpen,
 }) => (
-  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-sm">
+  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-sm">
     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#fffafb] border border-[#dfbfbd]/30 text-[#730014]">
       <Icon className="h-8 w-8" />
     </div>
@@ -256,34 +256,26 @@ export const ClassroomTabBar = ({ tabs, activeTab, onChange }) => (
 // 5. PAGE HERO & STATS CARDS
 // ==========================================
 
-export const PageHero = ({ title, subtitle, stats = [], action, dark = false }) => (
-  <section className={`relative overflow-hidden rounded-[32px] border p-8 shadow-md md:p-10 ${
-    dark
-      ? 'border-transparent bg-gradient-to-br from-[#4b0009] via-[#730014] to-[#9b1a29]'
-      : 'border-[#dfbfbd]/20 bg-gradient-to-br from-[#4b0009] via-[#6b000f] to-[#912040]'
-  }`}>
-    {/* Decorative blobs */}
-    <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
-    <div className="absolute bottom-0 left-1/4 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
-    <div className="absolute right-1/3 top-1/2 h-32 w-32 rounded-full bg-white/3 blur-2xl" />
-
-    <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-      <div className="max-w-3xl">
-        <h1 className="font-['Manrope'] text-3xl font-extrabold tracking-tight text-white md:text-4xl lg:text-5xl">
-          {title}
-        </h1>
+export const PageHero = ({ title, subtitle, stats = [], action }) => (
+  <section className="border-b border-[#ebebeb] bg-white pb-6 pt-8">
+    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <div className="mb-2 flex items-center gap-3">
+          <span className="h-7 w-1 rounded-full bg-[#8a0018]" />
+          <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
+            {title}
+          </h1>
+        </div>
         {subtitle ? (
-          <p className="mt-3 text-base leading-8 text-white/75 md:text-lg">
-            {subtitle}
-          </p>
+          <p className="pl-4 text-sm leading-7 text-[#6a5553]">{subtitle}</p>
         ) : null}
-        {action ? <div className="mt-6">{action}</div> : null}
+        {action ? <div className="mt-4 pl-4">{action}</div> : null}
       </div>
 
       {stats.length ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:flex lg:flex-wrap lg:justify-end">
+        <div className="flex flex-wrap gap-x-8 gap-y-3 pl-4 md:pl-0">
           {stats.map((stat, idx) => (
-            <StatCard key={idx} {...stat} glass />
+            <StatCard key={idx} {...stat} />
           ))}
         </div>
       ) : null}
@@ -291,57 +283,26 @@ export const PageHero = ({ title, subtitle, stats = [], action, dark = false }) 
   </section>
 );
 
-export const StatCard = ({ label, value, icon: Icon, trend, color = 'rose', glass = false }) => {
-  const colorMap = {
-    rose: { bg: 'bg-rose-50/60', text: 'text-[#730014]', border: 'border-rose-100/30' },
-    emerald: { bg: 'bg-emerald-50/60', text: 'text-emerald-700', border: 'border-emerald-100/30' },
-    blue: { bg: 'bg-blue-50/60', text: 'text-blue-700', border: 'border-blue-100/30' },
-    amber: { bg: 'bg-amber-50/60', text: 'text-amber-700', border: 'border-amber-100/30' },
-    purple: { bg: 'bg-purple-50/60', text: 'text-purple-700', border: 'border-purple-100/30' },
+export const StatCard = ({ label, value, icon: Icon, trend, color = 'rose', glass: _glass }) => {
+  const accentMap = {
+    rose:    'border-b-[#8a0018] text-[#8a0018]',
+    emerald: 'border-b-emerald-600 text-emerald-700',
+    blue:    'border-b-blue-500 text-blue-600',
+    amber:   'border-b-amber-500 text-amber-700',
+    purple:  'border-b-purple-500 text-purple-700',
   };
-
-  const styles = colorMap[color] || colorMap.rose;
-
-  if (glass) {
-    return (
-      <div className="flex min-w-[120px] flex-col rounded-3xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm transition-all hover:bg-white/15">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] font-extrabold text-white/70 uppercase tracking-widest">{label}</span>
-          {Icon ? (
-            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/10 text-white">
-              <Icon className="h-3.5 w-3.5" />
-            </div>
-          ) : null}
-        </div>
-        <div className="mt-2 font-['Manrope'] text-2xl font-extrabold text-white">{value}</div>
-        {trend ? (
-          <span className="mt-1 text-[10px] font-bold text-white/60 flex items-center gap-0.5">
-            <TrendingUp className="h-3 w-3" />
-            {trend}
-          </span>
-        ) : null}
-      </div>
-    );
-  }
+  const accent = accentMap[color] || accentMap.rose;
 
   return (
-    <div className={`flex min-w-[140px] flex-col rounded-3xl border ${styles.border} bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:translate-y-[-2px]`}>
-      <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">{label}</span>
-        {Icon ? (
-          <div className={`flex h-8 w-8 items-center justify-center rounded-2xl ${styles.bg} ${styles.text}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-        ) : null}
-      </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828] md:text-3xl">
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs font-semibold text-[#9a8b8a]">{label}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className={`font-['Manrope'] text-2xl font-extrabold ${accent.split(' ')[1]}`}>
           {value}
         </span>
         {trend ? (
-          <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
-            <TrendingUp className="h-3 w-3" />
-            {trend}
+          <span className="flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600">
+            <TrendingUp className="h-3 w-3" />{trend}
           </span>
         ) : null}
       </div>
@@ -444,8 +405,8 @@ export const ScheduleCard = ({
   cta,
   active = false,
 }) => (
-  <div className={`relative rounded-[28px] border bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md ${
-    active ? 'border-[#730014] ring-2 ring-[#730014]/5' : 'border-[#dfbfbd]/20'
+  <div className={`relative rounded-xl border bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md ${
+    active ? 'border-[#730014] ring-2 ring-[#730014]/5' : 'border-[#e5e7eb]'
   }`}>
     {/* Timeline dot connector */}
     <div className={`absolute -left-[33px] top-8 h-4 w-4 rounded-full border-2 bg-white transition-all duration-300 ${
@@ -567,7 +528,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confi
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
 
       {/* Modal Dialog */}
-      <div className="relative z-10 w-full max-w-md rounded-[32px] border border-gray-100 bg-white p-6 shadow-2xl animate-scale-in">
+      <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-scale-in">
         <h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{title}</h3>
         <p className="mt-3 text-sm leading-6 text-[#584140]">{message}</p>
 
@@ -607,7 +568,7 @@ export const FilterBar = ({ onSearch, searchPlaceholder = 'Tìm kiếm...', filt
   };
 
   return (
-    <div className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
       <form className="flex flex-col gap-4 md:flex-row md:items-center" onSubmit={handleSearchSubmit}>
         {onSearch ? (
           <div className="relative flex-1">
@@ -664,7 +625,7 @@ export const TuitionStatusCard = ({ due, paid, remaining, settlementType, settle
   const isFullyPaid = remaining <= 0;
 
   return (
-    <div className={`rounded-3xl border p-6 shadow-sm ${
+    <div className={`rounded-xl border p-6 shadow-sm ${
       isFullyPaid ? 'border-emerald-100 bg-emerald-50/20' : 'border-rose-100 bg-rose-50/10'
     }`}>
       <div className="flex items-center justify-between mb-4">
@@ -720,7 +681,7 @@ export const ConflictPanel = ({ conflictResult }) => {
 
   if (!hasConflict) {
     return (
-      <div className="rounded-3xl border border-emerald-100 bg-emerald-50/20 p-5 flex items-start gap-4">
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-5 flex items-start gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 flex-shrink-0">
           <CheckCircle2 className="h-5 w-5" />
         </div>
@@ -735,7 +696,7 @@ export const ConflictPanel = ({ conflictResult }) => {
   const conflicts = conflictResult.conflicts || [];
 
   return (
-    <div className="rounded-3xl border border-rose-100 bg-rose-50/20 p-5 space-y-4">
+    <div className="rounded-xl border border-rose-100 bg-rose-50/20 p-5 space-y-4">
       <div className="flex items-start gap-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-[#93000a] flex-shrink-0">
           <AlertTriangle className="h-5 w-5" />
@@ -916,8 +877,12 @@ export const ActionMenu = ({ actions = [] }) => {
 // 14. LARK JOIN BUTTON (BACKWARD COMPATIBILITY)
 // ==========================================
 
-export const LarkJoinButton = ({ url, label = 'Tham gia Lark', className = '', onBlocked }) => {
+export const LarkJoinButton = ({ url, label = 'Tham gia Lark', className = '', onBlocked, onClick }) => {
   const handleClick = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
     const popup = window.open(url, '_blank', 'noopener,noreferrer');
     if (!popup) {
       onBlocked?.('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup hoặc mở liên kết thủ công.');

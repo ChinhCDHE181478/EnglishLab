@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.classroom;
 
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+
 import fu.sap490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,15 +53,35 @@ public class ClassroomSession {
     private ClassroomDeliveryMode deliveryMode;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campus_id")
-    private Campus campus;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     private ClassroomRoom room;
 
     @Column(name = "lark_meeting_url", length = 700)
     private String larkMeetingUrl;
+
+    @Column(name = "lark_calendar_id", length = 255)
+    private String larkCalendarId;
+
+    @Column(name = "lark_event_id", length = 255)
+    private String larkEventId;
+
+    @Column(name = "lark_meeting_id", length = 255)
+    private String larkMeetingId;
+
+    @Column(name = "lark_meeting_no", length = 30)
+    private String larkMeetingNo;
+
+    @Column(name = "lark_empty_since")
+    private LocalDateTime larkEmptySince;
+
+    @Column(name = "lark_sync_status", length = 30)
+    private String larkSyncStatus;
+
+    @Column(name = "lark_sync_error", length = 1000)
+    private String larkSyncError;
+
+    @Column(name = "lark_synced_at")
+    private LocalDateTime larkSyncedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "lark_meeting_status", length = 30)

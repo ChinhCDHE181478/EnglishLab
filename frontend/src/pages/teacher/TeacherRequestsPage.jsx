@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   Calendar,
@@ -98,11 +99,16 @@ export default function TeacherRequestsPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {/* Page Hero with operational stats */}
         <PageHero
-          title="Yêu cầu thay đổi lịch trình"
-          subtitle="Theo dõi tiến trình phê duyệt các đề xuất thay đổi lịch học, phòng học hoặc giáo viên thay thế từ Training Manager."
+          title="Yêu cầu thay đổi"
+          subtitle="Theo dõi tiến trình phê duyệt các đề xuất thay đổi lịch, phòng học hoặc giáo viên thay thế từ Training Manager."
           stats={stats}
           action={
             <Link
@@ -110,7 +116,7 @@ export default function TeacherRequestsPage() {
               to="/teacher"
             >
               <ArrowLeft className="h-4 w-4" />
-              Quay lại cockpit giảng dạy
+              Quay lại trang giảng dạy
             </Link>
           }
         />
@@ -144,10 +150,13 @@ export default function TeacherRequestsPage() {
 
           {!loading && !error && filteredRequests.length ? (
             <div className="grid gap-6 md:grid-cols-2">
-              {filteredRequests.map((request) => (
-                <article
+              {filteredRequests.map((request, idx) => (
+                <motion.article
                   key={request.id}
-                  className="flex flex-col overflow-hidden rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm hover:border-[#dfbfbd]/40 transition space-y-6"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(idx * 0.06, 0.36), ease: 'easeOut' }}
+                  className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-5 transition hover:border-[#d0c4c3] hover:shadow-sm space-y-5"
                 >
                   {/* Card Header */}
                   <div className="flex items-start justify-between gap-4">
@@ -187,12 +196,12 @@ export default function TeacherRequestsPage() {
                     <span>Yêu cầu ID: #{request.id}</span>
                     <span>Gửi lúc: {formatClassroomDateTime(request.createdAt)}</span>
                   </div>
-                </article>
+                </motion.article>
               ))}
             </div>
           ) : null}
         </div>
-      </main>
+      </motion.main>
       <CourseFooter />
     </div>
   );

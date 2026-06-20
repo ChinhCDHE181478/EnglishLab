@@ -3,6 +3,8 @@ package fu.sap490.g23.backend.config;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.entity.assessment.*;
+import fu.sap490.g23.backend.entity.assessment.enums.*;
+import fu.sap490.g23.backend.entity.assessment.enums.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;

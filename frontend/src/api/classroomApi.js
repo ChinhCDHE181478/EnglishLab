@@ -88,6 +88,13 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async joinVirtualSession(classroomId, sessionId) {
+    const response = await axiosClient.post(`/api/student/classrooms/${classroomId}/join`, null, {
+      params: { sessionId },
+    });
+    return unwrapData(response);
+  },
+
   async getMyClassroomHomework(id) {
     const response = await axiosClient.get(`/api/student/classrooms/${id}/homework`);
     return asList(unwrapData(response));
@@ -231,6 +238,11 @@ export const classroomApi = {
   async getTeacherAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
+  },
+
+  async checkTeacherChangeConflict(payload) {
+    const response = await axiosClient.post('/api/teacher/classrooms/requests/check-conflict', payload);
+    return unwrapData(response);
   },
 
   async createChangeRequest(payload) {

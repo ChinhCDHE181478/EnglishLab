@@ -1,14 +1,21 @@
 package fu.sap490.g23.backend.entity;
 
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,7 +29,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -75,10 +85,18 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean emailVerified = true;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"),
+            uniqueConstraints = @UniqueConstraint(name = "uk_user_roles_user_role", columnNames = {"user_id", "role_id"})
+    )
     @Builder.Default
-    private Role role = Role.LEARNER;
+    private Set<Role> roles = new LinkedHashSet<>();
+
+    @Transient
+    private RoleEnum role;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -90,7 +108,57 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        Set<RoleEnum> assignedRoles = getRoleCodes();
+        if (assignedRoles.isEmpty()) {
+            assignedRoles = Set.of(getRole());
+        }
+        return assignedRoles.stream()
+                .map(item -> new SimpleGrantedAuthority("ROLE_" + item.name()))
+                .toList();
+    }
+
+    public RoleEnum getRole() {
+        if (roles != null && !roles.isEmpty()) {
+            return roles.stream()
+                    .filter(Role::isActive)
+                    .map(Role::getCode)
+                    .min(Comparator.comparingInt(User::rolePriority))
+                    .orElse(role == null ? RoleEnum.LEARNER : role);
+        }
+        return role == null ? RoleEnum.LEARNER : role;
+    }
+
+    public void setRole(RoleEnum role) {
+        this.role = role;
+    }
+
+    public Set<RoleEnum> getRoleCodes() {
+        if (roles == null) {
+            return Set.of();
+        }
+        return roles.stream()
+                .filter(Role::isActive)
+                .map(Role::getCode)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    public boolean hasRole(RoleEnum expectedRole) {
+        return getRoleCodes().contains(expectedRole) || (getRoleCodes().isEmpty() && getRole() == expectedRole);
+    }
+
+    public boolean hasAnyRole(Collection<RoleEnum> expectedRoles) {
+        return expectedRoles.stream().anyMatch(this::hasRole);
+    }
+
+    private static int rolePriority(RoleEnum role) {
+        return switch (role) {
+            case ADMIN -> 0;
+            case MANAGER -> 1;
+            case TRAINING_MANAGER -> 2;
+            case CONTENT_MANAGER -> 3;
+            case TEACHER -> 4;
+            case LEARNER -> 5;
+        };
     }
 
     @Override

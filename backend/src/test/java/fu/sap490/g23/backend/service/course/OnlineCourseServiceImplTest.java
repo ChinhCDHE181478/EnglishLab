@@ -1,11 +1,11 @@
 package fu.sap490.g23.backend.service.course;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;

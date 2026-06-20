@@ -45,7 +45,9 @@ import {
   formatClassroomDateTime,
   formatClassroomTime,
   formatDeliveryMode,
+  formatGradebookFinalResult,
   formatHomeworkStatus,
+  isGradebookPassed,
   formatSessionStatus,
 } from '../../utils/classroomHelpers';
 
@@ -219,7 +221,7 @@ export default function MyClassroomDetailPage() {
             <KpiCard
               label="Điểm tổng hợp"
               value={gradebook?.homeworkScore != null ? `${gradebook.homeworkScore}/10` : '—'}
-              sub={gradebook?.finalResult || 'Chưa công bố'}
+              sub={gradebook ? formatGradebookFinalResult(gradebook.finalResult) : 'Chưa công bố'}
               color="blue"
               icon={<Award className="h-4 w-4" />}
             />
@@ -262,7 +264,7 @@ export default function MyClassroomDetailPage() {
                       ) : (
                         <span className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-[#730014]" />
-                          {nextSession.roomName ? `Phòng ${nextSession.roomName}` : 'Đang xếp phòng'} · {nextSession.campusName || 'Cơ sở Hà Nội'}
+                          {nextSession.roomName ? `Phòng ${nextSession.roomName}` : 'Đang xếp phòng'} · {nextSession.offlineAddress || 'Cơ sở Hà Nội'}
                         </span>
                       )}
                     </div>
@@ -430,7 +432,7 @@ export default function MyClassroomDetailPage() {
                 <ScheduleCard
                   key={session.id}
                   title={session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
-                  subtitle={session.roomName || session.campusName || 'Thông tin phòng học đang cập nhật'}
+                  subtitle={session.roomName || session.offlineAddress || 'Thông tin phòng học đang cập nhật'}
                   date={formatClassroomDate(session.sessionDate)}
                   time={`${formatClassroomTime(session.startTime)} - ${formatClassroomTime(session.endTime)}`}
                   mode={session.deliveryMode}
@@ -438,7 +440,7 @@ export default function MyClassroomDetailPage() {
                   location={
                     isVirtual
                       ? 'Lớp học trực tuyến'
-                      : `${session.roomName || 'Đang xếp phòng'} · ${session.campusName || 'Cơ sở Hà Nội'}`
+                      : `${session.roomName || 'Đang xếp phòng'} · ${session.offlineAddress || 'Cơ sở Hà Nội'}`
                   }
                   active={session.status === 'IN_PROGRESS' || session.status === 'OPEN'}
                   cta={
@@ -491,7 +493,7 @@ export default function MyClassroomDetailPage() {
             return (
               <article
                 key={item.id}
-                className="flex flex-col overflow-hidden rounded-[28px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm transition hover:shadow-md"
+                className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-5 transition hover:shadow-sm"
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
@@ -575,7 +577,7 @@ export default function MyClassroomDetailPage() {
       return (
         <div className="space-y-6">
           {/* Attendance Stats Dashboard */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5 items-center rounded-3xl border border-gray-100 bg-[#fffafb]/30 p-6">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5 items-center rounded-xl border border-[#ebebeb] bg-white p-5">
             <div className="lg:col-span-2 flex justify-center py-2">
               <ProgressRing percent={attendanceStats.rate} size={110} strokeWidth={10} label="Tỷ lệ chuyên cần" />
             </div>
@@ -645,8 +647,8 @@ export default function MyClassroomDetailPage() {
         );
       }
 
-      const finalResult = gradebook.finalResult || 'CHƯA CÔNG BỐ';
-      const isPassed = finalResult === 'PASSED' || finalResult === 'ĐẠT' || finalResult.toUpperCase().includes('PASS');
+      const finalResultLabel = formatGradebookFinalResult(gradebook.finalResult);
+      const isPassed = isGradebookPassed(gradebook.finalResult);
 
       return (
         <div className="space-y-6">
@@ -686,13 +688,13 @@ export default function MyClassroomDetailPage() {
           </div>
 
           {/* Final Result Banner */}
-          <div className={`rounded-3xl border p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
-            isPassed ? 'border-emerald-100 bg-emerald-50/20' : 'border-amber-100 bg-amber-50/20'
+          <div className={`rounded-xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+            isPassed ? 'border-emerald-100 bg-emerald-50/30' : 'border-amber-100 bg-amber-50/30'
           }`}>
             <div>
-              <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Kết quả chung cuộc</p>
+              <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Kết quả tổng quát</p>
               <h4 className={`mt-1 font-['Manrope'] text-2xl font-extrabold ${isPassed ? 'text-emerald-800' : 'text-amber-800'}`}>
-                {finalResult}
+                {finalResultLabel}
               </h4>
             </div>
             <span className={`inline-flex items-center gap-1 rounded-full px-4 py-1.5 text-xs font-extrabold uppercase tracking-wider ${
@@ -820,33 +822,31 @@ export default function MyClassroomDetailPage() {
       {!loading && !error && classroom ? (
         <div className="space-y-8">
           {/* ── Classroom Hero ── */}
-          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#4b0009] via-[#6b000f] to-[#912040] p-8 shadow-lg md:p-10">
-            <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
-            <div className="absolute bottom-0 left-1/3 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
-            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="rounded-xl border border-[#ebebeb] bg-white px-5 py-5 md:px-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="min-w-0">
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-3">
                   <ClassroomTypeBadge mode={classroom.deliveryMode} />
                   <StatusBadge status={classroom.classroomStatus} />
                 </div>
-                <h1 className="font-['Manrope'] text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+                <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
                   {classroom.title}
                 </h1>
-                <p className="mt-2 text-sm text-white/75">
-                  Giảng viên: <strong className="text-white">{classroom.primaryTeacherName || 'Đang cập nhật'}</strong>
-                  {classroom.deliveryMode === 'OFFLINE' && classroom.campusName && (
-                    <span> · <MapPin className="inline h-3.5 w-3.5 align-text-bottom" /> {classroom.campusName}</span>
+                <p className="mt-1 text-sm text-[#6a5553]">
+                  Giảng viên: <strong className="text-[#1a1c1c]">{classroom.primaryTeacherName || 'Đang cập nhật'}</strong>
+                  {classroom.deliveryMode === 'OFFLINE' && classroom.offlineAddress && (
+                    <span> · <MapPin className="inline h-3.5 w-3.5 align-text-bottom" /> {classroom.offlineAddress}</span>
                   )}
                 </p>
-                {/* Progress bar in hero */}
+                {/* Progress bar */}
                 {classroom.progressPercent != null && (
-                  <div className="mt-4 max-w-xs">
-                    <div className="flex justify-between text-[10px] font-bold text-white/60 mb-1.5">
+                  <div className="mt-3 max-w-xs">
+                    <div className="flex justify-between text-[10px] font-semibold text-[#9a8b8a] mb-1">
                       <span>Tiến độ khóa học</span>
                       <span>{classroom.progressPercent}%</span>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full rounded-full bg-white/70 transition-all" style={{ width: `${classroom.progressPercent}%` }} />
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-[#8a0018] transition-all" style={{ width: `${classroom.progressPercent}%` }} />
                     </div>
                   </div>
                 )}
@@ -881,7 +881,7 @@ export default function MyClassroomDetailPage() {
             ) : null}
 
             {/* Tab Content Panel */}
-            <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm min-h-[300px]">
+            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 min-h-[300px]">
               {renderTabContent()}
             </section>
           </div>

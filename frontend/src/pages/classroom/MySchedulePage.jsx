@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
@@ -55,7 +56,12 @@ const getWeekMonday = (d) => {
   return date;
 };
 
-const toDateStr = (d) => d.toISOString().split('T')[0];
+const toDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 const getSessionRow = (startTime) => {
   if (!startTime) return -1;
@@ -153,7 +159,7 @@ export default function MySchedulePage() {
     loadSchedule();
   }, [isAuthenticated, loadSchedule]);
 
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => toDateStr(new Date()), []);
 
   const weekDays = useMemo(() =>
     Array.from({ length: 7 }, (_, i) => {
@@ -229,7 +235,12 @@ export default function MySchedulePage() {
       <Header />
 
       {/* ── MAIN AREA ── */}
-      <div className="flex-1">
+      <motion.div
+        className="flex-1"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         <div className="mx-auto flex w-full max-w-[1320px] items-start gap-5 px-4 py-5 pb-10 md:px-10 md:pb-12">
 
           {!isAuthenticated ? (
@@ -377,7 +388,7 @@ export default function MySchedulePage() {
                         title="Chưa có lịch học"
                         description="Bạn chưa có buổi học nào được lên lịch."
                         actionLabel="Xem lớp học"
-                        actionTo="/classrooms"
+                        actionTo="/opening-schedule"
                       />
                     )}
                     {larkMessage && (
@@ -435,7 +446,7 @@ export default function MySchedulePage() {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* ── FOOTER ── */}
       <CourseFooter />
@@ -451,6 +462,12 @@ export default function MySchedulePage() {
             session={selectedSession}
             larkMessage={larkMessage}
             onLark={setLarkMessage}
+            onSessionUpdate={(updatedSession) => {
+              setSelectedSession((current) => ({ ...current, ...updatedSession }));
+              setSessions((current) => current.map((item) => (
+                item.id === updatedSession.id ? { ...item, ...updatedSession } : item
+              )));
+            }}
           />
         )}
       </DetailDrawer>
@@ -497,7 +514,7 @@ function SessionGridCard({ session, onClick, onLark }) {
         <p className="mt-1 flex items-center gap-0.5 text-[9px] text-[#8b706e]">
           {isVirtual
             ? <><Video className="h-2.5 w-2.5 flex-shrink-0 text-purple-500" /><span className="line-clamp-1">Trực tuyến</span></>
-            : <><MapPin className="h-2.5 w-2.5 flex-shrink-0 text-[#730014]" /><span className="line-clamp-1">{session.roomName ? `${session.roomName}${session.campusName ? ' · ' + session.campusName : ''}` : 'Đang xếp phòng'}</span></>
+            : <><MapPin className="h-2.5 w-2.5 flex-shrink-0 text-[#730014]" /><span className="line-clamp-1">{session.roomName ? `${session.roomName}${session.offlineAddress ? ' · ' + session.offlineAddress : ''}` : 'Đang xếp phòng'}</span></>
           }
         </p>
       </div>
@@ -672,8 +689,38 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
   );
 }
 
-function SessionDetailContent({ session, larkMessage, onLark }) {
+function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate }) {
   const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const [joining, setJoining] = useState(false);
+
+  const handleJoinVirtualClass = async () => {
+    if (joining) return;
+
+    const popup = window.open('about:blank', '_blank');
+    setJoining(true);
+    onLark('');
+    try {
+      const updatedSession = await classroomApi.joinVirtualSession(session.classroomId, session.id);
+      onSessionUpdate?.(updatedSession);
+      if (!updatedSession?.larkMeetingUrl) {
+        popup?.close();
+        onLark('Chưa thể lấy liên kết phòng học Lark.');
+        return;
+      }
+      if (popup) {
+        popup.opener = null;
+        popup.location.href = updatedSession.larkMeetingUrl;
+      } else {
+        const result = openLarkMeeting(updatedSession.larkMeetingUrl);
+        if (!result.ok) onLark(result.message);
+      }
+    } catch (error) {
+      popup?.close();
+      onLark(getClassroomErrorMessage(error, 'Không thể tham gia phòng học Lark.'));
+    } finally {
+      setJoining(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -706,7 +753,7 @@ function SessionDetailContent({ session, larkMessage, onLark }) {
             <span>
               {isVirtual
                 ? 'Lớp học trực tuyến'
-                : `${session.roomName || 'Đang xếp phòng'} · ${session.campusName || 'Cơ sở Hà Nội'}`}
+                : `${session.roomName || 'Đang xếp phòng'} · ${session.offlineAddress || 'Cơ sở Hà Nội'}`}
             </span>
           </div>
         </div>
@@ -731,13 +778,10 @@ function SessionDetailContent({ session, larkMessage, onLark }) {
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-purple-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Lark
           </h4>
-          {session.larkMeetingUrl ? (
-            <div className="space-y-3">
-              <LarkJoinButton className="!bg-purple-700 hover:!bg-purple-800" onBlocked={onLark} url={session.larkMeetingUrl} />
-            </div>
-          ) : (
-            <p className="text-xs text-[#8b706e]">Link phòng học Lark sẽ được cập nhật trước giờ học.</p>
-          )}
+          <p className="text-xs leading-6 text-[#8b706e]">
+            Bạn có thể vào phòng bất kỳ lúc nào. Người tham gia đầu tiên sẽ tự động mở buổi học,
+            không cần chờ giảng viên. Phòng sẽ đóng sau khi người cuối cùng rời đi liên tục 5 phút.
+          </p>
           {larkMessage && <p className="text-xs font-semibold text-rose-700">{larkMessage}</p>}
         </div>
       )}
@@ -761,12 +805,24 @@ function SessionDetailContent({ session, larkMessage, onLark }) {
 
       {/* CTA */}
       <div className="border-t border-gray-100 pt-4">
-        <Link
-          className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
-          to={`/my-classrooms/${session.classroomId}`}
-        >
-          Vào lớp học <CheckCircle2 className="h-4 w-4" />
-        </Link>
+        {isVirtual ? (
+          <button
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95 disabled:cursor-wait disabled:opacity-60"
+            disabled={joining}
+            onClick={handleJoinVirtualClass}
+            type="button"
+          >
+            {joining ? 'Đang mở phòng Lark...' : 'Vào lớp học'}
+            <CheckCircle2 className="h-4 w-4" />
+          </button>
+        ) : (
+          <Link
+            className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
+            to={`/my-classrooms/${session.classroomId}`}
+          >
+            Vào lớp học <CheckCircle2 className="h-4 w-4" />
+          </Link>
+        )}
       </div>
     </div>
   );

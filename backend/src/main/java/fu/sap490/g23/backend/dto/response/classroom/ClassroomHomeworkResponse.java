@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.HomeworkStatus;
-import fu.sap490.g23.backend.entity.classroom.HomeworkSubmissionStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import lombok.Builder;
 import lombok.Data;
 

@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.classroom;
 
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -20,10 +22,6 @@ public class ClassroomRoom {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campus_id", nullable = false)
-    private Campus campus;
 
     @Column(nullable = false, length = 120)
     private String name;

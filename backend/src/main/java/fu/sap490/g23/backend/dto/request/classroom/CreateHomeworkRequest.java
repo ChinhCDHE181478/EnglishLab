@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.HomeworkStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;

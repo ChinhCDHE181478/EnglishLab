@@ -2,7 +2,7 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

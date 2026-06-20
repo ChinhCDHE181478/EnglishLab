@@ -45,6 +45,16 @@ export const formatDeliveryMode = (mode, label) => {
   return 'Đang cập nhật';
 };
 
+export const formatOfflineLocation = (item, fallback = 'Cơ sở Hà Nội') =>
+  item?.offlineAddress || fallback;
+
+export const formatOfflineSessionLocation = (session, fallback = 'Cơ sở Hà Nội') => {
+  const room = session?.roomName;
+  const address = session?.offlineAddress || fallback;
+  if (!room) return 'Đang xếp phòng';
+  return `${room} · ${address}`;
+};
+
 export const formatOfferingStatus = (status) => {
   const map = {
     DRAFT: 'Nháp',
@@ -125,6 +135,23 @@ export const formatHomeworkStatus = (status, overdue) => {
     CLOSED: 'Đã đóng',
   };
   return map[status] || status || 'Đang cập nhật';
+};
+
+export const formatGradebookFinalResult = (value) => {
+  if (value == null || value === '') return 'Chưa công bố';
+  if (typeof value === 'number') return `${value}/10`;
+  const text = String(value).trim();
+  if (/^-?\d+(\.\d+)?$/.test(text)) return `${Number(text)}/10`;
+  return text;
+};
+
+export const isGradebookPassed = (value) => {
+  if (value == null || value === '') return false;
+  if (typeof value === 'number') return value >= 5;
+  const text = String(value).trim();
+  if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text) >= 5;
+  const upper = text.toUpperCase();
+  return upper === 'PASSED' || text === 'ĐẠT' || upper.includes('PASS');
 };
 
 export const openLarkMeeting = (url) => {

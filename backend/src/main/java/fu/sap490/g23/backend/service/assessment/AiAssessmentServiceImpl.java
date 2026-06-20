@@ -8,6 +8,7 @@ import fu.sap490.g23.backend.dto.request.assessment.AssessmentSubmissionRequest;
 import fu.sap490.g23.backend.dto.response.assessment.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.*;
+import fu.sap490.g23.backend.entity.assessment.enums.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;

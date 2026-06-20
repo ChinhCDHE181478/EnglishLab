@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -123,7 +124,12 @@ export default function TrainingManagerRequestsPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {/* Page Hero with operational stats */}
         <PageHero
           title="Phê duyệt yêu cầu thay đổi"
@@ -171,7 +177,7 @@ export default function TrainingManagerRequestsPage() {
           {!loading && !error && requests.length ? (
             <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
               {/* Left Sidebar: Requests List */}
-              <aside className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
+              <aside className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
                 <h3 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider px-2">Yêu cầu chờ duyệt</h3>
                 <div className="space-y-2">
                   {requests.map((item) => {
@@ -211,7 +217,7 @@ export default function TrainingManagerRequestsPage() {
               {selected ? (
                 <div className="space-y-6">
                   {/* Request Detail Card */}
-                  <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                  <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-50 pb-5">
                       <div className="flex items-center gap-4">
                         <div className="flex h-14 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] font-extrabold text-lg">
@@ -260,7 +266,7 @@ export default function TrainingManagerRequestsPage() {
                   </section>
 
                   {/* Conflict Check & Approval Actions */}
-                  <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                  <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                     <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
                       <Activity className="h-5 w-5 text-[#730014]" />
                       Thao tác phê duyệt
@@ -329,7 +335,7 @@ export default function TrainingManagerRequestsPage() {
             </div>
           ) : null}
         </section>
-      </main>
+      </motion.main>
       <CourseFooter />
     </div>
   );

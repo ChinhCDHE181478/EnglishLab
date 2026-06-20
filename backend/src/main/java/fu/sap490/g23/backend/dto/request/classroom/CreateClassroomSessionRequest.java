@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSessionStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,7 +29,6 @@ public class CreateClassroomSessionRequest {
     private Long teacherId;
     private ClassroomSessionStatus status;
     private ClassroomDeliveryMode deliveryMode;
-    private Long campusId;
     private Long roomId;
 
     private String larkMeetingUrl;

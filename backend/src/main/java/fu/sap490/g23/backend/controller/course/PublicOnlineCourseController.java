@@ -2,8 +2,8 @@ package fu.sap490.g23.backend.controller.course;
 
 import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
-import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

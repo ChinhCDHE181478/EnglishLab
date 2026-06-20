@@ -15,6 +15,7 @@ const STATUS_MESSAGES = {
   404: 'Không tìm thấy dữ liệu lớp học.',
   409: 'Thao tác bị xung đột lịch hoặc trạng thái lớp học.',
   500: 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.',
+  503: 'Phòng học trực tuyến chưa sẵn sàng. Vui lòng thử lại sau ít phút.',
 };
 
 const formatConflictItems = (conflicts) => {
@@ -42,6 +43,10 @@ export const getClassroomErrorMessage = (error, fallback = 'Không thể xử l�
 
   if (data?.message) {
     return data.message;
+  }
+
+  if (data?.detail) {
+    return data.detail;
   }
 
   if (status && STATUS_MESSAGES[status]) {

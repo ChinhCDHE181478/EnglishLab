@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.exception.ClassroomConflictException;
 import fu.sap490.g23.backend.repository.classroom.*;
 import lombok.RequiredArgsConstructor;

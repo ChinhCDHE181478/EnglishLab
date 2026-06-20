@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Calendar,
@@ -12,7 +13,6 @@ import {
   Info,
   CheckCircle2,
   AlertTriangle,
-  Zap,
   Lock,
   MapPin,
   Video,
@@ -166,7 +166,7 @@ export default function MyClassroomsPage() {
         <ClassroomEmptyState
           icon={BookOpen}
           actionLabel="Xem danh mục lớp học"
-          actionTo="/classrooms"
+          actionTo="/opening-schedule"
           description="Bạn chưa đăng ký lớp học nào. Khám phá các khóa học IELTS / TOEIC ngay bây giờ."
           title="Chưa có lớp học"
         />
@@ -176,7 +176,7 @@ export default function MyClassroomsPage() {
           {/* Snapshot banner */}
           {classrooms.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <SnapCard label="Đang học" value={counts.active} accent="emerald" icon={<Zap className="h-4 w-4" />} />
+              <SnapCard label="Đang học" value={counts.active} accent="emerald" icon={<BookOpen className="h-4 w-4" />} />
               <SnapCard label="Sắp khai giảng" value={counts.upcoming} accent="amber" icon={<Calendar className="h-4 w-4" />} />
               <SnapCard label="Chờ xác nhận" value={counts.pending} accent="blue" icon={<Clock className="h-4 w-4" />} />
               <SnapCard label="Đã kết thúc" value={counts.completed} accent="gray" icon={<Award className="h-4 w-4" />} />
@@ -189,8 +189,15 @@ export default function MyClassroomsPage() {
           {/* Classroom List */}
           {filteredClassrooms.length ? (
             <div className="space-y-4">
-              {filteredClassrooms.map((classroom) => (
-                <ClassroomCard key={classroom.id} classroom={classroom} />
+              {filteredClassrooms.map((classroom, idx) => (
+                <motion.div
+                  key={classroom.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.32, delay: Math.min(idx * 0.07, 0.42), ease: 'easeOut' }}
+                >
+                  <ClassroomCard classroom={classroom} />
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -214,10 +221,10 @@ function SnapCard({ label, value, accent, icon }) {
     gray: 'border-gray-100 bg-gray-50/60 text-gray-600',
   };
   return (
-    <div className={`rounded-2xl border px-4 py-3 ${colors[accent]}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[10px] font-extrabold uppercase tracking-widest opacity-70">{label}</span>
-        {icon}
+    <div className={`rounded-lg border px-4 py-3 ${colors[accent]}`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">{label}</span>
+        <span className="opacity-40">{icon}</span>
       </div>
       <p className="font-['Manrope'] text-2xl font-extrabold">{value}</p>
     </div>
@@ -240,7 +247,7 @@ function ClassroomCard({ classroom }) {
   const accentClass = getCardAccent(classroom);
 
   return (
-    <article className={`group overflow-hidden rounded-[24px] border border-[#dfbfbd]/15 bg-white shadow-sm transition-all duration-300 hover:shadow-md ${accentClass}`}>
+    <article className={`group overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm transition-shadow hover:shadow-md ${accentClass}`}>
       <div className="p-5 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
 
@@ -252,7 +259,6 @@ function ClassroomCard({ classroom }) {
               <StatusBadge status={classroom.registrationStatus || classroom.classroomStatus} />
               {/* Lifecycle time pill */}
               <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${statusInfo.color}`}>
-                {isClassActive && <Zap className="h-2.5 w-2.5" />}
                 {statusInfo.text}
               </span>
             </div>
@@ -280,7 +286,7 @@ function ClassroomCard({ classroom }) {
               ) : (
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-[#730014]" />
-                  {classroom.campusName || 'Cơ sở Hà Nội'}
+                  {classroom.offlineAddress || 'Cơ sở Hà Nội'}
                 </span>
               )}
             </div>
@@ -356,7 +362,7 @@ function ClassroomCard({ classroom }) {
             ) : isClassCompleted ? (
               <Link
                 className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-extrabold text-gray-600 transition hover:bg-gray-50 active:scale-95"
-                to={`/classrooms/${classroom.slug || classroom.id}`}
+                to={`/opening-schedule/${classroom.slug || classroom.id}`}
               >
                 Xem lớp
                 <ArrowRight className="h-3.5 w-3.5" />
@@ -364,7 +370,7 @@ function ClassroomCard({ classroom }) {
             ) : (
               <Link
                 className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-xs font-extrabold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
-                to={`/classrooms/${classroom.slug || classroom.id}`}
+                to={`/opening-schedule/${classroom.slug || classroom.id}`}
               >
                 Chi tiết đăng ký
                 <ArrowRight className="h-3.5 w-3.5" />

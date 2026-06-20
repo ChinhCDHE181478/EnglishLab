@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Calendar,
@@ -116,17 +117,21 @@ export default function ContentManagerClassroomsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: 'easeOut' }}
+    >
       {/* Page Header */}
-      <div className="rounded-[32px] border border-[#dfbfbd]/20 bg-gradient-to-br from-white via-[#fffafb] to-[#fff3f4] p-8 shadow-sm relative overflow-hidden">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-[#730014]/5 blur-3xl"></div>
-        <div className="max-w-3xl">
-          <p className="text-[12px] font-extrabold uppercase tracking-[0.18em] text-[#730014]">Content Studio</p>
-          <h1 className="mt-3 font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">Quản lý Đề cương Lớp học</h1>
-          <p className="mt-3 text-sm leading-7 text-[#584140]">
-            Thiết kế lộ trình học tập, phân chia bài giảng theo tuần và xây dựng đề cương chi tiết cho từng lớp học offline hoặc trực tuyến.
-          </p>
+      <div className="border-b border-[#ebebeb] bg-white pb-5">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="h-7 w-1 rounded-full bg-[#8a0018]" />
+          <h1 className="font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c] md:text-3xl">Quản lý Đề cương Lớp học</h1>
         </div>
+        <p className="pl-4 text-sm text-[#6a5553]">
+          Thiết kế lộ trình học tập, phân chia bài giảng theo tuần và xây dựng đề cương chi tiết cho từng lớp học.
+        </p>
       </div>
 
       {/* Action Notification */}
@@ -329,6 +334,6 @@ export default function ContentManagerClassroomsPage() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

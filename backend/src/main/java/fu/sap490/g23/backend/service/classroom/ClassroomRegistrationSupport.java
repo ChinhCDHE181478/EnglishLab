@@ -1,9 +1,9 @@
 package fu.sap490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollmentStatus;
-import fu.sap490.g23.backend.entity.classroom.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.entity.classroom.TuitionPaymentKind;
-import fu.sap490.g23.backend.entity.classroom.TuitionSettlementType;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 
 import java.util.Collection;
 import java.util.EnumSet;

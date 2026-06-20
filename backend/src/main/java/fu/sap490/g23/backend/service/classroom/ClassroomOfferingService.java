@@ -2,9 +2,9 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.entity.classroom.ClassroomTeacherRole;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -31,6 +31,8 @@ public interface ClassroomOfferingService {
     ClassroomOfferingResponse publishOffering(Long id);
 
     List<ClassroomSessionResponse> getSessions(Long offeringId);
+
+    List<ClassroomSessionResponse> getLearnerSessions(Long offeringId, String learnerEmail);
 
     ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request);
 
@@ -74,9 +76,13 @@ public interface ClassroomOfferingService {
 
     ClassroomTeacherSummaryResponse replaceTeacher(Long offeringId, Long oldTeacherId, Long newTeacherId);
 
-    ClassroomSessionResponse openVirtualSession(Long sessionId);
+    ClassroomSessionResponse openVirtualSession(Long sessionId, String actorEmail);
 
-    ClassroomSessionResponse closeVirtualSession(Long sessionId);
+    ClassroomSessionResponse joinVirtualSession(Long sessionId, String learnerEmail);
+
+    ClassroomSessionResponse joinVirtualClass(Long offeringId, Long sessionId, String learnerEmail);
+
+    ClassroomSessionResponse closeVirtualSession(Long sessionId, String actorEmail);
 
     ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request);
 

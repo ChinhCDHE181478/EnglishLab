@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   Calendar,
   Clock,
@@ -101,11 +102,27 @@ export default function TeacherSessionPage() {
 
   const handleOpenSession = async () => {
     setActionMessage('');
+    setLarkMessage('');
+    const roomWindow = window.open('about:blank', '_blank');
+    if (roomWindow) {
+      roomWindow.opener = null;
+    }
     try {
       const session = await classroomApi.openVirtualSession(sessionId);
       setSessionMeta((current) => ({ ...current, ...session }));
-      setActionMessage('Đã mở buổi học trực tuyến thành công.');
+      if (session?.larkMeetingUrl) {
+        if (roomWindow) {
+          roomWindow.location.replace(session.larkMeetingUrl);
+        } else {
+          setLarkMessage('Phòng học đã mở nhưng trình duyệt chặn cửa sổ mới. Hãy dùng nút vào phòng bên dưới.');
+        }
+        setActionMessage('Phòng học đã mở. Bạn có thể bắt đầu buổi giảng.');
+      } else {
+        roomWindow?.close();
+        setActionMessage('Phòng học chưa có liên kết tham gia. Vui lòng thử mở lại sau ít phút.');
+      }
     } catch (err) {
+      roomWindow?.close();
       setActionMessage(getClassroomErrorMessage(err, 'Không thể mở buổi học.'));
     }
   };
@@ -176,52 +193,71 @@ export default function TeacherSessionPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[120px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[120px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {/* ── Session Header ── */}
-        <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#4b0009] via-[#6b000f] to-[#912040] p-8 shadow-lg">
-          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 h-40 w-40 rounded-full bg-white/5 blur-3xl" />
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <section className="border-b border-[#ebebeb] bg-white pb-5 pt-2">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-white/80">
-                Điểm danh buổi học
-              </span>
-              <h1 className="mt-3 font-['Manrope'] text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+              <p className="mb-2 text-xs font-semibold text-[#9a8b8a] uppercase tracking-wide">Điểm danh buổi học</p>
+              <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
                 {sessionMeta?.sessionDate ? formatClassroomDate(sessionMeta.sessionDate) : `Buổi học #${sessionId}`}
               </h1>
               {sessionMeta && (
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/75">
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#6a5553]">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-4 w-4 text-[#8a0018]" />
                     {formatClassroomTime(sessionMeta.startTime)} – {formatClassroomTime(sessionMeta.endTime)}
                   </span>
                   {sessionMeta.deliveryMode === 'VIRTUAL' ? (
-                    <span className="flex items-center gap-1.5 font-bold text-purple-200">
+                    <span className="flex items-center gap-1.5 font-semibold text-purple-700">
                       <Video className="h-4 w-4" /> Trực tuyến
                     </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
-                      <MapPin className="h-4 w-4" />
+                      <MapPin className="h-4 w-4 text-[#8a0018]" />
                       {sessionMeta.roomName || 'Phòng học offline'}
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
-                    <Users className="h-4 w-4" />
+                    <Users className="h-4 w-4 text-[#8a0018]" />
                     {attendance.length} học viên
                   </span>
                 </div>
               )}
             </div>
 
-            {sessionMeta && (
-              <Link
-                className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white backdrop-blur-sm transition hover:bg-white/20 active:scale-95"
-                to={`/teacher/classrooms/${sessionMeta.classroomOfferingId || id}`}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Quay lại lớp học
-              </Link>
-            )}
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              {attendance.length > 0 && (
+                <div className="rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 min-w-[180px]">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-[#6a5553]">Tỉ lệ có mặt</span>
+                    <span className="font-extrabold text-emerald-700">
+                      {summaryStats.present}/{attendance.length}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all"
+                      style={{ width: `${Math.round((summaryStats.present / attendance.length) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {sessionMeta && (
+                <Link
+                  className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
+                  to={`/teacher/classrooms/${sessionMeta.classroomOfferingId || sessionMeta.classroomId}`}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Quay lại lớp học
+                </Link>
+              )}
+            </div>
           </div>
         </section>
 
@@ -247,25 +283,25 @@ export default function TeacherSessionPage() {
 
             {/* Virtual Meeting Operations (Lark) */}
             {sessionMeta?.deliveryMode === 'VIRTUAL' && (
-              <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-700 flex-shrink-0">
-                    <Video className="h-6 w-6" />
+              <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 space-y-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fff0f1] text-[#8a0018] flex-shrink-0">
+                    <Video className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Vận hành lớp học trực tuyến</h2>
-                    <p className="mt-1 text-xs text-[#8b706e] leading-5">Mở phòng học trực tuyến, cập nhật liên kết phòng học và đóng phòng học sau khi kết thúc buổi giảng dạy.</p>
+                    <h2 className="font-semibold text-base text-[#1a1c1c]">Vận hành lớp học trực tuyến</h2>
+                    <p className="mt-0.5 text-xs text-[#8b706e]">Mở phòng học trực tuyến, cập nhật liên kết và đóng phòng sau khi kết thúc buổi giảng.</p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3 pt-2">
                   <button
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-purple-700 px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-purple-800 active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#8a0018] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#650011] active:scale-95"
                     onClick={handleOpenSession}
                     type="button"
                   >
                     <Check className="h-4 w-4" />
-                    Mở buổi học trực tuyến
+                    Mở và vào phòng học
                   </button>
                   <button
                     className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#584140] transition hover:bg-gray-50 active:scale-95"
@@ -277,9 +313,24 @@ export default function TeacherSessionPage() {
                   </button>
                 </div>
 
+                {sessionMeta?.larkSyncError ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                    <p className="font-extrabold">Chưa thể mở phòng học tự động</p>
+                    <p className="mt-1 leading-6">{sessionMeta.larkSyncError}</p>
+                    <p className="mt-2 text-xs font-semibold">
+                      Hãy bấm “Mở và vào phòng học” để thử lại hoặc nhập một liên kết phòng học bên dưới.
+                    </p>
+                  </div>
+                ) : null}
+
                 {sessionMeta?.larkMeetingUrl && (
-                  <div className="rounded-2xl bg-purple-50/20 border border-purple-100 p-4">
-                    <LarkJoinButton onBlocked={setLarkMessage} url={sessionMeta.larkMeetingUrl} />
+                  <div className="rounded-2xl border border-[#ead0d2] bg-[#fffafb] p-4">
+                    <LarkJoinButton
+                      label="Vào phòng học"
+                      onBlocked={setLarkMessage}
+                      onClick={handleOpenSession}
+                      url={sessionMeta.larkMeetingUrl}
+                    />
                   </div>
                 )}
                 {larkMessage ? <p className="text-sm font-semibold text-[#93000a]">{larkMessage}</p> : null}
@@ -303,15 +354,15 @@ export default function TeacherSessionPage() {
             )}
 
             {/* Attendance Tool */}
-            <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 space-y-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
-                    <Users className="h-6 w-6" />
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-[#8a0018] flex-shrink-0">
+                    <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Điểm danh lớp học</h2>
-                    <p className="mt-1 text-xs text-[#8b706e] leading-5">Chọn trạng thái chuyên cần cho từng học viên. Sử dụng các phím tắt để thao tác nhanh.</p>
+                    <h2 className="font-semibold text-base text-[#1a1c1c]">Điểm danh lớp học</h2>
+                    <p className="mt-0.5 text-xs text-[#8b706e]">Chọn trạng thái chuyên cần cho từng học viên. Sử dụng các phím tắt để thao tác nhanh.</p>
                   </div>
                 </div>
 
@@ -407,30 +458,29 @@ export default function TeacherSessionPage() {
             </section>
           </>
         ) : null}
-      </main>
+      </motion.main>
 
-      {/* Sticky Footer for Attendance Saving */}
+      {/* Sticky attendance summary bar — inside flow so it never overlaps the footer */}
       {!loading && !error && attendance.length ? (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#dfbfbd]/20 bg-white/90 py-4 shadow-2xl backdrop-blur-md">
+        <div className="sticky bottom-0 z-30 border-t border-[#dfbfbd]/20 bg-white/95 py-4 shadow-[0_-4px_24px_rgba(75,0,9,0.08)] backdrop-blur-md">
           <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between md:px-10">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-[#584140]">
-              <span className="font-extrabold text-[#2b2828] uppercase tracking-wider">Tổng hợp nhanh:</span>
+              <span className="font-extrabold uppercase tracking-wider text-[#2b2828]">Tổng hợp nhanh:</span>
               <span className="flex items-center gap-1 font-bold text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span> Có mặt: {summaryStats.present}
+                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Có mặt: {summaryStats.present}
               </span>
               <span className="flex items-center gap-1 font-bold text-rose-700">
-                <span className="h-2 w-2 rounded-full bg-rose-500"></span> Vắng: {summaryStats.absent}
+                <span className="h-2 w-2 rounded-full bg-rose-500" /> Vắng: {summaryStats.absent}
               </span>
               <span className="flex items-center gap-1 font-bold text-amber-700">
-                <span className="h-2 w-2 rounded-full bg-amber-500"></span> Muộn: {summaryStats.late}
+                <span className="h-2 w-2 rounded-full bg-amber-500" /> Muộn: {summaryStats.late}
               </span>
               <span className="flex items-center gap-1 font-bold text-purple-700">
-                <span className="h-2 w-2 rounded-full bg-purple-500"></span> Có phép: {summaryStats.excused}
+                <span className="h-2 w-2 rounded-full bg-purple-500" /> Có phép: {summaryStats.excused}
               </span>
             </div>
-
             <button
-              className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] hover:shadow-lg active:scale-95"
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] active:scale-95"
               onClick={handleSaveAttendance}
               type="button"
             >

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, CheckCircle2, ChevronDown, FileText, Info, Lock, MessageCircle, StickyNote, Trophy } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, ChevronDown, FileText, Info, Lock, MessageCircle, Star, StickyNote, Trophy, X } from 'lucide-react';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
 import CourseFooter from '../components/course/CourseFooter';
@@ -65,6 +65,12 @@ const CourseHome = () => {
   const [assessments, setAssessments] = useState([]);
   const [completion, setCompletion] = useState(null);
   const [certificate, setCertificate] = useState(null);
+  const [ratingInfo, setRatingInfo] = useState(null);
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSaving, setRatingSaving] = useState(false);
+  const [ratingError, setRatingError] = useState('');
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -96,18 +102,30 @@ const CourseHome = () => {
         setEnrollment(matchedEnrollment || null);
         setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
         if (hasAccessToken()) {
-          const [assessmentItems, completionResponse, certificateResponse] = await Promise.all([
+          const [assessmentItems, completionResponse, certificateResponse, ratingResponse] = await Promise.all([
             courseApi.getCourseAssessments(normalizedCourse.id).catch(() => []),
             matchedEnrollment ? courseApi.getCourseCompletion(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
             matchedEnrollment ? courseApi.getCourseCertificate(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
+            matchedEnrollment ? courseApi.getMyCourseRating(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
           ]);
           if (active) setAssessments(Array.isArray(assessmentItems) ? assessmentItems : []);
           if (active) setCompletion(completionResponse);
           if (active) setCertificate(certificateResponse);
+          if (active && ratingResponse) {
+            setRatingInfo(ratingResponse);
+            setSelectedRating(ratingResponse.myRating || 0);
+            setRatingComment(ratingResponse.myComment || '');
+            setCourse((current) => current ? {
+              ...current,
+              averageRating: ratingResponse.averageRating,
+              reviewCount: ratingResponse.reviewCount,
+            } : current);
+          }
         } else {
           setAssessments([]);
           setCompletion(null);
           setCertificate(null);
+          setRatingInfo(null);
         }
       })
       .catch(() => {
@@ -115,6 +133,7 @@ const CourseHome = () => {
         setCourse(null);
         setCompletion(null);
         setCertificate(null);
+        setRatingInfo(null);
         setError('Không mở được trang tổng quan khóa học. Vui lòng thử lại.');
       })
       .finally(() => {
@@ -188,6 +207,30 @@ const CourseHome = () => {
     setError('Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.');
   };
 
+  const openRatingForm = () => {
+    setRatingError('');
+    setShowRatingForm(true);
+  };
+
+  const saveRating = async () => {
+    if (!selectedRating) {
+      setRatingError('Vui lòng chọn số sao trước khi gửi.');
+      return;
+    }
+    setRatingSaving(true);
+    setRatingError('');
+    try {
+      const response = await courseApi.saveCourseRating(course.id, { rating: selectedRating, comment: ratingComment });
+      setRatingInfo(response);
+      setCourse((current) => ({ ...current, averageRating: response.averageRating, reviewCount: response.reviewCount }));
+      setShowRatingForm(false);
+    } catch (requestError) {
+      setRatingError(requestError?.response?.data?.message || 'Không thể lưu đánh giá. Vui lòng thử lại.');
+    } finally {
+      setRatingSaving(false);
+    }
+  };
+
   const openFirstLesson = () => {
     const firstModule = course?.modules?.[0];
     const firstLesson = firstModule?.lessons?.[0];
@@ -225,6 +268,36 @@ const CourseHome = () => {
           {courseCompleted ? 'Hoàn thành' : 'Đang học'}
         </span>
       </div>
+
+      {progressPercent >= 100 ? (
+        <div className="mb-5 flex flex-col gap-3 border border-[#e5d7d9] bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-lg font-extrabold text-[#1a1c1c]">Đánh giá khóa học này</h3>
+          <button className="inline-flex items-center gap-4 self-start text-sm font-extrabold text-[#730014] sm:self-auto" onClick={openRatingForm} type="button">
+            Đánh giá khóa học này
+            <span className="flex gap-0.5 text-[#e11d48]">
+              {[1, 2, 3, 4, 5].map((star) => <Star className="h-5 w-5" fill={star <= (ratingInfo?.myRating || 0) ? 'currentColor' : 'none'} key={star} />)}
+            </span>
+          </button>
+        </div>
+      ) : null}
+
+      {showRatingForm ? (
+        <div aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog">
+          <div className="w-full max-w-lg border border-[#e5d7d9] bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div><h3 className="text-xl font-extrabold text-[#1a1c1c]">Đánh giá khóa học</h3><p className="mt-1 text-sm text-[#4b5563]">Bạn có thể sửa đánh giá của mình bất cứ lúc nào.</p></div>
+              <button aria-label="Đóng" className="text-[#4b5563]" onClick={() => setShowRatingForm(false)} type="button"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-6 flex gap-2" role="radiogroup" aria-label="Số sao đánh giá">
+              {[1, 2, 3, 4, 5].map((star) => <button aria-checked={selectedRating === star} aria-label={`${star} sao`} className={`transition hover:scale-110 ${star <= selectedRating ? 'text-[#e11d48]' : 'text-[#d1d5db]'}`} key={star} onClick={() => setSelectedRating(star)} role="radio" type="button"><Star className="h-8 w-8" fill={star <= selectedRating ? 'currentColor' : 'none'} /></button>)}
+            </div>
+            <label className="mt-5 block text-sm font-bold text-[#1a1c1c]" htmlFor="course-rating-comment">Nhận xét (không bắt buộc)</label>
+            <textarea className="mt-2 min-h-28 w-full border border-[#d1d5db] p-3 text-sm outline-none focus:border-[#730014]" id="course-rating-comment" maxLength={2000} onChange={(event) => setRatingComment(event.target.value)} placeholder="Chia sẻ trải nghiệm học của bạn" value={ratingComment} />
+            {ratingError ? <p className="mt-3 text-sm font-semibold text-[#93000a]">{ratingError}</p> : null}
+            <div className="mt-6 flex justify-end gap-3"><button className="border border-[#d1d5db] px-4 py-2 text-sm font-bold" onClick={() => setShowRatingForm(false)} type="button">Hủy</button><button className="bg-[#730014] px-4 py-2 text-sm font-bold text-white disabled:opacity-50" disabled={ratingSaving} onClick={saveRating} type="button">{ratingSaving ? 'Đang lưu...' : 'Gửi đánh giá'}</button></div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         {(course.modules || []).map((module, moduleIndex) => {

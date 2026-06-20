@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.request.course;
 
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReactionType;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

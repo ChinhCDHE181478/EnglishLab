@@ -1,15 +1,15 @@
 package fu.sap490.g23.backend.config;
 
 import fu.sap490.g23.backend.entity.course.CourseCategory;
-import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
-import fu.sap490.g23.backend.entity.course.CourseLevel;
+import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
+import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.PackageType;
-import fu.sap490.g23.backend.entity.course.PackageTypeCode;
+import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;

@@ -5,7 +5,7 @@ import fu.sap490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.GradebookEntryStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;

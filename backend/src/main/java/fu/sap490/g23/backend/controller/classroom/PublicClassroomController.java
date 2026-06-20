@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
-import fu.sap490.g23.backend.entity.classroom.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

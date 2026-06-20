@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -369,7 +370,7 @@ export default function WritingExamMode({
             onClick={() => setActiveTaskKey(tasks[Math.max(0, activeTaskIndex - 1)]?.key || activeTaskKey)}
             type="button"
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <ArrowLeft aria-hidden="true" size={20} strokeWidth={2.2} />
           </button>
           <button
             className="rounded-full border border-[#dfbfbd] px-4 py-3 text-[#8a0018] transition hover:bg-[#fff0f1] disabled:opacity-40"
@@ -377,7 +378,7 @@ export default function WritingExamMode({
             onClick={() => setActiveTaskKey(tasks[Math.min(tasks.length - 1, activeTaskIndex + 1)]?.key || activeTaskKey)}
             type="button"
           >
-            <span className="material-symbols-outlined">arrow_forward</span>
+            <ArrowRight aria-hidden="true" size={20} strokeWidth={2.2} />
           </button>
         </div>
       </footer>

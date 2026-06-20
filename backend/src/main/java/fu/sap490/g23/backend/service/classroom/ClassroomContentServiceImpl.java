@@ -8,6 +8,7 @@ import fu.sap490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;

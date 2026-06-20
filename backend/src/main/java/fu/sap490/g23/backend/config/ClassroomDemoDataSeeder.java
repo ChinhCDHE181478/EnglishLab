@@ -1,29 +1,42 @@
 package fu.sap490.g23.backend.config;
 
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.*;
+import fu.sap490.g23.backend.entity.course.enums.*;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sap490.g23.backend.service.impl.UserRoleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Objects;
+import java.util.Optional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ClassroomDemoDataSeeder implements CommandLineRunner {
+
+    private static final String TEACHER2_EMAIL = "bas1c.no04@gmail.com";
+    private static final String LEGACY_TEACHER2_EMAIL = "classroom.teacher2@englishlab.vn";
+    private static final String TEACHER2_FULL_NAME = "Trần Thị Teacher";
 
     private static final String OFFLINE_UPCOMING_TITLE = "IELTS Foundation - Tại trung tâm";
     private static final String VIRTUAL_UPCOMING_TITLE = "IELTS Speaking Live - Lark";
@@ -31,6 +44,16 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private static final String VIRTUAL_IN_PROGRESS_TITLE = "TOEIC Communication - Đang học (Lark)";
     private static final String REGISTRATION_PIPELINE_TITLE = "IELTS Mới - Chờ xử lý đăng ký";
     private static final String COMPLETED_TITLE = "IELTS Foundation - Đã kết thúc";
+
+    private static final String SLUG_OFFLINE_UPCOMING = "ielts-foundation-offline";
+    private static final String SLUG_VIRTUAL_UPCOMING = "ielts-speaking-live";
+    private static final String SLUG_OFFLINE_IN_PROGRESS = "ielts-intermediate-live";
+    private static final String SLUG_VIRTUAL_IN_PROGRESS = "toeic-communication-live";
+    private static final String SLUG_REGISTRATION_PIPELINE = "ielts-registration-pipeline";
+    private static final String SLUG_COMPLETED = "ielts-foundation-completed";
+    private static final String DEFAULT_OFFLINE_ADDRESS = "123 Phố Huế, Hai Bà Trưng, Hà Nội";
+    private static final String DEMO_LARK_URL_SPEAKING = "https://meet.larksuite.com/s/englishlab-ielts-speaking-live";
+    private static final String DEMO_LARK_URL_TOEIC = "https://meet.larksuite.com/s/englishlab-toeic-communication-live";
 
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
@@ -45,19 +68,24 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final ClassroomSyllabusItemRepository syllabusItemRepository;
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
-    private final CampusRepository campusRepository;
     private final ClassroomRoomRepository roomRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserRoleService userRoleService;
+    private final JdbcTemplate jdbcTemplate;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.classroom-demo.enabled:false}")
     private boolean seedEnabled;
 
     @Override
     @Transactional
     public void run(String... args) {
+        syncEnglishSlugs();
+        syncTeacher2Account();
+        syncVirtualDemoLarkLinks();
+
         if (!seedEnabled) {
             return;
         }
@@ -65,52 +93,42 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new IllegalStateException("CLASSROOM package type is missing"));
 
-        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", Role.TEACHER);
-        User teacher2 = ensureUser("classroom.teacher2@englishlab.vn", "Trần Thị Teacher", Role.TEACHER);
-        User learner1 = ensureUser("classroom.learner1@englishlab.vn", "Lê Học Viên Một", Role.LEARNER);
-        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Học Viên Hai", Role.LEARNER);
-        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", Role.LEARNER);
-        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", Role.LEARNER);
-        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", Role.MANAGER);
-        User trainingManager = ensureUser("training.manager@englishlab.vn", "Quản Lý Đào Tạo", Role.TRAINING_MANAGER);
+        User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleEnum.TEACHER);
+        User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleEnum.TEACHER);
+        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Học Viên Một", RoleEnum.LEARNER);
+        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Học Viên Hai", RoleEnum.LEARNER);
+        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
+        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", RoleEnum.LEARNER);
+        User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
+        User trainingManager = ensureUser("training.manager@englishlab.vn", "Quản Lý Đào Tạo", RoleEnum.TRAINING_MANAGER);
 
-        Campus campus = campusRepository.findByNameIgnoreCase("EnglishLab Hà Nội")
-                .orElseGet(() -> campusRepository.save(Campus.builder()
-                        .name("EnglishLab Hà Nội")
-                        .address("123 Phố Huế, Hai Bà Trưng, Hà Nội")
-                        .active(true)
-                        .build()));
-
-        ClassroomRoom roomA = roomRepository.findByCampusIdAndActiveTrue(campus.getId()).stream()
+        ClassroomRoom roomA = roomRepository.findByActiveTrue().stream()
                 .filter(room -> "Phòng A101".equalsIgnoreCase(room.getName()))
                 .findFirst()
                 .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
-                        .campus(campus)
                         .name("Phòng A101")
                         .capacity(24)
                         .active(true)
                         .build()));
 
-        ClassroomRoom roomB = roomRepository.findByCampusIdAndActiveTrue(campus.getId()).stream()
+        ClassroomRoom roomB = roomRepository.findByActiveTrue().stream()
                 .filter(room -> "Phòng B203".equalsIgnoreCase(room.getName()))
                 .findFirst()
                 .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
-                        .campus(campus)
                         .name("Phòng B203")
                         .capacity(18)
                         .active(true)
                         .build()));
 
-        seedIfMissing(OFFLINE_UPCOMING_TITLE, () -> {
+        seedIfMissing(OFFLINE_UPCOMING_TITLE, SLUG_OFFLINE_UPCOMING, () -> {
             ClassroomOffering offering = createOfflineOffering(
                     classroomType,
                     OFFLINE_UPCOMING_TITLE,
-                    "ielts-foundation-tai-trung-tam",
+                    SLUG_OFFLINE_UPCOMING,
                     ClassroomOfferingStatus.UPCOMING,
                     LocalDate.now().plusDays(14),
                     LocalDate.now().plusMonths(2),
                     teacher1,
-                    campus,
                     roomA,
                     manager,
                     BigDecimal.valueOf(4_500_000),
@@ -119,32 +137,32 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             seedOfflineUpcomingData(offering, teacher1, learner1, learner2, learner3, manager);
         });
 
-        seedIfMissing(VIRTUAL_UPCOMING_TITLE, () -> {
+        seedIfMissing(VIRTUAL_UPCOMING_TITLE, SLUG_VIRTUAL_UPCOMING, () -> {
             ClassroomOffering offering = createVirtualOffering(
                     classroomType,
                     VIRTUAL_UPCOMING_TITLE,
-                    "ielts-speaking-live-lark",
+                    SLUG_VIRTUAL_UPCOMING,
                     ClassroomOfferingStatus.UPCOMING,
                     LocalDate.now().plusDays(7),
                     LocalDate.now().plusWeeks(6),
                     teacher2,
                     manager,
                     BigDecimal.valueOf(2_800_000),
-                    BigDecimal.valueOf(2_490_000)
+                    BigDecimal.valueOf(2_490_000),
+                    DEMO_LARK_URL_SPEAKING
             );
             seedVirtualUpcomingData(offering, teacher2, learner1, learner2);
         });
 
-        seedIfMissing(OFFLINE_IN_PROGRESS_TITLE, () -> {
+        seedIfMissing(OFFLINE_IN_PROGRESS_TITLE, SLUG_OFFLINE_IN_PROGRESS, () -> {
             ClassroomOffering offering = createOfflineOffering(
                     classroomType,
                     OFFLINE_IN_PROGRESS_TITLE,
-                    "ielts-intermediate-dang-hoc",
+                    SLUG_OFFLINE_IN_PROGRESS,
                     ClassroomOfferingStatus.ACTIVE,
                     LocalDate.now().minusWeeks(4),
                     LocalDate.now().plusWeeks(4),
                     teacher1,
-                    campus,
                     roomB,
                     manager,
                     BigDecimal.valueOf(5_200_000),
@@ -153,32 +171,32 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             seedOfflineInProgressData(offering, teacher1, learner1, learner2, manager);
         });
 
-        seedIfMissing(VIRTUAL_IN_PROGRESS_TITLE, () -> {
+        seedIfMissing(VIRTUAL_IN_PROGRESS_TITLE, SLUG_VIRTUAL_IN_PROGRESS, () -> {
             ClassroomOffering offering = createVirtualOffering(
                     classroomType,
                     VIRTUAL_IN_PROGRESS_TITLE,
-                    "toeic-communication-dang-hoc-lark",
+                    SLUG_VIRTUAL_IN_PROGRESS,
                     ClassroomOfferingStatus.ACTIVE,
                     LocalDate.now().minusWeeks(3),
                     LocalDate.now().plusWeeks(3),
                     teacher2,
                     manager,
                     BigDecimal.valueOf(3_100_000),
-                    BigDecimal.valueOf(2_790_000)
+                    BigDecimal.valueOf(2_790_000),
+                    DEMO_LARK_URL_TOEIC
             );
             seedVirtualInProgressData(offering, teacher2, learner1, learner3, manager);
         });
 
-        seedIfMissing(REGISTRATION_PIPELINE_TITLE, () -> {
+        seedIfMissing(REGISTRATION_PIPELINE_TITLE, SLUG_REGISTRATION_PIPELINE, () -> {
             ClassroomOffering offering = createOfflineOffering(
                     classroomType,
                     REGISTRATION_PIPELINE_TITLE,
-                    "ielts-moi-cho-xu-ly-dang-ky",
+                    SLUG_REGISTRATION_PIPELINE,
                     ClassroomOfferingStatus.UPCOMING,
                     LocalDate.now().plusDays(21),
                     LocalDate.now().plusMonths(3),
                     teacher1,
-                    campus,
                     roomA,
                     manager,
                     BigDecimal.valueOf(4_800_000),
@@ -187,16 +205,15 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             seedRegistrationPipelineData(offering, learner2, learner3, learner4, manager);
         });
 
-        seedIfMissing(COMPLETED_TITLE, () -> {
+        seedIfMissing(COMPLETED_TITLE, SLUG_COMPLETED, () -> {
             ClassroomOffering offering = createOfflineOffering(
                     classroomType,
                     COMPLETED_TITLE,
-                    "ielts-foundation-da-ket-thuc",
+                    SLUG_COMPLETED,
                     ClassroomOfferingStatus.COMPLETED,
                     LocalDate.now().minusMonths(3),
                     LocalDate.now().minusWeeks(2),
                     teacher1,
-                    campus,
                     roomA,
                     manager,
                     BigDecimal.valueOf(4_200_000),
@@ -214,8 +231,32 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .forEach(entry -> entry.setStatus(GradebookEntryStatus.PUBLISHED));
     }
 
-    private void seedIfMissing(String title, Runnable seeder) {
-        if (offeringRepository.existsByLearningPackage_TitleIgnoreCase(title)) {
+    private void syncEnglishSlugs() {
+        updateSlugIfNeeded(OFFLINE_UPCOMING_TITLE, SLUG_OFFLINE_UPCOMING);
+        updateSlugIfNeeded(VIRTUAL_UPCOMING_TITLE, SLUG_VIRTUAL_UPCOMING);
+        updateSlugIfNeeded(OFFLINE_IN_PROGRESS_TITLE, SLUG_OFFLINE_IN_PROGRESS);
+        updateSlugIfNeeded(VIRTUAL_IN_PROGRESS_TITLE, SLUG_VIRTUAL_IN_PROGRESS);
+        updateSlugIfNeeded(REGISTRATION_PIPELINE_TITLE, SLUG_REGISTRATION_PIPELINE);
+        updateSlugIfNeeded(COMPLETED_TITLE, SLUG_COMPLETED);
+    }
+
+    private void updateSlugIfNeeded(String title, String slug) {
+        offeringRepository.findByLearningPackageTitleIgnoreCase(title).ifPresent(offering -> {
+            LearningPackage learningPackage = offering.getLearningPackage();
+            if (learningPackage == null || slug.equals(learningPackage.getSlug())) {
+                return;
+            }
+            learningPackage.setSlug(slug);
+            learningPackageRepository.save(learningPackage);
+        });
+    }
+
+    private void seedIfMissing(String title, String slug, Runnable seeder) {
+        if (offeringRepository.findByLearningPackageSlug(slug).isPresent()) {
+            return;
+        }
+        if (offeringRepository.findByLearningPackageTitleIgnoreCase(title).isPresent()) {
+            updateSlugIfNeeded(title, slug);
             return;
         }
         seeder.run();
@@ -236,7 +277,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(11, 0))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .campus(offering.getDefaultCampus())
                 .room(offering.getDefaultRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Giới thiệu IELTS Foundation và kỹ năng Listening cơ bản")
@@ -249,7 +289,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(16, 0))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .campus(offering.getDefaultCampus())
                 .room(offering.getDefaultRoom())
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Buổi học mẫu để kiểm tra xung đột lịch giáo viên")
@@ -300,8 +339,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl("https://meet.larksuite.com/demo/ielts-speaking-live")
+                .larkMeetingUrl(DEMO_LARK_URL_SPEAKING)
                 .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
+                .larkSyncStatus("DEMO")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Speaking Part 1 & 2 practice")
                 .build());
@@ -424,8 +464,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl("https://meet.larksuite.com/demo/toeic-live-week1")
+                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
                 .larkMeetingStatus(LarkMeetingStatus.ENDED)
+                .larkSyncStatus("DEMO")
                 .status(ClassroomSessionStatus.COMPLETED)
                 .sessionContent("TOEIC Listening Part 1-2")
                 .build());
@@ -437,8 +478,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(21, 0))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl("https://meet.larksuite.com/demo/toeic-live-today")
+                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
                 .larkMeetingStatus(LarkMeetingStatus.OPEN)
+                .larkSyncStatus("DEMO")
                 .status(ClassroomSessionStatus.OPEN)
                 .sessionContent("TOEIC Speaking practice hôm nay")
                 .build());
@@ -450,8 +492,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl("https://meet.larksuite.com/demo/toeic-live-next")
+                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
                 .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
+                .larkSyncStatus("DEMO")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Role-play giao tiếp công sở")
                 .build());
@@ -549,7 +592,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(endHour, 0))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
-                .campus(offering.getDefaultCampus())
                 .room(offering.getDefaultRoom())
                 .status(status)
                 .sessionContent(content)
@@ -564,7 +606,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             LocalDate startDate,
             LocalDate endDate,
             User teacher,
-            Campus campus,
             ClassroomRoom room,
             User manager,
             BigDecimal price,
@@ -594,9 +635,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startDate(startDate)
                 .endDate(endDate)
                 .primaryTeacher(teacher)
-                .defaultCampus(campus)
                 .defaultRoom(room)
-                .offlineAddress(campus.getAddress())
+                .offlineAddress(DEFAULT_OFFLINE_ADDRESS)
                 .locationNote(room.getName() + ", tầng 2")
                 .syllabusSummary("Listening, Reading, Writing & Speaking theo lộ trình 8 tuần")
                 .build());
@@ -620,7 +660,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             User teacher,
             User manager,
             BigDecimal price,
-            BigDecimal salePrice
+            BigDecimal salePrice,
+            String demoLarkUrl
     ) {
         LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
                 .packageType(classroomType)
@@ -646,7 +687,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startDate(startDate)
                 .endDate(endDate)
                 .primaryTeacher(teacher)
-                .defaultLarkMeetingUrl("https://meet.larksuite.com/demo/" + slug)
+                .defaultLarkMeetingUrl(demoLarkUrl)
                 .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
                 .recordingVisible(true)
                 .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
@@ -728,13 +769,124 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 : offering.getLearningPackage().getPrice();
     }
 
-    private User ensureUser(String email, String fullName, Role role) {
-        return userRepository.findByEmail(email).orElseGet(() -> userRepository.save(User.builder()
-                .email(email)
-                .fullName(fullName)
-                .password(passwordEncoder.encode("Password123!"))
-                .role(role)
-                .emailVerified(true)
-                .build()));
+    private void syncVirtualDemoLarkLinks() {
+        syncOfferingDemoLarkLinks(VIRTUAL_UPCOMING_TITLE, DEMO_LARK_URL_SPEAKING);
+        syncOfferingDemoLarkLinks(VIRTUAL_IN_PROGRESS_TITLE, DEMO_LARK_URL_TOEIC);
+    }
+
+    private void syncOfferingDemoLarkLinks(String offeringTitle, String demoLarkUrl) {
+        offeringRepository.findByLearningPackageTitleIgnoreCase(offeringTitle).ifPresent(offering -> {
+            if (offering.getDefaultLarkMeetingUrl() == null || offering.getDefaultLarkMeetingUrl().isBlank()) {
+                offering.setDefaultLarkMeetingUrl(demoLarkUrl);
+                offering.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
+                offeringRepository.save(offering);
+            }
+
+            sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                    .forEach(session -> {
+                        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+                            return;
+                        }
+                        if (session.getLarkMeetingUrl() != null && !session.getLarkMeetingUrl().isBlank()) {
+                            return;
+                        }
+                        session.setLarkMeetingUrl(demoLarkUrl);
+                        session.setLarkMeetingStatus(resolveDemoLarkStatus(session.getStatus()));
+                        session.setLarkSyncStatus("DEMO");
+                        sessionRepository.save(session);
+                    });
+        });
+    }
+
+    private LarkMeetingStatus resolveDemoLarkStatus(ClassroomSessionStatus status) {
+        return switch (status) {
+            case OPEN, IN_PROGRESS -> LarkMeetingStatus.OPEN;
+            case COMPLETED -> LarkMeetingStatus.ENDED;
+            default -> LarkMeetingStatus.SCHEDULED;
+        };
+    }
+
+    private void syncTeacher2Account() {
+        Optional<User> legacyTeacher = userRepository.findByEmail(LEGACY_TEACHER2_EMAIL);
+        Optional<User> targetEmailUser = userRepository.findByEmail(TEACHER2_EMAIL);
+
+        if (targetEmailUser.isPresent()) {
+            User target = targetEmailUser.get();
+            if (legacyTeacher.isPresent() && !Objects.equals(target.getId(), legacyTeacher.get().getId())) {
+                log.info("Removing conflicting account {} before assigning demo teacher email.", TEACHER2_EMAIL);
+                removeUserAccount(target.getId());
+                targetEmailUser = Optional.empty();
+            } else if (legacyTeacher.isEmpty()) {
+                finalizeTeacherAccount(target);
+                return;
+            }
+        }
+
+        if (legacyTeacher.isPresent()) {
+            User teacher = legacyTeacher.get();
+            teacher.setEmail(TEACHER2_EMAIL);
+            finalizeTeacherAccount(teacher);
+            log.info("Updated demo teacher account email to {}.", TEACHER2_EMAIL);
+        }
+    }
+
+    private void finalizeTeacherAccount(User teacher) {
+        teacher.setFullName(TEACHER2_FULL_NAME);
+        teacher.setEmailVerified(true);
+        if (teacher.getPassword() == null || teacher.getPassword().isBlank()) {
+            teacher.setPassword(passwordEncoder.encode("Password123!"));
+        }
+        userRoleService.replaceRoles(teacher, RoleEnum.TEACHER);
+        userRepository.save(teacher);
+    }
+
+    private void removeUserAccount(Long userId) {
+        jdbcTemplate.update(
+                "delete from classroom_tuition_payments where enrollment_id in (select id from classroom_enrollments where student_id = ?)",
+                userId
+        );
+        jdbcTemplate.update("delete from classroom_attendance_records where student_id = ?", userId);
+        jdbcTemplate.update("delete from classroom_homework_submissions where student_id = ?", userId);
+        jdbcTemplate.update("delete from classroom_gradebook_entries where student_id = ?", userId);
+        jdbcTemplate.update("delete from classroom_enrollments where student_id = ?", userId);
+        jdbcTemplate.update("delete from lesson_progress where student_id = ?", userId);
+        jdbcTemplate.update("delete from vocabulary_progress where student_id = ?", userId);
+        jdbcTemplate.update("delete from assessment_submissions where student_id = ?", userId);
+        jdbcTemplate.update("delete from placement_test_attempts where student_id = ?", userId);
+        jdbcTemplate.update("delete from package_enrollments where student_id = ?", userId);
+        jdbcTemplate.update("delete from payment_orders where student_id = ?", userId);
+        jdbcTemplate.update("delete from course_discussion_reply_votes where user_id = ?", userId);
+        jdbcTemplate.update("delete from course_discussion_reactions where user_id = ?", userId);
+        jdbcTemplate.update("delete from course_discussion_reports where reporter_id = ?", userId);
+        jdbcTemplate.update(
+                """
+                        delete from course_discussion_reply_votes
+                        where reply_id in (select id from course_discussion_replies where author_id = ?)
+                        """,
+                userId
+        );
+        jdbcTemplate.update("delete from course_discussion_replies where author_id = ?", userId);
+        jdbcTemplate.update("delete from course_discussion_threads where author_id = ?", userId);
+        jdbcTemplate.update("delete from app_notifications where user_id = ?", userId);
+        jdbcTemplate.update("delete from auth_tokens where user_id = ?", userId);
+        jdbcTemplate.update("delete from user_roles where user_id = ?", userId);
+        jdbcTemplate.update("delete from users where id = ?", userId);
+    }
+
+    private User ensureUser(String email, String fullName, RoleEnum role) {
+        return userRepository.findByEmail(email).map(user -> {
+            userRoleService.replaceRoles(user, role);
+            user.setFullName(fullName);
+            return userRepository.save(user);
+        }).orElseGet(() -> {
+            User user = User.builder()
+                    .email(email)
+                    .fullName(fullName)
+                    .password(passwordEncoder.encode("Password123!"))
+                    .emailVerified(true)
+                    .build();
+            userRoleService.assignRole(user, role);
+            return userRepository.save(user);
+        });
     }
 }

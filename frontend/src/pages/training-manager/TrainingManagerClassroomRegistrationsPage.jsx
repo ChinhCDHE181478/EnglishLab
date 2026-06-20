@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -195,7 +196,12 @@ export default function TrainingManagerClassroomRegistrationsPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {/* Page Hero with operational stats */}
         <PageHero
           title="Quản lý đăng ký lớp & Học phí"
@@ -206,7 +212,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
               className="inline-flex items-center gap-1.5 rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] hover:shadow-lg active:scale-95"
               to="/training-manager/requests"
             >
-              Phê duyệt yêu cầu thay đổi lịch trình
+              Phê duyệt yêu cầu thay đổi
               <ArrowRight className="h-4 w-4" />
             </Link>
           }
@@ -245,7 +251,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
           {!loading && !error && registrations.length ? (
             <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
               {/* Left Sidebar: Registrations List */}
-              <aside className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
+              <aside className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
                 <h3 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider px-2">Danh sách đăng ký</h3>
                 <div className="space-y-2">
                   {registrations.map((item) => {
@@ -283,7 +289,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
               {selected ? (
                 <div className="space-y-6">
                   {/* Learner Profile & Registration Info */}
-                  <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                  <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-50 pb-5">
                       <div className="flex items-center gap-4">
                         <div className="flex h-14 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] font-extrabold text-lg">
@@ -336,7 +342,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
                   </section>
 
                   {/* Operations CTA Bar */}
-                  <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                  <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                     <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
                       <Activity className="h-5 w-5 text-[#730014]" />
                       Thao tác nghiệp vụ
@@ -415,7 +421,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
 
                   {/* Record Tuition Section */}
                   {!selected.hasClassAccess ? (
-                    <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                    <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                       <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
                           <DollarSign className="h-6 w-6" />
@@ -470,7 +476,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
                   ) : null}
 
                   {/* Tuition History Section */}
-                  <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-4">
+                  <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-4">
                     <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
                       <History className="h-5 w-5 text-[#730014]" />
                       Lịch sử giao dịch học phí
@@ -506,7 +512,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
 
                   {/* Transfer Classroom Section */}
                   {selected.hasClassAccess ? (
-                    <section className="rounded-[32px] border border-[#dfbfbd]/20 bg-white p-6 shadow-sm space-y-6">
+                    <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
                       <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
                           <ArrowLeftRight className="h-6 w-6" />
@@ -550,7 +556,7 @@ export default function TrainingManagerClassroomRegistrationsPage() {
             </div>
           ) : null}
         </div>
-      </main>
+      </motion.main>
       <CourseFooter />
     </div>
   );

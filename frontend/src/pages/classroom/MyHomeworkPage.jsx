@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -199,7 +200,7 @@ export default function MyHomeworkPage() {
             {/* Homework Grid */}
             {filteredHomework.length ? (
               <div className="grid gap-6 md:grid-cols-2">
-                {filteredHomework.map((item) => {
+                {filteredHomework.map((item, idx) => {
                   const status = getHomeworkStatus(item);
                   const isGraded = status === 'GRADED';
                   const isSubmitted = status === 'SUBMITTED';
@@ -210,14 +211,17 @@ export default function MyHomeworkPage() {
                   const isUrgent = !hasSubmission && !isOverdue && new Date(item.deadline) - new Date() < 24 * 60 * 60 * 1000;
 
                   return (
-                    <article
+                    <motion.article
                       key={item.id}
-                      className={`flex flex-col overflow-hidden rounded-[28px] border bg-white shadow-sm transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md ${
-                        isUrgent ? 'border-amber-300 ring-2 ring-amber-300/5' : 'border-[#dfbfbd]/20'
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: Math.min(idx * 0.06, 0.36), ease: 'easeOut' }}
+                      className={`flex flex-col overflow-hidden rounded-xl border bg-white transition-shadow hover:shadow-md ${
+                        isUrgent ? 'border-amber-300' : 'border-[#e5e7eb]'
                       }`}
                     >
                       {/* Header */}
-                      <div className="border-b border-[#dfbfbd]/10 bg-gradient-to-r from-[#fffafb] to-white p-6">
+                      <div className="border-b border-[#f0f0f0] bg-white p-5">
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
                             Lớp học #{item.classroomOfferingId}
@@ -231,7 +235,7 @@ export default function MyHomeworkPage() {
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 p-6 space-y-4">
+                      <div className="flex-1 p-5 space-y-4">
                         <p className="text-sm text-[#584140] line-clamp-3">
                           {item.instruction || 'Không có hướng dẫn chi tiết.'}
                         </p>
@@ -300,7 +304,7 @@ export default function MyHomeworkPage() {
                           </button>
                         )}
                       </div>
-                    </article>
+                    </motion.article>
                   );
                 })}
               </div>

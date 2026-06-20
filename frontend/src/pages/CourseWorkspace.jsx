@@ -173,6 +173,53 @@ const CourseWorkspace = () => {
     return lockMap;
   }, [course?.modules, moduleProgress]);
 
+  const assessmentLockReasonByModule = useMemo(() => {
+    const reasonMap = new Map();
+    const modules = course?.modules || [];
+
+    modules.forEach((module, moduleIndex) => {
+      const moduleState = moduleProgress.get(String(module.id));
+      if (!moduleState || (moduleState.moduleUnlocked && moduleState.lessonsCompleted)) {
+        reasonMap.set(String(module.id), '');
+        return;
+      }
+
+      if (!moduleState.moduleUnlocked) {
+        const previousModule = modules[moduleIndex - 1];
+        const previousState = previousModule ? moduleProgress.get(String(previousModule.id)) : null;
+        if (previousState && !previousState.lessonsCompleted) {
+          const remainingLessons = previousState.lessonItems.filter(
+            (item) => !completedLessonIds.has(item.id),
+          ).length;
+          reasonMap.set(
+            String(module.id),
+            `Mô-đun trước còn ${remainingLessons} bài học chưa hoàn thành.`,
+          );
+          return;
+        }
+        if (previousState && !previousState.moduleAssessmentsPassed) {
+          reasonMap.set(
+            String(module.id),
+            'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
+          );
+          return;
+        }
+        reasonMap.set(String(module.id), 'Hãy hoàn thành mô-đun trước để mở bài đánh giá này.');
+        return;
+      }
+
+      const remainingLessons = moduleState.lessonItems.filter(
+        (item) => !completedLessonIds.has(item.id),
+      ).length;
+      reasonMap.set(
+        String(module.id),
+        `Còn ${remainingLessons} bài học trong mô-đun này chưa hoàn thành.`,
+      );
+    });
+
+    return reasonMap;
+  }, [completedLessonIds, course?.modules, moduleProgress]);
+
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
@@ -203,13 +250,14 @@ const CourseWorkspace = () => {
           module,
           moduleIndex,
           isLocked: assessmentLockByModule.get(String(module.id)) ?? false,
+          lockReason: assessmentLockReasonByModule.get(String(module.id)) || '',
           assessments: trailingAssessments,
           title: `Bài kiểm tra cuối module: ${module.title}`,
           description: 'Nộp bài viết hoặc câu trả lời để nhận góp ý theo tiêu chí đánh giá của module.',
         },
       ];
     });
-  }, [assessmentLockByModule, assessmentsByModule, course?.modules, lessonItems]);
+  }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByModule, course?.modules, lessonItems]);
 
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
@@ -449,9 +497,9 @@ const CourseWorkspace = () => {
   const handleSelectLesson = (lessonId) => {
     const targetItem = workspaceItems.find((item) => String(item.id) === String(lessonId));
     if (targetItem?.isLocked) {
-      setError(targetItem.type === 'assessment'
-        ? 'Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.'
-        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.');
+      setError(targetItem.lockReason || (targetItem.type === 'assessment'
+        ? 'Bài đánh giá cuối mô-đun này chưa được mở.'
+        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.'));
       return;
     }
     setError('');
@@ -671,6 +719,7 @@ const CourseWorkspace = () => {
             course={course}
             activeLessonId={activeLessonId}
             assessmentLockByModule={assessmentLockByModule}
+            assessmentLockReasonByModule={assessmentLockReasonByModule}
             assessmentModuleIds={moduleAssessmentIds}
             completedLessonIds={completedLessonIds}
             lessonItems={lessonItems}
@@ -690,6 +739,7 @@ const CourseWorkspace = () => {
                 assessments={activeWorkspaceItem.assessments}
                 moduleTitle={activeWorkspaceItem.module?.title}
                 isLocked={activeWorkspaceItem.isLocked}
+                lockReason={activeWorkspaceItem.lockReason}
                 onMoveStep={handleMoveLesson}
                 onSubmitAssessment={handleSubmitAssessment}
                 draftGetter={getAssessmentDraft}

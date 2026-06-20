@@ -70,7 +70,9 @@ const Courses = () => {
 
     try {
       const enrollments = await courseApi.getMyOnlineCourses();
-      const normalized = enrollments.map(normalizeEnrollment);
+      const normalized = enrollments
+        .map(normalizeEnrollment)
+        .filter((enrollment) => enrollment.courseId && enrollment.courseSlug);
       setMyEnrollments(normalized);
       return normalized;
     } catch {

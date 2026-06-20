@@ -1,7 +1,8 @@
 package fu.sap490.g23.backend.dto.response.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.*;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -31,8 +32,6 @@ public class ClassroomOfferingResponse {
     private LocalDate endDate;
     private Long primaryTeacherId;
     private String primaryTeacherName;
-    private Long campusId;
-    private String campusName;
     private Long roomId;
     private String roomName;
     private String offlineAddress;

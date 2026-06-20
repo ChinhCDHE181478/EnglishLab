@@ -4,7 +4,9 @@ import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.*;
+import fu.sap490.g23.backend.entity.course.enums.*;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
@@ -13,8 +15,12 @@ import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +38,7 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
@@ -39,6 +46,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT;
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
+    private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
 
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
@@ -49,7 +57,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
-    private final CampusRepository campusRepository;
     private final ClassroomRoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
@@ -57,6 +64,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final LarkMeetingService larkMeetingService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
+    private final LarkMeetingParticipantRepository larkParticipantRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,7 +102,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = accessHelper.requireUser(teacherEmail);
         accessHelper.assertTeacher(teacher);
         return teacherAssignmentRepository.findByTeacherId(teacher.getId()).stream()
+                .filter(this::isTeacherAssignmentActive)
                 .map(ClassroomTeacherAssignment::getClassroomOffering)
+                .distinct()
                 .map(mapper::toOfferingResponse)
                 .toList();
     }
@@ -151,7 +161,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .primaryTeacher(resolveTeacher(request.getPrimaryTeacherId()))
-                .defaultCampus(resolveCampus(request.getDefaultCampusId()))
                 .defaultRoom(resolveRoom(request.getDefaultRoomId()))
                 .offlineAddress(request.getOfflineAddress())
                 .locationNote(request.getLocationNote())
@@ -203,7 +212,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         offering.setStartDate(request.getStartDate());
         offering.setEndDate(request.getEndDate());
         offering.setPrimaryTeacher(resolveTeacher(request.getPrimaryTeacherId()));
-        offering.setDefaultCampus(resolveCampus(request.getDefaultCampusId()));
         offering.setDefaultRoom(resolveRoom(request.getDefaultRoomId()));
         offering.setOfflineAddress(request.getOfflineAddress());
         offering.setLocationNote(request.getLocationNote());
@@ -237,6 +245,26 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomSessionResponse> getLearnerSessions(Long offeringId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        ClassroomEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc lớp học này."));
+        if (!enrollment.hasClassAccess()) {
+            throw new RuntimeException("Bạn chưa được cấp quyền truy cập lớp học này.");
+        }
+
+        return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
+                .map(mapper::toSessionResponse)
+                .peek(response -> {
+                    response.setLarkMeetingUrl(null);
+                    response.setLarkJoinable(false);
+                })
+                .toList();
+    }
+
+    @Override
     public ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request) {
         ClassroomOffering offering = findOffering(offeringId);
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
@@ -254,7 +282,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         conflictService.assertNoBlockingConflict(conflictRequest);
 
         ClassroomSession session = buildSession(offering, request, teacher);
-        return mapper.toSessionResponse(sessionRepository.save(session));
+        session = sessionRepository.save(session);
+        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
+                && (session.getLarkMeetingUrl() == null
+                || session.getLarkMeetingUrl().isBlank()
+                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl()))) {
+            syncLarkMeetingSafely(session);
+            session = sessionRepository.save(session);
+        }
+        return mapper.toSessionResponse(session);
     }
 
     @Override
@@ -281,7 +317,18 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
 
+        boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
+                && !request.getLarkMeetingUrl().isBlank()
+                && !larkMeetingService.isDemoUrl(request.getLarkMeetingUrl());
+        if (manualLarkLinkProvided && session.getLarkEventId() != null) {
+            deleteLarkMeetingSafely(session);
+            clearManagedLarkData(session);
+        }
+
         applySessionRequest(session, request, teacher);
+        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
+            syncLarkMeetingSafely(session);
+        }
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
@@ -291,6 +338,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (session.isLocked()) {
             throw new RuntimeException("Buổi học đã khóa nên không thể xóa.");
         }
+        deleteLarkMeetingSafely(session);
         sessionRepository.delete(session);
     }
 
@@ -748,49 +796,160 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Giáo viên không hợp lệ.");
         }
         ClassroomTeacherRole resolvedRole = role == null ? ClassroomTeacherRole.PRIMARY : role;
+        Long previousPrimaryTeacherId = getPrimaryTeacherId(offering);
         if (resolvedRole == ClassroomTeacherRole.PRIMARY) {
+            deactivateOtherPrimaryTeachers(offering, teacher.getId(), "Thay đổi giáo viên chính");
             offering.setPrimaryTeacher(teacher);
             offeringRepository.save(offering);
         }
-        return assignTeacherInternal(offering, teacher, resolvedRole, null);
+        ClassroomTeacherSummaryResponse response = assignTeacherInternal(offering, teacher, resolvedRole, null);
+        if (resolvedRole == ClassroomTeacherRole.PRIMARY
+                && !teacher.getId().equals(previousPrimaryTeacherId)) {
+            updateUpcomingSessionsForTeacherChange(offering, previousPrimaryTeacherId, teacher);
+        }
+        return response;
     }
 
     @Override
     public ClassroomTeacherSummaryResponse replaceTeacher(Long offeringId, Long oldTeacherId, Long newTeacherId) {
         ClassroomOffering offering = findOffering(offeringId);
-        teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offeringId, oldTeacherId)
-                .ifPresent(teacherAssignmentRepository::delete);
         User newTeacher = resolveTeacher(newTeacherId);
         if (newTeacher == null) {
             throw new RuntimeException("Giáo viên mới không hợp lệ.");
         }
+        if (oldTeacherId != null && oldTeacherId.equals(newTeacherId)) {
+            return assignTeacherInternal(offering, newTeacher, ClassroomTeacherRole.PRIMARY, "Tiếp tục phân công");
+        }
+
+        teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offeringId, oldTeacherId)
+                .filter(this::isTeacherAssignmentActive)
+                .ifPresent(assignment -> {
+                    assignment.setEffectiveTo(LocalDate.now().minusDays(1));
+                    assignment.setReason("Kết thúc phân công do thay giáo viên");
+                    teacherAssignmentRepository.save(assignment);
+                });
+        deactivateOtherPrimaryTeachers(offering, newTeacherId, "Kết thúc phân công do thay giáo viên");
         offering.setPrimaryTeacher(newTeacher);
         offeringRepository.save(offering);
-        return assignTeacherInternal(offering, newTeacher, ClassroomTeacherRole.PRIMARY, "Thay giáo viên");
+        ClassroomTeacherSummaryResponse response =
+                assignTeacherInternal(offering, newTeacher, ClassroomTeacherRole.PRIMARY, "Thay giáo viên");
+        updateUpcomingSessionsForTeacherChange(offering, oldTeacherId, newTeacher);
+        return response;
     }
 
     @Override
-    public ClassroomSessionResponse openVirtualSession(Long sessionId) {
+    public ClassroomSessionResponse openVirtualSession(Long sessionId, String actorEmail) {
         ClassroomSession session = findSession(sessionId);
+        User actor = assertCanManageVirtualSession(session, actorEmail);
         if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
             throw new RuntimeException("Chỉ buổi học trực tuyến mới có thể mở phòng ảo.");
         }
+        if (session.getLarkMeetingUrl() == null
+                || session.getLarkMeetingUrl().isBlank()
+                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())) {
+            if (!syncLarkMeetingSafely(session)) {
+                sessionRepository.save(session);
+                throw new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "Chưa thể mở phòng học trực tuyến. Vui lòng thử lại sau ít phút."
+                );
+            }
+        }
+        inviteTeacher(session, actor);
         session.setStatus(ClassroomSessionStatus.OPEN);
         session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
-        if (session.getLarkMeetingUrl() == null || session.getLarkMeetingUrl().isBlank()) {
-            String defaultUrl = session.getClassroomOffering().getDefaultLarkMeetingUrl();
-            session.setLarkMeetingUrl(defaultUrl);
-        }
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
     @Override
-    public ClassroomSessionResponse closeVirtualSession(Long sessionId) {
+    public ClassroomSessionResponse joinVirtualSession(Long sessionId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
         ClassroomSession session = findSession(sessionId);
-        session.setStatus(ClassroomSessionStatus.COMPLETED);
-        session.setLocked(true);
-        session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
+
+        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+            throw new RuntimeException("Buổi học này không phải lớp học trực tuyến.");
+        }
+        if (session.getStatus() == ClassroomSessionStatus.CANCELLED) {
+            throw new RuntimeException("Buổi học đã bị hủy.");
+        }
+
+        ClassroomEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassroomOfferingId(
+                        learner.getId(),
+                        session.getClassroomOffering().getId()
+                )
+                .orElseThrow(() -> new RuntimeException("Bạn không thuộc lớp học này."));
+        if (!enrollment.hasClassAccess()) {
+            throw new RuntimeException("Bạn chưa được cấp quyền tham gia lớp học này.");
+        }
+
+        if (session.getLarkMeetingUrl() == null
+                || session.getLarkMeetingUrl().isBlank()
+                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())) {
+            if (!syncLarkMeetingSafely(session)) {
+                sessionRepository.save(session);
+                throw new RuntimeException(
+                        session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
+                                ? "Chưa thể tạo phòng Lark cho buổi học này."
+                                : session.getLarkSyncError()
+                );
+            }
+        } else if (session.getLarkEventId() != null && larkMeetingService.isEnabled()) {
+            if (!syncLarkMeetingSafely(session)) {
+                sessionRepository.save(session);
+                throw new RuntimeException(
+                        session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
+                                ? "Chưa thể cập nhật quyền tự tham gia phòng Lark."
+                                : session.getLarkSyncError()
+                );
+            }
+        }
+
+        session.setLarkEmptySince(null);
+        session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
         return mapper.toSessionResponse(sessionRepository.save(session));
+    }
+
+    @Override
+    public ClassroomSessionResponse joinVirtualClass(Long offeringId, Long sessionId, String learnerEmail) {
+        ClassroomSession session = findSession(sessionId);
+        if (!session.getClassroomOffering().getId().equals(offeringId)) {
+            throw new RuntimeException("Buổi học không thuộc lớp đã chọn.");
+        }
+        return joinVirtualSession(sessionId, learnerEmail);
+    }
+
+    @Override
+    public ClassroomSessionResponse closeVirtualSession(Long sessionId, String actorEmail) {
+        ClassroomSession session = findSession(sessionId);
+        assertCanManageVirtualSession(session, actorEmail);
+        markVirtualSessionEnded(session);
+        return mapper.toSessionResponse(sessionRepository.save(session));
+    }
+
+    @Scheduled(fixedDelay = 60_000, initialDelay = 30_000)
+    public void closeEmptyVirtualRooms() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(EMPTY_ROOM_GRACE_MINUTES);
+        List<ClassroomSession> emptyRooms =
+                sessionRepository.findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(cutoff);
+
+        for (ClassroomSession session : emptyRooms) {
+            if (larkParticipantRepository.countByClassroomSessionIdAndActiveTrue(session.getId()) > 0) {
+                session.setLarkEmptySince(null);
+                continue;
+            }
+            deleteLarkMeetingSafely(session);
+            larkParticipantRepository.deleteByClassroomSessionId(session.getId());
+            clearManagedLarkData(session);
+            session.setLarkMeetingUrl(null);
+            session.setLarkMeetingId(null);
+            session.setLarkMeetingNo(null);
+            session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
+            session.setLarkSyncStatus("PENDING");
+            session.setLarkSyncError(null);
+            session.setLarkEmptySince(null);
+        }
+        sessionRepository.saveAll(emptyRooms);
     }
 
     @Override
@@ -799,8 +958,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (session.isLocked()) {
             throw new RuntimeException("Buổi học đã khóa nên không thể cập nhật link Lark.");
         }
+        if (session.getLarkEventId() != null) {
+            deleteLarkMeetingSafely(session);
+            clearManagedLarkData(session);
+        }
         session.setLarkMeetingUrl(request.getLarkMeetingUrl());
         session.setLarkMeetingStatus(larkMeetingService.resolveStatus(request.getLarkMeetingUrl()));
+        session.setLarkSyncStatus("MANUAL");
+        session.setLarkSyncError(null);
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
@@ -826,16 +991,121 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         .effectiveFrom(LocalDate.now())
                         .build());
         assignment.setRole(role);
+        assignment.setEffectiveFrom(LocalDate.now());
+        assignment.setEffectiveTo(null);
         if (reason != null) {
             assignment.setReason(reason);
         }
         return mapper.toTeacherSummary(teacherAssignmentRepository.save(assignment));
     }
 
+    private boolean isTeacherAssignmentActive(ClassroomTeacherAssignment assignment) {
+        LocalDate today = LocalDate.now();
+        return (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today));
+    }
+
+    private void deactivateOtherPrimaryTeachers(ClassroomOffering offering, Long activeTeacherId, String reason) {
+        LocalDate endedOn = LocalDate.now().minusDays(1);
+        teacherAssignmentRepository.findByClassroomOfferingId(offering.getId()).stream()
+                .filter(this::isTeacherAssignmentActive)
+                .filter(assignment -> assignment.getRole() == ClassroomTeacherRole.PRIMARY)
+                .filter(assignment -> !assignment.getTeacher().getId().equals(activeTeacherId))
+                .forEach(assignment -> {
+                    assignment.setEffectiveTo(endedOn);
+                    assignment.setReason(reason);
+                    teacherAssignmentRepository.save(assignment);
+                });
+    }
+
+    private void updateUpcomingSessionsForTeacherChange(
+            ClassroomOffering offering,
+            Long oldTeacherId,
+            User newTeacher
+    ) {
+        LocalDate today = LocalDate.now();
+        List<ClassroomSession> sessions =
+                sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+
+        sessions.stream()
+                .filter(session -> !session.getSessionDate().isBefore(today))
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.COMPLETED)
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .filter(session -> oldTeacherId == null
+                        || session.getTeacher() == null
+                        || oldTeacherId.equals(session.getTeacher().getId()))
+                .forEach(session -> {
+                    session.setTeacher(newTeacher);
+                    if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
+                            && session.getLarkEventId() != null) {
+                        syncLarkMeetingSafely(session);
+                        inviteTeacherSafely(session, newTeacher);
+                    }
+                });
+        sessionRepository.saveAll(sessions);
+    }
+
+    private User assertCanManageVirtualSession(ClassroomSession session, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTeacher(actor);
+
+        if (accessHelper.canManageClassroom(actor)
+                || accessHelper.canManageTrainingOperations(actor)
+                || isSessionTeacher(session, actor)
+                || isPrimaryTeacher(session.getClassroomOffering(), actor)
+                || hasActiveTeacherAssignment(session.getClassroomOffering(), actor)) {
+            return actor;
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Bạn không còn được phân công phụ trách lớp học này."
+        );
+    }
+
+    private boolean isSessionTeacher(ClassroomSession session, User actor) {
+        return session.getTeacher() != null
+                && session.getTeacher().getId().equals(actor.getId());
+    }
+
+    private boolean isPrimaryTeacher(ClassroomOffering offering, User actor) {
+        return offering.getPrimaryTeacher() != null
+                && offering.getPrimaryTeacher().getId().equals(actor.getId());
+    }
+
+    private boolean hasActiveTeacherAssignment(ClassroomOffering offering, User actor) {
+        return teacherAssignmentRepository
+                .findByClassroomOfferingIdAndTeacherId(offering.getId(), actor.getId())
+                .filter(this::isTeacherAssignmentActive)
+                .isPresent();
+    }
+
+    private void inviteTeacherSafely(ClassroomSession session, User teacher) {
+        try {
+            inviteTeacher(session, teacher);
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Không thể thêm giáo viên {} vào lịch Lark của buổi học {}: {}",
+                    teacher.getId(),
+                    session.getId(),
+                    ex.getMessage()
+            );
+        }
+    }
+
+    private void inviteTeacher(ClassroomSession session, User teacher) {
+        larkMeetingService.inviteInternalAttendee(session, teacher.getEmail());
+    }
+
     private ClassroomSession buildSession(ClassroomOffering offering, CreateClassroomSessionRequest request, User teacher) {
         ClassroomDeliveryMode deliveryMode = request.getDeliveryMode() != null ? request.getDeliveryMode() : offering.getDeliveryMode();
         String larkUrl = request.getLarkMeetingUrl();
-        if ((larkUrl == null || larkUrl.isBlank()) && deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
+        if (larkMeetingService.isDemoUrl(larkUrl)) {
+            larkUrl = null;
+        }
+        if ((larkUrl == null || larkUrl.isBlank())
+                && deliveryMode == ClassroomDeliveryMode.VIRTUAL
+                && !larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())) {
             larkUrl = offering.getDefaultLarkMeetingUrl();
         }
         return ClassroomSession.builder()
@@ -846,10 +1116,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .teacher(teacher)
                 .status(request.getStatus() == null ? ClassroomSessionStatus.SCHEDULED : request.getStatus())
                 .deliveryMode(deliveryMode)
-                .campus(resolveCampus(request.getCampusId() != null ? request.getCampusId() : getDefaultCampusId(offering)))
                 .room(resolveRoom(request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering)))
                 .larkMeetingUrl(larkUrl)
                 .larkMeetingStatus(larkMeetingService.resolveStatus(larkUrl))
+                .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
                 .sessionContent(request.getSessionContent())
                 .note(request.getNote())
                 .build();
@@ -867,21 +1137,69 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getDeliveryMode() != null) {
             session.setDeliveryMode(request.getDeliveryMode());
         }
-        if (request.getCampusId() != null) {
-            session.setCampus(resolveCampus(request.getCampusId()));
-        }
         if (request.getRoomId() != null) {
             session.setRoom(resolveRoom(request.getRoomId()));
         }
         if (request.getLarkMeetingUrl() != null) {
-            session.setLarkMeetingUrl(request.getLarkMeetingUrl());
-            session.setLarkMeetingStatus(larkMeetingService.resolveStatus(request.getLarkMeetingUrl()));
+            String requestedUrl = larkMeetingService.isDemoUrl(request.getLarkMeetingUrl())
+                    ? null
+                    : request.getLarkMeetingUrl();
+            session.setLarkMeetingUrl(requestedUrl);
+            session.setLarkMeetingStatus(larkMeetingService.resolveStatus(requestedUrl));
+            if (requestedUrl != null && !requestedUrl.isBlank()) {
+                session.setLarkSyncStatus("MANUAL");
+                session.setLarkSyncError(null);
+            }
         } else if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
-            session.setLarkMeetingUrl(offering.getDefaultLarkMeetingUrl());
-            session.setLarkMeetingStatus(larkMeetingService.resolveStatus(offering.getDefaultLarkMeetingUrl()));
+            String defaultUrl = larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())
+                    ? null
+                    : offering.getDefaultLarkMeetingUrl();
+            if (session.getLarkEventId() == null) {
+                session.setLarkMeetingUrl(defaultUrl);
+                session.setLarkMeetingStatus(larkMeetingService.resolveStatus(defaultUrl));
+            }
         }
         session.setSessionContent(request.getSessionContent());
         session.setNote(request.getNote());
+    }
+
+    private boolean syncLarkMeetingSafely(ClassroomSession session) {
+        if (!larkMeetingService.isEnabled()) {
+            session.setLarkSyncStatus("DISABLED");
+            session.setLarkSyncError("Tích hợp Lark API chưa được bật.");
+            return false;
+        }
+        try {
+            larkMeetingService.syncMeeting(session);
+            return true;
+        } catch (RuntimeException ex) {
+            session.setLarkSyncStatus("FAILED");
+            session.setLarkSyncError(ex.getMessage());
+            log.warn("Không thể đồng bộ buổi học {} với Lark: {}", session.getId(), ex.getMessage());
+            return false;
+        }
+    }
+
+    private void deleteLarkMeetingSafely(ClassroomSession session) {
+        try {
+            larkMeetingService.deleteMeeting(session);
+        } catch (RuntimeException ex) {
+            log.warn("Không thể xóa sự kiện Lark của buổi học {}: {}", session.getId(), ex.getMessage());
+        }
+    }
+
+    private void clearManagedLarkData(ClassroomSession session) {
+        session.setLarkCalendarId(null);
+        session.setLarkEventId(null);
+        session.setLarkMeetingId(null);
+        session.setLarkMeetingNo(null);
+        session.setLarkSyncedAt(null);
+    }
+
+    private void markVirtualSessionEnded(ClassroomSession session) {
+        session.setStatus(ClassroomSessionStatus.COMPLETED);
+        session.setLocked(true);
+        session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
     }
 
     private void ensureGradebookEntry(ClassroomOffering offering, User student) {
@@ -925,8 +1243,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (offering.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
             throw new RuntimeException("Lớp học chưa mở đăng ký.");
         }
-        if (offering.getStatus() == ClassroomOfferingStatus.CANCELLED
-                || offering.getStatus() == ClassroomOfferingStatus.COMPLETED) {
+        if (offering.getStatus() != ClassroomOfferingStatus.UPCOMING
+                || offering.getStartDate() == null
+                || !offering.getStartDate().isAfter(LocalDate.now())) {
             throw new RuntimeException("Lớp học không còn nhận đăng ký.");
         }
     }
@@ -1024,15 +1343,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private ClassroomOffering findPublicOffering(String slugOrId) {
         try {
             Long id = Long.parseLong(slugOrId);
-            ClassroomOffering offering = offeringRepository.findById(id)
+            return offeringRepository.findById(id)
+                    .or(() -> offeringRepository.findByLearningPackageId(id))
                     .filter(found -> !found.getLearningPackage().isDeleted())
                     .filter(found -> found.getLearningPackage().getStatus() == PackageStatus.PUBLISHED)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-            return offering;
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         } catch (NumberFormatException ex) {
             return offeringRepository.findByLearningPackageSlug(slugOrId)
                     .filter(found -> found.getLearningPackage().getStatus() == PackageStatus.PUBLISHED)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy lớp học."));
         }
     }
 
@@ -1049,14 +1368,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên."));
     }
 
-    private Campus resolveCampus(Long campusId) {
-        if (campusId == null) {
-            return null;
-        }
-        return campusRepository.findById(campusId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy cơ sở."));
-    }
-
     private ClassroomRoom resolveRoom(Long roomId) {
         if (roomId == null) {
             return null;
@@ -1067,10 +1378,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private Long getPrimaryTeacherId(ClassroomOffering offering) {
         return offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId();
-    }
-
-    private Long getDefaultCampusId(ClassroomOffering offering) {
-        return offering.getDefaultCampus() == null ? null : offering.getDefaultCampus().getId();
     }
 
     private Long getDefaultRoomId(ClassroomOffering offering) {

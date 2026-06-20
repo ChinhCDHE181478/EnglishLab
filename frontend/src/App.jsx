@@ -31,6 +31,7 @@ import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage';
 import TeacherClassroomPage from './pages/teacher/TeacherClassroomPage';
 import TeacherSessionPage from './pages/teacher/TeacherSessionPage';
 import TeacherRequestsPage from './pages/teacher/TeacherRequestsPage';
+import TeacherSchedulePage from './pages/teacher/TeacherSchedulePage';
 import TrainingManagerRequestsPage from './pages/training-manager/TrainingManagerRequestsPage';
 import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/TrainingManagerClassroomRegistrationsPage';
 import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
@@ -59,40 +60,52 @@ function AppRoutes() {
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
       </Route>
-      <Route path="/classrooms" element={<ClassroomsCatalogPage />} />
-      <Route path="/classrooms/:slugOrId" element={<ClassroomPublicDetailPage />} />
+      {/* Public / student-facing marketing pages */}
+      <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
+      <Route path="/opening-schedule/:slugOrId" element={<ClassroomPublicDetailPage />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
       <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
       <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
-      <Route path="/cart" element={<CartPage />} />
-      <Route path="/wishlist" element={<WishlistPage />} />
-      <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/my-courses" element={<MyCoursesPage />} />
-      <Route path="/my-classrooms" element={<MyClassroomsPage />} />
-      <Route path="/my-schedule" element={<MySchedulePage />} />
-      <Route path="/my-homework" element={<MyHomeworkPage />} />
-      <Route element={<ProtectedRoute />}>
+
+      {/* Student-only routes */}
+      <Route element={<ProtectedRoute allowedRoles={['LEARNER']} />}>
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/my-courses" element={<MyCoursesPage />} />
+        <Route path="/my-classrooms" element={<MyClassroomsPage />} />
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
+        <Route path="/my-schedule" element={<MySchedulePage />} />
+        <Route path="/my-homework" element={<MyHomeworkPage />} />
+        <Route path="/placement-test" element={<PlacementTestPage />} />
+        <Route path="/transaction-history" element={<TransactionHistoryPage />} />
       </Route>
+
+      {/* Shared authenticated routes */}
+      <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/home" element={<Home />} />
+      </Route>
+
+      {/* Teacher routes */}
       <Route element={<ProtectedRoute allowedRoles={['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/teacher" element={<TeacherDashboardPage />} />
+        <Route path="/teacher/schedule" element={<TeacherSchedulePage />} />
         <Route path="/teacher/classrooms/:id" element={<TeacherClassroomPage />} />
         <Route path="/teacher/sessions/:sessionId" element={<TeacherSessionPage />} />
         <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
       </Route>
+
+      {/* Training manager routes */}
       <Route element={<ProtectedRoute allowedRoles={['TRAINING_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
         <Route path="/training-manager/classroom-registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
       </Route>
+
+      {/* Manager routes */}
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route path="/manager/classrooms" element={<ManagerClassroomsPage />} />
-      </Route>
-      <Route path="/transaction-history" element={<TransactionHistoryPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/home" element={<Home />} />
-        <Route path="/placement-test" element={<PlacementTestPage />} />
       </Route>
       <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />

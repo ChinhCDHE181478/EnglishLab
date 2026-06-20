@@ -87,6 +87,16 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getMyCourseRating(courseId) {
+    const response = await axiosClient.get(`/api/student/online-courses/${courseId}/rating`);
+    return unwrapData(response);
+  },
+
+  async saveCourseRating(courseId, payload) {
+    const response = await axiosClient.post(`/api/student/online-courses/${courseId}/rating`, payload);
+    return unwrapData(response);
+  },
+
   async verifyCourseCertificate(verificationCode) {
     const response = await axiosClient.get(`/api/online-courses/certificates/${encodeURIComponent(verificationCode)}`, {
       skipAuthRedirect: true,

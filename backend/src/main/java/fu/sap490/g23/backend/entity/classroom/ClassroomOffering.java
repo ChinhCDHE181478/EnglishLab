@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.classroom;
 
+import fu.sap490.g23.backend.entity.classroom.enums.*;
+
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import jakarta.persistence.*;
@@ -58,10 +60,6 @@ public class ClassroomOffering {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "primary_teacher_id")
     private User primaryTeacher;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "default_campus_id")
-    private Campus defaultCampus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_room_id")

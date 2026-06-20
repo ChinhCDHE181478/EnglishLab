@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomAttendanceStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

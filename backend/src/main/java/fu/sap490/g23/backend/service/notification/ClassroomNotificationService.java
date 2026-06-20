@@ -2,7 +2,7 @@ package fu.sap490.g23.backend.service.notification;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.notification.AppNotification;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -22,10 +22,10 @@ import java.util.Set;
 @Slf4j
 public class ClassroomNotificationService {
 
-    private static final Set<Role> TRAINING_MANAGER_ROLES = EnumSet.of(
-            Role.TRAINING_MANAGER,
-            Role.MANAGER,
-            Role.ADMIN
+    private static final Set<RoleEnum> TRAINING_MANAGER_ROLES = EnumSet.of(
+            RoleEnum.TRAINING_MANAGER,
+            RoleEnum.MANAGER,
+            RoleEnum.ADMIN
     );
 
     private final AppNotificationRepository notificationRepository;
@@ -50,7 +50,7 @@ public class ClassroomNotificationService {
 
     @Transactional(readOnly = true)
     public List<User> findTrainingManagers() {
-        return userRepository.findByRoleIn(TRAINING_MANAGER_ROLES);
+        return userRepository.findDistinctByRoles_CodeIn(TRAINING_MANAGER_ROLES);
     }
 
     @Transactional

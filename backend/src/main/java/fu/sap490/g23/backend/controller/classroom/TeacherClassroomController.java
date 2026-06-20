@@ -61,13 +61,19 @@ public class TeacherClassroomController {
     }
 
     @PostMapping("/sessions/{sessionId}/open")
-    public ResponseEntity<ClassroomSessionResponse> openVirtualSession(@PathVariable Long sessionId) {
-        return ResponseEntity.ok(classroomOfferingService.openVirtualSession(sessionId));
+    public ResponseEntity<ClassroomSessionResponse> openVirtualSession(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.openVirtualSession(sessionId, authentication.getName()));
     }
 
     @PostMapping("/sessions/{sessionId}/close")
-    public ResponseEntity<ClassroomSessionResponse> closeVirtualSession(@PathVariable Long sessionId) {
-        return ResponseEntity.ok(classroomOfferingService.closeVirtualSession(sessionId));
+    public ResponseEntity<ClassroomSessionResponse> closeVirtualSession(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.closeVirtualSession(sessionId, authentication.getName()));
     }
 
     @PatchMapping("/sessions/{sessionId}/lark-link")
@@ -162,6 +168,14 @@ public class TeacherClassroomController {
     @GetMapping("/{id}/announcements")
     public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(@PathVariable Long id) {
         return ResponseEntity.ok(contentService.getAnnouncements(id));
+    }
+
+    @PostMapping("/requests/check-conflict")
+    public ResponseEntity<ConflictCheckResultResponse> checkChangeConflict(
+            @RequestBody CreateChangeRequestRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(changeRequestService.checkConflict(request, authentication.getName()));
     }
 
     @PostMapping("/requests")

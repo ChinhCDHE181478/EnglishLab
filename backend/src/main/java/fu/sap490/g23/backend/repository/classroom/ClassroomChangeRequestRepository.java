@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.repository.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sap490.g23.backend.entity.classroom.ClassroomChangeRequestStatus;
-import fu.sap490.g23.backend.entity.classroom.ClassroomChangeRequestType;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.security;
 
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,10 +13,10 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ClassroomAccessHelper {
 
-    private static final Set<Role> TRAINING_MANAGER_ROLES = EnumSet.of(Role.TRAINING_MANAGER, Role.MANAGER, Role.ADMIN);
-    private static final Set<Role> MANAGER_ROLES = EnumSet.of(Role.MANAGER, Role.TRAINING_MANAGER, Role.ADMIN);
-    private static final Set<Role> TEACHER_ROLES = EnumSet.of(Role.TEACHER, Role.TRAINING_MANAGER, Role.MANAGER, Role.ADMIN);
-    private static final Set<Role> CONTENT_MANAGER_ROLES = EnumSet.of(Role.CONTENT_MANAGER, Role.MANAGER, Role.ADMIN);
+    private static final Set<RoleEnum> TRAINING_MANAGER_ROLES = EnumSet.of(RoleEnum.TRAINING_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
+    private static final Set<RoleEnum> MANAGER_ROLES = EnumSet.of(RoleEnum.MANAGER, RoleEnum.TRAINING_MANAGER, RoleEnum.ADMIN);
+    private static final Set<RoleEnum> TEACHER_ROLES = EnumSet.of(RoleEnum.TEACHER, RoleEnum.TRAINING_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
+    private static final Set<RoleEnum> CONTENT_MANAGER_ROLES = EnumSet.of(RoleEnum.CONTENT_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
 
     private final UserRepository userRepository;
 
@@ -26,19 +26,19 @@ public class ClassroomAccessHelper {
     }
 
     public boolean canManageClassroom(User user) {
-        return MANAGER_ROLES.contains(user.getRole()) || CONTENT_MANAGER_ROLES.contains(user.getRole());
+        return user.hasAnyRole(MANAGER_ROLES) || user.hasAnyRole(CONTENT_MANAGER_ROLES);
     }
 
     public boolean canTeach(User user) {
-        return TEACHER_ROLES.contains(user.getRole());
+        return user.hasAnyRole(TEACHER_ROLES);
     }
 
     public boolean canApproveRequests(User user) {
-        return TRAINING_MANAGER_ROLES.contains(user.getRole());
+        return user.hasAnyRole(TRAINING_MANAGER_ROLES);
     }
 
     public boolean canManageTrainingOperations(User user) {
-        return TRAINING_MANAGER_ROLES.contains(user.getRole());
+        return user.hasAnyRole(TRAINING_MANAGER_ROLES);
     }
 
     public void assertTrainingManager(User user) {

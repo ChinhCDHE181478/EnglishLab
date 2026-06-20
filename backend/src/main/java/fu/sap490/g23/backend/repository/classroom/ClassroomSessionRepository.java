@@ -1,19 +1,33 @@
 package fu.sap490.g23.backend.repository.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSessionStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ClassroomSessionRepository extends JpaRepository<ClassroomSession, Long> {
 
     List<ClassroomSession> findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(Long classroomOfferingId);
+
+    List<ClassroomSession> findByDeliveryModeAndStatusIn(
+            ClassroomDeliveryMode deliveryMode,
+            Collection<ClassroomSessionStatus> statuses
+    );
+
+    Optional<ClassroomSession> findByLarkMeetingId(String larkMeetingId);
+
+    Optional<ClassroomSession> findByLarkMeetingNo(String larkMeetingNo);
+
+    List<ClassroomSession> findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(LocalDateTime cutoff);
 
     @Query("""
             SELECT s FROM ClassroomSession s

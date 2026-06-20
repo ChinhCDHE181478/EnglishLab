@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.GradebookEntryStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import lombok.Builder;
 import lombok.Data;
 

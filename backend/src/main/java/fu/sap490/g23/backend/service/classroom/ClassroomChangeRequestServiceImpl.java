@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
@@ -38,6 +40,19 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
+    @Transactional(readOnly = true)
+    public ConflictCheckResultResponse checkConflict(CreateChangeRequestRequest request, String requesterEmail) {
+        User requester = accessHelper.requireUser(requesterEmail);
+        accessHelper.assertTeacher(requester);
+
+        ClassroomOffering offering = offeringRepository.findById(request.getClassroomOfferingId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
+        ClassroomSession targetSession = resolveTargetSession(request);
+        ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetSession);
+        return conflictService.check(conflictRequest);
+    }
+
+    @Override
     public ClassroomChangeRequestResponse create(CreateChangeRequestRequest request, String requesterEmail) {
         User requester = accessHelper.requireUser(requesterEmail);
         accessHelper.assertTeacher(requester);
@@ -58,7 +73,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
         String oldValuesJson = buildOldValuesJson(request.getRequestType(), offering, targetSession);
         ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetSession);
-        conflictService.check(conflictRequest);
+        // Block submission when there is a real schedule conflict (teacher/room/learner).
+        // Training Manager can still override at approval time.
+        conflictService.assertNoBlockingConflict(conflictRequest);
 
         ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
                 .requestType(request.getRequestType())

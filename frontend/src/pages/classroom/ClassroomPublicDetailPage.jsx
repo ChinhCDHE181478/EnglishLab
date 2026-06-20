@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -56,6 +57,7 @@ export default function ClassroomPublicDetailPage() {
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState('');
+  const [notFound, setNotFound] = useState(false);
   const [actionMessage, setActionMessage] = useState('');
   const [actionSuccess, setActionSuccess] = useState(false);
   const [larkMessage, setLarkMessage] = useState('');
@@ -77,6 +79,7 @@ export default function ClassroomPublicDetailPage() {
   const loadOffering = useCallback(async () => {
     setLoading(true);
     setError('');
+    setNotFound(false);
     try {
       const data = await classroomApi.getClassroomOffering(slugOrId);
       setOffering(data);
@@ -84,6 +87,7 @@ export default function ClassroomPublicDetailPage() {
     } catch (err) {
       setOffering(null);
       setRegistration(null);
+      setNotFound(err?.response?.status === 404);
       setError(getClassroomErrorMessage(err, 'Không thể tải thông tin lớp học.'));
     } finally {
       setLoading(false);
@@ -96,7 +100,7 @@ export default function ClassroomPublicDetailPage() {
 
   const handleRegister = async (holdSpot) => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/classrooms/${slugOrId}` } });
+      navigate('/login', { state: { from: `/opening-schedule/${slugOrId}` } });
       return;
     }
     setRegistering(true);
@@ -131,19 +135,36 @@ export default function ClassroomPublicDetailPage() {
       <CourseGlobalStyles />
       <Header />
 
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+      >
         {loading ? <ClassroomLoadingState message="Đang tải thông tin lớp học..." /> : null}
-        {!loading && error ? <ClassroomErrorState message={error} onRetry={loadOffering} /> : null}
+        {!loading && error && !notFound ? <ClassroomErrorState message={error} onRetry={loadOffering} /> : null}
+        {!loading && notFound ? (
+          <div className="flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[28px] border border-[#f0d4d7] bg-white px-6 py-16 text-center shadow-sm">
+            <AlertCircle className="h-14 w-14 text-[#93000a]" />
+            <h1 className="mt-5 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Lớp học không còn mở công khai</h1>
+            <p className="mt-3 max-w-lg text-sm leading-7 text-[#584140]">
+              Lớp học này có thể đã kết thúc, bị ẩn hoặc đường dẫn cũ không còn phù hợp. Hãy quay lại lịch khai giảng để chọn lớp đang mở.
+            </p>
+            <Link className="mt-7 rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/opening-schedule">
+              Xem lịch khai giảng
+            </Link>
+          </div>
+        ) : null}
 
         {!loading && !error && offering ? (
           <>
             {/* Back link */}
             <Link
               className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8b706e] hover:text-[#730014] transition"
-              to="/classrooms"
+              to="/opening-schedule"
             >
               <ArrowLeft className="h-4 w-4" />
-              Quay lại danh mục lớp học
+              Quay lại lịch khai giảng
             </Link>
 
             <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
@@ -197,7 +218,7 @@ export default function ClassroomPublicDetailPage() {
                     <InfoCard
                       icon={<MapPin className="h-5 w-5" />}
                       label="Địa điểm học"
-                      value={offering.campusName || offering.offlineAddress || 'Cơ sở Hà Nội'}
+                      value={offering.offlineAddress || 'Cơ sở Hà Nội'}
                     />
                   )}
                   <div className="sm:col-span-2 lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -414,7 +435,7 @@ export default function ClassroomPublicDetailPage() {
             </div>
           </>
         ) : null}
-      </main>
+      </motion.main>
 
       <CourseFooter />
     </div>

@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.classroom;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.notification.AppNotification;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
@@ -73,13 +74,13 @@ public class ClassroomMapper {
                 .endDate(offering.getEndDate())
                 .primaryTeacherId(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId())
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
-                .campusId(offering.getDefaultCampus() == null ? null : offering.getDefaultCampus().getId())
-                .campusName(offering.getDefaultCampus() == null ? null : offering.getDefaultCampus().getName())
                 .roomId(offering.getDefaultRoom() == null ? null : offering.getDefaultRoom().getId())
                 .roomName(offering.getDefaultRoom() == null ? null : offering.getDefaultRoom().getName())
                 .offlineAddress(offering.getOfflineAddress())
                 .locationNote(offering.getLocationNote())
-                .defaultLarkMeetingUrl(offering.getDefaultLarkMeetingUrl())
+                .defaultLarkMeetingUrl(larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())
+                        ? null
+                        : offering.getDefaultLarkMeetingUrl())
                 .larkMeetingStatus(offering.getLarkMeetingStatus())
                 .larkPlatformName(larkMeetingService.getPlatformName())
                 .recordingUrl(offering.getRecordingUrl())
@@ -113,8 +114,17 @@ public class ClassroomMapper {
                         .stream().map(this::toEnrollmentResponse).toList()
                         : null)
                 .teachers(teacherAssignmentRepository.findByClassroomOfferingId(offering.getId())
-                        .stream().map(this::toTeacherSummary).toList())
+                        .stream()
+                        .filter(this::isActiveTeacherAssignment)
+                        .map(this::toTeacherSummary)
+                        .toList())
                 .build();
+    }
+
+    private boolean isActiveTeacherAssignment(ClassroomTeacherAssignment assignment) {
+        LocalDate today = LocalDate.now();
+        return (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today));
     }
 
     public ClassroomSessionResponse toSessionResponse(ClassroomSession session) {
@@ -132,14 +142,18 @@ public class ClassroomMapper {
                 .status(session.getStatus())
                 .deliveryMode(session.getDeliveryMode())
                 .deliveryModeLabel(deliveryModeLabel(session.getDeliveryMode()))
-                .campusId(session.getCampus() == null ? null : session.getCampus().getId())
-                .campusName(session.getCampus() == null ? null : session.getCampus().getName())
                 .roomId(session.getRoom() == null ? null : session.getRoom().getId())
                 .roomName(session.getRoom() == null ? null : session.getRoom().getName())
-                .larkMeetingUrl(session.getLarkMeetingUrl())
+                .offlineAddress(session.getClassroomOffering().getOfflineAddress())
+                .larkMeetingUrl(larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())
+                        ? null
+                        : session.getLarkMeetingUrl())
                 .larkMeetingStatus(larkStatus)
                 .larkJoinable(larkMeetingService.isJoinable(session.getLarkMeetingUrl(), larkStatus))
                 .larkPlatformName(larkMeetingService.getPlatformName())
+                .larkSyncStatus(session.getLarkSyncStatus())
+                .larkSyncError(session.getLarkSyncError())
+                .larkSyncedAt(session.getLarkSyncedAt())
                 .recordingUrl(session.getRecordingUrl())
                 .sessionContent(session.getSessionContent())
                 .note(session.getNote())

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Calendar,
@@ -7,15 +8,13 @@ import {
   MapPin,
   Video,
   Users,
-  Award,
-  Plus,
   ArrowRight,
-  ClipboardCheck,
   FileText,
-  AlertCircle,
   HelpCircle,
   ExternalLink,
   ChevronRight,
+  CalendarDays,
+  Inbox,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -30,10 +29,18 @@ import {
   StatusBadge,
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
-import { formatClassroomDate, formatDeliveryMode, formatOfferingStatus } from '../../utils/classroomHelpers';
+import { formatClassroomDate, formatClassroomTime } from '../../utils/classroomHelpers';
+
+const toLocalDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
 export default function TeacherDashboardPage() {
   const [classrooms, setClassrooms] = useState([]);
+  const [todaySessions, setTodaySessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -43,6 +50,27 @@ export default function TeacherDashboardPage() {
     try {
       const data = await classroomApi.getTeacherAssignedClassrooms();
       setClassrooms(data);
+
+      // Fetch today's sessions across all assigned classrooms (best-effort)
+      const todayStr = toLocalDateStr(new Date());
+      const results = await Promise.allSettled(
+        data.map(async (cls) => {
+          const items = await classroomApi.getTeacherClassroomSessions(cls.id);
+          return items
+            .filter((s) => s.sessionDate === todayStr)
+            .map((s) => ({
+              ...s,
+              classroomId: cls.id,
+              classroomTitle: cls.title,
+              deliveryMode: s.deliveryMode || cls.deliveryMode,
+            }));
+        }),
+      );
+      const merged = results
+        .filter((r) => r.status === 'fulfilled')
+        .flatMap((r) => r.value)
+        .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+      setTodaySessions(merged);
     } catch (err) {
       setClassrooms([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải danh sách lớp được phân công.'));
@@ -74,11 +102,16 @@ export default function TeacherDashboardPage() {
     <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <motion.main
+        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+      >
         {/* Page Hero with operational stats */}
         <PageHero
           title="Tổng quan giảng dạy"
-          subtitle="Không gian làm việc dành riêng cho Giảng viên. Theo dõi lớp học được phân công, quản lý điểm danh, bài tập và gửi yêu cầu thay đổi lịch học."
+          subtitle="Không gian làm việc dành riêng cho Giảng viên. Theo dõi lớp học được phân công, quản lý điểm danh, bài tập và gửi yêu cầu thay đổi."
           stats={stats}
           action={
             <div className="flex flex-wrap gap-3">
@@ -86,50 +119,121 @@ export default function TeacherDashboardPage() {
                 className="inline-flex items-center gap-1.5 rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] hover:shadow-lg active:scale-95"
                 to="/teacher/requests"
               >
-                Yêu cầu thay đổi lịch của tôi
+                Yêu cầu thay đổi của tôi
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           }
         />
 
-        {/* Cockpit Quick Actions */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
-              <ClipboardCheck className="h-6 w-6" />
+        {/* Today's teaching sessions */}
+        {!loading && !error && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-['Manrope'] text-xl font-bold text-[#1a1c1c] flex items-center gap-2">
+                <span className="h-5 w-1 rounded-full bg-[#8a0018]" />
+                Buổi dạy hôm nay
+              </h2>
+              <Link
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#8a0018] transition hover:text-[#4b0009]"
+                to="/teacher/schedule"
+              >
+                Xem toàn bộ lịch dạy <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
-            <div>
-              <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Điểm danh nhanh</h4>
-              <p className="mt-1 text-xs text-[#8b706e] leading-5">Ghi nhận chuyên cần của học viên trực tiếp theo từng buổi học tại phòng học offline hoặc Lark.</p>
-            </div>
-          </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 flex-shrink-0">
-              <FileText className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Giao bài tập mới</h4>
-              <p className="mt-1 text-xs text-[#8b706e] leading-5">Tạo bài tập viết, bài đọc hoặc bài tập thực hành kèm hướng dẫn chi tiết và thời hạn nộp bài.</p>
-            </div>
+            {todaySessions.length ? (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {todaySessions.map((s, idx) => {
+                  const isVirtual = s.deliveryMode === 'VIRTUAL';
+                  return (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.28, delay: Math.min(idx * 0.06, 0.3), ease: 'easeOut' }}
+                      className="rounded-xl border border-[#e5e7eb] bg-white p-4 transition hover:border-[#dfbfbd] hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-2 text-sm font-extrabold text-[#8a0018]">
+                        <Clock className="h-4 w-4" />
+                        {formatClassroomTime(s.startTime)} – {formatClassroomTime(s.endTime)}
+                      </div>
+                      <h4 className="mt-2 font-['Manrope'] text-base font-extrabold text-[#2b2828] line-clamp-1">
+                        {s.classroomTitle}
+                      </h4>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-[#6a5553]">
+                        {isVirtual
+                          ? <><Video className="h-3.5 w-3.5 text-purple-600" /> Lớp trực tuyến</>
+                          : <><MapPin className="h-3.5 w-3.5 text-[#730014]" /> {s.roomName || 'Đang xếp phòng'}</>}
+                      </p>
+                      <Link
+                        className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#4b0009] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014] active:scale-95"
+                        to={`/teacher/sessions/${s.id}`}
+                      >
+                        Vào điểm danh <ChevronRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-[#e5e7eb] bg-white px-5 py-6 text-sm text-[#6a5553]">
+                <CalendarDays className="h-5 w-5 text-[#9a8b8a]" />
+                Hôm nay bạn không có buổi dạy nào. Hãy tận dụng thời gian chuẩn bị bài giảng.
+              </div>
+            )}
           </div>
+        )}
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 flex-shrink-0">
-              <AlertCircle className="h-6 w-6" />
+        {/* Quick Actions */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Link
+            to="/teacher/schedule"
+            className="group rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4 transition hover:border-[#dfbfbd] hover:shadow-sm"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-[#8a0018] flex-shrink-0">
+              <CalendarDays className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
+                Lịch dạy của tôi
+                <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
+              </h4>
+              <p className="mt-1 text-xs text-[#8b706e] leading-5">Xem toàn bộ buổi dạy theo lịch tuần, theo dõi phòng học và trạng thái.</p>
+            </div>
+          </Link>
+
+          <Link
+            to="/teacher/requests"
+            className="group rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4 transition hover:border-[#dfbfbd] hover:shadow-sm"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-700 flex-shrink-0">
+              <Inbox className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
+                Yêu cầu thay đổi
+                <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
+              </h4>
+              <p className="mt-1 text-xs text-[#8b706e] leading-5">Theo dõi trạng thái duyệt các đề xuất đổi lịch, phòng học, giáo viên.</p>
+            </div>
+          </Link>
+
+          <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 flex items-start gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700 flex-shrink-0">
+              <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Yêu cầu đổi lịch</h4>
-              <p className="mt-1 text-xs text-[#8b706e] leading-5">Gửi đề xuất đổi lịch học, đổi phòng học hoặc đổi link Lark trực tiếp tới Training Manager.</p>
+              <h4 className="font-semibold text-sm text-[#1a1c1c]">Giao bài tập & chấm điểm</h4>
+              <p className="mt-1 text-xs text-[#8b706e] leading-5">Mở một lớp bên dưới để giao bài tập, chấm điểm và công bố bảng điểm.</p>
             </div>
           </div>
         </div>
 
         {/* Classrooms List Section */}
         <div className="space-y-6">
-          <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828] flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-[#730014]" />
+          <h2 className="font-['Manrope'] text-xl font-bold text-[#1a1c1c] flex items-center gap-2">
+            <span className="h-5 w-1 rounded-full bg-[#8a0018]" />
             Lớp học được phân công
           </h2>
 
@@ -145,17 +249,20 @@ export default function TeacherDashboardPage() {
             ) : null}
             {!loading && !error && classrooms.length ? (
               <div className="grid gap-6 md:grid-cols-2">
-                {classrooms.map((classroom) => {
+                {classrooms.map((classroom, idx) => {
                   const isActive = ['ACTIVE', 'IN_PROGRESS'].includes(classroom.classroomStatus);
                   const isVirtual = classroom.deliveryMode === 'VIRTUAL';
 
                   return (
-                    <article
+                    <motion.article
                       key={classroom.id}
-                      className="flex flex-col overflow-hidden rounded-[28px] border border-[#dfbfbd]/20 bg-white shadow-sm transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md"
+                      initial={{ opacity: 0, y: 18 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.32, delay: Math.min(idx * 0.08, 0.4), ease: 'easeOut' }}
+                      className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm transition-shadow hover:shadow-md"
                     >
                       {/* Card Header */}
-                      <div className="border-b border-[#dfbfbd]/10 bg-gradient-to-r from-[#fffafb] to-white p-6">
+                      <div className="border-b border-[#f0f0f0] p-5">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex flex-wrap gap-2">
                             <ClassroomTypeBadge mode={classroom.deliveryMode} />
@@ -209,7 +316,7 @@ export default function TeacherDashboardPage() {
                         {!isVirtual && (
                           <div className="rounded-2xl bg-rose-50/20 border border-rose-100/40 p-4 text-xs text-[#584140] flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-[#730014]" />
-                            <span>Địa điểm: <strong>{classroom.roomName || 'Chưa xếp phòng'}</strong> · {classroom.campusName || 'Cơ sở Hà Nội'}</span>
+                            <span>Địa điểm: <strong>{classroom.roomName || 'Chưa xếp phòng'}</strong> · {classroom.offlineAddress || 'Cơ sở Hà Nội'}</span>
                           </div>
                         )}
                       </div>
@@ -228,14 +335,14 @@ export default function TeacherDashboardPage() {
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
-                    </article>
+                    </motion.article>
                   );
                 })}
               </div>
             ) : null}
           </section>
         </div>
-      </main>
+      </motion.main>
       <CourseFooter />
     </div>
   );

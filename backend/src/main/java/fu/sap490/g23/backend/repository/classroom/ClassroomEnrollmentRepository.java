@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.repository.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollmentStatus;
-import fu.sap490.g23.backend.entity.classroom.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

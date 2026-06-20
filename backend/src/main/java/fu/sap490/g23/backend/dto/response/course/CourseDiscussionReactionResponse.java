@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReactionType;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import lombok.Builder;
 import lombok.Data;
 

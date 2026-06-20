@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.repository.assessment;
 
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
