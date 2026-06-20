@@ -44,6 +44,7 @@ public class UserService implements IUserService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .roles(user.getRoleCodes().stream().map(Enum::name).sorted().toList())
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())

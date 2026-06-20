@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.service.impl;
 
 import fu.sap490.g23.backend.entity.AuthToken;
-import fu.sap490.g23.backend.entity.AuthTokenType;
+import fu.sap490.g23.backend.entity.enums.AuthTokenType;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.AuthTokenRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +31,15 @@ public class AuthTokenService {
     @Transactional
     public AuthToken issueEmailVerificationToken(User user) {
         enforceResendCooldown(user, AuthTokenType.EMAIL_VERIFICATION);
+        return replaceEmailVerificationToken(user);
+    }
+
+    @Transactional
+    public AuthToken issueEmailVerificationTokenForRegistration(User user) {
+        return replaceEmailVerificationToken(user);
+    }
+
+    private AuthToken replaceEmailVerificationToken(User user) {
         authTokenRepository.deleteByUserAndType(user, AuthTokenType.EMAIL_VERIFICATION);
         return authTokenRepository.save(AuthToken.builder()
                 .user(user)

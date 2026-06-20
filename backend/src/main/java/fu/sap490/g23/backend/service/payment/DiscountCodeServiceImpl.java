@@ -4,7 +4,7 @@ import fu.sap490.g23.backend.dto.request.payment.DiscountCodeRequest;
 import fu.sap490.g23.backend.dto.response.payment.DiscountCodeResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.payment.DiscountCode;
-import fu.sap490.g23.backend.entity.payment.DiscountType;
+import fu.sap490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.payment.DiscountCodeRepository;
 import lombok.RequiredArgsConstructor;

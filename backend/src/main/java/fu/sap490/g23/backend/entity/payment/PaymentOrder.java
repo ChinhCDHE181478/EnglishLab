@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.payment;
 
+import fu.sap490.g23.backend.entity.payment.enums.*;
+
 import fu.sap490.g23.backend.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,6 +55,9 @@ public class PaymentOrder {
 
     @Column(name = "course_ids_csv", nullable = false, length = 1000)
     private String courseIdsCsv;
+
+    @Column(name = "classroom_offering_ids_csv", length = 1000)
+    private String classroomOfferingIdsCsv;
 
     @Column(name = "course_titles", columnDefinition = "text")
     private String courseTitles;

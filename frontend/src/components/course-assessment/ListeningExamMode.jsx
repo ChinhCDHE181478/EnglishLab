@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
+import ExamDeviceCheck from './ExamDeviceCheck';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -527,55 +528,11 @@ export default function ListeningExamMode({
 
       <main className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
         {stage === 'check_audio' ? (
-          <div className="mx-auto max-w-4xl rounded-[28px] border border-[#ead8d5] bg-white p-6 shadow-sm">
-            <div className="rounded-[26px] border border-[#ecd7db] bg-[linear-gradient(145deg,#fffdfc,#fff7f7)] p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Bước 1 · Kiểm tra bản nghe</p>
-                  <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#341c1d]">Kiểm tra âm thanh bài nghe</h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
-                    Hãy phát đoạn âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn đang hoạt động ổn định trước khi vào bài Listening.
-                  </p>
-                </div>
-                <span className="rounded-full bg-[#fff0f1] px-4 py-2 text-sm font-bold text-[#8a0018]">
-                  {sampleStatus === 'playing' ? 'Đang phát bản nghe mẫu' : sampleStatus === 'done' ? 'Đã kiểm tra âm thanh' : 'Chưa kiểm tra âm thanh'}
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-                <div className="rounded-2xl border border-[#ead8d5] bg-white px-5 py-4">
-                  <p className="text-sm font-bold text-[#4b0009]">Bản nghe mẫu</p>
-                  <p className="mt-2 text-sm leading-6 text-[#584140]">
-                    Nhấn phát để nghe 3 tiếng mẫu tăng dần. Nếu bạn nghe rõ cả 3 tiếng, có thể tiếp tục vào bài thi.
-                  </p>
-                </div>
-                <button
-                  className="rounded-2xl border border-[#8a0018]/20 bg-white px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-                  onClick={playSampleAudio}
-                  type="button"
-                >
-                  {sampleStatus === 'playing' ? 'Đang phát...' : 'Phát bản nghe mẫu'}
-                </button>
-              </div>
-
-              <div className="mt-6 flex flex-wrap justify-end gap-3">
-                <button
-                  className="rounded-2xl border border-[#8a0018]/20 px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-                  onClick={handleCloseExam}
-                  type="button"
-                >
-                  Thoát bài thi
-                </button>
-                <button
-                  className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105"
-                  onClick={() => setStage('exam')}
-                  type="button"
-                >
-                  Tiếp tục vào bài nghe
-                </button>
-              </div>
-            </div>
-          </div>
+          <ExamDeviceCheck
+            onCancel={handleCloseExam}
+            onComplete={() => setStage('exam')}
+            title="Kiểm tra thiết bị"
+          />
         ) : (
         <div className="rounded-[28px] border border-[#ead8d5] bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">

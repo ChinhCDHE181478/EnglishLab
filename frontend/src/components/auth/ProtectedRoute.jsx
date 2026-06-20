@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { getCurrentUser } from '../../api/authApi';
-import { getStoredUser, hasAccessToken, needsProfileCompletion } from '../../utils/auth';
+import { getStoredUser, hasAccessToken, hasAnyUserRole, needsProfileCompletion } from '../../utils/auth';
 
 const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) => {
   const location = useLocation();
@@ -53,8 +53,15 @@ const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) 
     return <Navigate to="/complete-profile" replace />;
   }
 
-  if (allowedRoles?.length && !allowedRoles.includes(String(user?.role || '').toUpperCase())) {
-    return <Navigate to="/home" replace />;
+  const getDefaultPage = (u) => {
+    const role = String(u?.role || '').toUpperCase();
+    if (['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN'].includes(role)) return '/teacher';
+    if (role === 'CONTENT_MANAGER') return '/content-manager';
+    return '/home';
+  };
+
+  if (allowedRoles?.length && !hasAnyUserRole(user, allowedRoles)) {
+    return <Navigate to={getDefaultPage(user)} replace />;
   }
 
   if (
@@ -63,7 +70,7 @@ const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) 
     !needsProfileCompletion(user) &&
     location.pathname === '/complete-profile'
   ) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to={getDefaultPage(user)} replace />;
   }
 
   return <Outlet />;

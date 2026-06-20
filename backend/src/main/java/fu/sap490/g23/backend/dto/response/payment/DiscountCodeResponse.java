@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.response.payment;
 
-import fu.sap490.g23.backend.entity.payment.DiscountType;
+import fu.sap490.g23.backend.entity.payment.enums.DiscountType;
 import lombok.Builder;
 import lombok.Data;
 

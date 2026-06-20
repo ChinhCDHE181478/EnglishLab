@@ -2,11 +2,11 @@ package fu.sap490.g23.backend.service.course;
 
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.SubmissionStatus;
+import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;

@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.dto.request.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.AssessmentType;
+import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

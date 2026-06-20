@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.dto.response.assessment;
 
 import fu.sap490.g23.backend.entity.assessment.*;
+import fu.sap490.g23.backend.entity.assessment.enums.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,8 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bell, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import classroomApi from '../api/classroomApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import { ClassroomLoadingState } from '../components/classroom/ClassroomUi';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
+import { getClassroomErrorMessage } from '../utils/classroomErrorMessages';
+import { hasAccessToken } from '../utils/auth';
 
 const formatNotificationTime = (value) => {
   if (!value) return '';
@@ -15,29 +19,81 @@ const formatNotificationTime = (value) => {
   }).format(new Date(value));
 };
 
-const NotificationsPage = () => {
-  const { markAllNotificationsRead, notifications } = useLearnerExperience();
+const mapApiNotification = (notification) => ({
+  id: `api-${notification.id}`,
+  title: notification.title,
+  message: notification.body,
+  read: notification.read,
+  createdAt: notification.createdAt,
+  actionPath: null,
+});
+
+export default function NotificationsPage() {
+  const { markAllNotificationsRead, notifications: contextNotifications } = useLearnerExperience();
+  const [apiNotifications, setApiNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const isAuthenticated = hasAccessToken();
 
   useEffect(() => {
-    markAllNotificationsRead();
-  }, [markAllNotificationsRead]);
+    if (!isAuthenticated) {
+      markAllNotificationsRead();
+      return undefined;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError('');
+
+    classroomApi.getStudentNotifications()
+      .then((items) => {
+        if (!active) return;
+        setApiNotifications(items.map(mapApiNotification));
+        return classroomApi.markAllNotificationsRead();
+      })
+      .catch((err) => {
+        if (!active) return;
+        setApiNotifications([]);
+        setError(getClassroomErrorMessage(err, 'Không thể tải thông báo từ máy chủ.'));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, markAllNotificationsRead]);
+
+  const notifications = useMemo(() => {
+    if (isAuthenticated && apiNotifications.length) return apiNotifications;
+    if (isAuthenticated && !loading && !error) return apiNotifications;
+    return contextNotifications;
+  }, [apiNotifications, contextNotifications, error, isAuthenticated, loading]);
 
   return (
     <LearnerPageShell
       title="Thông báo"
-      description="Các cập nhật học tập, giỏ hàng, khóa học và nhắc nhở gần đây của bạn trên EnglishLab."
+      description="Các cập nhật học tập, lớp học, khóa học và nhắc nhở gần đây của bạn trên EnglishLab."
     >
-      {notifications.length === 0 ? (
-        <section className="flex min-h-[420px] flex-col items-center justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-[0_18px_45px_rgba(75,0,9,0.04)]">
+      {loading ? <ClassroomLoadingState message="Đang tải thông báo..." /> : null}
+      {!loading && error ? (
+        <section className="flex min-h-[360px] flex-1 flex-col items-center justify-center rounded-[32px] border border-[#f0d4d7] bg-white px-6 py-16 text-center text-[#93000a]">
+          {error}
+        </section>
+      ) : null}
+      {!loading && !error && notifications.length === 0 ? (
+        <section className="flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-[0_18px_45px_rgba(75,0,9,0.04)]">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#fff3f4] text-[#8a0018]">
             <Bell className="h-6 w-6" />
           </div>
           <h2 className="mt-5 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Chưa có thông báo mới</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#584140]">
-            Khi có cập nhật về khóa học, giỏ hàng hoặc tiến độ học tập, EnglishLab sẽ hiển thị tại đây.
+            Khi có cập nhật về khóa học, lớp học hoặc tiến độ học tập, EnglishLab sẽ hiển thị tại đây.
           </p>
         </section>
-      ) : (
+      ) : null}
+      {!loading && !error && notifications.length > 0 ? (
         <section className="rounded-[32px] border border-[#dfbfbd]/30 bg-white p-4 shadow-sm md:p-6">
           <div className="space-y-3">
             {notifications.map((notification) => {
@@ -77,9 +133,7 @@ const NotificationsPage = () => {
             })}
           </div>
         </section>
-      )}
+      ) : null}
     </LearnerPageShell>
   );
-};
-
-export default NotificationsPage;
+}

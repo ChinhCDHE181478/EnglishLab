@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
-import fu.sap490.g23.backend.entity.course.CourseLevel;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
+import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -52,6 +52,8 @@ public class OnlineCourseResponse {
     private Integer progressPercent;
     private Long enrollmentId;
     private Long enrollmentCount;
+    private Double averageRating;
+    private Long reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

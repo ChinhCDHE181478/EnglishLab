@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   FileStack,
   FolderKanban,
+  School,
   BadgePercent,
   Headphones,
   LayoutDashboard,
@@ -21,6 +22,7 @@ export const contentManagerNav = [
     items: [
       { label: 'Dashboard', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Online Courses', href: '/content-manager/courses', icon: BookOpen },
+      { label: 'Classrooms', href: '/content-manager/classrooms', icon: School },
       { label: 'Discount Codes', href: '/content-manager/discount-codes', icon: BadgePercent },
       { label: 'Course Categories', href: '/content-manager/categories', icon: FolderKanban },
       { label: 'Syllabus', href: '/content-manager/syllabus', icon: FileSpreadsheet },
@@ -56,6 +58,11 @@ export const contentManagerPageMeta = {
     title: 'Online Course Management',
     subtitle: 'Search, filter, publish, archive, and maintain all online course inventory.',
     searchPlaceholder: 'Search by title or slug...',
+  },
+  '/content-manager/classrooms': {
+    title: 'Classroom Content Management',
+    subtitle: 'Maintain syllabus, materials, and announcements for classroom offerings.',
+    searchPlaceholder: 'Search classroom or syllabus item...',
   },
   '/content-manager/courses/new': {
     title: 'Create Online Course',

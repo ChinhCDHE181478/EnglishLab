@@ -8,19 +8,19 @@ import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReactionResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReplyResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionThreadResponse;
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReply;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReaction;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReactionTarget;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReactionType;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReplyVote;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReport;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReportTarget;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReactionRepository;
@@ -274,7 +274,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     }
 
     private boolean canModerate(User user) {
-        return user.getRole() == Role.ADMIN || user.getRole() == Role.MANAGER || user.getRole() == Role.CONTENT_MANAGER;
+        return user.hasAnyRole(java.util.EnumSet.of(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONTENT_MANAGER));
     }
 
     private String clean(String value) {

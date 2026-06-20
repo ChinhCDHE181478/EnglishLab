@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.course.CourseDiscussionStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;

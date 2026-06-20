@@ -22,10 +22,11 @@ import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.course.*;
+import fu.sap490.g23.backend.entity.course.enums.*;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
@@ -347,6 +348,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
+                .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
                 .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
                         .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
                         .orElse(enrollment))

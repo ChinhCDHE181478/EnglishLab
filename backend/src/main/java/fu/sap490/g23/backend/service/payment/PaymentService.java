@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface PaymentService {
-    PaymentQuoteResponse quotePayment(List<Long> courseIds, String couponCode, String studentEmail);
-    PaymentLinkResponse createPaymentLink(List<Long> courseIds, String couponCode, String studentEmail);
+    PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
+    PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail);
     PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail);
     void handlePayosWebhook(Map<String, Object> payload);
     void confirmWebhook();

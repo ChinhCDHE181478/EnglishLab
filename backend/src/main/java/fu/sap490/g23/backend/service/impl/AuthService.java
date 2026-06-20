@@ -7,8 +7,8 @@ import fu.sap490.g23.backend.dto.request.VerifyEmailRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
 import fu.sap490.g23.backend.entity.AuthToken;
-import fu.sap490.g23.backend.entity.AuthTokenType;
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.AuthTokenType;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.security.JwtService;
@@ -31,6 +31,7 @@ public class AuthService implements IAuthService {
     private final AuthenticationManager authenticationManager;
     private final AuthTokenService authTokenService;
     private final AuthMailService authMailService;
+    private final UserRoleService userRoleService;
 
     @Override
     @Transactional
@@ -47,18 +48,18 @@ public class AuthService implements IAuthService {
                     .fullName(request.getFullName().trim())
                     .email(normalizedEmail)
                     .password(passwordEncoder.encode(request.getPassword()))
-                    .role(Role.LEARNER)
                     .emailVerified(false)
                     .build();
+            userRoleService.assignRole(user, RoleEnum.LEARNER);
         } else {
             user.setFullName(request.getFullName().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setRole(Role.LEARNER);
+            userRoleService.replaceRoles(user, RoleEnum.LEARNER);
             user.setEmailVerified(false);
         }
 
         User savedUser = userRepository.save(user);
-        AuthToken verificationToken = authTokenService.issueEmailVerificationToken(savedUser);
+        AuthToken verificationToken = authTokenService.issueEmailVerificationTokenForRegistration(savedUser);
         authMailService.sendVerificationEmail(savedUser, verificationToken.getToken());
 
         return AuthResponse.builder()
@@ -188,6 +189,7 @@ public class AuthService implements IAuthService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .roles(user.getRoleCodes().stream().map(Enum::name).sorted().toList())
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())

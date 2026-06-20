@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.assessment;
 
+import fu.sap490.g23.backend.entity.assessment.enums.*;
+
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import jakarta.persistence.*;

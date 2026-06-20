@@ -3,8 +3,8 @@ package fu.sap490.g23.backend.service.impl;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
-import fu.sap490.g23.backend.entity.AuthTokenType;
-import fu.sap490.g23.backend.entity.Role;
+import fu.sap490.g23.backend.entity.enums.AuthTokenType;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.security.JwtService;
@@ -28,6 +28,7 @@ public class FacebookAuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
+    private final UserRoleService userRoleService;
 
     public AuthResponse loginWithFacebook(String accessToken) {
         FacebookProfile profile = verifyAccessToken(accessToken);
@@ -69,9 +70,9 @@ public class FacebookAuthService {
                     .email(email)
                     .facebookId(facebookId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
-                    .role(Role.LEARNER)
                     .emailVerified(true)
                     .build();
+            userRoleService.assignRole(user, RoleEnum.LEARNER);
             user = userRepository.save(user);
         }
 
@@ -109,6 +110,7 @@ public class FacebookAuthService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
+                .roles(user.getRoleCodes().stream().map(Enum::name).sorted().toList())
                 .phoneNumber(user.getPhoneNumber())
                 .targetExam(user.getTargetExam())
                 .targetScore(user.getTargetScore())

@@ -12,8 +12,9 @@ import java.util.List;
 @Setter
 public class CreatePaymentLinkRequest {
 
-    @NotEmpty(message = "Danh sách khóa học không được để trống.")
     private List<@NotNull(message = "Mã khóa học không hợp lệ.") Long> courseIds;
+
+    private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classroomOfferingIds;
 
     @Size(max = 40)
     private String couponCode;

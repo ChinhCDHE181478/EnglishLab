@@ -6,11 +6,11 @@ import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.payment.DiscountCode;
-import fu.sap490.g23.backend.entity.payment.DiscountType;
+import fu.sap490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sap490.g23.backend.entity.payment.PaymentOrder;
-import fu.sap490.g23.backend.entity.payment.PaymentOrderStatus;
+import fu.sap490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.payment.DiscountCodeRepository;
@@ -51,23 +51,23 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentQuoteResponse quotePayment(List<Long> courseIds, String couponCode, String studentEmail) {
+    public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-        List<OnlineCourse> courses = resolvePayableCourses(courseIds, student);
-        return toQuoteResponse(calculateBreakdown(courses, couponCode, false));
+        PayableBundle bundle = resolvePayableBundle(courseIds, classroomOfferingIds, student);
+        return toQuoteResponse(calculateBreakdown(bundle, couponCode, false));
     }
 
     @Override
-    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, String couponCode, String studentEmail) {
+    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-        List<OnlineCourse> courses = resolvePayableCourses(courseIds, student);
-        PriceBreakdown previewBreakdown = calculateBreakdown(courses, couponCode, false);
+        PayableBundle bundle = resolvePayableBundle(courseIds, classroomOfferingIds, student);
+        PriceBreakdown previewBreakdown = calculateBreakdown(bundle, couponCode, false);
 
         if (previewBreakdown.totalAmount() <= 0) {
-            PriceBreakdown breakdown = calculateBreakdown(courses, couponCode, true);
-            courses.forEach(course -> onlineCourseService.registerCourse(course.getId(), studentEmail));
+            PriceBreakdown breakdown = calculateBreakdown(bundle, couponCode, true);
+            enrollPurchasedItems(bundle, studentEmail);
             consumeCouponReservation(breakdown.discountCode());
             return PaymentLinkResponse.builder()
                     .orderCode(null)
@@ -84,7 +84,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         ensurePayosEnabled();
-        PriceBreakdown breakdown = calculateBreakdown(courses, couponCode, true);
+        PriceBreakdown breakdown = calculateBreakdown(bundle, couponCode, true);
         long amount = breakdown.totalAmount();
 
         long orderCode = buildOrderCode();
@@ -93,8 +93,9 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentOrder paymentOrder = PaymentOrder.builder()
                 .orderCode(orderCode)
                 .student(student)
-                .courseIdsCsv(courses.stream().map(course -> String.valueOf(course.getId())).collect(Collectors.joining(",")))
-                .courseTitles(courses.stream().map(course -> course.getLearningPackage().getTitle()).collect(Collectors.joining(" | ")))
+                .courseIdsCsv(bundle.onlineCourses().stream().map(course -> String.valueOf(course.getId())).collect(Collectors.joining(",")))
+                .classroomOfferingIdsCsv("")
+                .courseTitles(bundle.allTitles())
                 .amount(amount)
                 .originalAmount(breakdown.originalAmount())
                 .systemDiscountAmount(breakdown.systemDiscountAmount())
@@ -241,9 +242,10 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private PriceBreakdown calculateBreakdown(List<OnlineCourse> courses, String couponCode, boolean reserveCoupon) {
-        long originalAmount = courses.stream().mapToLong(course -> toVnd(resolveOriginalPrice(course))).sum();
-        long subtotalAmount = courses.stream().mapToLong(course -> toVnd(resolveSystemPrice(course))).sum();
+    private PriceBreakdown calculateBreakdown(PayableBundle bundle, String couponCode, boolean reserveCoupon) {
+        List<LearningPackage> packages = bundle.packages();
+        long originalAmount = packages.stream().mapToLong(pkg -> toVnd(resolveOriginalPrice(pkg))).sum();
+        long subtotalAmount = packages.stream().mapToLong(pkg -> toVnd(resolveSystemPrice(pkg))).sum();
         long systemDiscountAmount = Math.max(0L, originalAmount - subtotalAmount);
         DiscountCode discountCode = resolveDiscountCode(couponCode, reserveCoupon);
         long couponDiscountAmount = calculateCouponDiscount(discountCode, subtotalAmount);
@@ -354,9 +356,31 @@ public class PaymentServiceImpl implements PaymentService {
         order.setCouponReservationReleased(true);
     }
 
+    private PayableBundle resolvePayableBundle(List<Long> courseIds, List<Long> classroomOfferingIds, User student) {
+        List<Long> normalizedCourseIds = normalizeIds(courseIds);
+        List<Long> normalizedClassroomIds = normalizeIds(classroomOfferingIds);
+        if (normalizedClassroomIds.isEmpty() && normalizedCourseIds.isEmpty()) {
+            throw new RuntimeException("Không có khóa học hợp lệ để thanh toán.");
+        }
+        if (!normalizedClassroomIds.isEmpty()) {
+            throw new RuntimeException(
+                    "Lớp Offline/Virtual không thanh toán qua giỏ hàng. Vui lòng đăng ký lớp và nộp học phí theo luồng đăng ký."
+            );
+        }
+        List<OnlineCourse> courses = resolvePayableCourses(normalizedCourseIds, student);
+        return new PayableBundle(courses);
+    }
+
+    private List<Long> normalizeIds(List<Long> ids) {
+        if (ids == null) {
+            return List.of();
+        }
+        return ids.stream().filter(Objects::nonNull).distinct().toList();
+    }
+
     private List<OnlineCourse> resolvePayableCourses(List<Long> courseIds, User student) {
         List<OnlineCourse> courses = new ArrayList<>();
-        for (Long courseId : courseIds.stream().filter(Objects::nonNull).distinct().toList()) {
+        for (Long courseId : courseIds) {
             OnlineCourse course = onlineCourseRepository.findById(courseId)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học có mã " + courseId + "."));
             if (course.getLearningPackage() == null
@@ -373,13 +397,13 @@ public class PaymentServiceImpl implements PaymentService {
             courses.add(course);
         }
 
-        if (courses.isEmpty()) {
-            throw new RuntimeException("Không có khóa học hợp lệ để thanh toán.");
-        }
-
         return courses.stream()
                 .sorted(Comparator.comparing(course -> course.getLearningPackage().getTitle(), String.CASE_INSENSITIVE_ORDER))
                 .toList();
+    }
+
+    private void enrollPurchasedItems(PayableBundle bundle, String studentEmail) {
+        bundle.onlineCourses().forEach(course -> onlineCourseService.registerCourse(course.getId(), studentEmail));
     }
 
     private void enrollPurchasedCourses(PaymentOrder order) {
@@ -493,18 +517,25 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    private BigDecimal resolveOriginalPrice(OnlineCourse course) {
-        LearningPackage learningPackage = course.getLearningPackage();
+    private BigDecimal resolveOriginalPrice(LearningPackage learningPackage) {
         return learningPackage == null || learningPackage.getPrice() == null ? BigDecimal.ZERO : learningPackage.getPrice();
     }
 
-    private BigDecimal resolveSystemPrice(OnlineCourse course) {
-        BigDecimal originalPrice = resolveOriginalPrice(course);
-        BigDecimal salePrice = course.getLearningPackage() == null ? null : course.getLearningPackage().getSalePrice();
+    private BigDecimal resolveSystemPrice(LearningPackage learningPackage) {
+        BigDecimal originalPrice = resolveOriginalPrice(learningPackage);
+        BigDecimal salePrice = learningPackage == null ? null : learningPackage.getSalePrice();
         if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
             return originalPrice;
         }
         return salePrice;
+    }
+
+    private BigDecimal resolveOriginalPrice(OnlineCourse course) {
+        return resolveOriginalPrice(course.getLearningPackage());
+    }
+
+    private BigDecimal resolveSystemPrice(OnlineCourse course) {
+        return resolveSystemPrice(course.getLearningPackage());
     }
 
     private long toVnd(BigDecimal value) {
@@ -578,5 +609,23 @@ public class PaymentServiceImpl implements PaymentService {
             String couponCode,
             String couponMessage
     ) {
+    }
+
+    private record PayableBundle(List<OnlineCourse> onlineCourses) {
+        List<LearningPackage> packages() {
+            List<LearningPackage> result = new ArrayList<>();
+            onlineCourses.forEach(course -> {
+                if (course.getLearningPackage() != null) {
+                    result.add(course.getLearningPackage());
+                }
+            });
+            return result;
+        }
+
+        String allTitles() {
+            return packages().stream()
+                    .map(LearningPackage::getTitle)
+                    .collect(Collectors.joining(" | "));
+        }
     }
 }

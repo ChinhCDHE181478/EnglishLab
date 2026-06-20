@@ -2,7 +2,7 @@ package fu.sap490.g23.backend.repository.course;
 
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReport;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReportTarget;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

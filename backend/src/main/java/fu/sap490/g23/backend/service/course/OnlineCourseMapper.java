@@ -7,19 +7,20 @@ import fu.sap490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sap490.g23.backend.repository.course.CourseReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -39,6 +40,7 @@ public class OnlineCourseMapper {
     private final OnlineCourseRepository onlineCourseRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final CourseReviewRepository courseReviewRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -86,6 +88,8 @@ public class OnlineCourseMapper {
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollmentId)
                 .enrollmentCount(packageEnrollmentRepository.countByLearningPackage(learningPackage))
+                .averageRating(resolveAverageRating(course))
+                .reviewCount(courseReviewRepository.countByCourse(course))
                 .createdAt(learningPackage.getCreatedAt())
                 .updatedAt(learningPackage.getUpdatedAt())
                 .focusSkills(resolveFocusSkills(course))
@@ -221,6 +225,11 @@ public class OnlineCourseMapper {
 
     private BigDecimal safePrice(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private Double resolveAverageRating(OnlineCourse course) {
+        Double average = courseReviewRepository.findAverageRatingByCourse(course);
+        return average == null ? 0D : BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP).doubleValue();
     }
 
     private BigDecimal resolveSalePrice(LearningPackage learningPackage) {

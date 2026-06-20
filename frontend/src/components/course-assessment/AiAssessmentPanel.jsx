@@ -1,8 +1,10 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { Mic, UserRound } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../ui/BrandedSelect';
 import ListeningExamMode from './ListeningExamMode';
 import ReadingExamMode from './ReadingExamMode';
+import SpeakingExamMode from './SpeakingExamMode';
 import WritingExamMode from './WritingExamMode';
 
 const statusLabels = {
@@ -748,11 +750,16 @@ export default function AiAssessmentPanel({
   assessments = [],
   moduleTitle,
   isLocked = false,
+  lockReason = '',
   onMoveStep,
   onSubmitAssessment,
   draftGetter,
   onDraftChange,
   onClearDraft,
+  skipSpeakingDeviceCheck = false,
+  speakingDirectExam = false,
+  onCloseExam,
+  uploadSpeakingAudio,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState('');
@@ -1014,6 +1021,7 @@ export default function AiAssessmentPanel({
       }
     }
     setExamModeOpen(false);
+    onCloseExam?.();
   };
 
   const orderedAssessments = useMemo(() => (
@@ -1070,6 +1078,15 @@ export default function AiAssessmentPanel({
   const activeSpeakingPartIndex = activeSpeakingVariant?.parts?.findIndex((part) => part.key === activeSpeakingPartKey) ?? -1;
   const isLastSpeakingPart = activeSpeakingPartIndex >= 0 && activeSpeakingPartIndex === (activeSpeakingVariant?.parts?.length ?? 0) - 1;
   const isFinalSpeakingPrompt = isSpeakingMockFlow && isLastSpeakingPart && isLastSpeakingQuestionInPart;
+  const speakingExamConfig = isSpeakingMockFlow ? {
+    title: formatAssessmentTitle(selected),
+    submissionLabel: activeSpeakingVariant?.label || formatAssessmentTitle(selected),
+    durationMinutes: selected?.timeLimitMinutes || 15,
+    parts: (activeSpeakingVariant?.parts || []).map((part, index) => ({
+      ...part,
+      title: `${part.label || `Part ${index + 1}`} · ${part.caption || ''}`.trim(),
+    })),
+  } : null;
   const showSpeakingResultOnly = isSpeakingMockFlow && isLockedAfterResult;
   const vocabularySentences = answer
     .split(/[.!?]+/)
@@ -1122,7 +1139,7 @@ export default function AiAssessmentPanel({
       [String(entry.questionNumber || entry.id || '')]: entry.answer || '',
     }), {})
   ), [objectiveDraft.responses]);
-  const isFullscreenExamMode = examModeOpen && !isDedicatedExamMode;
+  const isFullscreenExamMode = examModeOpen && !isDedicatedExamMode && !isSpeakingMockFlow;
   const showStartExamCard = !examModeOpen && !isLockedAfterResult;
   const startExamButtonLabel = selected?.skill === 'SPEAKING' ? 'Bắt đầu kiểm tra' : 'Vào chế độ làm bài';
 
@@ -1220,6 +1237,30 @@ export default function AiAssessmentPanel({
       finished: false,
     });
   }, [speakingExperience?.kind, speakingExperience?.activeVariant?.key]);
+
+  useEffect(() => {
+    if (!skipSpeakingDeviceCheck) return;
+    if (selected?.skill !== 'SPEAKING') return;
+    if (speakingExperience?.kind !== 'mock_test') return;
+
+    stopMicCheck();
+    setHeadphoneCheckPlayed(true);
+    setMicPermissionState('granted');
+    setMicCheckPassed(true);
+    setSpeakingStage((current) => (current === 'mic_check' ? 'briefing' : current));
+  }, [skipSpeakingDeviceCheck, selected?.id, selected?.skill, speakingExperience?.kind]);
+
+  useEffect(() => {
+    if (!speakingDirectExam) return;
+    if (selected?.skill !== 'SPEAKING' || speakingExperience?.kind !== 'mock_test') return;
+
+    stopMicCheck();
+    setHeadphoneCheckPlayed(true);
+    setMicPermissionState('granted');
+    setMicCheckPassed(true);
+    setSpeakingStage('test');
+    setExamModeOpen(true);
+  }, [speakingDirectExam, selected?.id, selected?.skill, speakingExperience?.kind]);
 
   useEffect(() => {
     setSpeakingQuestionIndex(0);
@@ -1454,8 +1495,8 @@ export default function AiAssessmentPanel({
       setError('Bản ghi đang được xử lý. Hãy đợi vài giây rồi gửi chấm.');
       return;
     }
-    if (selected.skill === 'SPEAKING' && speakingStage !== 'recording') {
-      setError('Hãy hoàn thành bước kiểm tra micro, xem đề Speaking rồi chuyển sang bước ghi âm trước khi gửi chấm.');
+    if (selected.skill === 'SPEAKING' && !isSpeakingMockFlow && speakingStage !== 'recording') {
+      setError('Hãy chuyển sang phần ghi âm và hoàn thành câu trả lời trước khi nộp bài.');
       return;
     }
     if (selected.skill === 'SPEAKING' && hasRecordedAudio && !audioUrl.trim()) {
@@ -1850,7 +1891,10 @@ export default function AiAssessmentPanel({
           const extension = mimeType.includes('mpeg') ? 'mp3' : mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm';
           const file = new File([blob], `speaking-answer.${extension}`, { type: mimeType });
           setUploadingAudio(true);
-          courseApi.uploadAssessmentAudio(file)
+          const uploadAudio = typeof uploadSpeakingAudio === 'function'
+            ? uploadSpeakingAudio
+            : courseApi.uploadAssessmentAudio;
+          uploadAudio(file)
             .then((uploadResponse) => {
               const uploadedUrl = uploadResponse?.url || '';
               setAudioUrl(uploadedUrl);
@@ -1926,7 +1970,7 @@ export default function AiAssessmentPanel({
             </p>
             {isLocked ? (
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-[#8a0018]">
-                Bài kiểm tra này sẽ mở sau khi bạn hoàn thành toàn bộ bài học trong module.
+                {lockReason || 'Bài kiểm tra này sẽ mở sau khi bạn hoàn thành các yêu cầu của mô-đun.'}
               </p>
             ) : null}
           </div>
@@ -2218,6 +2262,7 @@ export default function AiAssessmentPanel({
               <div className="space-y-4">
                 {selected.skill === 'SPEAKING' ? (
                   <>
+                    {!speakingDirectExam ? (
                     <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                       <div className="flex flex-wrap items-center gap-2">
                         {[
@@ -2235,6 +2280,7 @@ export default function AiAssessmentPanel({
                         ))}
                       </div>
                     </div>
+                    ) : null}
 
                     {speakingStage === 'mic_check' ? (
                       <div className="rounded-[30px] border border-[#dfbfbd]/25 bg-white p-6">
@@ -2423,6 +2469,7 @@ export default function AiAssessmentPanel({
                     {(speakingStage === 'test' || speakingStage === 'recording') && speakingExperience?.kind === 'mock_test' ? (
                       <div className="overflow-hidden rounded-[30px] border border-[#dfbfbd]/25 bg-white">
                         <div className="flex items-center justify-between border-b border-[#f0e6e6] px-6 py-4">
+                          {!speakingDirectExam ? (
                           <div className="flex flex-wrap gap-2">
                             {(speakingExperience.variants || []).map((variant) => (
                               <button
@@ -2435,13 +2482,14 @@ export default function AiAssessmentPanel({
                               </button>
                             ))}
                           </div>
+                          ) : <div />}
                           <p className="font-['Manrope'] text-3xl font-extrabold text-[#8a0018]">
                             {formatSeconds(
                               speakingTimer.partKey === activeSpeakingPart?.key && speakingTimer.remainingSeconds > 0
                                 ? speakingTimer.remainingSeconds
                                 : activeSpeakingPart?.answerSeconds || 0
                             )}
-                            <span className="ml-1 text-sm font-medium text-[#2b2828]">minutes remaining</span>
+                            <span className="ml-1 text-sm font-medium text-[#2b2828]">phút còn lại</span>
                           </p>
                         </div>
 
@@ -2471,13 +2519,19 @@ export default function AiAssessmentPanel({
                               <div className="flex h-[250px] w-full items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)]">
                                 <div className="text-center">
                                   <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white text-[#cf6f83] shadow-[0_14px_40px_rgba(207,111,131,0.18)]">
-                                    <span className="material-symbols-outlined text-[42px]">person</span>
+                                    <UserRound aria-hidden="true" size={42} strokeWidth={1.8} />
                                   </div>
-                                  <p className="mt-5 text-sm font-semibold text-[#7a6766]">Examiner video sẽ hiển thị ở đây khi đề có kèm video.</p>
+                                  <p className="mt-5 text-sm font-semibold text-[#7a6766]">Video giám khảo sẽ hiển thị tại đây khi đề có kèm video.</p>
                                 </div>
                               </div>
                             )}
                           </div>
+
+                          {!activeSpeakingVideoUrl && currentSpeakingQuestion?.text ? (
+                            <p className="mx-auto mt-6 max-w-3xl text-xl font-semibold leading-9 text-[#341c1d]">
+                              {currentSpeakingQuestion.text}
+                            </p>
+                          ) : null}
 
                           <div className="mx-auto mt-6 max-w-3xl">
                             {activeSpeakingPart?.cueCardTitle ? (
@@ -2522,7 +2576,7 @@ export default function AiAssessmentPanel({
                               className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white mx-auto shadow-[0_12px_30px_rgba(75,0,9,0.16)] ${isRecording ? 'bg-[#8a0018] text-white' : 'bg-white text-[#8a0018]'}`}
                               aria-hidden="true"
                             >
-                              <span className="material-symbols-outlined text-[34px]">{isRecording ? 'mic' : 'mic'}</span>
+                              <Mic aria-hidden="true" size={34} strokeWidth={2} />
                             </div>
                             </div>
                             <p className="mt-4 font-['Manrope'] text-2xl font-extrabold text-[#8a0018]">{formatSeconds(recordingDurationSeconds)}</p>
@@ -2537,7 +2591,7 @@ export default function AiAssessmentPanel({
                             >
                               {isFinalSpeakingPrompt
                                 ? (submitting || pendingSpeakingSubmit ? 'Đang gửi...' : 'Nộp bài')
-                                : speakingQuestionIndex < activeSpeakingQuestions.length - 1 ? 'Next question' : 'Next part'}
+                                : speakingQuestionIndex < activeSpeakingQuestions.length - 1 ? 'Câu tiếp theo' : 'Phần tiếp theo'}
                             </button>
                           </div>
                         </div>
@@ -2810,7 +2864,9 @@ export default function AiAssessmentPanel({
               </div>
             ) : null}
             {isLocked ? (
-              <p className="mt-2 text-sm text-[#7a6766]">Bạn cần hoàn thành hết các bài học trong module rồi mới có thể mở phần nộp bài này.</p>
+              <p className="mt-2 text-sm font-semibold text-[#8a0018]">
+                {lockReason || 'Bạn cần hoàn thành các yêu cầu của mô-đun trước khi mở phần nộp bài này.'}
+              </p>
             ) : null}
             {isLockedAfterResult ? (
               <p className="mt-2 text-sm text-[#7a6766]">Bài làm này đã có kết quả. Muốn chỉnh sửa và gửi lại, hãy bấm làm lại bài.</p>
@@ -3215,6 +3271,22 @@ export default function AiAssessmentPanel({
         onClose={() => setExamModeOpen(false)}
         onSubmit={handleExamModeSubmit}
         submitting={submitting}
+      />
+    ) : null}
+    {examModeOpen && isSpeakingMockFlow && speakingExamConfig ? (
+      <SpeakingExamMode
+        config={speakingExamConfig}
+        initialAudioUrl={audioUrl}
+        onAudioReady={(uploadedUrl) => {
+          setAudioUrl(uploadedUrl);
+          persistRecoveredSpeakingAudioUrl(selected?.id, uploadedUrl);
+        }}
+        onClose={() => setExamModeOpen(false)}
+        onSubmit={handleExamModeSubmit}
+        submitting={submitting}
+        uploadAudio={typeof uploadSpeakingAudio === 'function'
+          ? uploadSpeakingAudio
+          : courseApi.uploadAssessmentAudio}
       />
     ) : null}
     </>
