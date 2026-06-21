@@ -3,6 +3,8 @@ package fu.sap490.g23.backend.entity.classroom;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -57,6 +59,19 @@ public class ClassroomHomework {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private HomeworkStatus status = HomeworkStatus.DRAFT;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grading_mode", nullable = false, length = 20)
+    @Builder.Default
+    private HomeworkGradingMode gradingMode = HomeworkGradingMode.TEACHER;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "skill", length = 30)
+    private AssessmentSkill skill;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_id")
+    private AssessmentRubric rubric;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")

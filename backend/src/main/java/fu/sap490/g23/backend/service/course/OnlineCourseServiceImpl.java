@@ -24,6 +24,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.course.*;
 import fu.sap490.g23.backend.entity.course.enums.*;
@@ -92,13 +93,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public Page<OnlineCourseResponse> getPublicCourses(String keyword, CourseCategoryCode category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
         return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
-                .map(mapper::toResponse);
+                .map(mapper::toPublicResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse getPublicCourse(String slugOrId) {
-        return mapper.toResponse(findPublicCourse(slugOrId));
+        return mapper.toPublicResponse(findPublicCourse(slugOrId));
     }
 
     @Override
@@ -155,7 +156,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     public List<CourseAssessmentResponse> saveManagerCourseAssessments(Long courseId, List<ContentManagerCourseAssessmentRequest> requests) {
         OnlineCourse course = findCourse(courseId);
         synchronizeAssessments(course, requests == null ? List.of() : requests);
-        onlineCourseRepository.save(course);
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        courseProgressService.refreshCourseEnrollments(savedCourse);
         return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
                 .map(this::toManagerAssessmentResponse)
                 .toList();
@@ -252,7 +254,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setTotalLessons(defaultInt(request.getTotalLessons()));
         course.setTotalHours(defaultInt(request.getTotalHours()));
         synchronizeModules(course, request.getModules());
-        return mapper.toResponse(onlineCourseRepository.save(course));
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        courseProgressService.refreshCourseEnrollments(savedCourse);
+        return mapper.toResponse(savedCourse);
     }
 
     @Override
@@ -324,21 +328,54 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+        if (!isFreeCourse(course.getLearningPackage())) {
+            throw new IllegalStateException("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.");
+        }
+        return activateEnrollment(course, student);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi xem nội dung."));
+        ensureActiveEnrollment(enrollment);
+        return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
+    }
+
+    @Override
+    public OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return activateEnrollment(findPublishedCourseForEnrollment(courseId), student);
+    }
+
+    private OnlineCourseResponse activateEnrollment(OnlineCourse course, User student) {
         LearningPackage learningPackage = learningPackageRepository
                 .findByIdAndDeletedFalseAndStatusForUpdate(course.getLearningPackage().getId(), PackageStatus.PUBLISHED)
                 .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
         var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage);
-        boolean isNewEnrollment = existingEnrollment.isEmpty();
-        PackageEnrollment enrollment = existingEnrollment
-                .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
-                        .student(student)
-                        .learningPackage(learningPackage)
-                        .status(EnrollmentStatus.ACTIVE)
-                        .progressPercent(0)
-                        .build()));
-        if (isNewEnrollment) {
-            courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
+        if (existingEnrollment.isPresent()) {
+            PackageEnrollment enrollment = existingEnrollment.get();
+            if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+                enrollment.setStatus(EnrollmentStatus.ACTIVE);
+                enrollment.setRegisteredAt(LocalDateTime.now());
+                enrollment = enrollmentRepository.save(enrollment);
+                courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
+            }
+            return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
         }
+
+        PackageEnrollment enrollment = enrollmentRepository.save(PackageEnrollment.builder()
+                .student(student)
+                .learningPackage(learningPackage)
+                .status(EnrollmentStatus.ACTIVE)
+                .progressPercent(0)
+                .build());
+        courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
@@ -348,11 +385,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
                 .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
                 .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
-                .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
-                        .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
-                        .orElse(enrollment))
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
@@ -365,6 +400,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourse course = findCourse(courseId);
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
                 .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi xem tiến độ học tập."));
+        ensureActiveEnrollment(enrollment);
         return courseProgressService.buildCompletionResponse(enrollment, course, student);
     }
 
@@ -375,6 +411,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourse course = findCourse(courseId);
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
                 .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi nhận chứng nhận hoàn thành."));
+        ensureActiveEnrollment(enrollment);
         CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
         return buildCertificateResponse(course, enrollment, student, completion, false);
     }
@@ -386,6 +423,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourse course = findCourse(courseId);
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
                 .orElseThrow(() -> new RuntimeException("You are not enrolled in this course"));
+        ensureActiveEnrollment(enrollment);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
@@ -554,8 +592,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void ensureEnrolled(User student, OnlineCourse course) {
-        enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
+        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
                 .orElseThrow(() -> new RuntimeException("You are not enrolled in this course"));
+        ensureActiveEnrollment(enrollment);
+    }
+
+    private void ensureActiveEnrollment(PackageEnrollment enrollment) {
+        if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.");
+        }
     }
 
     private List<VocabularyTermResponse> extractVocabularyTerms(OnlineCourse course) {
@@ -779,8 +824,18 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             assessment.setAiEvaluationMode(request.getAiEvaluationMode());
             assessment.setInstructions(request.getInstructions());
             assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
-            assessment.setPassingScore(request.getPassingScore());
-            assessment.setMaxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore());
+            assessment.setPassingScore(IeltsBandScale.normalizeConfiguredPassingScore(
+                    request.getPassingScore(),
+                    request.getType(),
+                    request.getSkill(),
+                    request.getAiEvaluationMode()
+            ));
+            assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
+                    request.getMaxScore(),
+                    request.getType(),
+                    request.getSkill(),
+                    request.getAiEvaluationMode()
+            ));
             assessment.setTimeLimitMinutes(defaultInt(request.getTimeLimitMinutes()));
             assessment.setDisplayOrder(request.getDisplayOrder() == null ? index + 1 : request.getDisplayOrder());
             assessment.setActive(request.getActive() == null || request.getActive());
@@ -877,7 +932,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .instructions(assessment.getInstructions())
                 .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
                 .passingScore(assessment.getPassingScore())
-                .maxScore(assessment.getMaxScore())
+                .maxScore(IeltsBandScale.resolveScoreCap(assessment))
                 .timeLimitMinutes(assessment.getTimeLimitMinutes())
                 .displayOrder(assessment.getDisplayOrder())
                 .active(assessment.isActive())
@@ -1179,5 +1234,11 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             return null;
         }
         return salePrice;
+    }
+
+    private boolean isFreeCourse(LearningPackage learningPackage) {
+        BigDecimal price = defaultBigDecimal(learningPackage.getPrice());
+        BigDecimal salePrice = resolveSalePrice(price, learningPackage.getSalePrice());
+        return (salePrice == null ? price : salePrice).compareTo(BigDecimal.ZERO) <= 0;
     }
 }

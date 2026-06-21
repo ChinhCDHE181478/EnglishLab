@@ -64,6 +64,11 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getEnrolledCourseContent(courseId) {
+    const response = await axiosClient.get(`/api/student/online-courses/${courseId}/content`);
+    return unwrapData(response);
+  },
+
   async registerOnlineCourse(courseId) {
     const response = await axiosClient.post(`/api/student/online-courses/${courseId}/register`);
     return unwrapData(response);

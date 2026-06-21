@@ -1,10 +1,12 @@
+import { clampBand, normalizeBandThreshold } from './ieltsBandScale';
+
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
 export const formatBandValue = (value) => {
-  const parsed = toNumber(value);
+  const parsed = clampBand(value) ?? toNumber(value);
   if (parsed == null) return '';
   return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
 };
@@ -72,10 +74,59 @@ export const getBandFitInfo = (course, currentBand) => {
   };
 };
 
-export const isAssessmentPassed = (assessment) => {
+export const resolveAssessmentPassingThreshold = (assessment, course = null) => {
+  if (assessment?.resolvedPassingThreshold != null) {
+    return normalizeBandThreshold(assessment, assessment.resolvedPassingThreshold);
+  }
+  if (toNumber(assessment?.passingScore) != null) {
+    return normalizeBandThreshold(assessment, assessment.passingScore);
+  }
+
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && course?.targetBand != null) {
+    return normalizeBandThreshold(assessment, Number(course.targetBand) - 0.5);
+  }
+
+  return null;
+};
+
+const formatThresholdValue = (value) => {
+  const parsed = toNumber(value);
+  if (parsed == null) return '';
+  return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
+};
+
+export const formatPassingThresholdLabel = (assessment, course = null) => {
+  if (assessment?.passingThresholdLabel) {
+    return assessment.passingThresholdLabel;
+  }
+
+  const threshold = resolveAssessmentPassingThreshold(assessment, course);
+  if (threshold == null) {
+    return null;
+  }
+
+  const formatted = formatThresholdValue(threshold);
+  if (toNumber(assessment?.passingScore) != null) {
+    return `Ngưỡng đạt (cấu hình CMS): ${formatted}`;
+  }
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && course?.targetBand != null) {
+    return `Ngưỡng đạt (band mục tiêu khóa − 0.5): ${formatted}`;
+  }
+  return null;
+};
+
+export const isAssessmentPassed = (assessment, course = null) => {
   const latestStatus = String(assessment?.latestSubmission?.status || '');
   if (latestStatus === 'PASSED') return true;
-  if (latestStatus === 'AI_EVALUATED' && (assessment?.passingScore == null || assessment?.passingScore === '')) {
+  if (latestStatus === 'NEEDS_IMPROVEMENT') return false;
+
+  const score = toNumber(assessment?.latestSubmission?.aiScore);
+  const threshold = resolveAssessmentPassingThreshold(assessment, course);
+  if (score != null && threshold != null) {
+    return score >= threshold;
+  }
+
+  if (latestStatus === 'AI_EVALUATED' && threshold == null) {
     return true;
   }
   return false;
@@ -108,7 +159,7 @@ export const calculateCompletionStatus = ({ course, enrollment, assessments = []
 
   const requiredAssessments = (assessments || []).filter((item) => item?.active !== false);
   const submittedAssessments = requiredAssessments.filter(isAssessmentSubmitted);
-  const passedAssessments = requiredAssessments.filter(isAssessmentPassed);
+  const passedAssessments = requiredAssessments.filter((item) => isAssessmentPassed(item, course));
   const failedAssessments = requiredAssessments.filter((item) => String(item?.latestSubmission?.status || '') === 'NEEDS_IMPROVEMENT');
   const assessmentPercent = requiredAssessments.length ? Math.round((passedAssessments.length / requiredAssessments.length) * 100) : 100;
 

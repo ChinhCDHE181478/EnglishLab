@@ -45,10 +45,18 @@ public class OnlineCourseMapper {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OnlineCourseResponse toResponse(OnlineCourse course) {
-        return toResponse(course, false, null, null);
+        return toResponse(course, false, null, null, true);
+    }
+
+    public OnlineCourseResponse toPublicResponse(OnlineCourse course) {
+        return toResponse(course, false, null, null, false);
     }
 
     public OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId) {
+        return toResponse(course, registered, progressPercent, enrollmentId, true);
+    }
+
+    private OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId, boolean includeLessonContent) {
         LearningPackage learningPackage = course.getLearningPackage();
         CourseCategory category = course.getCategory();
         BigDecimal originalPrice = safePrice(learningPackage.getPrice());
@@ -93,7 +101,7 @@ public class OnlineCourseMapper {
                 .createdAt(learningPackage.getCreatedAt())
                 .updatedAt(learningPackage.getUpdatedAt())
                 .focusSkills(resolveFocusSkills(course))
-                .modules(toModuleResponses(course.getModules()))
+                .modules(toModuleResponses(course.getModules(), includeLessonContent))
                 .build();
     }
 
@@ -120,7 +128,7 @@ public class OnlineCourseMapper {
                 .build();
     }
 
-    private List<ModuleResponse> toModuleResponses(List<CourseModule> modules) {
+    private List<ModuleResponse> toModuleResponses(List<CourseModule> modules, boolean includeLessonContent) {
         return modules.stream()
                 .sorted(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(CourseModule::getId))
                 .map(module -> ModuleResponse.builder()
@@ -128,30 +136,33 @@ public class OnlineCourseMapper {
                         .title(module.getTitle())
                         .description(module.getDescription())
                         .displayOrder(module.getDisplayOrder())
-                        .lessons(toLessonResponses(module.getLessons()))
+                        .lessons(toLessonResponses(module.getLessons(), includeLessonContent))
                         .build())
                 .toList();
     }
 
-    private List<LessonResponse> toLessonResponses(List<Lesson> lessons) {
+    private List<LessonResponse> toLessonResponses(List<Lesson> lessons, boolean includeLessonContent) {
         return lessons.stream()
                 .sorted(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(Lesson::getId))
-                .map(lesson -> LessonResponse.builder()
+                .map(lesson -> {
+                    boolean exposeContent = includeLessonContent || lesson.isPreview();
+                    return LessonResponse.builder()
                         .id(lesson.getId())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
                         .contentType(lesson.getContentType())
-                        .contentText(lesson.getContentText())
-                        .videoUrl(lesson.getVideoUrl())
-                        .bunnyVideoId(lesson.getBunnyVideoId())
-                        .bunnyLibraryId(lesson.getBunnyLibraryId())
-                        .bunnyCdnUrl(lesson.getBunnyCdnUrl())
-                        .materialUrl(lesson.getMaterialUrl())
-                        .transcriptSegments(parseTranscriptSegments(lesson.getTranscriptSegmentsJson()))
+                        .contentText(exposeContent ? lesson.getContentText() : null)
+                        .videoUrl(exposeContent ? lesson.getVideoUrl() : null)
+                        .bunnyVideoId(exposeContent ? lesson.getBunnyVideoId() : null)
+                        .bunnyLibraryId(includeLessonContent ? lesson.getBunnyLibraryId() : null)
+                        .bunnyCdnUrl(exposeContent ? lesson.getBunnyCdnUrl() : null)
+                        .materialUrl(exposeContent ? lesson.getMaterialUrl() : null)
+                        .transcriptSegments(exposeContent ? parseTranscriptSegments(lesson.getTranscriptSegmentsJson()) : List.of())
                         .durationMinutes(lesson.getDurationMinutes())
                         .displayOrder(lesson.getDisplayOrder())
                         .preview(lesson.isPreview())
-                        .build())
+                        .build();
+                })
                 .toList();
     }
 

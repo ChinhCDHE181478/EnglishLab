@@ -37,6 +37,8 @@ public interface OnlineCourseService {
     OnlineCourseResponse archiveCourse(Long id);
     void deleteCourse(Long id);
     OnlineCourseResponse registerCourse(Long courseId, String studentEmail);
+    OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail);
+    OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail);
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);

@@ -23,4 +23,6 @@ public interface ClassroomHomeworkService {
     ClassroomHomeworkSubmissionResponse submit(Long homeworkId, SubmitHomeworkRequest request, String learnerEmail);
 
     ClassroomHomeworkSubmissionResponse grade(Long homeworkId, Long studentId, GradeHomeworkRequest request, String graderEmail);
+
+    List<ClassroomHomeworkSubmissionResponse> listSubmissions(Long homeworkId, String teacherEmail);
 }

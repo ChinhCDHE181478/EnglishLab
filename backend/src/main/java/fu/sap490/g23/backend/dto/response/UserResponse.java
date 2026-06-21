@@ -20,4 +20,5 @@ public class UserResponse {
     private Double currentBand;
     private String studyGoal;
     private boolean profileCompleted;
+    private boolean placementTestCompleted;
 }

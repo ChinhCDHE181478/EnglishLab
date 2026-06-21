@@ -16,17 +16,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ClassroomContentServiceImpl implements ClassroomContentService {
 
+    private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
+
     private final ClassroomMaterialRepository materialRepository;
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomSyllabusItemRepository syllabusItemRepository;
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
+    private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomMapper mapper;
 
@@ -36,6 +40,13 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(mapper::toMaterialResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomMaterialResponse> getLearnerMaterials(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        return getMaterials(offeringId);
     }
 
     @Override
@@ -78,6 +89,13 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomAnnouncementResponse> getLearnerAnnouncements(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        return getAnnouncements(offeringId);
+    }
+
+    @Override
     public ClassroomAnnouncementResponse createAnnouncement(Long offeringId, CreateAnnouncementRequest request, String creatorEmail) {
         User creator = accessHelper.requireUser(creatorEmail);
         assertContentAccess(creator);
@@ -105,6 +123,13 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         return syllabusItemRepository.findByClassroomOfferingIdOrderByDisplayOrderAsc(offeringId).stream()
                 .map(mapper::toSyllabusItemResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassroomSyllabusItemResponse> getLearnerSyllabus(Long offeringId, String learnerEmail) {
+        assertLearnerPortalAccess(offeringId, learnerEmail);
+        return getSyllabus(offeringId);
     }
 
     @Override
@@ -153,5 +178,12 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         if (!accessHelper.canManageClassroom(user) && !accessHelper.canTeach(user)) {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung này.");
         }
+    }
+
+    private void assertLearnerPortalAccess(Long offeringId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+                .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
+                .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
     }
 }

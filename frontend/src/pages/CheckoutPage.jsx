@@ -64,7 +64,6 @@ const CheckoutPage = () => {
 
     const orderCode = returnParams.get('orderCode');
     const status = String(returnParams.get('status') || '').toUpperCase();
-    const code = returnParams.get('code');
     const cancelled = isTruthyReturnValue(returnParams.get('cancel')) || status === 'CANCELLED';
 
     if (cancelled) {
@@ -80,15 +79,12 @@ const CheckoutPage = () => {
     }
 
     if (!orderCode) {
-      const paidByQuery = code === '00' && status === 'PAID';
       setPaymentReturn({
         checked: true,
         loading: false,
-        status: paidByQuery ? 'PAID' : 'UNKNOWN',
-        paid: paidByQuery,
-        message: paidByQuery
-          ? 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.'
-          : 'Chưa thể xác định trạng thái thanh toán. Vui lòng kiểm tra lại đơn hàng.',
+        status: 'UNKNOWN',
+        paid: false,
+        message: 'Chưa thể xác minh đơn thanh toán vì thiếu mã đơn hàng. Giỏ hàng vẫn được giữ để bạn có thể kiểm tra lại.',
         orderCode: null,
       });
       return;

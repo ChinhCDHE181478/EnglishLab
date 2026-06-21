@@ -173,7 +173,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             assessment.setAiEvaluationMode(AiEvaluationMode.RUBRIC_FEEDBACK);
             assessment.setInstructions("Use at least five target words from the module in IELTS-style sentences. Do not copy examples from the lesson.");
             assessment.setPassingScore(BigDecimal.valueOf(7.0));
-            assessment.setMaxScore(BigDecimal.TEN);
+            assessment.setMaxScore(BigDecimal.valueOf(9.0));
             assessment.setTimeLimitMinutes(20);
             assessment.setDisplayOrder(module.getDisplayOrder());
             assessment.setActive(true);

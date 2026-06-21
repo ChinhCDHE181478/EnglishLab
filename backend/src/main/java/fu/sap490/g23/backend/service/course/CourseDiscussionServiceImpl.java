@@ -20,6 +20,8 @@ import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyRepository;
@@ -28,6 +30,7 @@ import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyVoteReposito
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +62,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final CourseDiscussionReplyVoteRepository voteRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final PackageEnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -91,6 +95,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     public CourseDiscussionThreadResponse createThread(Long courseId, CourseDiscussionThreadRequest request, String email) {
         OnlineCourse course = findPublicCourse(courseId);
         User author = findUser(email);
+        ensureDiscussionAccess(author, course);
         String title = clean(request.getTitle());
         String content = clean(request.getContent());
         CourseDiscussionStatus status = shouldModerate(title + " " + content)
@@ -116,6 +121,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         }
 
         User author = findUser(email);
+        ensureDiscussionAccess(author, thread.getCourse());
         String content = clean(request.getContent());
         CourseDiscussionStatus status = shouldModerate(content)
                 ? CourseDiscussionStatus.PENDING_REVIEW
@@ -135,6 +141,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     public CourseDiscussionReplyResponse toggleHelpful(Long replyId, String email) {
         CourseDiscussionReply reply = findReply(replyId);
         User user = findUser(email);
+        ensureDiscussionAccess(user, reply.getThread().getCourse());
         if (reply.getAuthor().getId().equals(user.getId())) {
             throw new RuntimeException("Bạn không thể tự đánh dấu câu trả lời của mình là hữu ích.");
         }
@@ -156,6 +163,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             throw new RuntimeException("Thảo luận này hiện không khả dụng.");
         }
         User user = findUser(email);
+        ensureDiscussionAccess(user, thread.getCourse());
         toggleReaction(CourseDiscussionReactionTarget.THREAD, threadId, request.getType(), user);
         return toThreadResponse(thread, user);
     }
@@ -167,6 +175,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             throw new RuntimeException("Câu trả lời này hiện không khả dụng.");
         }
         User user = findUser(email);
+        ensureDiscussionAccess(user, reply.getThread().getCourse());
         toggleReaction(CourseDiscussionReactionTarget.REPLY, replyId, request.getType(), user);
         return toReplyResponse(reply, user);
     }
@@ -195,6 +204,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     public CourseDiscussionThreadResponse markResolved(Long threadId, Long replyId, String email) {
         CourseDiscussionThread thread = findThread(threadId);
         User user = findUser(email);
+        ensureDiscussionAccess(user, thread.getCourse());
         if (!canModerate(user) && !thread.getAuthor().getId().equals(user.getId())) {
             throw new RuntimeException("Bạn chỉ có thể đánh dấu đã giải quyết cho thảo luận của mình.");
         }
@@ -220,12 +230,14 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
         if (targetType == CourseDiscussionReportTarget.THREAD) {
             CourseDiscussionThread thread = findThread(targetId);
+            ensureDiscussionAccess(reporter, thread.getCourse());
             thread.setReportedCount(thread.getReportedCount() + 1);
             if (thread.getReportedCount() >= 3 && thread.getStatus() != CourseDiscussionStatus.RESOLVED) {
                 thread.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
             }
         } else {
             CourseDiscussionReply reply = findReply(targetId);
+            ensureDiscussionAccess(reporter, reply.getThread().getCourse());
             reply.setReportedCount(reply.getReportedCount() + 1);
             if (reply.getReportedCount() >= 3) {
                 reply.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
@@ -275,6 +287,17 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     private boolean canModerate(User user) {
         return user.hasAnyRole(java.util.EnumSet.of(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONTENT_MANAGER));
+    }
+
+    private void ensureDiscussionAccess(User user, OnlineCourse course) {
+        if (canModerate(user)) {
+            return;
+        }
+        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(user, course.getLearningPackage())
+                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi tham gia thảo luận."));
+        if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này.");
+        }
     }
 
     private String clean(String value) {

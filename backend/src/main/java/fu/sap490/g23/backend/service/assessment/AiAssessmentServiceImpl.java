@@ -59,6 +59,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final AssessmentAudioStorageService assessmentAudioStorageService;
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
+    private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -132,9 +133,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     private void ensureEnrolled(User student, OnlineCourse course) {
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Student is not enrolled in this online course"));
+                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
         if (enrollment.getStatus() != null && enrollment.getStatus().name().equals("CANCELLED")) {
-            throw new RuntimeException("Enrollment is not active");
+            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.");
         }
     }
 
@@ -171,14 +172,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             return SubmissionStatus.AI_EVALUATED;
         }
 
-        BigDecimal passingThreshold = assessment.getPassingScore();
-        if (assessment.getMaxScore() != null) {
-            BigDecimal minimumCourseraThreshold = assessment.getMaxScore().multiply(BigDecimal.valueOf(0.7));
-            passingThreshold = passingThreshold == null
-                    ? minimumCourseraThreshold
-                    : passingThreshold.max(minimumCourseraThreshold);
-        }
-
+        BigDecimal passingThreshold = passingThresholdResolver.resolve(assessment);
         if (passingThreshold == null) {
             return SubmissionStatus.AI_EVALUATED;
         }
@@ -639,6 +633,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Evaluate only with the provided rubric criteria. Do not invent extra criteria.
                 - estimatedScore should be numeric only when the assessment mode supports scoring and there is enough evidence; otherwise use null.
                 - estimatedBand should be provided only when the rubric or course uses band-based evaluation and the evidence is sufficient; otherwise use an empty string.
+                - When scoring on the IELTS band scale, use only whole or half bands (for example 6.0, 6.5, 7.0). Never use other decimal increments such as 6.3 or 7.2.
                 - Give specific evidence from the student's submission, not generic advice.
                 - Suggestions and recommendedReview must connect back to the course/module learning path.
                 - correctedExamples must explain errors clearly for English learners.
@@ -759,7 +754,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 assessment.getSkill(),
                 assessment.getAiEvaluationMode(),
                 safe(assessment.getPassingScore()),
-                safe(assessment.getMaxScore()),
+                safe(IeltsBandScale.resolveScoreCap(assessment)),
                 safe(assessment.getInstructions()),
                 safe(assessment.getObjectiveAnswerKey()),
                 safe(speakingAudioState),
@@ -815,9 +810,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         if (score.compareTo(BigDecimal.ZERO) < 0) {
             score = BigDecimal.ZERO;
         }
-        if (assessment.getMaxScore() != null && score.compareTo(assessment.getMaxScore()) > 0) {
-            score = assessment.getMaxScore();
-        }
+        score = IeltsBandScale.clampBandScore(score, assessment);
         return score;
     }
 
@@ -1099,9 +1092,13 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             return aiResult;
         }
 
-        BigDecimal cap = assessment.getMaxScore() == null
+        BigDecimal scoreCap = IeltsBandScale.resolveScoreCap(assessment);
+        BigDecimal cap = scoreCap == null
                 ? BigDecimal.valueOf(3)
-                : assessment.getMaxScore().multiply(VOCABULARY_OFF_TOPIC_CAP_RATIO);
+                : scoreCap.multiply(VOCABULARY_OFF_TOPIC_CAP_RATIO);
+        if (IeltsBandScale.usesBandScale(assessment)) {
+            cap = IeltsBandScale.normalizeBand(cap);
+        }
         if (aiResult.getEstimatedScore() == null || aiResult.getEstimatedScore().compareTo(cap) > 0) {
             aiResult.setEstimatedScore(cap);
         }
@@ -1250,10 +1247,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .skill(assessment.getSkill())
                 .aiEvaluationMode(assessment.getAiEvaluationMode())
                 .instructions(extractDisplayInstructions(rawInstructions))
-                .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
+                .objectiveAnswerKey(null)
                 .uiConfigJson(extractUiConfigJson(rawInstructions))
                 .passingScore(assessment.getPassingScore())
-                .maxScore(assessment.getMaxScore())
+                .maxScore(IeltsBandScale.resolveScoreCap(assessment))
+                .resolvedPassingThreshold(passingThresholdResolver.resolve(assessment))
+                .passingThresholdLabel(passingThresholdResolver.buildDisplayLabel(assessment))
                 .timeLimitMinutes(assessment.getTimeLimitMinutes())
                 .displayOrder(assessment.getDisplayOrder())
                 .active(assessment.isActive())

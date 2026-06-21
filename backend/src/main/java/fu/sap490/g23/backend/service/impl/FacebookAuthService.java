@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.enums.AuthTokenType;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.security.JwtService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class FacebookAuthService {
     private static final String FACEBOOK_ME_URL = "https://graph.facebook.com/me";
 
     private final UserRepository userRepository;
+    private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
@@ -117,6 +119,7 @@ public class FacebookAuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
+                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, "IELTS_PLACEMENT_MOCK_1"))
                 .build();
     }
 

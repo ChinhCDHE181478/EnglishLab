@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, ChevronDown
 import { Link, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import { IELTS_MAX_BAND, normalizeAssessmentMaxScore, normalizeAssessmentPassingScore } from '../../utils/ieltsBandScale';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -36,7 +37,7 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1
   instructions: '',
   objectiveAnswerKey: '',
   passingScore: '',
-  maxScore: '10',
+  maxScore: '9',
   timeLimitMinutes: '',
   displayOrder,
   active: true,
@@ -62,7 +63,7 @@ const normalizeAssessmentStructure = (items, modules) => {
       instructions: assessment.instructions || '',
       objectiveAnswerKey: assessment.objectiveAnswerKey || '',
       passingScore: normalizeScalar(assessment.passingScore),
-      maxScore: normalizeScalar(assessment.maxScore, '10'),
+      maxScore: normalizeScalar(assessment.maxScore, '9'),
       timeLimitMinutes: normalizeScalar(assessment.timeLimitMinutes),
       displayOrder: assessment.displayOrder ?? index + 1,
       active: assessment.active !== false,
@@ -86,8 +87,8 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
     aiEvaluationMode: assessment.aiEvaluationMode || 'EXPLAIN_ONLY',
     instructions: assessment.instructions?.trim() || '',
     objectiveAnswerKey: assessment.objectiveAnswerKey?.trim() || '',
-    passingScore: assessment.passingScore === '' ? null : Number(assessment.passingScore),
-    maxScore: assessment.maxScore === '' ? null : Number(assessment.maxScore),
+    passingScore: normalizeAssessmentPassingScore(assessment),
+    maxScore: normalizeAssessmentMaxScore(assessment),
     timeLimitMinutes: assessment.timeLimitMinutes === '' ? null : Number(assessment.timeLimitMinutes),
     displayOrder: Number(assessment.displayOrder || index + 1),
     active: assessment.active !== false,
@@ -830,7 +831,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         <SelectField label="AI mode" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS)} value={assessment.aiEvaluationMode} />
         <SelectField label="Rubric" onChange={(event) => onFieldChange('rubricId', event.target.value)} options={rubricOptions} value={assessment.rubricId || ''} />
         <TextField label="Passing score" onChange={(event) => onFieldChange('passingScore', event.target.value)} value={assessment.passingScore} />
-        <TextField label="Max score" onChange={(event) => onFieldChange('maxScore', event.target.value)} value={assessment.maxScore} />
+        <TextField label={`Max score (IELTS band tối đa ${IELTS_MAX_BAND})`} onChange={(event) => onFieldChange('maxScore', event.target.value)} value={assessment.maxScore} />
         <TextField label="Time limit (minutes)" onChange={(event) => onFieldChange('timeLimitMinutes', event.target.value)} value={assessment.timeLimitMinutes} />
         <TextField label="Display order" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} />
       </div>

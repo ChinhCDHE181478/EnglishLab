@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   BookOpen,
   Calendar,
@@ -47,9 +47,18 @@ import {
   formatDeliveryMode,
   formatGradebookFinalResult,
   formatHomeworkStatus,
+  getHomeworkMaxScore,
+  getSubmissionFeedback,
   isGradebookPassed,
   formatSessionStatus,
+  downloadClassroomMaterial,
 } from '../../utils/classroomHelpers';
+import {
+  getHomeworkFeedbackLabel,
+  getHomeworkGradingHint,
+  getHomeworkSkillLabel,
+  isAiGradedHomework,
+} from '../../utils/homeworkGradingConfig';
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
@@ -63,6 +72,7 @@ const detailTabs = [
 
 export default function MyClassroomDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [classroom, setClassroom] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -107,7 +117,15 @@ export default function MyClassroomDetailPage() {
       setAnnouncements(announcementsData);
       setSyllabus(syllabusData);
     } catch (err) {
-      setError(getClassroomErrorMessage(err, 'Không thể tải dữ liệu lớp học.'));
+      const message = getClassroomErrorMessage(err, 'Không thể tải dữ liệu lớp học.');
+      if (/không có quyền|không thuộc|chưa đăng ký|not enrolled|access/i.test(message)) {
+        navigate('/my-classrooms', {
+          replace: true,
+          state: { accessMessage: 'Bạn không còn quyền truy cập lớp này. Hãy đăng ký lại nếu muốn tham gia.' },
+        });
+        return;
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -156,6 +174,13 @@ export default function MyClassroomDetailPage() {
   const pendingHomework = useMemo(() =>
     homework.filter((h) => !h.mySubmission).sort((a, b) => new Date(a.deadline) - new Date(b.deadline)),
     [homework]);
+
+  const canResubmitHomework = (item) => {
+    if (!item || item.status !== 'OPEN' || item.overdue) return false;
+    if (!item.mySubmission) return true;
+    if (item.mySubmission.status === 'SUBMITTED') return true;
+    return Boolean(item.allowResubmission);
+  };
 
   const renderTabContent = () => {
     if (activeTab === 'overview') {
@@ -489,6 +514,7 @@ export default function MyClassroomDetailPage() {
             const hasSubmission = !!item.mySubmission;
             const isGraded = hasSubmission && item.mySubmission.score != null;
             const isOverdue = item.overdue && !hasSubmission;
+            const canSubmit = canResubmitHomework(item);
 
             return (
               <article
@@ -505,6 +531,14 @@ export default function MyClassroomDetailPage() {
                 <h3 className="mt-4 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">
                   {item.title}
                 </h3>
+                {isAiGradedHomework(item) ? (
+                  <p className="mt-1 text-[11px] font-bold text-purple-700">
+                    AI chấm · {getHomeworkSkillLabel(item.skill)}
+                  </p>
+                ) : null}
+                {getHomeworkGradingHint(item) && !hasSubmission ? (
+                  <p className="mt-2 text-xs leading-5 text-purple-800">{getHomeworkGradingHint(item)}</p>
+                ) : null}
                 <p className="mt-2 text-sm text-[#584140] line-clamp-3">
                   {item.instruction || 'Không có hướng dẫn chi tiết.'}
                 </p>
@@ -521,10 +555,10 @@ export default function MyClassroomDetailPage() {
                         <Award className="h-4 w-4" />
                         Kết quả chấm điểm
                       </span>
-                      <strong className="text-emerald-700 text-sm font-extrabold">{item.mySubmission.score} / 10</strong>
+                      <strong className="text-emerald-700 text-sm font-extrabold">{item.mySubmission.score} / {getHomeworkMaxScore(item)}</strong>
                     </div>
-                    {item.mySubmission.feedback && (
-                      <p className="text-xs text-[#584140] italic">Nhận xét: "{item.mySubmission.feedback}"</p>
+                    {getSubmissionFeedback(item.mySubmission) && (
+                      <p className="text-xs text-[#584140] italic">{getHomeworkFeedbackLabel(item)}: "{getSubmissionFeedback(item.mySubmission)}"</p>
                     )}
                   </div>
                 )}
@@ -533,19 +567,19 @@ export default function MyClassroomDetailPage() {
                   <div className="mt-4 rounded-xl bg-blue-50 border border-blue-100 p-4">
                     <p className="text-xs font-bold text-blue-800 uppercase tracking-wider flex items-center gap-1">
                       <CheckCircle2 className="h-4 w-4" />
-                      Đã nộp bài làm
+                      {isAiGradedHomework(item) ? 'Đã nộp — đang chờ AI chấm' : 'Đã nộp bài làm'}
                     </p>
                     <p className="mt-1 text-xs text-[#584140] line-clamp-2">Nội dung: "{item.mySubmission.textAnswer}"</p>
                   </div>
                 )}
 
-                {!hasSubmission && (
+                {canSubmit && (
                   <div className="mt-6 space-y-3">
                     <textarea
                       className="min-h-[100px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014] focus:bg-white"
                       onChange={(e) => setSubmitAnswers((curr) => ({ ...curr, [item.id]: e.target.value }))}
                       placeholder="Nhập bài làm của bạn..."
-                      value={submitAnswers[item.id] || ''}
+                      value={submitAnswers[item.id] ?? item.mySubmission?.textAnswer ?? ''}
                     />
                     <button
                       className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] disabled:opacity-60"
@@ -553,7 +587,7 @@ export default function MyClassroomDetailPage() {
                       onClick={() => handleSubmitHomework(item.id)}
                       type="button"
                     >
-                      {submittingId === item.id ? 'Đang nộp...' : 'Nộp bài tập'}
+                      {submittingId === item.id ? 'Đang nộp...' : hasSubmission ? 'Cập nhật bài nộp' : 'Nộp bài tập'}
                     </button>
                   </div>
                 )}
@@ -751,15 +785,14 @@ export default function MyClassroomDetailPage() {
 
               {material.fileUrl && (
                 <div className="mt-4 pt-4 border-t border-gray-50">
-                  <a
+                  <button
                     className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#730014] hover:underline"
-                    href={material.fileUrl}
-                    rel="noreferrer"
-                    target="_blank"
+                    onClick={() => downloadClassroomMaterial(material)}
+                    type="button"
                   >
                     <Download className="h-4 w-4" />
-                    Tải tài liệu học tập
-                  </a>
+                    Tải về máy
+                  </button>
                 </div>
               )}
             </article>

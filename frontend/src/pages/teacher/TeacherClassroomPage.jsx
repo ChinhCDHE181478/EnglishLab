@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
@@ -17,10 +17,7 @@ import {
   AlertCircle,
   HelpCircle,
   ChevronRight,
-  Send,
   User,
-  Settings,
-  Download,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -34,7 +31,6 @@ import {
   StatusBadge,
   ClassroomTypeBadge,
 } from '../../components/classroom/ClassroomUi';
-import BrandedSelect from '../../components/ui/BrandedSelect';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
@@ -44,6 +40,10 @@ import {
   formatSessionStatus,
   isGradebookPassed,
 } from '../../utils/classroomHelpers';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION_CARD_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
+import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
+import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
+import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
@@ -52,18 +52,16 @@ const teacherTabs = [
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
-];
-
-const requestTypeOptions = [
-  { label: 'Đổi lịch buổi học', value: 'RESCHEDULE_SESSION' },
-  { label: 'Đổi phòng học', value: 'CHANGE_ROOM' },
-  { label: 'Đổi giáo viên', value: 'CHANGE_TEACHER' },
-  { label: 'Hủy buổi học', value: 'CANCEL_SESSION' },
+  { id: 'change-requests', label: 'Yêu cầu thay đổi' },
 ];
 
 export default function TeacherClassroomPage() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState('sessions');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(() => (
+    teacherTabs.some((tab) => tab.id === initialTab) ? initialTab : 'sessions'
+  ));
   const [classroom, setClassroom] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [homework, setHomework] = useState([]);
@@ -73,7 +71,6 @@ export default function TeacherClassroomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
-  const [requestForm, setRequestForm] = useState({ type: 'RESCHEDULE_SESSION', reason: '', sessionId: '' });
 
   const loadData = async () => {
     setLoading(true);
@@ -104,6 +101,34 @@ export default function TeacherClassroomPage() {
     loadData();
   }, [id]);
 
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && teacherTabs.some((item) => item.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'sessions') {
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    const nextParams = new URLSearchParams();
+    nextParams.set('tab', tabId);
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const openHomeworkTab = (action) => {
+    setActiveTab('homework');
+    const nextParams = new URLSearchParams();
+    nextParams.set('tab', 'homework');
+    if (action === 'create') {
+      nextParams.set('action', 'create');
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const handlePublishGradebook = async () => {
     setActionMessage('');
     try {
@@ -112,22 +137,6 @@ export default function TeacherClassroomPage() {
       setActionMessage('Đã công bố bảng điểm thành công.');
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố bảng điểm.'));
-    }
-  };
-
-  const handleCreateRequest = async () => {
-    setActionMessage('');
-    try {
-      await classroomApi.createChangeRequest({
-        classroomOfferingId: Number(id),
-        requestType: requestForm.type,
-        reason: requestForm.reason,
-        targetSessionId: requestForm.sessionId ? Number(requestForm.sessionId) : null,
-      });
-      setActionMessage('Đã gửi yêu cầu thay đổi thành công.');
-      setRequestForm({ type: 'RESCHEDULE_SESSION', reason: '', sessionId: '' });
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể gửi yêu cầu.'));
     }
   };
 
@@ -159,10 +168,19 @@ export default function TeacherClassroomPage() {
   const teacherStats = useMemo(() => ({
     enrolled: gradebook.length,
     atRisk: gradebook.filter((e) => e.attendancePercent != null && e.attendancePercent < 80).length,
-    pendingGrading: homework.filter((h) => h.submissionCount > 0 && !h.gradedCount).length,
+    pendingGrading: homework.reduce((sum, item) => sum + (item.pendingGradingCount || 0), 0),
     completed: pastSessions.length,
     upcoming: upcomingSessions.length,
   }), [gradebook, homework, pastSessions, upcomingSessions]);
+
+  const renderChangeRequestForm = () => (
+    <TeacherChangeRequestForm
+      classroom={classroom}
+      classroomId={id}
+      onMessage={setActionMessage}
+      sessions={sessions}
+    />
+  );
 
   const renderContent = () => {
     if (activeTab === 'sessions') {
@@ -373,37 +391,21 @@ export default function TeacherClassroomPage() {
     }
 
     if (activeTab === 'homework') {
-      if (!homework.length) {
-        return (
-          <ClassroomEmptyState
-            description="Chưa có bài tập nào được giao cho lớp học này."
-            title="Chưa có bài tập"
-          />
-        );
-      }
       return (
-        <div className="grid gap-6 md:grid-cols-2">
-          {homework.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-xl border border-[#e5e7eb] bg-white p-5 flex flex-col justify-between hover:border-[#d0c4c3] transition"
-            >
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">Bài tập viết</span>
-                  <StatusBadge status="ACTIVE" />
-                </div>
-                <h3 className="mt-4 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{item.title}</h3>
-                <p className="mt-2 text-sm text-[#584140] line-clamp-3">{item.instruction || 'Không có hướng dẫn chi tiết.'}</p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between text-xs text-[#8b706e]">
-                <span className="flex items-center gap-1"><Clock className="h-4 w-4 text-[#730014]" /> Hạn nộp: {formatClassroomDateTime(item.deadline)}</span>
-                <span className="font-bold text-gray-400">ID: #{item.id}</span>
-              </div>
-            </article>
-          ))}
-        </div>
+        <TeacherHomeworkSection
+          classroomId={id}
+          homework={homework}
+          initialOpenCreate={searchParams.get('action') === 'create'}
+          onGradebookChange={setGradebook}
+          onHomeworkChange={setHomework}
+          onCreateFormOpened={() => {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('action');
+            setSearchParams(nextParams, { replace: true });
+          }}
+          onMessage={setActionMessage}
+          sessions={sessions}
+        />
       );
     }
 
@@ -473,98 +475,73 @@ export default function TeacherClassroomPage() {
     }
 
     if (activeTab === 'materials') {
-      if (!materials.length) {
+      return (
+        <TeacherMaterialsSection
+          classroomId={id}
+          materials={materials}
+          onMaterialsChange={setMaterials}
+          onMessage={setActionMessage}
+          sessions={sessions}
+        />
+      );
+    }
+
+    if (activeTab === 'change-requests') {
+      return renderChangeRequestForm();
+    }
+
+    if (activeTab === 'announcements') {
+      if (!announcements.length) {
         return (
           <ClassroomEmptyState
-            description="Chưa có tài liệu nào được tải lên cho lớp học này."
-            title="Chưa có tài liệu"
+            description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
+            title="Chưa có thông báo"
           />
         );
       }
       return (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {materials.map((material) => (
+        <div className="space-y-4">
+          {announcements.map((announcement) => (
             <article
-              key={material.id}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm flex flex-col justify-between hover:border-[#dfbfbd]/30 transition"
+              key={announcement.id}
+              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 hover:border-[#dfbfbd]/30 transition"
             >
-              <div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#730014] mb-4">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
-                  {material.title}
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] flex items-center gap-2">
+                  <Bell className="h-4.5 w-4.5 text-[#730014]" />
+                  {announcement.title}
                 </h4>
-                {material.description ? (
-                  <p className="mt-2 text-xs text-[#584140] line-clamp-2">{material.description}</p>
-                ) : null}
+                <span className="text-[10px] font-bold text-gray-400">
+                  {formatClassroomDateTime(announcement.createdAt)}
+                </span>
               </div>
-
-              {material.fileUrl && (
-                <div className="mt-4 pt-4 border-t border-gray-50">
-                  <a
-                    className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#730014] hover:underline"
-                    href={material.fileUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <Download className="h-4 w-4" />
-                    Tải tài liệu
-                  </a>
-                </div>
-              )}
+              <p className="text-sm leading-7 text-[#584140] whitespace-pre-wrap">
+                {announcement.content || announcement.body}
+              </p>
             </article>
           ))}
         </div>
       );
     }
 
-    // Announcements Tab
-    if (!announcements.length) {
-      return (
-        <ClassroomEmptyState
-          description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
-          title="Chưa có thông báo"
-        />
-      );
-    }
-    return (
-      <div className="space-y-4">
-        {announcements.map((announcement) => (
-          <article
-            key={announcement.id}
-            className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 hover:border-[#dfbfbd]/30 transition"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] flex items-center gap-2">
-                <Bell className="h-4.5 w-4.5 text-[#730014]" />
-                {announcement.title}
-              </h4>
-              <span className="text-[10px] font-bold text-gray-400">
-                {formatClassroomDateTime(announcement.createdAt)}
-              </span>
-            </div>
-            <p className="text-sm leading-7 text-[#584140] whitespace-pre-wrap">
-              {announcement.content || announcement.body}
-            </p>
-          </article>
-        ))}
-      </div>
-    );
+    return null;
   };
 
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+    <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
-      <Header />
+      <div className={PAGE_HEADER_CLASS}>
+        <Header />
+      </div>
+      <div className={PAGE_BODY_CLASS}>
       <motion.main
-        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        className={PAGE_MAIN_STACK_CLASS}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: 'easeOut' }}
       >
         {/* Class Header */}
-        <section className="border-b border-[#ebebeb] bg-white pb-6 pt-2">
+        <section className={PAGE_SECTION_CARD_CLASS}>
           <div className="flex flex-col gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -575,17 +552,26 @@ export default function TeacherClassroomPage() {
                 {classroom && <ClassroomTypeBadge mode={classroom.deliveryMode} />}
                 {classroom && <StatusBadge status={classroom.classroomStatus} />}
               </div>
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-4">
                 <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
                   {classroom?.title || 'Đang tải thông tin lớp...'}
                 </h1>
                 {classroom && (
-                  <Link
-                    className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
-                    to="/teacher/schedule"
-                  >
-                    <Calendar className="h-4 w-4" /> Lịch dạy
-                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#4b0009] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95"
+                      onClick={() => openHomeworkTab('create')}
+                      type="button"
+                    >
+                      <Plus className="h-4 w-4" /> Giao bài tập
+                    </button>
+                    <Link
+                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
+                      to="/teacher/schedule"
+                    >
+                      <Calendar className="h-4 w-4" /> Lịch dạy
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
@@ -605,12 +591,18 @@ export default function TeacherClassroomPage() {
                   value={teacherStats.atRisk}
                   tone={teacherStats.atRisk > 0 ? 'amber' : 'gray'}
                 />
-                <HeaderStat
-                  icon={FileText}
-                  label="Bài chờ chấm"
-                  value={teacherStats.pendingGrading}
-                  tone={teacherStats.pendingGrading > 0 ? 'blue' : 'gray'}
-                />
+                <button
+                  className="text-left transition hover:opacity-90"
+                  onClick={() => openHomeworkTab()}
+                  type="button"
+                >
+                  <HeaderStat
+                    icon={FileText}
+                    label="Bài chờ chấm"
+                    value={teacherStats.pendingGrading}
+                    tone={teacherStats.pendingGrading > 0 ? 'blue' : 'gray'}
+                  />
+                </button>
                 <HeaderStat
                   icon={CheckCircle2}
                   label="Buổi đã học"
@@ -634,7 +626,7 @@ export default function TeacherClassroomPage() {
           <>
             {/* Tab Bar */}
             <div className="space-y-6">
-              <ClassroomTabBar activeTab={activeTab} onChange={setActiveTab} tabs={teacherTabs} />
+              <ClassroomTabBar activeTab={activeTab} onChange={handleTabChange} tabs={teacherTabs} />
 
               {/* Action Notification */}
               {actionMessage ? (
@@ -657,69 +649,10 @@ export default function TeacherClassroomPage() {
                 {renderContent()}
               </section>
             </div>
-
-            {/* Change Request Section */}
-            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-[#730014] flex-shrink-0">
-                  <Settings className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Gửi yêu cầu thay đổi</h2>
-                  <p className="mt-1 text-xs text-[#8b706e] leading-5">Đề xuất thay đổi lịch, phòng học, giáo viên thay thế hoặc hủy buổi học. Đề xuất sẽ được gửi tới Training Manager phê duyệt.</p>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2 pt-2">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Loại đề xuất thay đổi</label>
-                  <BrandedSelect
-                    onChange={(event) => setRequestForm((current) => ({ ...current, type: event.target.value }))}
-                    options={requestTypeOptions}
-                    value={requestForm.type}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Buổi học áp dụng (nếu có)</label>
-                  <BrandedSelect
-                    onChange={(event) => setRequestForm((current) => ({ ...current, sessionId: event.target.value }))}
-                    options={[
-                      { label: 'Không chọn (Áp dụng toàn khóa)', value: '' },
-                      ...sessions.map((session) => ({
-                        label: `Buổi #${session.id}: ${formatClassroomDate(session.sessionDate)} (${formatClassroomTime(session.startTime)})`,
-                        value: String(session.id),
-                      })),
-                    ]}
-                    placeholder="Chọn buổi học áp dụng"
-                    value={requestForm.sessionId}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Lý do chi tiết & Đề xuất cụ thể</label>
-                <textarea
-                  className="min-h-[120px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white focus:ring-2 focus:ring-[#730014]/5"
-                  onChange={(event) => setRequestForm((current) => ({ ...current, reason: event.target.value }))}
-                  placeholder="Vui lòng nhập lý do thay đổi chi tiết và đề xuất ngày/giờ/phòng mới để Training Manager tiện duyệt..."
-                  value={requestForm.reason}
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] hover:shadow active:scale-95"
-                  onClick={handleCreateRequest}
-                  type="button"
-                >
-                  <Send className="h-4 w-4" />
-                  Gửi yêu cầu phê duyệt
-                </button>
-              </div>
-            </section>
           </>
         ) : null}
       </motion.main>
+      </div>
       <CourseFooter />
     </div>
   );

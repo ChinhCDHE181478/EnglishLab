@@ -68,6 +68,11 @@ function AppRoutes() {
       <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
       <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
 
+      {/* Placement must be available before the learner completes their profile. */}
+      <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['LEARNER']} />}>
+        <Route path="/placement-test" element={<PlacementTestPage />} />
+      </Route>
+
       {/* Student-only routes */}
       <Route element={<ProtectedRoute allowedRoles={['LEARNER']} />}>
         <Route path="/cart" element={<CartPage />} />
@@ -78,12 +83,11 @@ function AppRoutes() {
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />
         <Route path="/my-homework" element={<MyHomeworkPage />} />
-        <Route path="/placement-test" element={<PlacementTestPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
       </Route>
 
       {/* Shared authenticated routes */}
-      <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/home" element={<Home />} />
       </Route>
@@ -107,7 +111,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route path="/manager/classrooms" element={<ManagerClassroomsPage />} />
       </Route>
-      <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/profile" element={<CompleteProfile />} />
       </Route>

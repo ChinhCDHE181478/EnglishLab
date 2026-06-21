@@ -38,6 +38,11 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.registerCourse(courseId, authentication.getName()));
     }
 
+    @GetMapping("/{courseId}/content")
+    public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
+    }
+
     @GetMapping({"/my-enrollments", "/my-courses"})
     public ResponseEntity<List<PackageEnrollmentResponse>> getMyEnrollments(Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));

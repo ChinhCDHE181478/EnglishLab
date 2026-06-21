@@ -8,4 +8,8 @@ import java.util.Optional;
 
 public interface PlacementTestAttemptRepository extends JpaRepository<PlacementTestAttempt, Long> {
     Optional<PlacementTestAttempt> findTopByStudentAndTestCodeOrderBySubmittedAtDesc(User student, String testCode);
+
+    long countByStudentAndTestCode(User student, String testCode);
+
+    boolean existsByStudentAndTestCode(User student, String testCode);
 }

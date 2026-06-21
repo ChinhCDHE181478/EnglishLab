@@ -200,6 +200,20 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async uploadHomeworkAttachment(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post('/api/teacher/classrooms/homework/attachments', formData);
+    return unwrapData(response);
+  },
+
+  async getHomeworkRubrics(skill) {
+    const response = await axiosClient.get('/api/teacher/classrooms/homework/rubrics', {
+      params: skill ? { skill } : {},
+    });
+    return asList(unwrapData(response));
+  },
+
   async updateHomework(homeworkId, payload) {
     const response = await axiosClient.put(`/api/teacher/classrooms/homework/${homeworkId}`, payload);
     return unwrapData(response);
@@ -213,6 +227,11 @@ export const classroomApi = {
   async gradeHomework(homeworkId, studentId, payload) {
     const response = await axiosClient.post(`/api/teacher/classrooms/homework/${homeworkId}/students/${studentId}/grade`, payload);
     return unwrapData(response);
+  },
+
+  async getHomeworkSubmissions(homeworkId) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/homework/${homeworkId}/submissions`);
+    return asList(unwrapData(response));
   },
 
   async getTeacherGradebook(classroomId) {
@@ -235,6 +254,16 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async createTeacherMaterial(classroomId, payload) {
+    const response = await axiosClient.post(`/api/teacher/classrooms/${classroomId}/materials`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteTeacherMaterial(materialId) {
+    const response = await axiosClient.delete(`/api/teacher/classrooms/materials/${materialId}`);
+    return unwrapData(response);
+  },
+
   async getTeacherAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
@@ -243,6 +272,16 @@ export const classroomApi = {
   async checkTeacherChangeConflict(payload) {
     const response = await axiosClient.post('/api/teacher/classrooms/requests/check-conflict', payload);
     return unwrapData(response);
+  },
+
+  async getAvailableRooms(sessionId, params = {}) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/sessions/${sessionId}/available-rooms`, { params });
+    return asList(unwrapData(response));
+  },
+
+  async getAvailableTeachers(sessionId, params = {}) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/sessions/${sessionId}/available-teachers`, { params });
+    return asList(unwrapData(response));
   },
 
   async createChangeRequest(payload) {

@@ -8,7 +8,9 @@ import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
 import { isAssessmentPassed } from '../utils/selfPacedHelpers';
+import { resolveScoreCap } from '../utils/ieltsBandScale';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -34,11 +36,11 @@ const formatDateTime = (value) => {
   }).format(new Date(value));
 };
 
-const formatScore = (submission, maxScore) => {
+const formatScore = (submission, assessment) => {
   if (!submission?.id) return '-';
   if (submission.aiScore == null || submission.aiScore === '') return 'Đã nộp';
   const score = Number(submission.aiScore);
-  const max = Number(maxScore || 10);
+  const max = resolveScoreCap(assessment) ?? Number(assessment?.maxScore) ?? 9;
   if (!Number.isFinite(score)) return '-';
   return `${Number.isInteger(score) ? score : score.toFixed(1)}/${Number.isInteger(max) ? max : max.toFixed(1)}`;
 };
@@ -93,8 +95,14 @@ const CourseHome = () => {
           (item) => item.courseSlug === normalizedCourse.slug || String(item.courseId) === String(normalizedCourse.id),
         );
 
-        if (hasAccessToken() && !matchedEnrollment) {
-          navigate(`/courses/${normalizedCourse.slug}`, { replace: true, state: { course: normalizedCourse } });
+        if (hasAccessToken() && (!matchedEnrollment || !isActiveOnlineEnrollment(matchedEnrollment))) {
+          navigate(`/courses/${normalizedCourse.slug}`, {
+            replace: true,
+            state: {
+              course: normalizedCourse,
+              accessMessage: 'Bạn cần đăng ký khóa học (hoặc đăng ký lại nếu đã hủy) để vào trang học.',
+            },
+          });
           return;
         }
 
@@ -420,7 +428,7 @@ const CourseHome = () => {
         </div>
         <p className="text-sm font-semibold text-[#1a1c1c]">
           {courseCompleted
-            ? `Bạn đã đậu qua khóa học này! Điểm của bạn là ${progressPercent}%.`
+            ? `Bạn đã hoàn thành ${progressPercent}% nội dung khóa học và đủ điều kiện nhận chứng nhận.`
             : completion?.statusReason || 'Hoàn thành các bài đánh giá để đủ điều kiện nhận chứng nhận.'}
         </p>
       </div>
@@ -472,7 +480,7 @@ const CourseHome = () => {
                   </td>
                   <td className="px-6 py-5">{formatDateTime(assessment.dueAt || assessment.dueDate)}</td>
                   <td className="px-6 py-5">{weight}%</td>
-                  <td className="px-6 py-5">{formatScore(assessment.latestSubmission, assessment.maxScore)}</td>
+                  <td className="px-6 py-5">{formatScore(assessment.latestSubmission, assessment)}</td>
                 </tr>
               );
             }) : (

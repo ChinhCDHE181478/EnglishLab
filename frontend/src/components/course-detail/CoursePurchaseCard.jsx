@@ -49,7 +49,7 @@ const CoursePurchaseCard = ({ course, isAuthenticated, purchasing, onPurchase })
         </Link>
       )}
       <p className="mt-4 text-sm leading-6 text-[#584140]">
-        Hiện tại hệ thống cho phép ghi danh trực tiếp. Khi kết nối PayOS, nút này sẽ chuyển sang quy trình thanh toán chính thức.
+        Khóa học trả phí sẽ được kích hoạt sau khi hệ thống xác nhận thanh toán; khóa miễn phí có thể ghi danh ngay.
       </p>
     </aside>
   );

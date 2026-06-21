@@ -60,6 +60,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         ClassroomOffering offering = offeringRepository.findById(request.getClassroomOfferingId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
         ClassroomSession targetSession = resolveTargetSession(request);
+        validateChangeRequest(request, targetSession);
 
         if (request.getTargetSessionId() != null) {
             changeRequestRepository.findByTargetSessionIdAndRequestTypeAndStatus(
@@ -367,6 +368,45 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             return objectMapper.readValue(json, new TypeReference<>() {});
         } catch (Exception ex) {
             throw new RuntimeException("Dữ liệu newValuesJson không hợp lệ.");
+        }
+    }
+
+    private void validateChangeRequest(CreateChangeRequestRequest request, ClassroomSession session) {
+        if (request.getRequestType() == ClassroomChangeRequestType.CANCEL_SESSION) {
+            throw new RuntimeException("Loại yêu cầu hủy buổi học không còn được hỗ trợ.");
+        }
+
+        Map<String, Object> newValues = parseJsonMap(request.getNewValuesJson());
+        switch (request.getRequestType()) {
+            case RESCHEDULE_SESSION -> {
+                if (session == null) {
+                    throw new RuntimeException("Vui lòng chọn buổi học cần đổi lịch.");
+                }
+                requireNewValue(newValues, "sessionDate", "Vui lòng chọn ngày học mới.");
+                requireNewValue(newValues, "startTime", "Vui lòng chọn khung giờ mới.");
+                requireNewValue(newValues, "endTime", "Vui lòng chọn khung giờ mới.");
+            }
+            case CHANGE_ROOM -> {
+                if (session == null) {
+                    throw new RuntimeException("Vui lòng chọn buổi học cần đổi phòng.");
+                }
+                requireNewValue(newValues, "roomId", "Vui lòng chọn phòng học mới.");
+            }
+            case CHANGE_TEACHER -> {
+                if (session == null) {
+                    throw new RuntimeException("Vui lòng chọn buổi học cần đổi giáo viên.");
+                }
+                requireNewValue(newValues, "teacherId", "Vui lòng chọn giáo viên thay thế.");
+            }
+            default -> {
+            }
+        }
+    }
+
+    private void requireNewValue(Map<String, Object> values, String key, String message) {
+        Object value = values.get(key);
+        if (value == null || String.valueOf(value).isBlank()) {
+            throw new RuntimeException(message);
         }
     }
 }

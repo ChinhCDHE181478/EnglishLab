@@ -126,6 +126,20 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ClassroomOfferingResponse getLearnerOffering(Long id, String learnerEmail) {
+        assertLearnerPortalAccess(id, learnerEmail);
+        return getOffering(id, true);
+    }
+
+    private void assertLearnerPortalAccess(Long offeringId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+                .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
+                .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
+    }
+
+    @Override
     public ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail) {
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertManager(creator);
@@ -495,18 +509,33 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? ClassroomRegistrationStatus.WAITLIST
                 : ClassroomRegistrationStatus.PENDING_CONFIRMATION;
 
-        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
-                .student(learner)
-                .classroomOffering(offering)
-                .packageEnrollment(ensurePackageEnrollment(learner, offering))
-                .registrationStatus(initialStatus)
-                .holdSpot(holdSpot)
-                .tuitionAmountDue(tuitionDue)
-                .tuitionAmountPaid(BigDecimal.ZERO)
-                .tuitionDepositPaid(BigDecimal.ZERO)
-                .tuitionSettlementType(TuitionSettlementType.NONE)
-                .note(request == null ? null : request.getNote())
-                .build();
+        var existingEnrollment = enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId);
+        ClassroomEnrollment enrollment;
+        if (existingEnrollment.isPresent()) {
+            enrollment = existingEnrollment.get();
+            enrollment.setHoldSpot(holdSpot);
+            enrollment.setRegistrationStatus(initialStatus);
+            enrollment.setTuitionAmountDue(tuitionDue);
+            enrollment.setTuitionAmountPaid(BigDecimal.ZERO);
+            enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
+            enrollment.setTuitionSettlementType(TuitionSettlementType.NONE);
+            enrollment.setTuitionSettlementNote(null);
+            enrollment.setNote(request == null ? null : request.getNote());
+            enrollment.setPackageEnrollment(ensurePackageEnrollment(learner, offering));
+        } else {
+            enrollment = ClassroomEnrollment.builder()
+                    .student(learner)
+                    .classroomOffering(offering)
+                    .packageEnrollment(ensurePackageEnrollment(learner, offering))
+                    .registrationStatus(initialStatus)
+                    .holdSpot(holdSpot)
+                    .tuitionAmountDue(tuitionDue)
+                    .tuitionAmountPaid(BigDecimal.ZERO)
+                    .tuitionDepositPaid(BigDecimal.ZERO)
+                    .tuitionSettlementType(TuitionSettlementType.NONE)
+                    .note(request == null ? null : request.getNote())
+                    .build();
+        }
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = enrollmentRepository.save(enrollment);
 

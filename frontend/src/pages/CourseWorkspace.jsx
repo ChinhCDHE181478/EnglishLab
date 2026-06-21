@@ -11,9 +11,9 @@ import WorkspaceRightRail from '../components/course-workspace/WorkspaceRightRai
 import WorkspaceSidebar from '../components/course-workspace/WorkspaceSidebar';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { hasAccessToken } from '../utils/auth';
-import { findFallbackCourse, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
-import { readEnrollments } from '../utils/learnerStore';
-import { isAssessmentPassed } from '../utils/selfPacedHelpers';
+import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
+import { isAssessmentPassed, formatPassingThresholdLabel } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -111,7 +111,7 @@ const CourseWorkspace = () => {
       const lessonIds = lessonItemsForModule.map((item) => item.id);
       const lessonsCompleted = lessonIds.every((lessonId) => completedLessonIds.has(lessonId));
       const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
-      const moduleAssessmentsPassed = moduleAssessments.every(isAssessmentPassed);
+      const moduleAssessmentsPassed = moduleAssessments.every((assessment) => isAssessmentPassed(assessment, course));
       const readyForNextModule = lessonsCompleted && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
 
       progressByModule.set(String(module.id), {
@@ -126,7 +126,7 @@ const CourseWorkspace = () => {
     });
 
     return progressByModule;
-  }, [assessmentsByModule, completedLessonIds, course?.modules]);
+  }, [assessmentsByModule, completedLessonIds, course?.modules, course?.targetBand]);
 
   const lessonItems = useMemo(() => {
     if (!course?.modules?.length) return [];
@@ -198,9 +198,15 @@ const CourseWorkspace = () => {
           return;
         }
         if (previousState && !previousState.moduleAssessmentsPassed) {
+          const previousModuleAssessments = assessmentsByModule.get(String(previousModule.id)) || [];
+          const thresholdLabel = previousModuleAssessments
+            .map((assessment) => formatPassingThresholdLabel(assessment, course))
+            .find(Boolean);
           reasonMap.set(
             String(module.id),
-            'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
+            thresholdLabel
+              ? `Bài test cuối mô-đun trước chưa đạt yêu cầu (${thresholdLabel}). Hãy làm lại bài test để mở mô-đun tiếp theo.`
+              : 'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
           );
           return;
         }
@@ -218,7 +224,7 @@ const CourseWorkspace = () => {
     });
 
     return reasonMap;
-  }, [completedLessonIds, course?.modules, moduleProgress]);
+  }, [assessmentsByModule, completedLessonIds, course, moduleProgress]);
 
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
@@ -405,16 +411,24 @@ const CourseWorkspace = () => {
         if (!active) return;
 
         const normalizedCourse = normalizeCourse({ ...courseResponse, registered: true });
-        const localStoredEnrollments = readEnrollments().map(normalizeEnrollment);
-        const matchedEnrollment = [...myCourses.map(normalizeEnrollment), ...localStoredEnrollments]
+        const matchedEnrollment = myCourses
+          .map(normalizeEnrollment)
           .find((item) => item.courseSlug === normalizedCourse.slug || String(item.courseId) === String(normalizedCourse.id));
 
-        if (!matchedEnrollment) {
-          navigate(`/courses/${normalizedCourse.slug}`, { replace: true, state: { course: normalizedCourse } });
+        if (!matchedEnrollment || !isActiveOnlineEnrollment(matchedEnrollment)) {
+          navigate(`/courses/${normalizedCourse.slug}`, {
+            replace: true,
+            state: {
+              course: normalizedCourse,
+              accessMessage: 'Bạn cần đăng ký khóa học (hoặc đăng ký lại nếu đã hủy) để vào không gian học.',
+            },
+          });
           return;
         }
 
-        setCourse(normalizedCourse);
+        const enrolledCourseResponse = await courseApi.getEnrolledCourseContent(normalizedCourse.id);
+        if (!active) return;
+        setCourse(normalizeCourse({ ...enrolledCourseResponse, registered: true }));
         applyEnrollment(matchedEnrollment);
         try {
           const items = await courseApi.getCourseAssessments(normalizedCourse.id);
@@ -431,40 +445,7 @@ const CourseWorkspace = () => {
       } catch {
         if (!active) return;
         setAssessmentsLoaded(true);
-        const stateCourse = location.state?.course ? normalizeCourse(location.state.course) : null;
-        const stateEnrollment = location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null;
-        const localEnrollment = readEnrollments()
-          .map(normalizeEnrollment)
-          .find((item) => item.courseSlug === slugOrId || String(item.courseId) === String(slugOrId));
-
-        if (stateCourse?.registered) {
-          setCourse(stateCourse);
-          applyEnrollment(
-            stateEnrollment
-              ?? normalizeEnrollment({
-                courseId: stateCourse.id,
-                courseSlug: stateCourse.slug,
-                courseTitle: stateCourse.title,
-                thumbnailUrl: stateCourse.thumbnailUrl,
-                progressPercent: stateCourse.progressPercent ?? 0,
-              }),
-          );
-          return;
-        }
-
-        const fallback = findFallbackCourse(slugOrId);
-        if (fallback && (location.state?.course?.registered || localEnrollment)) {
-          setCourse(normalizeCourse({ ...fallback, registered: true }));
-          applyEnrollment(localEnrollment || normalizeEnrollment({
-            courseId: fallback.id,
-            courseSlug: fallback.slug,
-            courseTitle: fallback.title,
-            thumbnailUrl: fallback.thumbnailUrl,
-            progressPercent: 68,
-          }));
-        } else {
-          setError('Không mở được không gian học của khóa học này.');
-        }
+        setError('Bạn cần đăng ký khóa học (hoặc đăng ký lại nếu đã hủy) để vào không gian học.');
       } finally {
         if (active) setLoading(false);
       }
@@ -518,9 +499,13 @@ const CourseWorkspace = () => {
         nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
       } catch (err) {
         const message = err?.response?.data?.message || '';
-        if (!/not enrolled|chưa đăng ký|not registered/i.test(message)) throw err;
-        await courseApi.registerOnlineCourse(course.id);
-        nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
+        if (/not enrolled|chưa đăng ký|not registered/i.test(message)) {
+          navigate(`/courses/${course.slug || course.id}`, {
+            state: { course, accessMessage: 'Bạn cần hoàn tất ghi danh hoặc thanh toán trước khi học khóa này.' },
+          });
+          return;
+        }
+        throw err;
       }
       applyEnrollment(nextEnrollment);
     } catch (err) {
@@ -738,6 +723,7 @@ const CourseWorkspace = () => {
               <AiAssessmentPanel
                 assessments={activeWorkspaceItem.assessments}
                 moduleTitle={activeWorkspaceItem.module?.title}
+                courseTargetBand={course?.targetBand}
                 isLocked={activeWorkspaceItem.isLocked}
                 lockReason={activeWorkspaceItem.lockReason}
                 onMoveStep={handleMoveLesson}

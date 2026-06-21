@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -119,6 +120,25 @@ class OnlineCourseServiceImplTest {
     }
 
     @Test
+    void registerCourse_rejectsDirectEnrollmentForPaidCourse() {
+        User student = User.builder().email("learner@example.com").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(10L).status(PackageStatus.PUBLISHED).deleted(false)
+                .price(BigDecimal.valueOf(499000)).build();
+        OnlineCourse course = OnlineCourse.builder().id(5L).learningPackage(learningPackage).build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(course));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> service.registerCourse(course.getId(), student.getEmail()));
+
+        assertEquals("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.", exception.getMessage());
+        verify(enrollmentRepository, never()).save(any(PackageEnrollment.class));
+    }
+
+    @Test
     void registerCourse_createsEnrollmentForPublishedCourse() {
         User student = User.builder().email("learner@example.com").build();
         LearningPackage learningPackage = LearningPackage.builder()
@@ -203,5 +223,50 @@ class OnlineCourseServiceImplTest {
         assertEquals(existingEnrollment.getProgressPercent(), result.getProgressPercent());
         verify(enrollmentRepository, never()).save(any(PackageEnrollment.class));
         verify(courseEnrollmentMailService, never()).sendEnrollmentSuccessEmail(any(), any(), any());
+    }
+
+    @Test
+    void registerCourse_reactivatesCancelledEnrollment() {
+        User student = User.builder().email("learner@example.com").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(10L)
+                .status(PackageStatus.PUBLISHED)
+                .deleted(false)
+                .title("IELTS Intensive")
+                .slug("ielts-intensive")
+                .build();
+        OnlineCourse course = OnlineCourse.builder()
+                .id(5L)
+                .learningPackage(learningPackage)
+                .build();
+        PackageEnrollment cancelledEnrollment = PackageEnrollment.builder()
+                .id(100L)
+                .student(student)
+                .learningPackage(learningPackage)
+                .status(EnrollmentStatus.CANCELLED)
+                .progressPercent(25)
+                .build();
+        OnlineCourseResponse response = OnlineCourseResponse.builder()
+                .id(course.getId())
+                .registered(true)
+                .enrollmentId(cancelledEnrollment.getId())
+                .progressPercent(cancelledEnrollment.getProgressPercent())
+                .build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(course));
+        when(learningPackageRepository.findByIdAndDeletedFalseAndStatusForUpdate(learningPackage.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(learningPackage));
+        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(cancelledEnrollment));
+        when(enrollmentRepository.save(cancelledEnrollment)).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.toResponse(course, true, cancelledEnrollment.getProgressPercent(), cancelledEnrollment.getId())).thenReturn(response);
+
+        OnlineCourseResponse result = service.registerCourse(course.getId(), student.getEmail());
+
+        assertEquals(EnrollmentStatus.ACTIVE, cancelledEnrollment.getStatus());
+        assertEquals(cancelledEnrollment.getId(), result.getEnrollmentId());
+        verify(enrollmentRepository).save(cancelledEnrollment);
+        verify(courseEnrollmentMailService).sendEnrollmentSuccessEmail(student, course, cancelledEnrollment);
     }
 }

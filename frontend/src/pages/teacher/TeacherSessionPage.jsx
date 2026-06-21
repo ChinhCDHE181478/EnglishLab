@@ -19,9 +19,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import Header from '../../components/ai-learning/Header';
-import CourseFooter from '../../components/course/CourseFooter';
-import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
+import CoursePageShell from '../../components/course/CoursePageShell';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
@@ -39,7 +37,6 @@ import {
   formatClassroomTime,
   formatSessionStatus,
 } from '../../utils/classroomHelpers';
-
 const attendanceOptions = [
   { label: 'Có mặt', value: 'PRESENT' },
   { label: 'Vắng mặt', value: 'ABSENT' },
@@ -189,20 +186,48 @@ export default function TeacherSessionPage() {
     return { present, absent, late, excused };
   }, [attendance, records]);
 
+  const attendanceSummaryBar = !loading && !error && attendance.length ? (
+    <div className="mt-auto pb-2">
+      <div className="flex flex-col gap-4 rounded-2xl border border-[#e5e7eb] bg-white px-5 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between md:px-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-[#584140]">
+          <span className="font-extrabold uppercase tracking-wider text-[#2b2828]">Tổng hợp nhanh:</span>
+          <span className="flex items-center gap-1 font-bold text-emerald-700">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Có mặt: {summaryStats.present}
+          </span>
+          <span className="flex items-center gap-1 font-bold text-rose-700">
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Vắng: {summaryStats.absent}
+          </span>
+          <span className="flex items-center gap-1 font-bold text-amber-700">
+            <span className="h-2 w-2 rounded-full bg-amber-500" /> Muộn: {summaryStats.late}
+          </span>
+          <span className="flex items-center gap-1 font-bold text-purple-700">
+            <span className="h-2 w-2 rounded-full bg-purple-500" /> Có phép: {summaryStats.excused}
+          </span>
+        </div>
+        <button
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] active:scale-95"
+          onClick={handleSaveAttendance}
+          type="button"
+        >
+          <Check className="h-4 w-4" />
+          Lưu bảng điểm danh
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
-      <CourseGlobalStyles />
-      <Header />
-      <motion.main
-        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[120px] pt-8 md:px-10 space-y-8"
+    <CoursePageShell bottomBar={attendanceSummaryBar}>
+      <motion.div
+        className="flex flex-1 flex-col space-y-8"
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: 'easeOut' }}
       >
         {/* ── Session Header ── */}
-        <section className="border-b border-[#ebebeb] bg-white pb-5 pt-2">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+        <section className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm md:p-10">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 flex-1">
               <p className="mb-2 text-xs font-semibold text-[#9a8b8a] uppercase tracking-wide">Điểm danh buổi học</p>
               <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
                 {sessionMeta?.sessionDate ? formatClassroomDate(sessionMeta.sessionDate) : `Buổi học #${sessionId}`}
@@ -231,7 +256,7 @@ export default function TeacherSessionPage() {
               )}
             </div>
 
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-shrink-0">
               {attendance.length > 0 && (
                 <div className="rounded-xl border border-[#e5e7eb] bg-white px-4 py-2.5 min-w-[180px]">
                   <div className="flex items-center justify-between text-xs">
@@ -283,7 +308,7 @@ export default function TeacherSessionPage() {
 
             {/* Virtual Meeting Operations (Lark) */}
             {sessionMeta?.deliveryMode === 'VIRTUAL' && (
-              <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 space-y-5">
+              <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 md:p-8 space-y-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fff0f1] text-[#8a0018] flex-shrink-0">
                     <Video className="h-5 w-5" />
@@ -354,8 +379,8 @@ export default function TeacherSessionPage() {
             )}
 
             {/* Attendance Tool */}
-            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 space-y-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm md:p-10 space-y-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-[#8a0018] flex-shrink-0">
                     <Users className="h-5 w-5" />
@@ -408,9 +433,9 @@ export default function TeacherSessionPage() {
                         key={key}
                         className={`rounded-2xl border p-4 transition ${cfg.row}`}
                       >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                           {/* Student info */}
-                          <div className="flex items-center gap-3">
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
                             <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
                               currentStatus === 'PRESENT' ? 'bg-emerald-100 text-emerald-800'
                               : currentStatus === 'ABSENT' ? 'bg-rose-100 text-rose-800'
@@ -428,7 +453,7 @@ export default function TeacherSessionPage() {
                           </div>
 
                           {/* Visual pill selector */}
-                          <div className="flex flex-wrap gap-1.5">
+                          <div className="flex flex-wrap gap-1.5 sm:justify-end">
                             {attendanceOptions.map((opt) => {
                               const isSelected = currentStatus === opt.value;
                               const pillColors = {
@@ -458,40 +483,7 @@ export default function TeacherSessionPage() {
             </section>
           </>
         ) : null}
-      </motion.main>
-
-      {/* Sticky attendance summary bar — inside flow so it never overlaps the footer */}
-      {!loading && !error && attendance.length ? (
-        <div className="sticky bottom-0 z-30 border-t border-[#dfbfbd]/20 bg-white/95 py-4 shadow-[0_-4px_24px_rgba(75,0,9,0.08)] backdrop-blur-md">
-          <div className="mx-auto flex max-w-[1320px] flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between md:px-10">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-[#584140]">
-              <span className="font-extrabold uppercase tracking-wider text-[#2b2828]">Tổng hợp nhanh:</span>
-              <span className="flex items-center gap-1 font-bold text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Có mặt: {summaryStats.present}
-              </span>
-              <span className="flex items-center gap-1 font-bold text-rose-700">
-                <span className="h-2 w-2 rounded-full bg-rose-500" /> Vắng: {summaryStats.absent}
-              </span>
-              <span className="flex items-center gap-1 font-bold text-amber-700">
-                <span className="h-2 w-2 rounded-full bg-amber-500" /> Muộn: {summaryStats.late}
-              </span>
-              <span className="flex items-center gap-1 font-bold text-purple-700">
-                <span className="h-2 w-2 rounded-full bg-purple-500" /> Có phép: {summaryStats.excused}
-              </span>
-            </div>
-            <button
-              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white shadow-md transition hover:bg-[#730014] active:scale-95"
-              onClick={handleSaveAttendance}
-              type="button"
-            >
-              <Check className="h-4 w-4" />
-              Lưu bảng điểm danh
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      <CourseFooter />
-    </div>
+      </motion.div>
+    </CoursePageShell>
   );
 }

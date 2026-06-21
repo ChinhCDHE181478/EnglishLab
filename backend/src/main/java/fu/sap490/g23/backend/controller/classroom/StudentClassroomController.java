@@ -50,7 +50,7 @@ public class StudentClassroomController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> getClassroom(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(classroomOfferingService.getOffering(id, true));
+        return ResponseEntity.ok(classroomOfferingService.getLearnerOffering(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/sessions")
@@ -119,18 +119,27 @@ public class StudentClassroomController {
     }
 
     @GetMapping("/{id}/materials")
-    public ResponseEntity<List<ClassroomMaterialResponse>> getMaterials(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomContentService.getMaterials(id));
+    public ResponseEntity<List<ClassroomMaterialResponse>> getMaterials(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomContentService.getLearnerMaterials(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/announcements")
-    public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomContentService.getAnnouncements(id));
+    public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomContentService.getLearnerAnnouncements(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/syllabus")
-    public ResponseEntity<List<ClassroomSyllabusItemResponse>> getSyllabus(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomContentService.getSyllabus(id));
+    public ResponseEntity<List<ClassroomSyllabusItemResponse>> getSyllabus(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomContentService.getLearnerSyllabus(id, authentication.getName()));
     }
 
     @GetMapping("/{id}/attendance/me")

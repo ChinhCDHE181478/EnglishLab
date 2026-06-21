@@ -9,7 +9,6 @@ import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDetailHero from '../components/course-detail/CourseDetailHero';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
 import CourseModuleAccordion from '../components/course-detail/CourseModuleAccordion';
-import StreakPreview from '../components/course-detail/StreakPreview';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 
@@ -94,6 +93,11 @@ const CourseDetail = () => {
             <span className="group-hover:underline">Quay lại danh sách khóa học</span>
           </Link>
         </div>
+        {location.state?.accessMessage ? (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900">
+            {location.state.accessMessage}
+          </div>
+        ) : null}
         {loading ? (
           <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#584140]">
             Đang tải chi tiết khóa học...
@@ -112,7 +116,6 @@ const CourseDetail = () => {
             ) : null}
             <CourseModuleAccordion modules={course.modules} />
             <CourseDiscussionSection courseId={course.id} />
-            <StreakPreview />
           </div>
         )}
       </main>

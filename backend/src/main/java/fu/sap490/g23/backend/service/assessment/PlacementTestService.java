@@ -28,6 +28,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class PlacementTestService {
     private static final String TEST_CODE = "IELTS_PLACEMENT_MOCK_1";
+    private static final int MAX_ATTEMPTS = 3;
     private static final Pattern SPEAKING_METADATA_PATTERN = Pattern.compile("speaking mock test:|part prompts shown to the learner:|recording duration seconds:|voice signal detected:", Pattern.CASE_INSENSITIVE);
     private static final Set<String> WRITING_TASK_1_KEYWORDS = Set.of(
             "corn", "ethanol", "fuel", "process", "production", "produce", "diagram", "stages", "ferment", "fermentation", "liquid", "milling", "cook", "cooking", "purify", "purification"
@@ -54,6 +55,10 @@ public class PlacementTestService {
         response.put("testCode", TEST_CODE);
         response.put("title", "Bài đánh giá đầu vào IELTS");
         response.put("description", "Một phiên thi liên tục gồm Listening, Reading, Writing và Speaking.");
+        long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
+        response.put("attemptCount", attemptCount);
+        response.put("maxAttempts", MAX_ATTEMPTS);
+        response.put("canRetake", attemptCount < MAX_ATTEMPTS);
         Map<String, Object> sections = new LinkedHashMap<>();
         sections.put("listening", toPlainObject(withoutAnswerKey(loadJson("placement-test/mock-1-listening.json"))));
         sections.put("reading", toPlainObject(withoutAnswerKey(loadJson("assessment-data/ielts_mock_2025_january_reading_test_1.json"))));
@@ -68,6 +73,9 @@ public class PlacementTestService {
     @Transactional
     public PlacementTestAttemptResponse submit(PlacementTestSubmissionRequest request, String studentEmail) {
         User student = requireStudent(studentEmail);
+        if (attemptRepository.countByStudentAndTestCode(student, TEST_CODE) >= MAX_ATTEMPTS) {
+            throw new IllegalStateException("Bạn đã dùng hết 3 lượt làm bài đánh giá đầu vào.");
+        }
         validateSubmission(request);
 
         JsonNode listeningConfig = loadJson("placement-test/mock-1-listening.json");
@@ -299,9 +307,7 @@ public class PlacementTestService {
     }
 
     private BigDecimal normalizeBand(BigDecimal value) {
-        if (value == null) return null;
-        double bounded = Math.max(0, Math.min(9, value.doubleValue()));
-        return BigDecimal.valueOf(Math.round(bounded * 2) / 2.0).setScale(1, RoundingMode.HALF_UP);
+        return IeltsBandScale.normalizeBand(value);
     }
 
     private BigDecimal extractBand(AiEvaluationResult result, String field, BigDecimal fallback) {

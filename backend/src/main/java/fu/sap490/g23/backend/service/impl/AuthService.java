@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.entity.enums.AuthTokenType;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.security.JwtService;
 import fu.sap490.g23.backend.service.IAuthService;
 import fu.sap490.g23.backend.service.mail.AuthMailService;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService implements IAuthService {
 
     private final UserRepository userRepository;
+    private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -196,6 +198,7 @@ public class AuthService implements IAuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
+                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, "IELTS_PLACEMENT_MOCK_1"))
                 .build();
     }
 }
