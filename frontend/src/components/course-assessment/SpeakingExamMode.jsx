@@ -80,7 +80,7 @@ export default function SpeakingExamMode({
     animationRef.current = null;
     analyserRef.current = null;
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current.close().catch(() => { });
     }
     audioContextRef.current = null;
     setRecordingLevel(0);
@@ -122,7 +122,7 @@ export default function SpeakingExamMode({
       });
       intentionalExitRef.current = true;
       if (document.fullscreenElement) {
-        await document.exitFullscreen?.().catch(() => {});
+        await document.exitFullscreen?.().catch(() => { });
       }
     } catch {
       pendingSubmitRef.current = false;
@@ -240,6 +240,12 @@ export default function SpeakingExamMode({
   };
 
   useEffect(() => {
+    if (stage !== 'exam' || remainingSeconds > 0 || pendingSubmit || submitting || uploading) return;
+    advance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remainingSeconds, stage, pendingSubmit, submitting, uploading]);
+
+  useEffect(() => {
     recordingDurationRef.current = recordingDuration;
   }, [recordingDuration]);
 
@@ -265,7 +271,7 @@ export default function SpeakingExamMode({
 
   useEffect(() => {
     intentionalExitRef.current = false;
-    document.documentElement?.requestFullscreen?.().catch(() => {});
+    document.documentElement?.requestFullscreen?.().catch(() => { });
     const recordViolation = (reason) => {
       if (violationLockRef.current) return;
       violationLockRef.current = true;
@@ -310,7 +316,7 @@ export default function SpeakingExamMode({
   const closeExam = async () => {
     intentionalExitRef.current = true;
     finishRecording();
-    if (document.fullscreenElement) await document.exitFullscreen?.().catch(() => {});
+    if (document.fullscreenElement) await document.exitFullscreen?.().catch(() => { });
     onClose?.();
   };
 
@@ -341,84 +347,84 @@ export default function SpeakingExamMode({
             />
           </main>
         ) : (
-        <main className="mt-6 overflow-hidden rounded-[30px] border border-[#dfbfbd]/25 bg-white">
-          <div className="flex items-center justify-end border-b border-[#f0e6e6] px-6 py-4">
-            <p className="text-3xl font-extrabold text-[#8a0018]">
-              {formatSeconds(remainingSeconds)}
-              <span className="ml-1 text-sm font-medium text-[#2b2828]">phút còn lại</span>
-            </p>
-          </div>
-
-          <div className="px-6 py-8 text-center">
-            <p className="text-3xl font-extrabold text-[#21446d]">
-              {activePart?.label?.toUpperCase()}
-              <span className="font-medium text-[#2b2828]">: {activePart?.caption}</span>
-            </p>
-
-            <div className="mx-auto mt-8 max-w-[430px]">
-              {activePrompt.videoUrl ? (
-                <video
-                  key={activePrompt.videoUrl}
-                  className="h-[250px] w-full rounded-[10px] object-cover"
-                  autoPlay
-                  controls={false}
-                  controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
-                  disablePictureInPicture
-                  onEnded={() => void startRecording()}
-                  onContextMenu={(event) => event.preventDefault()}
-                  playsInline
-                  preload="auto"
-                  src={activePrompt.videoUrl}
-                />
-              ) : (
-                <div className="flex h-[250px] w-full items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)]">
-                  <UserRound className="text-[#cf6f83]" size={76} strokeWidth={1.5} />
-                </div>
-              )}
+          <main className="mt-6 overflow-hidden rounded-[30px] border border-[#dfbfbd]/25 bg-white">
+            <div className="flex items-center justify-end border-b border-[#f0e6e6] px-6 py-4">
+              <p className="text-3xl font-extrabold text-[#8a0018]">
+                {formatSeconds(remainingSeconds)}
+                <span className="ml-1 text-sm font-medium text-[#2b2828]">phút còn lại</span>
+              </p>
             </div>
 
-            {activePart?.cueCardTitle ? (
-              <div className="mx-auto mt-6 max-w-3xl rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>
-                <h2 className="mt-2 text-xl font-extrabold">{activePart.cueCardTitle}</h2>
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {(activePart.cueCardBullets || []).map((bullet) => <div className="rounded-2xl bg-[#faf7f7] px-4 py-3 text-sm font-semibold text-[#4b0009]" key={bullet}>{bullet}</div>)}
-                </div>
-              </div>
-            ) : null}
+            <div className="px-6 py-8 text-center">
+              <p className="text-3xl font-extrabold text-[#21446d]">
+                {activePart?.label?.toUpperCase()}
+                <span className="font-medium text-[#2b2828]">: {activePart?.caption}</span>
+              </p>
 
-            <div className="mx-auto mt-8 max-w-[560px]">
-              <div className="relative flex items-center justify-center">
-                <div className="absolute left-0 right-0 flex items-center justify-between gap-2 px-3">
-                  <div className="flex h-10 items-center gap-[2px]">{bars.map((height, index) => <span className={`w-[2px] rounded-full ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`} key={`l-${index}`} style={{ height }} />)}</div>
-                  <div className="w-20 shrink-0" />
-                  <div className="flex h-10 items-center gap-[2px]">{[...bars].reverse().map((height, index) => <span className={`w-[2px] rounded-full ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`} key={`r-${index}`} style={{ height }} />)}</div>
-                </div>
-                <div className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-[0_12px_30px_rgba(75,0,9,0.16)] ${isRecording ? 'bg-[#8a0018] text-white' : 'bg-white text-[#8a0018]'}`}>
-                  <Mic size={34} strokeWidth={2} />
-                </div>
+              <div className="mx-auto mt-8 max-w-[430px]">
+                {activePrompt.videoUrl ? (
+                  <video
+                    key={activePrompt.videoUrl}
+                    className="h-[250px] w-full rounded-[10px] object-cover"
+                    autoPlay
+                    controls={false}
+                    controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
+                    disablePictureInPicture
+                    onEnded={() => void startRecording()}
+                    onContextMenu={(event) => event.preventDefault()}
+                    playsInline
+                    preload="auto"
+                    src={activePrompt.videoUrl}
+                  />
+                ) : (
+                  <div className="flex h-[250px] w-full items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)]">
+                    <UserRound className="text-[#cf6f83]" size={76} strokeWidth={1.5} />
+                  </div>
+                )}
               </div>
-              <p className="mt-4 text-2xl font-extrabold text-[#8a0018]">{formatSeconds(recordingDuration)}</p>
+
+              {activePart?.cueCardTitle ? (
+                <div className="mx-auto mt-6 max-w-3xl rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>
+                  <h2 className="mt-2 text-xl font-extrabold">{activePart.cueCardTitle}</h2>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {(activePart.cueCardBullets || []).map((bullet) => <div className="rounded-2xl bg-[#faf7f7] px-4 py-3 text-sm font-semibold text-[#4b0009]" key={bullet}>{bullet}</div>)}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mx-auto mt-8 max-w-[560px]">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute left-0 right-0 flex items-center justify-between gap-2 px-3">
+                    <div className="flex h-10 items-center gap-[2px]">{bars.map((height, index) => <span className={`w-[2px] rounded-full ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`} key={`l-${index}`} style={{ height }} />)}</div>
+                    <div className="w-20 shrink-0" />
+                    <div className="flex h-10 items-center gap-[2px]">{[...bars].reverse().map((height, index) => <span className={`w-[2px] rounded-full ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`} key={`r-${index}`} style={{ height }} />)}</div>
+                  </div>
+                  <div className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white shadow-[0_12px_30px_rgba(75,0,9,0.16)] ${isRecording ? 'bg-[#8a0018] text-white' : 'bg-white text-[#8a0018]'}`}>
+                    <Mic size={34} strokeWidth={2} />
+                  </div>
+                </div>
+                <p className="mt-4 text-2xl font-extrabold text-[#8a0018]">{formatSeconds(recordingDuration)}</p>
+              </div>
+
+              {error ? <p className="mx-auto mt-4 max-w-2xl rounded-2xl bg-[#fff0f1] px-4 py-3 text-sm font-semibold text-[#8a0018]">{error}</p> : null}
+
+              <button
+                className="mt-6 rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-base font-extrabold text-white shadow-[0_10px_24px_rgba(75,0,9,0.18)] disabled:opacity-60"
+                disabled={submitting || uploading || pendingSubmit}
+                onClick={advance}
+                type="button"
+              >
+                {isFinalPrompt ? (submitting || uploading || pendingSubmit ? 'Đang gửi...' : 'Nộp bài') : (!isLastQuestion ? 'Câu tiếp theo' : 'Phần tiếp theo')}
+              </button>
             </div>
 
-            {error ? <p className="mx-auto mt-4 max-w-2xl rounded-2xl bg-[#fff0f1] px-4 py-3 text-sm font-semibold text-[#8a0018]">{error}</p> : null}
-
-            <button
-              className="mt-6 rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-base font-extrabold text-white shadow-[0_10px_24px_rgba(75,0,9,0.18)] disabled:opacity-60"
-              disabled={submitting || uploading || pendingSubmit}
-              onClick={advance}
-              type="button"
-            >
-              {isFinalPrompt ? (submitting || uploading || pendingSubmit ? 'Đang gửi...' : 'Nộp bài') : (!isLastQuestion ? 'Câu tiếp theo' : 'Phần tiếp theo')}
-            </button>
-          </div>
-
-          <div className="grid gap-4 border-t border-[#f0e6e6] px-6 py-4 md:grid-cols-3">
-            {parts.map((part, index) => (
-              <div className={`rounded-[18px] border px-5 py-4 text-center text-xl font-extrabold ${index === partIndex ? 'border-[#8a0018]' : 'border-[#dfe8e0]'} text-[#21446d]`} key={part.key}>{part.label}</div>
-            ))}
-          </div>
-        </main>
+            <div className="grid gap-4 border-t border-[#f0e6e6] px-6 py-4 md:grid-cols-3">
+              {parts.map((part, index) => (
+                <div className={`rounded-[18px] border px-5 py-4 text-center text-xl font-extrabold ${index === partIndex ? 'border-[#8a0018]' : 'border-[#dfe8e0]'} text-[#21446d]`} key={part.key}>{part.label}</div>
+              ))}
+            </div>
+          </main>
         )}
       </div>
 
@@ -429,7 +435,7 @@ export default function SpeakingExamMode({
             <h2 className="mt-2 text-2xl font-black">Hệ thống đã ghi nhận vi phạm</h2>
             <p className="mt-3 text-sm leading-7 text-[#584140]">{warning.reason}</p>
             <button className="mt-5 w-full rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white" onClick={async () => {
-              await document.documentElement?.requestFullscreen?.().catch(() => {});
+              await document.documentElement?.requestFullscreen?.().catch(() => { });
               setWarning(null);
             }} type="button">Quay lại toàn màn hình và tiếp tục làm bài</button>
           </div>
