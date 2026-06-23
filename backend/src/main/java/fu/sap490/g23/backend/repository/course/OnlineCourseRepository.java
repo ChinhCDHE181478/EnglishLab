@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.repository.course;
 
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,4 +25,10 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
 
     @EntityGraph(attributePaths = {"learningPackage", "category"})
     List<OnlineCourse> findAllByCategoryIsNull();
+
+    long countByCategoryAndLearningPackageDeletedFalse(CourseCategory category);
+
+    long countByLearningPackageDeletedFalse();
+
+    long countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus status);
 }

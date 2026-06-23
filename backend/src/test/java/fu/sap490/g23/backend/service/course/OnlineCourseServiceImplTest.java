@@ -1,6 +1,8 @@
 package fu.sap490.g23.backend.service.course;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
@@ -25,9 +27,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Optional;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -268,5 +272,54 @@ class OnlineCourseServiceImplTest {
         assertEquals(cancelledEnrollment.getId(), result.getEnrollmentId());
         verify(enrollmentRepository).save(cancelledEnrollment);
         verify(courseEnrollmentMailService).sendEnrollmentSuccessEmail(student, course, cancelledEnrollment);
+    }
+
+    @Test
+    void removeModule_deletesAssessmentsWhenThereAreNoStudentSubmissions() {
+        CourseModule module = CourseModule.builder()
+                .id(11L)
+                .title("Mô-đun 1")
+                .build();
+        CourseAssessment assessment = CourseAssessment.builder()
+                .id(21L)
+                .module(module)
+                .title("Bài kiểm tra cuối mô-đun")
+                .build();
+
+        when(courseAssessmentRepository.findByModule(module)).thenReturn(List.of(assessment));
+        when(assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())).thenReturn(false);
+
+        ReflectionTestUtils.invokeMethod(service, "ensureModuleCanBeRemoved", module);
+
+        verify(courseAssessmentRepository).deleteAll(List.of(assessment));
+        verify(courseAssessmentRepository).flush();
+    }
+
+    @Test
+    void removeModule_rejectsWhenAnAssessmentHasStudentSubmissions() {
+        CourseModule module = CourseModule.builder()
+                .id(11L)
+                .title("Mô-đun 1")
+                .build();
+        CourseAssessment assessment = CourseAssessment.builder()
+                .id(21L)
+                .module(module)
+                .title("Bài kiểm tra cuối mô-đun")
+                .build();
+
+        when(courseAssessmentRepository.findByModule(module)).thenReturn(List.of(assessment));
+        when(assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())).thenReturn(true);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> ReflectionTestUtils.invokeMethod(service, "ensureModuleCanBeRemoved", module)
+        );
+
+        assertEquals(
+                "Không thể xóa mô-đun \"Mô-đun 1\" vì đã có bài làm học viên trong bài kiểm tra \"Bài kiểm tra cuối mô-đun\".",
+                exception.getMessage()
+        );
+        verify(courseAssessmentRepository, never()).deleteAll(any());
+        verify(courseAssessmentRepository, never()).flush();
     }
 }

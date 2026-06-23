@@ -64,7 +64,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         learningPackageRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(course -> {
-                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 6.5, 7.0,
+                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0, 7.0,
                             "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",
                             null);
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);

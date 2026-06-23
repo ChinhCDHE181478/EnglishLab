@@ -1,54 +1,68 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 
-const categoryOptions = ['All', 'IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE'];
-const levelOptions = ['All', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
-const statusOptions = ['All', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
+const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
+const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
+const pageSize = 10;
 const sortOptions = [
-  { label: 'Newest', value: 'newest' },
-  { label: 'Oldest', value: 'oldest' },
-  { label: 'Title A-Z', value: 'titleAsc' },
-  { label: 'Title Z-A', value: 'titleDesc' },
-  { label: 'Price High', value: 'priceDesc' },
-  { label: 'Price Low', value: 'priceAsc' },
+  { label: 'Mới nhất', value: 'newest' },
+  { label: 'Cũ nhất', value: 'oldest' },
+  { label: 'Tên A-Z', value: 'titleAsc' },
+  { label: 'Tên Z-A', value: 'titleDesc' },
+  { label: 'Giá cao đến thấp', value: 'priceDesc' },
+  { label: 'Giá thấp đến cao', value: 'priceAsc' },
 ];
 
 export default function ContentManagerCoursesPage() {
   const [courses, setCourses] = useState([]);
-  const [filters, setFilters] = useState({ category: 'All', level: 'All', status: 'All', sort: 'newest' });
+  const [categories, setCategories] = useState([]);
+  const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
+  const [keyword, setKeyword] = useState('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    let active = true;
-
+  const loadCourses = async (activeRef = { current: true }) => {
     setLoading(true);
-    courseApi.getManagedOnlineCourses({ page: 0, size: 200 })
-      .then((page) => {
-        if (!active) return;
-        setCourses(page.content || []);
-      })
-      .catch(() => {
-        if (active) setError('Không tải được danh sách khóa học từ backend.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    setError('');
+    try {
+      const [coursePage, categoryItems] = await Promise.all([
+        courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
+        courseApi.getManagedCourseCategories().catch(() => []),
+      ]);
+      if (!activeRef.current) return;
+      setCourses(coursePage.content || []);
+      setCategories(categoryItems);
+    } catch {
+      if (activeRef.current) setError('Không tải được danh sách khóa học từ backend.');
+    } finally {
+      if (activeRef.current) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const activeRef = { current: true };
+    loadCourses(activeRef);
 
     return () => {
-      active = false;
+      activeRef.current = false;
     };
   }, []);
 
   const filteredCourses = useMemo(() => {
     const filtered = courses.filter((course) => {
-      const categoryMatched = filters.category === 'All' || course.category === filters.category;
-      const levelMatched = filters.level === 'All' || course.level === filters.level;
-      const statusMatched = filters.status === 'All' || course.status === filters.status;
-      return categoryMatched && levelMatched && statusMatched;
+      const searchValue = keyword.trim().toLocaleLowerCase('vi');
+      const keywordMatched = !searchValue
+        || String(course.title || '').toLocaleLowerCase('vi').includes(searchValue)
+        || String(course.slug || '').toLocaleLowerCase('vi').includes(searchValue);
+      const categoryMatched = filters.category === 'Tất cả' || course.category === filters.category;
+      const levelMatched = filters.level === 'Tất cả' || course.level === filters.level;
+      const statusMatched = filters.status === 'Tất cả' || course.status === filters.status;
+      return keywordMatched && categoryMatched && levelMatched && statusMatched;
     });
 
     return [...filtered].sort((a, b) => {
@@ -59,22 +73,71 @@ export default function ContentManagerCoursesPage() {
       if (filters.sort === 'priceDesc') return Number(b.price || 0) - Number(a.price || 0);
       return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
     });
-  }, [courses, filters]);
+  }, [courses, filters, keyword]);
+
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'Tất cả', value: 'Tất cả' },
+      ...categories.map((category) => ({ label: category.name, value: category.code })),
+    ],
+    [categories],
+  );
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
+  const visibleCourses = filteredCourses.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, keyword]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const updateFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }));
 
   return (
     <div className="space-y-6">
-      {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
+          <span>{error}</span>
+          <button
+            className="inline-flex items-center gap-2 rounded-xl border border-[#93000a]/25 bg-white/70 px-3 py-2"
+            onClick={() => loadCourses()}
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Thử lại
+          </button>
+        </div>
+      ) : null}
 
       <Panel className="p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <FilterSelect label="Category" onChange={updateFilter('category')} options={categoryOptions} value={filters.category} />
-          <FilterSelect label="Level" onChange={updateFilter('level')} options={levelOptions} value={filters.level} />
-          <FilterSelect label="Status" onChange={updateFilter('status')} options={statusOptions} value={filters.status} />
-          <FilterSelect label="Sort" onChange={updateFilter('sort')} options={sortOptions} value={filters.sort} />
-          <Link className="ml-auto rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to="/content-manager/courses/new">
-            Create New Course
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <label className="block">
+            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Tìm kiếm</span>
+            <input
+              className="w-full rounded-[18px] border border-[#dfbfbd]/75 bg-white px-4 py-3 text-sm text-[#1a1c1c] outline-none focus:border-[#730014]"
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tên khóa học hoặc slug"
+              value={keyword}
+            />
+          </label>
+          <FilterSelect label="Danh mục" onChange={updateFilter('category')} options={categoryOptions} value={filters.category} />
+          <FilterSelect label="Trình độ" onChange={updateFilter('level')} options={levelOptions} value={filters.level} />
+          <FilterSelect label="Trạng thái" onChange={updateFilter('status')} options={statusOptions} value={filters.status} />
+          <FilterSelect label="Sắp xếp" onChange={updateFilter('sort')} options={sortOptions} value={filters.sort} />
+        </div>
+        <div className="mt-4 flex flex-wrap justify-end gap-3">
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-semibold text-[#730014]"
+            onClick={() => loadCourses()}
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </button>
+          <Link className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to="/content-manager/courses/new">
+            Tạo khóa học mới
           </Link>
         </div>
       </Panel>
@@ -84,7 +147,7 @@ export default function ContentManagerCoursesPage() {
           <table className="min-w-full text-left">
             <thead className="bg-[#fbf3f4] text-xs uppercase tracking-[0.18em] text-[#8e7371]">
               <tr>
-                {['Course Title', 'Category', 'Level', 'Lessons', 'Hours', 'Price', 'Status', 'Last Updated', 'Actions'].map((heading) => (
+                {['Tên khóa học', 'Danh mục', 'Trình độ', 'Bài học', 'Giờ học', 'Học phí', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
                   <th key={heading} className="px-5 py-4 font-semibold">{heading}</th>
                 ))}
               </tr>
@@ -100,8 +163,8 @@ export default function ContentManagerCoursesPage() {
                     ))}
                   </tr>
                 ))
-              ) : filteredCourses.length ? (
-                filteredCourses.map((course) => (
+              ) : visibleCourses.length ? (
+                visibleCourses.map((course) => (
                   <tr key={course.id} className="bg-white transition hover:bg-[#fffafb]">
                     <td className="px-5 py-4">
                       <div>
@@ -109,7 +172,7 @@ export default function ContentManagerCoursesPage() {
                         <p className="text-sm text-[#584140]">{course.slug}</p>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-sm">{course.categoryName || course.category}</td>
+                    <td className="px-5 py-4 text-sm">{formatCategory(course.categoryName || course.category)}</td>
                     <td className="px-5 py-4 text-sm">{formatLabel(course.level)}</td>
                     <td className="px-5 py-4 text-sm">{course.totalLessons ?? 0}</td>
                     <td className="px-5 py-4 text-sm">{course.totalHours ?? 0}</td>
@@ -119,10 +182,10 @@ export default function ContentManagerCoursesPage() {
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Link className="rounded-xl border border-[#dfbfbd]/60 px-3 py-2 text-sm font-medium text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/edit`}>
-                          Edit
+                          Chỉnh sửa
                         </Link>
                         <Link className="rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/builder`}>
-                          Builder
+                          Biên soạn nội dung
                         </Link>
                       </div>
                     </td>
@@ -131,7 +194,7 @@ export default function ContentManagerCoursesPage() {
               ) : (
                 <tr>
                   <td className="px-5 py-10 text-center text-sm text-[#584140]" colSpan={9}>
-                    No courses match the selected filters.
+                    Không có khóa học nào khớp với bộ lọc đã chọn.
                   </td>
                 </tr>
               )}
@@ -139,52 +202,25 @@ export default function ContentManagerCoursesPage() {
           </table>
         </div>
       </Panel>
+
+      {totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-3">
+          <button className="rounded-xl border border-[#dfbfbd] bg-white px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">Trang trước</button>
+          <span className="text-sm font-semibold text-[#584140]">Trang {page} / {totalPages}</span>
+          <button className="rounded-xl border border-[#dfbfbd] bg-white px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Trang sau</button>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function FilterSelect({ label, value, onChange, options }) {
-  const [open, setOpen] = useState(false);
   const normalized = options.map((option) => (typeof option === 'string' ? { label: option, value: option } : option));
-  const selected = normalized.find((option) => option.value === value) || normalized[0];
 
   return (
-    <div className="relative">
-      <button
-        className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm text-[#584140] transition hover:border-[#730014]/40 hover:bg-[#fff7f7]"
-        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-        onClick={() => setOpen((current) => !current)}
-        type="button"
-      >
-        <span>{label}:</span>
-        <span className="font-semibold text-[#4b0009]">{selected?.label}</span>
-        <ChevronDown className={`h-4 w-4 text-[#730014] transition ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open ? (
-        <div className="absolute left-0 top-full z-50 mt-2 min-w-52 overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.16)]">
-          {normalized.map((option) => (
-            <button
-              key={option.value}
-              className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold transition ${
-                option.value === value ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#fff2f3]'
-              }`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onChange({ target: { value: option.value } });
-                setOpen(false);
-              }}
-              type="button"
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <select className="sr-only" onChange={onChange} value={value}>
-        {normalized.map((option) => (
-          <option key={option.value} value={option.value}>{option.label}</option>
-        ))}
-      </select>
+    <div>
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</span>
+      <BrandedSelect onChange={onChange} options={normalized} value={value} />
     </div>
   );
 }
@@ -202,5 +238,23 @@ function formatDate(value) {
 
 function formatLabel(value) {
   if (!value) return '-';
-  return String(value).charAt(0) + String(value).slice(1).toLowerCase();
+  const normalized = String(value).toUpperCase();
+  const labels = {
+    BEGINNER: 'Cơ bản',
+    INTERMEDIATE: 'Trung cấp',
+    ADVANCED: 'Nâng cao',
+    DRAFT: 'Nháp',
+    PUBLISHED: 'Đã xuất bản',
+    ARCHIVED: 'Lưu trữ',
+  };
+  return labels[normalized] || (String(value).charAt(0) + String(value).slice(1).toLowerCase());
+}
+
+function formatCategory(value) {
+  const labels = {
+    COMMUNICATION: 'Giao tiếp',
+    FOUNDATION: 'Nền tảng',
+    ONLINE: 'Online',
+  };
+  return labels[String(value || '').toUpperCase()] || value || '-';
 }

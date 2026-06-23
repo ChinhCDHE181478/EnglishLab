@@ -58,6 +58,9 @@ public class CourseAssessment {
     @Column(name = "objective_answer_key", columnDefinition = "text")
     private String objectiveAnswerKey;
 
+    @Column(name = "ui_config_json", columnDefinition = "text")
+    private String uiConfigJson;
+
     @Column(name = "passing_score", precision = 4, scale = 1)
     private BigDecimal passingScore;
 

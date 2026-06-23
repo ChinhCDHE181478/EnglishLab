@@ -8,7 +8,6 @@ import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import jakarta.validation.Valid;
@@ -45,7 +44,7 @@ public class ContentManagerOnlineCourseController {
     @GetMapping
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) CourseCategoryCode category,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) PackageStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size

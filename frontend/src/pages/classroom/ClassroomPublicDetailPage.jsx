@@ -110,7 +110,7 @@ export default function ClassroomPublicDetailPage() {
     try {
       const data = await classroomApi.registerForClass(offering.id, { holdSpot });
       setRegistration(data);
-      setActionMessage(holdSpot ? 'Đã gửi yêu cầu giữ chỗ thành công. Training Manager sẽ xác nhận trong thời gian sớm nhất.' : 'Đã gửi đăng ký lớp thành công. Vui lòng chờ Training Manager xác nhận.');
+      setActionMessage(holdSpot ? 'Đã gửi yêu cầu giữ chỗ thành công. Điều phối đào tạo sẽ xác nhận trong thời gian sớm nhất.' : 'Đã gửi đăng ký lớp thành công. Vui lòng chờ điều phối đào tạo xác nhận.');
       setActionSuccess(true);
       await loadOffering();
     } catch (err) {
@@ -362,7 +362,7 @@ export default function ClassroomPublicDetailPage() {
                           Giữ chỗ trước
                         </button>
                         <p className="text-[10px] text-[#8b706e] text-center leading-4">
-                          Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Training Manager sẽ xác nhận.
+                          Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Điều phối đào tạo sẽ xác nhận.
                         </p>
                       </>
                     )}
@@ -415,7 +415,7 @@ export default function ClassroomPublicDetailPage() {
 
                     <div className="rounded-xl bg-blue-50/50 border border-blue-100/50 p-3 text-[10px] text-blue-800 flex items-start gap-2">
                       <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
-                      <p className="leading-4">Học phí được ghi nhận bởi Training Manager. Liên hệ trung tâm để nộp học phí nếu được yêu cầu.</p>
+                      <p className="leading-4">Học phí được ghi nhận bởi điều phối đào tạo. Liên hệ trung tâm để nộp học phí nếu được yêu cầu.</p>
                     </div>
                   </div>
                 )}
@@ -427,7 +427,7 @@ export default function ClassroomPublicDetailPage() {
                     'Giảng viên được chứng nhận IELTS / TOEIC chuyên nghiệp',
                     'Lớp học nhỏ, chú trọng phản hồi cá nhân từ giáo viên',
                     'Tài liệu học tập bản quyền, cập nhật theo đề thi thật',
-                    'Hỗ trợ đổi lịch linh hoạt qua Training Manager',
+                    'Hỗ trợ đổi lịch linh hoạt qua điều phối đào tạo',
                   ].map((point, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-xs text-[#584140]">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />

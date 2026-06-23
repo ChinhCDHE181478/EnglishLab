@@ -91,7 +91,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getPublicCourses(String keyword, CourseCategoryCode category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
+    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
         return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
                 .map(mapper::toPublicResponse);
     }
@@ -120,7 +120,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getManagerCourses(String keyword, CourseCategoryCode category, PackageStatus status, Pageable pageable) {
+    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable) {
         return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, null, null, null, status), pageable)
                 .map(mapper::toResponse);
     }
@@ -167,10 +167,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public CourseStatsResponse getStats() {
         return CourseStatsResponse.builder()
-                .totalCourses(learningPackageRepository.countByDeletedFalse())
-                .publishedCourses(learningPackageRepository.countByDeletedFalseAndStatus(PackageStatus.PUBLISHED))
-                .draftCourses(learningPackageRepository.countByDeletedFalseAndStatus(PackageStatus.DRAFT))
-                .archivedCourses(learningPackageRepository.countByDeletedFalseAndStatus(PackageStatus.ARCHIVED))
+                .totalCourses(onlineCourseRepository.countByLearningPackageDeletedFalse())
+                .publishedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.PUBLISHED))
+                .draftCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.DRAFT))
+                .archivedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.ARCHIVED))
                 .totalLessons(lessonRepository.countActiveLessons())
                 .totalEnrollments(enrollmentRepository.count())
                 .build();
@@ -178,11 +178,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     public OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail) {
+        validateCourseRequest(request);
         User creator = userRepository.findByEmail(creatorEmail).orElse(null);
         PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
                 .orElseThrow(() -> new RuntimeException("ONLINE_COURSE package type is missing"));
-        CourseCategory category = courseCategoryRepository.findByCode(request.getCategory())
+        CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
                 .orElseThrow(() -> new RuntimeException("Course category not found"));
+        if (!category.isActive()) {
+            throw new IllegalArgumentException("Danh mục khóa học đã ngừng hoạt động.");
+        }
 
         LearningPackage learningPackage = LearningPackage.builder()
                 .packageType(packageType)
@@ -223,10 +227,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request) {
+        validateCourseRequest(request);
         OnlineCourse course = findCourse(id);
         LearningPackage learningPackage = course.getLearningPackage();
-        CourseCategory category = courseCategoryRepository.findByCode(request.getCategory())
+        CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
                 .orElseThrow(() -> new RuntimeException("Course category not found"));
+        if (!category.isActive()
+                && (course.getCategory() == null || !category.getId().equals(course.getCategory().getId()))) {
+            throw new IllegalArgumentException("Danh mục khóa học đã ngừng hoạt động.");
+        }
 
         learningPackage.setTitle(request.getTitle().trim());
         learningPackage.setShortDescription(request.getShortDescription());
@@ -262,6 +271,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Override
     public OnlineCourseResponse publishCourse(Long id) {
         OnlineCourse course = findCourse(id);
+        validatePublishableCourse(course);
         course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
         return mapper.toResponse(course);
     }
@@ -813,6 +823,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             CourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
             AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
+            validateAssessmentConfiguration(request);
 
             assessment.setOnlineCourse(course);
             assessment.setModule(targetModule);
@@ -824,6 +835,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             assessment.setAiEvaluationMode(request.getAiEvaluationMode());
             assessment.setInstructions(request.getInstructions());
             assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
+            assessment.setUiConfigJson(request.getUiConfigJson());
             assessment.setPassingScore(IeltsBandScale.normalizeConfiguredPassingScore(
                     request.getPassingScore(),
                     request.getType(),
@@ -884,6 +896,24 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Assessment not found in this course"));
     }
 
+    private void validateAssessmentConfiguration(ContentManagerCourseAssessmentRequest request) {
+        if (request.getUiConfigJson() == null || request.getUiConfigJson().isBlank()) {
+            return;
+        }
+        try {
+            var root = objectMapper.readTree(request.getUiConfigJson());
+            if (!root.isObject() || !root.path("parts").isArray() || root.path("parts").isEmpty()) {
+                throw new RuntimeException("Cấu hình đề thi phải có ít nhất một phần.");
+            }
+            if (request.getObjectiveAnswerKey() == null || request.getObjectiveAnswerKey().isBlank()
+                    || !objectMapper.readTree(request.getObjectiveAnswerKey()).isObject()) {
+                throw new RuntimeException("Đáp án tham chiếu của đề thi không hợp lệ.");
+            }
+        } catch (JsonProcessingException exception) {
+            throw new RuntimeException("Cấu hình đề thi hoặc đáp án tham chiếu không phải JSON hợp lệ.");
+        }
+    }
+
     private CourseModule resolveAssessmentModule(List<CourseModule> modules, Long moduleId) {
         if (moduleId == null) {
             return null;
@@ -910,11 +940,24 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         for (Lesson lesson : module.getLessons()) {
             ensureLessonCanBeRemoved(lesson);
         }
+        List<CourseAssessment> moduleAssessments = courseAssessmentRepository.findByModule(module);
+        for (CourseAssessment assessment : moduleAssessments) {
+            if (assessment.getId() != null && assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())) {
+                throw new RuntimeException(
+                        "Không thể xóa mô-đun \"" + module.getTitle()
+                                + "\" vì đã có bài làm học viên trong bài kiểm tra \"" + assessment.getTitle() + "\"."
+                );
+            }
+        }
+        courseAssessmentRepository.deleteAll(moduleAssessments);
+        courseAssessmentRepository.flush();
     }
 
     private void ensureLessonCanBeRemoved(Lesson lesson) {
         if (lesson.getId() != null && lessonProgressRepository.existsByLessonId(lesson.getId())) {
-            throw new RuntimeException("Cannot remove lesson \"" + lesson.getTitle() + "\" because learner progress already exists.");
+            throw new RuntimeException(
+                    "Không thể xóa bài học \"" + lesson.getTitle() + "\" vì đã có tiến độ học viên."
+            );
         }
     }
 
@@ -931,6 +974,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .aiEvaluationMode(assessment.getAiEvaluationMode())
                 .instructions(assessment.getInstructions())
                 .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
+                .uiConfigJson(resolveAssessmentUiConfig(assessment))
                 .passingScore(assessment.getPassingScore())
                 .maxScore(IeltsBandScale.resolveScoreCap(assessment))
                 .timeLimitMinutes(assessment.getTimeLimitMinutes())
@@ -940,6 +984,23 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .latestSubmission((AiAssessmentSubmissionResponse) null)
                 .previousSubmission((AiAssessmentSubmissionResponse) null)
                 .build();
+    }
+
+    private String resolveAssessmentUiConfig(CourseAssessment assessment) {
+        if (assessment.getUiConfigJson() != null && !assessment.getUiConfigJson().isBlank()) {
+            return assessment.getUiConfigJson();
+        }
+        String instructions = assessment.getInstructions();
+        String marker = "[ENGLISHLAB_UI_CONFIG]";
+        if (instructions == null) {
+            return null;
+        }
+        int markerIndex = instructions.indexOf(marker);
+        if (markerIndex < 0) {
+            return null;
+        }
+        String embeddedConfig = instructions.substring(markerIndex + marker.length()).trim();
+        return embeddedConfig.isBlank() ? null : embeddedConfig;
     }
 
     private AssessmentRubricResponse toRubricResponse(AssessmentRubric rubric) {
@@ -1043,7 +1104,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
-    private Specification<OnlineCourse> courseSpec(String keyword, CourseCategoryCode category, Double currentBand, Double targetBand, AssessmentSkill skill, PackageStatus status) {
+    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, PackageStatus status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             Join<OnlineCourse, LearningPackage> learningPackage = root.join("learningPackage");
@@ -1054,8 +1115,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(learningPackage.get("status"), status));
             }
-            if (category != null) {
-                predicates.add(criteriaBuilder.equal(categoryJoin.get("code"), category));
+            if (category != null && !category.isBlank()) {
+                predicates.add(criteriaBuilder.equal(categoryJoin.get("code"), normalizeCategoryCode(category)));
             }
             if (keyword != null) {
                 String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
@@ -1108,6 +1169,41 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             }
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private void validateCourseRequest(OnlineCourseRequest request) {
+        Double minBand = request.getRecommendedCurrentBandMin();
+        Double maxBand = request.getRecommendedCurrentBandMax();
+        if (minBand != null && maxBand != null && minBand > maxBand) {
+            throw new IllegalArgumentException("Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.");
+        }
+
+        boolean hasPathCode = request.getLearningPathCode() != null && !request.getLearningPathCode().isBlank();
+        boolean hasPathName = request.getLearningPathName() != null && !request.getLearningPathName().isBlank();
+        if (hasPathCode != hasPathName) {
+            throw new IllegalArgumentException("Mã và tên lộ trình học phải được nhập cùng nhau.");
+        }
+        if (hasPathCode && request.getLearningPathOrder() == null) {
+            throw new IllegalArgumentException("Khóa học thuộc lộ trình phải có thứ tự.");
+        }
+        if (request.getStatus() == PackageStatus.PUBLISHED
+                && (request.getModules() == null
+                || request.getModules().isEmpty()
+                || request.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty()))) {
+            throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
+        }
+    }
+
+    private void validatePublishableCourse(OnlineCourse course) {
+        if (course.getModules() == null
+                || course.getModules().isEmpty()
+                || course.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty())) {
+            throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
+        }
+    }
+
+    private String normalizeCategoryCode(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     }
 
     private CourseCertificateResponse buildCertificateResponse(

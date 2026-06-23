@@ -13,9 +13,16 @@ public class UserRoleService {
     private final RoleRepository roleRepository;
 
     public void assignRole(User user, RoleEnum role) {
+        if (user.hasRole(role)) {
+            return;
+        }
         Role roleEntity = roleRepository.findByCodeAndActiveTrue(role)
                 .orElseThrow(() -> new IllegalStateException("Role chưa được cấu hình: " + role));
         user.getRoles().add(roleEntity);
+    }
+
+    public void ensureRole(User user, RoleEnum role) {
+        assignRole(user, role);
     }
 
     public void replaceRoles(User user, RoleEnum role) {

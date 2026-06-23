@@ -12,14 +12,12 @@ import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepositor
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import java.util.*;
@@ -27,8 +25,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class PlacementTestService {
-    private static final String TEST_CODE = "IELTS_PLACEMENT_MOCK_1";
-    private static final int MAX_ATTEMPTS = 3;
+    private static final String TEST_CODE = PlacementTestDefinitionService.TEST_CODE;
     private static final Pattern SPEAKING_METADATA_PATTERN = Pattern.compile("speaking mock test:|part prompts shown to the learner:|recording duration seconds:|voice signal detected:", Pattern.CASE_INSENSITIVE);
     private static final Set<String> WRITING_TASK_1_KEYWORDS = Set.of(
             "corn", "ethanol", "fuel", "process", "production", "produce", "diagram", "stages", "ferment", "fermentation", "liquid", "milling", "cook", "cooking", "purify", "purification"
@@ -46,24 +43,29 @@ public class PlacementTestService {
     private final PlacementTestAttemptRepository attemptRepository;
     private final AiEvaluationClient aiEvaluationClient;
     private final AssessmentAudioStorageService audioStorageService;
+    private final PlacementTestDefinitionService definitionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Map<String, Object> getTest(String studentEmail) {
         User student = requireStudent(studentEmail);
+        var definition = definitionService.getDefinition();
+        if (!definition.isActive()) {
+            throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
+        }
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("testCode", TEST_CODE);
-        response.put("title", "Bài đánh giá đầu vào IELTS");
-        response.put("description", "Một phiên thi liên tục gồm Listening, Reading, Writing và Speaking.");
+        response.put("title", definition.getTitle());
+        response.put("description", definition.getDescription());
         long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
         response.put("attemptCount", attemptCount);
-        response.put("maxAttempts", MAX_ATTEMPTS);
-        response.put("canRetake", attemptCount < MAX_ATTEMPTS);
+        response.put("maxAttempts", definition.getMaxAttempts());
+        response.put("canRetake", attemptCount < definition.getMaxAttempts());
         Map<String, Object> sections = new LinkedHashMap<>();
-        sections.put("listening", toPlainObject(withoutAnswerKey(loadJson("placement-test/mock-1-listening.json"))));
-        sections.put("reading", toPlainObject(withoutAnswerKey(loadJson("assessment-data/ielts_mock_2025_january_reading_test_1.json"))));
-        sections.put("writing", toPlainObject(loadJson("assessment-data/ielts_mock_2025_january_writing_test_1.json")));
-        sections.put("speaking", toPlainObject(loadJson("placement-test/mock-1-speaking.json")));
+        sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
+        sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
+        sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
+        sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
         response.put("sections", sections);
         attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
                 .ifPresent(attempt -> response.put("latestAttempt", toResponse(attempt)));
@@ -73,13 +75,17 @@ public class PlacementTestService {
     @Transactional
     public PlacementTestAttemptResponse submit(PlacementTestSubmissionRequest request, String studentEmail) {
         User student = requireStudent(studentEmail);
-        if (attemptRepository.countByStudentAndTestCode(student, TEST_CODE) >= MAX_ATTEMPTS) {
-            throw new IllegalStateException("Bạn đã dùng hết 3 lượt làm bài đánh giá đầu vào.");
+        var definition = definitionService.getDefinition();
+        if (!definition.isActive()) {
+            throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
+        }
+        if (attemptRepository.countByStudentAndTestCode(student, TEST_CODE) >= definition.getMaxAttempts()) {
+            throw new IllegalStateException("Bạn đã dùng hết lượt làm bài đánh giá đầu vào.");
         }
         validateSubmission(request);
 
-        JsonNode listeningConfig = loadJson("placement-test/mock-1-listening.json");
-        JsonNode readingConfig = loadJson("assessment-data/ielts_mock_2025_january_reading_test_1.json");
+        JsonNode listeningConfig = definitionService.getConfig(definition, "listening");
+        JsonNode readingConfig = definitionService.getConfig(definition, "reading");
         JsonNode listeningAnswers = objectMapper.valueToTree(request.getListeningAnswers());
         JsonNode readingAnswers = objectMapper.valueToTree(request.getReadingAnswers());
         JsonNode writingAnswers = objectMapper.valueToTree(request.getWritingAnswers());
@@ -89,8 +95,8 @@ public class PlacementTestService {
 
         BigDecimal listeningBand = listeningBand(listening.correct());
         BigDecimal readingBand = readingBand(reading.correct());
-        JsonNode writingConfig = loadJson("assessment-data/ielts_mock_2025_january_writing_test_1.json");
-        JsonNode speakingConfig = loadJson("placement-test/mock-1-speaking.json");
+        JsonNode writingConfig = definitionService.getConfig(definition, "writing");
+        JsonNode speakingConfig = definitionService.getConfig(definition, "speaking");
         AiEvaluationResult aiResult = evaluateProductiveSkills(request, writingConfig, speakingConfig);
         BigDecimal productiveBand = normalizeBand(aiResult == null ? null : aiResult.getEstimatedScore());
         BigDecimal writingBand = extractBand(aiResult, "writingBand", productiveBand);
@@ -121,7 +127,10 @@ public class PlacementTestService {
                 .status(status)
                 .submittedAt(LocalDateTime.now())
                 .build();
-        return toResponse(attemptRepository.save(attempt));
+        PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
+        student.setCurrentBand(overall == null ? null : overall.doubleValue());
+        userRepository.save(student);
+        return toResponse(savedAttempt);
     }
 
     private AiEvaluationResult evaluateProductiveSkills(PlacementTestSubmissionRequest request, JsonNode writingConfig, JsonNode speakingConfig) {
@@ -452,15 +461,6 @@ public class PlacementTestService {
         ObjectNode copy = source.deepCopy();
         copy.remove("answerKey");
         return copy;
-    }
-
-    private JsonNode loadJson(String path) {
-        try {
-            String content = new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
-            return objectMapper.readTree(content);
-        } catch (IOException exception) {
-            throw new IllegalStateException("Không thể tải dữ liệu bài đánh giá đầu vào.", exception);
-        }
     }
 
     private String writeJson(JsonNode node) {

@@ -264,6 +264,16 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getTeacherMaterialLibrary() {
+    const response = await axiosClient.get('/api/teacher/classrooms/material-library');
+    return asList(unwrapData(response));
+  },
+
+  async attachTeacherLibraryMaterial(classroomId, payload) {
+    const response = await axiosClient.post(`/api/teacher/classrooms/${classroomId}/materials/from-library`, payload);
+    return unwrapData(response);
+  },
+
   async getTeacherAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
@@ -424,8 +434,42 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async uploadContentManagerMaterial(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post('/api/content-manager/classrooms/materials/upload', formData);
+    return unwrapData(response);
+  },
+
   async deleteContentManagerMaterial(materialId) {
     const response = await axiosClient.delete(`/api/content-manager/classrooms/materials/${materialId}`);
+    return unwrapData(response);
+  },
+
+  async getContentManagerMaterialLibrary() {
+    const response = await axiosClient.get('/api/content-manager/classrooms/library');
+    return asList(unwrapData(response));
+  },
+
+  async createContentManagerMaterialLibraryItem(payload) {
+    const response = await axiosClient.post('/api/content-manager/classrooms/library', payload);
+    return unwrapData(response);
+  },
+
+  async updateContentManagerMaterialLibraryItem(materialId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/classrooms/library/${materialId}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteContentManagerMaterialLibraryItem(materialId) {
+    const response = await axiosClient.delete(`/api/content-manager/classrooms/library/${materialId}`);
+    return unwrapData(response);
+  },
+
+  async uploadContentManagerMaterialLibraryFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axiosClient.post('/api/content-manager/classrooms/library/upload', formData);
     return unwrapData(response);
   },
 

@@ -44,7 +44,9 @@ public class UserService implements IUserService {
         user.setPhoneNumber(request.getPhoneNumber().trim());
         user.setTargetExam(targetExam);
         user.setTargetScore(targetScore);
-        user.setCurrentBand(request.getCurrentBand());
+        if (request.getCurrentBand() != null) {
+            user.setCurrentBand(request.getCurrentBand());
+        }
         user.setStudyGoal(trimToNull(request.getStudyGoal()));
         user.setProfileCompleted(true);
 

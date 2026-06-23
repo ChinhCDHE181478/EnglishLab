@@ -77,7 +77,7 @@ export default function ManagerClassroomsPage() {
           <p className="text-[12px] font-extrabold uppercase tracking-[0.18em] text-[#730014]">Quản lý vận hành</p>
           <h1 className="mt-3 font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">Tổng quan lớp học</h1>
           <p className="mt-4 max-w-3xl text-base leading-8 text-[#584140]">
-            Xem trạng thái lớp, sĩ số và đăng ký. Các nghiệp vụ xác nhận đăng ký, học phí và xếp lớp do Training Manager xử lý tại{' '}
+            Xem trạng thái lớp, sĩ số và đăng ký. Các nghiệp vụ xác nhận đăng ký, học phí và xếp lớp do điều phối đào tạo xử lý tại{' '}
             <Link className="font-extrabold text-[#730014] underline" to="/training-manager/classroom-registrations">Quản lý đào tạo</Link>.
           </p>
         </section>

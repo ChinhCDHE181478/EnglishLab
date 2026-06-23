@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -85,6 +86,7 @@ export default function WritingExamMode({
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingTaskChange, setPendingTaskChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
@@ -234,6 +236,22 @@ export default function WritingExamMode({
     await onSubmit(buildPayload(autoSubmitted));
   };
 
+  const requestTaskChange = (task, index) => {
+    const targetKey = task?.key || `task_${index + 1}`;
+    if (!task || targetKey === activeTaskKey) return;
+    const currentMinimum = Number(activeTask?.minimumWords || activeTask?.minWords || 0);
+    const currentWords = countWords(responses[activeTaskKey]);
+    if (currentWords < currentMinimum) {
+      setPendingTaskChange({
+        task,
+        targetKey,
+        missingCount: Math.max(1, currentMinimum - currentWords),
+      });
+      return;
+    }
+    setActiveTaskKey(targetKey);
+  };
+
   return (
     <div
       ref={rootRef}
@@ -346,7 +364,7 @@ export default function WritingExamMode({
               <button
                 key={taskKey}
                 className={`rounded-[24px] border px-5 py-4 text-left transition ${taskKey === activeTaskKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ead8d5] bg-white hover:bg-[#fff7f7]'}`}
-                onClick={() => setActiveTaskKey(taskKey)}
+                onClick={() => requestTaskChange(task, index)}
                 type="button"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -367,7 +385,10 @@ export default function WritingExamMode({
           <button
             className="rounded-full border border-[#dfbfbd] px-4 py-3 text-[#8a0018] transition hover:bg-[#fff0f1] disabled:opacity-40"
             disabled={activeTaskIndex <= 0}
-            onClick={() => setActiveTaskKey(tasks[Math.max(0, activeTaskIndex - 1)]?.key || activeTaskKey)}
+            onClick={() => {
+              const nextIndex = Math.max(0, activeTaskIndex - 1);
+              requestTaskChange(tasks[nextIndex], nextIndex);
+            }}
             type="button"
           >
             <ArrowLeft aria-hidden="true" size={20} strokeWidth={2.2} />
@@ -375,7 +396,10 @@ export default function WritingExamMode({
           <button
             className="rounded-full border border-[#dfbfbd] px-4 py-3 text-[#8a0018] transition hover:bg-[#fff0f1] disabled:opacity-40"
             disabled={activeTaskIndex < 0 || activeTaskIndex >= tasks.length - 1}
-            onClick={() => setActiveTaskKey(tasks[Math.min(tasks.length - 1, activeTaskIndex + 1)]?.key || activeTaskKey)}
+            onClick={() => {
+              const nextIndex = Math.min(tasks.length - 1, activeTaskIndex + 1);
+              requestTaskChange(tasks[nextIndex], nextIndex);
+            }}
             type="button"
           >
             <ArrowRight aria-hidden="true" size={20} strokeWidth={2.2} />
@@ -429,6 +453,20 @@ export default function WritingExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingTaskChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={activeTask?.title || 'Task hiện tại'}
+          missingCount={pendingTaskChange.missingCount}
+          onCancel={() => setPendingTaskChange(null)}
+          onConfirm={() => {
+            setActiveTaskKey(pendingTaskChange.targetKey);
+            setPendingTaskChange(null);
+          }}
+          targetLabel={pendingTaskChange.task.title || 'Task tiếp theo'}
+          unitLabel="từ"
+        />
       ) : null}
     </div>
   );

@@ -62,9 +62,9 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS)
+        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
-                        .code(CourseCategoryCode.IELTS)
+                        .code(CourseCategoryCode.IELTS.name())
                         .name("IELTS")
                         .description("IELTS exam preparation courses")
                         .displayOrder(1)

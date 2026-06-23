@@ -17,6 +17,8 @@ public interface ClassroomContentService {
 
     ClassroomMaterialResponse createMaterial(Long offeringId, CreateMaterialRequest request, String uploaderEmail);
 
+    ClassroomMaterialResponse attachCenterMaterial(Long offeringId, Long centerMaterialId, Long sessionId, String uploaderEmail);
+
     void deleteMaterial(Long materialId);
 
     List<ClassroomAnnouncementResponse> getAnnouncements(Long offeringId);

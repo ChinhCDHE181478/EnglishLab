@@ -36,6 +36,7 @@ build/
 .env
 
 ### Local runtime artifacts ###
+*.class
 *.log
 *.err
 *.pid

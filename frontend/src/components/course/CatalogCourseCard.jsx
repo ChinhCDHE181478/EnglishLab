@@ -36,7 +36,7 @@ const CatalogCourseCard = ({ course, compact = false }) => {
 
       <div className="flex flex-1 flex-col">
         <span className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">
-          {categoryLabels[course.category] || course.category}
+          {course.categoryName || categoryLabels[course.category] || course.category}
         </span>
 
         <h4 className={`mt-2 line-clamp-2 font-extrabold leading-[1.18] text-[#1f1717] ${compact ? 'min-h-[58px] text-[20px]' : 'min-h-[64px] text-[24px]'}`}>

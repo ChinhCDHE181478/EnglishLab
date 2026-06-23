@@ -35,6 +35,7 @@ public class TeacherClassroomController {
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
+    private final CenterMaterialLibraryService centerMaterialLibraryService;
 
     @GetMapping("/assigned")
     public ResponseEntity<List<ClassroomOfferingResponse>> getAssignedClasses(Authentication authentication) {
@@ -216,10 +217,29 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(contentService.createMaterial(id, request, authentication.getName()));
     }
 
+    @PostMapping("/{id}/materials/from-library")
+    public ResponseEntity<ClassroomMaterialResponse> attachCenterMaterial(
+            @PathVariable Long id,
+            @Valid @RequestBody AttachCenterMaterialRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(contentService.attachCenterMaterial(
+                id,
+                request.getCenterMaterialId(),
+                request.getSessionId(),
+                authentication.getName()
+        ));
+    }
+
     @DeleteMapping("/materials/{materialId}")
     public ResponseEntity<Void> deleteMaterial(@PathVariable Long materialId) {
         contentService.deleteMaterial(materialId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/material-library")
+    public ResponseEntity<List<CenterMaterialLibraryItemResponse>> getPublishedMaterialLibrary() {
+        return ResponseEntity.ok(centerMaterialLibraryService.listPublishedForTeacher());
     }
 
     @GetMapping("/{id}/announcements")

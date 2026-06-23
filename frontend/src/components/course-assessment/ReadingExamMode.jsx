@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -65,6 +66,7 @@ export default function ReadingExamMode({
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingPartChange, setPendingPartChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
@@ -247,6 +249,18 @@ export default function ReadingExamMode({
     await onSubmit(buildPayload(autoSubmitted));
   };
 
+  const requestPartChange = (part) => {
+    if (part.key === activePartKey) return;
+    const questionNumbers = flattenQuestionNumbers([activePart]);
+    const answered = questionNumbers.filter((number) => isQuestionAnswered(activePart, number, answers)).length;
+    const missingCount = Math.max(0, questionNumbers.length - answered);
+    if (missingCount > 0) {
+      setPendingPartChange({ part, missingCount });
+      return;
+    }
+    setActivePartKey(part.key);
+  };
+
   const renderQuestion = (group, question) => {
     if (group.type === 'select') {
       return (
@@ -372,8 +386,9 @@ export default function ReadingExamMode({
     >
       <header className="flex min-h-[76px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">EnglishLab Reading Exam</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi đọc EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
+          {config?.rules?.length ? <p className="mt-1 max-w-3xl text-xs leading-5 text-[#6f5a58]">{config.rules.join(' · ')}</p> : null}
         </div>
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-[#fff0f1] px-5 py-2 text-xl font-black text-[#8a0018]">
@@ -433,7 +448,7 @@ export default function ReadingExamMode({
             <button
               key={part.key}
               className={`rounded-2xl border px-4 py-3 text-left transition ${part.key === activePartKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ecd7db] bg-white hover:bg-[#fff7f7]'}`}
-              onClick={() => setActivePartKey(part.key)}
+              onClick={() => requestPartChange(part)}
               type="button"
             >
               <span className="font-black text-[#341c1d]">Part {part.partNumber}</span>
@@ -493,6 +508,19 @@ export default function ReadingExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingPartChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={`Part ${activePart?.partNumber || ''}`}
+          missingCount={pendingPartChange.missingCount}
+          onCancel={() => setPendingPartChange(null)}
+          onConfirm={() => {
+            setActivePartKey(pendingPartChange.part.key);
+            setPendingPartChange(null);
+          }}
+          targetLabel={`Part ${pendingPartChange.part.partNumber || ''}`}
+        />
       ) : null}
     </div>
   );

@@ -32,11 +32,12 @@ public class ContentManagerDiscountCodeController {
     @GetMapping
     public ResponseEntity<Page<DiscountCodeResponse>> getDiscountCodes(
             @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "false") boolean includeInactive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return ResponseEntity.ok(discountCodeService.getDiscountCodes(keyword, pageable));
+        return ResponseEntity.ok(discountCodeService.getDiscountCodes(keyword, includeInactive, pageable));
     }
 
     @PostMapping

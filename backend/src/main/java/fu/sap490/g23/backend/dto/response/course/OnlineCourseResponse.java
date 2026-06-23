@@ -1,6 +1,5 @@
 package fu.sap490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.AllArgsConstructor;
@@ -24,7 +23,7 @@ public class OnlineCourseResponse {
     private String slug;
     private String shortDescription;
     private String description;
-    private CourseCategoryCode category;
+    private String category;
     private String categoryName;
     private CourseLevel level;
     private PackageStatus status;

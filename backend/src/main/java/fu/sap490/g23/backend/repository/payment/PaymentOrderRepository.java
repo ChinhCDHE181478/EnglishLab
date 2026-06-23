@@ -14,4 +14,5 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     Optional<PaymentOrder> findByPaymentLinkId(String paymentLinkId);
     Optional<PaymentOrder> findTopByStudentOrderByCreatedAtDesc(User student);
     List<PaymentOrder> findByStatusIn(Collection<PaymentOrderStatus> statuses);
+    long countByDiscountCode_Id(Long discountCodeId);
 }

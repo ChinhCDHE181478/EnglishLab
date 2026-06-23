@@ -10,5 +10,6 @@ import java.util.List;
 public interface CourseAssessmentRepository extends JpaRepository<CourseAssessment, Long> {
     List<CourseAssessment> findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(OnlineCourse onlineCourse);
     List<CourseAssessment> findByModuleAndActiveTrueOrderByDisplayOrderAscIdAsc(CourseModule module);
+    List<CourseAssessment> findByModule(CourseModule module);
     long countByOnlineCourseAndActiveTrue(OnlineCourse onlineCourse);
 }

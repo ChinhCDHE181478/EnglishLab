@@ -377,8 +377,6 @@ export default function SpeakingExamMode({
               )}
             </div>
 
-            {activePrompt.text ? <p className="mx-auto mt-6 max-w-3xl text-xl font-semibold leading-9 text-[#341c1d]">{activePrompt.text}</p> : null}
-
             {activePart?.cueCardTitle ? (
               <div className="mx-auto mt-6 max-w-3xl rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>

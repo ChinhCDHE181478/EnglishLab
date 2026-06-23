@@ -7,6 +7,7 @@ import ListeningExamMode from '../components/course-assessment/ListeningExamMode
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
 import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
+import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
 import CourseFooter from '../components/course/CourseFooter';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import { formatBandValue } from '../utils/selfPacedHelpers';
@@ -797,6 +798,7 @@ export default function PlacementTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState(null);
+  const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
   const activeSkill = SKILLS[skillIndex];
   const activeConfig = test?.sections?.[activeSkill?.key];
@@ -948,6 +950,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.listening, payload);
       setDraft((current) => ({ ...current, listeningAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -961,6 +969,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.reading, payload);
       setDraft((current) => ({ ...current, readingAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -974,11 +988,31 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toWritingAnswers(test?.sections?.writing, payload);
       setDraft((current) => ({ ...current, writingAnswers: { ...current.writingAnswers, ...nextAnswers } }));
+      const parsed = parseObjectivePayload(payload);
+      const incompleteTasks = (parsed.tasks || []).filter((task) => Number(task.wordCount || 0) < Number(task.minimumWords || 0)).length;
+      if (incompleteTasks > 0) {
+        setPendingSkillAdvance({ missingCount: incompleteTasks, unitLabel: 'task' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
     }
   };
+
+  const renderSkillAdvanceDialog = () => pendingSkillAdvance ? (
+    <ExamSectionChangeDialog
+      currentLabel={activeSkill?.label || 'Phần hiện tại'}
+      missingCount={pendingSkillAdvance.missingCount}
+      onCancel={() => setPendingSkillAdvance(null)}
+      onConfirm={() => {
+        setPendingSkillAdvance(null);
+        goToNextSkill();
+      }}
+      targetLabel={SKILLS[skillIndex + 1]?.label || 'phần tiếp theo'}
+      unitLabel={pendingSkillAdvance.unitLabel}
+    />
+  ) : null;
 
   const startRetake = () => {
     if (!canRetake) return;
@@ -1099,6 +1133,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -1117,6 +1152,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -1135,6 +1171,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }

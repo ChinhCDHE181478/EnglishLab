@@ -347,8 +347,17 @@ public class ClassroomMapper {
                 .title(material.getTitle())
                 .fileUrl(material.getFileUrl())
                 .fileType(material.getFileType())
+                .description(material.getDescription())
+                .materialType(material.getMaterialType())
+                .provider(material.getProvider())
                 .visibility(material.getVisibility())
+                .sourceType(material.getSourceType())
+                .centerMaterialId(material.getCenterMaterialId())
                 .sessionId(material.getSession() == null ? null : material.getSession().getId())
+                .sessionTitle(material.getSession() == null ? null : material.getSession().getSessionContent())
+                .uploadedByName(material.getUploadedBy() == null ? null : material.getUploadedBy().getFullName())
+                .createdAt(material.getCreatedAt())
+                .updatedAt(material.getUpdatedAt())
                 .build();
     }
 

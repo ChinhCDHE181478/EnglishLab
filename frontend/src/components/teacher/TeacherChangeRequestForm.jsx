@@ -263,7 +263,7 @@ export default function TeacherChangeRequestForm({
         newValuesJson: buildNewValuesJson(),
         reason: form.reason.trim(),
       });
-      onMessage?.('Đã gửi yêu cầu thay đổi. Training Manager sẽ xem xét và phê duyệt.');
+      onMessage?.('Đã gửi yêu cầu thay đổi. Điều phối đào tạo sẽ xem xét và phê duyệt.');
       setForm(emptyForm);
       onSubmitted?.();
     } catch (err) {
@@ -447,7 +447,7 @@ export default function TeacherChangeRequestForm({
         <textarea
           className="min-h-[120px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white focus:ring-2 focus:ring-[#730014]/5"
           onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))}
-          placeholder="Mô tả lý do thay đổi để Training Manager xem xét..."
+          placeholder="Mô tả lý do thay đổi để điều phối đào tạo xem xét..."
           value={form.reason}
         />
       </div>

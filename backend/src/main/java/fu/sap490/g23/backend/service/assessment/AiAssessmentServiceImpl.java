@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.assessment;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -292,8 +293,11 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 continue;
             }
 
-            String expected = resolveExpectedAnswer(answerKeyRoot, questionNumber);
-            boolean correct = normalizeAnswer(studentAnswer).equals(normalizeAnswer(expected));
+            List<String> expectedAnswers = resolveExpectedAnswers(answerKeyRoot, questionNumber);
+            boolean correct = !expectedAnswers.isEmpty()
+                    && expectedAnswers.stream()
+                    .map(this::normalizeAnswer)
+                    .anyMatch(expected -> expected.equals(normalizeAnswer(studentAnswer)));
             summary.totalCount += 1;
             partSummary.totalCount += 1;
             if (correct) {
@@ -301,7 +305,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 partSummary.correctCount += 1;
                 partSummary.strengths.add("Câu " + questionNumber + " đúng.");
             } else {
-                String feedback = "Câu " + questionNumber + ": đáp án đúng là " + fallbackText(expected) + ", bài làm của bạn là " + fallbackText(studentAnswer) + ".";
+                String feedback = "Câu " + questionNumber + ": đáp án chấp nhận là "
+                        + fallbackText(String.join(" / ", expectedAnswers))
+                        + ", bài làm của bạn là " + fallbackText(studentAnswer) + ".";
                 partSummary.weaknesses.add(feedback);
             }
         }
@@ -514,20 +520,29 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return selected;
     }
 
-    private String resolveExpectedAnswer(JsonNode answerKeyRoot, String questionNumber) {
+    private List<String> resolveExpectedAnswers(JsonNode answerKeyRoot, String questionNumber) {
+        List<String> expectedAnswers = new ArrayList<>();
         if (answerKeyRoot == null || !answerKeyRoot.isObject()) {
-            return "";
+            return expectedAnswers;
         }
         JsonNode directNode = answerKeyRoot.path(questionNumber);
         if (directNode.isMissingNode() || directNode.isNull()) {
-            return "";
+            return expectedAnswers;
         }
         if (directNode.isArray()) {
-            List<String> values = new ArrayList<>();
-            directNode.forEach(item -> values.add(item.asText("")));
-            return String.join(", ", values);
+            directNode.forEach(item -> {
+                String value = item.asText("").trim();
+                if (!value.isBlank()) {
+                    expectedAnswers.add(value);
+                }
+            });
+            return expectedAnswers;
         }
-        return directNode.asText("");
+        String value = directNode.asText("").trim();
+        if (!value.isBlank()) {
+            expectedAnswers.add(value);
+        }
+        return expectedAnswers;
     }
 
     private String buildMultiSelectFeedback(String questionNumber, Set<String> expected, Set<String> selected, Set<String> missing, Set<String> extra, int earned, int total) {
@@ -1216,6 +1231,21 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return instructions.substring(instructions.indexOf(UI_CONFIG_MARKER) + UI_CONFIG_MARKER.length()).trim();
     }
 
+    private String sanitizeUiConfigJson(String uiConfigJson) {
+        if (uiConfigJson == null || uiConfigJson.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(uiConfigJson);
+            if (root.isObject()) {
+                ((ObjectNode) root).remove("answerKey");
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (JsonProcessingException exception) {
+            throw new RuntimeException("Cấu hình giao diện bài thi không hợp lệ.");
+        }
+    }
+
     private String extractDisplayInstructions(String instructions) {
         if (instructions == null || instructions.isBlank()) {
             return instructions;
@@ -1248,7 +1278,11 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .aiEvaluationMode(assessment.getAiEvaluationMode())
                 .instructions(extractDisplayInstructions(rawInstructions))
                 .objectiveAnswerKey(null)
-                .uiConfigJson(extractUiConfigJson(rawInstructions))
+                .uiConfigJson(sanitizeUiConfigJson(
+                        assessment.getUiConfigJson() == null || assessment.getUiConfigJson().isBlank()
+                                ? extractUiConfigJson(rawInstructions)
+                                : assessment.getUiConfigJson()
+                ))
                 .passingScore(assessment.getPassingScore())
                 .maxScore(IeltsBandScale.resolveScoreCap(assessment))
                 .resolvedPassingThreshold(passingThresholdResolver.resolve(assessment))

@@ -43,6 +43,7 @@ public class ContentManagerCourseAssessmentRequest {
 
     private String instructions;
     private String objectiveAnswerKey;
+    private String uiConfigJson;
 
     @DecimalMin(value = "0.0")
     private BigDecimal passingScore;

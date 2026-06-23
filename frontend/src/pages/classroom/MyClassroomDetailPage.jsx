@@ -675,7 +675,7 @@ export default function MyClassroomDetailPage() {
       if (!gradebook) {
         return (
           <ClassroomEmptyState
-            description="Bảng điểm chính thức chưa được công bố bởi giảng viên hoặc Training Manager."
+            description="Bảng điểm chính thức chưa được công bố bởi giảng viên hoặc điều phối đào tạo."
             title="Chưa có bảng điểm"
           />
         );
@@ -775,12 +775,25 @@ export default function MyClassroomDetailPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#730014] mb-4">
                   <FileText className="h-5 w-5" />
                 </div>
-                <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] line-clamp-1">
-                  {material.title}
-                </h4>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] line-clamp-1">
+                    {material.title}
+                  </h4>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-extrabold ${
+                    material.sourceType === 'CENTER_LIBRARY'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-[#fff2f3] text-[#730014]'
+                  }`}>
+                    {material.sourceType === 'CENTER_LIBRARY' ? 'Từ trung tâm' : 'Riêng của lớp'}
+                  </span>
+                </div>
                 {material.description ? (
                   <p className="mt-2 text-xs text-[#584140] line-clamp-2 leading-5">{material.description}</p>
                 ) : null}
+                <div className="mt-3 space-y-1 text-[11px] font-semibold text-[#8b706e]">
+                  <p>Nguồn: <span className="text-[#584140]">{material.provider || 'EnglishLab'}</span></p>
+                  <p>Buổi học: <span className="text-[#584140]">{material.sessionTitle || 'Không gắn buổi cụ thể'}</span></p>
+                </div>
               </div>
 
               {material.fileUrl && (

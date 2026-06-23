@@ -64,6 +64,14 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getOnlineCourseCategories() {
+    const response = await axiosClient.get('/api/online-courses/categories', {
+      skipAuthRedirect: true,
+    });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
   async getEnrolledCourseContent(courseId) {
     const response = await axiosClient.get(`/api/student/online-courses/${courseId}/content`);
     return unwrapData(response);
@@ -231,6 +239,27 @@ export const courseApi = {
 
   async getManagedCourseStats() {
     const response = await axiosClient.get('/api/content-manager/online-courses/stats');
+    return unwrapData(response);
+  },
+
+  async getManagedCourseCategories() {
+    const response = await axiosClient.get('/api/content-manager/course-categories');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createManagedCourseCategory(payload) {
+    const response = await axiosClient.post('/api/content-manager/course-categories', payload);
+    return unwrapData(response);
+  },
+
+  async updateManagedCourseCategory(id, payload) {
+    const response = await axiosClient.put(`/api/content-manager/course-categories/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteManagedCourseCategory(id) {
+    const response = await axiosClient.delete(`/api/content-manager/course-categories/${id}`);
     return unwrapData(response);
   },
 
