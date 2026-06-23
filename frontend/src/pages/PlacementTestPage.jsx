@@ -575,6 +575,7 @@ function LegacyPlacementSpeakingExamMode({
   submitLabel = 'Nộp toàn bộ bài thi',
 }) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 15)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [violations, setViolations] = useState([]);
@@ -582,17 +583,19 @@ function LegacyPlacementSpeakingExamMode({
   const intentionalExitRef = useRef(false);
 
   useEffect(() => {
+    if (submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending) return;
     submittedRef.current = true;
-    void onSubmit(true);
-  }, [onSubmit, remainingSeconds, submitting]);
+    setSubmissionPending(true);
+    Promise.resolve(onSubmit(true)).finally(() => setSubmissionPending(false));
+  }, [onSubmit, remainingSeconds, submissionPending, submitting]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -720,11 +723,18 @@ function LegacyPlacementSpeakingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={submitting}
-            onClick={() => onSubmit(false)}
+            disabled={submitting || submissionPending}
+            onClick={async () => {
+              setSubmissionPending(true);
+              try {
+                await onSubmit(false);
+              } finally {
+                setSubmissionPending(false);
+              }
+            }}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>

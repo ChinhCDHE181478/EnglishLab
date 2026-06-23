@@ -1414,7 +1414,7 @@ export default function AiAssessmentPanel({
   }, [pendingSpeakingSubmit, selected?.skill, isRecording, uploadingAudio, submitting, hasMeaningfulSpeakingEvidence]);
 
   useEffect(() => {
-    if (!speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
+    if (submitting || pendingSpeakingSubmit || !speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
       return undefined;
     }
 
@@ -1458,7 +1458,7 @@ export default function AiAssessmentPanel({
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant]);
+  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant, pendingSpeakingSubmit, submitting]);
 
   useEffect(() => () => {
     if (audioPreviewUrl) {

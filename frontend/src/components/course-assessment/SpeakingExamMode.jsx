@@ -256,12 +256,12 @@ export default function SpeakingExamMode({
   }, [isRecording]);
 
   useEffect(() => {
-    if (stage !== 'exam') return undefined;
+    if (stage !== 'exam' || pendingSubmit || submitting || uploading) return undefined;
     const interval = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [partIndex, stage]);
+  }, [partIndex, pendingSubmit, stage, submitting, uploading]);
 
   useEffect(() => {
     if (stage !== 'exam' || activePrompt.videoUrl || isRecording) return undefined;

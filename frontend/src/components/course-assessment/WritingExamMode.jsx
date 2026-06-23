@@ -84,6 +84,7 @@ export default function WritingExamMode({
   const [activeTaskKey, setActiveTaskKey] = useState(tasks[0]?.key || 'task_1');
   const [responses, setResponses] = useState(() => buildInitialResponses(tasks, initialSubmissionText));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [pendingTaskChange, setPendingTaskChange] = useState(null);
@@ -100,17 +101,18 @@ export default function WritingExamMode({
   );
 
   useEffect(() => {
+    if (isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isLocked, submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, submitting, isLocked]);
+  }, [remainingSeconds, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -198,7 +200,7 @@ export default function WritingExamMode({
   };
 
   const updateResponse = (taskKey, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setResponses((current) => ({ ...current, [taskKey]: value }));
   };
 
@@ -232,8 +234,13 @@ export default function WritingExamMode({
   });
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
   };
 
   const requestTaskChange = (task, index) => {
@@ -282,11 +289,11 @@ export default function WritingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={isLocked || submitting}
+            disabled={isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>

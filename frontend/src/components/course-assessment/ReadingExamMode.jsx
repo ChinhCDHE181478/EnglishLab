@@ -64,6 +64,7 @@ export default function ReadingExamMode({
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [pendingPartChange, setPendingPartChange] = useState(null);
@@ -87,17 +88,18 @@ export default function ReadingExamMode({
   }, [answers, allQuestionNumbers.length]);
 
   useEffect(() => {
+    if (isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isLocked, submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, submitting, isLocked]);
+  }, [remainingSeconds, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -188,12 +190,12 @@ export default function ReadingExamMode({
   };
 
   const updateAnswer = (key, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => ({ ...current, [String(key)]: value }));
   };
 
   const toggleLetter = (groupKey, letter, maxSelections) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => {
       const currentValues = Array.isArray(current[groupKey]) ? current[groupKey] : [];
       if (currentValues.includes(letter)) {
@@ -245,8 +247,13 @@ export default function ReadingExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
   };
 
   const requestPartChange = (part) => {
@@ -406,11 +413,11 @@ export default function ReadingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] hover:brightness-105 disabled:opacity-60"
-            disabled={isLocked || submitting}
+            disabled={isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
