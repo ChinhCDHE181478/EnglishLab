@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Search,
   ChevronRight,
+  Paperclip,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
@@ -26,7 +27,13 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
-import { formatClassroomDateTime } from '../../utils/classroomHelpers';
+import { formatClassroomDateTime, getHomeworkMaxScore, getSubmissionFeedback } from '../../utils/classroomHelpers';
+import {
+  getHomeworkFeedbackLabel,
+  getHomeworkGradingHint,
+  getHomeworkSkillLabel,
+  isAiGradedHomework,
+} from '../../utils/homeworkGradingConfig';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
 
 const homeworkTabs = [
@@ -76,9 +83,17 @@ export default function MyHomeworkPage() {
   // Determine homework status for filtering
   const getHomeworkStatus = (item) => {
     if (item.mySubmission) {
-      return item.mySubmission.score != null ? 'GRADED' : 'SUBMITTED';
+      if (item.mySubmission.status === 'GRADED' || item.mySubmission.score != null) return 'GRADED';
+      return 'SUBMITTED';
     }
     return item.overdue ? 'OVERDUE' : 'NOT_SUBMITTED';
+  };
+
+  const canResubmitHomework = (item) => {
+    if (!item || item.status !== 'OPEN' || item.overdue) return false;
+    if (!item.mySubmission) return true;
+    if (item.mySubmission.status === 'SUBMITTED') return true;
+    return Boolean(item.allowResubmission);
   };
 
   // Filter and search homework
@@ -232,6 +247,12 @@ export default function MyHomeworkPage() {
                         <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-[#2b2828] line-clamp-1">
                           {item.title}
                         </h3>
+                        {isAiGradedHomework(item) ? (
+                          <p className="mt-1 text-[11px] font-bold text-purple-700">
+                            AI chấm · {getHomeworkSkillLabel(item.skill)}
+                            {item.rubricName ? ` · ${item.rubricName}` : ''}
+                          </p>
+                        ) : null}
                       </div>
 
                       {/* Content */}
@@ -239,6 +260,12 @@ export default function MyHomeworkPage() {
                         <p className="text-sm text-[#584140] line-clamp-3">
                           {item.instruction || 'Không có hướng dẫn chi tiết.'}
                         </p>
+
+                        {item.attachmentUrl ? (
+                          <a className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] underline" href={item.attachmentUrl} rel="noreferrer" target="_blank">
+                            <Paperclip className="h-3.5 w-3.5" /> Tải tệp đính kèm
+                          </a>
+                        ) : null}
 
                         <div className="grid gap-3 text-xs text-[#8b706e] sm:grid-cols-2 pt-2">
                           <div className="flex items-center gap-2">
@@ -248,7 +275,7 @@ export default function MyHomeworkPage() {
                           {isGraded && (
                             <div className="flex items-center gap-2">
                               <Award className="h-4 w-4 text-emerald-700" />
-                              <span>Điểm số: <strong className="text-emerald-700 text-sm font-extrabold">{item.mySubmission.score} / 10</strong></span>
+                              <span>Điểm số: <strong className="text-emerald-700 text-sm font-extrabold">{item.mySubmission.score} / {getHomeworkMaxScore(item)}</strong></span>
                             </div>
                           )}
                         </div>
@@ -262,14 +289,14 @@ export default function MyHomeworkPage() {
                         )}
 
                         {/* Teacher Feedback Preview */}
-                        {isGraded && item.mySubmission.feedback && (
+                        {isGraded && getSubmissionFeedback(item.mySubmission) && (
                           <div className="rounded-xl bg-emerald-50/30 border border-emerald-100/50 p-4 space-y-1">
                             <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
                               <MessageSquare className="h-3.5 w-3.5" />
-                              Nhận xét từ giảng viên
+                              {getHomeworkFeedbackLabel(item)}
                             </p>
                             <p className="text-xs text-[#584140] italic">
-                              "{item.mySubmission.feedback}"
+                              "{getSubmissionFeedback(item.mySubmission)}"
                             </p>
                           </div>
                         )}
@@ -292,6 +319,15 @@ export default function MyHomeworkPage() {
                           >
                             <Send className="h-3.5 w-3.5" />
                             Làm bài & Nộp bài
+                          </button>
+                        ) : canResubmitHomework(item) ? (
+                          <button
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/20 bg-white px-5 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
+                            onClick={() => handleOpenSubmitDrawer(item)}
+                            type="button"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                            Nộp lại bài
                           </button>
                         ) : (
                           <button
@@ -324,7 +360,7 @@ export default function MyHomeworkPage() {
       <DetailDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
-        title={selectedHomework?.mySubmission ? 'Bài tập đã nộp' : 'Nộp bài tập'}
+        title={selectedHomework?.mySubmission && !canResubmitHomework(selectedHomework) ? 'Bài tập đã nộp' : selectedHomework?.mySubmission ? 'Cập nhật bài nộp' : 'Nộp bài tập'}
       >
         {selectedHomework && (
           <div className="space-y-6">
@@ -344,16 +380,27 @@ export default function MyHomeworkPage() {
               </div>
             </div>
 
-            {/* Instruction */}
+              {getHomeworkGradingHint(selectedHomework) ? (
+                <div className="rounded-xl border border-purple-100 bg-purple-50/50 p-4 text-xs leading-5 text-purple-900">
+                  {getHomeworkGradingHint(selectedHomework)}
+                </div>
+              ) : null}
+
+              {/* Instruction */}
             <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-5 space-y-3">
               <h4 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Đề bài & Hướng dẫn</h4>
               <p className="text-sm text-[#584140] whitespace-pre-wrap leading-6">
                 {selectedHomework.instruction || 'Không có hướng dẫn chi tiết.'}
               </p>
+              {selectedHomework.attachmentUrl ? (
+                <a className="inline-flex items-center gap-1.5 text-sm font-bold text-[#730014] underline" href={selectedHomework.attachmentUrl} rel="noreferrer" target="_blank">
+                  <Paperclip className="h-4 w-4" /> Tải tệp đính kèm của giảng viên
+                </a>
+              ) : null}
             </div>
 
             {/* Submission Form or View */}
-            {selectedHomework.mySubmission ? (
+            {selectedHomework.mySubmission && !canResubmitHomework(selectedHomework) ? (
               <div className="space-y-5">
                 <div className="rounded-2xl border border-emerald-100 bg-emerald-50/10 p-5 space-y-4">
                   <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
@@ -368,7 +415,6 @@ export default function MyHomeworkPage() {
                   </p>
                 </div>
 
-                {/* Score & Feedback */}
                 {selectedHomework.mySubmission.score != null && (
                   <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-5 space-y-4">
                     <div className="flex items-center justify-between">
@@ -377,14 +423,14 @@ export default function MyHomeworkPage() {
                         Kết quả chấm điểm
                       </h4>
                       <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-800">
-                        {selectedHomework.mySubmission.score} / 10 điểm
+                        {selectedHomework.mySubmission.score} / {getHomeworkMaxScore(selectedHomework)} điểm
                       </span>
                     </div>
-                    {selectedHomework.mySubmission.feedback ? (
+                    {getSubmissionFeedback(selectedHomework.mySubmission) ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-[#8b706e]">Nhận xét của giảng viên:</p>
+                        <p className="text-xs font-bold text-[#8b706e]">{getHomeworkFeedbackLabel(selectedHomework)}:</p>
                         <p className="text-sm text-[#584140] italic bg-[#fffafb] border border-[#dfbfbd]/15 p-4 rounded-xl">
-                          "{selectedHomework.mySubmission.feedback}"
+                          "{getSubmissionFeedback(selectedHomework.mySubmission)}"
                         </p>
                       </div>
                     ) : (
@@ -403,7 +449,7 @@ export default function MyHomeworkPage() {
                   className="min-h-[180px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white focus:ring-2 focus:ring-[#730014]/5"
                   onChange={(e) => setSubmitAnswers((curr) => ({ ...curr, [selectedHomework.id]: e.target.value }))}
                   placeholder="Nhập nội dung bài làm hoặc câu trả lời của bạn tại đây..."
-                  value={submitAnswers[selectedHomework.id] || ''}
+                  value={submitAnswers[selectedHomework.id] ?? selectedHomework.mySubmission?.textAnswer ?? ''}
                 />
 
                 <div className="pt-4 flex gap-3">
@@ -413,14 +459,8 @@ export default function MyHomeworkPage() {
                     onClick={() => handleSubmit(selectedHomework.id)}
                     type="button"
                   >
-                    {submittingId === selectedHomework.id ? (
-                      <>Đang nộp bài...</>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4" />
-                        Nộp bài tập ngay
-                      </>
-                    )}
+                    <Send className="h-4 w-4" />
+                    {submittingId === selectedHomework.id ? 'Đang nộp bài...' : selectedHomework.mySubmission ? 'Cập nhật bài nộp' : 'Nộp bài tập ngay'}
                   </button>
                 </div>
               </div>

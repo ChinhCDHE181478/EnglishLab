@@ -43,6 +43,7 @@ import {
   formatTuitionSettlement,
 } from '../../utils/classroomHelpers';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 const capacityPercent = (enrolled, max) => {
   if (!max || max <= 0) return 0;
@@ -109,7 +110,7 @@ export default function ClassroomPublicDetailPage() {
     try {
       const data = await classroomApi.registerForClass(offering.id, { holdSpot });
       setRegistration(data);
-      setActionMessage(holdSpot ? 'Đã gửi yêu cầu giữ chỗ thành công. Training Manager sẽ xác nhận trong thời gian sớm nhất.' : 'Đã gửi đăng ký lớp thành công. Vui lòng chờ Training Manager xác nhận.');
+      setActionMessage(holdSpot ? 'Đã gửi yêu cầu giữ chỗ thành công. Điều phối đào tạo sẽ xác nhận trong thời gian sớm nhất.' : 'Đã gửi đăng ký lớp thành công. Vui lòng chờ điều phối đào tạo xác nhận.');
       setActionSuccess(true);
       await loadOffering();
     } catch (err) {
@@ -131,12 +132,15 @@ export default function ClassroomPublicDetailPage() {
   const canRegister = !isRegistered && !isFull && ['OPEN', 'UPCOMING'].includes(offering?.classroomStatus);
 
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+    <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
-      <Header />
+      <div className={PAGE_HEADER_CLASS}>
+        <Header />
+      </div>
 
+      <div className={PAGE_BODY_CLASS}>
       <motion.main
-        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        className={PAGE_MAIN_STACK_CLASS}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: 'easeOut' }}
@@ -358,7 +362,7 @@ export default function ClassroomPublicDetailPage() {
                           Giữ chỗ trước
                         </button>
                         <p className="text-[10px] text-[#8b706e] text-center leading-4">
-                          Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Training Manager sẽ xác nhận.
+                          Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Điều phối đào tạo sẽ xác nhận.
                         </p>
                       </>
                     )}
@@ -411,7 +415,7 @@ export default function ClassroomPublicDetailPage() {
 
                     <div className="rounded-xl bg-blue-50/50 border border-blue-100/50 p-3 text-[10px] text-blue-800 flex items-start gap-2">
                       <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
-                      <p className="leading-4">Học phí được ghi nhận bởi Training Manager. Liên hệ trung tâm để nộp học phí nếu được yêu cầu.</p>
+                      <p className="leading-4">Học phí được ghi nhận bởi điều phối đào tạo. Liên hệ trung tâm để nộp học phí nếu được yêu cầu.</p>
                     </div>
                   </div>
                 )}
@@ -423,7 +427,7 @@ export default function ClassroomPublicDetailPage() {
                     'Giảng viên được chứng nhận IELTS / TOEIC chuyên nghiệp',
                     'Lớp học nhỏ, chú trọng phản hồi cá nhân từ giáo viên',
                     'Tài liệu học tập bản quyền, cập nhật theo đề thi thật',
-                    'Hỗ trợ đổi lịch linh hoạt qua Training Manager',
+                    'Hỗ trợ đổi lịch linh hoạt qua điều phối đào tạo',
                   ].map((point, i) => (
                     <div key={i} className="flex items-start gap-2.5 text-xs text-[#584140]">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -436,6 +440,7 @@ export default function ClassroomPublicDetailPage() {
           </>
         ) : null}
       </motion.main>
+      </div>
 
       <CourseFooter />
     </div>

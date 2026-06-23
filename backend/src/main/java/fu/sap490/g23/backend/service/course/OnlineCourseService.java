@@ -12,7 +12,6 @@ import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import org.springframework.data.domain.Page;
@@ -22,10 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface OnlineCourseService {
-    Page<OnlineCourseResponse> getPublicCourses(String keyword, CourseCategoryCode category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable);
+    Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable);
     OnlineCourseResponse getPublicCourse(String slugOrId);
     CourseCertificateResponse verifyCourseCertificate(String verificationCode);
-    Page<OnlineCourseResponse> getManagerCourses(String keyword, CourseCategoryCode category, PackageStatus status, Pageable pageable);
+    Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable);
     OnlineCourseResponse getManagerCourse(String slugOrId);
     List<CourseAssessmentResponse> getManagerCourseAssessments(Long courseId);
     List<AssessmentRubricResponse> getManagerAssessmentRubrics();
@@ -37,6 +36,8 @@ public interface OnlineCourseService {
     OnlineCourseResponse archiveCourse(Long id);
     void deleteCourse(Long id);
     OnlineCourseResponse registerCourse(Long courseId, String studentEmail);
+    OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail);
+    OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail);
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);

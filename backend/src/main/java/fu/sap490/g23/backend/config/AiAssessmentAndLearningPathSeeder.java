@@ -64,7 +64,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         learningPackageRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(course -> {
-                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 6.5, 7.0,
+                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0, 7.0,
                             "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",
                             null);
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);
@@ -173,7 +173,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
             assessment.setAiEvaluationMode(AiEvaluationMode.RUBRIC_FEEDBACK);
             assessment.setInstructions("Use at least five target words from the module in IELTS-style sentences. Do not copy examples from the lesson.");
             assessment.setPassingScore(BigDecimal.valueOf(7.0));
-            assessment.setMaxScore(BigDecimal.TEN);
+            assessment.setMaxScore(BigDecimal.valueOf(9.0));
             assessment.setTimeLimitMinutes(20);
             assessment.setDisplayOrder(module.getDisplayOrder());
             assessment.setActive(true);

@@ -1,14 +1,23 @@
 package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.*;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.service.classroom.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @RestController
@@ -22,6 +31,11 @@ public class TeacherClassroomController {
     private final ClassroomHomeworkService homeworkService;
     private final ClassroomGradebookService gradebookService;
     private final ClassroomContentService contentService;
+    private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
+    private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
+    private final ClassroomSessionRepository sessionRepository;
+    private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
+    private final CenterMaterialLibraryService centerMaterialLibraryService;
 
     @GetMapping("/assigned")
     public ResponseEntity<List<ClassroomOfferingResponse>> getAssignedClasses(Authentication authentication) {
@@ -114,6 +128,27 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(homeworkService.create(id, request, authentication.getName()));
     }
 
+    @PostMapping(value = "/homework/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<HomeworkAttachmentUploadResponse> uploadHomeworkAttachment(
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/classroom-homework/attachments")
+                .toUriString();
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase));
+    }
+
+    @GetMapping("/homework/rubrics")
+    public ResponseEntity<List<AssessmentRubricResponse>> listHomeworkRubrics(
+            @RequestParam(required = false) AssessmentSkill skill
+    ) {
+        if (skill != null) {
+            return ResponseEntity.ok(homeworkGradingCatalogService.listRubricsBySkill(skill));
+        }
+        return ResponseEntity.ok(homeworkGradingCatalogService.listAllHomeworkRubrics());
+    }
+
     @PutMapping("/homework/{homeworkId}")
     public ResponseEntity<ClassroomHomeworkResponse> updateHomework(
             @PathVariable Long homeworkId,
@@ -136,6 +171,14 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(homeworkService.grade(homeworkId, studentId, request, authentication.getName()));
+    }
+
+    @GetMapping("/homework/{homeworkId}/submissions")
+    public ResponseEntity<List<ClassroomHomeworkSubmissionResponse>> getHomeworkSubmissions(
+            @PathVariable Long homeworkId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(homeworkService.listSubmissions(homeworkId, authentication.getName()));
     }
 
     @GetMapping("/{id}/gradebook")
@@ -165,6 +208,40 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(contentService.getMaterials(id));
     }
 
+    @PostMapping("/{id}/materials")
+    public ResponseEntity<ClassroomMaterialResponse> createMaterial(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateMaterialRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(contentService.createMaterial(id, request, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/materials/from-library")
+    public ResponseEntity<ClassroomMaterialResponse> attachCenterMaterial(
+            @PathVariable Long id,
+            @Valid @RequestBody AttachCenterMaterialRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(contentService.attachCenterMaterial(
+                id,
+                request.getCenterMaterialId(),
+                request.getSessionId(),
+                authentication.getName()
+        ));
+    }
+
+    @DeleteMapping("/materials/{materialId}")
+    public ResponseEntity<Void> deleteMaterial(@PathVariable Long materialId) {
+        contentService.deleteMaterial(materialId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/material-library")
+    public ResponseEntity<List<CenterMaterialLibraryItemResponse>> getPublishedMaterialLibrary() {
+        return ResponseEntity.ok(centerMaterialLibraryService.listPublishedForTeacher());
+    }
+
     @GetMapping("/{id}/announcements")
     public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(@PathVariable Long id) {
         return ResponseEntity.ok(contentService.getAnnouncements(id));
@@ -176,6 +253,40 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(changeRequestService.checkConflict(request, authentication.getName()));
+    }
+
+    @GetMapping("/sessions/{sessionId}/available-rooms")
+    public ResponseEntity<List<AvailableRoomOptionResponse>> getAvailableRooms(
+            @PathVariable Long sessionId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+    ) {
+        var session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
+        LocalDate resolvedDate = sessionDate != null ? sessionDate : session.getSessionDate();
+        LocalTime resolvedStart = startTime != null ? startTime : session.getStartTime();
+        LocalTime resolvedEnd = endTime != null ? endTime : session.getEndTime();
+        return ResponseEntity.ok(scheduleAvailabilityService.listAvailableRooms(
+                resolvedDate, resolvedStart, resolvedEnd, sessionId
+        ));
+    }
+
+    @GetMapping("/sessions/{sessionId}/available-teachers")
+    public ResponseEntity<List<AvailableTeacherOptionResponse>> getAvailableTeachers(
+            @PathVariable Long sessionId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+    ) {
+        var session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
+        LocalDate resolvedDate = sessionDate != null ? sessionDate : session.getSessionDate();
+        LocalTime resolvedStart = startTime != null ? startTime : session.getStartTime();
+        LocalTime resolvedEnd = endTime != null ? endTime : session.getEndTime();
+        return ResponseEntity.ok(scheduleAvailabilityService.listAvailableTeachers(
+                resolvedDate, resolvedStart, resolvedEnd, sessionId
+        ));
     }
 
     @PostMapping("/requests")

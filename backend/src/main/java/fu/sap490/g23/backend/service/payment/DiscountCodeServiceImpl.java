@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.payment.DiscountCode;
 import fu.sap490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.payment.DiscountCodeRepository;
+import fu.sap490.g23.backend.repository.payment.PaymentOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -25,18 +26,21 @@ public class DiscountCodeServiceImpl implements DiscountCodeService {
 
     private final DiscountCodeRepository discountCodeRepository;
     private final UserRepository userRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DiscountCodeResponse> getDiscountCodes(String keyword, Pageable pageable) {
+    public Page<DiscountCodeResponse> getDiscountCodes(String keyword, boolean includeInactive, Pageable pageable) {
         String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
-        Page<DiscountCodeResponse> page = discountCodeRepository.findAll(pageable).map(this::toResponse);
+        Page<DiscountCode> sourcePage = includeInactive
+                ? discountCodeRepository.findAll(pageable)
+                : discountCodeRepository.findByActiveTrue(pageable);
+        Page<DiscountCodeResponse> page = sourcePage.map(this::toResponse);
         if (normalizedKeyword.isBlank()) {
             return page;
         }
         List<DiscountCodeResponse> filtered = page.getContent().stream()
-                .filter(response -> normalizedKeyword.isBlank()
-                        || response.getCode().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
+                .filter(response -> response.getCode().toLowerCase(Locale.ROOT).contains(normalizedKeyword)
                         || response.getName().toLowerCase(Locale.ROOT).contains(normalizedKeyword))
                 .toList();
         return new PageImpl<>(filtered, pageable, filtered.size());
@@ -93,7 +97,17 @@ public class DiscountCodeServiceImpl implements DiscountCodeService {
     public void deleteDiscountCode(Long id) {
         DiscountCode discountCode = discountCodeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy mã giảm giá."));
+        int usedCount = safeCount(discountCode.getUsedCount());
+        int reservedCount = safeCount(discountCode.getReservedCount());
+        long paymentReferences = paymentOrderRepository.countByDiscountCode_Id(id);
+
+        if (usedCount == 0 && reservedCount == 0 && paymentReferences == 0) {
+            discountCodeRepository.delete(discountCode);
+            return;
+        }
+
         discountCode.setActive(false);
+        discountCodeRepository.save(discountCode);
     }
 
     private DiscountCodeResponse toResponse(DiscountCode discountCode) {

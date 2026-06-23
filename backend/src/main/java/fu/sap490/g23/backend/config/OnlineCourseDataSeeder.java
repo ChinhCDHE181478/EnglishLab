@@ -41,6 +41,7 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        repairLegacyCourseCategories();
         if (!seedEnabled) {
             return;
         }
@@ -66,26 +67,78 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     }
 
     private void seedCourseCategories() {
-        seedCategory(CourseCategoryCode.IELTS, "IELTS", "IELTS preparation courses", 1);
-        seedCategory(CourseCategoryCode.TOEIC, "TOEIC", "TOEIC preparation courses", 2);
-        seedCategory(CourseCategoryCode.COMMUNICATION, "Giao tiếp", "English communication courses", 3);
-        seedCategory(CourseCategoryCode.FOUNDATION, "Mất gốc", "Foundation English courses", 4);
-        seedCategory(CourseCategoryCode.ONLINE, "Online", "Online-first learning programs", 5);
+        seedCategory(CourseCategoryCode.IELTS, "IELTS", "Khóa học luyện thi IELTS.", 1);
+        seedCategory(CourseCategoryCode.TOEIC, "TOEIC", "Khóa học luyện thi TOEIC.", 2);
+        seedCategory(CourseCategoryCode.COMMUNICATION, "Giao tiếp", "Khóa học tiếng Anh giao tiếp.", 3);
+        seedCategory(CourseCategoryCode.FOUNDATION, "Nền tảng", "Khóa học củng cố nền tảng tiếng Anh.", 4);
+        seedCategory(CourseCategoryCode.ONLINE, "Trực tuyến", "Chương trình học trực tuyến linh hoạt.", 5);
+    }
+
+    private void repairLegacyCourseCategories() {
+        repairCategoryIfPresent(CourseCategoryCode.IELTS, "IELTS", "Khóa học luyện thi IELTS.");
+        repairCategoryIfPresent(CourseCategoryCode.TOEIC, "TOEIC", "Khóa học luyện thi TOEIC.");
+        repairCategoryIfPresent(CourseCategoryCode.COMMUNICATION, "Giao tiếp", "Khóa học tiếng Anh giao tiếp.");
+        repairCategoryIfPresent(CourseCategoryCode.FOUNDATION, "Nền tảng", "Khóa học củng cố nền tảng tiếng Anh.");
+        repairCategoryIfPresent(CourseCategoryCode.ONLINE, "Trực tuyến", "Chương trình học trực tuyến linh hoạt.");
+    }
+
+    private void repairCategoryIfPresent(CourseCategoryCode code, String name, String description) {
+        courseCategoryRepository.findByCode(code.name()).ifPresent(category -> {
+            boolean changed = false;
+            if (shouldRepairCategoryName(code, category.getName())) {
+                category.setName(name);
+                changed = true;
+            }
+            if (shouldRepairCategoryDescription(category.getDescription())) {
+                category.setDescription(description);
+                changed = true;
+            }
+            if (changed) {
+                courseCategoryRepository.save(category);
+            }
+        });
     }
 
     private void seedCategory(CourseCategoryCode code, String name, String description, int order) {
-        if (!courseCategoryRepository.existsByCode(code)) {
-            courseCategoryRepository.save(CourseCategory.builder()
-                    .code(code)
+        courseCategoryRepository.findByCode(code.name()).ifPresentOrElse(category -> {
+            repairCategoryIfPresent(code, name, description);
+        }, () -> courseCategoryRepository.save(CourseCategory.builder()
+                    .code(code.name())
                     .name(name)
                     .description(description)
                     .displayOrder(order)
-                    .build());
+                    .build()));
+    }
+
+    private boolean shouldRepairCategoryName(CourseCategoryCode code, String value) {
+        if (value == null || value.isBlank() || containsMojibake(value)) {
+            return true;
         }
+        return (code == CourseCategoryCode.FOUNDATION && value.equals("Mất gốc"))
+                || (code == CourseCategoryCode.ONLINE && value.equalsIgnoreCase("Online"));
+    }
+
+    private boolean shouldRepairCategoryDescription(String value) {
+        if (value == null || value.isBlank() || containsMojibake(value)) {
+            return true;
+        }
+        return value.equals("IELTS preparation courses")
+                || value.equals("TOEIC preparation courses")
+                || value.equals("English communication courses")
+                || value.equals("Foundation English courses")
+                || value.equals("Online-first learning programs");
+    }
+
+    private boolean containsMojibake(String value) {
+        return value.contains("\u00C3")
+                || value.contains("\u00C4")
+                || value.contains("\u00C2")
+                || value.contains("\u00E1\u00BB")
+                || value.contains("\u00E1\u00BA");
     }
 
     private void backfillMissingCourseCategories() {
-        CourseCategory defaultCategory = courseCategoryRepository.findByCode(CourseCategoryCode.ONLINE)
+        CourseCategory defaultCategory = courseCategoryRepository.findByCode(CourseCategoryCode.ONLINE.name())
                 .orElseThrow(() -> new IllegalStateException("ONLINE course category is missing"));
 
         for (OnlineCourse course : onlineCourseRepository.findAllByCategoryIsNull()) {
@@ -112,7 +165,7 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     }
 
     private CourseCategory findCategory(CourseCategoryCode code, CourseCategory fallback) {
-        return courseCategoryRepository.findByCode(code).orElse(fallback);
+        return courseCategoryRepository.findByCode(code.name()).orElse(fallback);
     }
 
     private void cleanupPlaceholderCourses() {

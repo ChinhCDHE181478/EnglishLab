@@ -31,6 +31,7 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 const requestFilters = [
   { id: 'all', label: 'Tất cả' },
@@ -96,11 +97,14 @@ export default function TeacherRequestsPage() {
   }, [requests]);
 
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+    <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
-      <Header />
+      <div className={PAGE_HEADER_CLASS}>
+        <Header />
+      </div>
+      <div className={PAGE_BODY_CLASS}>
       <motion.main
-        className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8"
+        className={PAGE_MAIN_STACK_CLASS}
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: 'easeOut' }}
@@ -108,7 +112,7 @@ export default function TeacherRequestsPage() {
         {/* Page Hero with operational stats */}
         <PageHero
           title="Yêu cầu thay đổi"
-          subtitle="Theo dõi tiến trình phê duyệt các đề xuất thay đổi lịch, phòng học hoặc giáo viên thay thế từ Training Manager."
+          subtitle="Theo dõi tiến trình phê duyệt các đề xuất thay đổi lịch, phòng học hoặc giáo viên thay thế từ điều phối đào tạo."
           stats={stats}
           action={
             <Link
@@ -202,6 +206,7 @@ export default function TeacherRequestsPage() {
           ) : null}
         </div>
       </motion.main>
+      </div>
       <CourseFooter />
     </div>
   );

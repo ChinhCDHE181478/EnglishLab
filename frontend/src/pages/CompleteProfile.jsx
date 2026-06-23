@@ -21,7 +21,9 @@ import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import { getStoredUser, hasAnyUserRole } from '../utils/auth';
 
-const targetOptions = ['IELTS', 'TOEIC', 'Giao tiếp', 'Du học', 'Khác'];
+const targetOptions = ['IELTS', 'TOEIC'];
+const IELTS_TARGET_SCORES = Array.from({ length: 19 }, (_, index) => (index / 2).toFixed(1));
+const TOEIC_TARGET_SCORES = Array.from({ length: 197 }, (_, index) => String(10 + index * 5));
 
 const TABS = [
   { id: 'account', label: 'Tài khoản' },
@@ -142,7 +144,8 @@ function SaveBtn({ loading, label = 'Lưu thay đổi' }) {
 }
 
 // ── Tab: Tài khoản ──────────────────────────────────────────────────────────
-function AccountTab({ user, onUserUpdate }) {
+function AccountTab({ user, onUserUpdate, onboarding }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
@@ -168,7 +171,11 @@ function AccountTab({ user, onUserUpdate }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'targetExam' ? { targetScore: '' } : {}),
+    }));
     setInfoMsg({ type: '', text: '' });
   };
 
@@ -176,6 +183,10 @@ function AccountTab({ user, onUserUpdate }) {
     e.preventDefault();
     if (!formData.fullName.trim()) {
       setInfoMsg({ type: 'error', text: 'Vui lòng nhập họ và tên.' });
+      return;
+    }
+    if (!formData.targetScore) {
+      setInfoMsg({ type: 'error', text: 'Vui lòng chọn điểm mục tiêu.' });
       return;
     }
     setInfoLoading(true);
@@ -186,6 +197,9 @@ function AccountTab({ user, onUserUpdate }) {
       window.dispatchEvent(new Event('englishlab:user-updated'));
       onUserUpdate?.(res.data);
       setInfoMsg({ type: 'success', text: 'Thông tin đã được cập nhật.' });
+      if (onboarding) {
+        navigate('/home', { replace: true });
+      }
     } catch (err) {
       setInfoMsg({ type: 'error', text: err.response?.data?.message || 'Không thể lưu. Vui lòng thử lại.' });
     } finally {
@@ -260,7 +274,18 @@ function AccountTab({ user, onUserUpdate }) {
               </div>
             </Field>
             <Field label="Điểm mục tiêu">
-              <TextInput icon={Target} name="targetScore" value={formData.targetScore} onChange={handleChange} placeholder="Ví dụ: 7.0 hoặc 850" />
+              <div className="relative">
+                <Target className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-[#9a8b8a]" />
+                <BrandedSelect
+                  buttonClassName="rounded-lg border-[#e5e7eb] bg-white pl-9 pr-3 py-2.5 text-sm"
+                  menuClassName="max-h-72 overflow-y-auto"
+                  name="targetScore"
+                  onChange={handleChange}
+                  options={formData.targetExam === 'TOEIC' ? TOEIC_TARGET_SCORES : IELTS_TARGET_SCORES}
+                  placeholder={formData.targetExam === 'TOEIC' ? 'Chọn điểm TOEIC' : 'Chọn band IELTS'}
+                  value={formData.targetScore}
+                />
+              </div>
             </Field>
             <Field label="Ghi chú mục tiêu">
               <textarea
@@ -486,6 +511,7 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
 
   const isStaff = hasAnyUserRole(user, STAFF_ROLES);
+  const onboarding = Boolean(user && !user.profileCompleted);
 
   useEffect(() => {
     const sync = () => setUser(getStoredUser());
@@ -515,11 +541,11 @@ const CompleteProfile = () => {
           <div className="flex items-center gap-3">
             <span className="h-7 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
-              Cài đặt tài khoản
+              {onboarding ? 'Hoàn thiện hồ sơ học tập' : 'Cài đặt tài khoản'}
             </h1>
           </div>
           <p className="mt-2 pl-4 text-sm text-[#6a5553]">
-            Cập nhật nhất thông tin về bạn và cách người khác nhìn thấy bạn.
+            {onboarding ? 'Chọn kỳ thi và điểm mục tiêu để hoàn tất lộ trình học cá nhân của bạn.' : 'Cập nhật thông tin về bạn và cách người khác nhìn thấy bạn.'}
           </p>
         </div>
 
@@ -549,7 +575,7 @@ const CompleteProfile = () => {
           transition={{ duration: 0.22, ease: 'easeOut' }}
         >
           {activeTab === 'account' && (
-            <AccountTab user={user} onUserUpdate={setUser} />
+            <AccountTab user={user} onUserUpdate={setUser} onboarding={onboarding} />
           )}
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>

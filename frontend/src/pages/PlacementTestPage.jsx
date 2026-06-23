@@ -7,8 +7,10 @@ import ListeningExamMode from '../components/course-assessment/ListeningExamMode
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
 import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
+import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
 import CourseFooter from '../components/course/CourseFooter';
 import BrandedSelect from '../components/ui/BrandedSelect';
+import { formatBandValue } from '../utils/selfPacedHelpers';
 
 const SKILLS = [
   { key: 'listening', label: 'Listening', icon: Headphones },
@@ -573,6 +575,7 @@ function LegacyPlacementSpeakingExamMode({
   submitLabel = 'Nộp toàn bộ bài thi',
 }) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 15)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [violations, setViolations] = useState([]);
@@ -580,17 +583,19 @@ function LegacyPlacementSpeakingExamMode({
   const intentionalExitRef = useRef(false);
 
   useEffect(() => {
+    if (submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending) return;
     submittedRef.current = true;
-    void onSubmit(true);
-  }, [onSubmit, remainingSeconds, submitting]);
+    setSubmissionPending(true);
+    Promise.resolve(onSubmit(true)).finally(() => setSubmissionPending(false));
+  }, [onSubmit, remainingSeconds, submissionPending, submitting]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -718,11 +723,18 @@ function LegacyPlacementSpeakingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={submitting}
-            onClick={() => onSubmit(false)}
+            disabled={submitting || submissionPending}
+            onClick={async () => {
+              setSubmissionPending(true);
+              try {
+                await onSubmit(false);
+              } finally {
+                setSubmissionPending(false);
+              }
+            }}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -796,9 +808,13 @@ export default function PlacementTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState(null);
+  const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
   const activeSkill = SKILLS[skillIndex];
   const activeConfig = test?.sections?.[activeSkill?.key];
+  const attemptCount = Number(test?.attemptCount || 0);
+  const maxAttempts = Number(test?.maxAttempts || 3);
+  const canRetake = Boolean(test?.canRetake) && attemptCount < maxAttempts;
 
   useEffect(() => {
     placementTestApi.getMockOne()
@@ -872,6 +888,13 @@ export default function PlacementTestPage() {
       setResult(response);
       setStage('result');
 
+      setTest((current) => current ? {
+        ...current,
+        latestAttempt: response,
+        attemptCount: Number(current.attemptCount || 0) + 1,
+        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+      } : current);
+
       if (response.status === 'COMPLETED') {
         localStorage.removeItem(DRAFT_KEY);
       }
@@ -912,6 +935,12 @@ export default function PlacementTestPage() {
 
       setResult(response);
       setStage('result');
+      setTest((current) => current ? {
+        ...current,
+        latestAttempt: response,
+        attemptCount: Number(current.attemptCount || 0) + 1,
+        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+      } : current);
       if (response.status === 'COMPLETED') {
         localStorage.removeItem(DRAFT_KEY);
       }
@@ -931,6 +960,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.listening, payload);
       setDraft((current) => ({ ...current, listeningAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -944,6 +979,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.reading, payload);
       setDraft((current) => ({ ...current, readingAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -957,10 +998,43 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toWritingAnswers(test?.sections?.writing, payload);
       setDraft((current) => ({ ...current, writingAnswers: { ...current.writingAnswers, ...nextAnswers } }));
+      const parsed = parseObjectivePayload(payload);
+      const incompleteTasks = (parsed.tasks || []).filter((task) => Number(task.wordCount || 0) < Number(task.minimumWords || 0)).length;
+      if (incompleteTasks > 0) {
+        setPendingSkillAdvance({ missingCount: incompleteTasks, unitLabel: 'task' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderSkillAdvanceDialog = () => pendingSkillAdvance ? (
+    <ExamSectionChangeDialog
+      currentLabel={activeSkill?.label || 'Phần hiện tại'}
+      missingCount={pendingSkillAdvance.missingCount}
+      onCancel={() => setPendingSkillAdvance(null)}
+      onConfirm={() => {
+        setPendingSkillAdvance(null);
+        goToNextSkill();
+      }}
+      targetLabel={SKILLS[skillIndex + 1]?.label || 'phần tiếp theo'}
+      unitLabel={pendingSkillAdvance.unitLabel}
+    />
+  ) : null;
+
+  const startRetake = () => {
+    if (!canRetake) return;
+    const cleanDraft = { ...emptyDraft, writingAnswers: { ...emptyDraft.writingAnswers } };
+    localStorage.removeItem(DRAFT_KEY);
+    setDraft(cleanDraft);
+    setResult(null);
+    setSubmitError('');
+    setSkillIndex(0);
+    setDeviceCheck(null);
+    setStage('device');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -996,13 +1070,13 @@ export default function PlacementTestPage() {
         <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-12">
           <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
-            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Band tổng quan: {result.overallScore ?? 'Đang chấm'}</h1>
+            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Band tổng quan: {result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}</h1>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {SKILLS.map((skill) => (
                 <div className="rounded-2xl bg-[#fff0f1] p-5" key={skill.key}>
                   <p className="text-sm font-bold text-[#7a4a4e]">{skill.label}</p>
-                  <p className="mt-2 text-3xl font-black text-[#8a0018]">{result[`${skill.key}Score`] ?? '—'}</p>
+                  <p className="mt-2 text-3xl font-black text-[#8a0018]">{result[`${skill.key}Score`] != null ? formatBandValue(result[`${skill.key}Score`]) : '—'}</p>
                 </div>
               ))}
             </div>
@@ -1026,8 +1100,13 @@ export default function PlacementTestPage() {
               >
                 Quay lại trang đánh giá
               </button>
-              <button className="rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/courses')} type="button">
-                Xem khóa học phù hợp
+              {canRetake ? (
+                <button className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]" onClick={startRetake} type="button">
+                  Làm lại ({attemptCount + 1}/{maxAttempts})
+                </button>
+              ) : null}
+              <button className="rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/complete-profile')} type="button">
+                Tiếp tục hoàn thiện hồ sơ
               </button>
             </div>
           </div>
@@ -1064,6 +1143,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -1082,6 +1162,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -1100,6 +1181,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -1143,6 +1225,10 @@ export default function PlacementTestPage() {
             <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Một bài thi thử hoàn chỉnh cho cả 4 kỹ năng</h1>
             <p className="mt-5 max-w-2xl leading-8 text-[#584140]">Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.</p>
 
+            <div className="mt-5 rounded-2xl border border-[#e9c9c2] bg-[#fff8f6] p-4 text-sm font-semibold leading-7 text-[#7a3430]">
+              Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.
+            </div>
+
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {SKILLS.map((skill) => {
                 const Icon = skill.icon;
@@ -1166,7 +1252,7 @@ export default function PlacementTestPage() {
                 type="button"
               >
                 <span>
-                  Lần gần nhất: band {test.latestAttempt.overallScore ?? 'đang chấm'} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                  Lần gần nhất: band {test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
                 <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
@@ -1180,10 +1266,11 @@ export default function PlacementTestPage() {
               <li>• Dùng Chrome hoặc Edge và cấp quyền microphone.</li>
               <li>• Không tải lại trang; bản nháp được lưu tự động trên thiết bị.</li>
               <li>• Nếu mất mạng lúc nộp, hãy thử lại — bài làm không bị xóa.</li>
+              <li>• Bạn có tối đa {maxAttempts} lượt làm; hiện đã dùng {attemptCount}/{maxAttempts} lượt.</li>
             </ul>
 
-            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012]" onClick={() => setStage('device')} type="button">
-              Kiểm tra thiết bị
+            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
+              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount + 1}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
             </button>
 
             {hasDraftProgress ? (

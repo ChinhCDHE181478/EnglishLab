@@ -1,10 +1,31 @@
+const resolveDate = (value) => {
+  if (!value) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  let parsed = new Date(raw);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+
+  // Handle common backend datetime strings like "2026-06-20 10:30:00"
+  if (raw.includes(' ') && !raw.includes('T')) {
+    parsed = new Date(raw.replace(' ', 'T'));
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return null;
+};
+
+const isTimeOnlyValue = (value) => /^\d{1,2}:\d{2}(:\d{2})?$/.test(String(value || '').trim());
+
 export const formatClassroomDate = (value) => {
   if (!value) return 'Đang cập nhật';
+  const date = resolveDate(value);
+  if (!date) return 'Đang cập nhật';
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).format(new Date(value));
+  }).format(date);
 };
 
 export const formatClassroomTime = (value) => {
@@ -20,13 +41,16 @@ export const formatClassroomTime = (value) => {
 
 export const formatClassroomDateTime = (value) => {
   if (!value) return 'Đang cập nhật';
+  if (isTimeOnlyValue(value)) return formatClassroomTime(value);
+  const date = resolveDate(value);
+  if (!date) return 'Đang cập nhật';
   return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(value));
+  }).format(date);
 };
 
 export const formatClassroomPrice = (value) => {
@@ -131,10 +155,33 @@ export const formatHomeworkStatus = (status, overdue) => {
   if (overdue) return 'Quá hạn';
   const map = {
     DRAFT: 'Nháp',
-    PUBLISHED: 'Đã giao',
+    OPEN: 'Đang mở',
     CLOSED: 'Đã đóng',
   };
   return map[status] || status || 'Đang cập nhật';
+};
+
+export const getHomeworkMaxScore = (homework) => {
+  const parsed = Number(homework?.maxScore);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;
+};
+
+export const getSubmissionFeedback = (submission) => submission?.teacherFeedback || submission?.feedback || '';
+
+export const toDateTimeLocalValue = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+export const fromDateTimeLocalValue = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
 };
 
 export const formatGradebookFinalResult = (value) => {
@@ -169,4 +216,44 @@ export const openLarkMeeting = (url) => {
   }
 
   return { ok: true };
+};
+
+const sanitizeFileName = (value) => String(value || 'tai-lieu')
+  .trim()
+  .replace(/[<>:"/\\|?*]+/g, '-')
+  .replace(/\s+/g, '-')
+  .slice(0, 120) || 'tai-lieu';
+
+export const buildMaterialDownloadName = (material) => {
+  const baseName = sanitizeFileName(material?.title);
+  const fileType = String(material?.fileType || '').replace(/^\./, '');
+  if (fileType && !baseName.toLowerCase().endsWith(`.${fileType.toLowerCase()}`)) {
+    return `${baseName}.${fileType}`;
+  }
+  return baseName;
+};
+
+export const downloadClassroomMaterial = async (material) => {
+  const url = material?.fileUrl;
+  if (!url) return;
+
+  const fileName = buildMaterialDownloadName(material);
+  try {
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 };

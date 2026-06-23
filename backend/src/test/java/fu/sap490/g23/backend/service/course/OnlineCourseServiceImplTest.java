@@ -1,6 +1,8 @@
 package fu.sap490.g23.backend.service.course;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
@@ -25,7 +27,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -119,6 +124,25 @@ class OnlineCourseServiceImplTest {
     }
 
     @Test
+    void registerCourse_rejectsDirectEnrollmentForPaidCourse() {
+        User student = User.builder().email("learner@example.com").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(10L).status(PackageStatus.PUBLISHED).deleted(false)
+                .price(BigDecimal.valueOf(499000)).build();
+        OnlineCourse course = OnlineCourse.builder().id(5L).learningPackage(learningPackage).build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(course));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> service.registerCourse(course.getId(), student.getEmail()));
+
+        assertEquals("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.", exception.getMessage());
+        verify(enrollmentRepository, never()).save(any(PackageEnrollment.class));
+    }
+
+    @Test
     void registerCourse_createsEnrollmentForPublishedCourse() {
         User student = User.builder().email("learner@example.com").build();
         LearningPackage learningPackage = LearningPackage.builder()
@@ -203,5 +227,99 @@ class OnlineCourseServiceImplTest {
         assertEquals(existingEnrollment.getProgressPercent(), result.getProgressPercent());
         verify(enrollmentRepository, never()).save(any(PackageEnrollment.class));
         verify(courseEnrollmentMailService, never()).sendEnrollmentSuccessEmail(any(), any(), any());
+    }
+
+    @Test
+    void registerCourse_reactivatesCancelledEnrollment() {
+        User student = User.builder().email("learner@example.com").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(10L)
+                .status(PackageStatus.PUBLISHED)
+                .deleted(false)
+                .title("IELTS Intensive")
+                .slug("ielts-intensive")
+                .build();
+        OnlineCourse course = OnlineCourse.builder()
+                .id(5L)
+                .learningPackage(learningPackage)
+                .build();
+        PackageEnrollment cancelledEnrollment = PackageEnrollment.builder()
+                .id(100L)
+                .student(student)
+                .learningPackage(learningPackage)
+                .status(EnrollmentStatus.CANCELLED)
+                .progressPercent(25)
+                .build();
+        OnlineCourseResponse response = OnlineCourseResponse.builder()
+                .id(course.getId())
+                .registered(true)
+                .enrollmentId(cancelledEnrollment.getId())
+                .progressPercent(cancelledEnrollment.getProgressPercent())
+                .build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(course.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(course));
+        when(learningPackageRepository.findByIdAndDeletedFalseAndStatusForUpdate(learningPackage.getId(), PackageStatus.PUBLISHED))
+                .thenReturn(Optional.of(learningPackage));
+        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(cancelledEnrollment));
+        when(enrollmentRepository.save(cancelledEnrollment)).thenAnswer(invocation -> invocation.getArgument(0));
+        when(mapper.toResponse(course, true, cancelledEnrollment.getProgressPercent(), cancelledEnrollment.getId())).thenReturn(response);
+
+        OnlineCourseResponse result = service.registerCourse(course.getId(), student.getEmail());
+
+        assertEquals(EnrollmentStatus.ACTIVE, cancelledEnrollment.getStatus());
+        assertEquals(cancelledEnrollment.getId(), result.getEnrollmentId());
+        verify(enrollmentRepository).save(cancelledEnrollment);
+        verify(courseEnrollmentMailService).sendEnrollmentSuccessEmail(student, course, cancelledEnrollment);
+    }
+
+    @Test
+    void removeModule_deletesAssessmentsWhenThereAreNoStudentSubmissions() {
+        CourseModule module = CourseModule.builder()
+                .id(11L)
+                .title("Mô-đun 1")
+                .build();
+        CourseAssessment assessment = CourseAssessment.builder()
+                .id(21L)
+                .module(module)
+                .title("Bài kiểm tra cuối mô-đun")
+                .build();
+
+        when(courseAssessmentRepository.findByModule(module)).thenReturn(List.of(assessment));
+        when(assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())).thenReturn(false);
+
+        ReflectionTestUtils.invokeMethod(service, "ensureModuleCanBeRemoved", module);
+
+        verify(courseAssessmentRepository).deleteAll(List.of(assessment));
+        verify(courseAssessmentRepository).flush();
+    }
+
+    @Test
+    void removeModule_rejectsWhenAnAssessmentHasStudentSubmissions() {
+        CourseModule module = CourseModule.builder()
+                .id(11L)
+                .title("Mô-đun 1")
+                .build();
+        CourseAssessment assessment = CourseAssessment.builder()
+                .id(21L)
+                .module(module)
+                .title("Bài kiểm tra cuối mô-đun")
+                .build();
+
+        when(courseAssessmentRepository.findByModule(module)).thenReturn(List.of(assessment));
+        when(assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())).thenReturn(true);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> ReflectionTestUtils.invokeMethod(service, "ensureModuleCanBeRemoved", module)
+        );
+
+        assertEquals(
+                "Không thể xóa mô-đun \"Mô-đun 1\" vì đã có bài làm học viên trong bài kiểm tra \"Bài kiểm tra cuối mô-đun\".",
+                exception.getMessage()
+        );
+        verify(courseAssessmentRepository, never()).deleteAll(any());
+        verify(courseAssessmentRepository, never()).flush();
     }
 }

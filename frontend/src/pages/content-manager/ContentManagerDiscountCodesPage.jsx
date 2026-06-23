@@ -25,6 +25,7 @@ const toDateTimeLocal = (value) => {
 };
 
 const toApiDateTime = (value) => (value ? new Date(value).toISOString().slice(0, 19) : null);
+const PAGE_SIZE = 8;
 
 export default function ContentManagerDiscountCodesPage() {
   const [items, setItems] = useState([]);
@@ -33,6 +34,8 @@ export default function ContentManagerDiscountCodesPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   const editing = Boolean(form.id);
 
@@ -40,12 +43,18 @@ export default function ContentManagerDiscountCodesPage() {
     () => [...items].sort((left, right) => Number(right.id || 0) - Number(left.id || 0)),
     [items],
   );
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
+  const visibleItems = sortedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const loadDiscountCodes = async () => {
     setLoading(true);
     setError('');
     try {
-      const page = await courseApi.getDiscountCodes({ size: 100 });
+      const page = await courseApi.getDiscountCodes({ size: 100, includeInactive });
       setItems(page.content || []);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể tải danh sách mã giảm giá.');
@@ -56,7 +65,7 @@ export default function ContentManagerDiscountCodesPage() {
 
   useEffect(() => {
     loadDiscountCodes();
-  }, []);
+  }, [includeInactive]);
 
   const handleChange = (field) => (event) => {
     const value = field === 'active' ? event.target.checked : event.target.value;
@@ -87,9 +96,16 @@ export default function ContentManagerDiscountCodesPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSaving(true);
     setError('');
     setMessage('');
+
+    const validationMessage = validateDiscountCode(form);
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
+
+    setSaving(true);
 
     const payload = {
       code: form.code.trim().toUpperCase(),
@@ -120,15 +136,21 @@ export default function ContentManagerDiscountCodesPage() {
   };
 
   const handleDeactivate = async (id) => {
+    const item = items.find((entry) => entry.id === id);
+    const unused = item && Number(item.usedCount || 0) === 0 && Number(item.reservedCount || 0) === 0;
+    const prompt = unused
+      ? `Xóa vĩnh viễn mã giảm giá “${item.code}”?`
+      : `Mã “${item.code}” đã được dùng hoặc giữ chỗ — hệ thống sẽ tắt mã thay vì xóa. Tiếp tục?`;
+    if (item && !window.confirm(prompt)) return;
     setSaving(true);
     setError('');
     setMessage('');
     try {
       await courseApi.deleteDiscountCode(id);
-      setMessage('Đã tắt mã giảm giá.');
+      setMessage(unused ? 'Đã xóa mã giảm giá.' : 'Đã tắt mã giảm giá vì đã có lịch sử sử dụng.');
       await loadDiscountCodes();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể tắt mã giảm giá.');
+      setError(err?.response?.data?.message || 'Không thể xóa mã giảm giá.');
     } finally {
       setSaving(false);
     }
@@ -139,7 +161,7 @@ export default function ContentManagerDiscountCodesPage() {
       <Panel className="p-6">
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Coupon editor</p>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Biên tập mã giảm giá</p>
             <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
               {editing ? 'Cập nhật mã' : 'Tạo mã mới'}
             </h2>
@@ -155,14 +177,14 @@ export default function ContentManagerDiscountCodesPage() {
         {message ? <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <TextField label="Code" onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} value={form.code} />
-          <TextField label="Name" onChange={handleChange('name')} value={form.name} />
+          <TextField label="Mã" onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} value={form.code} />
+          <TextField label="Tên hiển thị" onChange={handleChange('name')} value={form.name} />
 
           <div>
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Discount type</span>
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Loại giảm giá</span>
             <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] p-1">
               {[
-                { label: 'Percent', value: 'PERCENTAGE' },
+                { label: 'Phần trăm', value: 'PERCENTAGE' },
                 { label: 'VND', value: 'FIXED_AMOUNT' },
               ].map((option) => (
                 <button
@@ -180,18 +202,18 @@ export default function ContentManagerDiscountCodesPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <TextField label={form.type === 'PERCENTAGE' ? 'Value (%)' : 'Value (VND)'} onChange={handleChange('value')} value={String(form.value)} />
-            <TextField label="Usage limit" onChange={handleChange('usageLimit')} value={String(form.usageLimit)} />
+            <TextField label={form.type === 'PERCENTAGE' ? 'Giá trị (%)' : 'Giá trị (VND)'} onChange={handleChange('value')} value={String(form.value)} />
+            <TextField label="Giới hạn sử dụng" onChange={handleChange('usageLimit')} value={String(form.usageLimit)} />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <DateTimeField label="Starts at" onChange={handleChange('startsAt')} value={form.startsAt} />
-            <DateTimeField label="Expires at" onChange={handleChange('expiresAt')} value={form.expiresAt} />
+            <DateTimeField label="Bắt đầu từ" onChange={handleChange('startsAt')} value={form.startsAt} />
+            <DateTimeField label="Hết hạn lúc" onChange={handleChange('expiresAt')} value={form.expiresAt} />
           </div>
 
           <label className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
             <input checked={form.active} onChange={handleChange('active')} type="checkbox" />
-            Active
+            Đang kích hoạt
           </label>
 
           <button
@@ -200,7 +222,7 @@ export default function ContentManagerDiscountCodesPage() {
             type="submit"
           >
             {editing ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {saving ? 'Saving...' : editing ? 'Save changes' : 'Create code'}
+            {saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Tạo mã'}
           </button>
         </form>
       </Panel>
@@ -208,13 +230,23 @@ export default function ContentManagerDiscountCodesPage() {
       <Panel className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfbfbd]/45 px-6 py-5">
           <div>
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Discount codes</p>
-            <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Usage control</h2>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Danh sách mã giảm giá</p>
+            <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Kiểm soát sử dụng</h2>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" onClick={loadDiscountCodes} type="button">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#584140]">
+              <input
+                checked={includeInactive}
+                onChange={(event) => { setIncludeInactive(event.target.checked); setPage(1); }}
+                type="checkbox"
+              />
+              Hiện mã đã tắt
+            </label>
+            <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" onClick={loadDiscountCodes} type="button">
+              <RefreshCw className="h-4 w-4" />
+              Làm mới
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -226,18 +258,18 @@ export default function ContentManagerDiscountCodesPage() {
             <table className="w-full min-w-[920px] text-left">
               <thead className="bg-[#fcf8f8] text-[11px] uppercase tracking-[0.16em] text-[#8b706e]">
                 <tr>
-                  <th className="px-5 py-4">Code</th>
-                  <th className="px-5 py-4">Value</th>
-                  <th className="px-5 py-4">Limit</th>
-                  <th className="px-5 py-4">Used</th>
-                  <th className="px-5 py-4">Reserved</th>
-                  <th className="px-5 py-4">Remaining</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-4">Mã</th>
+                  <th className="px-5 py-4">Giá trị</th>
+                  <th className="px-5 py-4">Giới hạn</th>
+                  <th className="px-5 py-4">Đã dùng</th>
+                  <th className="px-5 py-4">Đang giữ</th>
+                  <th className="px-5 py-4">Còn lại</th>
+                  <th className="px-5 py-4">Trạng thái</th>
+                  <th className="px-5 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#dfbfbd]/35">
-                {sortedItems.map((item) => (
+                {visibleItems.map((item) => (
                   <tr key={item.id} className="text-sm text-[#584140]">
                     <td className="px-5 py-4">
                       <p className="font-extrabold text-[#2b2828]">{item.code}</p>
@@ -250,13 +282,20 @@ export default function ContentManagerDiscountCodesPage() {
                     <td className="px-5 py-4">{item.usedCount}</td>
                     <td className="px-5 py-4">{item.reservedCount}</td>
                     <td className="px-5 py-4">{item.remainingUses}</td>
-                    <td className="px-5 py-4"><StatusBadge label={item.active ? 'Published' : 'Archived'} /></td>
+                    <td className="px-5 py-4"><StatusBadge label={item.active ? 'Đang hoạt động' : 'Tạm ngừng'} /></td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
-                        <button className="rounded-xl border border-[#dfbfbd]/60 p-2 text-[#730014] transition hover:bg-[#fff2f3]" onClick={() => handleEdit(item)} type="button">
+                        <button aria-label={`Chỉnh sửa mã ${item.code}`} className="rounded-xl border border-[#dfbfbd]/60 p-2 text-[#730014] transition hover:bg-[#fff2f3]" onClick={() => handleEdit(item)} title="Chỉnh sửa" type="button">
                           <Edit3 className="h-4 w-4" />
                         </button>
-                        <button className="rounded-xl border border-[#f0d4d7] p-2 text-[#93000a] transition hover:bg-[#fff6f7]" onClick={() => handleDeactivate(item.id)} type="button">
+                        <button
+                          aria-label={`Xóa mã ${item.code}`}
+                          className="rounded-xl border border-[#f0d4d7] p-2 text-[#93000a] transition hover:bg-[#fff6f7] disabled:opacity-40"
+                          disabled={saving}
+                          onClick={() => handleDeactivate(item.id)}
+                          title={Number(item.usedCount || 0) === 0 && Number(item.reservedCount || 0) === 0 ? 'Xóa mã' : 'Tắt mã'}
+                          type="button"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -267,9 +306,33 @@ export default function ContentManagerDiscountCodesPage() {
             </table>
           </div>
         )}
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-center gap-3 border-t border-[#dfbfbd]/45 px-6 py-4">
+            <button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">Trang trước</button>
+            <span className="text-sm font-semibold text-[#584140]">Trang {page} / {totalPages}</span>
+            <button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Trang sau</button>
+          </div>
+        ) : null}
       </Panel>
     </div>
   );
+}
+
+function validateDiscountCode(form) {
+  if (!form.code.trim()) return 'Mã giảm giá không được để trống.';
+  if (!/^[A-Z0-9_-]+$/i.test(form.code.trim())) return 'Mã giảm giá chỉ được chứa chữ, số, dấu gạch ngang hoặc gạch dưới.';
+  if (!form.name.trim()) return 'Hãy nhập tên hiển thị cho mã giảm giá.';
+
+  const value = Number(form.value);
+  const usageLimit = Number(form.usageLimit);
+  if (!Number.isFinite(value) || value <= 0) return 'Giá trị giảm giá phải lớn hơn 0.';
+  if (form.type === 'PERCENTAGE' && value > 100) return 'Mức giảm theo phần trăm không thể lớn hơn 100%.';
+  if (!Number.isInteger(usageLimit) || usageLimit < 0) return 'Giới hạn sử dụng phải là số nguyên không âm.';
+
+  if (form.startsAt && form.expiresAt && new Date(form.startsAt) >= new Date(form.expiresAt)) {
+    return 'Thời gian hết hạn phải sau thời gian bắt đầu.';
+  }
+  return '';
 }
 
 function DateTimeField({ label, value, onChange }) {

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import Header from '../ai-learning/Header';
 import CourseFooter from '../course/CourseFooter';
 import CourseGlobalStyles from '../course/CourseGlobalStyles';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 const pageVariants = {
   hidden: { opacity: 0, y: 14 },
@@ -14,10 +15,13 @@ const headerVariants = {
 };
 
 const LearnerPageShell = ({ title, description, children, actions = null, eyebrow = '' }) => (
-  <div className="course-page flex min-h-screen flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+  <div className={PAGE_SHELL_CLASS}>
     <CourseGlobalStyles />
-    <Header />
-    <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10">
+    <div className={PAGE_HEADER_CLASS}>
+      <Header />
+    </div>
+    <div className={PAGE_BODY_CLASS}>
+      <main className={PAGE_MAIN_STACK_CLASS}>
       <motion.section
         className="mb-7 border-b border-[#ebebeb] pb-6"
         initial="hidden"
@@ -45,6 +49,7 @@ const LearnerPageShell = ({ title, description, children, actions = null, eyebro
         {children}
       </motion.div>
     </main>
+    </div>
     <CourseFooter />
   </div>
 );

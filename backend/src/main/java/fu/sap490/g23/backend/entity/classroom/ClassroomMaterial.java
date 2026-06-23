@@ -41,9 +41,25 @@ public class ClassroomMaterial {
     @Column(name = "file_type", length = 80)
     private String fileType;
 
+    @Column(length = 2000)
+    private String description;
+
+    @Column(name = "material_type", length = 80)
+    private String materialType;
+
+    @Column(length = 120)
+    private String provider;
+
     @Column(name = "visibility", length = 40)
     @Builder.Default
     private String visibility = "LEARNERS_IN_CLASS";
+
+    @Column(name = "source_type", length = 40)
+    @Builder.Default
+    private String sourceType = "CLASSROOM_UPLOAD";
+
+    @Column(name = "center_material_id")
+    private Long centerMaterialId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by_id")

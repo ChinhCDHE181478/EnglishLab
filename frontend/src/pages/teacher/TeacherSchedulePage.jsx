@@ -34,6 +34,7 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomTime } from '../../utils/classroomHelpers';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_SCHEDULE_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 // ─── Calendar constants ───────────────────────────────────────────────────────
 const TIME_SLOTS = [
@@ -218,21 +219,24 @@ export default function TeacherSchedulePage() {
   const todayColIndex = useMemo(() => weekDays.findIndex((d) => toDateStr(d) === todayStr), [weekDays, todayStr]);
 
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+    <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
       <style>{`
         .cal-grid-row { display: grid; grid-template-columns: 72px repeat(7, 1fr); min-height: 140px; }
         .cal-grid-head { display: grid; grid-template-columns: 72px repeat(7, 1fr); }
       `}</style>
-      <Header />
+      <div className={PAGE_HEADER_CLASS}>
+        <Header />
+      </div>
 
+      <div className={PAGE_BODY_CLASS}>
       <motion.div
-        className="flex-1"
+        className="flex flex-1 flex-col min-h-0"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.32, ease: 'easeOut' }}
       >
-        <div className="mx-auto flex w-full max-w-[1320px] items-start gap-5 px-4 py-5 pb-10 md:px-10 md:pb-12">
+        <div className={PAGE_SCHEDULE_CLASS}>
 
           {loading ? (
             <div className="flex flex-1 items-center justify-center py-32">
@@ -421,6 +425,7 @@ export default function TeacherSchedulePage() {
           )}
         </div>
       </motion.div>
+      </div>
 
       <CourseFooter />
 

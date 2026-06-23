@@ -24,6 +24,8 @@ public interface ClassroomOfferingService {
 
     ClassroomOfferingResponse getOffering(Long id, boolean full);
 
+    ClassroomOfferingResponse getLearnerOffering(Long id, String learnerEmail);
+
     ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail);
 
     ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request);

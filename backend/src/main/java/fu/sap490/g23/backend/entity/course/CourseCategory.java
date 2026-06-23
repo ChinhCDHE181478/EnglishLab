@@ -1,7 +1,5 @@
 package fu.sap490.g23.backend.entity.course;
 
-import fu.sap490.g23.backend.entity.course.enums.*;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,9 +15,8 @@ public class CourseCategory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 40)
-    private CourseCategoryCode code;
+    private String code;
 
     @Column(nullable = false, length = 120)
     private String name;

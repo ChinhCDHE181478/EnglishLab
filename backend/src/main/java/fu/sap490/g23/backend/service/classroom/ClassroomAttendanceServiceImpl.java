@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class ClassroomAttendanceServiceImpl implements ClassroomAttendanceServic
 
     private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomSessionRepository sessionRepository;
+    private final ClassroomEnrollmentRepository enrollmentRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
     private final ClassroomAccessHelper accessHelper;
@@ -48,6 +50,9 @@ public class ClassroomAttendanceServiceImpl implements ClassroomAttendanceServic
     @Transactional(readOnly = true)
     public List<ClassroomAttendanceResponse> getByClassForStudent(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
+        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+                .filter(enrollment -> ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
+                .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
         return attendanceRepository.findByStudentIdAndSession_ClassroomOfferingId(learner.getId(), offeringId).stream()
                 .map(mapper::toAttendanceResponse)
                 .toList();

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -63,8 +64,10 @@ export default function ReadingExamMode({
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingPartChange, setPendingPartChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
@@ -85,17 +88,18 @@ export default function ReadingExamMode({
   }, [answers, allQuestionNumbers.length]);
 
   useEffect(() => {
+    if (isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isLocked, submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, submitting, isLocked]);
+  }, [remainingSeconds, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -186,12 +190,12 @@ export default function ReadingExamMode({
   };
 
   const updateAnswer = (key, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => ({ ...current, [String(key)]: value }));
   };
 
   const toggleLetter = (groupKey, letter, maxSelections) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => {
       const currentValues = Array.isArray(current[groupKey]) ? current[groupKey] : [];
       if (currentValues.includes(letter)) {
@@ -243,8 +247,25 @@ export default function ReadingExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
+  };
+
+  const requestPartChange = (part) => {
+    if (part.key === activePartKey) return;
+    const questionNumbers = flattenQuestionNumbers([activePart]);
+    const answered = questionNumbers.filter((number) => isQuestionAnswered(activePart, number, answers)).length;
+    const missingCount = Math.max(0, questionNumbers.length - answered);
+    if (missingCount > 0) {
+      setPendingPartChange({ part, missingCount });
+      return;
+    }
+    setActivePartKey(part.key);
   };
 
   const renderQuestion = (group, question) => {
@@ -372,8 +393,9 @@ export default function ReadingExamMode({
     >
       <header className="flex min-h-[76px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">EnglishLab Reading Exam</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi đọc EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
+          {config?.rules?.length ? <p className="mt-1 max-w-3xl text-xs leading-5 text-[#6f5a58]">{config.rules.join(' · ')}</p> : null}
         </div>
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-[#fff0f1] px-5 py-2 text-xl font-black text-[#8a0018]">
@@ -391,11 +413,11 @@ export default function ReadingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] hover:brightness-105 disabled:opacity-60"
-            disabled={isLocked || submitting}
+            disabled={isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -433,7 +455,7 @@ export default function ReadingExamMode({
             <button
               key={part.key}
               className={`rounded-2xl border px-4 py-3 text-left transition ${part.key === activePartKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ecd7db] bg-white hover:bg-[#fff7f7]'}`}
-              onClick={() => setActivePartKey(part.key)}
+              onClick={() => requestPartChange(part)}
               type="button"
             >
               <span className="font-black text-[#341c1d]">Part {part.partNumber}</span>
@@ -493,6 +515,19 @@ export default function ReadingExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingPartChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={`Part ${activePart?.partNumber || ''}`}
+          missingCount={pendingPartChange.missingCount}
+          onCancel={() => setPendingPartChange(null)}
+          onConfirm={() => {
+            setActivePartKey(pendingPartChange.part.key);
+            setPendingPartChange(null);
+          }}
+          targetLabel={`Part ${pendingPartChange.part.partNumber || ''}`}
+        />
       ) : null}
     </div>
   );

@@ -25,6 +25,7 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomPrice, formatOfferingStatus } from '../../utils/classroomHelpers';
+import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION_CARD_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 const MODES = [
   { id: 'ALL', label: 'Tất cả lớp học' },
@@ -94,15 +95,18 @@ export default function ClassroomsCatalogPage() {
   }), [offerings]);
 
   return (
-    <div className="course-page flex min-h-[100dvh] flex-col bg-[#f9f9f9] text-[#1a1c1c]">
+    <div className={PAGE_SHELL_CLASS}>
       <CourseGlobalStyles />
-      <Header />
+      <div className={PAGE_HEADER_CLASS}>
+        <Header />
+      </div>
 
-      <main className="mx-auto flex w-full max-w-[1320px] flex-1 flex-col px-4 pb-[80px] pt-8 md:px-10 space-y-8">
+      <div className={PAGE_BODY_CLASS}>
+      <main className={PAGE_MAIN_STACK_CLASS}>
 
         {/* Page Header */}
         <motion.section
-          className="border-b border-[#ebebeb] bg-white pb-6 pt-2"
+          className={PAGE_SECTION_CARD_CLASS}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -339,6 +343,7 @@ export default function ClassroomsCatalogPage() {
           </div>
         )}
       </main>
+      </div>
 
       <CourseFooter />
     </div>

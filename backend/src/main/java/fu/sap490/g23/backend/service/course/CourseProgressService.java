@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -43,20 +44,28 @@ public class CourseProgressService {
         return enrollmentRepository.save(enrollment);
     }
 
-    public CourseCompletionResponse buildCompletionResponse(PackageEnrollment enrollment, OnlineCourse course, User student) {
-        PackageEnrollment refreshedEnrollment = refreshEnrollmentProgress(enrollment, course, student);
-        CompletionSnapshot snapshot = buildSnapshot(refreshedEnrollment, course, student);
+    public void refreshCourseEnrollments(OnlineCourse course) {
+        List<PackageEnrollment> enrollments = enrollmentRepository.findByLearningPackage(course.getLearningPackage());
+        for (PackageEnrollment enrollment : enrollments) {
+            if (enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
+                refreshEnrollmentProgress(enrollment, course, enrollment.getStudent());
+            }
+        }
+    }
 
-        CourseCompletionStatus status = resolveStatus(snapshot, refreshedEnrollment);
+    public CourseCompletionResponse buildCompletionResponse(PackageEnrollment enrollment, OnlineCourse course, User student) {
+        CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
+
+        CourseCompletionStatus status = resolveStatus(snapshot, enrollment);
         String statusReason = resolveStatusReason(snapshot, status);
         boolean eligibleForCertificate = snapshot.eligibleForCertificate();
 
         return CourseCompletionResponse.builder()
                 .courseId(course.getId())
-                .enrollmentId(refreshedEnrollment.getId())
+                .enrollmentId(enrollment.getId())
                 .courseTitle(course.getLearningPackage().getTitle())
                 .courseSlug(course.getLearningPackage().getSlug())
-                .progressPercent(refreshedEnrollment.getProgressPercent())
+                .progressPercent(enrollment.getProgressPercent())
                 .totalLessons(snapshot.totalLessons())
                 .completedLessons(snapshot.completedLessons())
                 .totalAssessments(snapshot.totalAssessments())
@@ -66,7 +75,7 @@ public class CourseProgressService {
                 .eligibleForCertificate(eligibleForCertificate)
                 .status(status)
                 .statusReason(statusReason)
-                .completionDate(eligibleForCertificate ? refreshedEnrollment.getUpdatedAt() : null)
+                .completionDate(eligibleForCertificate ? enrollment.getUpdatedAt() : null)
                 .latestLessonId(snapshot.latestLessonId())
                 .latestLessonTitle(snapshot.latestLessonTitle())
                 .latestLessonAccessedAt(snapshot.latestLessonAccessedAt())

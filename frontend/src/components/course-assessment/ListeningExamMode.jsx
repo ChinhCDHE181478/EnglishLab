@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
 import ExamDeviceCheck from './ExamDeviceCheck';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -56,8 +57,10 @@ export default function ListeningExamMode({
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 40)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingPartChange, setPendingPartChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const [audioStatus, setAudioStatus] = useState(() => (config?.audioUrl ? 'loading' : 'idle'));
   const [sampleStatus, setSampleStatus] = useState('idle');
@@ -84,17 +87,18 @@ export default function ListeningExamMode({
   }, [answers, allQuestionNumbers.length]);
 
   useEffect(() => {
+    if (stage !== 'exam' || isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
-      setRemainingSeconds((current) => (stage === 'exam' ? Math.max(0, current - 1) : current));
+      setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [stage]);
+  }, [isLocked, stage, submissionPending, submitting]);
 
   useEffect(() => {
-    if (stage !== 'exam' || remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (stage !== 'exam' || remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, stage, submitting, isLocked]);
+  }, [remainingSeconds, stage, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -289,12 +293,12 @@ export default function ListeningExamMode({
   };
 
   const updateAnswer = (key, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => ({ ...current, [String(key)]: value }));
   };
 
   const toggleLetter = (groupKey, letter, maxSelections) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => {
       const currentValues = Array.isArray(current[groupKey]) ? current[groupKey] : [];
       if (currentValues.includes(letter)) {
@@ -346,8 +350,40 @@ export default function ListeningExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
+  };
+
+  const countAnsweredInPart = (part) => {
+    let answered = 0;
+    (part?.questionGroups || []).forEach((group) => {
+      if (group.type === 'multi_select_letters') {
+        const groupKey = group.questionNumbers?.join('-') || 'multi';
+        answered += Math.min(
+          Array.isArray(answers[groupKey]) ? answers[groupKey].length : 0,
+          (group.questionNumbers || []).length,
+        );
+        return;
+      }
+      answered += (group.questions || []).filter((question) => answerIsFilled(answers[String(question.number)])).length;
+    });
+    return answered;
+  };
+
+  const requestPartChange = (part) => {
+    if (part.key === activePartKey) return;
+    const total = flattenQuestionNumbers([activePart]).length;
+    const missingCount = Math.max(0, total - countAnsweredInPart(activePart));
+    if (missingCount > 0) {
+      setPendingPartChange({ part, missingCount });
+      return;
+    }
+    setActivePartKey(part.key);
   };
 
   const renderQuestion = (group, question) => {
@@ -480,6 +516,7 @@ export default function ListeningExamMode({
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi nghe EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
+          {config?.rules?.length ? <p className="mt-1 max-w-3xl text-xs leading-5 text-[#6f5a58]">{config.rules.join(' · ')}</p> : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="rounded-full bg-[#fff0f1] px-5 py-2 text-xl font-black text-[#8a0018] shadow-[0_10px_24px_rgba(138,0,24,0.10)]">
@@ -517,11 +554,11 @@ export default function ListeningExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={stage !== 'exam' || isLocked || submitting}
+            disabled={stage !== 'exam' || isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -565,19 +602,17 @@ export default function ListeningExamMode({
       <footer className="grid gap-3 border-t border-[#ead8d5] bg-white px-5 py-3 lg:grid-cols-4">
         {parts.map((part) => {
           const partQuestionNumbers = flattenQuestionNumbers([part]);
-          const partAnswered = partQuestionNumbers.filter((number) => answerIsFilled(answers[String(number)])).length;
-          const multiGroup = (part.questionGroups || []).find((group) => group.type === 'multi_select_letters');
-          const multiAnswered = multiGroup ? (answers[multiGroup.questionNumbers?.join('-') || 'multi'] || []).length : 0;
+          const partAnswered = countAnsweredInPart(part);
           return (
             <button
               key={part.key}
               className={`rounded-[24px] border px-4 py-3 text-left transition ${part.key === activePartKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ead8d5] bg-white hover:bg-[#fff7f7]'}`}
-              onClick={() => setActivePartKey(part.key)}
+              onClick={() => requestPartChange(part)}
               type="button"
             >
               <span className="font-black text-[#341c1d]">Part {part.partNumber}</span>
               <span className="ml-2 text-sm font-semibold text-[#6f5a58]">
-                {Math.min(partAnswered + multiAnswered, partQuestionNumbers.length)} / {partQuestionNumbers.length} câu
+                {Math.min(partAnswered, partQuestionNumbers.length)} / {partQuestionNumbers.length} câu
               </span>
               <div className="mt-2 flex flex-wrap gap-1">
                 {partQuestionNumbers.map((number) => (
@@ -641,6 +676,19 @@ export default function ListeningExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingPartChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={`Part ${activePart?.partNumber || ''}`}
+          missingCount={pendingPartChange.missingCount}
+          onCancel={() => setPendingPartChange(null)}
+          onConfirm={() => {
+            setActivePartKey(pendingPartChange.part.key);
+            setPendingPartChange(null);
+          }}
+          targetLabel={`Part ${pendingPartChange.part.partNumber || ''}`}
+        />
       ) : null}
     </div>
   );

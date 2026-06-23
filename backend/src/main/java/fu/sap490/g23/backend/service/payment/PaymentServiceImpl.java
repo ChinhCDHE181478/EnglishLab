@@ -19,6 +19,7 @@ import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 import vn.payos.PayOS;
 import vn.payos.exception.PayOSException;
@@ -242,6 +243,16 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    @Scheduled(fixedDelayString = "${englishlab.payos.reconciliation-delay-ms:300000}", initialDelayString = "${englishlab.payos.reconciliation-initial-delay-ms:60000}")
+    @Transactional
+    public void reconcilePendingPaymentOrders() {
+        if (!payosProperties.isEnabled()) {
+            return;
+        }
+        paymentOrderRepository.findByStatusIn(List.of(PaymentOrderStatus.PENDING, PaymentOrderStatus.PROCESSING))
+                .forEach(this::syncOrderStatusFromProvider);
+    }
+
     private PriceBreakdown calculateBreakdown(PayableBundle bundle, String couponCode, boolean reserveCoupon) {
         List<LearningPackage> packages = bundle.packages();
         long originalAmount = packages.stream().mapToLong(pkg -> toVnd(resolveOriginalPrice(pkg))).sum();
@@ -403,13 +414,13 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void enrollPurchasedItems(PayableBundle bundle, String studentEmail) {
-        bundle.onlineCourses().forEach(course -> onlineCourseService.registerCourse(course.getId(), studentEmail));
+        bundle.onlineCourses().forEach(course -> onlineCourseService.activatePaidCourse(course.getId(), studentEmail));
     }
 
     private void enrollPurchasedCourses(PaymentOrder order) {
         for (Long courseId : parseCourseIds(order.getCourseIdsCsv())) {
             try {
-                onlineCourseService.registerCourse(courseId, order.getStudent().getEmail());
+                onlineCourseService.activatePaidCourse(courseId, order.getStudent().getEmail());
             } catch (RuntimeException ex) {
                 String normalizedMessage = ex.getMessage() == null ? "" : ex.getMessage().toLowerCase(Locale.ROOT);
                 if (!normalizedMessage.contains("already") && !normalizedMessage.contains("đã")) {

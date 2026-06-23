@@ -29,7 +29,12 @@ export const needsProfileCompletion = (user) => {
   if (!user) return true;
   // Staff accounts are provisioned by admin — never require profile completion
   if (hasAnyUserRole(user, STAFF_ROLES)) return false;
-  return !user.profileCompleted || !user.fullName || !user.phoneNumber || !user.targetExam;
+  return !user.profileCompleted || !user.fullName || !user.phoneNumber || !user.targetExam || !user.targetScore;
+};
+
+export const needsPlacementTest = (user) => {
+  if (!user || hasAnyUserRole(user, STAFF_ROLES)) return false;
+  return !user.profileCompleted && !user.placementTestCompleted;
 };
 
 export const isContentManagerUser = (user) =>

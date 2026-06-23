@@ -1,11 +1,13 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, UserRound } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import { formatPassingThresholdLabel } from '../../utils/selfPacedHelpers';
 import ListeningExamMode from './ListeningExamMode';
 import ReadingExamMode from './ReadingExamMode';
 import SpeakingExamMode from './SpeakingExamMode';
 import WritingExamMode from './WritingExamMode';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const statusLabels = {
   PASSED: 'Hoàn thành',
@@ -749,6 +751,7 @@ const persistRecoveredSpeakingAudioUrl = (assessmentId, url) => {
 export default function AiAssessmentPanel({
   assessments = [],
   moduleTitle,
+  courseTargetBand = null,
   isLocked = false,
   lockReason = '',
   onMoveStep,
@@ -771,6 +774,8 @@ export default function AiAssessmentPanel({
   const [recordingError, setRecordingError] = useState('');
   const [selectedSpeakingMockKey, setSelectedSpeakingMockKey] = useState('');
   const [activeSpeakingPartKey, setActiveSpeakingPartKey] = useState('part_1');
+  const [completedSpeakingPartKeys, setCompletedSpeakingPartKeys] = useState([]);
+  const [pendingSpeakingPartChange, setPendingSpeakingPartChange] = useState(null);
   const [speakingStage, setSpeakingStage] = useState('mic_check');
   const [micPermissionState, setMicPermissionState] = useState('idle');
   const [micTesting, setMicTesting] = useState(false);
@@ -852,6 +857,8 @@ export default function AiAssessmentPanel({
     setRecordingError('');
     setSelectedSpeakingMockKey(speakingExperience?.activeVariant?.key || '');
     setActiveSpeakingPartKey(speakingExperience?.activeVariant?.parts?.[0]?.key || 'part_1');
+    setCompletedSpeakingPartKeys([]);
+    setPendingSpeakingPartChange(null);
     setSpeakingStage('mic_check');
     setMicPermissionState('idle');
     setMicTesting(false);
@@ -967,6 +974,8 @@ export default function AiAssessmentPanel({
     setRecordingHasVoiceSignal(false);
     setSelectedSpeakingMockKey(speakingExperience?.activeVariant?.key || '');
     setActiveSpeakingPartKey(speakingExperience?.activeVariant?.parts?.[0]?.key || 'part_1');
+    setCompletedSpeakingPartKeys([]);
+    setPendingSpeakingPartChange(null);
     setSpeakingStage('mic_check');
     setMicPermissionState('idle');
     setMicTesting(false);
@@ -1034,6 +1043,10 @@ export default function AiAssessmentPanel({
   ), [assessments]);
 
   const selected = orderedAssessments.find((item) => String(item.id) === String(selectedId)) || orderedAssessments[0];
+  const selectedPassingLabel = useMemo(
+    () => (selected ? formatPassingThresholdLabel(selected, { targetBand: courseTargetBand }) : null),
+    [selected, courseTargetBand],
+  );
   const speakingExperience = resolveSpeakingExperience(selected, moduleTitle, selectedSpeakingMockKey);
   const inputCopy = assessmentInputCopy(selected?.skill);
   const assessmentUiConfig = parseAssessmentUiConfig(selected);
@@ -1401,7 +1414,7 @@ export default function AiAssessmentPanel({
   }, [pendingSpeakingSubmit, selected?.skill, isRecording, uploadingAudio, submitting, hasMeaningfulSpeakingEvidence]);
 
   useEffect(() => {
-    if (!speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
+    if (submitting || pendingSpeakingSubmit || !speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
       return undefined;
     }
 
@@ -1445,7 +1458,7 @@ export default function AiAssessmentPanel({
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant]);
+  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant, pendingSpeakingSubmit, submitting]);
 
   useEffect(() => () => {
     if (audioPreviewUrl) {
@@ -1787,10 +1800,26 @@ export default function AiAssessmentPanel({
     const currentPartIndex = activeSpeakingVariant?.parts?.findIndex((part) => part.key === activeSpeakingPartKey) ?? -1;
     const nextPart = currentPartIndex >= 0 ? activeSpeakingVariant?.parts?.[currentPartIndex + 1] : null;
     if (nextPart) {
+      setCompletedSpeakingPartKeys((current) => (
+        current.includes(activeSpeakingPartKey) ? current : [...current, activeSpeakingPartKey]
+      ));
       setActiveSpeakingPartKey(nextPart.key);
       setSpeakingQuestionIndex(0);
       resetSpeakingTimer(nextPart);
     }
+  };
+
+  const requestSpeakingPartChange = (part) => {
+    if (!part || part.key === activeSpeakingPartKey) return;
+    if (!completedSpeakingPartKeys.includes(activeSpeakingPartKey) && activeSpeakingQuestions.length) {
+      setPendingSpeakingPartChange({
+        part,
+        missingCount: Math.max(1, activeSpeakingQuestions.length - speakingQuestionIndex),
+      });
+      return;
+    }
+    setActiveSpeakingPartKey(part.key);
+    setSpeakingQuestionIndex(0);
   };
 
   const handleAdvanceSpeakingFlow = () => {
@@ -1973,6 +2002,11 @@ export default function AiAssessmentPanel({
                 {lockReason || 'Bài kiểm tra này sẽ mở sau khi bạn hoàn thành các yêu cầu của mô-đun.'}
               </p>
             ) : null}
+            {!isLocked && selectedPassingLabel ? (
+              <p className="mt-2 max-w-3xl rounded-xl border border-[#dfbfbd]/30 bg-[#fff7f7] px-4 py-2.5 text-sm font-semibold leading-6 text-[#4b0009]">
+                {selectedPassingLabel}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -2026,6 +2060,11 @@ export default function AiAssessmentPanel({
               <span>•</span>
               <span>Tiêu chí: {formatRubricName(assessment.rubric?.name, assessment.skill)}</span>
             </div>
+            {formatPassingThresholdLabel(assessment, { targetBand: courseTargetBand }) ? (
+              <p className="mt-3 rounded-xl border border-[#dfbfbd]/25 bg-[#fff7f7] px-3 py-2 text-[11px] font-bold normal-case tracking-normal text-[#4b0009]">
+                {formatPassingThresholdLabel(assessment, { targetBand: courseTargetBand })}
+              </p>
+            ) : null}
           </button>
         ))}
       </div>
@@ -2527,12 +2566,6 @@ export default function AiAssessmentPanel({
                             )}
                           </div>
 
-                          {!activeSpeakingVideoUrl && currentSpeakingQuestion?.text ? (
-                            <p className="mx-auto mt-6 max-w-3xl text-xl font-semibold leading-9 text-[#341c1d]">
-                              {currentSpeakingQuestion.text}
-                            </p>
-                          ) : null}
-
                           <div className="mx-auto mt-6 max-w-3xl">
                             {activeSpeakingPart?.cueCardTitle ? (
                               <div className="rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
@@ -2602,10 +2635,7 @@ export default function AiAssessmentPanel({
                               key={part.key}
                               className={`rounded-[18px] border px-5 py-4 text-center text-xl font-extrabold transition ${part.key === activeSpeakingPartKey ? 'border-[#8a0018] text-[#21446d]' : 'border-[#dfe8e0] text-[#21446d]'}`}
                               type="button"
-                              onClick={() => {
-                                setActiveSpeakingPartKey(part.key);
-                                setSpeakingQuestionIndex(0);
-                              }}
+                              onClick={() => requestSpeakingPartChange(part)}
                             >
                               {part.label}
                             </button>
@@ -3019,6 +3049,19 @@ export default function AiAssessmentPanel({
                 <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">{statusLabels[result.status] || result.status}</span>
               </div>
 
+              {result.status === 'NEEDS_IMPROVEMENT' ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-extrabold text-amber-900">Chưa đạt yêu cầu để qua mô-đun</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-800">
+                    {selectedPassingLabel
+                      ? `${selectedPassingLabel}. Bạn chưa đạt ngưỡng này — hãy xem phản hồi chi tiết bên dưới và làm lại bài test.`
+                      : selected?.type === 'MODULE_TEST'
+                        ? 'Bạn cần đạt band mục tiêu của khóa học (cho phép chênh 0.5) để mở mô-đun tiếp theo. Hãy xem phản hồi chi tiết bên dưới và làm lại bài test.'
+                        : 'Kết quả chưa đạt ngưỡng yêu cầu. Hãy xem phản hồi và làm lại bài để tiếp tục học.'}
+                  </p>
+                </div>
+              ) : null}
+
               {partFeedback.length ? (
                 <div className="mt-4">
                   <p className="text-sm font-extrabold text-[#2b2828]">Nhận xét theo từng phần thi</p>
@@ -3240,6 +3283,19 @@ export default function AiAssessmentPanel({
       ) : null}
       </div>
     </section>
+    {pendingSpeakingPartChange ? (
+      <ExamSectionChangeDialog
+        currentLabel={activeSpeakingPart?.label || 'Part hiện tại'}
+        missingCount={pendingSpeakingPartChange.missingCount}
+        onCancel={() => setPendingSpeakingPartChange(null)}
+        onConfirm={() => {
+          setActiveSpeakingPartKey(pendingSpeakingPartChange.part.key);
+          setSpeakingQuestionIndex(0);
+          setPendingSpeakingPartChange(null);
+        }}
+        targetLabel={pendingSpeakingPartChange.part.label || 'Part tiếp theo'}
+      />
+    ) : null}
     {examModeOpen && isReadingExamMode ? (
       <ReadingExamMode
         assessment={selected}
@@ -3292,4 +3348,3 @@ export default function AiAssessmentPanel({
     </>
   );
 }
-

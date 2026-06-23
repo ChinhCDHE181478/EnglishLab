@@ -257,7 +257,7 @@ export const ClassroomTabBar = ({ tabs, activeTab, onChange }) => (
 // ==========================================
 
 export const PageHero = ({ title, subtitle, stats = [], action }) => (
-  <section className="border-b border-[#ebebeb] bg-white pb-6 pt-8">
+  <section className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm md:p-8">
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
         <div className="mb-2 flex items-center gap-3">
@@ -729,11 +729,11 @@ export const ConflictPanel = ({ conflictResult }) => {
 export const RequestStatusTimeline = ({ status, createdAt, reviewedAt, reviewerName, reviewNote }) => {
   const steps = [
     { id: 'SUBMITTED', label: 'Đã gửi yêu cầu', desc: 'Giáo viên gửi đề xuất thay đổi', done: true, date: createdAt },
-    { id: 'PENDING', label: 'Chờ duyệt', desc: 'Đang chờ Training Manager xem xét', done: status !== 'PENDING', date: null },
+    { id: 'PENDING', label: 'Chờ duyệt', desc: 'Đang chờ điều phối đào tạo xem xét', done: status !== 'PENDING', date: null },
     {
       id: 'REVIEWED',
       label: status === 'REJECTED' ? 'Bị từ chối' : 'Đã duyệt & áp dụng',
-      desc: status === 'REJECTED' ? `Từ chối bởi ${reviewerName || 'Training Manager'}` : `Phê duyệt bởi ${reviewerName || 'Training Manager'}`,
+      desc: status === 'REJECTED' ? `Từ chối bởi ${reviewerName || 'điều phối đào tạo'}` : `Phê duyệt bởi ${reviewerName || 'điều phối đào tạo'}`,
       done: ['APPROVED', 'REJECTED', 'APPLIED'].includes(status),
       date: reviewedAt,
       error: status === 'REJECTED',

@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sap490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ public class CourseProgressionGuard {
     private final LessonProgressRepository lessonProgressRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
+    private final AssessmentPassingThresholdResolver passingThresholdResolver;
 
     public void ensureLessonCanBeCompleted(User student, OnlineCourse course, Lesson lesson) {
         List<OrderedLesson> orderedLessons = orderedLessons(course);
@@ -137,11 +139,15 @@ public class CourseProgressionGuard {
                     if (status == SubmissionStatus.PASSED) {
                         return true;
                     }
-                    if (status == SubmissionStatus.AI_EVALUATED) {
-                        BigDecimal passingScore = assessment.getPassingScore();
-                        return passingScore == null;
+                    if (status == SubmissionStatus.NEEDS_IMPROVEMENT) {
+                        return false;
                     }
-                    return false;
+                    BigDecimal score = submission.getAiScore();
+                    if (score == null) {
+                        return status == SubmissionStatus.AI_EVALUATED
+                                && passingThresholdResolver.resolve(assessment) == null;
+                    }
+                    return passingThresholdResolver.isScorePassing(score, assessment);
                 })
                 .orElse(false);
     }

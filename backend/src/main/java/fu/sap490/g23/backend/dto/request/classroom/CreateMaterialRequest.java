@@ -23,6 +23,17 @@ public class CreateMaterialRequest {
     @Size(max = 80)
     private String fileType;
 
+    @Size(max = 2000)
+    private String description;
+
+    @Size(max = 80)
+    private String materialType;
+
+    @Size(max = 120)
+    private String provider;
+
     private String visibility;
+    private String sourceType;
+    private Long centerMaterialId;
     private Long sessionId;
 }

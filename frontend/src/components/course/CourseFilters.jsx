@@ -26,11 +26,12 @@ const skillOptions = [
   { label: 'Speaking theo chủ đề', value: 'Speaking theo chủ đề' },
 ];
 
-const categoryOptions = [
+const fallbackCategoryOptions = [
   { label: 'Tất cả danh mục', value: '' },
   { label: 'IELTS', value: 'IELTS' },
   { label: 'TOEIC', value: 'TOEIC' },
   { label: 'Giao tiếp', value: 'COMMUNICATION' },
+  { label: 'Nền tảng', value: 'FOUNDATION' },
   { label: 'Trực tuyến', value: 'ONLINE' },
 ];
 
@@ -46,6 +47,7 @@ const CourseFilters = ({
   onKeywordChange,
   onFilterChange,
   onClear,
+  categories = [],
 }) => (
   <aside className="hidden space-y-8 lg:block">
     <div className="sticky top-28">
@@ -70,7 +72,15 @@ const CourseFilters = ({
 
         <div>
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Danh mục</p>
-          <BrandedSelect name="category" onChange={onFilterChange} options={categoryOptions} placeholder="Chọn danh mục" value={filters.category} />
+          <BrandedSelect
+            name="category"
+            onChange={onFilterChange}
+            options={categories.length
+              ? [{ label: 'Tất cả danh mục', value: '' }, ...categories.map((category) => ({ label: category.name, value: category.code }))]
+              : fallbackCategoryOptions}
+            placeholder="Chọn danh mục"
+            value={filters.category}
+          />
         </div>
 
         <div>

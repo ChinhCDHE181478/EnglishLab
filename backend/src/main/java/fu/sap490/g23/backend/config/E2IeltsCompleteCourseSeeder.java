@@ -54,9 +54,9 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS)
+        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name())
                 .orElseGet(() -> courseCategoryRepository.save(CourseCategory.builder()
-                        .code(CourseCategoryCode.IELTS)
+                        .code(CourseCategoryCode.IELTS.name())
                         .name("IELTS")
                         .description("IELTS exam preparation courses")
                         .displayOrder(1)
@@ -93,8 +93,8 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setLearningPackage(savedPackage);
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
-        onlineCourse.setRecommendedCurrentBandMin(5.5);
-        onlineCourse.setRecommendedCurrentBandMax(6.5);
+        onlineCourse.setRecommendedCurrentBandMin(6.0);
+        onlineCourse.setRecommendedCurrentBandMax(7.0);
         onlineCourse.setTargetBand(7.0);
         onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
         onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");
@@ -189,6 +189,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 1,
                 "Lesson " + order + ".1: Goals and strategy for " + skill,
                 preLessonDescription,
+                buildTextLessonContent(order, 1, "Mục tiêu và chiến lược cho " + skill, preLessonDescription),
                 null,
                 10,
                 preview
@@ -199,6 +200,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 2,
                 "Lesson " + order + ".2: Video practice - " + videoTitle,
                 "Watch the original E2 IELTS video and track mistakes while following the guided practice flow.",
+                buildVideoLessonContent(order, videoTitle),
                 videoUrl,
                 videoDurationMinutes,
                 preview
@@ -209,6 +211,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 3,
                 "Lesson " + order + ".3: Review and post-video practice",
                 postLessonDescription,
+                buildTextLessonContent(order, 3, "Ôn tập sau video", postLessonDescription),
                 null,
                 15,
                 false
@@ -229,7 +232,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 });
     }
 
-    private void upsertLesson(CourseModule module, int order, String title, String description, String videoUrl, int durationMinutes, boolean preview) {
+    private void upsertLesson(CourseModule module, int order, String title, String description, String contentText, String videoUrl, int durationMinutes, boolean preview) {
         Lesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder() == order)
                 .findFirst()
@@ -241,10 +244,38 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
         lesson.setTitle(title);
         lesson.setDescription(description);
+        lesson.setContentType(videoUrl == null ? "text" : "video");
+        lesson.setContentText(contentText);
         lesson.setVideoUrl(videoUrl);
         lesson.setMaterialUrl(null);
         lesson.setDurationMinutes(durationMinutes);
         lesson.setDisplayOrder(order);
         lesson.setPreview(preview);
+    }
+
+    private String buildTextLessonContent(int moduleOrder, int lessonOrder, String heading, String description) {
+        return """
+                ## Lesson %d.%d: %s
+
+                %s
+
+                ### Việc cần làm
+                - Đọc kỹ mục tiêu của bước học này trước khi bắt đầu.
+                - Ghi lại 3-5 ý chính hoặc lỗi quan trọng cần lưu ý trong quá trình học.
+                - Sau khi hoàn thành, đánh dấu bài học để mở bước tiếp theo của mô-đun.
+                """.formatted(moduleOrder, lessonOrder, heading, description);
+    }
+
+    private String buildVideoLessonContent(int moduleOrder, String videoTitle) {
+        return """
+                ## Lesson %d.2: Video practice - %s
+
+                Xem video theo đúng tiến độ bài học và ghi lại lỗi hoặc chiến thuật làm bài hữu ích cho bản thân.
+
+                ### Cách học với video
+                - Xem video một lượt như bài thi thật, chỉ tạm dừng khi thật sự cần ghi chú.
+                - Ghi lại câu sai, từ khóa bỏ lỡ, dấu hiệu nhiễu và mẹo xử lý được nhắc trong video.
+                - Sau khi xem xong, tự tóm tắt 2-3 điều bạn cần luyện lại trước khi sang bước ôn tập.
+                """.formatted(moduleOrder, videoTitle);
     }
 }

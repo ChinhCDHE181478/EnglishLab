@@ -10,6 +10,7 @@ const CourseCatalog = ({
   onClear,
   loading,
   currentBand = null,
+  categories = [],
 }) => (
   <section id="catalog" className="mb-[80px] grid grid-cols-1 gap-6 lg:grid-cols-4">
     <CourseFilters
@@ -18,6 +19,7 @@ const CourseCatalog = ({
       onKeywordChange={onKeywordChange}
       onFilterChange={onFilterChange}
       onClear={onClear}
+      categories={categories}
     />
     <div className="lg:col-span-3">
       <div className="mb-6 flex flex-col gap-2 rounded-[24px] border border-[#dfbfbd]/25 bg-white px-6 py-5 shadow-sm">
@@ -41,11 +43,6 @@ const CourseCatalog = ({
           ))}
         </div>
       )}
-      <div className="mt-12 flex justify-center">
-        <button className="rounded-lg border border-[#8c716f] bg-white px-10 py-3 text-[14px] font-semibold tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#eeeeed]" type="button">
-          Xem thêm khóa học
-        </button>
-      </div>
     </div>
   </section>
 );

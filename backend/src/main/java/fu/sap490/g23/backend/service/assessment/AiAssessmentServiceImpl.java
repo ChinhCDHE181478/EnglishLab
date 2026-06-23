@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.assessment;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -59,6 +60,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final AssessmentAudioStorageService assessmentAudioStorageService;
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
+    private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -132,9 +134,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
     private void ensureEnrolled(User student, OnlineCourse course) {
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Student is not enrolled in this online course"));
+                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
         if (enrollment.getStatus() != null && enrollment.getStatus().name().equals("CANCELLED")) {
-            throw new RuntimeException("Enrollment is not active");
+            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.");
         }
     }
 
@@ -171,14 +173,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             return SubmissionStatus.AI_EVALUATED;
         }
 
-        BigDecimal passingThreshold = assessment.getPassingScore();
-        if (assessment.getMaxScore() != null) {
-            BigDecimal minimumCourseraThreshold = assessment.getMaxScore().multiply(BigDecimal.valueOf(0.7));
-            passingThreshold = passingThreshold == null
-                    ? minimumCourseraThreshold
-                    : passingThreshold.max(minimumCourseraThreshold);
-        }
-
+        BigDecimal passingThreshold = passingThresholdResolver.resolve(assessment);
         if (passingThreshold == null) {
             return SubmissionStatus.AI_EVALUATED;
         }
@@ -298,8 +293,11 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 continue;
             }
 
-            String expected = resolveExpectedAnswer(answerKeyRoot, questionNumber);
-            boolean correct = normalizeAnswer(studentAnswer).equals(normalizeAnswer(expected));
+            List<String> expectedAnswers = resolveExpectedAnswers(answerKeyRoot, questionNumber);
+            boolean correct = !expectedAnswers.isEmpty()
+                    && expectedAnswers.stream()
+                    .map(this::normalizeAnswer)
+                    .anyMatch(expected -> expected.equals(normalizeAnswer(studentAnswer)));
             summary.totalCount += 1;
             partSummary.totalCount += 1;
             if (correct) {
@@ -307,7 +305,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 partSummary.correctCount += 1;
                 partSummary.strengths.add("Câu " + questionNumber + " đúng.");
             } else {
-                String feedback = "Câu " + questionNumber + ": đáp án đúng là " + fallbackText(expected) + ", bài làm của bạn là " + fallbackText(studentAnswer) + ".";
+                String feedback = "Câu " + questionNumber + ": đáp án chấp nhận là "
+                        + fallbackText(String.join(" / ", expectedAnswers))
+                        + ", bài làm của bạn là " + fallbackText(studentAnswer) + ".";
                 partSummary.weaknesses.add(feedback);
             }
         }
@@ -520,20 +520,29 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return selected;
     }
 
-    private String resolveExpectedAnswer(JsonNode answerKeyRoot, String questionNumber) {
+    private List<String> resolveExpectedAnswers(JsonNode answerKeyRoot, String questionNumber) {
+        List<String> expectedAnswers = new ArrayList<>();
         if (answerKeyRoot == null || !answerKeyRoot.isObject()) {
-            return "";
+            return expectedAnswers;
         }
         JsonNode directNode = answerKeyRoot.path(questionNumber);
         if (directNode.isMissingNode() || directNode.isNull()) {
-            return "";
+            return expectedAnswers;
         }
         if (directNode.isArray()) {
-            List<String> values = new ArrayList<>();
-            directNode.forEach(item -> values.add(item.asText("")));
-            return String.join(", ", values);
+            directNode.forEach(item -> {
+                String value = item.asText("").trim();
+                if (!value.isBlank()) {
+                    expectedAnswers.add(value);
+                }
+            });
+            return expectedAnswers;
         }
-        return directNode.asText("");
+        String value = directNode.asText("").trim();
+        if (!value.isBlank()) {
+            expectedAnswers.add(value);
+        }
+        return expectedAnswers;
     }
 
     private String buildMultiSelectFeedback(String questionNumber, Set<String> expected, Set<String> selected, Set<String> missing, Set<String> extra, int earned, int total) {
@@ -639,6 +648,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Evaluate only with the provided rubric criteria. Do not invent extra criteria.
                 - estimatedScore should be numeric only when the assessment mode supports scoring and there is enough evidence; otherwise use null.
                 - estimatedBand should be provided only when the rubric or course uses band-based evaluation and the evidence is sufficient; otherwise use an empty string.
+                - When scoring on the IELTS band scale, use only whole or half bands (for example 6.0, 6.5, 7.0). Never use other decimal increments such as 6.3 or 7.2.
                 - Give specific evidence from the student's submission, not generic advice.
                 - Suggestions and recommendedReview must connect back to the course/module learning path.
                 - correctedExamples must explain errors clearly for English learners.
@@ -759,7 +769,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 assessment.getSkill(),
                 assessment.getAiEvaluationMode(),
                 safe(assessment.getPassingScore()),
-                safe(assessment.getMaxScore()),
+                safe(IeltsBandScale.resolveScoreCap(assessment)),
                 safe(assessment.getInstructions()),
                 safe(assessment.getObjectiveAnswerKey()),
                 safe(speakingAudioState),
@@ -815,9 +825,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         if (score.compareTo(BigDecimal.ZERO) < 0) {
             score = BigDecimal.ZERO;
         }
-        if (assessment.getMaxScore() != null && score.compareTo(assessment.getMaxScore()) > 0) {
-            score = assessment.getMaxScore();
-        }
+        score = IeltsBandScale.clampBandScore(score, assessment);
         return score;
     }
 
@@ -1099,9 +1107,13 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             return aiResult;
         }
 
-        BigDecimal cap = assessment.getMaxScore() == null
+        BigDecimal scoreCap = IeltsBandScale.resolveScoreCap(assessment);
+        BigDecimal cap = scoreCap == null
                 ? BigDecimal.valueOf(3)
-                : assessment.getMaxScore().multiply(VOCABULARY_OFF_TOPIC_CAP_RATIO);
+                : scoreCap.multiply(VOCABULARY_OFF_TOPIC_CAP_RATIO);
+        if (IeltsBandScale.usesBandScale(assessment)) {
+            cap = IeltsBandScale.normalizeBand(cap);
+        }
         if (aiResult.getEstimatedScore() == null || aiResult.getEstimatedScore().compareTo(cap) > 0) {
             aiResult.setEstimatedScore(cap);
         }
@@ -1219,6 +1231,21 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         return instructions.substring(instructions.indexOf(UI_CONFIG_MARKER) + UI_CONFIG_MARKER.length()).trim();
     }
 
+    private String sanitizeUiConfigJson(String uiConfigJson) {
+        if (uiConfigJson == null || uiConfigJson.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(uiConfigJson);
+            if (root.isObject()) {
+                ((ObjectNode) root).remove("answerKey");
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (JsonProcessingException exception) {
+            throw new RuntimeException("Cấu hình giao diện bài thi không hợp lệ.");
+        }
+    }
+
     private String extractDisplayInstructions(String instructions) {
         if (instructions == null || instructions.isBlank()) {
             return instructions;
@@ -1250,10 +1277,16 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .skill(assessment.getSkill())
                 .aiEvaluationMode(assessment.getAiEvaluationMode())
                 .instructions(extractDisplayInstructions(rawInstructions))
-                .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
-                .uiConfigJson(extractUiConfigJson(rawInstructions))
+                .objectiveAnswerKey(null)
+                .uiConfigJson(sanitizeUiConfigJson(
+                        assessment.getUiConfigJson() == null || assessment.getUiConfigJson().isBlank()
+                                ? extractUiConfigJson(rawInstructions)
+                                : assessment.getUiConfigJson()
+                ))
                 .passingScore(assessment.getPassingScore())
-                .maxScore(assessment.getMaxScore())
+                .maxScore(IeltsBandScale.resolveScoreCap(assessment))
+                .resolvedPassingThreshold(passingThresholdResolver.resolve(assessment))
+                .passingThresholdLabel(passingThresholdResolver.buildDisplayLabel(assessment))
                 .timeLimitMinutes(assessment.getTimeLimitMinutes())
                 .displayOrder(assessment.getDisplayOrder())
                 .active(assessment.isActive())

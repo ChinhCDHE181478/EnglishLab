@@ -1,7 +1,8 @@
 import MaterialIcon from './MaterialIcon';
+import { PAGE_FOOTER_CLASS } from '../../utils/pageLayout';
 
 const CourseFooter = () => (
-  <footer className="w-full bg-[#2f3131] pt-[80px] pb-12">
+  <footer className={`${PAGE_FOOTER_CLASS} bg-[#2f3131] pt-[80px] pb-12`}>
     <div className="mx-auto mb-12 grid max-w-[1280px] grid-cols-1 gap-6 px-4 md:grid-cols-4 md:px-10">
       <div>
         <a className="font-headline-md mb-6 block text-[24px] font-bold leading-[1.3] text-white" href="#top">EnglishLab</a>

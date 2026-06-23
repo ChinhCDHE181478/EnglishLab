@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.classroom;
 
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
@@ -31,6 +32,7 @@ public class ClassroomMapper {
     private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
+    private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     private final LarkMeetingService larkMeetingService;
 
@@ -270,6 +272,20 @@ public class ClassroomMapper {
         boolean overdue = homework.getDeadline() != null
                 && homework.getDeadline().isBefore(LocalDateTime.now())
                 && homework.getStatus() == HomeworkStatus.OPEN;
+        Integer submissionCount = null;
+        Integer gradedCount = null;
+        Integer pendingGradingCount = null;
+        if (studentId == null) {
+            submissionCount = (int) homeworkSubmissionRepository.countByHomeworkId(homework.getId());
+            gradedCount = (int) homeworkSubmissionRepository.countByHomeworkIdAndStatus(
+                    homework.getId(),
+                    HomeworkSubmissionStatus.GRADED
+            );
+            pendingGradingCount = (int) homeworkSubmissionRepository.countByHomeworkIdAndStatus(
+                    homework.getId(),
+                    HomeworkSubmissionStatus.SUBMITTED
+            );
+        }
         return ClassroomHomeworkResponse.builder()
                 .id(homework.getId())
                 .classroomOfferingId(homework.getClassroomOffering().getId())
@@ -281,8 +297,16 @@ public class ClassroomMapper {
                 .allowResubmission(homework.isAllowResubmission())
                 .attachmentUrl(homework.getAttachmentUrl())
                 .status(homework.getStatus())
+                .gradingMode(homework.getGradingMode())
+                .skill(homework.getSkill())
+                .rubricId(homework.getRubric() == null ? null : homework.getRubric().getId())
+                .rubricName(homework.getRubric() == null ? null : homework.getRubric().getName())
+                .rubric(homeworkGradingCatalogService.mapRubric(homework.getRubric()))
                 .overdue(overdue)
                 .mySubmission(mySubmission)
+                .submissionCount(submissionCount)
+                .gradedCount(gradedCount)
+                .pendingGradingCount(pendingGradingCount)
                 .build();
     }
 
@@ -323,8 +347,17 @@ public class ClassroomMapper {
                 .title(material.getTitle())
                 .fileUrl(material.getFileUrl())
                 .fileType(material.getFileType())
+                .description(material.getDescription())
+                .materialType(material.getMaterialType())
+                .provider(material.getProvider())
                 .visibility(material.getVisibility())
+                .sourceType(material.getSourceType())
+                .centerMaterialId(material.getCenterMaterialId())
                 .sessionId(material.getSession() == null ? null : material.getSession().getId())
+                .sessionTitle(material.getSession() == null ? null : material.getSession().getSessionContent())
+                .uploadedByName(material.getUploadedBy() == null ? null : material.getUploadedBy().getFullName())
+                .createdAt(material.getCreatedAt())
+                .updatedAt(material.getUpdatedAt())
                 .build();
     }
 
