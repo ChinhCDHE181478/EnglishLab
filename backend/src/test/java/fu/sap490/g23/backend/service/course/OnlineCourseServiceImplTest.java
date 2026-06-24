@@ -1,4 +1,5 @@
 package fu.sap490.g23.backend.service.course;
+import fu.sap490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;

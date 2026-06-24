@@ -53,6 +53,14 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1
 
 const normalizeScalar = (value, fallback = '') => (value == null ? fallback : String(value));
 
+const normalizeTranscriptSegments = (segments, keepEmpty = false) => (Array.isArray(segments) ? segments : [])
+  .map((segment) => ({
+    startSeconds: Number(segment?.startSeconds),
+    endSeconds: Number(segment?.endSeconds),
+    text: keepEmpty ? String(segment?.text || '') : String(segment?.text || '').trim(),
+  }))
+  .filter((segment) => (keepEmpty || segment.text) && Number.isFinite(segment.startSeconds) && Number.isFinite(segment.endSeconds));
+
 function extractEmbeddedUiConfig(instructions) {
   const marker = '[ENGLISHLAB_UI_CONFIG]';
   const text = String(instructions || '');
@@ -127,6 +135,7 @@ export default function ContentManagerCourseBuilderPage() {
   const [lessonModalOpen, setLessonModalOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [refreshingTranscript, setRefreshingTranscript] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -324,6 +333,7 @@ export default function ContentManagerCourseBuilderPage() {
                 contentText: '',
                 videoUrl: '',
                 materialUrl: '',
+                transcriptSegments: [],
                 durationMinutes: '',
                 displayOrder: currentLessons.length + 1,
                 preview: false,
@@ -496,6 +506,35 @@ export default function ContentManagerCourseBuilderPage() {
     }
   };
 
+  const handleRefreshTranscript = async () => {
+    if (!course?.id || !activeLesson?.id || !activeLesson.videoUrl) {
+      pushToast('Hãy lưu bài học và thêm liên kết YouTube trước khi lấy bản chép lời.', 'warning');
+      return;
+    }
+
+    setRefreshingTranscript(true);
+    setError('');
+    try {
+      const updatedCourse = await courseApi.refreshLessonTranscript(course.id, activeLesson.id);
+      const normalizedCourse = normalizeCourseStructure(updatedCourse);
+      const updatedLesson = normalizedCourse.modules
+        ?.flatMap((module) => module.lessons || [])
+        .find((lesson) => String(lesson.id) === String(activeLesson.id));
+      const segmentCount = updatedLesson?.transcriptSegments?.length || 0;
+      if (updatedLesson) {
+        patchActiveLesson({ transcriptSegments: updatedLesson.transcriptSegments || [] });
+      }
+      pushToast(segmentCount
+        ? `Đã lấy ${segmentCount} đoạn bản chép lời từ video.`
+        : 'Video chưa có caption công khai. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
+        segmentCount ? 'success' : 'warning');
+    } catch (refreshError) {
+      setError(refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.');
+    } finally {
+      setRefreshingTranscript(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!course?.id) return;
 
@@ -547,6 +586,7 @@ export default function ContentManagerCourseBuilderPage() {
             contentText: lesson.contentText,
             videoUrl: lesson.videoUrl,
             materialUrl: lesson.materialUrl,
+            transcriptSegments: normalizeTranscriptSegments(lesson.transcriptSegments),
             durationMinutes: normalizeDurationForSave(lesson),
             displayOrder: lessonIndex + 1,
             preview: Boolean(lesson.preview),
@@ -890,8 +930,11 @@ export default function ContentManagerCourseBuilderPage() {
         activeLesson={activeLesson}
         onBunnyUpload={handleBunnyUpload}
         onChangeLesson={updateLesson}
+        onPatchLesson={patchActiveLesson}
         onClose={() => setLessonModalOpen(false)}
+        onRefreshTranscript={handleRefreshTranscript}
         open={lessonModalOpen}
+        refreshingTranscript={refreshingTranscript}
         uploadFile={uploadFile}
         uploadingVideo={uploadingVideo}
         uploadProgress={uploadProgress}
@@ -944,6 +987,21 @@ function validateBuilderState(modules, assessments) {
         : Number(lesson.durationMinutes);
       if (!Number.isFinite(duration) || duration < 0) {
         return `Thời lượng của bài học "${lesson.title}" không hợp lệ.`;
+      }
+      const transcriptSegments = Array.isArray(lesson.transcriptSegments) ? lesson.transcriptSegments : [];
+      for (let segmentIndex = 0; segmentIndex < transcriptSegments.length; segmentIndex += 1) {
+        const segment = transcriptSegments[segmentIndex];
+        const startSeconds = Number(segment?.startSeconds);
+        const endSeconds = Number(segment?.endSeconds);
+        if (!String(segment?.text || '').trim()) {
+          return `Đoạn chép lời ${segmentIndex + 1} của bài học "${lesson.title}" chưa có nội dung.`;
+        }
+        if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds < 0 || endSeconds <= startSeconds) {
+          return `Mốc thời gian của đoạn chép lời ${segmentIndex + 1} trong bài học "${lesson.title}" không hợp lệ.`;
+        }
+        if (segmentIndex > 0 && startSeconds < Number(transcriptSegments[segmentIndex - 1]?.endSeconds)) {
+          return `Các đoạn chép lời trong bài học "${lesson.title}" đang bị chồng thời gian.`;
+        }
       }
     }
   }
@@ -1046,9 +1104,12 @@ function LessonEditorModal({
   activeLesson,
   onBunnyUpload,
   onChangeLesson,
+  onPatchLesson,
   onClose,
+  onRefreshTranscript,
   onSelectUploadFile,
   open,
+  refreshingTranscript,
   uploadFile,
   uploadingVideo,
   uploadProgress,
@@ -1102,6 +1163,13 @@ function LessonEditorModal({
               {isVideo ? (
                 <>
                   <TextField label="Liên kết video" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
+                  <TranscriptEditor
+                    onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
+                    onRefresh={onRefreshTranscript}
+                    refreshing={refreshingTranscript}
+                    segments={activeLesson.transcriptSegments}
+                    videoUrl={activeLesson.videoUrl}
+                  />
                   <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
@@ -1161,6 +1229,89 @@ function LessonEditorModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl }) {
+  const normalizedSegments = normalizeTranscriptSegments(segments, true);
+  const updateSegment = (index, field, value) => {
+    const next = normalizedSegments.map((segment, segmentIndex) => (
+      segmentIndex === index
+        ? { ...segment, [field]: field === 'text' ? value : Number(value) }
+        : segment
+    ));
+    onChange(next);
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bản chép lời video</p>
+          <p className="mt-1 text-sm leading-6 text-[#584140]">Thêm từng đoạn có mốc thời gian để học viên theo dõi và bấm chuyển đến đúng vị trí trong video.</p>
+        </div>
+        <button
+          className="rounded-xl border border-[#dfbfbd]/70 bg-white px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={!videoUrl || refreshing}
+          onClick={onRefresh}
+          type="button"
+        >
+          {refreshing ? 'Đang lấy caption...' : 'Lấy caption YouTube'}
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {normalizedSegments.map((segment, index) => (
+          <div className="grid gap-2 rounded-xl border border-[#f0e3e4] bg-white p-3 md:grid-cols-[88px_88px_minmax(0,1fr)_auto]" key={`${index}-${segment.startSeconds}-${segment.endSeconds}`}>
+            <input
+              aria-label={`Bắt đầu đoạn ${index + 1}`}
+              className="rounded-lg border border-[#dfbfbd]/65 px-3 py-2 text-sm outline-none focus:border-[#730014]"
+              min="0"
+              onChange={(event) => updateSegment(index, 'startSeconds', event.target.value)}
+              step="0.1"
+              type="number"
+              value={segment.startSeconds}
+            />
+            <input
+              aria-label={`Kết thúc đoạn ${index + 1}`}
+              className="rounded-lg border border-[#dfbfbd]/65 px-3 py-2 text-sm outline-none focus:border-[#730014]"
+              min="0"
+              onChange={(event) => updateSegment(index, 'endSeconds', event.target.value)}
+              step="0.1"
+              type="number"
+              value={segment.endSeconds}
+            />
+            <textarea
+              aria-label={`Nội dung đoạn ${index + 1}`}
+              className="min-h-[44px] rounded-lg border border-[#dfbfbd]/65 px-3 py-2 text-sm leading-6 outline-none focus:border-[#730014]"
+              onChange={(event) => updateSegment(index, 'text', event.target.value)}
+              rows={2}
+              value={segment.text}
+            />
+            <button
+              aria-label={`Xóa đoạn ${index + 1}`}
+              className="rounded-lg px-2 py-2 text-[#93000a] transition hover:bg-[#fff2f3]"
+              onClick={() => onChange(normalizedSegments.filter((_, segmentIndex) => segmentIndex !== index))}
+              type="button"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="mt-4 rounded-xl border border-dashed border-[#bf7783] px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]"
+        onClick={() => onChange([...normalizedSegments, {
+          startSeconds: normalizedSegments.at(-1)?.endSeconds || 0,
+          endSeconds: (normalizedSegments.at(-1)?.endSeconds || 0) + 10,
+          text: '',
+        }])}
+        type="button"
+      >
+        + Thêm đoạn chép lời
+      </button>
+    </section>
   );
 }
 

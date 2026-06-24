@@ -1,7 +1,7 @@
 package fu.sap490.g23.backend.controller;
 
 import fu.sap490.g23.backend.dto.response.ApiResponse;
-import fu.sap490.g23.backend.service.IHomeService;
+import fu.sap490.g23.backend.service.home.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class HomeController {
 
-    private final IHomeService homeService;
+    private final HomeService homeService;
 
     @GetMapping("/home")
     public ResponseEntity<ApiResponse> home() {

@@ -1,9 +1,9 @@
 package fu.sap490.g23.backend.service.course;
 
 import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
+import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
-import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
@@ -14,11 +14,10 @@ import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 public interface OnlineCourseService {
     Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable);

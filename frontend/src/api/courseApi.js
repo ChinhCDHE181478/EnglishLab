@@ -319,6 +319,11 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async refreshLessonTranscript(courseId, lessonId) {
+    const response = await axiosClient.post(`/api/content-manager/online-courses/${courseId}/lessons/${lessonId}/transcript/youtube`);
+    return unwrapData(response);
+  },
+
   async getDiscountCodes(params = {}) {
     const response = await axiosClient.get('/api/content-manager/discount-codes', { params });
     return normalizePage(unwrapData(response));

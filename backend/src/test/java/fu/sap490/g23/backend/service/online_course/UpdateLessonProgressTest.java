@@ -12,7 +12,7 @@ import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
 import fu.sap490.g23.backend.service.course.OnlineCourseMapper;
-import fu.sap490.g23.backend.service.course.OnlineCourseServiceImpl;
+import fu.sap490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

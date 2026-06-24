@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.assessment;
 
+import fu.sap490.g23.backend.service.assessment.impl.AiAssessmentServiceImpl;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
@@ -43,6 +44,9 @@ class GetCourseAssessmentsTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AssessmentPassingThresholdResolver passingThresholdResolver;
 
     @InjectMocks
     private AiAssessmentServiceImpl aiAssessmentService;
@@ -147,7 +151,7 @@ class GetCourseAssessmentsTest {
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             aiAssessmentService.getCourseAssessments(course.getId(), student.getEmail());
         });
-        assertEquals("Student is not enrolled in this online course", exception.getMessage());
+        assertEquals("Bạn cần đăng ký khóa học trước khi làm bài đánh giá.", exception.getMessage());
     }
 
     /**
@@ -166,6 +170,6 @@ class GetCourseAssessmentsTest {
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             aiAssessmentService.getCourseAssessments(course.getId(), student.getEmail());
         });
-        assertEquals("Enrollment is not active", exception.getMessage());
+        assertEquals("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.", exception.getMessage());
     }
 }

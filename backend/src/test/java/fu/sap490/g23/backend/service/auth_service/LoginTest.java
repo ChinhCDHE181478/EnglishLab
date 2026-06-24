@@ -5,8 +5,9 @@ import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.security.JwtService;
-import fu.sap490.g23.backend.service.impl.AuthService;
+import fu.sap490.g23.backend.service.auth.impl.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,8 +37,11 @@ public class LoginTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private PlacementTestAttemptRepository placementTestAttemptRepository;
+
     @InjectMocks
-    private AuthService authService;
+    private AuthServiceImpl authService;
 
     private User validUser;
     private LoginRequest loginRequest;
@@ -56,6 +60,9 @@ public class LoginTest {
         loginRequest = new LoginRequest();
         loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
+
+        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_MOCK_1")))
+                .thenReturn(false);
     }
 
     /**

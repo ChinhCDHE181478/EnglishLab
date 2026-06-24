@@ -5,7 +5,6 @@ import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
-
 import java.util.List;
 
 public interface ClassroomHomeworkService {

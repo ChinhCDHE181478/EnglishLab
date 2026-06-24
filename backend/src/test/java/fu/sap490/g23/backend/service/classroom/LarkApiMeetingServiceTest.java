@@ -8,6 +8,7 @@ import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
+import fu.sap490.g23.backend.service.classroom.impl.LarkMeetingServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -71,7 +72,7 @@ class LarkApiMeetingServiceTest {
         properties.setCalendarId("calendar-test");
         properties.setBaseUrl("http://localhost:" + server.getAddress().getPort() + "/open-apis");
 
-        LarkApiMeetingService service = new LarkApiMeetingService(properties);
+        LarkMeetingServiceImpl service = new LarkMeetingServiceImpl(properties);
         ClassroomSession session = buildVirtualSession();
 
         service.syncMeeting(session);
@@ -89,7 +90,7 @@ class LarkApiMeetingServiceTest {
 
     @Test
     void rejectsOldDemoLinks() {
-        LarkApiMeetingService service = new LarkApiMeetingService(new LarkProperties());
+        LarkMeetingServiceImpl service = new LarkMeetingServiceImpl(new LarkProperties());
 
         assertThat(service.isDemoUrl("https://meet.larksuite.com/demo/ielts-speaking-live")).isTrue();
         assertThat(service.resolveStatus("https://meet.larksuite.com/demo/ielts-speaking-live"))

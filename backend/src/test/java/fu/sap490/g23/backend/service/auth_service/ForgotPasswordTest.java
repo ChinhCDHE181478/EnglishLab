@@ -4,8 +4,9 @@ import fu.sap490.g23.backend.dto.response.AuthResponse;
 import fu.sap490.g23.backend.entity.AuthToken;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.service.impl.AuthService;
-import fu.sap490.g23.backend.service.impl.AuthTokenService;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sap490.g23.backend.service.auth.impl.AuthServiceImpl;
+import fu.sap490.g23.backend.service.auth.AuthTokenService;
 import fu.sap490.g23.backend.service.mail.AuthMailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,8 +34,11 @@ public class ForgotPasswordTest {
     @Mock
     private AuthMailService authMailService;
 
+    @Mock
+    private PlacementTestAttemptRepository placementTestAttemptRepository;
+
     @InjectMocks
-    private AuthService authService;
+    private AuthServiceImpl authService;
 
     private User existingUser;
 
@@ -44,6 +48,9 @@ public class ForgotPasswordTest {
                 .id(1L)
                 .email("test@example.com")
                 .build();
+
+        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_MOCK_1")))
+                .thenReturn(false);
     }
 
     /**

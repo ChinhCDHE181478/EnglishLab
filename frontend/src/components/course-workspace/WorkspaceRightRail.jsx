@@ -225,16 +225,16 @@ const WorkspaceRightRail = ({
 
   if (!panelMode) {
     return (
-      <aside className="flex h-full min-h-[calc(100vh-112px)] overflow-hidden rounded-[8px] border border-[#dce2ec] bg-white shadow-sm">
+      <aside className="flex h-full min-h-0 overflow-hidden rounded-[8px] border border-[#dce2ec] bg-white shadow-sm">
         {rail}
       </aside>
     );
   }
 
   return (
-    <aside className="flex h-full min-h-[calc(100vh-112px)] overflow-hidden rounded-[8px] border border-[#dce2ec] bg-white shadow-sm">
-      <div ref={transcriptContainerRef} className="relative min-w-0 flex-1 overflow-y-auto px-5 py-5">
-        <div className="flex items-start justify-between gap-4">
+    <aside className="flex h-full min-h-0 overflow-hidden rounded-[8px] border border-[#dce2ec] bg-white shadow-sm">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#f0e3e4] px-5 py-5">
           <div>
             <h2 className="text-xl font-extrabold text-[#1f2430]">
               {panelMode === 'transcript' ? 'Bản chép lời' : 'Ghi chú'}
@@ -253,6 +253,7 @@ const WorkspaceRightRail = ({
           </button>
         </div>
 
+        <div ref={transcriptContainerRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
         {panelMode === 'transcript' ? (
           <div className="mt-6">
             {message ? <p className="mb-4 text-sm font-semibold text-[#730014]">{message}</p> : null}
@@ -438,6 +439,7 @@ const WorkspaceRightRail = ({
             ) : null}
           </div>
         ) : null}
+        </div>
       </div>
 
       {rail}

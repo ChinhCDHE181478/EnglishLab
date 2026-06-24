@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
+import fu.sap490.g23.backend.service.classroom.impl.LarkWebhookServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,12 +28,12 @@ class LarkWebhookServiceTest {
     @Mock
     private LarkMeetingParticipantRepository participantRepository;
 
-    private LarkWebhookService service;
+    private LarkWebhookServiceImpl service;
     private ClassroomSession session;
 
     @BeforeEach
     void setUp() {
-        service = new LarkWebhookService(
+        service = new LarkWebhookServiceImpl(
                 new LarkProperties(),
                 sessionRepository,
                 participantRepository
