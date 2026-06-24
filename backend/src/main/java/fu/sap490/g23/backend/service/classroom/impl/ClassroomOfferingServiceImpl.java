@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -68,6 +69,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
     private final LarkMeetingParticipantRepository larkParticipantRepository;
+    private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
     @Override
     @Transactional(readOnly = true)
@@ -396,7 +398,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         if (isClassFull(offering) && !enrollment.hasClassAccess()) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
-        } else {
+        } else if (!enrollment.hasClassAccess()) {
             tryAssignEnrollment(enrollment, offering, student, null, "Xếp lớp trực tiếp");
         }
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
@@ -479,10 +481,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         );
         targetEnrollment.setRegistrationStatus(paymentStatus);
 
-        if (paymentStatus == ClassroomRegistrationStatus.FULLY_PAID && !isClassFull(target)) {
+        if (paymentStatus == ClassroomRegistrationStatus.FULLY_PAID) {
             tryAssignEnrollment(targetEnrollment, target, student, null, "Chuyển lớp");
-        } else if (isClassFull(target)) {
-            targetEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         }
 
         ClassroomRegistrationSupport.syncLegacyStatus(targetEnrollment);
@@ -695,8 +695,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.isAssignIfFullyPaid()
                 && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID) {
             tryAssignEnrollment(enrollment, offering, learner, actor, null);
-        } else if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID && isClassFull(offering)) {
-            enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         }
 
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
@@ -1288,6 +1286,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private PackageEnrollment ensurePackageEnrollment(User student, ClassroomOffering offering) {
         return packageEnrollmentRepository.findByStudentAndLearningPackage(student, offering.getLearningPackage())
+                .map(enrollment -> {
+                    if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
+                        return courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
+                    }
+                    return enrollment;
+                })
                 .orElseGet(() -> packageEnrollmentRepository.save(PackageEnrollment.builder()
                         .student(student)
                         .learningPackage(offering.getLearningPackage())
@@ -1303,11 +1307,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             User assigner,
             String assignmentNote
     ) {
-        if (isClassFull(offering)) {
+        ClassroomOffering lockedOffering = offeringRepository.findByIdForUpdate(offering.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
+        if (isClassFull(lockedOffering)) {
             enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
             return;
         }
-        assignEnrollmentToClass(enrollment, offering, student, assigner, assignmentNote);
+        assignEnrollmentToClass(enrollment, lockedOffering, student, assigner, assignmentNote);
     }
 
     private void assignEnrollmentToClass(

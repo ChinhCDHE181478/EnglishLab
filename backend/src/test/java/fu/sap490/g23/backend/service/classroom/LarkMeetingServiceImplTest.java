@@ -20,7 +20,7 @@ import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class LarkApiMeetingServiceTest {
+class LarkMeetingServiceImplTest {
 
     private HttpServer server;
 

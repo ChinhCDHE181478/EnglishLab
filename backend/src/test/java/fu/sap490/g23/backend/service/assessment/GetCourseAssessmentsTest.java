@@ -14,6 +14,7 @@ import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepositor
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +48,9 @@ class GetCourseAssessmentsTest {
 
     @Mock
     private AssessmentPassingThresholdResolver passingThresholdResolver;
+
+    @Mock
+    private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
     @InjectMocks
     private AiAssessmentServiceImpl aiAssessmentService;
@@ -90,7 +94,7 @@ class GetCourseAssessmentsTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
         when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)).thenReturn(List.of(assessment));
         when(submissionRepository.findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)).thenReturn(List.of());
 
@@ -145,7 +149,8 @@ class GetCourseAssessmentsTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course))
+                .thenThrow(new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -164,7 +169,8 @@ class GetCourseAssessmentsTest {
         enrollment.setStatus(EnrollmentStatus.CANCELLED);
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course))
+                .thenThrow(new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục."));
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {

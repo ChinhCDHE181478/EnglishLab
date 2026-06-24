@@ -16,12 +16,12 @@ import fu.sap490.g23.backend.entity.assessment.enums.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
@@ -63,6 +63,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final AssessmentAudioStorageService assessmentAudioStorageService;
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
+    private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -136,11 +137,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     private void ensureEnrolled(User student, OnlineCourse course) {
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
-        if (enrollment.getStatus() != null && enrollment.getStatus().name().equals("CANCELLED")) {
-            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.");
-        }
+        courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course);
     }
 
     private void validateSkillAssessmentConfiguration(CourseAssessment assessment) {

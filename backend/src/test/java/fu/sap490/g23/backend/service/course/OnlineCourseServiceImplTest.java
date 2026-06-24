@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.course;
 import fu.sap490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
+import fu.sap490.g23.backend.service.course.impl.CourseEnrollmentAccessPolicyImpl;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
@@ -70,6 +71,7 @@ class OnlineCourseServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private CourseProgressionGuard courseProgressionGuard;
+    private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     @Mock
     private OnlineCourseMapper mapper;
     @Mock
@@ -85,6 +87,7 @@ class OnlineCourseServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        courseEnrollmentAccessPolicy = new CourseEnrollmentAccessPolicyImpl(enrollmentRepository);
         service = new OnlineCourseServiceImpl(
                 onlineCourseRepository,
                 learningPackageRepository,
@@ -102,6 +105,7 @@ class OnlineCourseServiceImplTest {
                 bunnyStreamService,
                 courseProgressService,
                 courseProgressionGuard,
+                courseEnrollmentAccessPolicy,
                 courseEnrollmentMailService,
                 youTubeTranscriptService
         );

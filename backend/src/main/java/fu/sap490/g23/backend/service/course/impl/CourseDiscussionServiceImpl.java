@@ -23,8 +23,6 @@ import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyRepository;
@@ -33,7 +31,6 @@ import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyVoteReposito
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,7 +62,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final CourseDiscussionReplyVoteRepository voteRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final PackageEnrollmentRepository enrollmentRepository;
+    private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final UserRepository userRepository;
 
     @Override
@@ -296,11 +293,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         if (canModerate(user)) {
             return;
         }
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(user, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi tham gia thảo luận."));
-        if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này.");
-        }
+        courseEnrollmentAccessPolicy.requireLearningAccess(user, course);
     }
 
     private String clean(String value) {

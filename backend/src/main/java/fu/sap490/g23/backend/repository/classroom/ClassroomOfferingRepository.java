@@ -5,7 +5,9 @@ import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,4 +37,14 @@ public interface ClassroomOfferingRepository extends JpaRepository<ClassroomOffe
     Page<ClassroomOffering> findPublished(@Param("mode") ClassroomDeliveryMode mode, Pageable pageable);
 
     boolean existsByLearningPackage_TitleIgnoreCase(String title);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT co
+            FROM ClassroomOffering co
+            JOIN FETCH co.learningPackage lp
+            WHERE co.id = :id
+              AND lp.deleted = false
+            """)
+    Optional<ClassroomOffering> findByIdForUpdate(@Param("id") Long id);
 }

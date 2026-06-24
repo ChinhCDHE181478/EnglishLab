@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sap490.g23.backend.service.course.OnlineCourseMapper;
 import fu.sap490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class UpdateLessonProgressTest {
 
     @Mock
     private CourseProgressionGuard courseProgressionGuard;
+
+    @Mock
+    private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
     @Mock
     private CourseProgressService courseProgressService;
@@ -106,7 +110,7 @@ class UpdateLessonProgressTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireLearningAccess(student, course)).thenReturn(enrollment);
         when(lessonRepository.findById(lesson.getId())).thenReturn(Optional.of(lesson));
         when(lessonProgressRepository.findByStudentAndLesson(student, lesson)).thenReturn(Optional.of(progress));
         when(courseProgressService.refreshEnrollmentProgress(enrollment, course, student)).thenReturn(enrollment);
@@ -135,7 +139,7 @@ class UpdateLessonProgressTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireLearningAccess(student, course)).thenReturn(enrollment);
         when(lessonRepository.findById(lesson.getId())).thenReturn(Optional.of(lesson));
         when(lessonProgressRepository.findByStudentAndLesson(student, lesson)).thenReturn(Optional.of(progress));
         when(courseProgressService.refreshEnrollmentProgress(enrollment, course, student)).thenReturn(enrollment);
@@ -180,13 +184,14 @@ class UpdateLessonProgressTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(courseEnrollmentAccessPolicy.requireLearningAccess(student, course))
+                .thenThrow(new RuntimeException("Bạn cần đăng ký khóa học trước khi xem nội dung."));
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             onlineCourseService.updateLessonProgress(course.getId(), lesson.getId(), true, student.getEmail());
         });
-        assertEquals("You are not enrolled in this course", exception.getMessage());
+        assertEquals("Bạn cần đăng ký khóa học trước khi xem nội dung.", exception.getMessage());
     }
 
     /**
@@ -207,7 +212,7 @@ class UpdateLessonProgressTest {
 
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireLearningAccess(student, course)).thenReturn(enrollment);
         when(lessonRepository.findById(otherLesson.getId())).thenReturn(Optional.of(otherLesson));
 
         // Act & Assert

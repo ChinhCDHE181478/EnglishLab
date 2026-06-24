@@ -21,6 +21,7 @@ import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,9 @@ class SubmitAssessmentTest {
 
     @Mock
     private CourseProgressionGuard courseProgressionGuard;
+
+    @Mock
+    private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
 
     @Mock
     private AiEvaluationClient aiEvaluationClient;
@@ -111,6 +115,7 @@ class SubmitAssessmentTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
         when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
         
         AiEvaluationResult mockAiResult = AiEvaluationResult.builder()
@@ -148,7 +153,7 @@ class SubmitAssessmentTest {
         assessment.setAiEvaluationMode(AiEvaluationMode.NONE);
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -170,7 +175,7 @@ class SubmitAssessmentTest {
         
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -188,7 +193,8 @@ class SubmitAssessmentTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course))
+                .thenThrow(new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {

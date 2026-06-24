@@ -88,6 +88,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final BunnyStreamService bunnyStreamService;
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
+    private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
     private final YouTubeTranscriptService youTubeTranscriptService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -359,9 +360,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi xem nội dung."));
-        ensureActiveEnrollment(enrollment);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
     }
 
@@ -380,10 +379,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage);
         if (existingEnrollment.isPresent()) {
             PackageEnrollment enrollment = existingEnrollment.get();
-            if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-                enrollment.setStatus(EnrollmentStatus.ACTIVE);
-                enrollment.setRegisteredAt(LocalDateTime.now());
-                enrollment = enrollmentRepository.save(enrollment);
+            if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
+                enrollment = courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
                 courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
             }
             return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
@@ -418,9 +415,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
         OnlineCourse course = findCourse(courseId);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi xem tiến độ học tập."));
-        ensureActiveEnrollment(enrollment);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         return courseProgressService.buildCompletionResponse(enrollment, course, student);
     }
 
@@ -429,9 +424,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
         OnlineCourse course = findCourse(courseId);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("Bạn cần đăng ký khóa học trước khi nhận chứng nhận hoàn thành."));
-        ensureActiveEnrollment(enrollment);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
         return buildCertificateResponse(course, enrollment, student, completion, false);
     }
@@ -441,9 +434,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findCourse(courseId);
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("You are not enrolled in this course"));
-        ensureActiveEnrollment(enrollment);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
@@ -616,15 +607,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void ensureEnrolled(User student, OnlineCourse course) {
-        PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(student, course.getLearningPackage())
-                .orElseThrow(() -> new RuntimeException("You are not enrolled in this course"));
-        ensureActiveEnrollment(enrollment);
-    }
-
-    private void ensureActiveEnrollment(PackageEnrollment enrollment) {
-        if (enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
-            throw new RuntimeException("Bạn đã hủy đăng ký khóa học này. Vui lòng đăng ký lại để tiếp tục.");
-        }
+        courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
     }
 
     private List<VocabularyTermResponse> extractVocabularyTerms(OnlineCourse course) {
