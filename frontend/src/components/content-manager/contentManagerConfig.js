@@ -15,6 +15,7 @@ import {
   NotebookPen,
   Route,
   School,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 export const contentManagerNav = [
@@ -40,6 +41,7 @@ export const contentManagerNav = [
       { label: 'Luyện nói', href: '/content-manager/speaking', icon: Mic2 },
       { label: 'Bài đánh giá đầu vào', href: '/content-manager/placement-test', icon: ClipboardCheck },
       { label: 'Ngân hàng đề thi thử', href: '/content-manager/mock-exams', icon: FileQuestion },
+      { label: 'Rubrics chấm điểm', href: '/content-manager/rubrics', icon: SlidersHorizontal },
     ],
   },
   {
@@ -131,6 +133,11 @@ export const contentManagerPageMeta = {
     title: 'Quản lý bài đánh giá đầu vào',
     subtitle: 'Thiết lập bài đánh giá đầu vào, giới hạn lượt làm và nội dung của bốn kỹ năng IELTS.',
     searchPlaceholder: 'Tìm phần thi hoặc câu hỏi...',
+  },
+  '/content-manager/rubrics': {
+    title: 'Quản lý rubrics chấm điểm',
+    subtitle: 'Tạo, sửa và tạm ngưng các bộ tiêu chí chấm điểm cho giáo viên, bài tập và AI feedback.',
+    searchPlaceholder: 'Tìm rubric hoặc rule...',
   },
   '/content-manager/publication': {
     title: 'Kiểm soát xuất bản',

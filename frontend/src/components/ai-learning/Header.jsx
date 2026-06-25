@@ -27,15 +27,18 @@ const getNavItemsByRole = (user) => {
   }
   if (role === 'TRAINING_MANAGER') {
     return [
-      { label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' },
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
       { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
     ];
   }
   if (role === 'MANAGER' || role === 'ADMIN') {
     return [
-      { label: 'Tổng quan lớp', to: '/manager/classrooms' },
-      { label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' },
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
       { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
       { label: 'Giảng dạy', to: '/teacher' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
@@ -62,14 +65,16 @@ const getProfileItemsByRole = (user) => {
   }
   if (role === 'TRAINING_MANAGER') {
     return [
-      { label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' },
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
       { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
     ];
   }
   if (role === 'MANAGER' || role === 'ADMIN') {
     return [
-      { label: 'Tổng quan lớp', to: '/manager/classrooms' },
-      { label: 'Quản lý đào tạo', to: '/training-manager/classroom-registrations' },
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
       { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
       { label: 'Giảng dạy', to: '/teacher' },
     ];
@@ -85,6 +90,7 @@ const getProfileItemsByRole = (user) => {
     { label: 'Lớp của tôi', to: '/my-classrooms' },
     { label: 'Lịch học', to: '/my-schedule' },
     { label: 'Bài tập', to: '/my-homework' },
+    { label: 'Quiz lớp học', to: '/my-quizzes' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },
   ];

@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class RegisterClassRequest {
     /** true = Giữ chỗ, false = Đăng ký lớp */
-    private boolean holdSpot;
+    private Boolean holdSpot;
 
     private String note;
 }

@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ClassroomRoomRepository extends JpaRepository<ClassroomRoom, Long> {
     List<ClassroomRoom> findByActiveTrue();
+    List<ClassroomRoom> findByActiveTrueOrderByNameAsc();
+    List<ClassroomRoom> findByCampusIdAndActiveTrueOrderByNameAsc(Long campusId);
 }

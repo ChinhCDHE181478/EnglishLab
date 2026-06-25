@@ -44,11 +44,13 @@ import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
+import TeacherQuizSection from '../../components/teacher/TeacherQuizSection';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
   { id: 'students', label: 'Học viên' },
   { id: 'homework', label: 'Bài tập' },
+  { id: 'quizzes', label: 'Bài kiểm tra' },
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
@@ -288,6 +290,10 @@ export default function TeacherClassroomPage() {
           )}
         </div>
       );
+    }
+
+    if (activeTab === 'quizzes') {
+      return <TeacherQuizSection classroomId={id} />;
     }
 
     if (activeTab === 'students') {

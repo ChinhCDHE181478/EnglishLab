@@ -55,51 +55,56 @@ export function ContentManagerLayout({ children }) {
   const displayName =
     currentUser?.fullName || currentUser?.username || currentUser?.email || 'EnglishLab Admin';
   const displayRole = formatRoleLabel(currentUser?.role || 'CONTENT_MANAGER');
+  const avatarLetter = displayName.charAt(0).toUpperCase();
   const mobileNavOptions = contentManagerNav.flatMap((section) =>
     section.items.map((item) => ({ label: item.label, value: item.href })),
   );
   const mobileNavValue = resolveMobileNavValue(location.pathname, mobileNavOptions);
 
   return (
-    <div className="min-h-screen bg-[#f9f9f9] font-['Inter'] text-[#1a1c1c]">
+    <div className="min-h-screen bg-[#f8fafc] font-['Inter'] text-slate-800 antialiased">
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.045]"
+        className="pointer-events-none fixed inset-0 opacity-[0.02]"
         style={{
-          backgroundImage: 'radial-gradient(#4b0009 0.6px, transparent 0.6px)',
-          backgroundSize: '34px 34px',
+          backgroundImage: 'radial-gradient(#4b0009 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
         }}
       />
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col overflow-hidden border-r border-[#dfbfbd]/55 bg-[#4b0009] text-white lg:flex">
-        <div className="shrink-0 bg-[#4b0009] px-5 pb-5 pt-6">
-          <p className="font-['Manrope'] text-2xl font-extrabold">EnglishLab</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.24em] text-white/60">Quản lý nội dung</p>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[270px] flex-col overflow-hidden border-r border-slate-200 bg-[#4b0009] text-white shadow-xl lg:flex">
+        <div className="shrink-0 border-b border-white/10 bg-[#4b0009] px-6 pb-5 pt-7">
+          <p className="bg-gradient-to-r from-white to-pink-200 bg-clip-text font-['Manrope'] text-2xl font-black tracking-tight text-transparent">
+            EnglishLab
+          </p>
+          <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/50">
+            Hệ thống quản lý nội dung
+          </p>
         </div>
 
         <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin]"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(event) => {
             sidebarScrollTopRef.current = event.currentTarget.scrollTop;
           }}
           ref={sidebarNavRef}
         >
-          <nav className="space-y-6">
+          <nav className="space-y-7">
             {contentManagerNav.map((section) => (
               <div key={section.title}>
-                <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+                <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
                   {section.title}
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     return (
                       <NavLink
                         key={item.href}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition ${
+                          `group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                             isActive
-                              ? 'bg-white text-[#4b0009] shadow-[0_14px_32px_rgba(0,0,0,0.22)]'
-                              : 'text-white/70 hover:bg-white/8 hover:text-white'
+                              ? 'bg-white font-semibold text-[#4b0009] shadow-md shadow-black/10'
+                              : 'text-white/70 hover:bg-white/10 hover:text-white'
                           }`
                         }
                         onPointerDown={() => {
@@ -112,8 +117,8 @@ export function ContentManagerLayout({ children }) {
                         }}
                         to={item.href}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span className="font-medium">{item.label}</span>
+                        <Icon className="h-[18px] w-[18px] transition-transform duration-200 group-hover:scale-105" />
+                        <span>{item.label}</span>
                       </NavLink>
                     );
                   })}
@@ -124,12 +129,12 @@ export function ContentManagerLayout({ children }) {
         </div>
       </aside>
 
-      <div className="lg:ml-[280px]">
-        <header className="sticky top-0 z-20 border-b border-[#dfbfbd]/50 bg-[#f9f9f9]/95 backdrop-blur">
-          <div className="mx-auto flex max-w-[1680px] items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="lg:ml-[270px]">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-[#584140]">
-                <Link className="font-medium text-[#730014] hover:underline" to="/content-manager/dashboard">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
+                <Link className="transition hover:text-[#730014]" to="/content-manager/dashboard">
                   Quản lý nội dung
                 </Link>
                 {crumbs.map((crumb, index) => {
@@ -137,12 +142,12 @@ export function ContentManagerLayout({ children }) {
                   const href = resolveCrumbHref(crumbs, index);
                   const label = formatCrumbLabel(crumbs, index);
                   return (
-                    <span key={`${crumb}-${index}`} className="inline-flex items-center gap-2 capitalize">
-                      <ChevronRight className="h-4 w-4 text-[#aa8e8d]" />
+                    <span key={`${crumb}-${index}`} className="inline-flex items-center gap-1.5 capitalize">
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
                       {isLast || !href ? (
-                        <span className="font-semibold text-[#1a1c1c]">{label}</span>
+                        <span className="font-semibold text-slate-800">{label}</span>
                       ) : (
-                        <Link className="font-medium text-[#730014] hover:underline" to={href}>
+                        <Link className="transition hover:text-[#730014]" to={href}>
                           {label}
                         </Link>
                       )}
@@ -156,24 +161,30 @@ export function ContentManagerLayout({ children }) {
             <div className="hidden items-center gap-3 sm:flex">
               <div className="relative">
                 <button
-                  className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-left shadow-sm transition hover:border-[#730014]/30 hover:bg-[#fffafb]"
-                  onBlur={() => window.setTimeout(() => setAccountMenuOpen(false), 120)}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-1.5 pr-4 text-left shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md"
+                  onBlur={() => window.setTimeout(() => setAccountMenuOpen(false), 150)}
                   onClick={() => setAccountMenuOpen((current) => !current)}
                   type="button"
                 >
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-[#1a1c1c]">{displayName}</p>
-                    <p className="text-xs uppercase tracking-[0.14em] text-[#584140]">{displayRole}</p>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#730014] to-[#4b0009] text-sm font-bold text-white shadow-inner">
+                    {avatarLetter}
+                  </div>
+                  <div className="hidden text-left md:block">
+                    <p className="text-xs font-semibold leading-tight text-slate-800">{displayName}</p>
+                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">{displayRole}</p>
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-[#730014] transition ${accountMenuOpen ? 'rotate-180' : ''}`}
+                    className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
                 {accountMenuOpen ? (
-                  <div className="absolute right-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1.5 shadow-[0_18px_45px_rgba(75,0,9,0.16)]">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                    <div className="border-b border-slate-100 px-3 py-2 md:hidden">
+                      <p className="text-sm font-semibold text-slate-800">{displayName}</p>
+                    </div>
                     <button
-                      className="flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]"
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={handleLogout}
                       type="button"
@@ -186,7 +197,7 @@ export function ContentManagerLayout({ children }) {
               </div>
             </div>
           </div>
-          <div className="mx-auto flex max-w-[1680px] items-center gap-3 border-t border-[#dfbfbd]/35 px-4 py-3 sm:px-6 lg:hidden">
+          <div className="mx-auto flex max-w-[1680px] items-center gap-3 border-t border-slate-100 px-4 py-2.5 sm:px-6 lg:hidden">
             <div className="min-w-0 flex-1">
               <BrandedSelect
                 onChange={(event) => navigate(event.target.value)}
@@ -196,7 +207,7 @@ export function ContentManagerLayout({ children }) {
             </div>
             <button
               aria-label="Đăng xuất"
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#dfbfbd]/65 bg-white text-[#730014]"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-rose-600 transition hover:bg-rose-50 active:scale-95"
               onClick={handleLogout}
               title="Đăng xuất"
               type="button"
@@ -217,15 +228,17 @@ export function ContentManagerLayout({ children }) {
             </section>
           ) : (
             <>
-              <section className="mb-8">
-                <h1 className="font-['Manrope'] text-3xl font-extrabold tracking-[-0.03em] text-[#4b0009] sm:text-4xl">
+              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
                   {meta.title}
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140] sm:text-base">
+                <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
                   {meta.subtitle}
                 </p>
               </section>
-              {children}
+              <div className="min-h-[500px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                {children}
+              </div>
             </>
           )}
         </main>
@@ -284,6 +297,7 @@ function resolveCrumbHref(crumbs, index) {
   if (current === 'categories') return '/content-manager/categories';
   if (current === 'learning-paths' || current === 'syllabus') return '/content-manager/learning-paths';
   if (current === 'mock-exams') return '/content-manager/mock-exams';
+  if (current === 'rubrics') return '/content-manager/rubrics';
   if (current === 'publication') return '/content-manager/publication';
   if (current === 'analytics') return '/content-manager/analytics';
   if (current === 'listening') return '/content-manager/listening';
@@ -328,6 +342,7 @@ function formatCrumbLabel(crumbs, index) {
     writing: 'Luyện viết',
     speaking: 'Luyện nói',
     'mock-exams': 'Ngân hàng đề thi thử',
+    rubrics: 'Rubrics chấm điểm',
     publication: 'Hàng chờ xuất bản',
     analytics: 'Phân tích nội dung',
     edit: 'Chỉnh sửa khóa học',
@@ -373,7 +388,7 @@ function translateManagerStatusLabel(label) {
 export function Panel({ children, className = '', ...props }) {
   return (
     <section
-      className={`rounded-[28px] border border-[#dfbfbd]/55 bg-white shadow-[0_16px_40px_rgba(75,0,9,0.05)] ${className}`}
+      className={`rounded-2xl border border-slate-200 bg-white shadow-sm ${className}`}
       {...props}
     >
       {children}
@@ -383,12 +398,12 @@ export function Panel({ children, className = '', ...props }) {
 
 export function ContentManagerLoadingState({ message = 'Đang tải dữ liệu...' }) {
   return (
-    <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-[28px] border border-[#dfbfbd]/55 bg-white px-6 py-16 text-center shadow-[0_16px_40px_rgba(75,0,9,0.05)]">
+    <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
       <div className="relative flex h-16 w-16 items-center justify-center">
-        <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-[#dfbfbd]/30 border-t-[#730014]" />
+        <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#730014]" />
         <div className="h-6 w-6 rounded-full bg-[#4b0009]/10" />
       </div>
-      <p className="mt-6 animate-pulse font-['Manrope'] text-base font-extrabold text-[#730014]">
+      <p className="mt-6 animate-pulse font-['Manrope'] text-base font-extrabold text-slate-700">
         {message}
       </p>
     </div>
@@ -421,7 +436,7 @@ export function StatusBadge({ label }) {
 export function SectionTitle({ title, action, onAction }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{title}</h2>
+      <h2 className="font-['Manrope'] text-lg font-extrabold text-slate-900">{title}</h2>
       {action ? (
         <button className="text-sm font-semibold text-[#730014]" onClick={onAction} type="button">
           {action}
@@ -433,7 +448,7 @@ export function SectionTitle({ title, action, onAction }) {
 
 export function FilterChip({ label }) {
   return (
-    <div className="inline-flex items-center rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm text-[#584140]">
+    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 shadow-sm">
       {label}
     </div>
   );
@@ -442,19 +457,19 @@ export function FilterChip({ label }) {
 export function TextField({ label, value, onChange, textarea = false, rows = 4 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">
+      <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">
         {label}
       </span>
       {textarea ? (
         <textarea
-          className="min-h-0 w-full rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm text-[#1a1c1c] outline-none focus:border-[#730014]"
+          className="min-h-0 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white"
           onChange={onChange}
           rows={rows}
           value={value}
         />
       ) : (
         <input
-          className="w-full rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm text-[#1a1c1c] outline-none focus:border-[#730014]"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white"
           onChange={onChange}
           value={value}
         />

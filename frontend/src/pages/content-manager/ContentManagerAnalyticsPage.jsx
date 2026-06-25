@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, BookOpen, Layers3, RefreshCw, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
+import paymentApi from '../../api/paymentApi';
 import { ContentManagerLoadingState, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
 
 export default function ContentManagerAnalyticsPage() {
   const [stats, setStats] = useState(null);
+  const [revenue, setRevenue] = useState(null);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -14,11 +16,13 @@ export default function ContentManagerAnalyticsPage() {
     setLoading(true);
     setError('');
     try {
-      const [statsData, coursePage] = await Promise.all([
+      const [statsData, coursePage, revenueData] = await Promise.all([
         courseApi.getManagedCourseStats(),
         courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
+        paymentApi.getRevenueAnalytics().catch(() => null),
       ]);
       setStats(statsData);
+      setRevenue(revenueData);
       setCourses(coursePage.content || []);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được dữ liệu phân tích nội dung.');
@@ -80,8 +84,17 @@ export default function ContentManagerAnalyticsPage() {
         <StatCard icon={BookOpen} label="Khóa học" value={stats?.totalCourses ?? 0} />
         <StatCard icon={Layers3} label="Bài học" value={stats?.totalLessons ?? 0} />
         <StatCard icon={Users} label="Lượt ghi danh" value={stats?.totalEnrollments ?? 0} />
-        <StatCard icon={BarChart3} label="Tỷ lệ xuất bản" value={formatPercent(stats?.publishedCourses, stats?.totalCourses)} />
+        <StatCard icon={BarChart3} label="Doanh thu (đã thanh toán)" value={`${Number(revenue?.totalRevenueVnd || 0).toLocaleString('vi-VN')} đ`} />
       </section>
+
+      {revenue ? (
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard icon={BarChart3} label="Đơn đã thanh toán" value={revenue.paidOrders ?? 0} />
+          <StatCard icon={BarChart3} label="Đơn đang chờ" value={revenue.pendingOrders ?? 0} />
+          <StatCard icon={BarChart3} label="Đơn thất bại" value={revenue.failedOrders ?? 0} />
+          <StatCard icon={BarChart3} label="Tổng giảm giá" value={`${Number(revenue.totalDiscountVnd || 0).toLocaleString('vi-VN')} đ`} />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-2">
         <Panel className="p-6">

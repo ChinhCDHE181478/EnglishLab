@@ -32,6 +32,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final ClassroomOfferingRepository offeringRepository;
+    private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomRoomRepository roomRepository;
     private final UserRepository userRepository;
@@ -136,7 +137,9 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
         conflictRequest.setCheckSessionLocked(true);
 
-        if (!request.isOverrideConflict()) {
+        boolean overrideConflict = request != null && Boolean.TRUE.equals(request.getOverrideConflict());
+
+        if (!overrideConflict) {
             conflictService.assertNoBlockingConflict(conflictRequest);
         } else if (request.getReviewNote() == null || request.getReviewNote().isBlank()) {
             throw new RuntimeException("Cần ghi chú khi ghi đè xung đột lịch học.");
@@ -146,7 +149,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         changeRequest.setStatus(ClassroomChangeRequestStatus.APPLIED);
         changeRequest.setReviewer(reviewer);
         changeRequest.setReviewedAt(LocalDateTime.now());
-        changeRequest.setReviewNote(request.getReviewNote());
+        changeRequest.setReviewNote(request == null ? null : request.getReviewNote());
         changeRequest = changeRequestRepository.save(changeRequest);
 
         notificationService.notifyUser(
@@ -160,6 +163,19 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ConflictCheckResultResponse checkPendingConflict(Long requestId) {
+        ClassroomChangeRequest changeRequest = changeRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu thay đổi."));
+        if (changeRequest.getStatus() != ClassroomChangeRequestStatus.PENDING) {
+            throw new RuntimeException("Chỉ có thể kiểm tra trùng lịch cho yêu cầu đang chờ duyệt.");
+        }
+        ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
+        conflictRequest.setCheckSessionLocked(true);
+        return conflictService.check(conflictRequest);
+    }
+
+    @Override
     public ClassroomChangeRequestResponse reject(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail) {
         User reviewer = accessHelper.requireUser(reviewerEmail);
         accessHelper.assertTrainingManager(reviewer);
@@ -168,16 +184,17 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         changeRequest.setStatus(ClassroomChangeRequestStatus.REJECTED);
         changeRequest.setReviewer(reviewer);
         changeRequest.setReviewedAt(LocalDateTime.now());
-        changeRequest.setReviewNote(request.getReviewNote());
+        String reviewNote = request == null ? null : request.getReviewNote();
+        changeRequest.setReviewNote(reviewNote);
         changeRequest = changeRequestRepository.save(changeRequest);
 
         notificationService.notifyUser(
                 changeRequest.getRequester(),
                 "CLASSROOM_CHANGE_REQUEST_REJECTED",
                 "Yêu cầu thay đổi bị từ chối",
-                request.getReviewNote() == null || request.getReviewNote().isBlank()
+                reviewNote == null || reviewNote.isBlank()
                         ? "Yêu cầu của bạn đã bị từ chối."
-                        : request.getReviewNote(),
+                        : reviewNote,
                 Map.of("requestId", changeRequest.getId())
         );
         return mapper.toChangeRequestResponse(changeRequest);
@@ -300,9 +317,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                         .teacherId(newValues.get("teacherId") == null ? null : Long.valueOf(String.valueOf(newValues.get("teacherId"))))
                         .roomId(newValues.get("roomId") == null ? null : Long.valueOf(String.valueOf(newValues.get("roomId"))))
                         .build();
-                offeringService.updateSession(session.getId(), sessionRequest);
-                session.setStatus(ClassroomSessionStatus.RESCHEDULED);
-                sessionRepository.save(session);
+                offeringService.applyApprovedSessionScheduleChange(session.getId(), sessionRequest);
             }
             case CHANGE_ROOM -> {
                 if (session == null) {
@@ -358,7 +373,28 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                         .larkMeetingUrl(String.valueOf(newValues.get("larkMeetingUrl")))
                         .build());
             }
-            case TRANSFER_CLASS -> throw new RuntimeException("Chuyển cả lớp chưa được hỗ trợ trong phiên bản hiện tại.");
+            case TRANSFER_CLASS -> {
+                ClassroomOffering sourceOffering = changeRequest.getClassroomOffering();
+                Long targetOfferingId = Long.valueOf(String.valueOf(newValues.get("targetClassroomOfferingId")));
+                List<ClassroomEnrollment> activeEnrollments = enrollmentRepository
+                        .findByClassroomOfferingIdAndRegistrationStatusIn(
+                                sourceOffering.getId(),
+                                ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT
+                        );
+                if (activeEnrollments.isEmpty()) {
+                    throw new RuntimeException("Lớp nguồn không có học viên để chuyển.");
+                }
+                for (ClassroomEnrollment enrollment : activeEnrollments) {
+                    offeringService.transferStudent(
+                            sourceOffering.getId(),
+                            TransferStudentRequest.builder()
+                                    .studentId(enrollment.getStudent().getId())
+                                    .targetClassroomOfferingId(targetOfferingId)
+                                    .note(changeRequest.getReason())
+                                    .build()
+                    );
+                }
+            }
             default -> throw new RuntimeException("Loại yêu cầu không được hỗ trợ.");
         }
     }

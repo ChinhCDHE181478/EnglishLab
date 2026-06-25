@@ -26,6 +26,10 @@ public class ClassroomRoom {
     @Column(nullable = false, length = 120)
     private String name;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campus_id")
+    private ClassroomCampus campus;
+
     @Column
     private Integer capacity;
 

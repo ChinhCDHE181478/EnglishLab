@@ -19,11 +19,15 @@ public class LearnerAccountRoleRepairSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final UserRoleService userRoleService;
+    private final DemoLearnerOnboardingSupport demoLearnerOnboardingSupport;
 
     @Override
     @Transactional
     public void run(String... args) {
-        userRepository.findByEmail(LEARNER_EMAIL).ifPresent(this::ensureLearnerRoleOnly);
+        userRepository.findByEmail(LEARNER_EMAIL).ifPresent(user -> {
+            ensureLearnerRoleOnly(user);
+            demoLearnerOnboardingSupport.ensureReady(user);
+        });
     }
 
     private void ensureLearnerRoleOnly(User user) {

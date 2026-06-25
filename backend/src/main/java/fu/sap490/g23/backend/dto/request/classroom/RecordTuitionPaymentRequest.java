@@ -21,5 +21,5 @@ public class RecordTuitionPaymentRequest {
     private String note;
 
     /** Nếu true, tự động xếp lớp khi đã thanh toán đủ */
-    private boolean assignIfFullyPaid = true;
+    private Boolean assignIfFullyPaid = true;
 }

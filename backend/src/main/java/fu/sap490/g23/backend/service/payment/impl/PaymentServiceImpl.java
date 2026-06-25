@@ -5,7 +5,10 @@ import fu.sap490.g23.backend.service.payment.*;
 
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
+import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
+import fu.sap490.g23.backend.dto.response.payment.RevenueAnalyticsResponse;
+import fu.sap490.g23.backend.dto.response.payment.RevenueByMonthResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
@@ -32,6 +35,8 @@ import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -614,6 +619,87 @@ public class PaymentServiceImpl implements PaymentService {
             orderCode += 1;
         }
         return orderCode;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
+        return paymentOrderRepository.findByStudentOrderByCreatedAtDesc(student).stream()
+                .map(this::toOrderSummary)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RevenueAnalyticsResponse getRevenueAnalytics() {
+        List<PaymentOrder> orders = paymentOrderRepository.findAll();
+        long paid = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PAID).count();
+        long failed = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.FAILED
+                || order.getStatus() == PaymentOrderStatus.CANCELLED
+                || order.getStatus() == PaymentOrderStatus.EXPIRED).count();
+        long pending = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PENDING
+                || order.getStatus() == PaymentOrderStatus.PROCESSING).count();
+        long totalRevenue = orders.stream()
+                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
+                .mapToLong(order -> order.getAmount() == null ? 0L : order.getAmount())
+                .sum();
+        long totalDiscount = orders.stream()
+                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
+                .mapToLong(order -> safeLong(order.getSystemDiscountAmount()) + safeLong(order.getCouponDiscountAmount()))
+                .sum();
+        long couponDiscount = orders.stream()
+                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
+                .mapToLong(order -> safeLong(order.getCouponDiscountAmount()))
+                .sum();
+
+        Map<YearMonth, List<PaymentOrder>> byMonth = orders.stream()
+                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID && order.getPaidAt() != null)
+                .collect(Collectors.groupingBy(order -> YearMonth.from(order.getPaidAt())));
+        List<RevenueByMonthResponse> monthly = byMonth.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> RevenueByMonthResponse.builder()
+                        .month(entry.getKey().format(DateTimeFormatter.ofPattern("yyyy-MM")))
+                        .revenueVnd(entry.getValue().stream().mapToLong(order -> safeLong(order.getAmount())).sum())
+                        .orderCount(entry.getValue().size())
+                        .build())
+                .toList();
+
+        return RevenueAnalyticsResponse.builder()
+                .totalOrders(orders.size())
+                .paidOrders(paid)
+                .failedOrders(failed)
+                .pendingOrders(pending)
+                .totalRevenueVnd(totalRevenue)
+                .totalDiscountVnd(totalDiscount)
+                .totalCouponDiscountVnd(couponDiscount)
+                .monthlyRevenue(monthly)
+                .build();
+    }
+
+    private PaymentOrderSummaryResponse toOrderSummary(PaymentOrder order) {
+        List<String> titles = order.getCourseTitles() == null || order.getCourseTitles().isBlank()
+                ? List.of()
+                : List.of(order.getCourseTitles().split("\\|"));
+        return PaymentOrderSummaryResponse.builder()
+                .orderCode(order.getOrderCode())
+                .status(order.getStatus().name())
+                .paid(order.getStatus() == PaymentOrderStatus.PAID)
+                .amount(safeLong(order.getAmount()))
+                .originalAmount(safeLong(order.getOriginalAmount()))
+                .systemDiscountAmount(safeLong(order.getSystemDiscountAmount()))
+                .couponDiscountAmount(safeLong(order.getCouponDiscountAmount()))
+                .discountCodeText(order.getDiscountCodeText())
+                .description(order.getDescription())
+                .courseTitles(titles.stream().map(String::trim).filter(title -> !title.isBlank()).toList())
+                .createdAt(order.getCreatedAt())
+                .paidAt(order.getPaidAt())
+                .build();
+    }
+
+    private long safeLong(Long value) {
+        return value == null ? 0L : value;
     }
 
     private record PriceBreakdown(

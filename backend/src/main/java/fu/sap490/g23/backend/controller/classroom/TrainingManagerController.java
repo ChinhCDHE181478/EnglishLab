@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,5 +40,10 @@ public class TrainingManagerController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(changeRequestService.reject(requestId, request, authentication.getName()));
+    }
+
+    @PostMapping("/{requestId}/conflict-check")
+    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@PathVariable Long requestId) {
+        return ResponseEntity.ok(changeRequestService.checkPendingConflict(requestId));
     }
 }

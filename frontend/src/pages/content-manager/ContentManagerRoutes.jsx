@@ -14,6 +14,7 @@ import ContentManagerLearningPathsPage from './ContentManagerLearningPathsPage';
 import ContentManagerPublicationPage from './ContentManagerPublicationPage';
 import ContentManagerAnalyticsPage from './ContentManagerAnalyticsPage';
 import ContentManagerPlacementTestPage from './ContentManagerPlacementTestPage';
+import ContentManagerRubricsPage from './ContentManagerRubricsPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -37,6 +38,7 @@ export default function ContentManagerRoutes() {
         <Route path="writing" element={<ContentManagerAssessmentsHubPage pageKey="writing" />} />
         <Route path="speaking" element={<ContentManagerAssessmentsHubPage pageKey="speaking" />} />
         <Route path="placement-test" element={<ContentManagerPlacementTestPage />} />
+        <Route path="rubrics" element={<ContentManagerRubricsPage />} />
         <Route path="learning-paths" element={<ContentManagerLearningPathsPage />} />
         <Route path="syllabus" element={<Navigate replace to="../learning-paths" />} />
         <Route path="mock-exams" element={<ContentManagerAssessmentsHubPage pageKey="mockExams" />} />
