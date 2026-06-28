@@ -37,6 +37,9 @@ public class LarkMeetingParticipant {
     @Column(name = "participant_key", nullable = false, length = 255)
     private String participantKey;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(nullable = false)
     private boolean active;
 

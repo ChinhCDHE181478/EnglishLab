@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 public class ReviewChangeRequestRequest {
 
     private String reviewNote;
-    private boolean overrideConflict;
+    private Boolean overrideConflict;
 }

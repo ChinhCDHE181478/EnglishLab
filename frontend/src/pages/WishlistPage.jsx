@@ -6,17 +6,18 @@ import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import {
   addCourseToCart,
   commerceEventName,
-  readWishlist,
+  fetchWishlist,
   removeCourseFromWishlist,
 } from '../utils/commerceStore';
 import { formatCoursePrice } from '../components/course/courseFormatters';
 
 const WishlistPage = () => {
   const { addNotification } = useLearnerExperience();
-  const [wishlistItems, setWishlistItems] = useState(() => readWishlist());
+  const [wishlistItems, setWishlistItems] = useState([]);
 
   useEffect(() => {
-    const sync = () => setWishlistItems(readWishlist());
+    const sync = async () => setWishlistItems(await fetchWishlist());
+    sync();
     window.addEventListener('storage', sync);
     window.addEventListener(commerceEventName, sync);
     return () => {
@@ -25,8 +26,8 @@ const WishlistPage = () => {
     };
   }, []);
 
-  const handleAddToCart = (course) => {
-    const result = addCourseToCart(course);
+  const handleAddToCart = async (course) => {
+    const result = await addCourseToCart(course);
     if (result.ok) {
       addNotification({
         title: 'Đã thêm vào giỏ hàng',
@@ -44,8 +45,8 @@ const WishlistPage = () => {
     });
   };
 
-  const handleRemove = (courseId) => {
-    removeCourseFromWishlist(courseId);
+  const handleRemove = async (courseId) => {
+    await removeCourseFromWishlist(courseId);
     addNotification({
       title: 'Đã xóa khỏi danh sách yêu thích',
       message: 'Khóa học đã được gỡ khỏi danh sách yêu thích của bạn.',

@@ -35,6 +35,7 @@ public class ClassroomSessionResponse {
     private String larkSyncError;
     private LocalDateTime larkSyncedAt;
     private String recordingUrl;
+    private boolean recordingVisible;
     private String sessionContent;
     private String note;
     private boolean locked;

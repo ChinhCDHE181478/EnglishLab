@@ -44,16 +44,23 @@ export default function ContentManagerPublicationPage() {
     setPage(1);
   }, [status]);
 
-  const changeStatus = async (course, nextStatus) => {
+  const changeStatus = async (course, action) => {
     setWorkingId(course.id);
     setError('');
     setSuccess('');
     try {
-      const updated = nextStatus === 'PUBLISHED'
-        ? await courseApi.publishOnlineCourse(course.id)
-        : await courseApi.archiveOnlineCourse(course.id);
+      let updated = course;
+      if (action === 'SUBMIT_REVIEW') {
+        updated = await courseApi.submitOnlineCourseForReview(course.id);
+        setSuccess('Khóa học đã được gửi duyệt.');
+      } else if (action === 'PUBLISHED') {
+        updated = await courseApi.publishOnlineCourse(course.id);
+        setSuccess('Khóa học đã được xuất bản.');
+      } else {
+        updated = await courseApi.archiveOnlineCourse(course.id);
+        setSuccess('Khóa học đã được chuyển vào lưu trữ.');
+      }
       setCourses((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSuccess(nextStatus === 'PUBLISHED' ? 'Khóa học đã được xuất bản.' : 'Khóa học đã được chuyển vào lưu trữ.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không cập nhật được trạng thái xuất bản.');
     } finally {
@@ -75,6 +82,8 @@ export default function ContentManagerPublicationPage() {
             options={[
               { label: 'Tất cả trạng thái', value: 'ALL' },
               { label: 'Bản nháp', value: 'DRAFT' },
+              { label: 'Chờ duyệt', value: 'PENDING_REVIEW' },
+              { label: 'Bị từ chối', value: 'REJECTED' },
               { label: 'Đã xuất bản', value: 'PUBLISHED' },
               { label: 'Lưu trữ', value: 'ARCHIVED' },
             ]}
@@ -117,17 +126,23 @@ export default function ContentManagerPublicationPage() {
                         <Pencil className="h-4 w-4" />
                         Rà soát
                       </Link>
-                      {course.status !== 'PUBLISHED' ? (
-                        <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeStatus(course, 'PUBLISHED')} type="button">
+                      {(course.status === 'DRAFT' || course.status === 'REJECTED') ? (
+                        <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeStatus(course, 'SUBMIT_REVIEW')} type="button">
                           <CheckCircle2 className="h-4 w-4" />
-                          Xuất bản
+                          Gửi duyệt
                         </button>
-                      ) : (
+                      ) : null}
+                      {course.status === 'PENDING_REVIEW' ? (
+                        <span className="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+                          Đang chờ Manager duyệt
+                        </span>
+                      ) : null}
+                      {course.status === 'PUBLISHED' ? (
                         <button className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeStatus(course, 'ARCHIVED')} type="button">
                           <Archive className="h-4 w-4" />
                           Lưu trữ
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                 </tr>

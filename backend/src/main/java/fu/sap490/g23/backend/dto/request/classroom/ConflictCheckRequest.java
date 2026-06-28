@@ -22,8 +22,8 @@ public class ConflictCheckRequest {
     private Long excludeSessionId;
     private Long targetClassroomOfferingId;
     private ClassroomChangeRequestType requestType;
-    private boolean checkSessionLocked;
+    private Boolean checkSessionLocked;
     @Builder.Default
-    private boolean checkCapacity = true;
+    private Boolean checkCapacity = true;
     private String larkMeetingUrl;
 }

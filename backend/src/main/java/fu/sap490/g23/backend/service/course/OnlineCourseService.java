@@ -32,6 +32,9 @@ public interface OnlineCourseService {
     OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);
     OnlineCourseResponse publishCourse(Long id);
+    OnlineCourseResponse submitForReview(Long id);
+    OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote);
+    OnlineCourseResponse rejectCourse(Long id, String reviewerEmail, String reviewNote);
     OnlineCourseResponse archiveCourse(Long id);
     void deleteCourse(Long id);
     OnlineCourseResponse registerCourse(Long courseId, String studentEmail);

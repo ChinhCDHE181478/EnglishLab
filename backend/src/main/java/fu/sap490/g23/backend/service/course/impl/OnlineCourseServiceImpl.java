@@ -279,7 +279,66 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     public OnlineCourseResponse publishCourse(Long id) {
         OnlineCourse course = findCourse(id);
         validatePublishableCourse(course);
-        course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
+        LearningPackage learningPackage = course.getLearningPackage();
+        if (learningPackage.getStatus() != PackageStatus.DRAFT
+                && learningPackage.getStatus() != PackageStatus.PENDING_REVIEW
+                && learningPackage.getStatus() != PackageStatus.REJECTED) {
+            throw new IllegalArgumentException("Khóa học không ở trạng thái có thể xuất bản.");
+        }
+        learningPackage.setStatus(PackageStatus.PUBLISHED);
+        learningPackage.setReviewNote(null);
+        learningPackage.setReviewedAt(LocalDateTime.now());
+        return mapper.toResponse(course);
+    }
+
+    @Override
+    public OnlineCourseResponse submitForReview(Long id) {
+        OnlineCourse course = findCourse(id);
+        validatePublishableCourse(course);
+        LearningPackage learningPackage = course.getLearningPackage();
+        if (learningPackage.getStatus() != PackageStatus.DRAFT
+                && learningPackage.getStatus() != PackageStatus.REJECTED) {
+            throw new IllegalArgumentException("Chỉ khóa học nháp hoặc bị từ chối mới có thể gửi duyệt.");
+        }
+        learningPackage.setStatus(PackageStatus.PENDING_REVIEW);
+        learningPackage.setSubmittedForReviewAt(LocalDateTime.now());
+        learningPackage.setReviewNote(null);
+        return mapper.toResponse(course);
+    }
+
+    @Override
+    public OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote) {
+        OnlineCourse course = findCourse(id);
+        validatePublishableCourse(course);
+        LearningPackage learningPackage = course.getLearningPackage();
+        if (learningPackage.getStatus() != PackageStatus.PENDING_REVIEW) {
+            throw new IllegalArgumentException("Khóa học chưa ở trạng thái chờ duyệt.");
+        }
+        User reviewer = userRepository.findByEmail(reviewerEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người duyệt."));
+        learningPackage.setStatus(PackageStatus.PUBLISHED);
+        learningPackage.setReviewNote(reviewNote);
+        learningPackage.setReviewedAt(LocalDateTime.now());
+        learningPackage.setReviewedBy(reviewer);
+        return mapper.toResponse(course);
+    }
+
+    @Override
+    public OnlineCourseResponse rejectCourse(Long id, String reviewerEmail, String reviewNote) {
+        if (reviewNote == null || reviewNote.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng ghi chú lý do từ chối.");
+        }
+        OnlineCourse course = findCourse(id);
+        LearningPackage learningPackage = course.getLearningPackage();
+        if (learningPackage.getStatus() != PackageStatus.PENDING_REVIEW) {
+            throw new IllegalArgumentException("Khóa học chưa ở trạng thái chờ duyệt.");
+        }
+        User reviewer = userRepository.findByEmail(reviewerEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người duyệt."));
+        learningPackage.setStatus(PackageStatus.REJECTED);
+        learningPackage.setReviewNote(reviewNote.trim());
+        learningPackage.setReviewedAt(LocalDateTime.now());
+        learningPackage.setReviewedBy(reviewer);
         return mapper.toResponse(course);
     }
 
@@ -1012,6 +1071,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .taskType(rubric.getTaskType())
                 .scoringScale(rubric.getScoringScale())
                 .description(rubric.getDescription())
+                .active(rubric.isActive())
                 .criteria(rubric.getCriteria().stream()
                         .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
                         .map(criterion -> RubricCriterionResponse.builder()

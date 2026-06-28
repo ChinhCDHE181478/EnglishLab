@@ -91,6 +91,10 @@ public class ClassroomSession {
     @Column(name = "recording_url", length = 700)
     private String recordingUrl;
 
+    @Column(name = "recording_visible")
+    @Builder.Default
+    private Boolean recordingVisible = false;
+
     @Column(name = "session_content", columnDefinition = "text")
     private String sessionContent;
 

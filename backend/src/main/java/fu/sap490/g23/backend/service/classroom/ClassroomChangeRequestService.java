@@ -19,4 +19,6 @@ public interface ClassroomChangeRequestService {
     ClassroomChangeRequestResponse approve(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);
 
     ClassroomChangeRequestResponse reject(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail);
+
+    ConflictCheckResultResponse checkPendingConflict(Long requestId);
 }

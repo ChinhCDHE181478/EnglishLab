@@ -6,17 +6,22 @@ import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import {
   addCourseToWishlist,
   commerceEventName,
-  readCart,
+  fetchCart,
   removeCourseFromCart,
+  syncLocalCartToServer,
 } from '../utils/commerceStore';
 import { formatCoursePrice } from '../components/course/courseFormatters';
 
 const CartPage = () => {
   const { addNotification } = useLearnerExperience();
-  const [cartItems, setCartItems] = useState(() => readCart());
+  const [cartItems, setCartItems] = useState([]);
 
   useEffect(() => {
-    const sync = () => setCartItems(readCart());
+    const sync = async () => {
+      await syncLocalCartToServer();
+      setCartItems(await fetchCart());
+    };
+    sync();
     window.addEventListener('storage', sync);
     window.addEventListener(commerceEventName, sync);
     return () => {
@@ -30,17 +35,17 @@ const CartPage = () => {
     [cartItems],
   );
 
-  const handleRemove = (courseId) => {
-    removeCourseFromCart(courseId);
+  const handleRemove = async (courseId) => {
+    await removeCourseFromCart(courseId);
     addNotification({
       title: 'Đã xóa khỏi giỏ hàng',
       message: 'Khóa học đã được xóa khỏi giỏ hàng của bạn.',
     });
   };
 
-  const handleSaveForLater = (course) => {
-    const result = addCourseToWishlist(course);
-    removeCourseFromCart(course.id);
+  const handleSaveForLater = async (course) => {
+    const result = await addCourseToWishlist(course);
+    await removeCourseFromCart(course.id);
     addNotification({
       title: result.ok ? 'Đã chuyển sang danh sách yêu thích' : 'Đã xóa khỏi giỏ hàng',
       message: result.ok

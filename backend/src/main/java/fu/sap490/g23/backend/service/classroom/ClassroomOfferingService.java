@@ -21,6 +21,8 @@ public interface ClassroomOfferingService {
 
     List<ClassroomOfferingResponse> getManagerOfferings();
 
+    ClassroomOfferingResponse getManagerOffering(Long id);
+
     ClassroomOfferingResponse getOffering(Long id, boolean full);
 
     ClassroomOfferingResponse getLearnerOffering(Long id, String learnerEmail);
@@ -30,6 +32,8 @@ public interface ClassroomOfferingService {
     ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request);
 
     ClassroomOfferingResponse publishOffering(Long id);
+
+    ClassroomOfferingResponse closeOffering(Long id, String actorEmail);
 
     List<ClassroomSessionResponse> getSessions(Long offeringId);
 
@@ -63,7 +67,13 @@ public interface ClassroomOfferingService {
 
     ClassroomEnrollmentResponse assignToClass(Long enrollmentId, AssignToClassRequest request, String actorEmail);
 
-    List<ClassroomEnrollmentResponse> listRegistrations(ClassroomRegistrationStatus status);
+    List<ClassroomEnrollmentResponse> listRegistrations(
+            ClassroomRegistrationStatus status,
+            Long classroomOfferingId,
+            Boolean needsAction
+    );
+
+    ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request);
 
     ClassroomEnrollmentResponse getRegistration(Long enrollmentId);
 

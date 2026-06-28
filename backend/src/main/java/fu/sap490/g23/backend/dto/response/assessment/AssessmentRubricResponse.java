@@ -21,6 +21,7 @@ public class AssessmentRubricResponse {
     private String taskType;
     private String scoringScale;
     private String description;
+    private boolean active;
     @Builder.Default
     private List<RubricCriterionResponse> criteria = new ArrayList<>();
 }

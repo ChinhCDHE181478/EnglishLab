@@ -70,6 +70,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomNotificationService notificationService;
     private final LarkMeetingParticipantRepository larkParticipantRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    private final VirtualAttendanceService virtualAttendanceService;
 
     @Override
     @Transactional(readOnly = true)
@@ -118,9 +119,20 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Transactional(readOnly = true)
     public List<ClassroomOfferingResponse> getManagerOfferings() {
         return offeringRepository.findAll().stream()
-                .filter(offering -> !offering.getLearningPackage().isDeleted())
+                .filter(this::isVisibleToTrainingManager)
                 .map(offering -> mapper.toOfferingResponse(offering, true, null, null, true))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClassroomOfferingResponse getManagerOffering(Long id) {
+        ClassroomOffering offering = offeringRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
+        if (offering.getLearningPackage() == null) {
+            throw new RuntimeException("Không tìm thấy lớp học.");
+        }
+        return mapper.toOfferingResponse(offering, true, null, null, true);
     }
 
     @Override
@@ -250,11 +262,38 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomOfferingResponse publishOffering(Long id) {
         ClassroomOffering offering = findOffering(id);
+        validatePublishableOffering(offering);
         offering.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
         if (offering.getStatus() == ClassroomOfferingStatus.DRAFT) {
             offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         }
         return mapper.toOfferingResponse(offering);
+    }
+
+    @Override
+    public ClassroomOfferingResponse closeOffering(Long id, String actorEmail) {
+        accessHelper.requireUser(actorEmail);
+        ClassroomOffering offering = findOffering(id);
+        if (offering.getStatus() == ClassroomOfferingStatus.CLOSED
+                || offering.getStatus() == ClassroomOfferingStatus.CANCELLED) {
+            throw new RuntimeException("Lớp học đã được đóng hoặc hủy trước đó.");
+        }
+        offering.setStatus(ClassroomOfferingStatus.CLOSED);
+        offering.getLearningPackage().setStatus(PackageStatus.ARCHIVED);
+        return mapper.toOfferingResponse(offeringRepository.save(offering));
+    }
+
+    private void validatePublishableOffering(ClassroomOffering offering) {
+        if (offering.getStartDate() == null) {
+            throw new RuntimeException("Lớp học cần có ngày khai giảng trước khi xuất bản.");
+        }
+        if (offering.getMaxCapacity() == null || offering.getMaxCapacity() <= 0) {
+            throw new RuntimeException("Lớp học cần có sĩ số tối đa hợp lệ trước khi xuất bản.");
+        }
+        long sessionCount = sessionRepository.countByClassroomOfferingId(offering.getId());
+        if (sessionCount <= 0) {
+            throw new RuntimeException("Lớp học cần có ít nhất một buổi học trước khi xuất bản.");
+        }
     }
 
     @Override
@@ -349,6 +388,32 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         applySessionRequest(session, request, teacher);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
             syncLarkMeetingSafely(session);
+        }
+        return mapper.toSessionResponse(sessionRepository.save(session));
+    }
+
+    @Override
+    public ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request) {
+        ClassroomSession session = findSession(sessionId);
+        if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
+            throw new RuntimeException("Buổi học đã hoàn thành hoặc đã khóa nên không thể chỉnh sửa.");
+        }
+
+        User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassroomOffering()));
+        boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
+                && !request.getLarkMeetingUrl().isBlank()
+                && !larkMeetingService.isDemoUrl(request.getLarkMeetingUrl());
+        if (manualLarkLinkProvided && session.getLarkEventId() != null) {
+            deleteLarkMeetingSafely(session);
+            clearManagedLarkData(session);
+        }
+
+        applySessionRequest(session, request, teacher);
+        if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
+            syncLarkMeetingSafely(session);
+        }
+        if (session.getStatus() == ClassroomSessionStatus.RESCHEDULED) {
+            session.setStatus(ClassroomSessionStatus.SCHEDULED);
         }
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
@@ -508,7 +573,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
 
-        boolean holdSpot = request != null && request.isHoldSpot();
+        boolean holdSpot = request != null && Boolean.TRUE.equals(request.getHoldSpot());
         BigDecimal tuitionDue = resolveTuitionDue(offering);
         ClassroomRegistrationStatus initialStatus = isClassFull(offering)
                 ? ClassroomRegistrationStatus.WAITLIST
@@ -692,7 +757,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .recordedBy(actor)
                 .build());
 
-        if (request.isAssignIfFullyPaid()
+        if (!Boolean.FALSE.equals(request.getAssignIfFullyPaid())
                 && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID) {
             tryAssignEnrollment(enrollment, offering, learner, actor, null);
         }
@@ -752,8 +817,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassroomEnrollmentResponse> listRegistrations(ClassroomRegistrationStatus status) {
-        return enrollmentRepository.findByRegistrationStatusIn(ClassroomRegistrationSupport.filterStatuses(status)).stream()
+    public List<ClassroomEnrollmentResponse> listRegistrations(
+            ClassroomRegistrationStatus status,
+            Long classroomOfferingId,
+            Boolean needsAction
+    ) {
+        Set<ClassroomRegistrationStatus> statuses = ClassroomRegistrationSupport.resolveRegistrationFilter(status, needsAction);
+        List<ClassroomEnrollment> enrollments = classroomOfferingId == null
+                ? enrollmentRepository.findByRegistrationStatusIn(statuses)
+                : enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(classroomOfferingId, statuses);
+        return enrollments.stream()
                 .sorted((a, b) -> b.getEnrolledAt().compareTo(a.getEnrolledAt()))
                 .map(mapper::toEnrollmentResponse)
                 .toList();
@@ -939,6 +1012,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         session.setLarkEmptySince(null);
         session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
+        virtualAttendanceService.recordVirtualJoin(session, learner);
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
@@ -1229,6 +1303,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     private void markVirtualSessionEnded(ClassroomSession session) {
+        virtualAttendanceService.finalizeVirtualAttendance(session);
         session.setStatus(ClassroomSessionStatus.COMPLETED);
         session.setLocked(true);
         session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
@@ -1380,6 +1455,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return offeringRepository.findById(id)
                 .filter(offering -> !offering.getLearningPackage().isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
+    }
+
+    private boolean isVisibleToTrainingManager(ClassroomOffering offering) {
+        if (offering.getLearningPackage() == null) {
+            return false;
+        }
+        if (!offering.getLearningPackage().isDeleted()) {
+            return true;
+        }
+        return !enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
+                offering.getId(),
+                ClassroomRegistrationSupport.NEEDS_ACTION_STATUSES
+        ).isEmpty();
     }
 
     private ClassroomOffering findPublicOffering(String slugOrId) {

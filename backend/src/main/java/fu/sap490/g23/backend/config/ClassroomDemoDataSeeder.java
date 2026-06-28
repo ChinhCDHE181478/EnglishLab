@@ -75,6 +75,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final UserRoleService userRoleService;
     private final JdbcTemplate jdbcTemplate;
+    private final DemoLearnerOnboardingSupport demoLearnerOnboardingSupport;
 
     @Value("${app.seed.classroom-demo.enabled:false}")
     private boolean seedEnabled;
@@ -223,6 +224,19 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         });
 
         publishDemoGradebooks();
+        repairRegistrationPipelineOffering();
+    }
+
+    private void repairRegistrationPipelineOffering() {
+        offeringRepository.findByLearningPackageSlug(SLUG_REGISTRATION_PIPELINE)
+                .or(() -> offeringRepository.findByLearningPackageTitleIgnoreCase(REGISTRATION_PIPELINE_TITLE))
+                .ifPresent(offering -> {
+                    LearningPackage learningPackage = offering.getLearningPackage();
+                    if (learningPackage != null && learningPackage.isDeleted()) {
+                        learningPackage.setDeleted(false);
+                        learningPackageRepository.save(learningPackage);
+                    }
+                });
     }
 
     private void publishDemoGradebooks() {
@@ -874,19 +888,23 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     }
 
     private User ensureUser(String email, String fullName, RoleEnum role) {
-        return userRepository.findByEmail(email).map(user -> {
-            userRoleService.replaceRoles(user, role);
-            user.setFullName(fullName);
-            return userRepository.save(user);
+        User user = userRepository.findByEmail(email).map(existing -> {
+            userRoleService.replaceRoles(existing, role);
+            existing.setFullName(fullName);
+            return userRepository.save(existing);
         }).orElseGet(() -> {
-            User user = User.builder()
+            User created = User.builder()
                     .email(email)
                     .fullName(fullName)
                     .password(passwordEncoder.encode("Password123!"))
                     .emailVerified(true)
                     .build();
-            userRoleService.assignRole(user, role);
-            return userRepository.save(user);
+            userRoleService.assignRole(created, role);
+            return userRepository.save(created);
         });
+        if (role == RoleEnum.LEARNER) {
+            return demoLearnerOnboardingSupport.ensureReady(user);
+        }
+        return user;
     }
 }

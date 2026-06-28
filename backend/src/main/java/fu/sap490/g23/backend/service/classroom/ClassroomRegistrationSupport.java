@@ -39,6 +39,16 @@ public final class ClassroomRegistrationSupport {
             ClassroomRegistrationStatus.ASSIGNED
     );
 
+    /** Hồ sơ đăng ký cần Training Manager xử lý (không gồm đã xếp lớp / từ chối / hủy). */
+    public static final Set<ClassroomRegistrationStatus> NEEDS_ACTION_STATUSES = EnumSet.of(
+            ClassroomRegistrationStatus.PENDING_CONFIRMATION,
+            ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT,
+            ClassroomRegistrationStatus.DEPOSIT_PAID,
+            ClassroomRegistrationStatus.PARTIALLY_PAID,
+            ClassroomRegistrationStatus.FULLY_PAID,
+            ClassroomRegistrationStatus.WAITLIST
+    );
+
     public static Set<ClassroomRegistrationStatus> allRegistrationStatuses() {
         return EnumSet.allOf(ClassroomRegistrationStatus.class);
     }
@@ -48,6 +58,16 @@ public final class ClassroomRegistrationSupport {
             return allRegistrationStatuses();
         }
         return EnumSet.of(status);
+    }
+
+    public static Set<ClassroomRegistrationStatus> resolveRegistrationFilter(
+            ClassroomRegistrationStatus status,
+            Boolean needsAction
+    ) {
+        if (Boolean.TRUE.equals(needsAction)) {
+            return NEEDS_ACTION_STATUSES;
+        }
+        return filterStatuses(status);
     }
 
     public static void syncLegacyStatus(fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment enrollment) {

@@ -3,7 +3,9 @@ package fu.sap490.g23.backend.controller.payment;
 import fu.sap490.g23.backend.dto.request.payment.CreatePaymentLinkRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
+import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
+import fu.sap490.g23.backend.dto.response.payment.RevenueAnalyticsResponse;
 import fu.sap490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/student/payments")
@@ -55,6 +59,11 @@ public class StudentPaymentController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(paymentService.getOrderStatus(orderCode, authentication.getName()));
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<List<PaymentOrderSummaryResponse>> listMyOrders(Authentication authentication) {
+        return ResponseEntity.ok(paymentService.listMyOrders(authentication.getName()));
     }
 
     @PostMapping("/payos/confirm-webhook")

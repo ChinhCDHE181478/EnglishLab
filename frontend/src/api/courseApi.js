@@ -281,6 +281,32 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
+  async getContentManagerRubrics(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/rubrics', { params });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createContentManagerRubric(payload) {
+    const response = await axiosClient.post('/api/content-manager/rubrics', payload);
+    return unwrapData(response);
+  },
+
+  async updateContentManagerRubric(id, payload) {
+    const response = await axiosClient.put(`/api/content-manager/rubrics/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async deactivateContentManagerRubric(id) {
+    const response = await axiosClient.delete(`/api/content-manager/rubrics/${id}`);
+    return unwrapData(response);
+  },
+
+  async reactivateContentManagerRubric(id) {
+    const response = await axiosClient.patch(`/api/content-manager/rubrics/${id}/reactivate`);
+    return unwrapData(response);
+  },
+
   async createOnlineCourse(payload) {
     const response = await axiosClient.post('/api/content-manager/online-courses', payload);
     return unwrapData(response);
@@ -293,6 +319,21 @@ export const courseApi = {
 
   async publishOnlineCourse(id) {
     const response = await axiosClient.patch(`/api/content-manager/online-courses/${id}/publish`);
+    return unwrapData(response);
+  },
+
+  async submitOnlineCourseForReview(id) {
+    const response = await axiosClient.patch(`/api/content-manager/online-courses/${id}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async approveOnlineCourse(id, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/courses/${id}/approve`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async rejectOnlineCourse(id, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/courses/${id}/reject`, { reviewNote });
     return unwrapData(response);
   },
 
@@ -341,6 +382,36 @@ export const courseApi = {
 
   async deleteDiscountCode(id) {
     const response = await axiosClient.delete(`/api/content-manager/discount-codes/${id}`);
+    return unwrapData(response);
+  },
+
+  async getExerciseBankItems(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/exercise-bank', { params });
+    return unwrapData(response);
+  },
+
+  async createExerciseBankItem(payload) {
+    const response = await axiosClient.post('/api/content-manager/exercise-bank', payload);
+    return unwrapData(response);
+  },
+
+  async updateExerciseBankItem(id, payload) {
+    const response = await axiosClient.put(`/api/content-manager/exercise-bank/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteExerciseBankItem(id) {
+    const response = await axiosClient.delete(`/api/content-manager/exercise-bank/${id}`);
+    return unwrapData(response);
+  },
+
+  async getManagerOnlineEnrollments(params = {}) {
+    const response = await axiosClient.get('/api/manager/enrollments', { params });
+    return unwrapData(response);
+  },
+
+  async updateManagerOnlineEnrollment(enrollmentId, payload) {
+    const response = await axiosClient.put(`/api/manager/enrollments/${enrollmentId}`, payload);
     return unwrapData(response);
   },
 };

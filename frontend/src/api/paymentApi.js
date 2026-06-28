@@ -18,6 +18,16 @@ export const paymentApi = {
     return unwrapData(response);
   },
 
+  async listMyOrders() {
+    const response = await axiosClient.get('/api/student/payments/orders');
+    return unwrapData(response) ?? [];
+  },
+
+  async getRevenueAnalytics() {
+    const response = await axiosClient.get('/api/content-manager/revenue/analytics');
+    return unwrapData(response);
+  },
+
   async confirmPayosWebhook() {
     const response = await axiosClient.post('/api/student/payments/payos/confirm-webhook');
     return unwrapData(response);

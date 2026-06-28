@@ -677,7 +677,7 @@ export const TuitionStatusCard = ({ due, paid, remaining, settlementType, settle
 export const ConflictPanel = ({ conflictResult }) => {
   if (!conflictResult) return null;
 
-  const hasConflict = conflictResult.hasConflict || (conflictResult.conflicts && conflictResult.conflicts.length > 0);
+  const hasConflict = conflictResult.hasBlockingConflict || conflictResult.hasConflict || (conflictResult.conflicts && conflictResult.conflicts.length > 0);
 
   if (!hasConflict) {
     return (

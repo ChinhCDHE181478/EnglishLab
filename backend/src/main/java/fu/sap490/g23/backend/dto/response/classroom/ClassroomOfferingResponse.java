@@ -42,6 +42,9 @@ public class ClassroomOfferingResponse {
     private String recordingUrl;
     private boolean recordingVisible;
     private String syllabusSummary;
+    private String programOutcomes;
+    private String teacherGuide;
+    private String interactionActivities;
     private BigDecimal price;
     private String thumbnailUrl;
     private ClassroomSessionResponse nextSession;

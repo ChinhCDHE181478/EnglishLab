@@ -37,7 +37,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
     public ConflictCheckResultResponse check(ConflictCheckRequest request) {
         List<ConflictItemResponse> conflicts = new ArrayList<>();
 
-        if (request.getSessionId() != null && request.isCheckSessionLocked()) {
+        if (request.getSessionId() != null && Boolean.TRUE.equals(request.getCheckSessionLocked())) {
             sessionRepository.findById(request.getSessionId()).ifPresent(session -> {
                 if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
                     conflicts.add(item(
@@ -115,7 +115,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
             }
         }
 
-        if (request.isCheckCapacity() && request.getTargetClassroomOfferingId() != null && request.getLearnerIds() != null) {
+        if (isCapacityCheckEnabled(request) && request.getTargetClassroomOfferingId() != null && request.getLearnerIds() != null) {
             offeringRepository.findById(request.getTargetClassroomOfferingId()).ifPresent(target -> {
                 long current = enrollmentRepository.countByOfferingAndRegistrationStatuses(
                         target.getId(),
@@ -137,7 +137,7 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
             });
         }
 
-        if (request.isCheckCapacity() && request.getClassroomOfferingId() != null && request.getLearnerIds() != null && request.getTargetClassroomOfferingId() == null) {
+        if (isCapacityCheckEnabled(request) && request.getClassroomOfferingId() != null && request.getLearnerIds() != null && request.getTargetClassroomOfferingId() == null) {
             offeringRepository.findById(request.getClassroomOfferingId()).ifPresent(offering -> {
                 long current = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), OCCUPIES_CLASS_SLOT);
                 for (Long learnerId : request.getLearnerIds()) {
@@ -175,6 +175,10 @@ public class ClassroomConflictServiceImpl implements ClassroomConflictService {
         if (result.isHasBlockingConflict()) {
             throw new ClassroomConflictException("Phát hiện xung đột lịch học.", result);
         }
+    }
+
+    private boolean isCapacityCheckEnabled(ConflictCheckRequest request) {
+        return !Boolean.FALSE.equals(request.getCheckCapacity());
     }
 
     private List<Long> resolveLearnerIds(ConflictCheckRequest request) {

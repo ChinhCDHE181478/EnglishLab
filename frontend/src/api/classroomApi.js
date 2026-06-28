@@ -309,6 +309,16 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async checkChangeRequestConflict(requestId) {
+    const response = await axiosClient.post(`/api/training-manager/requests/${requestId}/conflict-check`);
+    return unwrapData(response);
+  },
+
+  async getTrainingManagerDashboard() {
+    const response = await axiosClient.get('/api/training-manager/dashboard');
+    return unwrapData(response);
+  },
+
   async approveChangeRequest(requestId, payload) {
     const response = await axiosClient.post(`/api/training-manager/requests/${requestId}/approve`, payload);
     return unwrapData(response);
@@ -320,47 +330,72 @@ export const classroomApi = {
   },
 
   async getManagerClassrooms() {
-    const response = await axiosClient.get('/api/manager/classrooms');
+    const response = await axiosClient.get('/api/training-manager/classrooms');
     return asList(unwrapData(response));
   },
 
   async getManagerClassroom(id) {
-    const response = await axiosClient.get(`/api/manager/classrooms/${id}`);
+    const response = await axiosClient.get(`/api/training-manager/classrooms/${id}`);
     return unwrapData(response);
   },
 
+  async getTrainingManagerTeachers() {
+    const response = await axiosClient.get('/api/training-manager/classrooms/teachers');
+    return asList(unwrapData(response));
+  },
+
+  async getTrainingManagerRooms() {
+    const response = await axiosClient.get('/api/training-manager/classrooms/rooms');
+    return asList(unwrapData(response));
+  },
+
   async createManagerClassroom(payload) {
-    const response = await axiosClient.post('/api/manager/classrooms', payload);
+    const response = await axiosClient.post('/api/training-manager/classrooms', payload);
     return unwrapData(response);
   },
 
   async updateManagerClassroom(id, payload) {
-    const response = await axiosClient.put(`/api/manager/classrooms/${id}`, payload);
+    const response = await axiosClient.put(`/api/training-manager/classrooms/${id}`, payload);
     return unwrapData(response);
   },
 
   async publishManagerClassroom(id) {
-    const response = await axiosClient.post(`/api/manager/classrooms/${id}/publish`);
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/publish`);
+    return unwrapData(response);
+  },
+
+  async getTrainingManagerClassroomSessions(id) {
+    const response = await axiosClient.get(`/api/training-manager/classrooms/${id}/sessions`);
+    return asList(unwrapData(response));
+  },
+
+  async createTrainingManagerClassroomSession(id, payload) {
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/sessions`, payload);
+    return unwrapData(response);
+  },
+
+  async updateTrainingManagerClassroomSession(sessionId, payload) {
+    const response = await axiosClient.put(`/api/training-manager/classrooms/sessions/${sessionId}`, payload);
     return unwrapData(response);
   },
 
   async enrollStudent(classroomId, payload) {
-    const response = await axiosClient.post(`/api/manager/classrooms/${classroomId}/enroll`, payload);
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/enroll`, payload);
     return unwrapData(response);
   },
 
   async removeStudent(classroomId, studentId) {
-    const response = await axiosClient.post(`/api/manager/classrooms/${classroomId}/students/${studentId}/remove`);
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/students/${studentId}/remove`);
     return unwrapData(response);
   },
 
   async transferStudent(classroomId, payload) {
-    const response = await axiosClient.post(`/api/manager/classrooms/${classroomId}/transfer-student`, payload);
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/transfer-student`, payload);
     return unwrapData(response);
   },
 
   async checkConflict(payload) {
-    const response = await axiosClient.post('/api/manager/classrooms/conflict-check', payload);
+    const response = await axiosClient.post('/api/training-manager/classrooms/conflict-check', payload);
     return unwrapData(response);
   },
 
@@ -525,6 +560,180 @@ export const classroomApi = {
 
   async markAllNotificationsRead() {
     const response = await axiosClient.patch('/api/student/notifications/read-all');
+    return unwrapData(response);
+  },
+
+  async listCampuses() {
+    const response = await axiosClient.get('/api/training-manager/infrastructure/campuses');
+    return asList(unwrapData(response));
+  },
+
+  async createCampus(payload) {
+    const response = await axiosClient.post('/api/training-manager/infrastructure/campuses', payload);
+    return unwrapData(response);
+  },
+
+  async updateCampus(id, payload) {
+    const response = await axiosClient.put(`/api/training-manager/infrastructure/campuses/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async listRooms(campusId) {
+    const response = await axiosClient.get('/api/training-manager/infrastructure/rooms', {
+      params: campusId ? { campusId } : undefined,
+    });
+    return asList(unwrapData(response));
+  },
+
+  async createRoom(payload) {
+    const response = await axiosClient.post('/api/training-manager/infrastructure/rooms', payload);
+    return unwrapData(response);
+  },
+
+  async updateRoom(id, payload) {
+    const response = await axiosClient.put(`/api/training-manager/infrastructure/rooms/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async listSessionTemplates() {
+    const response = await axiosClient.get('/api/training-manager/infrastructure/session-templates');
+    return asList(unwrapData(response));
+  },
+
+  async createSessionTemplate(payload) {
+    const response = await axiosClient.post('/api/training-manager/infrastructure/session-templates', payload);
+    return unwrapData(response);
+  },
+
+  async updateSessionTemplate(id, payload) {
+    const response = await axiosClient.put(`/api/training-manager/infrastructure/session-templates/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async generateSessionsFromTemplate(offeringId, payload) {
+    const response = await axiosClient.post(`/api/training-manager/infrastructure/classrooms/${offeringId}/generate-sessions`, payload);
+    return asList(unwrapData(response));
+  },
+
+  async closeClassroomOffering(id) {
+    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/close`);
+    return unwrapData(response);
+  },
+
+  async listTeacherQuizzes(offeringId) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/${offeringId}/quizzes`);
+    return asList(unwrapData(response));
+  },
+
+  async createTeacherQuiz(offeringId, payload) {
+    const response = await axiosClient.post(`/api/teacher/classrooms/${offeringId}/quizzes`, payload);
+    return unwrapData(response);
+  },
+
+  async openTeacherQuiz(quizId) {
+    const response = await axiosClient.patch(`/api/teacher/quizzes/${quizId}/open`);
+    return unwrapData(response);
+  },
+
+  async closeTeacherQuiz(quizId) {
+    const response = await axiosClient.patch(`/api/teacher/quizzes/${quizId}/close`);
+    return unwrapData(response);
+  },
+
+  async deleteTeacherQuiz(quizId) {
+    const response = await axiosClient.delete(`/api/teacher/quizzes/${quizId}`);
+    return unwrapData(response);
+  },
+
+  async listStudentQuizzes() {
+    const response = await axiosClient.get('/api/student/classrooms/quizzes');
+    return asList(unwrapData(response));
+  },
+
+  async submitStudentQuiz(quizId, answersJson) {
+    const response = await axiosClient.post(`/api/student/quizzes/${quizId}/submit`, { answersJson });
+    return unwrapData(response);
+  },
+
+  async createAttendanceDispute(attendanceId, reason) {
+    const response = await axiosClient.post(`/api/student/attendance/${attendanceId}/disputes`, { reason });
+    return unwrapData(response);
+  },
+
+  async listMyAttendanceDisputes() {
+    const response = await axiosClient.get('/api/student/attendance/disputes');
+    return asList(unwrapData(response));
+  },
+
+  async listAttendanceDisputesForClass(offeringId) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/${offeringId}/attendance-disputes`);
+    return asList(unwrapData(response));
+  },
+
+  async listPendingAttendanceDisputes() {
+    const response = await axiosClient.get('/api/training-manager/attendance-disputes/pending');
+    return asList(unwrapData(response));
+  },
+
+  async reviewAttendanceDispute(disputeId, payload) {
+    const response = await axiosClient.post(`/api/training-manager/attendance-disputes/${disputeId}/review`, payload);
+    return unwrapData(response);
+  },
+
+  async getContentManagerPrograms(deliveryMode) {
+    const response = await axiosClient.get('/api/content-manager/classrooms/programs', {
+      params: deliveryMode ? { deliveryMode } : undefined,
+    });
+    return asList(unwrapData(response));
+  },
+
+  async updateContentManagerProgramProfile(classroomId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/classrooms/${classroomId}/program-profile`, payload);
+    return unwrapData(response);
+  },
+
+  async submitContentManagerMaterialReview(materialId) {
+    const response = await axiosClient.post(`/api/content-manager/classrooms/materials/${materialId}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async submitContentManagerSyllabusReview(itemId) {
+    const response = await axiosClient.post(`/api/content-manager/classrooms/syllabus/${itemId}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async getManagerPendingContentApprovals() {
+    const response = await axiosClient.get('/api/manager/content-approvals/pending');
+    return asList(unwrapData(response));
+  },
+
+  async approveManagerMaterial(materialId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/approve`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async rejectManagerMaterial(materialId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/reject`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async approveManagerSyllabus(itemId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/approve`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async rejectManagerSyllabus(itemId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/reject`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async updateOfferingRecording(offeringId, payload) {
+    const response = await axiosClient.put(`/api/training-manager/recordings/classrooms/${offeringId}`, payload);
+    return unwrapData(response);
+  },
+
+  async updateSessionRecording(sessionId, payload) {
+    const response = await axiosClient.put(`/api/training-manager/recordings/sessions/${sessionId}`, payload);
     return unwrapData(response);
   },
 };

@@ -78,6 +78,7 @@ export default function MyClassroomDetailPage() {
   const [sessions, setSessions] = useState([]);
   const [homework, setHomework] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [attendanceDisputes, setAttendanceDisputes] = useState([]);
   const [gradebook, setGradebook] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -88,12 +89,14 @@ export default function MyClassroomDetailPage() {
   const [submitAnswers, setSubmitAnswers] = useState({});
   const [actionMessage, setActionMessage] = useState('');
   const [larkMessage, setLarkMessage] = useState('');
+  const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
+  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   const loadClassroom = async () => {
     setLoading(true);
     setError('');
     try {
-      const [classroomData, sessionsData, homeworkData, attendanceData, materialsData, announcementsData, syllabusData] = await Promise.all([
+      const [classroomData, sessionsData, homeworkData, attendanceData, materialsData, announcementsData, syllabusData, disputeData] = await Promise.all([
         classroomApi.getMyClassroom(id),
         classroomApi.getMyClassroomSessions(id),
         classroomApi.getMyClassroomHomework(id),
@@ -101,6 +104,7 @@ export default function MyClassroomDetailPage() {
         classroomApi.getMyClassroomMaterials(id),
         classroomApi.getMyClassroomAnnouncements(id),
         classroomApi.getMyClassroomSyllabus(id),
+        classroomApi.listMyAttendanceDisputes().catch(() => []),
       ]);
       let gradebookData = null;
       try {
@@ -112,6 +116,7 @@ export default function MyClassroomDetailPage() {
       setSessions(sessionsData);
       setHomework(homeworkData);
       setAttendance(attendanceData);
+      setAttendanceDisputes(disputeData);
       setGradebook(gradebookData);
       setMaterials(materialsData);
       setAnnouncements(announcementsData);
@@ -150,6 +155,25 @@ export default function MyClassroomDetailPage() {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể nộp bài tập.'));
     } finally {
       setSubmittingId(null);
+    }
+  };
+
+  const handleCreateAttendanceDispute = async (attendanceId) => {
+    if (!disputeForm.reason.trim()) {
+      setActionMessage('Vui lòng nhập lý do khiếu nại điểm danh.');
+      return;
+    }
+    setSubmittingDispute(true);
+    setActionMessage('');
+    try {
+      await classroomApi.createAttendanceDispute(attendanceId, disputeForm.reason.trim());
+      setActionMessage('Đã gửi khiếu nại điểm danh. Training Manager sẽ xử lý và phản hồi.');
+      setDisputeForm({ attendanceId: null, reason: '' });
+      setAttendanceDisputes(await classroomApi.listMyAttendanceDisputes());
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không gửi được khiếu nại điểm danh.'));
+    } finally {
+      setSubmittingDispute(false);
     }
   };
 
@@ -640,30 +664,77 @@ export default function MyClassroomDetailPage() {
                   <th className="px-6 py-4">Buổi học</th>
                   <th className="px-6 py-4">Ghi chú / Chi tiết</th>
                   <th className="px-6 py-4">Trạng thái</th>
+                  <th className="px-6 py-4">Khiếu nại</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-[#584140]">
-                {attendance.map((record, idx) => (
-                  <tr key={record.id || `${record.sessionId}-${idx}`} className="hover:bg-[#fffafb]/30">
-                    <td className="whitespace-nowrap px-6 py-4 font-extrabold text-[#2b2828]">
-                      Buổi #{record.sessionId}
-                    </td>
-                    <td className="px-6 py-4">
-                      {record.note || 'Điểm danh lớp học'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        record.status === 'PRESENT'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : record.status === 'LATE'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-rose-50 text-rose-700'
-                      }`}>
-                        {formatAttendanceStatus(record.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {attendance.map((record, idx) => {
+                  const dispute = attendanceDisputes.find((item) => Number(item.attendanceId) === Number(record.id));
+                  const isDisputeOpen = Number(disputeForm.attendanceId) === Number(record.id);
+                  return (
+                    <tr key={record.id || `${record.sessionId}-${idx}`} className="align-top hover:bg-[#fffafb]/30">
+                      <td className="whitespace-nowrap px-6 py-4 font-extrabold text-[#2b2828]">
+                        Buổi #{record.sessionId}
+                      </td>
+                      <td className="px-6 py-4">
+                        {record.note || 'Điểm danh lớp học'}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                          record.status === 'PRESENT'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : record.status === 'LATE'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-rose-50 text-rose-700'
+                        }`}>
+                          {formatAttendanceStatus(record.status)}
+                        </span>
+                      </td>
+                      <td className="min-w-[260px] px-6 py-4">
+                        {dispute ? (
+                          <div className="rounded-xl border border-[#dfbfbd]/25 bg-[#fffafb] px-3 py-2 text-xs">
+                            <p className="font-extrabold text-[#730014]">{formatDisputeStatus(dispute.status)}</p>
+                            {dispute.reviewNote ? <p className="mt-1 text-[#584140]">{dispute.reviewNote}</p> : null}
+                          </div>
+                        ) : isDisputeOpen ? (
+                          <div className="space-y-2">
+                            <textarea
+                              className="min-h-20 w-full rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-sm outline-none focus:border-[#730014]"
+                              onChange={(event) => setDisputeForm((current) => ({ ...current, reason: event.target.value }))}
+                              placeholder="Mô tả lý do: có mặt nhưng bị đánh vắng, vào trễ do lỗi kết nối..."
+                              value={disputeForm.reason}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                className="rounded-xl bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white disabled:opacity-60"
+                                disabled={submittingDispute}
+                                onClick={() => handleCreateAttendanceDispute(record.id)}
+                                type="button"
+                              >
+                                {submittingDispute ? 'Đang gửi...' : 'Gửi'}
+                              </button>
+                              <button
+                                className="rounded-xl border border-[#dfbfbd] px-3 py-2 text-xs font-extrabold text-[#730014]"
+                                onClick={() => setDisputeForm({ attendanceId: null, reason: '' })}
+                                type="button"
+                              >
+                                Hủy
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className="rounded-xl border border-[#dfbfbd] px-3 py-2 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff1f3]"
+                            onClick={() => setDisputeForm({ attendanceId: record.id, reason: '' })}
+                            type="button"
+                          >
+                            Khiếu nại
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -935,6 +1006,15 @@ export default function MyClassroomDetailPage() {
       ) : null}
     </LearnerPageShell>
   );
+}
+
+function formatDisputeStatus(status) {
+  const labels = {
+    PENDING: 'Đang chờ xử lý',
+    APPROVED: 'Đã duyệt',
+    REJECTED: 'Đã từ chối',
+  };
+  return labels[status] || status || 'Không rõ';
 }
 
 // ─── KPI mini-card ────────────────────────────────────────────────────────────

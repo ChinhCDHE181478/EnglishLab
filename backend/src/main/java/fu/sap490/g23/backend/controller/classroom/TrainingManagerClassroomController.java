@@ -2,7 +2,13 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +16,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/training-manager/classrooms")
@@ -18,17 +26,144 @@ import java.util.List;
 public class TrainingManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
+    private final UserRepository userRepository;
+    private final ClassroomRoomRepository roomRepository;
 
     @GetMapping
     public ResponseEntity<List<ClassroomOfferingResponse>> listOfferings() {
         return ResponseEntity.ok(classroomOfferingService.getManagerOfferings());
     }
 
+    @GetMapping("/teachers")
+    public ResponseEntity<List<ClassroomPickerOptionResponse>> listTeachers() {
+        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+                .stream()
+                .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(user -> ClassroomPickerOptionResponse.builder()
+                        .id(user.getId())
+                        .label((user.getFullName() == null || user.getFullName().isBlank() ? user.getEmail() : user.getFullName())
+                                + " - " + user.getEmail())
+                        .build())
+                .toList();
+        return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/rooms")
+    public ResponseEntity<List<ClassroomPickerOptionResponse>> listRooms() {
+        List<ClassroomPickerOptionResponse> options = roomRepository.findByActiveTrue()
+                .stream()
+                .sorted(Comparator.comparing(ClassroomRoom::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(room -> ClassroomPickerOptionResponse.builder()
+                        .id(room.getId())
+                        .label(room.getCapacity() == null ? room.getName() : room.getName() + " - " + room.getCapacity() + " chỗ")
+                        .capacity(room.getCapacity())
+                        .build())
+                .toList();
+        return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ClassroomOfferingResponse> getOffering(@PathVariable Long id) {
+        return ResponseEntity.ok(classroomOfferingService.getManagerOffering(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<ClassroomOfferingResponse> createOffering(
+            @Valid @RequestBody CreateClassroomOfferingRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.createOffering(request, authentication.getName()));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ClassroomOfferingResponse> updateOffering(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateClassroomOfferingRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request));
+    }
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<ClassroomOfferingResponse> publishOffering(@PathVariable Long id) {
+        return ResponseEntity.ok(classroomOfferingService.publishOffering(id));
+    }
+
+    @PostMapping("/{id}/close")
+    public ResponseEntity<ClassroomOfferingResponse> closeOffering(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.closeOffering(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/sessions")
+    public ResponseEntity<List<ClassroomSessionResponse>> listSessions(@PathVariable Long id) {
+        return ResponseEntity.ok(classroomOfferingService.getSessions(id));
+    }
+
+    @PostMapping("/{id}/sessions")
+    public ResponseEntity<ClassroomSessionResponse> createSession(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateClassroomSessionRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.createSession(id, request));
+    }
+
+    @PutMapping("/sessions/{sessionId}")
+    public ResponseEntity<ClassroomSessionResponse> updateSession(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody CreateClassroomSessionRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.updateSession(sessionId, request));
+    }
+
+    @PostMapping("/{id}/enroll")
+    public ResponseEntity<ClassroomEnrollmentResponse> enrollStudent(
+            @PathVariable Long id,
+            @Valid @RequestBody EnrollStudentRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.enrollStudent(id, request));
+    }
+
+    @PostMapping("/{id}/students/{studentId}/remove")
+    public ResponseEntity<Void> removeStudent(@PathVariable Long id, @PathVariable Long studentId) {
+        classroomOfferingService.removeStudent(id, studentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/transfer-student")
+    public ResponseEntity<ClassroomEnrollmentResponse> transferStudent(
+            @PathVariable Long id,
+            @Valid @RequestBody TransferStudentRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.transferStudent(id, request));
+    }
+
+    @PostMapping("/{id}/teachers/{teacherId}/assign")
+    public ResponseEntity<ClassroomTeacherSummaryResponse> assignTeacher(
+            @PathVariable Long id,
+            @PathVariable Long teacherId,
+            @RequestParam(defaultValue = "PRIMARY") ClassroomTeacherRole role
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.assignTeacher(id, teacherId, role));
+    }
+
+    @PostMapping("/{id}/teachers/{oldTeacherId}/replace/{newTeacherId}")
+    public ResponseEntity<ClassroomTeacherSummaryResponse> replaceTeacher(
+            @PathVariable Long id,
+            @PathVariable Long oldTeacherId,
+            @PathVariable Long newTeacherId
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.replaceTeacher(id, oldTeacherId, newTeacherId));
+    }
+
     @GetMapping("/registrations")
     public ResponseEntity<List<ClassroomEnrollmentResponse>> listRegistrations(
-            @RequestParam(required = false) ClassroomRegistrationStatus status
+            @RequestParam(required = false) ClassroomRegistrationStatus status,
+            @RequestParam(required = false) Long classroomOfferingId,
+            @RequestParam(required = false) Boolean needsAction
     ) {
-        return ResponseEntity.ok(classroomOfferingService.listRegistrations(status));
+        return ResponseEntity.ok(classroomOfferingService.listRegistrations(status, classroomOfferingId, needsAction));
     }
 
     @GetMapping("/enrollments/{enrollmentId}")
@@ -88,5 +223,10 @@ public class TrainingManagerClassroomController {
     @PostMapping("/enrollments/{enrollmentId}/conflict-check")
     public ResponseEntity<ConflictCheckResultResponse> checkEnrollmentConflict(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(classroomOfferingService.checkEnrollmentConflict(enrollmentId));
+    }
+
+    @PostMapping("/conflict-check")
+    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@RequestBody ConflictCheckRequest request) {
+        return ResponseEntity.ok(classroomOfferingService.checkConflict(request));
     }
 }

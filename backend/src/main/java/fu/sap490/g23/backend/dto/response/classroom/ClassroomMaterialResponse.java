@@ -21,6 +21,9 @@ public class ClassroomMaterialResponse {
     private Long sessionId;
     private String sessionTitle;
     private String uploadedByName;
+    private String reviewStatus;
+    private String reviewNote;
+    private LocalDateTime submittedForReviewAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

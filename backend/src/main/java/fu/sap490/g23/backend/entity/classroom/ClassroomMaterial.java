@@ -65,6 +65,24 @@ public class ClassroomMaterial {
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", length = 20)
+    @Builder.Default
+    private ContentReviewStatus reviewStatus = ContentReviewStatus.APPROVED;
+
+    @Column(name = "review_note", length = 1000)
+    private String reviewNote;
+
+    @Column(name = "submitted_for_review_at")
+    private LocalDateTime submittedForReviewAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
