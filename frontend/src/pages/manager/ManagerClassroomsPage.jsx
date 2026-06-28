@@ -34,6 +34,7 @@ const initialClassroomForm = {
   deliveryMode: 'OFFLINE',
   classroomStatus: 'DRAFT',
   packageStatus: 'DRAFT',
+  curriculumProgramId: '',
   entryLevel: 'IELTS Foundation',
   targetScore: '',
   targetOutcome: '',
@@ -63,6 +64,7 @@ export default function ManagerClassroomsPage() {
   const [actionStatus, setActionStatus] = useState('success');
   const [teachers, setTeachers] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [curriculumPrograms, setCurriculumPrograms] = useState([]);
   const [classroomForm, setClassroomForm] = useState(initialClassroomForm);
   const [creatingClassroom, setCreatingClassroom] = useState(false);
 
@@ -91,18 +93,41 @@ export default function ManagerClassroomsPage() {
     [rooms],
   );
 
+  const curriculumOptions = useMemo(
+    () => [
+      { label: 'Chưa chọn giáo trình', value: '' },
+      ...curriculumPrograms
+        .filter((program) => program.deliveryMode === classroomForm.deliveryMode)
+        .filter((program) => String(program.status || '').toUpperCase() !== 'ARCHIVED')
+        .map((program) => ({
+          label: program.title,
+          value: String(program.id),
+          description: [
+            program.code,
+            program.examCategory,
+            program.targetBand ? `Band ${program.targetBand}` : null,
+            program.targetScore ? `Target ${program.targetScore}` : null,
+            program.entryLevel,
+          ].filter(Boolean).join(' · '),
+        })),
+    ],
+    [classroomForm.deliveryMode, curriculumPrograms],
+  );
+
   const loadClassrooms = async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, teacherData, roomData] = await Promise.all([
+      const [data, teacherData, roomData, curriculumData] = await Promise.all([
         classroomApi.getManagerClassrooms(),
         classroomApi.getTrainingManagerTeachers(),
         classroomApi.getTrainingManagerRooms(),
+        classroomApi.getTrainingManagerCurriculumPrograms(),
       ]);
       setClassrooms(data);
       setTeachers(teacherData);
       setRooms(roomData);
+      setCurriculumPrograms(curriculumData);
     } catch (err) {
       setClassrooms([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải danh sách lớp.'));
@@ -125,6 +150,7 @@ export default function ManagerClassroomsPage() {
       const next = { ...current, [field]: value };
       if (field === 'deliveryMode') {
         next.studyMode = value === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm';
+        next.curriculumProgramId = '';
       }
       return next;
     });
@@ -133,6 +159,7 @@ export default function ManagerClassroomsPage() {
   const buildClassroomPayload = () => ({
     ...classroomForm,
     maxCapacity: Number(classroomForm.maxCapacity || 0),
+    curriculumProgramId: classroomForm.curriculumProgramId ? Number(classroomForm.curriculumProgramId) : null,
     primaryTeacherId: classroomForm.primaryTeacherId ? Number(classroomForm.primaryTeacherId) : null,
     defaultRoomId: classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
     price: classroomForm.price ? Number(classroomForm.price) : 0,
@@ -234,6 +261,16 @@ export default function ManagerClassroomsPage() {
               />
             </Field>
           </div>
+
+          <Field label="Giáo trình">
+            <BrandedSelect
+              menuClassName="w-[min(520px,calc(100vw-2rem))]"
+              onChange={(event) => updateClassroomForm('curriculumProgramId', event.target.value)}
+              options={curriculumOptions}
+              value={classroomForm.curriculumProgramId}
+              placeholder="Chọn giáo trình theo target/band"
+            />
+          </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Ngày khai giảng">
@@ -365,6 +402,9 @@ export default function ManagerClassroomsPage() {
                       Sĩ số {item.enrolledCount ?? 0}/{item.maxCapacity ?? '-'}
                       {' · '}
                       {formatClassroomPrice(item.salePrice ?? item.price ?? 0)}
+                    </p>
+                    <p className="mt-1 text-xs text-[#584140]">
+                      Giáo trình: {item.curriculumProgramTitle || 'Chưa chọn'}
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 flex-shrink-0 text-[#730014]" />

@@ -1,382 +1,416 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Copy, Plus, RefreshCw, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import courseApi from '../../api/courseApi';
-import { Panel, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import { Archive, Edit3, Plus, RefreshCw, Save, Search } from 'lucide-react';
+import curriculumApi from '../../api/curriculumApi';
+import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
+import {
+  CARD_CLASS,
+  DANGER_BUTTON_CLASS,
+  EMPTY_STATE_CLASS,
+  ERROR_NOTICE_CLASS,
+  FIELD_CLASS,
+  GHOST_BUTTON_CLASS,
+  PANEL_CLASS,
+  PRIMARY_BUTTON_CLASS,
+  SEARCH_INPUT_CLASS,
+  SECONDARY_BUTTON_CLASS,
+  SUCCESS_NOTICE_CLASS,
+  TEXTAREA_CLASS,
+} from '../../utils/formStyles';
 
 const pageMap = {
   listening: {
-    heading: 'quản lý bài nghe',
-    matcher: (assessment) => String(assessment.skill || '').toUpperCase() === 'LISTENING',
-  },
-  writing: {
-    heading: 'quản lý bài viết',
-    matcher: (assessment) => {
-      const skill = String(assessment.skill || '').toUpperCase();
-      const type = String(assessment.type || '').toUpperCase();
-      return skill === 'WRITING' || type === 'WRITING_TASK';
-    },
+    title: 'Ngân hàng luyện nghe',
+    skill: 'LISTENING',
+    type: 'LESSON_PRACTICE',
+    matcher: (item) => String(item.skill || '').toUpperCase() === 'LISTENING',
   },
   reading: {
-    heading: 'quản lý bài đọc',
-    matcher: (assessment) => String(assessment.skill || '').toUpperCase() === 'READING',
+    title: 'Ngân hàng luyện đọc',
+    skill: 'READING',
+    type: 'LESSON_PRACTICE',
+    matcher: (item) => String(item.skill || '').toUpperCase() === 'READING',
+  },
+  writing: {
+    title: 'Ngân hàng luyện viết',
+    skill: 'WRITING',
+    type: 'WRITING_TASK',
+    matcher: (item) => String(item.skill || '').toUpperCase() === 'WRITING' || String(item.type || '').toUpperCase() === 'WRITING_TASK',
   },
   speaking: {
-    heading: 'quản lý bài nói',
-    matcher: (assessment) => {
-      const skill = String(assessment.skill || '').toUpperCase();
-      const type = String(assessment.type || '').toUpperCase();
-      return skill === 'SPEAKING' || type === 'SPEAKING_TASK';
-    },
+    title: 'Ngân hàng luyện nói',
+    skill: 'SPEAKING',
+    type: 'SPEAKING_TASK',
+    matcher: (item) => String(item.skill || '').toUpperCase() === 'SPEAKING' || String(item.type || '').toUpperCase() === 'SPEAKING_TASK',
   },
   mockExams: {
-    heading: 'quản lý đề thi thử',
-    matcher: (assessment) => String(assessment.type || '').toUpperCase() === 'MOCK_TEST',
+    title: 'Ngân hàng đề thi thử',
+    skill: 'MIXED',
+    type: 'MOCK_TEST',
+    matcher: (item) => String(item.type || '').toUpperCase() === 'MOCK_TEST',
   },
 };
 
-const pageSize = 12;
+const typeOptions = [
+  { label: 'Bài luyện trong bài học', value: 'LESSON_PRACTICE' },
+  { label: 'Bài kiểm tra mô-đun', value: 'MODULE_TEST' },
+  { label: 'Đề thi thử', value: 'MOCK_TEST' },
+  { label: 'Bài luyện viết', value: 'WRITING_TASK' },
+  { label: 'Bài luyện nói', value: 'SPEAKING_TASK' },
+  { label: 'Quiz', value: 'QUIZ' },
+];
+
+const skillOptions = [
+  { label: 'Listening', value: 'LISTENING' },
+  { label: 'Reading', value: 'READING' },
+  { label: 'Writing', value: 'WRITING' },
+  { label: 'Speaking', value: 'SPEAKING' },
+  { label: 'Vocabulary', value: 'VOCABULARY' },
+  { label: 'Grammar', value: 'GRAMMAR' },
+  { label: 'Mixed', value: 'MIXED' },
+];
+
+const statusOptions = [
+  { label: 'Nháp', value: 'DRAFT' },
+  { label: 'Đã xuất bản', value: 'PUBLISHED' },
+  { label: 'Lưu trữ', value: 'ARCHIVED' },
+];
+
+const aiOptions = [
+  { label: 'Không dùng AI', value: 'NONE' },
+  { label: 'Giải thích đáp án', value: 'EXPLAIN_ONLY' },
+  { label: 'Feedback theo rubric', value: 'RUBRIC_FEEDBACK' },
+  { label: 'Ước lượng band', value: 'ESTIMATED_BAND' },
+];
+
+const emptyForm = (pageConfig) => ({
+  title: '',
+  description: '',
+  type: pageConfig?.type || 'LESSON_PRACTICE',
+  skill: pageConfig?.skill || 'LISTENING',
+  aiEvaluationMode: 'NONE',
+  instructions: '',
+  objectiveAnswerKey: '',
+  uiConfigJson: '',
+  passingScore: '',
+  maxScore: 100,
+  timeLimitMinutes: '',
+  status: 'DRAFT',
+  displayOrder: 0,
+});
+
+const toForm = (item = {}, pageConfig) => ({
+  title: item.title || '',
+  description: item.description || '',
+  type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
+  skill: item.skill || pageConfig?.skill || 'LISTENING',
+  aiEvaluationMode: item.aiEvaluationMode || 'NONE',
+  instructions: item.instructions || '',
+  objectiveAnswerKey: item.objectiveAnswerKey || '',
+  uiConfigJson: item.uiConfigJson || '',
+  passingScore: item.passingScore ?? '',
+  maxScore: item.maxScore ?? 100,
+  timeLimitMinutes: item.timeLimitMinutes ?? '',
+  status: item.status || 'DRAFT',
+  displayOrder: item.displayOrder ?? 0,
+});
+
+const supportedBuilderSkills = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
 
 export default function ContentManagerAssessmentsHubPage({ pageKey }) {
-  const navigate = useNavigate();
-  const pageConfig = pageMap[pageKey];
-  const [courses, setCourses] = useState([]);
-  const [rows, setRows] = useState([]);
+  const pageConfig = pageMap[pageKey] || pageMap.listening;
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState(() => emptyForm(pageConfig));
+  const [editingId, setEditingId] = useState(null);
+  const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
-  const [warning, setWarning] = useState('');
-  const [filters, setFilters] = useState({ course: 'ALL', status: 'ALL' });
-  const [page, setPage] = useState(1);
-  const [reuseDialog, setReuseDialog] = useState(false);
-  const [targetCourseId, setTargetCourseId] = useState('');
-  const [targetModuleId, setTargetModuleId] = useState('');
-  const [targetModules, setTargetModules] = useState([]);
-  const [loadingTargetModules, setLoadingTargetModules] = useState(false);
-  const [reusing, setReusing] = useState(false);
-  const loadData = async (activeRef = { current: true }) => {
+  const [success, setSuccess] = useState('');
+
+  const loadItems = async () => {
     setLoading(true);
     setError('');
-    setWarning('');
     try {
-      const page = await courseApi.getManagedOnlineCourses({ page: 0, size: 200 });
-      if (!activeRef.current) return;
-      const managedCourses = page.content || [];
-      setCourses(managedCourses);
-
-      const assessmentGroups = await Promise.all(
-        managedCourses.map(async (course) => {
-          try {
-            const items = await courseApi.getManagedCourseAssessments(course.id);
-            return { course, items, failed: false };
-          } catch {
-            return { course, items: [], failed: true };
-          }
-        }),
-      );
-      if (!activeRef.current) return;
-      const failedCourses = assessmentGroups.filter((group) => group.failed);
-      if (failedCourses.length) {
-        setWarning(
-          `Không tải được bài kiểm tra của ${failedCourses.length} khóa học. `
-          + 'Danh sách bên dưới vẫn hiển thị các dữ liệu đã tải thành công.',
-        );
-      }
-
-      const flattened = assessmentGroups.flatMap(({ course, items }) =>
-        (items || [])
-          .filter((assessment) => pageConfig.matcher(assessment))
-          .map((assessment) => ({
-            id: `${course.id}-${assessment.id || assessment.title}`,
-            assessmentId: assessment.id,
-            moduleId: assessment.moduleId,
-            title: assessment.title || 'Bài đánh giá chưa đặt tên',
-            courseTitle: course.title,
-            moduleTitle: assessment.moduleTitle || 'Cuối khóa',
-            skill: formatLabel(assessment.skill),
-            type: formatLabel(assessment.type),
-            status: assessment.active === false ? 'ARCHIVED' : course.status || 'DRAFT',
-            slug: course.slug,
-            courseId: String(course.id),
-            updatedAt: formatDate(course.updatedAt),
-            assessment,
-          })),
-      );
-
-      setRows(flattened);
-    } catch {
-      if (activeRef.current) setError(`Không tải được dữ liệu ${pageConfig.heading}.`);
+      setItems(await curriculumApi.getAssessmentBank());
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không tải được ngân hàng đề.');
     } finally {
-      if (activeRef.current) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const activeRef = { current: true };
-    loadData(activeRef);
-    return () => {
-      activeRef.current = false;
-    };
-  }, [pageConfig, pageKey]);
+    loadItems();
+    setEditingId(null);
+    setForm(emptyForm(pageConfig));
+  }, [pageKey]);
 
-  const courseOptions = useMemo(
-    () => [
-      { label: 'Tất cả khóa học', value: 'ALL' },
-      ...courses.map((course) => ({ label: course.title, value: String(course.id) })),
-    ],
-    [courses],
-  );
-
-  const filteredRows = useMemo(
-    () =>
-      rows
-        .filter((row) => filters.course === 'ALL' || row.courseId === filters.course)
-        .filter((row) => filters.status === 'ALL' || row.status === filters.status),
-    [filters, rows],
-  );
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
-  const visibleRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filters.course, filters.status, pageKey]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
-
-  useEffect(() => {
-    if (!targetCourseId || reuseDialog === false) {
-      setTargetModules([]);
-      return undefined;
-    }
-    let active = true;
-    setLoadingTargetModules(true);
-    courseApi.getManagedOnlineCourse(targetCourseId)
-      .then((course) => {
-        if (active) setTargetModules(course.modules || []);
-      })
-      .catch(() => {
-        if (active) setTargetModules([]);
-      })
-      .finally(() => {
-        if (active) setLoadingTargetModules(false);
+  const filteredItems = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    return items
+      .filter((item) => pageConfig.matcher(item))
+      .filter((item) => {
+        if (!normalized) return true;
+        return [item.title, item.description, item.type, item.skill, item.status]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalized));
       });
-    return () => { active = false; };
-  }, [reuseDialog, targetCourseId]);
+  }, [items, keyword, pageConfig]);
 
-  const openReuseDialog = (source = null) => {
-    setReuseDialog(source || { isNew: true });
-    setTargetCourseId('');
-    setTargetModuleId('');
-    setTargetModules([]);
+  const sortedItems = useMemo(
+    () => [...filteredItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.title).localeCompare(String(b.title))),
+    [filteredItems],
+  );
+
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(sortedItems, 8, `${pageKey}-${keyword}`);
+
+  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm(emptyForm(pageConfig));
+    setError('');
+    setSuccess('');
   };
 
-  const reuseAssessment = async () => {
-    if (!targetCourseId) {
-      setError('Hãy chọn khóa học nhận bài kiểm tra.');
+  const openEdit = (item) => {
+    setEditingId(item.id);
+    setForm(toForm(item, pageConfig));
+    setError('');
+    setSuccess('');
+  };
+
+  const saveItem = async () => {
+    if (!form.title.trim()) {
+      setError('Vui lòng nhập tên đề.');
       return;
     }
-    const targetCourse = courses.find((course) => String(course.id) === String(targetCourseId));
-    if (!targetCourse) return;
-    setReusing(true);
+    if (form.uiConfigJson) {
+      try {
+        JSON.parse(form.uiConfigJson);
+      } catch {
+        setError('Cấu hình nội dung đề phải là JSON hợp lệ.');
+        return;
+      }
+    }
+    if (form.objectiveAnswerKey) {
+      try {
+        JSON.parse(form.objectiveAnswerKey);
+      } catch {
+        setError('Đáp án khách quan phải là JSON hợp lệ.');
+        return;
+      }
+    }
+    setWorking(true);
     setError('');
+    setSuccess('');
+    const payload = {
+      ...form,
+      passingScore: form.passingScore === '' ? null : Number(form.passingScore),
+      maxScore: form.maxScore === '' ? null : Number(form.maxScore),
+      timeLimitMinutes: form.timeLimitMinutes === '' ? null : Number(form.timeLimitMinutes),
+      displayOrder: Number(form.displayOrder || 0),
+    };
     try {
-      const targetAssessments = await courseApi.getManagedCourseAssessments(targetCourse.id);
-      const assessment = reuseDialog?.isNew
-        ? createNewAssessment(pageKey, targetAssessments.length + 1, targetModuleId)
-        : toReusableAssessment(reuseDialog, targetAssessments.length + 1, targetModuleId);
-      const saved = await courseApi.saveManagedCourseAssessments(targetCourse.id, [...targetAssessments, assessment]);
-      const created = [...saved].sort((left, right) => Number(right.id || 0) - Number(left.id || 0))[0];
-      setReuseDialog(false);
-      navigate(`/content-manager/courses/${targetCourse.slug}/builder?assessmentId=${encodeURIComponent(created?.id || '')}`);
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Không thể thêm bài kiểm tra vào khóa học đã chọn.');
+      const saved = editingId
+        ? await curriculumApi.updateAssessmentBankItem(editingId, payload)
+        : await curriculumApi.createAssessmentBankItem(payload);
+      setItems((current) => {
+        if (editingId) {
+          return current.map((item) => (String(item.id) === String(saved.id) ? saved : item));
+        }
+        return [saved, ...current];
+      });
+      setEditingId(saved.id);
+      setForm(toForm(saved, pageConfig));
+      setSuccess(editingId ? 'Đã cập nhật đề.' : 'Đã tạo đề mới trong bank.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không lưu được đề.');
     } finally {
-      setReusing(false);
+      setWorking(false);
     }
   };
 
+  const archiveItem = async (item) => {
+    if (!window.confirm(`Lưu trữ đề "${item.title}"?`)) return;
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      await curriculumApi.archiveAssessmentBankItem(item.id);
+      setItems((current) => current.map((row) => (
+        String(row.id) === String(item.id) ? { ...row, status: 'ARCHIVED' } : row
+      )));
+      if (String(editingId) === String(item.id)) updateForm('status', 'ARCHIVED');
+      setSuccess('Đã lưu trữ đề.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không lưu trữ được đề.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const canUseBuilder = supportedBuilderSkills.has(String(form.skill || '').toUpperCase());
+
   return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.32, ease: 'easeOut' }}
-    >
-      <div className="flex justify-end">
-        <div className="flex flex-wrap justify-end gap-3">
-          <button className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={() => openReuseDialog(null)} type="button"><Plus className="h-4 w-4" /> Thêm bài mới</button>
-          <button
-            className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]"
-            onClick={() => loadData()}
-            type="button"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới dữ liệu
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="font-['Manrope'] text-2xl font-extrabold text-slate-900">{pageConfig.title}</h2>
+          <p className="mt-1 max-w-3xl text-sm text-slate-600">
+            Tạo và chỉnh sửa đề trong bank dùng chung. Curriculum hoặc course chỉ gắn reference tới đề này, không tạo bản sao mặc định.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={resetForm} className={SECONDARY_BUTTON_CLASS}>
+            <Plus className="h-4 w-4" /> Thêm bài mới
+          </button>
+          <button type="button" onClick={loadItems} className={SECONDARY_BUTTON_CLASS}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới
           </button>
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-          {error}
-        </div>
-      ) : null}
-      {warning ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
-          {warning}
-        </div>
-      ) : null}
+      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
+      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <Panel className="p-6">
-        <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
-          <FilterField label="Khóa học">
-            <BrandedSelect
-              onChange={(event) => setFilters((current) => ({ ...current, course: event.target.value }))}
-              options={courseOptions}
-              value={filters.course}
-            />
-          </FilterField>
-          <FilterField label="Trạng thái">
-            <BrandedSelect
-              onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-              options={[
-                { label: 'Tất cả trạng thái', value: 'ALL' },
-                { label: 'Nháp', value: 'DRAFT' },
-                { label: 'Đã xuất bản', value: 'PUBLISHED' },
-                { label: 'Lưu trữ', value: 'ARCHIVED' },
-              ]}
-              value={filters.status}
-            />
-          </FilterField>
-          <div className="flex items-end">
-            <Link
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] lg:w-auto"
-              to="/content-manager/courses"
-            >
-              Mở quản lý khóa học
-            </Link>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_500px]">
+        <section className="space-y-4">
+          <div className={PANEL_CLASS}>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm đề, loại hoặc kỹ năng..."
+                className={SEARCH_INPUT_CLASS}
+              />
+            </div>
           </div>
-        </div>
-      </Panel>
 
-      <Panel className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left">
-            <thead className="bg-[#fbf3f4] text-xs uppercase tracking-[0.18em] text-[#8e7371]">
-              <tr>
-                {['Tên nội dung', 'Khóa học', 'Thuộc phần', 'Kỹ năng', 'Loại', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
-                  <th key={heading} className="px-5 py-4 font-semibold">
-                    {heading}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f0e3e4]">
-              {loading ? (
-                <tr>
-                  <td className="px-5 py-8 text-sm text-[#584140]" colSpan={8}>
-                    Đang tải dữ liệu...
-                  </td>
-                </tr>
-              ) : visibleRows.length ? (
-                visibleRows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="px-5 py-4 font-semibold text-[#1a1c1c]">{row.title}</td>
-                    <td className="px-5 py-4 text-sm">{row.courseTitle}</td>
-                    <td className="px-5 py-4 text-sm">{row.moduleTitle}</td>
-                    <td className="px-5 py-4 text-sm">{row.skill}</td>
-                    <td className="px-5 py-4 text-sm">{row.type}</td>
-                    <td className="px-5 py-4">
-                      <StatusBadge label={row.status} />
-                    </td>
-                    <td className="px-5 py-4 text-sm">{row.updatedAt}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          className="rounded-xl border border-[#dfbfbd]/60 px-3 py-2 text-sm font-medium text-[#730014] transition hover:bg-[#fff2f3]"
-                          to={`/content-manager/courses/${row.slug}/builder?assessmentId=${encodeURIComponent(row.assessmentId || '')}${row.moduleId ? `&moduleId=${encodeURIComponent(row.moduleId)}` : ''}`}
-                        >
-                          Mở bài kiểm tra
-                        </Link>
-                        <Link
-                          className="rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#730014]"
-                          to={`/content-manager/courses/${row.slug}/builder?assessmentId=${encodeURIComponent(row.assessmentId || '')}${row.moduleId ? `&moduleId=${encodeURIComponent(row.moduleId)}` : ''}`}
-                        >
-                          Chỉnh sửa bài kiểm tra
-                        </Link>
-                        <button className="inline-flex items-center gap-1 rounded-xl border border-[#dfbfbd]/60 px-3 py-2 text-sm font-medium text-[#730014] transition hover:bg-[#fff2f3]" onClick={() => openReuseDialog(row)} type="button"><Copy className="h-3.5 w-3.5" /> Thêm vào khóa học</button>
+          {loading ? (
+            <p className="text-sm font-semibold text-slate-500">Đang tải ngân hàng đề...</p>
+          ) : sortedItems.length === 0 ? (
+            <div className={EMPTY_STATE_CLASS}>Chưa có đề trong mục này.</div>
+          ) : (
+            <div className="space-y-3">
+              {pageItems.map((item) => (
+                <article key={item.id} className={`${CARD_CLASS} transition hover:border-[#dfbfbd]`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="break-words font-['Manrope'] text-lg font-extrabold text-slate-900">{item.title}</h3>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{item.status}</span>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td className="px-5 py-8 text-sm text-[#584140]" colSpan={8}>
-                    Chưa có nội dung nào để quản lý trong mục này.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        {[formatLabel(item.skill), formatLabel(item.type), item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : null].filter(Boolean).join(' · ')}
+                      </p>
+                      {item.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p> : null}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <button type="button" onClick={() => openEdit(item)} className={GHOST_BUTTON_CLASS}>
+                        <Edit3 className="h-3.5 w-3.5" /> Sửa
+                      </button>
+                      <button type="button" onClick={() => archiveItem(item)} disabled={working} className={DANGER_BUTTON_CLASS}>
+                        <Archive className="h-3.5 w-3.5" /> Lưu trữ
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={8} />
+            </div>
+          )}
+        </section>
 
-      {totalPages > 1 ? (
-        <div className="flex items-center justify-center gap-3">
-          <button className="rounded-xl border border-[#dfbfbd] bg-white px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">
-            Trang trước
-          </button>
-          <span className="text-sm font-semibold text-[#584140]">Trang {page} / {totalPages}</span>
-          <button className="rounded-xl border border-[#dfbfbd] bg-white px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">
-            Trang sau
-          </button>
-        </div>
-      ) : null}
-      {reuseDialog !== false ? <ReuseDialog courses={courses} loadingModules={loadingTargetModules} modules={targetModules} onClose={() => setReuseDialog(false)} onSubmit={reuseAssessment} reusing={reusing} source={reuseDialog?.isNew ? null : reuseDialog} targetCourseId={targetCourseId} targetModuleId={targetModuleId} onTargetCourseChange={(value) => { setTargetCourseId(value); setTargetModuleId(''); }} onTargetModuleChange={setTargetModuleId} /> : null}
-    </motion.div>
-  );
-}
+        <aside className="space-y-4">
+          <section className={PANEL_CLASS}>
+            <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
+              {editingId ? 'Chỉnh sửa đề' : 'Tạo đề trong bank'}
+            </h3>
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên đề</span>
+                <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
+                <textarea value={form.description} onChange={(event) => updateForm('description', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+              </label>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
+                  <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={skillOptions} />
+                </div>
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại đề</span>
+                  <BrandedSelect value={form.type} onChange={(event) => updateForm('type', event.target.value)} options={typeOptions} />
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">AI feedback</span>
+                  <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
+                </div>
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
+                  <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
+                </div>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
+                <textarea value={form.instructions} onChange={(event) => updateForm('instructions', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+              </label>
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm đạt</span>
+                  <input type="number" value={form.passingScore} onChange={(event) => updateForm('passingScore', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm tối đa</span>
+                  <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Phút</span>
+                  <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
+                </label>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
+                <input type="number" value={form.displayOrder} onChange={(event) => updateForm('displayOrder', event.target.value)} className={FIELD_CLASS} />
+              </label>
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
+                  <Save className="h-4 w-4" /> Lưu đề
+                </button>
+                <button type="button" onClick={resetForm} className={SECONDARY_BUTTON_CLASS}>
+                  <Plus className="h-4 w-4" /> Mới
+                </button>
+              </div>
+            </div>
+          </section>
 
-function ReuseDialog({ courses, loadingModules, modules, onClose, onSubmit, onTargetCourseChange, onTargetModuleChange, reusing, source, targetCourseId, targetModuleId }) {
-  const moduleOptions = [{ label: 'Đặt ở cuối khóa', value: '' }, ...modules.map((module) => ({ label: module.title, value: String(module.id) }))];
-  return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1a0004]/45 p-4 backdrop-blur-sm"><div className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-[#8b706e]">{source ? 'Tái sử dụng bài kiểm tra' : 'Tạo bài kiểm tra'}</p><h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{source ? source.title : 'Bài kiểm tra mới'}</h3></div><button aria-label="Đóng" className="rounded-xl border border-[#dfbfbd] p-2 text-[#730014]" onClick={onClose} type="button"><X className="h-5 w-5" /></button></div><p className="mt-3 text-sm leading-6 text-[#584140]">{source ? 'Bản sao sẽ được thêm vào vị trí bạn chọn. Bạn có thể chỉnh sửa độc lập sau đó.' : 'Một bài kiểm tra trống sẽ được thêm vào vị trí bạn chọn và mở ngay khu vực biên soạn.'}</p><div className="mt-5"><label className="mb-2 block text-xs font-bold uppercase tracking-[.14em] text-[#8b706e]">Khóa học nhận bài kiểm tra</label><BrandedSelect onChange={(event) => onTargetCourseChange(event.target.value)} options={[{ label: 'Chọn khóa học', value: '' }, ...courses.map((course) => ({ label: course.title, value: String(course.id) }))]} value={targetCourseId} /></div>{targetCourseId ? <div className="mt-4"><label className="mb-2 block text-xs font-bold uppercase tracking-[.14em] text-[#8b706e]">Vị trí đặt bài kiểm tra</label><BrandedSelect disabled={loadingModules} onChange={(event) => onTargetModuleChange(event.target.value)} options={loadingModules ? [{ label: 'Đang tải mô-đun...', value: '' }] : moduleOptions} value={targetModuleId} /></div> : null}<div className="mt-6 flex justify-end gap-3"><button className="rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014]" onClick={onClose} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white disabled:opacity-50" disabled={reusing || !targetCourseId || loadingModules} onClick={onSubmit} type="button">{reusing ? 'Đang thêm...' : source ? 'Thêm vào khóa học' : 'Tạo và biên soạn'}</button></div></div></div>;
-}
-
-function toReusableAssessment(source, displayOrder, moduleId) {
-  const assessment = source.assessment || {};
-  return {
-    title: assessment.title || source.title,
-    description: assessment.description || '',
-    type: assessment.type || 'LESSON_PRACTICE',
-    skill: assessment.skill || 'MIXED',
-    moduleId: moduleId || null,
-    rubricId: assessment.rubricId || null,
-    instructions: assessment.instructions || '',
-    objectiveAnswerKey: assessment.objectiveAnswerKey || '',
-    uiConfigJson: assessment.uiConfigJson || null,
-    passingScore: assessment.passingScore ?? null,
-    maxScore: assessment.maxScore ?? 100,
-    timeLimitMinutes: assessment.timeLimitMinutes ?? null,
-    aiEvaluationMode: assessment.aiEvaluationMode || 'NONE',
-    active: assessment.active !== false,
-    displayOrder,
-  };
-}
-
-function createNewAssessment(pageKey, displayOrder, moduleId) {
-  const skillByPage = { listening: 'LISTENING', reading: 'READING', writing: 'WRITING', speaking: 'SPEAKING', mockExams: 'MIXED' };
-  const typeByPage = { writing: 'WRITING_TASK', speaking: 'SPEAKING_TASK', mockExams: 'MOCK_TEST' };
-  return { title: 'Bài kiểm tra mới', description: '', type: typeByPage[pageKey] || 'LESSON_PRACTICE', skill: skillByPage[pageKey] || 'MIXED', moduleId: moduleId || null, rubricId: null, instructions: '', objectiveAnswerKey: '', uiConfigJson: null, passingScore: null, maxScore: 100, timeLimitMinutes: null, aiEvaluationMode: 'NONE', active: true, displayOrder };
-}
-
-function FilterField({ label, children }) {
-  return (
-    <div className="space-y-2">
-      <label className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</label>
-      {children}
+          <section className={PANEL_CLASS}>
+            {canUseBuilder ? (
+              <AssessmentExamBuilder assessment={form} onChange={updateForm} />
+            ) : (
+              <div className="space-y-4">
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Cấu hình nội dung đề</h3>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">UI config JSON</span>
+                  <textarea value={form.uiConfigJson} onChange={(event) => updateForm('uiConfigJson', event.target.value)} rows={8} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đáp án khách quan JSON</span>
+                  <textarea value={form.objectiveAnswerKey} onChange={(event) => updateForm('objectiveAnswerKey', event.target.value)} rows={6} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+                </label>
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -396,12 +430,7 @@ function formatLabel(value) {
     LESSON_PRACTICE: 'Bài luyện trong bài học',
     WRITING_TASK: 'Bài luyện viết',
     SPEAKING_TASK: 'Bài luyện nói',
-    QUIZ: 'Câu hỏi luyện tập',
+    QUIZ: 'Quiz',
   };
   return labels[text] || value || '-';
-}
-
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }

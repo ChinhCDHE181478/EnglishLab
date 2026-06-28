@@ -15,9 +15,9 @@ import ContentManagerPublicationPage from './ContentManagerPublicationPage';
 import ContentManagerAnalyticsPage from './ContentManagerAnalyticsPage';
 import ContentManagerPlacementTestPage from './ContentManagerPlacementTestPage';
 import ContentManagerRubricsPage from './ContentManagerRubricsPage';
+import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 import ContentManagerTrainingProgramsPage from './ContentManagerTrainingProgramsPage';
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
-import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 
 export default function ContentManagerRoutes() {
   return (

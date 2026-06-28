@@ -349,6 +349,13 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getTrainingManagerCurriculumPrograms(deliveryMode) {
+    const response = await axiosClient.get('/api/training-manager/classrooms/curriculum-programs', {
+      params: deliveryMode ? { deliveryMode } : undefined,
+    });
+    return asList(unwrapData(response));
+  },
+
   async createManagerClassroom(payload) {
     const response = await axiosClient.post('/api/training-manager/classrooms', payload);
     return unwrapData(response);
@@ -681,7 +688,7 @@ export const classroomApi = {
   },
 
   async getContentManagerPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/content-manager/classrooms/programs', {
+    const response = await axiosClient.get('/api/content-manager/curriculum-programs', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));

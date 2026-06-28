@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiAiEvaluationClientImpl implements GeminiAiEvaluationClient {
     private static final Set<Integer> RETRYABLE_STATUS_CODES = Set.of(429, 500, 502, 503, 504);
+    private static final int DEFAULT_MAX_OUTPUT_TOKENS = 8192;
     private static final List<String> DEFAULT_FALLBACK_MODELS = List.of(
             "gemini-2.5-flash-lite",
             "gemini-2.0-flash",
@@ -62,11 +65,11 @@ public class GeminiAiEvaluationClientImpl implements GeminiAiEvaluationClient {
         }
 
         List<String> candidateModels = resolveCandidateModels();
-        String requestBody = buildRequestBody(prompt, audioBytes, mimeType);
         boolean audioInputAnalyzed = audioBytes != null && audioBytes.length > 0;
         AiEvaluationException lastException = null;
 
         for (String model : candidateModels) {
+            String requestBody = buildRequestBody(prompt, audioBytes, mimeType, model);
             for (int attempt = 1; attempt <= properties.getGeminiMaxRetries() + 1; attempt += 1) {
                 try {
                     String endpoint = buildEndpoint(model, apiKey);
@@ -112,7 +115,7 @@ public class GeminiAiEvaluationClientImpl implements GeminiAiEvaluationClient {
         throw new AiEvaluationException("Gemini evaluation failed before any request could be completed.");
     }
 
-    private String buildRequestBody(String prompt, byte[] audioBytes, String mimeType) {
+    private String buildRequestBody(String prompt, byte[] audioBytes, String mimeType, String model) {
         try {
             List<Map<String, Object>> parts = new ArrayList<>();
             parts.add(Map.of("text", prompt));
@@ -125,20 +128,38 @@ public class GeminiAiEvaluationClientImpl implements GeminiAiEvaluationClient {
                 ));
             }
 
+            Map<String, Object> generationConfig = new java.util.LinkedHashMap<>();
+            generationConfig.put("temperature", properties.getTemperature());
+            generationConfig.put("responseMimeType", "application/json");
+            generationConfig.put("maxOutputTokens", DEFAULT_MAX_OUTPUT_TOKENS);
+            // Gemini 2.5 models enable an internal "thinking" phase by default which can spend
+            // most of the latency/output budget before producing the JSON answer, causing slow
+            // requests and empty responses on heavier prompts (e.g. writing + speaking audio).
+            // Disabling it keeps structured rubric scoring fast and reliable.
+            if (supportsThinkingConfig(model)) {
+                generationConfig.put("thinkingConfig", Map.of("thinkingBudget", 0));
+            }
+
             Map<String, Object> body = Map.of(
                     "contents", List.of(Map.of(
                             "role", "user",
                             "parts", parts
                     )),
-                    "generationConfig", Map.of(
-                            "temperature", properties.getTemperature(),
-                            "responseMimeType", "application/json"
-                    )
+                    "generationConfig", generationConfig
             );
             return objectMapper.writeValueAsString(body);
         } catch (JsonProcessingException exception) {
             throw new AiEvaluationException("Gemini request body could not be created.", exception);
         }
+    }
+
+    private boolean supportsThinkingConfig(String model) {
+        if (model == null) {
+            return false;
+        }
+        // thinkingConfig is only valid on Gemini 2.5 family models; sending it to 2.0 models
+        // would be rejected, so guard by model name.
+        return model.toLowerCase().contains("2.5");
     }
 
     private String buildEndpoint(String model, String apiKey) {
@@ -226,6 +247,8 @@ public class GeminiAiEvaluationClientImpl implements GeminiAiEvaluationClient {
 
     private AiEvaluationException buildFriendlyFailure(String attemptedModel, List<String> candidateModels, AiEvaluationException exception) {
         Integer statusCode = exception.getStatusCode();
+        log.warn("Gemini evaluation failed (model={}, candidates={}, status={}): {}",
+                attemptedModel, candidateModels, statusCode, exception.getMessage());
         if (statusCode != null && RETRYABLE_STATUS_CODES.contains(statusCode)) {
             return new AiEvaluationException(
                     "Gemini is temporarily unavailable after retrying model(s): " + String.join(", ", candidateModels) + ".",

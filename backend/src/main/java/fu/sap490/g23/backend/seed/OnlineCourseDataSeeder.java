@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.config;
+package fu.sap490.g23.backend.seed;
 
 import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;

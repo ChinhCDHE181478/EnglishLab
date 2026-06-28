@@ -48,6 +48,7 @@ import TeacherQuizSection from '../../components/teacher/TeacherQuizSection';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
+  { id: 'curriculum', label: 'Giáo trình' },
   { id: 'students', label: 'Học viên' },
   { id: 'homework', label: 'Bài tập' },
   { id: 'quizzes', label: 'Bài kiểm tra' },
@@ -185,6 +186,10 @@ export default function TeacherClassroomPage() {
   );
 
   const renderContent = () => {
+    if (activeTab === 'curriculum') {
+      return <TeacherCurriculumPanel curriculum={classroom?.curriculumProgram} />;
+    }
+
     if (activeTab === 'sessions') {
       if (!sessions.length) {
         return (
@@ -682,6 +687,85 @@ function HeaderStat({ icon: Icon, label, value, tone = 'rose' }) {
         <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a8b8a] truncate">{label}</p>
         <p className="font-['Manrope'] text-lg font-extrabold leading-tight text-[#1a1c1c]">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function TeacherCurriculumPanel({ curriculum }) {
+  if (!curriculum) {
+    return (
+      <ClassroomEmptyState
+        description="Lớp này chưa được gắn giáo trình. Training Manager cần chọn giáo trình khi mở hoặc cập nhật lớp."
+        title="Chưa có giáo trình"
+      />
+    );
+  }
+  const units = curriculum.units || [];
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-[#dfbfbd]/20 bg-[#fffafb] p-5">
+        <p className="text-xs font-extrabold uppercase tracking-wider text-[#8b706e]">Giáo trình gốc</p>
+        <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{curriculum.title}</h3>
+        <p className="mt-1 text-sm text-[#584140]">
+          {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
+        </p>
+        {curriculum.teacherGuide ? (
+          <div className="mt-4 rounded-xl bg-white p-4">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-[#8b706e]">Hướng dẫn giảng viên</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.teacherGuide}</p>
+          </div>
+        ) : null}
+      </div>
+      {units.length ? (
+        <div className="space-y-3">
+          {units.map((unit) => (
+            <CurriculumUnitCard key={unit.id} unit={unit} />
+          ))}
+        </div>
+      ) : (
+        <ClassroomEmptyState
+          description="Giáo trình này chưa có unit hoặc buổi học."
+          title="Chưa có nội dung giáo trình"
+        />
+      )}
+    </div>
+  );
+}
+
+function CurriculumUnitCard({ unit }) {
+  return (
+    <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
+        {unit.displayOrder ?? 0}. {unit.title}
+      </h4>
+      {unit.description ? <p className="mt-1 text-sm text-[#584140]">{unit.description}</p> : null}
+      {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <CurriculumRefList title="Học liệu" refs={unit.materials} />
+        <CurriculumRefList title="Bài tập" refs={unit.exercises} />
+        <CurriculumRefList title="Đề" refs={unit.assessments} />
+        <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
+      </div>
+    </article>
+  );
+}
+
+function CurriculumRefList({ title, refs = [] }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-[#fffafb] p-3">
+      <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#8b706e]">{title}</p>
+      {refs.length ? (
+        <div className="mt-2 space-y-1.5">
+          {refs.map((ref) => (
+            <div key={`${ref.type}-${ref.id}`} className="rounded-lg bg-white px-3 py-2 text-xs">
+              <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
+              <p className="mt-0.5 text-[#8b706e]">{[ref.skill, ref.subtitle, ref.status].filter(Boolean).join(' · ')}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-[#8b706e]">Chưa gắn.</p>
+      )}
     </div>
   );
 }

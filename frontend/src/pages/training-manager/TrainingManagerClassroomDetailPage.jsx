@@ -283,6 +283,7 @@ export default function TrainingManagerClassroomDetailPage() {
           <Badge>{formatDeliveryMode(classroom.deliveryMode, classroom.deliveryModeLabel)}</Badge>
           <Badge>{formatOfferingStatus(classroom.classroomStatus)}</Badge>
           <Badge>{classroom.entryLevel || 'Chưa gắn level'}</Badge>
+          <Badge>{classroom.curriculumProgramTitle || 'Chưa chọn giáo trình'}</Badge>
         </div>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{classroom.title}</h2>
         <p className="mt-2 text-sm text-[#584140]">
@@ -299,29 +300,32 @@ export default function TrainingManagerClassroomDetailPage() {
       <ClassroomTabBar activeTab={activeTab} onChange={setTab} tabs={detailTabs} />
 
       {activeTab === 'overview' ? (
-        <section className="grid gap-4 md:grid-cols-3">
-          <OverviewCard
-            description="Học viên đã được xếp lớp chính thức"
-            icon={Users}
-            label="Đã xếp lớp"
-            onClick={() => setTab('students')}
-            value={classroom.enrolledCount ?? 0}
-          />
-          <OverviewCard
-            description="Hồ sơ đăng ký cần xác nhận, học phí hoặc xếp lớp"
-            icon={Clock}
-            label="Hàng đợi"
-            onClick={() => setTab('queue')}
-            value={classroom.waitlistCount ?? 0}
-          />
-          <OverviewCard
-            description="Số buổi học đã lên lịch"
-            icon={Plus}
-            label="Buổi học"
-            onClick={() => setTab('schedule')}
-            value={classroom.sessions?.length ?? 0}
-          />
-        </section>
+        <>
+          <section className="grid gap-4 md:grid-cols-3">
+            <OverviewCard
+              description="Học viên đã được xếp lớp chính thức"
+              icon={Users}
+              label="Đã xếp lớp"
+              onClick={() => setTab('students')}
+              value={classroom.enrolledCount ?? 0}
+            />
+            <OverviewCard
+              description="Hồ sơ đăng ký cần xác nhận, học phí hoặc xếp lớp"
+              icon={Clock}
+              label="Hàng đợi"
+              onClick={() => setTab('queue')}
+              value={classroom.waitlistCount ?? 0}
+            />
+            <OverviewCard
+              description="Số buổi học đã lên lịch"
+              icon={Plus}
+              label="Buổi học"
+              onClick={() => setTab('schedule')}
+              value={classroom.sessions?.length ?? 0}
+            />
+          </section>
+          <CurriculumOverview curriculum={classroom.curriculumProgram} />
+        </>
       ) : null}
 
       {activeTab === 'queue' ? (
@@ -477,5 +481,52 @@ function OverviewCard({ icon: Icon, label, value, description, onClick }) {
       </div>
       <p className="mt-3 text-xs leading-5 text-[#8b706e]">{description}</p>
     </button>
+  );
+}
+
+function CurriculumOverview({ curriculum }) {
+  if (!curriculum) {
+    return (
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-800">
+        Lớp này chưa được gắn giáo trình. Hãy cập nhật lớp từ trang mở lớp để chọn giáo trình theo band/target.
+      </section>
+    );
+  }
+  const units = curriculum.units || [];
+  return (
+    <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">Giáo trình đang dùng</p>
+          <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{curriculum.title}</h3>
+          <p className="mt-1 text-sm text-[#584140]">
+            {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        <Badge>{units.length} unit/buổi</Badge>
+      </div>
+      {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
+      {units.length ? (
+        <div className="mt-5 space-y-3">
+          {units.map((unit) => (
+            <article key={unit.id} className="rounded-xl border border-[#f0e4e2] bg-[#fffafb] p-4">
+              <p className="font-extrabold text-[#2b2828]">{unit.displayOrder ?? 0}. {unit.title}</p>
+              {unit.sessionPlan ? <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+              <p className="mt-3 text-xs font-semibold text-[#8b706e]">
+                Học liệu {(unit.materials || []).length}
+                {' · '}
+                Bài tập {(unit.exercises || []).length}
+                {' · '}
+                Đề {(unit.assessments || []).length}
+                {' · '}
+                Flashcard {(unit.flashcards || []).length}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có unit/buổi học.</p>
+      )}
+    </section>
   );
 }

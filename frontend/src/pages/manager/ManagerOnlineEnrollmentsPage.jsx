@@ -103,7 +103,7 @@ export default function ManagerOnlineEnrollmentsPage() {
           <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm học viên hoặc khóa học..." className={SEARCH_INPUT_CLASS} />
         </div>
         <div className="w-48">
-          <BrandedSelect value={status} onChange={setStatus} options={statusOptions} />
+          <BrandedSelect value={status} onChange={(event) => setStatus(event.target.value)} options={statusOptions} />
         </div>
       </div>
 

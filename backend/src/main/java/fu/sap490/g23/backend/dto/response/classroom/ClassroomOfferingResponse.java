@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.dto.response.classroom;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import lombok.Builder;
 import lombok.Data;
 
@@ -24,6 +25,13 @@ public class ClassroomOfferingResponse {
     private String deliveryModeLabel;
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
+    private Long curriculumProgramId;
+    private String curriculumProgramTitle;
+    private String curriculumProgramCode;
+    private String curriculumProgramSlug;
+    private String curriculumProgramExamCategory;
+    private String curriculumProgramStatus;
+    private CurriculumProgramResponse curriculumProgram;
     private String entryLevel;
     private String targetOutcome;
     private Integer maxCapacity;

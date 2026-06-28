@@ -4,12 +4,15 @@ import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,7 @@ import java.util.Set;
 public class TrainingManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
+    private final CurriculumProgramService curriculumProgramService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
 
@@ -60,6 +64,13 @@ public class TrainingManagerClassroomController {
                         .build())
                 .toList();
         return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/curriculum-programs")
+    public ResponseEntity<List<CurriculumProgramResponse>> listCurriculumPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
     }
 
     @GetMapping("/{id}")

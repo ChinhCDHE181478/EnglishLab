@@ -36,6 +36,8 @@ public class CreateClassroomOfferingRequest {
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
 
+    private Long curriculumProgramId;
+
     @Size(max = 120)
     private String entryLevel;
 

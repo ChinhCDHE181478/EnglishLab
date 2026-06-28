@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.config;
+package fu.sap490.g23.backend.seed;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.DeserializationFeature;

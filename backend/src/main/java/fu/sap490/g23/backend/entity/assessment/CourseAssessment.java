@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.entity.assessment.enums.*;
 
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,10 @@ public class CourseAssessment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rubric_id")
     private AssessmentRubric rubric;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_bank_item_id")
+    private AssessmentBankItem assessmentBankItem;
 
     @Column(nullable = false, length = 180)
     private String title;

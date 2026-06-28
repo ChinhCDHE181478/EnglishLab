@@ -158,10 +158,10 @@ export default function ContentManagerMaterialsPage() {
     }
   }, [currentPage, totalPages]);
 
-  const resetForm = () => {
+  const resetForm = (open = true) => {
     setEditingId(null);
     setForm(emptyForm);
-    setComposerOpen(true);
+    setComposerOpen(open);
   };
 
   const openEdit = (item) => {
@@ -195,6 +195,7 @@ export default function ContentManagerMaterialsPage() {
       const nextUrl = uploaded.url || '';
       setForm((current) => ({
         ...current,
+        title: current.title || uploaded.originalFileName || uploaded.fileName || current.title,
         fileUrl: nextUrl,
         fileType: inferFileType(uploaded.originalFileName || uploaded.fileName || nextUrl) || current.fileType,
         provider: current.provider || guessProvider(nextUrl),
@@ -220,14 +221,24 @@ export default function ContentManagerMaterialsPage() {
     setMessage('');
     try {
       const payload = toRequestPayload(form);
+      let saved;
       if (editingId) {
-        await classroomApi.updateContentManagerMaterialLibraryItem(editingId, payload);
+        saved = await classroomApi.updateContentManagerMaterialLibraryItem(editingId, payload);
         setMessage('Đã cập nhật học liệu trung tâm.');
       } else {
-        await classroomApi.createContentManagerMaterialLibraryItem(payload);
+        saved = await classroomApi.createContentManagerMaterialLibraryItem(payload);
         setMessage('Đã thêm học liệu mới vào thư viện trung tâm.');
       }
-      resetForm();
+      if (saved?.id) {
+        setItems((current) => {
+          const exists = current.some((item) => item.id === saved.id);
+          return exists
+            ? current.map((item) => (item.id === saved.id ? saved : item))
+            : [saved, ...current];
+        });
+        setCurrentPage(1);
+      }
+      resetForm(false);
       await loadItems();
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, 'Không thể lưu học liệu trung tâm.'));
@@ -245,7 +256,7 @@ export default function ContentManagerMaterialsPage() {
     try {
       await classroomApi.deleteContentManagerMaterialLibraryItem(item.id);
       if (editingId === item.id) {
-        resetForm();
+        resetForm(false);
       }
       setMessage('Đã xóa học liệu khỏi thư viện trung tâm.');
       await loadItems();
@@ -347,8 +358,11 @@ export default function ContentManagerMaterialsPage() {
                     className="hidden"
                     type="file"
                     accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                    onChange={(event) => handleUpload(event.target.files?.[0] || null)}
-                  />
+                onChange={(event) => {
+                  handleUpload(event.target.files?.[0] || null);
+                  event.target.value = '';
+                }}
+              />
                 </label>
                 <span className="text-sm text-[#8b706e]">Hoặc dán liên kết ở ô bên dưới nếu học liệu nằm trên nền tảng ngoài.</span>
               </div>
@@ -421,7 +435,7 @@ export default function ContentManagerMaterialsPage() {
               </button>
               <button
                 className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/70 px-5 py-3 text-sm font-bold text-[#584140] transition hover:bg-[#fff2f3]"
-                onClick={resetForm}
+                onClick={() => resetForm(true)}
                 type="button"
               >
                 <FilePlus2 className="h-4 w-4" />

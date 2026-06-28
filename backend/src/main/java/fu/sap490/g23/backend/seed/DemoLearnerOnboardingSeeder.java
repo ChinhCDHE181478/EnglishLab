@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.config;
+package fu.sap490.g23.backend.seed;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;

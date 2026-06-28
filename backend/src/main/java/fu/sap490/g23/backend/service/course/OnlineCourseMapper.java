@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.course;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sap490.g23.backend.dto.response.course.LessonResponse;
 import fu.sap490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
@@ -14,6 +15,7 @@ import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
 import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
@@ -158,6 +160,7 @@ public class OnlineCourseMapper {
                         .bunnyCdnUrl(exposeContent ? lesson.getBunnyCdnUrl() : null)
                         .materialUrl(exposeContent ? lesson.getMaterialUrl() : null)
                         .transcriptSegments(exposeContent ? parseTranscriptSegments(lesson.getTranscriptSegmentsJson()) : List.of())
+                        .flashcardSets(exposeContent ? toFlashcardSetResponses(lesson) : List.of())
                         .durationMinutes(lesson.getDurationMinutes())
                         .displayOrder(lesson.getDisplayOrder())
                         .preview(lesson.isPreview())
@@ -202,7 +205,12 @@ public class OnlineCourseMapper {
         Set<String> skills = new LinkedHashSet<>();
 
         courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
-                .map(assessment -> assessment.getSkill() == null ? null : assessment.getSkill().name())
+                .map(assessment -> {
+                    AssessmentSkill skill = assessment.getAssessmentBankItem() == null
+                            ? assessment.getSkill()
+                            : assessment.getAssessmentBankItem().getSkill();
+                    return skill == null ? null : skill.name();
+                })
                 .filter(skill -> skill != null && !skill.isBlank())
                 .forEach(skills::add);
 
@@ -272,5 +280,34 @@ public class OnlineCourseMapper {
         } catch (Exception ex) {
             return List.of();
         }
+    }
+
+    private List<FlashcardSetResponse> toFlashcardSetResponses(Lesson lesson) {
+        if (lesson.getFlashcardRefs() == null) {
+            return List.of();
+        }
+        return lesson.getFlashcardRefs().stream()
+                .map(ref -> toFlashcardSetResponse(ref.getFlashcardSet()))
+                .filter(response -> response != null)
+                .toList();
+    }
+
+    private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
+        if (set == null) {
+            return null;
+        }
+        return FlashcardSetResponse.builder()
+                .id(set.getId())
+                .title(set.getTitle())
+                .description(set.getDescription())
+                .examCategory(set.getExamCategory())
+                .skill(set.getSkill())
+                .tags(set.getTags())
+                .cardsJson(set.getCardsJson())
+                .status(set.getStatus())
+                .displayOrder(set.getDisplayOrder())
+                .createdAt(set.getCreatedAt())
+                .updatedAt(set.getUpdatedAt())
+                .build();
     }
 }

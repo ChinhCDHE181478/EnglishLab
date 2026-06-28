@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, GripVertical, Plus, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
+import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -35,6 +36,7 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1
   localKey: createTempId('assessment'),
   moduleKey,
   moduleTitle,
+  assessmentBankItemId: '',
   rubricId: '',
   title: '',
   description: '',
@@ -47,6 +49,28 @@ const createAssessmentDraft = ({ moduleKey, moduleTitle = null, displayOrder = 1
   passingScore: '',
   maxScore: '9',
   timeLimitMinutes: '',
+  displayOrder,
+  active: true,
+});
+
+const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null, displayOrder = 1 }) => ({
+  id: null,
+  localKey: createTempId('assessment'),
+  moduleKey,
+  moduleTitle,
+  assessmentBankItemId: String(bankItem.id),
+  rubricId: '',
+  title: bankItem.title || '',
+  description: bankItem.description || '',
+  type: bankItem.type || 'MODULE_TEST',
+  skill: bankItem.skill || 'MIXED',
+  aiEvaluationMode: bankItem.aiEvaluationMode || 'NONE',
+  instructions: bankItem.instructions || '',
+  objectiveAnswerKey: bankItem.objectiveAnswerKey || '',
+  uiConfigJson: bankItem.uiConfigJson || extractEmbeddedUiConfig(bankItem.instructions),
+  passingScore: normalizeScalar(bankItem.passingScore),
+  maxScore: normalizeScalar(bankItem.maxScore, '9'),
+  timeLimitMinutes: normalizeScalar(bankItem.timeLimitMinutes),
   displayOrder,
   active: true,
 });
@@ -78,6 +102,7 @@ const normalizeAssessmentStructure = (items, modules) => {
       localKey: assessment.id ? `assessment-${assessment.id}` : createTempId('assessment'),
       moduleKey: matchedModule ? resolveModuleKey(matchedModule) : COURSE_LEVEL_KEY,
       moduleTitle: matchedModule?.title || assessment.moduleTitle || null,
+      assessmentBankItemId: assessment.assessmentBankItemId ? String(assessment.assessmentBankItemId) : '',
       rubricId: assessment.rubric?.id ? String(assessment.rubric.id) : '',
       title: assessment.title || '',
       description: assessment.description || '',
@@ -104,6 +129,7 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
   return (items || []).map((assessment, index) => ({
     id: assessment.id || null,
     moduleId: assessment.moduleKey === COURSE_LEVEL_KEY ? null : moduleIdByKey.get(assessment.moduleKey) ?? null,
+    assessmentBankItemId: assessment.assessmentBankItemId ? Number(assessment.assessmentBankItemId) : null,
     rubricId: assessment.rubricId ? Number(assessment.rubricId) : null,
     title: assessment.title?.trim() || `Bài đánh giá ${index + 1}`,
     description: assessment.description?.trim() || '',
@@ -129,6 +155,11 @@ export default function ContentManagerCourseBuilderPage() {
   const [course, setCourse] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [rubrics, setRubrics] = useState([]);
+  const [assessmentBankItems, setAssessmentBankItems] = useState([]);
+  const [flashcardSets, setFlashcardSets] = useState([]);
+  const [selectedModuleBankAssessmentId, setSelectedModuleBankAssessmentId] = useState('');
+  const [selectedCourseBankAssessmentId, setSelectedCourseBankAssessmentId] = useState('');
+  const [selectedLessonFlashcardSetId, setSelectedLessonFlashcardSetId] = useState('');
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
   const [dragState, setDragState] = useState(null);
@@ -159,15 +190,19 @@ export default function ContentManagerCourseBuilderPage() {
 
     const loadBuilder = async () => {
       try {
-        const [courseData, rubricItems] = await Promise.all([
+        const [courseData, rubricItems, bankItems, flashcardItems] = await Promise.all([
           courseApi.getManagedOnlineCourse(slugOrId),
           courseApi.getManagedAssessmentRubrics(),
+          curriculumApi.getAssessmentBank(),
+          curriculumApi.getFlashcardSets(),
         ]);
         if (!active) return;
 
         const normalizedCourse = normalizeCourseStructure(courseData);
         setCourse(normalizedCourse);
         setRubrics(Array.isArray(rubricItems) ? rubricItems : []);
+        setAssessmentBankItems((Array.isArray(bankItems) ? bankItems : []).filter((item) => item.status !== 'ARCHIVED'));
+        setFlashcardSets((Array.isArray(flashcardItems) ? flashcardItems : []).filter((item) => item.status !== 'ARCHIVED'));
 
         if (!normalizedCourse.id) {
           setAssessments([]);
@@ -225,6 +260,14 @@ export default function ContentManagerCourseBuilderPage() {
   const activeModuleKey = resolveModuleKey(activeModule);
   const moduleAssessments = assessments.filter((assessment) => assessment.moduleKey === activeModuleKey);
   const courseLevelAssessments = assessments.filter((assessment) => assessment.moduleKey === COURSE_LEVEL_KEY);
+  const assessmentBankOptions = useMemo(
+    () => buildAssessmentBankOptions(assessmentBankItems),
+    [assessmentBankItems],
+  );
+  const flashcardSetOptions = useMemo(
+    () => buildFlashcardSetOptions(flashcardSets),
+    [flashcardSets],
+  );
 
   const totalLessons = useMemo(
     () => modules.reduce((sum, module) => sum + (module.lessons?.length || 0), 0),
@@ -334,6 +377,7 @@ export default function ContentManagerCourseBuilderPage() {
                 videoUrl: '',
                 materialUrl: '',
                 transcriptSegments: [],
+                flashcardSets: [],
                 durationMinutes: '',
                 displayOrder: currentLessons.length + 1,
                 preview: false,
@@ -370,6 +414,76 @@ export default function ContentManagerCourseBuilderPage() {
     pushToast(scope === 'module'
       ? 'Đã thêm bài đánh giá cuối mô-đun.'
       : 'Đã thêm bài đánh giá cuối khóa.');
+  };
+
+  const addAssessmentFromBank = (scope = 'module') => {
+    if (scope === 'module' && !activeModule) {
+      pushToast('Hãy chọn mô-đun trước khi thêm đề từ kho.', 'warning');
+      return;
+    }
+    const selectedId = scope === 'module' ? selectedModuleBankAssessmentId : selectedCourseBankAssessmentId;
+    const bankItem = assessmentBankItems.find((item) => String(item.id) === String(selectedId));
+    if (!bankItem) {
+      pushToast('Hãy chọn một đề trong ngân hàng đề.', 'warning');
+      return;
+    }
+
+    const groupKey = scope === 'module' ? activeModuleKey : COURSE_LEVEL_KEY;
+    const alreadyLinked = assessments.some((item) => (
+      item.moduleKey === groupKey && String(item.assessmentBankItemId || '') === String(bankItem.id)
+    ));
+    if (alreadyLinked) {
+      pushToast('Đề này đã được gắn trong khu vực đang chọn.', 'warning');
+      return;
+    }
+
+    setAssessments((current) => {
+      const existingCount = current.filter((item) => item.moduleKey === groupKey).length;
+      return [
+        ...current,
+        createAssessmentDraftFromBank({
+          bankItem,
+          moduleKey: groupKey,
+          moduleTitle: scope === 'module' ? activeModule?.title || 'Mô-đun hiện tại' : null,
+          displayOrder: existingCount + 1,
+        }),
+      ];
+    });
+
+    if (scope === 'module') {
+      setSelectedModuleBankAssessmentId('');
+    } else {
+      setSelectedCourseBankAssessmentId('');
+    }
+    pushToast(scope === 'module' ? 'Đã gắn đề từ kho vào mô-đun.' : 'Đã gắn đề từ kho vào cuối khóa.');
+  };
+
+  const addFlashcardSetToActiveLesson = () => {
+    if (!activeLesson) {
+      pushToast('Hãy chọn bài học trước khi gắn flashcard.', 'warning');
+      return;
+    }
+    const set = flashcardSets.find((item) => String(item.id) === String(selectedLessonFlashcardSetId));
+    if (!set) {
+      pushToast('Hãy chọn một bộ flashcard trong kho.', 'warning');
+      return;
+    }
+    const currentSets = Array.isArray(activeLesson.flashcardSets) ? activeLesson.flashcardSets : [];
+    if (currentSets.some((item) => String(item.id) === String(set.id))) {
+      pushToast('Bộ flashcard này đã được gắn vào bài học.', 'warning');
+      return;
+    }
+    patchActiveLesson({ flashcardSets: [...currentSets, set] });
+    setSelectedLessonFlashcardSetId('');
+    pushToast('Đã gắn bộ flashcard từ kho vào bài học.');
+  };
+
+  const removeFlashcardSetFromActiveLesson = (setId) => {
+    if (!activeLesson) return;
+    patchActiveLesson({
+      flashcardSets: (activeLesson.flashcardSets || []).filter((set) => String(set.id) !== String(setId)),
+    });
+    pushToast('Đã gỡ bộ flashcard khỏi bài học.', 'warning');
   };
 
   const updateAssessment = (assessmentKey, field, value) => {
@@ -587,6 +701,7 @@ export default function ContentManagerCourseBuilderPage() {
             videoUrl: lesson.videoUrl,
             materialUrl: lesson.materialUrl,
             transcriptSegments: normalizeTranscriptSegments(lesson.transcriptSegments),
+            flashcardSetIds: (lesson.flashcardSets || []).map((set) => Number(set.id)).filter(Boolean),
             durationMinutes: normalizeDurationForSave(lesson),
             displayOrder: lessonIndex + 1,
             preview: Boolean(lesson.preview),
@@ -729,9 +844,9 @@ export default function ContentManagerCourseBuilderPage() {
                   <Plus className="h-4 w-4" />
                   Thêm bài học
                 </button>
-                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessment('module')} type="button">
+                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessmentFromBank('module')} type="button">
                   <Plus className="h-4 w-4" />
-                  Thêm bài kiểm tra mô-đun
+                  Thêm từ kho đề
                 </button>
                 <span className="text-sm text-[#584140]">{totalLessons} bài học • {totalHours} giờ</span>
               </div>
@@ -784,7 +899,7 @@ export default function ContentManagerCourseBuilderPage() {
                           <span>{getContentTypeLabel(lesson.contentType)}</span>
                           <span>{getLessonDurationLabel(lesson)}</span>
                           <span>{lesson.preview ? 'Có xem trước' : 'Không xem trước'}</span>
-                          {countLessonFlashcards(lesson) ? <span>{countLessonFlashcards(lesson)} thẻ ghi nhớ</span> : null}
+                          {countLessonFlashcardSets(lesson) ? <span>{countLessonFlashcardSets(lesson)} bộ flashcard</span> : null}
                         </div>
                       </div>
                     </button>
@@ -823,10 +938,14 @@ export default function ContentManagerCourseBuilderPage() {
                     {activeModule ? `Bài kiểm tra của ${activeModule.title}` : 'Bài kiểm tra'}
                   </h3>
                 </div>
-                <button className="rounded-2xl border border-[#4b0009] px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessment('module')} type="button">
-                  Thêm bài kiểm tra
-                </button>
               </div>
+              <AssessmentBankAttachBar
+                disabled={!activeModule}
+                onAdd={() => addAssessmentFromBank('module')}
+                onChange={(event) => setSelectedModuleBankAssessmentId(event.target.value)}
+                options={assessmentBankOptions}
+                value={selectedModuleBankAssessmentId}
+              />
               {moduleAssessments.length ? (
                 <div className="space-y-4">
                   {moduleAssessments.map((assessment, index) => (
@@ -853,10 +972,13 @@ export default function ContentManagerCourseBuilderPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bài kiểm tra cuối khóa</p>
                   <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Bài đánh giá cuối khóa</h3>
                 </div>
-                <button className="rounded-2xl border border-[#4b0009] px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" onClick={() => addAssessment('course')} type="button">
-                  Thêm bài cuối khóa
-                </button>
               </div>
+              <AssessmentBankAttachBar
+                onAdd={() => addAssessmentFromBank('course')}
+                onChange={(event) => setSelectedCourseBankAssessmentId(event.target.value)}
+                options={assessmentBankOptions}
+                value={selectedCourseBankAssessmentId}
+              />
               {courseLevelAssessments.length ? (
                 <div className="space-y-4">
                   {courseLevelAssessments.map((assessment, index) => (
@@ -902,12 +1024,34 @@ export default function ContentManagerCourseBuilderPage() {
                 </div>
                 <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4 text-sm text-[#584140]">
                   <p className="font-semibold text-[#4b0009]">Thẻ ghi nhớ của bài học</p>
-                  <p className="mt-1">{countLessonFlashcards(activeLesson)} thẻ được tạo từ nội dung bài học này.</p>
-                  {course?.slug && activeModule?.id ? (
-                    <Link className="mt-3 inline-flex rounded-xl border border-[#dfbfbd] px-3 py-2 font-semibold text-[#730014] transition hover:bg-white" to={`/content-manager/flashcards/${course.slug}?module=${activeModule.id}`}>
-                      Mở bộ thẻ của bài học
-                    </Link>
-                  ) : <p className="mt-2 text-xs">Lưu mô-đun trước khi mở trang quản lý thẻ ghi nhớ.</p>}
+                  <p className="mt-1">{countLessonFlashcardSets(activeLesson)} bộ từ kho • {countLessonFlashcards(activeLesson)} thẻ.</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <BrandedSelect
+                      onChange={(event) => setSelectedLessonFlashcardSetId(event.target.value)}
+                      options={flashcardSetOptions}
+                      placeholder="Chọn bộ flashcard trong kho"
+                      value={selectedLessonFlashcardSetId}
+                    />
+                    <button
+                      className="rounded-xl bg-[#4b0009] px-4 py-3 font-semibold text-white transition hover:bg-[#730014]"
+                      onClick={addFlashcardSetToActiveLesson}
+                      type="button"
+                    >
+                      Thêm từ kho
+                    </button>
+                  </div>
+                  {(activeLesson.flashcardSets || []).length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {activeLesson.flashcardSets.map((set) => (
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-semibold text-[#4b0009]" key={set.id}>
+                          {set.title}
+                          <button className="text-[#93000a]" onClick={() => removeFlashcardSetFromActiveLesson(set.id)} type="button">Gỡ</button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs">Chưa gắn bộ flashcard nào từ kho.</p>
+                  )}
                 </div>
                 <button
                   className="w-full rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]"
@@ -945,6 +1089,8 @@ export default function ContentManagerCourseBuilderPage() {
 }
 
 function countLessonFlashcards(lesson) {
+  const bankCardCount = (lesson?.flashcardSets || []).reduce((sum, set) => sum + countFlashcardSetCards(set), 0);
+  if (bankCardCount > 0) return bankCardCount;
   const content = String(lesson?.contentText || '');
   const headings = [...content.matchAll(/^###\s+\d+\.\s+.+$/gm)];
   return headings.filter((heading, index) => {
@@ -952,6 +1098,19 @@ function countLessonFlashcards(lesson) {
     const end = headings[index + 1]?.index ?? content.length;
     return /^\*\*Meaning:\*\*/mi.test(content.slice(start, end));
   }).length;
+}
+
+function countLessonFlashcardSets(lesson) {
+  return Array.isArray(lesson?.flashcardSets) ? lesson.flashcardSets.length : 0;
+}
+
+function countFlashcardSetCards(set) {
+  try {
+    const cards = JSON.parse(set?.cardsJson || '[]');
+    return Array.isArray(cards) ? cards.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 function normalizeCourseStructure(course) {
@@ -965,6 +1124,7 @@ function normalizeCourseStructure(course) {
         ...lesson,
         tempId: lesson.tempId || createTempId('lesson'),
         contentType: formatContentType(lesson.contentType || (lesson.videoUrl ? 'VIDEO' : 'ARTICLE')),
+        flashcardSets: Array.isArray(lesson.flashcardSets) ? lesson.flashcardSets : [],
         displayOrder: lesson.displayOrder ?? lessonIndex + 1,
       })),
     })),
@@ -1047,7 +1207,30 @@ function validateBuilderState(modules, assessments) {
   return '';
 }
 
+function AssessmentBankAttachBar({ disabled = false, onAdd, onChange, options, value }) {
+  return (
+    <div className="mb-4 grid gap-3 rounded-2xl border border-[#dfbfbd] bg-[#fffafb] p-4 md:grid-cols-[minmax(0,1fr)_auto]">
+      <BrandedSelect
+        disabled={disabled}
+        onChange={onChange}
+        options={options}
+        placeholder="Chọn đề trong ngân hàng đề"
+        value={value}
+      />
+      <button
+        className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={disabled}
+        onClick={onAdd}
+        type="button"
+      >
+        Thêm từ kho đề
+      </button>
+    </div>
+  );
+}
+
 function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title }) {
+  const isBankLinked = Boolean(assessment.assessmentBankItemId);
   const scoreLabel = usesBandScale(assessment)
     ? `Điểm tối đa (band IELTS, tối đa ${IELTS_MAX_BAND})`
     : 'Điểm tối đa';
@@ -1071,26 +1254,47 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         </button>
       </div>
 
+      {isBankLinked ? (
+        <div className="mb-4 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm text-[#584140]">
+          <p className="font-semibold text-[#4b0009]">{assessment.title}</p>
+          <p className="mt-1">{getAssessmentTypeLabel(assessment.type)} • {getSkillLabel(assessment.skill)} • {getAiModeLabel(assessment.aiEvaluationMode)}</p>
+          {assessment.description ? <p className="mt-2 leading-6">{assessment.description}</p> : null}
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8b706e]">Nguồn: ngân hàng đề #{assessment.assessmentBankItemId}</p>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 md:grid-cols-2">
-        <TextField label="Tên bài kiểm tra" onChange={(event) => onFieldChange('title', event.target.value)} value={assessment.title} />
-        <TextField label="Mô tả" onChange={(event) => onFieldChange('description', event.target.value)} value={assessment.description} />
-        <SelectField label="Loại bài kiểm tra" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS, getAssessmentTypeLabel)} value={assessment.type} />
-        <SelectField label="Kỹ năng" onChange={(event) => onFieldChange('skill', event.target.value)} options={toSelectOptions(ASSESSMENT_SKILL_OPTIONS, getSkillLabel)} value={assessment.skill} />
-        <SelectField label="Chế độ chấm" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS, getAiModeLabel)} value={assessment.aiEvaluationMode} />
+        {!isBankLinked ? (
+          <>
+            <TextField label="Tên bài kiểm tra" onChange={(event) => onFieldChange('title', event.target.value)} value={assessment.title} />
+            <TextField label="Mô tả" onChange={(event) => onFieldChange('description', event.target.value)} value={assessment.description} />
+            <SelectField label="Loại bài kiểm tra" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS, getAssessmentTypeLabel)} value={assessment.type} />
+            <SelectField label="Kỹ năng" onChange={(event) => onFieldChange('skill', event.target.value)} options={toSelectOptions(ASSESSMENT_SKILL_OPTIONS, getSkillLabel)} value={assessment.skill} />
+            <SelectField label="Chế độ chấm" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS, getAiModeLabel)} value={assessment.aiEvaluationMode} />
+          </>
+        ) : null}
         <SelectField label="Tiêu chí chấm" onChange={(event) => onFieldChange('rubricId', event.target.value)} options={rubricOptions} value={assessment.rubricId || ''} />
-        <TextField label="Điểm đạt" onChange={(event) => onFieldChange('passingScore', event.target.value)} value={assessment.passingScore} />
-        <TextField label={scoreLabel} onChange={(event) => onFieldChange('maxScore', event.target.value)} value={assessment.maxScore} />
-        <TextField label="Giới hạn thời gian (phút)" onChange={(event) => onFieldChange('timeLimitMinutes', event.target.value)} value={assessment.timeLimitMinutes} />
+        {!isBankLinked ? (
+          <>
+            <TextField label="Điểm đạt" onChange={(event) => onFieldChange('passingScore', event.target.value)} value={assessment.passingScore} />
+            <TextField label={scoreLabel} onChange={(event) => onFieldChange('maxScore', event.target.value)} value={assessment.maxScore} />
+            <TextField label="Giới hạn thời gian (phút)" onChange={(event) => onFieldChange('timeLimitMinutes', event.target.value)} value={assessment.timeLimitMinutes} />
+          </>
+        ) : null}
         <TextField label="Thứ tự hiển thị" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} />
       </div>
 
-      <div className="mt-4 grid gap-4">
-        {!['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase()) ? (
-          <TextField label="Đáp án tham chiếu" onChange={(event) => onFieldChange('objectiveAnswerKey', event.target.value)} rows={4} textarea value={assessment.objectiveAnswerKey} />
-        ) : null}
-      </div>
+      {!isBankLinked ? (
+        <>
+          <div className="mt-4 grid gap-4">
+            {!['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase()) ? (
+              <TextField label="Đáp án tham chiếu" onChange={(event) => onFieldChange('objectiveAnswerKey', event.target.value)} rows={4} textarea value={assessment.objectiveAnswerKey} />
+            ) : null}
+          </div>
 
-      <AssessmentExamBuilder assessment={assessment} onChange={onFieldChange} />
+          <AssessmentExamBuilder assessment={assessment} onChange={onFieldChange} />
+        </>
+      ) : null}
 
       <label className="mt-4 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-white px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
         <input checked={Boolean(assessment.active)} className="h-4 w-4 accent-[#730014]" onChange={(event) => onFieldChange('active', event.target.checked)} type="checkbox" />
@@ -1389,6 +1593,26 @@ function buildRubricOptions(rubrics, skill) {
       label: `${rubric.name} (${getSkillLabel(rubric.skill)})`,
     }));
   return [...base, ...matched];
+}
+
+function buildAssessmentBankOptions(items) {
+  const base = [{ value: '', label: 'Chọn đề trong ngân hàng đề' }];
+  const options = (items || []).map((item) => ({
+    value: String(item.id),
+    label: item.title || `Đề #${item.id}`,
+    description: `${getAssessmentTypeLabel(item.type)} • ${getSkillLabel(item.skill)} • ${getAiModeLabel(item.aiEvaluationMode)}`,
+  }));
+  return [...base, ...options];
+}
+
+function buildFlashcardSetOptions(items) {
+  const base = [{ value: '', label: 'Chọn bộ flashcard trong kho' }];
+  const options = (items || []).map((item) => ({
+    value: String(item.id),
+    label: item.title || `Bộ flashcard #${item.id}`,
+    description: `${countFlashcardSetCards(item)} thẻ${item.skill ? ` • ${getSkillLabel(item.skill)}` : ''}`,
+  }));
+  return [...base, ...options];
 }
 
 function toSelectOptions(values, getLabel = (value) => value) {

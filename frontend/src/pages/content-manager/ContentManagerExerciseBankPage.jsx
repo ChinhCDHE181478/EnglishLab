@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import { Minus, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
@@ -50,6 +50,7 @@ export default function ContentManagerExerciseBankPage() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [skillFilter, setSkillFilter] = useState('ALL');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -88,13 +89,15 @@ export default function ContentManagerExerciseBankPage() {
     `${keyword}|${skillFilter}`,
   );
 
-  const resetForm = () => {
+  const resetForm = (open = true) => {
     setEditingId(null);
     setForm(emptyForm);
+    setComposerOpen(open);
   };
 
   const openEdit = (item) => {
     setEditingId(item.id);
+    setComposerOpen(true);
     setForm({
       title: item.title || '',
       skill: item.skill || 'WRITING',
@@ -117,13 +120,21 @@ export default function ContentManagerExerciseBankPage() {
     setError('');
     setSuccess('');
     try {
+      let saved;
       if (editingId) {
-        await courseApi.updateExerciseBankItem(editingId, form);
+        saved = await courseApi.updateExerciseBankItem(editingId, form);
       } else {
-        await courseApi.createExerciseBankItem(form);
+        saved = await courseApi.createExerciseBankItem(form);
       }
+      setItems((current) => {
+        if (!saved?.id) return current;
+        const exists = current.some((item) => item.id === saved.id);
+        return exists
+          ? current.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current];
+      });
       await loadItems();
-      resetForm();
+      resetForm(false);
       setSuccess('Đã lưu bài tập.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được bài tập.');
@@ -153,15 +164,53 @@ export default function ContentManagerExerciseBankPage() {
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-4">
+      <div className={PANEL_CLASS}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
+            {editingId ? 'Chỉnh sửa bài tập' : 'Thêm bài tập mới'}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setComposerOpen((current) => !current)}
+            className={SECONDARY_BUTTON_CLASS}
+          >
+            {composerOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {composerOpen ? 'Đóng' : 'Mở biểu mẫu'}
+          </button>
+        </div>
+
+        {composerOpen ? (
+          <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Tiêu đề" className={FIELD_CLASS} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <BrandedSelect label="Kỹ năng" value={form.skill} onChange={(event) => setForm({ ...form, skill: event.target.value })} options={skillOptions.filter((o) => o.value !== 'ALL')} />
+              <BrandedSelect label="Loại bài" value={form.exerciseType} onChange={(event) => setForm({ ...form, exerciseType: event.target.value })} options={typeOptions} />
+            </div>
+            <input value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Cấp độ (vd: IELTS 6.0)" className={FIELD_CLASS} />
+            <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
+            <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
+            <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Giải thích" rows={3} className={TEXTAREA_CLASS} />
+            <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="Thẻ (cách nhau bởi dấu phẩy)" className={FIELD_CLASS} />
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={saveItem} disabled={working} className={PRIMARY_BUTTON_CLASS}>
+                <Save className="h-4 w-4" /> Lưu
+              </button>
+              <button type="button" onClick={() => resetForm(true)} className={SECONDARY_BUTTON_CLASS}>
+                <Plus className="h-4 w-4" /> Mới
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative min-w-[220px] flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm bài tập..." className={SEARCH_INPUT_CLASS} />
             </div>
             <div className="w-48">
-              <BrandedSelect value={skillFilter} onChange={setSkillFilter} options={skillOptions} />
+              <BrandedSelect value={skillFilter} onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} />
             </div>
           </div>
           {loading ? (
@@ -193,31 +242,6 @@ export default function ContentManagerExerciseBankPage() {
             <div className={EMPTY_STATE_CLASS}>Chưa có bài tập phù hợp.</div>
           )}
           <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={10} />
-        </div>
-
-        <div className={PANEL_CLASS}>
-          <h3 className="mb-4 font-['Manrope'] text-lg font-extrabold text-slate-900">
-            {editingId ? 'Chỉnh sửa bài tập' : 'Thêm bài tập mới'}
-          </h3>
-          <div className="space-y-4">
-            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Tiêu đề" className={FIELD_CLASS} />
-            <BrandedSelect label="Kỹ năng" value={form.skill} onChange={(value) => setForm({ ...form, skill: value })} options={skillOptions.filter((o) => o.value !== 'ALL')} />
-            <BrandedSelect label="Loại bài" value={form.exerciseType} onChange={(value) => setForm({ ...form, exerciseType: value })} options={typeOptions} />
-            <input value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Cấp độ (vd: IELTS 6.0)" className={FIELD_CLASS} />
-            <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
-            <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
-            <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Giải thích" rows={3} className={TEXTAREA_CLASS} />
-            <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="Thẻ (cách nhau bởi dấu phẩy)" className={FIELD_CLASS} />
-            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-              <button type="button" onClick={saveItem} disabled={working} className={PRIMARY_BUTTON_CLASS}>
-                <Save className="h-4 w-4" /> Lưu
-              </button>
-              <button type="button" onClick={resetForm} className={SECONDARY_BUTTON_CLASS}>
-                <Plus className="h-4 w-4" /> Mới
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

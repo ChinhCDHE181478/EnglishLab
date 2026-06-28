@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, CheckCircle2, LoaderCircle, Plus, RefreshCw, Save, Trash2, Users } from 'lucide-react';
+import { BarChart3, CheckCircle2, LoaderCircle, RefreshCw, Save, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
@@ -21,24 +21,6 @@ const parseConfig = (value, fallback = {}) => {
     return fallback;
   }
 };
-
-const createTask = (index) => ({
-  key: `task_${index + 1}`,
-  title: `Task ${index + 1}`,
-  heading: `Writing Task ${index + 1}`,
-  summary: '',
-  recommendedMinutes: 20,
-  minimumWords: 150,
-  promptParagraphs: [],
-});
-
-const createSpeakingPart = (index) => ({
-  key: `part_${index + 1}`,
-  title: `Part ${index + 1}`,
-  prepSeconds: 0,
-  answerSeconds: 120,
-  prompts: [],
-});
 
 export default function ContentManagerPlacementTestPage() {
   const [definition, setDefinition] = useState(null);
@@ -71,7 +53,7 @@ export default function ContentManagerPlacementTestPage() {
     listening: countQuestions(definition?.listening),
     reading: countQuestions(definition?.reading),
     writing: definition?.writing?.tasks?.length || 0,
-    speaking: definition?.speaking?.parts?.reduce((sum, part) => sum + (part.prompts?.length || 0), 0) || 0,
+    speaking: countSpeakingPrompts(definition?.speaking),
   }), [definition]);
 
   const updateDefinition = (field, value) => setDefinition((current) => ({ ...current, [field]: value }));
@@ -88,6 +70,18 @@ export default function ContentManagerPlacementTestPage() {
       }
       if (field === 'objectiveAnswerKey') {
         return { ...current, answerKey: parseConfig(value, {}) };
+      }
+      return current;
+    });
+  };
+
+  const applySubjectiveChange = (skill, field, value) => {
+    updateConfig(skill, (current) => {
+      if (field === 'uiConfigJson') {
+        return parseConfig(value, current);
+      }
+      if (field === 'timeLimitMinutes') {
+        return { ...current, durationMinutes: Number(value || 0) };
       }
       return current;
     });
@@ -151,8 +145,8 @@ export default function ContentManagerPlacementTestPage() {
       {activeTab === 'monitoring' ? <Monitoring monitoring={monitoring} loading={monitoringLoading} onRefresh={refreshMonitoring} /> : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
-      {activeTab === 'writing' ? <WritingEditor config={definition.writing} onChange={(next) => updateConfig('writing', next)} /> : null}
-      {activeTab === 'speaking' ? <SpeakingEditor config={definition.speaking} onChange={(next) => updateConfig('speaking', next)} /> : null}
+      {activeTab === 'writing' ? <SubjectiveEditor config={definition.writing} label="Bài đánh giá kỹ năng Viết" skill="WRITING" onChange={(field, value) => applySubjectiveChange('writing', field, value)} /> : null}
+      {activeTab === 'speaking' ? <SubjectiveEditor config={definition.speaking} label="Bài đánh giá kỹ năng Nói" skill="SPEAKING" onChange={(field, value) => applySubjectiveChange('speaking', field, value)} /> : null}
     </div>
   );
 }
@@ -185,18 +179,8 @@ function ObjectiveEditor({ config, label, onChange, skill }) {
   return <Panel className="p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{label}</h3><p className="mt-2 text-sm leading-6 text-[#584140]">Biên soạn phần thi, câu hỏi và đáp án trực quan. Đáp án không được hiển thị cho học viên.</p><AssessmentExamBuilder assessment={{ title: config?.title || label, skill, uiConfigJson: JSON.stringify(uiConfig), objectiveAnswerKey: JSON.stringify(answerKey || {}), timeLimitMinutes: config?.durationMinutes || 40 }} onChange={onChange} /></Panel>;
 }
 
-function WritingEditor({ config, onChange }) {
-  const tasks = config?.tasks || [];
-  const update = (patch) => onChange({ ...config, ...patch });
-  const updateTask = (index, patch) => update({ tasks: tasks.map((task, itemIndex) => itemIndex === index ? { ...task, ...patch } : task) });
-  return <Panel className="space-y-5 p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Bài đánh giá kỹ năng Viết</h3><div className="grid gap-4 md:grid-cols-2"><TextField label="Tên đề" onChange={(event) => update({ title: event.target.value })} value={config?.title || ''} /><TextField label="Thời lượng (phút)" onChange={(event) => update({ durationMinutes: Number(event.target.value) })} value={config?.durationMinutes || ''} /></div>{tasks.map((task, index) => <div className="rounded-2xl border border-[#eadcdc] bg-[#fffafb] p-5" key={task.key || index}><div className="flex justify-end"><button className="inline-flex items-center gap-2 text-sm font-bold text-[#93000a]" onClick={() => update({ tasks: tasks.filter((_, itemIndex) => itemIndex !== index) })} type="button"><Trash2 className="h-4 w-4" /> Xóa nhiệm vụ</button></div><div className="grid gap-4 md:grid-cols-2"><TextField label="Tên nhiệm vụ" onChange={(event) => updateTask(index, { title: event.target.value })} value={task.title || ''} /><TextField label="Tiêu đề hiển thị" onChange={(event) => updateTask(index, { heading: event.target.value })} value={task.heading || ''} /><TextField label="Số từ tối thiểu" onChange={(event) => updateTask(index, { minimumWords: Number(event.target.value) })} value={task.minimumWords || ''} /><TextField label="Thời gian gợi ý (phút)" onChange={(event) => updateTask(index, { recommendedMinutes: Number(event.target.value) })} value={task.recommendedMinutes || ''} /></div><div className="mt-4"><TextField label="Yêu cầu ngắn" onChange={(event) => updateTask(index, { summary: event.target.value })} rows={2} textarea value={task.summary || ''} /></div><div className="mt-4"><TextField label="Đề bài, mỗi đoạn một dòng" onChange={(event) => updateTask(index, { promptParagraphs: event.target.value.split('\n').filter(Boolean) })} rows={5} textarea value={(task.promptParagraphs || []).join('\n')} /></div></div>)}<button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014]" onClick={() => update({ tasks: [...tasks, createTask(tasks.length)] })} type="button"><Plus className="h-4 w-4" /> Thêm nhiệm vụ viết</button></Panel>;
-}
-
-function SpeakingEditor({ config, onChange }) {
-  const parts = config?.parts || [];
-  const update = (patch) => onChange({ ...config, ...patch });
-  const updatePart = (index, patch) => update({ parts: parts.map((part, itemIndex) => itemIndex === index ? { ...part, ...patch } : part) });
-  return <Panel className="space-y-5 p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Bài đánh giá kỹ năng Nói</h3><div className="grid gap-4 md:grid-cols-2"><TextField label="Tên đề" onChange={(event) => update({ title: event.target.value })} value={config?.title || ''} /><TextField label="Thời lượng (phút)" onChange={(event) => update({ durationMinutes: Number(event.target.value) })} value={config?.durationMinutes || ''} /></div>{parts.map((part, index) => <div className="rounded-2xl border border-[#eadcdc] bg-[#fffafb] p-5" key={part.key || index}><div className="flex justify-end"><button className="inline-flex items-center gap-2 text-sm font-bold text-[#93000a]" onClick={() => update({ parts: parts.filter((_, itemIndex) => itemIndex !== index) })} type="button"><Trash2 className="h-4 w-4" /> Xóa phần</button></div><div className="grid gap-4 md:grid-cols-3"><TextField label="Tên phần" onChange={(event) => updatePart(index, { title: event.target.value })} value={part.title || ''} /><TextField label="Chuẩn bị (giây)" onChange={(event) => updatePart(index, { prepSeconds: Number(event.target.value) })} value={part.prepSeconds || 0} /><TextField label="Trả lời (giây)" onChange={(event) => updatePart(index, { answerSeconds: Number(event.target.value) })} value={part.answerSeconds || 0} /></div><div className="mt-4"><TextField label="Câu hỏi, mỗi dòng một câu" onChange={(event) => { const existing = part.prompts || []; updatePart(index, { prompts: event.target.value.split('\n').filter(Boolean).map((text, promptIndex) => ({ ...existing[promptIndex], text })) }); }} rows={6} textarea value={(part.prompts || []).map((prompt) => prompt.text || '').join('\n')} /></div></div>)}<button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014]" onClick={() => update({ parts: [...parts, createSpeakingPart(parts.length)] })} type="button"><Plus className="h-4 w-4" /> Thêm phần nói</button></Panel>;
+function SubjectiveEditor({ config, label, onChange, skill }) {
+  return <Panel className="p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{label}</h3><p className="mt-2 text-sm leading-6 text-[#584140]">Biên soạn nội dung đề bằng cùng bộ công cụ với Nghe và Đọc.</p><AssessmentExamBuilder assessment={{ title: config?.title || label, skill, uiConfigJson: JSON.stringify(config || {}), objectiveAnswerKey: '', timeLimitMinutes: config?.durationMinutes || (skill === 'WRITING' ? 60 : 15) }} onChange={onChange} /></Panel>;
 }
 
 function toDraft(response) {
@@ -209,6 +193,13 @@ function toPayload(draft) {
 
 function countQuestions(config) {
   return (config?.parts || []).reduce((total, part) => total + (part.questionGroups || []).reduce((groupTotal, group) => groupTotal + (group.questionNumbers?.length || group.questions?.length || 0), 0), 0);
+}
+
+function countSpeakingPrompts(config) {
+  if (Array.isArray(config?.variants)) {
+    return config.variants.reduce((sum, variant) => sum + (variant.parts || []).reduce((partSum, part) => partSum + (part.prompts?.length || 0), 0), 0);
+  }
+  return config?.parts?.reduce((sum, part) => sum + (part.prompts?.length || 0), 0) || 0;
 }
 
 function formatBand(value) { return value == null ? '—' : Number(value).toFixed(1); }

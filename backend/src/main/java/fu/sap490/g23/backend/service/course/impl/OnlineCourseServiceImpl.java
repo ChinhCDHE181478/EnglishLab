@@ -23,6 +23,7 @@ import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -31,12 +32,16 @@ import fu.sap490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.course.*;
 import fu.sap490.g23.backend.entity.course.enums.*;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.*;
+import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
@@ -57,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -81,6 +87,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final LessonProgressRepository lessonProgressRepository;
     private final VocabularyProgressRepository vocabularyProgressRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
+    private final AssessmentBankItemRepository assessmentBankItemRepository;
+    private final FlashcardSetRepository flashcardSetRepository;
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final UserRepository userRepository;
@@ -777,6 +785,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                             .preview(Boolean.TRUE.equals(lessonRequest.getPreview()))
                             .build();
                     applyLessonTranscript(lesson, lessonRequest, null);
+                    synchronizeLessonFlashcardRefs(lesson, lessonRequest.getFlashcardSetIds());
                     module.addLesson(lesson);
                 }
             }
@@ -848,6 +857,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 lesson.setDisplayOrder(defaultInt(lessonRequest.getDisplayOrder()));
                 lesson.setPreview(Boolean.TRUE.equals(lessonRequest.getPreview()));
                 applyLessonTranscript(lesson, lessonRequest, previousVideoUrl);
+                synchronizeLessonFlashcardRefs(lesson, lessonRequest.getFlashcardSetIds());
                 nextLessons.add(lesson);
             }
         }
@@ -879,32 +889,38 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             CourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
             AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
-            validateAssessmentConfiguration(request);
+            AssessmentBankItem bankItem = resolveAssessmentBankItem(request.getAssessmentBankItemId());
+            validateAssessmentConfiguration(request, bankItem);
 
             assessment.setOnlineCourse(course);
             assessment.setModule(targetModule);
             assessment.setRubric(rubric);
-            assessment.setTitle(request.getTitle().trim());
-            assessment.setDescription(request.getDescription());
-            assessment.setType(request.getType());
-            assessment.setSkill(request.getSkill());
-            assessment.setAiEvaluationMode(request.getAiEvaluationMode());
-            assessment.setInstructions(request.getInstructions());
-            assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
-            assessment.setUiConfigJson(request.getUiConfigJson());
+            assessment.setAssessmentBankItem(bankItem);
+            if (bankItem == null) {
+                assessment.setTitle(request.getTitle().trim());
+                assessment.setDescription(request.getDescription());
+                assessment.setType(request.getType());
+                assessment.setSkill(request.getSkill());
+                assessment.setAiEvaluationMode(request.getAiEvaluationMode());
+                assessment.setInstructions(request.getInstructions());
+                assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
+                assessment.setUiConfigJson(request.getUiConfigJson());
+            } else {
+                applyAssessmentBankSnapshot(assessment, bankItem);
+            }
             assessment.setPassingScore(IeltsBandScale.normalizeConfiguredPassingScore(
-                    request.getPassingScore(),
-                    request.getType(),
-                    request.getSkill(),
-                    request.getAiEvaluationMode()
+                    bankItem == null ? request.getPassingScore() : bankItem.getPassingScore(),
+                    assessment.getType(),
+                    assessment.getSkill(),
+                    assessment.getAiEvaluationMode()
             ));
             assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
-                    request.getMaxScore(),
-                    request.getType(),
-                    request.getSkill(),
-                    request.getAiEvaluationMode()
+                    bankItem == null ? request.getMaxScore() : bankItem.getMaxScore(),
+                    assessment.getType(),
+                    assessment.getSkill(),
+                    assessment.getAiEvaluationMode()
             ));
-            assessment.setTimeLimitMinutes(defaultInt(request.getTimeLimitMinutes()));
+            assessment.setTimeLimitMinutes(defaultInt(bankItem == null ? request.getTimeLimitMinutes() : bankItem.getTimeLimitMinutes()));
             assessment.setDisplayOrder(request.getDisplayOrder() == null ? index + 1 : request.getDisplayOrder());
             assessment.setActive(request.getActive() == null || request.getActive());
             courseAssessmentRepository.save(assessment);
@@ -952,18 +968,35 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Assessment not found in this course"));
     }
 
-    private void validateAssessmentConfiguration(ContentManagerCourseAssessmentRequest request) {
-        if (request.getUiConfigJson() == null || request.getUiConfigJson().isBlank()) {
+    private void validateAssessmentConfiguration(ContentManagerCourseAssessmentRequest request, AssessmentBankItem bankItem) {
+        AssessmentSkill skill = bankItem == null ? request.getSkill() : bankItem.getSkill();
+        String uiConfigJson = bankItem == null ? request.getUiConfigJson() : bankItem.getUiConfigJson();
+        String objectiveAnswerKey = bankItem == null ? request.getObjectiveAnswerKey() : bankItem.getObjectiveAnswerKey();
+        if (uiConfigJson == null || uiConfigJson.isBlank()) {
             return;
         }
         try {
-            var root = objectMapper.readTree(request.getUiConfigJson());
-            if (!root.isObject() || !root.path("parts").isArray() || root.path("parts").isEmpty()) {
-                throw new RuntimeException("Cấu hình đề thi phải có ít nhất một phần.");
+            var root = objectMapper.readTree(uiConfigJson);
+            if (!root.isObject()) {
+                throw new RuntimeException("Cấu hình đề thi phải là JSON object.");
             }
-            if (request.getObjectiveAnswerKey() == null || request.getObjectiveAnswerKey().isBlank()
-                    || !objectMapper.readTree(request.getObjectiveAnswerKey()).isObject()) {
-                throw new RuntimeException("Đáp án tham chiếu của đề thi không hợp lệ.");
+            if (skill == AssessmentSkill.LISTENING || skill == AssessmentSkill.READING) {
+                if (!root.path("parts").isArray() || root.path("parts").isEmpty()) {
+                    throw new RuntimeException("Cấu hình đề thi phải có ít nhất một phần.");
+                }
+                if (objectiveAnswerKey == null || objectiveAnswerKey.isBlank()
+                        || !objectMapper.readTree(objectiveAnswerKey).isObject()) {
+                    throw new RuntimeException("Đáp án tham chiếu của đề thi không hợp lệ.");
+                }
+                return;
+            }
+            if (skill == AssessmentSkill.WRITING
+                    && (!root.path("tasks").isArray() || root.path("tasks").isEmpty())) {
+                throw new RuntimeException("Cấu hình đề Writing phải có ít nhất một task.");
+            }
+            if (skill == AssessmentSkill.SPEAKING
+                    && (!root.path("variants").isArray() || root.path("variants").isEmpty())) {
+                throw new RuntimeException("Cấu hình đề Speaking phải có ít nhất một đề.");
             }
         } catch (JsonProcessingException exception) {
             throw new RuntimeException("Cấu hình đề thi hoặc đáp án tham chiếu không phải JSON hợp lệ.");
@@ -992,6 +1025,44 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return rubric;
     }
 
+    private AssessmentBankItem resolveAssessmentBankItem(Long bankItemId) {
+        if (bankItemId == null) {
+            return null;
+        }
+        AssessmentBankItem bankItem = assessmentBankItemRepository.findById(bankItemId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng đề."));
+        if ("ARCHIVED".equalsIgnoreCase(bankItem.getStatus())) {
+            throw new RuntimeException("Đề trong ngân hàng đã được lưu trữ.");
+        }
+        return bankItem;
+    }
+
+    private void applyAssessmentBankSnapshot(CourseAssessment assessment, AssessmentBankItem bankItem) {
+        if (bankItem == null) {
+            return;
+        }
+        assessment.setTitle(bankItem.getTitle());
+        assessment.setDescription(bankItem.getDescription());
+        assessment.setType(bankItem.getType());
+        assessment.setSkill(bankItem.getSkill());
+        assessment.setAiEvaluationMode(bankItem.getAiEvaluationMode());
+        assessment.setInstructions(bankItem.getInstructions());
+        assessment.setObjectiveAnswerKey(bankItem.getObjectiveAnswerKey());
+        assessment.setUiConfigJson(bankItem.getUiConfigJson());
+        assessment.setPassingScore(bankItem.getPassingScore());
+        assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
+                bankItem.getMaxScore(),
+                bankItem.getType(),
+                bankItem.getSkill(),
+                bankItem.getAiEvaluationMode()
+        ));
+        assessment.setTimeLimitMinutes(defaultInt(bankItem.getTimeLimitMinutes()));
+    }
+
+    private void applyAssessmentBankSnapshot(CourseAssessment assessment) {
+        applyAssessmentBankSnapshot(assessment, assessment.getAssessmentBankItem());
+    }
+
     private void ensureModuleCanBeRemoved(CourseModule module) {
         for (Lesson lesson : module.getLessons()) {
             ensureLessonCanBeRemoved(lesson);
@@ -1018,10 +1089,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private CourseAssessmentResponse toManagerAssessmentResponse(CourseAssessment assessment) {
+        applyAssessmentBankSnapshot(assessment);
         return CourseAssessmentResponse.builder()
                 .id(assessment.getId())
                 .courseId(assessment.getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
@@ -1102,6 +1175,56 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .durationMinutes(lesson.getDurationMinutes())
                 .displayOrder(lesson.getDisplayOrder())
                 .preview(lesson.isPreview())
+                .flashcardSets(toFlashcardSetResponses(lesson))
+                .build();
+    }
+
+    private void synchronizeLessonFlashcardRefs(Lesson lesson, List<Long> flashcardSetIds) {
+        lesson.getFlashcardRefs().clear();
+        if (flashcardSetIds == null || flashcardSetIds.isEmpty()) {
+            return;
+        }
+        Set<Long> uniqueIds = new LinkedHashSet<>(flashcardSetIds);
+        int displayOrder = 1;
+        for (Long flashcardSetId : uniqueIds) {
+            FlashcardSet set = flashcardSetRepository.findById(flashcardSetId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
+            if ("ARCHIVED".equalsIgnoreCase(set.getStatus())) {
+                throw new RuntimeException("Bộ flashcard \"" + set.getTitle() + "\" đã được lưu trữ.");
+            }
+            lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
+                    .flashcardSet(set)
+                    .displayOrder(displayOrder++)
+                    .build());
+        }
+    }
+
+    private List<FlashcardSetResponse> toFlashcardSetResponses(Lesson lesson) {
+        if (lesson.getFlashcardRefs() == null) {
+            return List.of();
+        }
+        return lesson.getFlashcardRefs().stream()
+                .map(ref -> toFlashcardSetResponse(ref.getFlashcardSet()))
+                .filter(response -> response != null)
+                .toList();
+    }
+
+    private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
+        if (set == null) {
+            return null;
+        }
+        return FlashcardSetResponse.builder()
+                .id(set.getId())
+                .title(set.getTitle())
+                .description(set.getDescription())
+                .examCategory(set.getExamCategory())
+                .skill(set.getSkill())
+                .tags(set.getTags())
+                .cardsJson(set.getCardsJson())
+                .status(set.getStatus())
+                .displayOrder(set.getDisplayOrder())
+                .createdAt(set.getCreatedAt())
+                .updatedAt(set.getUpdatedAt())
                 .build();
     }
 

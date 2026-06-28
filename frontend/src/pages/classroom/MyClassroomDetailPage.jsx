@@ -62,6 +62,7 @@ import {
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
+  { id: 'curriculum', label: 'Giáo trình' },
   { id: 'schedule', label: 'Lịch học' },
   { id: 'homework', label: 'Bài tập' },
   { id: 'attendance', label: 'Điểm danh' },
@@ -207,6 +208,10 @@ export default function MyClassroomDetailPage() {
   };
 
   const renderTabContent = () => {
+    if (activeTab === 'curriculum') {
+      return <LearnerCurriculumPanel curriculum={classroom?.curriculumProgram} />;
+    }
+
     if (activeTab === 'overview') {
       const isVirtual = classroom.deliveryMode === 'VIRTUAL';
       const totalSessions = sessions.length;
@@ -1034,6 +1039,75 @@ function KpiCard({ label, value, sub, color, icon }) {
       </div>
       <p className={`font-['Manrope'] text-xl font-extrabold ${c.label}`}>{value}</p>
       <p className="text-[10px] font-bold text-[#8b706e]">{sub}</p>
+    </div>
+  );
+}
+
+function LearnerCurriculumPanel({ curriculum }) {
+  if (!curriculum) {
+    return (
+      <ClassroomEmptyState
+        description="Lớp này chưa được gắn giáo trình chính thức."
+        title="Chưa có giáo trình"
+      />
+    );
+  }
+  const units = curriculum.units || [];
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-[#dfbfbd]/20 bg-[#fffafb] p-5">
+        <p className="text-xs font-extrabold uppercase tracking-wider text-[#8b706e]">Giáo trình</p>
+        <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{curriculum.title}</h3>
+        <p className="mt-1 text-sm text-[#584140]">
+          {[curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null, curriculum.entryLevel].filter(Boolean).join(' · ')}
+        </p>
+        {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
+      </div>
+      {units.length ? (
+        <div className="space-y-3">
+          {units.map((unit) => (
+            <article key={unit.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
+                {unit.displayOrder ?? 0}. {unit.title}
+              </h4>
+              {unit.description ? <p className="mt-1 text-sm text-[#584140]">{unit.description}</p> : null}
+              {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <LearnerRefList title="Học liệu" refs={unit.materials} />
+                <LearnerRefList title="Bài tập" refs={unit.exercises} />
+                <LearnerRefList title="Đề luyện tập" refs={unit.assessments} />
+                <LearnerRefList title="Flashcard" refs={unit.flashcards} />
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <ClassroomEmptyState
+          description="Giáo trình này chưa có unit hoặc buổi học."
+          title="Chưa có nội dung giáo trình"
+        />
+      )}
+    </div>
+  );
+}
+
+function LearnerRefList({ title, refs = [] }) {
+  const visibleRefs = refs.filter((ref) => String(ref.status || '').toUpperCase() !== 'ARCHIVED');
+  return (
+    <div className="rounded-xl border border-gray-100 bg-[#fffafb] p-3">
+      <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#8b706e]">{title}</p>
+      {visibleRefs.length ? (
+        <div className="mt-2 space-y-1.5">
+          {visibleRefs.map((ref) => (
+            <div key={`${ref.type}-${ref.id}`} className="rounded-lg bg-white px-3 py-2 text-xs">
+              <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
+              <p className="mt-0.5 text-[#8b706e]">{[ref.skill, ref.subtitle].filter(Boolean).join(' · ')}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-[#8b706e]">Chưa có nội dung.</p>
+      )}
     </div>
   );
 }

@@ -5,6 +5,9 @@ import fu.sap490.g23.backend.entity.course.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -51,6 +54,11 @@ public class Lesson {
     @Column(name = "transcript_segments_json", columnDefinition = "text")
     private String transcriptSegmentsJson;
 
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC, id ASC")
+    @Builder.Default
+    private List<CourseLessonFlashcardRef> flashcardRefs = new ArrayList<>();
+
     @Column(name = "duration_minutes", nullable = false)
     @Builder.Default
     private Integer durationMinutes = 0;
@@ -62,4 +70,9 @@ public class Lesson {
     @Column(nullable = false)
     @Builder.Default
     private boolean preview = false;
+
+    public void addFlashcardRef(CourseLessonFlashcardRef ref) {
+        flashcardRefs.add(ref);
+        ref.setLesson(this);
+    }
 }

@@ -2,10 +2,14 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
+import fu.sap490.g23.backend.entity.curriculum.*;
 import fu.sap490.g23.backend.entity.notification.AppNotification;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
@@ -68,6 +72,13 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
                 .classroomStatus(offering.getStatus())
                 .packageStatus(learningPackage.getStatus())
+                .curriculumProgramId(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getId())
+                .curriculumProgramTitle(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getTitle())
+                .curriculumProgramCode(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getCode())
+                .curriculumProgramSlug(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getSlug())
+                .curriculumProgramExamCategory(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getExamCategory())
+                .curriculumProgramStatus(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getStatus())
+                .curriculumProgram(toCurriculumProgramResponse(offering.getCurriculumProgram(), includeDetails))
                 .entryLevel(offering.getEntryLevel())
                 .targetOutcome(offering.getTargetOutcome())
                 .maxCapacity(offering.getMaxCapacity())
@@ -415,6 +426,110 @@ public class ClassroomMapper {
             case OFFLINE -> "Tại trung tâm";
             case VIRTUAL -> "Trực tuyến với giảng viên";
         };
+    }
+
+    private CurriculumProgramResponse toCurriculumProgramResponse(CurriculumProgram program, boolean includeUnits) {
+        if (program == null) {
+            return null;
+        }
+        return CurriculumProgramResponse.builder()
+                .id(program.getId())
+                .title(program.getTitle())
+                .code(program.getCode())
+                .slug(program.getSlug())
+                .deliveryMode(program.getDeliveryMode())
+                .deliveryModeLabel(deliveryModeLabel(program.getDeliveryMode()))
+                .examCategory(program.getExamCategory())
+                .targetBand(program.getTargetBand())
+                .targetScore(program.getTargetScore())
+                .entryLevel(program.getEntryLevel())
+                .outcomes(program.getOutcomes())
+                .teacherGuide(program.getTeacherGuide())
+                .interactionActivities(program.getInteractionActivities())
+                .totalSessions(program.getTotalSessions())
+                .status(program.getStatus())
+                .displayOrder(program.getDisplayOrder())
+                .createdAt(program.getCreatedAt())
+                .updatedAt(program.getUpdatedAt())
+                .units(includeUnits ? program.getUnits().stream().map(this::toCurriculumUnitResponse).toList() : null)
+                .build();
+    }
+
+    private CurriculumUnitResponse toCurriculumUnitResponse(CurriculumUnit unit) {
+        return CurriculumUnitResponse.builder()
+                .id(unit.getId())
+                .programId(unit.getProgram().getId())
+                .displayOrder(unit.getDisplayOrder())
+                .title(unit.getTitle())
+                .description(unit.getDescription())
+                .sessionPlan(unit.getSessionPlan())
+                .createdAt(unit.getCreatedAt())
+                .updatedAt(unit.getUpdatedAt())
+                .materials(unit.getMaterialRefs().stream().map(this::toCurriculumMaterialRef).toList())
+                .exercises(unit.getExerciseRefs().stream().map(this::toCurriculumExerciseRef).toList())
+                .assessments(unit.getAssessmentRefs().stream().map(this::toCurriculumAssessmentRef).toList())
+                .flashcards(unit.getFlashcardRefs().stream().map(this::toCurriculumFlashcardRef).toList())
+                .build();
+    }
+
+    private CurriculumReferenceResponse toCurriculumMaterialRef(CurriculumMaterialRef ref) {
+        CenterMaterialLibraryItem material = ref.getMaterial();
+        return CurriculumReferenceResponse.builder()
+                .id(ref.getId())
+                .type("MATERIAL")
+                .resourceId(material.getId())
+                .title(material.getTitle())
+                .subtitle(material.getMaterialType())
+                .skill(material.getSkill())
+                .status(material.getStatus())
+                .displayOrder(ref.getDisplayOrder())
+                .note(ref.getNote())
+                .build();
+    }
+
+    private CurriculumReferenceResponse toCurriculumExerciseRef(CurriculumExerciseRef ref) {
+        var exercise = ref.getExercise();
+        return CurriculumReferenceResponse.builder()
+                .id(ref.getId())
+                .type("EXERCISE")
+                .resourceId(exercise.getId())
+                .title(exercise.getTitle())
+                .subtitle(exercise.getExerciseType())
+                .skill(exercise.getSkill())
+                .status(exercise.isActive() ? "ACTIVE" : "INACTIVE")
+                .displayOrder(ref.getDisplayOrder())
+                .note(ref.getNote())
+                .build();
+    }
+
+    private CurriculumReferenceResponse toCurriculumAssessmentRef(CurriculumAssessmentRef ref) {
+        var assessment = ref.getAssessment();
+        return CurriculumReferenceResponse.builder()
+                .id(ref.getId())
+                .type("ASSESSMENT")
+                .resourceId(assessment.getId())
+                .title(assessment.getTitle())
+                .subtitle(assessment.getType() == null ? null : assessment.getType().name())
+                .skill(assessment.getSkill() == null ? null : assessment.getSkill().name())
+                .status(assessment.getStatus())
+                .displayOrder(ref.getDisplayOrder())
+                .note(ref.getNote())
+                .build();
+    }
+
+    private CurriculumReferenceResponse toCurriculumFlashcardRef(CurriculumFlashcardRef ref) {
+        FlashcardSet set = ref.getFlashcardSet();
+        return CurriculumReferenceResponse.builder()
+                .id(ref.getId())
+                .type("FLASHCARD")
+                .resourceId(set.getId())
+                .title(set.getTitle())
+                .subtitle(set.getExamCategory())
+                .skill(set.getSkill())
+                .status(set.getStatus())
+                .displayOrder(ref.getDisplayOrder())
+                .note(ref.getNote())
+                .build();
     }
 
     public String changeRequestTypeLabel(ClassroomChangeRequestType type) {

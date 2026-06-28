@@ -40,6 +40,8 @@ public class LessonRequest {
     @Valid
     private List<TranscriptSegmentRequest> transcriptSegments;
 
+    private List<Long> flashcardSetIds;
+
     @Min(0)
     private Integer durationMinutes;
 
