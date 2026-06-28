@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BadgePercent,
+  BookMarked,
   BookText,
   BookOpen,
   Brain,
@@ -17,9 +18,8 @@ import {
   Route,
   School,
   SlidersHorizontal,
-  Video,
   Dumbbell,
-  BookMarked,
+  Video,
 } from 'lucide-react';
 
 export const contentManagerNav = [
@@ -74,23 +74,23 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/classrooms': {
     title: 'Quản lý nội dung lớp học',
-    subtitle: 'Theo dõi tài liệu, đăng thông báo và biên soạn giáo trình cho từng lớp tại trung tâm.',
+    subtitle: 'Theo dõi nội dung vận hành lớp học và kiểm tra lớp đang dùng giáo trình nào.',
     searchPlaceholder: 'Tìm lớp học, thông báo hoặc mục giáo trình...',
   },
   '/content-manager/offline-programs': {
-    title: 'Quản lý chương trình offline',
-    subtitle: 'Thiết lập đầu ra, cấp độ, địa điểm và tóm tắt giáo trình cho lớp tại trung tâm.',
-    searchPlaceholder: 'Tìm lớp offline...',
+    title: 'Chương trình offline',
+    subtitle: 'Tạo và quản lý giáo trình mẫu tại trung tâm theo band, target và cấp độ đầu vào.',
+    searchPlaceholder: 'Tìm giáo trình offline...',
   },
   '/content-manager/virtual-programs': {
-    title: 'Quản lý chương trình virtual',
-    subtitle: 'Biên soạn hướng dẫn giảng viên, hoạt động tương tác và kế hoạch buổi học trực tuyến.',
-    searchPlaceholder: 'Tìm lớp virtual...',
+    title: 'Chương trình virtual',
+    subtitle: 'Tạo và quản lý giáo trình trực tuyến với teacher guide, hoạt động tương tác và target rõ ràng.',
+    searchPlaceholder: 'Tìm giáo trình virtual...',
   },
   '/content-manager/syllabus-builder': {
-    title: 'Biên soạn giáo trình lớp học',
-    subtitle: 'Xây dựng kế hoạch buổi học, bài tập, quiz và ghi chú giáo viên theo từng lớp.',
-    searchPlaceholder: 'Tìm lớp hoặc mục giáo trình...',
+    title: 'Biên soạn giáo trình',
+    subtitle: 'Chọn giáo trình, biên soạn unit/buổi học và gắn học liệu, bài tập, đề, flashcard từ các kho dùng chung.',
+    searchPlaceholder: 'Tìm unit hoặc tài nguyên...',
   },
   '/content-manager/exercise-bank': {
     title: 'Ngân hàng bài tập',
@@ -124,7 +124,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/flashcards': {
     title: 'Quản lý thẻ ghi nhớ',
-    subtitle: 'Biên soạn bộ thẻ theo khóa học, mô-đun và bài học để học viên học đúng ngữ cảnh.',
+    subtitle: 'Tạo và quản lý bộ flashcard dùng chung để curriculum/course tham chiếu lại.',
     searchPlaceholder: 'Tìm bộ thẻ hoặc chủ đề...',
   },
   '/content-manager/listening': {

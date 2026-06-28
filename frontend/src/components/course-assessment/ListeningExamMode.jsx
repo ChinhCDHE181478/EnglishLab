@@ -74,6 +74,29 @@ export default function ListeningExamMode({
 
   const activePart = parts.find((part) => part.key === activePartKey) || parts[0] || null;
   const allQuestionNumbers = useMemo(() => flattenQuestionNumbers(parts), [parts]);
+  // Map each individual question number to a filled/unfilled flag so the footer
+  // tracker stays correct even for grouped answers (e.g. "choose THREE letters"
+  // stores all picks under one combined key like "28-29-30").
+  const filledQuestionNumbers = useMemo(() => {
+    const filled = new Set();
+    parts.forEach((part) => {
+      (part.questionGroups || []).forEach((group) => {
+        if (group.type === 'multi_select_letters') {
+          const numbers = group.questionNumbers || [];
+          const groupKey = numbers.join('-') || 'multi';
+          const selectedCount = Array.isArray(answers[groupKey]) ? answers[groupKey].length : 0;
+          numbers.slice(0, selectedCount).forEach((number) => filled.add(String(number)));
+          return;
+        }
+        (group.questions || []).forEach((question) => {
+          if (answerIsFilled(answers[String(question.number)])) {
+            filled.add(String(question.number));
+          }
+        });
+      });
+    });
+    return filled;
+  }, [answers, parts]);
   const answeredCount = useMemo(() => {
     let total = 0;
     Object.values(answers).forEach((value) => {
@@ -618,7 +641,7 @@ export default function ListeningExamMode({
                 {partQuestionNumbers.map((number) => (
                   <span
                     key={number}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${answerIsFilled(answers[String(number)]) ? 'bg-[#8a0018] text-white' : 'bg-[#f6ecea] text-[#8c716f]'}`}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${filledQuestionNumbers.has(String(number)) ? 'bg-[#8a0018] text-white' : 'bg-[#f6ecea] text-[#8c716f]'}`}
                   >
                     {number}
                   </span>

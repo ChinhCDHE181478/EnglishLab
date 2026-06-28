@@ -243,10 +243,10 @@ export default function ContentManagerCourseEditorPage() {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Brain className="h-5 w-5" /></span>
               <div>
                 <h2 className="font-['Manrope'] text-lg font-extrabold text-[#4b0009]">Thẻ ghi nhớ trong khóa học</h2>
-                <p className="mt-1 text-sm leading-6 text-[#584140]">{flashcardOverview.setCount} bộ thẻ · {flashcardOverview.cardCount} thẻ, được lấy từ nội dung các bài học.</p>
+                <p className="mt-1 text-sm leading-6 text-[#584140]">{flashcardOverview.setCount} bộ thẻ · {flashcardOverview.cardCount} thẻ, được gắn từ kho flashcard.</p>
               </div>
             </div>
-            {courseSlug ? <Link className="mt-4 inline-flex rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/flashcards/${courseSlug}`}>Mở quản lý thẻ ghi nhớ</Link> : null}
+            {courseSlug ? <Link className="mt-4 inline-flex rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/flashcards">Mở ngân hàng flashcard</Link> : null}
           </Panel>
         ) : null}
         <Panel className="p-6">
@@ -318,6 +318,11 @@ function getFlashcardOverview(modules) {
   let setCount = 0;
   let cardCount = 0;
   (modules || []).forEach((module) => (module.lessons || []).forEach((lesson) => {
+    if ((lesson.flashcardSets || []).length) {
+      setCount += lesson.flashcardSets.length;
+      cardCount += lesson.flashcardSets.reduce((sum, set) => sum + countFlashcardCards(set.cardsJson), 0);
+      return;
+    }
     const content = String(lesson.contentText || '');
     const headings = [...content.matchAll(/^###\s+\d+\.\s+.+$/gm)];
     const cards = headings.filter((heading, index) => {
@@ -331,4 +336,13 @@ function getFlashcardOverview(modules) {
     }
   }));
   return { setCount, cardCount };
+}
+
+function countFlashcardCards(cardsJson) {
+  try {
+    const cards = JSON.parse(cardsJson || '[]');
+    return Array.isArray(cards) ? cards.length : 0;
+  } catch {
+    return 0;
+  }
 }

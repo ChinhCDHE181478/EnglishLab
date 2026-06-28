@@ -19,6 +19,7 @@ public class CourseAssessmentResponse {
     private Long id;
     private Long courseId;
     private Long moduleId;
+    private Long assessmentBankItemId;
     private String moduleTitle;
     private String title;
     private String description;

@@ -24,6 +24,7 @@ public class ContentManagerCourseAssessmentRequest {
     private Long id;
     private Long moduleId;
     private Long rubricId;
+    private Long assessmentBankItemId;
 
     @NotBlank(message = "Assessment title is required")
     @Size(max = 180)

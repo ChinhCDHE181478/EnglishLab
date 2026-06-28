@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class LessonResponse {
     private String bunnyCdnUrl;
     private String materialUrl;
     private List<TranscriptSegmentResponse> transcriptSegments;
+    private List<FlashcardSetResponse> flashcardSets;
     private Integer durationMinutes;
     private Integer displayOrder;
     private boolean preview;

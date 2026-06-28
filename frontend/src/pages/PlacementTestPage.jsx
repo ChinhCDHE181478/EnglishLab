@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BookOpen, CheckCircle2, CircleDot, Headphones, Hourglass, Mic, PenLine, Play } from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
 import Header from '../components/ai-learning/Header';
@@ -159,6 +159,16 @@ const toWritingSubmissionText = (config = {}, writingAnswers = {}) => {
       String(writingAnswers[taskKey] || '').trim(),
     ].join('\n');
   }).join('\n\n');
+};
+
+const toSpeakingExamConfig = (config = {}) => {
+  const variants = Array.isArray(config?.variants) ? config.variants.filter(Boolean) : [];
+  const activeVariant = variants[0] || null;
+  return {
+    ...config,
+    submissionLabel: activeVariant?.label || config.submissionLabel || config.title,
+    parts: activeVariant?.parts || config.parts || [],
+  };
 };
 
 function DeviceCheck({ onComplete }) {
@@ -798,6 +808,7 @@ function LegacyPlacementSpeakingExamMode({
 
 export default function PlacementTestPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -827,6 +838,11 @@ export default function PlacementTestPage() {
         }
 
         setTest(response);
+
+        if (searchParams.get('view') === 'result' && response.latestAttempt) {
+          setResult(response.latestAttempt);
+          setStage('result');
+        }
       })
       .catch((error) => setLoadError(error?.response?.data?.message || error?.message || 'Không tải được đề thi thử.'))
       .finally(() => setLoading(false));
@@ -887,6 +903,7 @@ export default function PlacementTestPage() {
 
       setResult(response);
       setStage('result');
+      setSearchParams({ view: 'result' }, { replace: true });
 
       setTest((current) => current ? {
         ...current,
@@ -935,6 +952,7 @@ export default function PlacementTestPage() {
 
       setResult(response);
       setStage('result');
+      setSearchParams({ view: 'result' }, { replace: true });
       setTest((current) => current ? {
         ...current,
         latestAttempt: response,
@@ -1034,6 +1052,7 @@ export default function PlacementTestPage() {
     setSkillIndex(0);
     setDeviceCheck(null);
     setStage('device');
+    setSearchParams({}, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1094,6 +1113,7 @@ export default function PlacementTestPage() {
                 onClick={() => {
                   setResult(null);
                   setStage('intro');
+                  setSearchParams({}, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 type="button"
@@ -1189,7 +1209,7 @@ export default function PlacementTestPage() {
     return (
       <>
         <SpeakingExamMode
-          config={{ ...activeConfig, submissionLabel: 'Đánh giá đầu vào' }}
+          config={{ ...toSpeakingExamConfig(activeConfig), submissionLabel: 'Đánh giá đầu vào' }}
           initialAudioUrl={draft.speakingAudioUrl}
           onAudioReady={(speakingAudioUrl) => {
             setDraft((current) => ({ ...current, speakingAudioUrl }));
@@ -1247,6 +1267,7 @@ export default function PlacementTestPage() {
                 onClick={() => {
                   setResult(test.latestAttempt);
                   setStage('result');
+                  setSearchParams({ view: 'result' }, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 type="button"

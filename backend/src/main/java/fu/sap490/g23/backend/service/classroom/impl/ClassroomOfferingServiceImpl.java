@@ -10,11 +10,13 @@ import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.*;
 import fu.sap490.g23.backend.entity.course.enums.*;
+import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
@@ -61,6 +63,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final CurriculumProgramRepository curriculumProgramRepository;
     private final ClassroomRoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
@@ -163,6 +166,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new RuntimeException("Thiếu loại gói CLASSROOM trong hệ thống."));
+        CurriculumProgram curriculumProgram = resolveCurriculumProgram(
+                request.getCurriculumProgramId(),
+                request.getDeliveryMode()
+        );
 
         LearningPackage learningPackage = LearningPackage.builder()
                 .packageType(packageType)
@@ -186,6 +193,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomOffering offering = ClassroomOffering.builder()
                 .learningPackage(learningPackage)
                 .deliveryMode(request.getDeliveryMode())
+                .curriculumProgram(curriculumProgram)
                 .status(request.getClassroomStatus() == null ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus())
                 .entryLevel(request.getEntryLevel())
                 .targetOutcome(request.getTargetOutcome())
@@ -216,6 +224,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request) {
         ClassroomOffering offering = findOffering(id);
         LearningPackage learningPackage = offering.getLearningPackage();
+        CurriculumProgram curriculumProgram = resolveCurriculumProgram(
+                request.getCurriculumProgramId(),
+                request.getDeliveryMode()
+        );
 
 
         learningPackage.setTitle(request.getTitle().trim());
@@ -234,6 +246,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         learningPackage.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
 
         offering.setDeliveryMode(request.getDeliveryMode());
+        offering.setCurriculumProgram(curriculumProgram);
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
@@ -1504,6 +1517,21 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         return roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng học."));
+    }
+
+    private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId, ClassroomDeliveryMode deliveryMode) {
+        if (curriculumProgramId == null) {
+            return null;
+        }
+        CurriculumProgram program = curriculumProgramRepository.findById(curriculumProgramId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
+        if (deliveryMode != null && program.getDeliveryMode() != deliveryMode) {
+            throw new RuntimeException("Giáo trình không khớp với hình thức đào tạo của lớp.");
+        }
+        if ("ARCHIVED".equalsIgnoreCase(program.getStatus())) {
+            throw new RuntimeException("Giáo trình đã lưu trữ, không thể gắn vào lớp.");
+        }
+        return program;
     }
 
     private Long getPrimaryTeacherId(ClassroomOffering offering) {

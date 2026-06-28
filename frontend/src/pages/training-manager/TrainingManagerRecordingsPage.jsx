@@ -117,7 +117,12 @@ export default function TrainingManagerRecordingsPage() {
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
       <div className={PANEL_CLASS}>
-        <BrandedSelect label="Lớp học" value={selectedId} onChange={setSelectedId} options={classroomOptions} />
+        <BrandedSelect
+          label="Lớp học"
+          value={selectedId}
+          onChange={(event) => setSelectedId(event.target.value)}
+          options={classroomOptions}
+        />
       </div>
 
       {loading ? <p className="text-sm font-semibold text-slate-500">Đang tải...</p> : (

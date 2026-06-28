@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.entity.classroom.enums.*;
 
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
+import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -35,6 +36,10 @@ public class ClassroomOffering {
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_mode", nullable = false, length = 20)
     private ClassroomDeliveryMode deliveryMode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curriculum_program_id")
+    private CurriculumProgram curriculumProgram;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

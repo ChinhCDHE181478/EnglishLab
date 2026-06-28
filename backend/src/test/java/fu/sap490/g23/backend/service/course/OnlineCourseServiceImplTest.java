@@ -23,6 +23,8 @@ import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.repository.course.VocabularyProgressRepository;
+import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,6 +66,10 @@ class OnlineCourseServiceImplTest {
     @Mock
     private CourseAssessmentRepository courseAssessmentRepository;
     @Mock
+    private AssessmentBankItemRepository assessmentBankItemRepository;
+    @Mock
+    private FlashcardSetRepository flashcardSetRepository;
+    @Mock
     private AssessmentRubricRepository assessmentRubricRepository;
     @Mock
     private AssessmentSubmissionRepository assessmentSubmissionRepository;
@@ -98,6 +104,8 @@ class OnlineCourseServiceImplTest {
                 lessonProgressRepository,
                 vocabularyProgressRepository,
                 courseAssessmentRepository,
+                assessmentBankItemRepository,
+                flashcardSetRepository,
                 assessmentRubricRepository,
                 assessmentSubmissionRepository,
                 userRepository,

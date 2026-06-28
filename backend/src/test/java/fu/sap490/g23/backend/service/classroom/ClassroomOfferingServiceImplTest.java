@@ -19,6 +19,7 @@ import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantReposito
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.classroom.impl.ClassroomOfferingServiceImpl;
 import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -59,6 +60,8 @@ class ClassroomOfferingServiceImplTest {
     @Mock
     private PackageEnrollmentRepository packageEnrollmentRepository;
     @Mock
+    private CurriculumProgramRepository curriculumProgramRepository;
+    @Mock
     private ClassroomRoomRepository roomRepository;
     @Mock
     private UserRepository userRepository;
@@ -93,6 +96,7 @@ class ClassroomOfferingServiceImplTest {
                 learningPackageRepository,
                 packageTypeRepository,
                 packageEnrollmentRepository,
+                curriculumProgramRepository,
                 roomRepository,
                 userRepository,
                 mapper,

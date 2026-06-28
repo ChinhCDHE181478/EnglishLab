@@ -14,6 +14,7 @@ import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepositor
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlacementTestServiceImpl implements PlacementTestService {
@@ -138,14 +140,25 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private AiEvaluationResult evaluateProductiveSkills(PlacementTestSubmissionRequest request, JsonNode writingConfig, JsonNode speakingConfig) {
         String writing = request.getWritingAnswers() == null ? "" : writeJson(objectMapper.valueToTree(request.getWritingAnswers()));
         String speaking = safe(request.getSpeakingTranscript());
+
+        Optional<AssessmentAudioStorageService.StoredAssessmentAudio> storedAudio =
+                request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank()
+                        ? audioStorageService.loadStoredAudioFromUrl(request.getSpeakingAudioUrl())
+                        : Optional.empty();
+        boolean audioAttached = storedAudio.isPresent();
+
+        String speakingAudioPolicy = audioAttached
+                ? "The learner's actual speaking audio is attached in this request. Listen to it and judge fluency/coherence, lexical resource, grammar, and pronunciation from the sound. Because real recorded speech is attached, you MUST return a numeric speakingBand on the IELTS 0-9 half-band scale. Use a low band such as 2.0-3.0 when the speech is short, hesitant, or hard to understand. Only set speakingBand to null if the audio is essentially silent or contains no spoken answer at all."
+                : "No speaking audio is attached. Judge Speaking only from the transcript text. If the transcript has no real spoken answer, set speakingBand to null.";
+
         String prompt = """
                 You are evaluating an IELTS placement test for course placement, not issuing an official IELTS result.
                 Score the learner on the IELTS 0-9 band scale using half-band increments.
                 Evaluate Writing for task response, coherence, lexical resource, grammar.
                 Evaluate Speaking for fluency/coherence, lexical resource, grammar, pronunciation evidence when audio is available.
                 If a response is clearly off-topic, nonsensical, irrelevant to the prompt, or made of filler unrelated to the actual task, assign 0.0 for that skill.
-                If there is not enough real evidence to judge Speaking reliably, set speakingBand to null and explain that the submission should not be scored yet.
                 If there is not enough real evidence to judge Writing reliably, set writingBand to 0.0 when the writing is present but clearly irrelevant, or null only when no meaningful writing content exists.
+                Speaking scoring policy: %s
                 Return concise JSON feedback with keys: estimatedScore, writingBand, speakingBand, strengths, weaknesses, recommendations.
 
                 WRITING TASKS:
@@ -159,18 +172,15 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
                 SPEAKING TRANSCRIPT:
                 %s
-                """.formatted(writeJson(writingConfig), writing, writeJson(speakingConfig), speaking);
+                """.formatted(speakingAudioPolicy, writeJson(writingConfig), writing, writeJson(speakingConfig), speaking);
         try {
-            AiEvaluationResult aiResult;
-            if (request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank()) {
-                aiResult = audioStorageService.loadStoredAudioFromUrl(request.getSpeakingAudioUrl())
-                        .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
-                        .orElseGet(() -> aiEvaluationClient.evaluate(prompt));
-            } else {
-                aiResult = aiEvaluationClient.evaluate(prompt);
-            }
+            AiEvaluationResult aiResult = audioAttached
+                    ? aiEvaluationClient.evaluateWithAudio(prompt, storedAudio.get().bytes(), storedAudio.get().contentType())
+                    : aiEvaluationClient.evaluate(prompt);
             return applyProductiveGuards(aiResult, request);
         } catch (RuntimeException exception) {
+            log.warn("Placement test AI evaluation for writing/speaking failed; falling back to objective-only result. Reason: {}",
+                    exception.getMessage(), exception);
             return null;
         }
     }

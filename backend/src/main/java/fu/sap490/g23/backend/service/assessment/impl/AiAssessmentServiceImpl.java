@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.entity.assessment.enums.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
@@ -83,6 +84,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     public AiAssessmentSubmissionResponse submitAssessment(Long assessmentId, AssessmentSubmissionRequest request, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
+        applyAssessmentBankSnapshot(assessment);
         ensureEnrolled(student, assessment.getOnlineCourse());
         courseProgressionGuard.ensureAssessmentCanBeSubmitted(student, assessment);
 
@@ -1258,6 +1260,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     private CourseAssessmentResponse toResponse(CourseAssessment assessment, User student) {
+        applyAssessmentBankSnapshot(assessment);
         List<AiAssessmentSubmissionResponse> recentSubmissions = submissionRepository
                 .findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)
                 .stream()
@@ -1270,6 +1273,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .id(assessment.getId())
                 .courseId(assessment.getOnlineCourse().getId())
                 .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .assessmentBankItemId(assessment.getAssessmentBankItem() == null ? null : assessment.getAssessmentBankItem().getId())
                 .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
                 .title(assessment.getTitle())
                 .description(assessment.getDescription())
@@ -1294,6 +1298,32 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .latestSubmission(latestSubmission)
                 .previousSubmission(previousSubmission)
                 .build();
+    }
+
+    private void applyAssessmentBankSnapshot(CourseAssessment assessment) {
+        if (assessment == null) {
+            return;
+        }
+        AssessmentBankItem bankItem = assessment.getAssessmentBankItem();
+        if (bankItem == null) {
+            return;
+        }
+        assessment.setTitle(bankItem.getTitle());
+        assessment.setDescription(bankItem.getDescription());
+        assessment.setType(bankItem.getType());
+        assessment.setSkill(bankItem.getSkill());
+        assessment.setAiEvaluationMode(bankItem.getAiEvaluationMode());
+        assessment.setInstructions(bankItem.getInstructions());
+        assessment.setObjectiveAnswerKey(bankItem.getObjectiveAnswerKey());
+        assessment.setUiConfigJson(bankItem.getUiConfigJson());
+        assessment.setPassingScore(bankItem.getPassingScore());
+        assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
+                bankItem.getMaxScore(),
+                bankItem.getType(),
+                bankItem.getSkill(),
+                bankItem.getAiEvaluationMode()
+        ));
+        assessment.setTimeLimitMinutes(bankItem.getTimeLimitMinutes());
     }
 
     private String extractTargetVocabulary(CourseModule module) {

@@ -41,6 +41,9 @@ export function buildManagedCoursePayload(course, overrides = {}) {
         videoUrl: lesson.videoUrl || '',
         materialUrl: lesson.materialUrl || '',
         transcriptSegments: lesson.transcriptSegments || [],
+        flashcardSetIds: (lesson.flashcardSets || []).length
+          ? lesson.flashcardSets.map((set) => Number(set.id)).filter(Boolean)
+          : (lesson.flashcardSetIds || []).map((id) => Number(id)).filter(Boolean),
         durationMinutes: Number(lesson.durationMinutes || 0),
         displayOrder: Number(lesson.displayOrder || lessonIndex + 1),
         preview: Boolean(lesson.preview),
