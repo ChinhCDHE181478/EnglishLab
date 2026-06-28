@@ -679,6 +679,63 @@ export const classroomApi = {
     const response = await axiosClient.post(`/api/training-manager/attendance-disputes/${disputeId}/review`, payload);
     return unwrapData(response);
   },
+
+  async getContentManagerPrograms(deliveryMode) {
+    const response = await axiosClient.get('/api/content-manager/classrooms/programs', {
+      params: deliveryMode ? { deliveryMode } : undefined,
+    });
+    return asList(unwrapData(response));
+  },
+
+  async updateContentManagerProgramProfile(classroomId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/classrooms/${classroomId}/program-profile`, payload);
+    return unwrapData(response);
+  },
+
+  async submitContentManagerMaterialReview(materialId) {
+    const response = await axiosClient.post(`/api/content-manager/classrooms/materials/${materialId}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async submitContentManagerSyllabusReview(itemId) {
+    const response = await axiosClient.post(`/api/content-manager/classrooms/syllabus/${itemId}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async getManagerPendingContentApprovals() {
+    const response = await axiosClient.get('/api/manager/content-approvals/pending');
+    return asList(unwrapData(response));
+  },
+
+  async approveManagerMaterial(materialId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/approve`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async rejectManagerMaterial(materialId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/reject`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async approveManagerSyllabus(itemId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/approve`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async rejectManagerSyllabus(itemId, reviewNote) {
+    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/reject`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async updateOfferingRecording(offeringId, payload) {
+    const response = await axiosClient.put(`/api/training-manager/recordings/classrooms/${offeringId}`, payload);
+    return unwrapData(response);
+  },
+
+  async updateSessionRecording(sessionId, payload) {
+    const response = await axiosClient.put(`/api/training-manager/recordings/sessions/${sessionId}`, payload);
+    return unwrapData(response);
+  },
 };
 
 export default classroomApi;

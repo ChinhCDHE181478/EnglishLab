@@ -4,10 +4,14 @@ import fu.sap490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRe
 import fu.sap490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateMaterialRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
+import fu.sap490.g23.backend.dto.request.classroom.UpdateClassroomProgramRequest;
 import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.service.classroom.CenterMaterialLibraryService;
+import fu.sap490.g23.backend.service.classroom.ClassroomContentApprovalService;
 import fu.sap490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sap490.g23.backend.service.classroom.ClassroomProgramService;
 import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,8 @@ public class ContentManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
     private final ClassroomContentService contentService;
+    private final ClassroomProgramService programService;
+    private final ClassroomContentApprovalService approvalService;
     private final CenterMaterialLibraryService centerMaterialLibraryService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
 
@@ -156,5 +162,36 @@ public class ContentManagerClassroomController {
     public ResponseEntity<Void> deleteSyllabusItem(@PathVariable Long itemId) {
         contentService.deleteSyllabusItem(itemId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/programs")
+    public ResponseEntity<List<ClassroomOfferingResponse>> listPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(programService.listPrograms(deliveryMode));
+    }
+
+    @PutMapping("/{id}/program-profile")
+    public ResponseEntity<ClassroomOfferingResponse> updateProgramProfile(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateClassroomProgramRequest request
+    ) {
+        return ResponseEntity.ok(programService.updateProgramProfile(id, request));
+    }
+
+    @PostMapping("/materials/{materialId}/submit-review")
+    public ResponseEntity<ClassroomMaterialResponse> submitMaterialForReview(
+            @PathVariable Long materialId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(approvalService.submitMaterialForReview(materialId, authentication.getName()));
+    }
+
+    @PostMapping("/syllabus/{itemId}/submit-review")
+    public ResponseEntity<ClassroomSyllabusItemResponse> submitSyllabusForReview(
+            @PathVariable Long itemId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(approvalService.submitSyllabusForReview(itemId, authentication.getName()));
     }
 }

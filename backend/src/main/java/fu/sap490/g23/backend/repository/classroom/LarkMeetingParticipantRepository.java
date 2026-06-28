@@ -14,5 +14,7 @@ public interface LarkMeetingParticipantRepository extends JpaRepository<LarkMeet
 
     long countByClassroomSessionIdAndActiveTrue(Long classroomSessionId);
 
+    java.util.List<LarkMeetingParticipant> findByClassroomSessionId(Long classroomSessionId);
+
     void deleteByClassroomSessionId(Long classroomSessionId);
 }

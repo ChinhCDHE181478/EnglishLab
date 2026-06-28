@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.entity.classroom;
 
+import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 
 import jakarta.persistence.*;
@@ -39,6 +40,39 @@ public class ClassroomSyllabusItem {
 
     @Column(name = "session_plan", columnDefinition = "text")
     private String sessionPlan;
+
+    @Column(name = "homework_notes", columnDefinition = "text")
+    private String homeworkNotes;
+
+    @Column(name = "quiz_notes", columnDefinition = "text")
+    private String quizNotes;
+
+    @Column(name = "teacher_notes", columnDefinition = "text")
+    private String teacherNotes;
+
+    @Column(name = "session_number")
+    private Integer sessionNumber;
+
+    @Column(name = "linked_session_id")
+    private Long linkedSessionId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", length = 20)
+    @Builder.Default
+    private ContentReviewStatus reviewStatus = ContentReviewStatus.APPROVED;
+
+    @Column(name = "review_note", length = 1000)
+    private String reviewNote;
+
+    @Column(name = "submitted_for_review_at")
+    private LocalDateTime submittedForReviewAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
 
     @Column(nullable = false, length = 20)
     @Builder.Default

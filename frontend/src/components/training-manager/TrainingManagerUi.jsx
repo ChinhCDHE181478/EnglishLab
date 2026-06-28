@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Settings2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Settings2, Video } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
@@ -14,7 +14,10 @@ const trainingManagerNav = [
       { label: 'Duyệt yêu cầu', href: '/training-manager/requests', icon: CheckSquare },
       { label: 'Khiếu nại điểm danh', href: '/training-manager/attendance-disputes', icon: AlertTriangle },
       { label: 'Hạ tầng lớp học', href: '/training-manager/infrastructure', icon: Settings2 },
+      { label: 'Quản lý ghi hình', href: '/training-manager/recordings', icon: Video },
       { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: FileCheck2 },
+      { label: 'Duyệt nội dung lớp', href: '/manager/content-approvals', icon: FileCheck2 },
+      { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList },
     ],
   },
 ];

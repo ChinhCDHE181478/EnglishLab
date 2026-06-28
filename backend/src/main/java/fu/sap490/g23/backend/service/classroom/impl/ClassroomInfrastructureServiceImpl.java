@@ -116,6 +116,10 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
                 .name(request.getName().trim())
                 .slotsJson(request.getSlotsJson())
                 .description(request.getDescription())
+                .teacherGuide(request.getTeacherGuide())
+                .interactionActivities(request.getInteractionActivities())
+                .postSessionHomework(request.getPostSessionHomework())
+                .defaultDurationMinutes(request.getDefaultDurationMinutes())
                 .active(request.getActive() == null || request.getActive())
                 .createdBy(creator)
                 .build();
@@ -132,6 +136,10 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
         }
         template.setName(request.getName().trim());
         template.setDescription(request.getDescription());
+        template.setTeacherGuide(request.getTeacherGuide());
+        template.setInteractionActivities(request.getInteractionActivities());
+        template.setPostSessionHomework(request.getPostSessionHomework());
+        template.setDefaultDurationMinutes(request.getDefaultDurationMinutes());
         if (request.getActive() != null) {
             template.setActive(request.getActive());
         }
@@ -216,6 +224,10 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
                 .name(template.getName())
                 .slotsJson(template.getSlotsJson())
                 .description(template.getDescription())
+                .teacherGuide(template.getTeacherGuide())
+                .interactionActivities(template.getInteractionActivities())
+                .postSessionHomework(template.getPostSessionHomework())
+                .defaultDurationMinutes(template.getDefaultDurationMinutes())
                 .active(template.isActive())
                 .createdAt(template.getCreatedAt())
                 .updatedAt(template.getUpdatedAt())

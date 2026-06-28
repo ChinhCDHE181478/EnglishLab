@@ -15,6 +15,9 @@ import ContentManagerPublicationPage from './ContentManagerPublicationPage';
 import ContentManagerAnalyticsPage from './ContentManagerAnalyticsPage';
 import ContentManagerPlacementTestPage from './ContentManagerPlacementTestPage';
 import ContentManagerRubricsPage from './ContentManagerRubricsPage';
+import ContentManagerTrainingProgramsPage from './ContentManagerTrainingProgramsPage';
+import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
+import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -25,6 +28,10 @@ export default function ContentManagerRoutes() {
         <Route path="courses" element={<ContentManagerCoursesPage />} />
         <Route path="courses/:slugOrId" element={<Navigate replace to="edit" />} />
         <Route path="classrooms" element={<ContentManagerClassroomsPage />} />
+        <Route path="offline-programs" element={<ContentManagerTrainingProgramsPage mode="OFFLINE" />} />
+        <Route path="virtual-programs" element={<ContentManagerTrainingProgramsPage mode="VIRTUAL" />} />
+        <Route path="syllabus-builder" element={<ContentManagerSyllabusBuilderPage />} />
+        <Route path="exercise-bank" element={<ContentManagerExerciseBankPage />} />
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/edit" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/builder" element={<ContentManagerCourseBuilderPage />} />

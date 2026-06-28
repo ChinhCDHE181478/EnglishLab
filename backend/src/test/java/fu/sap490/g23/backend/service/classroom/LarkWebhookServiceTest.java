@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.classroom;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
 import fu.sap490.g23.backend.service.classroom.impl.LarkWebhookServiceImpl;
@@ -28,6 +29,12 @@ class LarkWebhookServiceTest {
     @Mock
     private LarkMeetingParticipantRepository participantRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private VirtualAttendanceService virtualAttendanceService;
+
     private LarkWebhookServiceImpl service;
     private ClassroomSession session;
 
@@ -36,7 +43,9 @@ class LarkWebhookServiceTest {
         service = new LarkWebhookServiceImpl(
                 new LarkProperties(),
                 sessionRepository,
-                participantRepository
+                participantRepository,
+                userRepository,
+                virtualAttendanceService
         );
         session = ClassroomSession.builder()
                 .id(10L)

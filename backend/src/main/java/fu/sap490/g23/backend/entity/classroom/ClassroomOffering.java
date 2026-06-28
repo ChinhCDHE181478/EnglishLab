@@ -89,6 +89,15 @@ public class ClassroomOffering {
     @Column(name = "syllabus_summary", columnDefinition = "text")
     private String syllabusSummary;
 
+    @Column(name = "program_outcomes", columnDefinition = "text")
+    private String programOutcomes;
+
+    @Column(name = "teacher_guide", columnDefinition = "text")
+    private String teacherGuide;
+
+    @Column(name = "interaction_activities", columnDefinition = "text")
+    private String interactionActivities;
+
     @OneToMany(mappedBy = "classroomOffering", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ClassroomSession> sessions = new ArrayList<>();

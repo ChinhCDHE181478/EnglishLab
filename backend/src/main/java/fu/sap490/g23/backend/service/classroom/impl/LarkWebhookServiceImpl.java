@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.service.classroom.*;
 
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
+import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,8 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
     private final LarkProperties properties;
     private final ClassroomSessionRepository sessionRepository;
     private final LarkMeetingParticipantRepository participantRepository;
+    private final UserRepository userRepository;
+    private final VirtualAttendanceService virtualAttendanceService;
 
     @Transactional
     public void handle(Map<String, Object> payload) {
@@ -56,6 +59,7 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         } else {
             markLeft(session, participantKey);
         }
+        virtualAttendanceService.syncLarkParticipantAttendance(session);
         sessionRepository.save(session);
     }
 
@@ -70,6 +74,7 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         participant.setActive(true);
         participant.setJoinedAt(now);
         participant.setLeftAt(null);
+        participant.setUserId(resolveUserId(participantKey));
         participantRepository.save(participant);
 
         session.setLarkEmptySince(null);
@@ -125,5 +130,13 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
+    }
+
+    private Long resolveUserId(String participantKey) {
+        if (participantKey == null || !participantKey.startsWith("open_id:")) {
+            return null;
+        }
+        String openId = participantKey.substring("open_id:".length());
+        return userRepository.findByLarkOpenId(openId).map(fu.sap490.g23.backend.entity.User::getId).orElse(null);
     }
 }

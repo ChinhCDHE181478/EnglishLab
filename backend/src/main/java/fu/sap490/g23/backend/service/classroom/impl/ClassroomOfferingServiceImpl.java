@@ -70,6 +70,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomNotificationService notificationService;
     private final LarkMeetingParticipantRepository larkParticipantRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    private final VirtualAttendanceService virtualAttendanceService;
 
     @Override
     @Transactional(readOnly = true)
@@ -1011,6 +1012,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         session.setLarkEmptySince(null);
         session.setLarkMeetingStatus(LarkMeetingStatus.OPEN);
+        virtualAttendanceService.recordVirtualJoin(session, learner);
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
@@ -1301,6 +1303,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     private void markVirtualSessionEnded(ClassroomSession session) {
+        virtualAttendanceService.finalizeVirtualAttendance(session);
         session.setStatus(ClassroomSessionStatus.COMPLETED);
         session.setLocked(true);
         session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);

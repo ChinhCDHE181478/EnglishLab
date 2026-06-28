@@ -40,8 +40,11 @@ import TrainingManagerRequestsPage from './pages/training-manager/TrainingManage
 import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/TrainingManagerClassroomRegistrationsPage';
 import TrainingManagerInfrastructurePage from './pages/training-manager/TrainingManagerInfrastructurePage';
 import TrainingManagerAttendanceDisputesPage from './pages/training-manager/TrainingManagerAttendanceDisputesPage';
+import TrainingManagerRecordingsPage from './pages/training-manager/TrainingManagerRecordingsPage';
 import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
+import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
+import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
 
 function CourseDetailRoute() {
   const { slugOrId } = useParams();
@@ -118,6 +121,7 @@ function AppRoutes() {
           <Route path="/training-manager/registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
           <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
           <Route path="/training-manager/infrastructure" element={<TrainingManagerInfrastructurePage />} />
+          <Route path="/training-manager/recordings" element={<TrainingManagerRecordingsPage />} />
           <Route path="/training-manager/attendance-disputes" element={<TrainingManagerAttendanceDisputesPage />} />
           <Route path="/training-manager/classroom-registrations" element={<Navigate to="/training-manager/registrations" replace />} />
         </Route>
@@ -127,6 +131,8 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route element={<TrainingManagerLayout />}>
           <Route path="/manager/course-approvals" element={<ManagerCourseApprovalPage />} />
+          <Route path="/manager/content-approvals" element={<ManagerContentApprovalPage />} />
+          <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
         </Route>
         <Route path="/manager/classrooms" element={<Navigate to="/training-manager/classrooms" replace />} />
       </Route>

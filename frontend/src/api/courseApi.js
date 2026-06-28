@@ -384,6 +384,36 @@ export const courseApi = {
     const response = await axiosClient.delete(`/api/content-manager/discount-codes/${id}`);
     return unwrapData(response);
   },
+
+  async getExerciseBankItems(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/exercise-bank', { params });
+    return unwrapData(response);
+  },
+
+  async createExerciseBankItem(payload) {
+    const response = await axiosClient.post('/api/content-manager/exercise-bank', payload);
+    return unwrapData(response);
+  },
+
+  async updateExerciseBankItem(id, payload) {
+    const response = await axiosClient.put(`/api/content-manager/exercise-bank/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteExerciseBankItem(id) {
+    const response = await axiosClient.delete(`/api/content-manager/exercise-bank/${id}`);
+    return unwrapData(response);
+  },
+
+  async getManagerOnlineEnrollments(params = {}) {
+    const response = await axiosClient.get('/api/manager/enrollments', { params });
+    return unwrapData(response);
+  },
+
+  async updateManagerOnlineEnrollment(enrollmentId, payload) {
+    const response = await axiosClient.put(`/api/manager/enrollments/${enrollmentId}`, payload);
+    return unwrapData(response);
+  },
 };
 
 export default courseApi;

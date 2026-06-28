@@ -4,6 +4,7 @@ import {
   BookText,
   BookOpen,
   Brain,
+  Building2,
   FileCheck2,
   FileQuestion,
   FileStack,
@@ -16,6 +17,9 @@ import {
   Route,
   School,
   SlidersHorizontal,
+  Video,
+  Dumbbell,
+  BookMarked,
 } from 'lucide-react';
 
 export const contentManagerNav = [
@@ -25,6 +29,9 @@ export const contentManagerNav = [
       { label: 'Tổng quan', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Khóa học online', href: '/content-manager/courses', icon: BookOpen },
       { label: 'Lớp học tại trung tâm', href: '/content-manager/classrooms', icon: School },
+      { label: 'Chương trình offline', href: '/content-manager/offline-programs', icon: Building2 },
+      { label: 'Chương trình virtual', href: '/content-manager/virtual-programs', icon: Video },
+      { label: 'Biên soạn giáo trình', href: '/content-manager/syllabus-builder', icon: BookMarked },
       { label: 'Mã giảm giá', href: '/content-manager/discount-codes', icon: BadgePercent },
       { label: 'Danh mục khóa học', href: '/content-manager/categories', icon: FolderKanban },
       { label: 'Lộ trình học', href: '/content-manager/learning-paths', icon: Route },
@@ -41,6 +48,7 @@ export const contentManagerNav = [
       { label: 'Luyện nói', href: '/content-manager/speaking', icon: Mic2 },
       { label: 'Bài đánh giá đầu vào', href: '/content-manager/placement-test', icon: ClipboardCheck },
       { label: 'Ngân hàng đề thi thử', href: '/content-manager/mock-exams', icon: FileQuestion },
+      { label: 'Ngân hàng bài tập', href: '/content-manager/exercise-bank', icon: Dumbbell },
       { label: 'Rubrics chấm điểm', href: '/content-manager/rubrics', icon: SlidersHorizontal },
     ],
   },
@@ -68,6 +76,26 @@ export const contentManagerPageMeta = {
     title: 'Quản lý nội dung lớp học',
     subtitle: 'Theo dõi tài liệu, đăng thông báo và biên soạn giáo trình cho từng lớp tại trung tâm.',
     searchPlaceholder: 'Tìm lớp học, thông báo hoặc mục giáo trình...',
+  },
+  '/content-manager/offline-programs': {
+    title: 'Quản lý chương trình offline',
+    subtitle: 'Thiết lập đầu ra, cấp độ, địa điểm và tóm tắt giáo trình cho lớp tại trung tâm.',
+    searchPlaceholder: 'Tìm lớp offline...',
+  },
+  '/content-manager/virtual-programs': {
+    title: 'Quản lý chương trình virtual',
+    subtitle: 'Biên soạn hướng dẫn giảng viên, hoạt động tương tác và kế hoạch buổi học trực tuyến.',
+    searchPlaceholder: 'Tìm lớp virtual...',
+  },
+  '/content-manager/syllabus-builder': {
+    title: 'Biên soạn giáo trình lớp học',
+    subtitle: 'Xây dựng kế hoạch buổi học, bài tập, quiz và ghi chú giáo viên theo từng lớp.',
+    searchPlaceholder: 'Tìm lớp hoặc mục giáo trình...',
+  },
+  '/content-manager/exercise-bank': {
+    title: 'Ngân hàng bài tập',
+    subtitle: 'Tạo và tái sử dụng đề bài tập, quiz theo kỹ năng và cấp độ.',
+    searchPlaceholder: 'Tìm bài tập hoặc kỹ năng...',
   },
   '/content-manager/courses/new': {
     title: 'Tạo khóa học online',

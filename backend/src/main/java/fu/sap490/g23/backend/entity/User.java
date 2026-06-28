@@ -59,6 +59,9 @@ public class User implements UserDetails {
     @Column(name = "facebook_id", unique = true, length = 255)
     private String facebookId;
 
+    @Column(name = "lark_open_id", length = 255)
+    private String larkOpenId;
+
     @Column(length = 255)
     private String password;
 

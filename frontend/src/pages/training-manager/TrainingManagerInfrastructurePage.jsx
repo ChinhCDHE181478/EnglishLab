@@ -24,6 +24,10 @@ const emptyRoomForm = { name: '', campusId: '', capacity: '', active: true };
 const emptyTemplateForm = {
   name: '',
   description: '',
+  teacherGuide: '',
+  interactionActivities: '',
+  postSessionHomework: '',
+  defaultDurationMinutes: '90',
   slots: [{ dayOfWeek: '1', startTime: '18:00', endTime: '20:00', roomId: '', teacherId: '' }],
 };
 
@@ -175,6 +179,10 @@ export default function TrainingManagerInfrastructurePage() {
       const payload = {
         name: templateForm.name.trim(),
         description: templateForm.description,
+        teacherGuide: templateForm.teacherGuide,
+        interactionActivities: templateForm.interactionActivities,
+        postSessionHomework: templateForm.postSessionHomework,
+        defaultDurationMinutes: templateForm.defaultDurationMinutes ? Number(templateForm.defaultDurationMinutes) : null,
         slotsJson,
         active: true,
       };
@@ -223,6 +231,10 @@ export default function TrainingManagerInfrastructurePage() {
     setTemplateForm({
       name: template.name || '',
       description: template.description || '',
+      teacherGuide: template.teacherGuide || '',
+      interactionActivities: template.interactionActivities || '',
+      postSessionHomework: template.postSessionHomework || '',
+      defaultDurationMinutes: template.defaultDurationMinutes ? String(template.defaultDurationMinutes) : '90',
       slots: parseSlots(template.slotsJson),
     });
   };
@@ -456,6 +468,10 @@ function TemplateForm({ editing, form, onAddSlot, onCancel, onChange, onRemoveSl
     >
       <TextField label="Tên mẫu" onChange={(value) => onChange({ ...form, name: value })} value={form.name} />
       <TextField label="Mô tả" onChange={(value) => onChange({ ...form, description: value })} textarea value={form.description} />
+      <TextField label="Hướng dẫn giảng viên" onChange={(value) => onChange({ ...form, teacherGuide: value })} textarea value={form.teacherGuide} />
+      <TextField label="Hoạt động tương tác" onChange={(value) => onChange({ ...form, interactionActivities: value })} textarea value={form.interactionActivities} />
+      <TextField label="Bài tập sau buổi học" onChange={(value) => onChange({ ...form, postSessionHomework: value })} textarea value={form.postSessionHomework} />
+      <TextField label="Thời lượng mặc định (phút)" onChange={(value) => onChange({ ...form, defaultDurationMinutes: value })} type="number" value={form.defaultDurationMinutes} />
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Khung giờ</span>

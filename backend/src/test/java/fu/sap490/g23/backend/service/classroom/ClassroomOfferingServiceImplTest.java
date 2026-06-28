@@ -76,6 +76,8 @@ class ClassroomOfferingServiceImplTest {
     private LarkMeetingParticipantRepository larkParticipantRepository;
     @Mock
     private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    @Mock
+    private VirtualAttendanceService virtualAttendanceService;
 
     private ClassroomOfferingServiceImpl service;
 
@@ -99,7 +101,8 @@ class ClassroomOfferingServiceImplTest {
                 accessHelper,
                 notificationService,
                 larkParticipantRepository,
-                courseEnrollmentAccessPolicy
+                courseEnrollmentAccessPolicy,
+                virtualAttendanceService
         );
     }
 

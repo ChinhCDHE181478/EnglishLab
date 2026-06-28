@@ -31,6 +31,18 @@ public class ClassroomSessionTemplate {
     @Column(length = 500)
     private String description;
 
+    @Column(name = "teacher_guide", columnDefinition = "text")
+    private String teacherGuide;
+
+    @Column(name = "interaction_activities", columnDefinition = "text")
+    private String interactionActivities;
+
+    @Column(name = "post_session_homework", columnDefinition = "text")
+    private String postSessionHomework;
+
+    @Column(name = "default_duration_minutes")
+    private Integer defaultDurationMinutes;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;

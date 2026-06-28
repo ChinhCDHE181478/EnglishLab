@@ -12,5 +12,9 @@ public class UpsertSessionTemplateRequest {
     @NotBlank(message = "Cấu hình khung giờ không được để trống.")
     private String slotsJson;
     private String description;
+    private String teacherGuide;
+    private String interactionActivities;
+    private String postSessionHomework;
+    private Integer defaultDurationMinutes;
     private Boolean active;
 }

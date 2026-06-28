@@ -12,6 +12,10 @@ public class ClassroomSessionTemplateResponse {
     private String name;
     private String slotsJson;
     private String description;
+    private String teacherGuide;
+    private String interactionActivities;
+    private String postSessionHomework;
+    private Integer defaultDurationMinutes;
     private boolean active;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
