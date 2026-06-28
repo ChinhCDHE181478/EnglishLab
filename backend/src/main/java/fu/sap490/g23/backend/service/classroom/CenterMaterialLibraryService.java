@@ -2,7 +2,6 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
 import fu.sap490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemResponse;
-
 import java.util.List;
 
 public interface CenterMaterialLibraryService {

@@ -2,7 +2,7 @@ package fu.sap490.g23.backend.controller;
 
 import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
 import fu.sap490.g23.backend.dto.response.UserResponse;
-import fu.sap490.g23.backend.service.IUserService;
+import fu.sap490.g23.backend.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
-    private final IUserService userService;
+    private final UserService userService;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {

@@ -76,12 +76,15 @@ export const resolveAssessmentPassingThreshold = (assessment, course = null) => 
   if (assessment?.resolvedPassingThreshold != null) {
     return normalizeBandThreshold(assessment, assessment.resolvedPassingThreshold);
   }
-  if (toNumber(assessment?.passingScore) != null) {
-    return normalizeBandThreshold(assessment, assessment.passingScore);
+
+  const skill = String(assessment?.skill || '').toUpperCase();
+  const usesBandScale = !['LISTENING', 'READING'].includes(skill);
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
+    return normalizeBandThreshold(assessment, Number(course.targetBand) - 0.5);
   }
 
-  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && course?.targetBand != null) {
-    return normalizeBandThreshold(assessment, Number(course.targetBand) - 0.5);
+  if (toNumber(assessment?.passingScore) != null) {
+    return normalizeBandThreshold(assessment, assessment.passingScore);
   }
 
   return null;
@@ -104,11 +107,13 @@ export const formatPassingThresholdLabel = (assessment, course = null) => {
   }
 
   const formatted = formatThresholdValue(threshold);
+  const skill = String(assessment?.skill || '').toUpperCase();
+  const usesBandScale = !['LISTENING', 'READING'].includes(skill);
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
+    return `Ngưỡng đạt (band mục tiêu khóa - 0.5): ${formatted}`;
+  }
   if (toNumber(assessment?.passingScore) != null) {
     return `Ngưỡng đạt (cấu hình CMS): ${formatted}`;
-  }
-  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && course?.targetBand != null) {
-    return `Ngưỡng đạt (band mục tiêu khóa - 0.5): ${formatted}`;
   }
   return null;
 };

@@ -1,0 +1,1339 @@
+package fu.sap490.g23.backend.service.course.impl;
+
+import fu.sap490.g23.backend.service.course.*;
+
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
+import fu.sap490.g23.backend.dto.request.course.LessonRequest;
+import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
+import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
+import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sap490.g23.backend.dto.response.assessment.RubricCriterionResponse;
+import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
+import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
+import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
+import fu.sap490.g23.backend.dto.response.course.LessonResponse;
+import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
+import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.service.assessment.IeltsBandScale;
+import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sap490.g23.backend.entity.course.*;
+import fu.sap490.g23.backend.entity.course.enums.*;
+import fu.sap490.g23.backend.exception.CourseUnavailableException;
+import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sap490.g23.backend.repository.course.*;
+import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HexFormat;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class OnlineCourseServiceImpl implements OnlineCourseService {
+
+    private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
+    private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
+    private static final Pattern VOCABULARY_HEADING = Pattern.compile("(?m)^###\\s+\\d+\\.\\s+(.+)$");
+    private static final Pattern CERTIFICATE_CODE_PATTERN = Pattern.compile("^ELC-(\\d+)-(\\d+)-([A-F0-9]+)$");
+
+    private final OnlineCourseRepository onlineCourseRepository;
+    private final LearningPackageRepository learningPackageRepository;
+    private final PackageTypeRepository packageTypeRepository;
+    private final CourseCategoryRepository courseCategoryRepository;
+    private final PackageEnrollmentRepository enrollmentRepository;
+    private final LessonRepository lessonRepository;
+    private final LessonProgressRepository lessonProgressRepository;
+    private final VocabularyProgressRepository vocabularyProgressRepository;
+    private final CourseAssessmentRepository courseAssessmentRepository;
+    private final AssessmentRubricRepository assessmentRubricRepository;
+    private final AssessmentSubmissionRepository assessmentSubmissionRepository;
+    private final UserRepository userRepository;
+    private final OnlineCourseMapper mapper;
+    private final BunnyStreamService bunnyStreamService;
+    private final CourseProgressService courseProgressService;
+    private final CourseProgressionGuard courseProgressionGuard;
+    private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    private final CourseEnrollmentMailService courseEnrollmentMailService;
+    private final YouTubeTranscriptService youTubeTranscriptService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
+        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
+                .map(mapper::toPublicResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getPublicCourse(String slugOrId) {
+        return mapper.toPublicResponse(findPublicCourse(slugOrId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CourseCertificateResponse verifyCourseCertificate(String verificationCode) {
+        PackageEnrollment enrollment = findEnrollmentByCertificateCode(verificationCode);
+        OnlineCourse course = onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học cho chứng nhận này."));
+        User student = enrollment.getStudent();
+        CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
+
+        if (!completion.isEligibleForCertificate()) {
+            throw new RuntimeException("Chứng nhận này chưa đủ điều kiện xác thực.");
+        }
+
+        return buildCertificateResponse(course, enrollment, student, completion, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable) {
+        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, null, null, null, status), pageable)
+                .map(mapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getManagerCourse(String slugOrId) {
+        return mapper.toResponse(findManagerCourse(slugOrId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseAssessmentResponse> getManagerCourseAssessments(Long courseId) {
+        OnlineCourse course = findCourse(courseId);
+        return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
+                .map(this::toManagerAssessmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssessmentRubricResponse> getManagerAssessmentRubrics() {
+        return assessmentRubricRepository.findAll().stream()
+                .filter(AssessmentRubric::isActive)
+                .sorted(Comparator
+                        .comparing((AssessmentRubric rubric) -> rubric.getSkill() == null ? "" : rubric.getSkill().name())
+                        .thenComparing(AssessmentRubric::getId))
+                .map(this::toRubricResponse)
+                .toList();
+    }
+
+    @Override
+    public List<CourseAssessmentResponse> saveManagerCourseAssessments(Long courseId, List<ContentManagerCourseAssessmentRequest> requests) {
+        OnlineCourse course = findCourse(courseId);
+        synchronizeAssessments(course, requests == null ? List.of() : requests);
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        courseProgressService.refreshCourseEnrollments(savedCourse);
+        return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
+                .map(this::toManagerAssessmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CourseStatsResponse getStats() {
+        return CourseStatsResponse.builder()
+                .totalCourses(onlineCourseRepository.countByLearningPackageDeletedFalse())
+                .publishedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.PUBLISHED))
+                .draftCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.DRAFT))
+                .archivedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.ARCHIVED))
+                .totalLessons(lessonRepository.countActiveLessons())
+                .totalEnrollments(enrollmentRepository.count())
+                .build();
+    }
+
+    @Override
+    public OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail) {
+        validateCourseRequest(request);
+        User creator = userRepository.findByEmail(creatorEmail).orElse(null);
+        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE)
+                .orElseThrow(() -> new RuntimeException("ONLINE_COURSE package type is missing"));
+
+        CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
+                .orElseThrow(() -> new RuntimeException("Course category not found"));
+        if (!category.isActive()) {
+            throw new IllegalArgumentException("Danh mục khóa học đã ngừng hoạt động.");
+        }
+
+        LearningPackage learningPackage = LearningPackage.builder()
+                .packageType(packageType)
+                .title(request.getTitle().trim())
+                .slug(generateUniqueSlug(request.getTitle()))
+                .shortDescription(request.getShortDescription())
+                .description(request.getDescription())
+                .targetScore(request.getTargetScore())
+                .duration(request.getDuration())
+                .studyMode(request.getStudyMode())
+                .price(defaultBigDecimal(request.getPrice()))
+                .salePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()))
+                .thumbnailUrl(request.getThumbnailUrl())
+                .status(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus())
+                .displayOrder(defaultInt(request.getDisplayOrder()))
+                .featured(Boolean.TRUE.equals(request.getFeatured()))
+                .createdBy(creator)
+                .build();
+
+
+        OnlineCourse course = OnlineCourse.builder()
+                .learningPackage(learningPackage)
+                .category(category)
+                .level(request.getLevel())
+                .recommendedCurrentBandMin(request.getRecommendedCurrentBandMin())
+                .recommendedCurrentBandMax(request.getRecommendedCurrentBandMax())
+                .targetBand(request.getTargetBand())
+                .learningPathCode(request.getLearningPathCode())
+                .learningPathName(request.getLearningPathName())
+                .learningPathOrder(request.getLearningPathOrder())
+                .targetOutcome(request.getTargetOutcome())
+                .recommendedNextCourseSlug(request.getRecommendedNextCourseSlug())
+                .totalLessons(defaultInt(request.getTotalLessons()))
+                .totalHours(defaultInt(request.getTotalHours()))
+                .build();
+        rebuildModules(course, request.getModules());
+        return mapper.toResponse(onlineCourseRepository.save(course));
+    }
+
+    @Override
+    public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request) {
+        validateCourseRequest(request);
+        OnlineCourse course = findCourse(id);
+        LearningPackage learningPackage = course.getLearningPackage();
+
+        CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
+                .orElseThrow(() -> new RuntimeException("Course category not found"));
+        if (!category.isActive()
+                && (course.getCategory() == null || !category.getId().equals(course.getCategory().getId()))) {
+            throw new IllegalArgumentException("Danh mục khóa học đã ngừng hoạt động.");
+        }
+
+        learningPackage.setTitle(request.getTitle().trim());
+        learningPackage.setShortDescription(request.getShortDescription());
+        learningPackage.setDescription(request.getDescription());
+        learningPackage.setTargetScore(request.getTargetScore());
+        learningPackage.setDuration(request.getDuration());
+        learningPackage.setStudyMode(request.getStudyMode());
+        learningPackage.setPrice(defaultBigDecimal(request.getPrice()));
+        learningPackage.setSalePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()));
+        learningPackage.setThumbnailUrl(request.getThumbnailUrl());
+        learningPackage.setStatus(request.getStatus() == null ? learningPackage.getStatus() : request.getStatus());
+        learningPackage.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        learningPackage.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
+
+        course.setCategory(category);
+        course.setLevel(request.getLevel());
+        course.setRecommendedCurrentBandMin(request.getRecommendedCurrentBandMin());
+        course.setRecommendedCurrentBandMax(request.getRecommendedCurrentBandMax());
+        course.setTargetBand(request.getTargetBand());
+        course.setLearningPathCode(request.getLearningPathCode());
+        course.setLearningPathName(request.getLearningPathName());
+        course.setLearningPathOrder(request.getLearningPathOrder());
+        course.setTargetOutcome(request.getTargetOutcome());
+        course.setRecommendedNextCourseSlug(request.getRecommendedNextCourseSlug());
+        course.setTotalLessons(defaultInt(request.getTotalLessons()));
+        course.setTotalHours(defaultInt(request.getTotalHours()));
+        synchronizeModules(course, request.getModules());
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        courseProgressService.refreshCourseEnrollments(savedCourse);
+        return mapper.toResponse(savedCourse);
+    }
+
+    @Override
+    public OnlineCourseResponse publishCourse(Long id) {
+        OnlineCourse course = findCourse(id);
+        validatePublishableCourse(course);
+        course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
+        return mapper.toResponse(course);
+    }
+
+    @Override
+    public OnlineCourseResponse archiveCourse(Long id) {
+        OnlineCourse course = findCourse(id);
+        course.getLearningPackage().setStatus(PackageStatus.ARCHIVED);
+        return mapper.toResponse(course);
+    }
+
+    @Override
+    public void deleteCourse(Long id) {
+        OnlineCourse course = findCourse(id);
+        course.getLearningPackage().setDeleted(true);
+        course.getLearningPackage().setStatus(PackageStatus.ARCHIVED);
+    }
+
+    @Override
+    public BunnyVideoUploadResponse uploadLessonVideo(Long courseId, Long lessonId, String title, MultipartFile file) {
+        OnlineCourse course = findCourse(courseId);
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+
+        if (lesson.getModule() == null
+                || lesson.getModule().getOnlineCourse() == null
+                || !course.getId().equals(lesson.getModule().getOnlineCourse().getId())) {
+            throw new RuntimeException("Lesson does not belong to this course");
+        }
+
+        BunnyVideoUploadResponse upload = bunnyStreamService.uploadVideo(file, title == null || title.isBlank() ? lesson.getTitle() : title);
+        lesson.setVideoUrl(upload.getEmbedUrl());
+        lesson.setBunnyVideoId(upload.getVideoId());
+        lesson.setBunnyLibraryId(upload.getLibraryId());
+        lesson.setBunnyCdnUrl(upload.getCdnUrl());
+        lesson.setContentType("video");
+        lesson.setTranscriptSegmentsJson(null);
+
+        Lesson savedLesson = lessonRepository.save(lesson);
+        upload.setLesson(toLessonResponse(savedLesson));
+        return upload;
+    }
+
+    @Override
+    public OnlineCourseResponse refreshLessonTranscript(Long courseId, Long lessonId) {
+        OnlineCourse course = findCourse(courseId);
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học."));
+
+        if (lesson.getModule() == null
+                || lesson.getModule().getOnlineCourse() == null
+                || !course.getId().equals(lesson.getModule().getOnlineCourse().getId())) {
+            throw new RuntimeException("Bài học không thuộc khóa học này.");
+        }
+
+        List<TranscriptSegmentResponse> segments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+        if (segments.isEmpty()) {
+            throw new IllegalArgumentException("Video này không có caption YouTube công khai. Bản chép lời hiện tại được giữ nguyên.");
+        }
+        lesson.setTranscriptSegmentsJson(writeTranscriptSegments(segments));
+        lessonRepository.save(lesson);
+        return mapper.toResponse(findCourse(courseId));
+    }
+
+    @Override
+    public OnlineCourseResponse registerCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+        if (!isFreeCourse(course.getLearningPackage())) {
+            throw new IllegalStateException("Khóa học trả phí chỉ được kích hoạt sau khi thanh toán thành công.");
+        }
+        return activateEnrollment(course, student);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findPublishedCourseForEnrollment(courseId);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
+    }
+
+    @Override
+    public OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return activateEnrollment(findPublishedCourseForEnrollment(courseId), student);
+    }
+
+    private OnlineCourseResponse activateEnrollment(OnlineCourse course, User student) {
+        LearningPackage learningPackage = learningPackageRepository
+                .findByIdAndDeletedFalseAndStatusForUpdate(course.getLearningPackage().getId(), PackageStatus.PUBLISHED)
+                .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
+
+        var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage);
+        if (existingEnrollment.isPresent()) {
+            PackageEnrollment enrollment = existingEnrollment.get();
+            if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
+                enrollment = courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
+                courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
+            }
+            return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
+        }
+
+        PackageEnrollment enrollment = enrollmentRepository.save(PackageEnrollment.builder()
+                .student(student)
+                .learningPackage(learningPackage)
+                .status(EnrollmentStatus.ACTIVE)
+                .progressPercent(0)
+                .build());
+        courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
+        return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
+                .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
+                .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
+                .map(mapper::toEnrollmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        OnlineCourse course = findCourse(courseId);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        return courseProgressService.buildCompletionResponse(enrollment, course, student);
+    }
+
+    @Override
+    public CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        OnlineCourse course = findCourse(courseId);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        CourseCompletionResponse completion = courseProgressService.buildCompletionResponse(enrollment, course, student);
+        return buildCertificateResponse(course, enrollment, student, completion, false);
+    }
+
+    @Override
+    public PackageEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Lesson not found"));
+
+        if (lesson.getModule() == null
+                || lesson.getModule().getOnlineCourse() == null
+                || !course.getId().equals(lesson.getModule().getOnlineCourse().getId())) {
+            throw new RuntimeException("Lesson does not belong to this course");
+        }
+
+        LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(student, lesson)
+                .orElseGet(() -> LessonProgress.builder()
+                        .student(student)
+                        .lesson(lesson)
+                        .enrollment(enrollment)
+                        .build());
+
+        progress.setLastAccessedAt(LocalDateTime.now());
+        if (completed) {
+            courseProgressionGuard.ensureLessonCanBeCompleted(student, course, lesson);
+            progress.setStatus(LessonProgressStatus.COMPLETED);
+            progress.setProgressPercent(100);
+            if (progress.getCompletedAt() == null) {
+                progress.setCompletedAt(LocalDateTime.now());
+            }
+        } else {
+            courseProgressionGuard.ensureLessonCanBeMarkedIncomplete(student, course, lesson);
+            progress.setStatus(LessonProgressStatus.IN_PROGRESS);
+            progress.setProgressPercent(0);
+            progress.setCompletedAt(null);
+        }
+        lessonProgressRepository.save(progress);
+
+        PackageEnrollment savedEnrollment = courseProgressService.refreshEnrollmentProgress(enrollment, course, student);
+        return mapper.toEnrollmentResponse(savedEnrollment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VocabularyTermResponse> getVocabularyTerms(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        ensureEnrolled(student, course);
+
+        List<VocabularyProgress> progressItems = vocabularyProgressRepository.findByStudentAndCourse(student, course);
+        return extractVocabularyTerms(course).stream()
+                .map(term -> applyVocabularyProgress(term, progressItems))
+                .toList();
+    }
+
+    @Override
+    public VocabularyTermResponse updateVocabularyProgress(Long courseId, String termKey, VocabularyProgressStatus status, Boolean starred, Boolean reviewed, Boolean correct, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        OnlineCourse course = findCourse(courseId);
+        ensureEnrolled(student, course);
+
+        VocabularyTermResponse term = extractVocabularyTerms(course).stream()
+                .filter(item -> item.getTermKey().equals(termKey))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Vocabulary term not found"));
+
+        VocabularyProgress progress = vocabularyProgressRepository.findByStudentAndCourseAndTermKey(student, course, termKey)
+                .orElseGet(() -> VocabularyProgress.builder()
+                        .student(student)
+                        .course(course)
+                        .termKey(termKey)
+                        .build());
+
+        if (status != null) {
+            progress.setStatus(status);
+        }
+        if (starred != null) {
+            progress.setStarred(starred);
+        }
+        if (Boolean.TRUE.equals(reviewed)) {
+            progress.setReviewCount((progress.getReviewCount() == null ? 0 : progress.getReviewCount()) + 1);
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
+        if (correct != null) {
+            progress.setLastResultCorrect(correct);
+            if (correct) {
+                progress.setCorrectCount((progress.getCorrectCount() == null ? 0 : progress.getCorrectCount()) + 1);
+            } else {
+                progress.setIncorrectCount((progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount()) + 1);
+            }
+        }
+        if (progress.getLastReviewedAt() == null) {
+            progress.setLastReviewedAt(LocalDateTime.now());
+        }
+        VocabularyProgress savedProgress = vocabularyProgressRepository.save(progress);
+
+        return applyVocabularyProgress(term, List.of(savedProgress));
+    }
+
+    private OnlineCourse findCourse(Long id) {
+        OnlineCourse course = onlineCourseRepository.findWithModulesById(id)
+                .filter(foundCourse -> !foundCourse.getLearningPackage().isDeleted())
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        initializeModules(course);
+        return course;
+    }
+
+    private OnlineCourse findPublicCourse(String slugOrId) {
+        try {
+            return findPublishedCourseByIdOrPackageId(Long.parseLong(slugOrId));
+        } catch (NumberFormatException ex) {
+            LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalseAndStatus(slugOrId, PackageStatus.PUBLISHED)
+                    .orElseThrow(() -> new CourseUnavailableException("Course not found"));
+
+            OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage)
+                    .orElseThrow(() -> new CourseUnavailableException("Course not found"));
+            initializeModules(course);
+            return course;
+        }
+    }
+
+    private OnlineCourse findManagerCourse(String slugOrId) {
+        OnlineCourse course;
+        try {
+            Long numericId = Long.parseLong(slugOrId);
+            course = onlineCourseRepository.findWithModulesById(numericId)
+                    .orElseGet(() -> {
+                        LearningPackage learningPackage = learningPackageRepository.findByIdAndDeletedFalse(numericId)
+                                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+                        return onlineCourseRepository.findByLearningPackage(learningPackage)
+                                .orElseThrow(() -> new RuntimeException("Course not found"));
+                    });
+        } catch (NumberFormatException ex) {
+            LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(slugOrId)
+                    .orElseThrow(() -> new RuntimeException("Course not found"));
+
+            course = onlineCourseRepository.findByLearningPackage(learningPackage)
+                    .orElseThrow(() -> new RuntimeException("Course not found"));
+        }
+
+        if (course.getLearningPackage().isDeleted()) {
+            throw new RuntimeException("Course not found");
+        }
+        initializeModules(course);
+        return course;
+    }
+
+    private void initializeModules(OnlineCourse course) {
+        course.getModules().forEach(module -> module.getLessons().size());
+    }
+
+    private OnlineCourse findPublishedCourseForEnrollment(Long courseId) {
+        OnlineCourse course = onlineCourseRepository
+                .findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(courseId, PackageStatus.PUBLISHED)
+                .orElseThrow(() -> new CourseUnavailableException("Course not found or not available for enrollment"));
+        initializeModules(course);
+        return course;
+    }
+
+    private OnlineCourse findPublishedCourseByIdOrPackageId(Long slugOrId) {
+        OnlineCourse course = onlineCourseRepository
+                .findWithModulesByIdAndLearningPackageDeletedFalseAndLearningPackageStatus(slugOrId, PackageStatus.PUBLISHED)
+                .orElseGet(() -> {
+                    LearningPackage learningPackage = learningPackageRepository
+                            .findByIdAndDeletedFalseAndStatus(slugOrId, PackageStatus.PUBLISHED)
+                            .orElseThrow(() -> new CourseUnavailableException("Course not found"));
+
+                    return onlineCourseRepository.findByLearningPackage(learningPackage)
+                            .orElseThrow(() -> new CourseUnavailableException("Course not found"));
+                });
+        initializeModules(course);
+        return course;
+    }
+
+    private void ensureEnrolled(User student, OnlineCourse course) {
+        courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+    }
+
+    private List<VocabularyTermResponse> extractVocabularyTerms(OnlineCourse course) {
+        List<VocabularyTermResponse> terms = new ArrayList<>();
+        for (CourseModule module : course.getModules()) {
+            for (Lesson lesson : module.getLessons()) {
+                terms.addAll(extractVocabularyTerms(module, lesson));
+            }
+        }
+        return terms;
+    }
+
+    private List<VocabularyTermResponse> extractVocabularyTerms(CourseModule module, Lesson lesson) {
+        String content = lesson.getContentText();
+        if (content == null || !content.contains("### ")) {
+            return List.of();
+        }
+
+        java.util.regex.Matcher matcher = VOCABULARY_HEADING.matcher(content);
+        List<java.util.regex.MatchResult> headings = matcher.results().toList();
+        List<VocabularyTermResponse> terms = new ArrayList<>();
+
+        for (int index = 0; index < headings.size(); index++) {
+            java.util.regex.MatchResult heading = headings.get(index);
+            int start = heading.end();
+            int end = index + 1 < headings.size() ? headings.get(index + 1).start() : content.length();
+            String block = content.substring(start, end);
+            String meaning = findVocabularyField(block, "Meaning");
+            if (meaning == null || meaning.isBlank()) {
+                continue;
+            }
+
+            String term = cleanMarkdown(heading.group(1));
+            terms.add(VocabularyTermResponse.builder()
+                    .termKey(toTermKey(module, lesson, term))
+                    .term(term)
+                    .meaning(meaning)
+                    .example(firstNonBlank(findVocabularyField(block, "IELTS example"), findVocabularyField(block, "Example")))
+                    .commonError(firstNonBlank(findVocabularyField(block, "Common error to avoid"), findVocabularyField(block, "Common error")))
+                    .lessonId(lesson.getId())
+                    .lessonTitle(lesson.getTitle())
+                    .moduleId(module.getId())
+                    .moduleTitle(module.getTitle())
+                    .status(VocabularyProgressStatus.NEW)
+                    .starred(false)
+                    .reviewCount(0)
+                    .correctCount(0)
+                    .incorrectCount(0)
+                    .lastResultCorrect(null)
+                    .build());
+        }
+
+        return terms;
+    }
+
+    private VocabularyTermResponse applyVocabularyProgress(VocabularyTermResponse term, List<VocabularyProgress> progressItems) {
+        progressItems.stream()
+                .filter(progress -> progress.getTermKey().equals(term.getTermKey()))
+                .findFirst()
+                .ifPresent(progress -> {
+                    term.setStatus(progress.getStatus());
+                    term.setStarred(progress.isStarred());
+                    term.setReviewCount(progress.getReviewCount() == null ? 0 : progress.getReviewCount());
+                    term.setCorrectCount(progress.getCorrectCount() == null ? 0 : progress.getCorrectCount());
+                    term.setIncorrectCount(progress.getIncorrectCount() == null ? 0 : progress.getIncorrectCount());
+                    term.setLastResultCorrect(progress.getLastResultCorrect());
+                });
+        return term;
+    }
+
+    private String findVocabularyField(String block, String label) {
+        Pattern fieldPattern = Pattern.compile("(?m)^\\*\\*" + Pattern.quote(label) + ":\\*\\*\\s*(.+)$", Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher matcher = fieldPattern.matcher(block);
+        return matcher.find() ? cleanMarkdown(matcher.group(1)) : null;
+    }
+
+    private String cleanMarkdown(String value) {
+        return value == null ? "" : value.replace("**", "").replaceAll("^['\"]|['\"]$", "").trim();
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
+    }
+
+    private String toTermKey(CourseModule module, Lesson lesson, String term) {
+        return "%s-%s-%s".formatted(module.getId(), lesson.getId(), toSlug(term));
+    }
+
+    private void rebuildModules(OnlineCourse course, List<ModuleRequest> modules) {
+        if (modules == null) return;
+        for (ModuleRequest moduleRequest : modules) {
+            CourseModule module = CourseModule.builder()
+                    .title(moduleRequest.getTitle())
+                    .description(moduleRequest.getDescription())
+                    .displayOrder(defaultInt(moduleRequest.getDisplayOrder()))
+                    .build();
+            if (moduleRequest.getLessons() != null) {
+                for (LessonRequest lessonRequest : moduleRequest.getLessons()) {
+                    Lesson lesson = Lesson.builder()
+                            .title(lessonRequest.getTitle())
+                            .description(lessonRequest.getDescription())
+                            .contentType(lessonRequest.getContentType())
+                            .contentText(lessonRequest.getContentText())
+                            .videoUrl(lessonRequest.getVideoUrl())
+                            .materialUrl(lessonRequest.getMaterialUrl())
+                            .durationMinutes(defaultInt(lessonRequest.getDurationMinutes()))
+                            .displayOrder(defaultInt(lessonRequest.getDisplayOrder()))
+                            .preview(Boolean.TRUE.equals(lessonRequest.getPreview()))
+                            .build();
+                    applyLessonTranscript(lesson, lessonRequest, null);
+                    module.addLesson(lesson);
+                }
+            }
+            course.addModule(module);
+        }
+    }
+
+    private void synchronizeModules(OnlineCourse course, List<ModuleRequest> modules) {
+        if (modules == null) {
+            return;
+        }
+
+        List<CourseModule> existingModules = course.getModules();
+        Set<Long> incomingModuleIds = new HashSet<>();
+        List<CourseModule> nextModules = new ArrayList<>();
+
+        for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
+            ModuleRequest moduleRequest = modules.get(moduleIndex);
+            CourseModule module = findExistingModule(existingModules, moduleRequest.getId());
+
+            if (module == null) {
+                module = CourseModule.builder().build();
+                module.setOnlineCourse(course);
+            } else if (module.getId() != null) {
+                incomingModuleIds.add(module.getId());
+            }
+
+            module.setTitle(moduleRequest.getTitle());
+            module.setDescription(moduleRequest.getDescription());
+            module.setDisplayOrder(defaultInt(moduleRequest.getDisplayOrder()));
+            synchronizeLessons(module, moduleRequest.getLessons());
+            nextModules.add(module);
+        }
+
+        for (CourseModule existingModule : new ArrayList<>(existingModules)) {
+            if (existingModule.getId() != null && !incomingModuleIds.contains(existingModule.getId())) {
+                ensureModuleCanBeRemoved(existingModule);
+            }
+        }
+
+        existingModules.clear();
+        nextModules.forEach(course::addModule);
+    }
+
+    private void synchronizeLessons(CourseModule module, List<LessonRequest> lessons) {
+        List<Lesson> existingLessons = module.getLessons();
+        Set<Long> incomingLessonIds = new HashSet<>();
+        List<Lesson> nextLessons = new ArrayList<>();
+
+        if (lessons != null) {
+            for (LessonRequest lessonRequest : lessons) {
+                Lesson lesson = findExistingLesson(existingLessons, lessonRequest.getId());
+
+                if (lesson == null) {
+                    lesson = Lesson.builder().build();
+                    lesson.setModule(module);
+                } else if (lesson.getId() != null) {
+                    incomingLessonIds.add(lesson.getId());
+                }
+
+                lesson.setTitle(lessonRequest.getTitle());
+                lesson.setDescription(lessonRequest.getDescription());
+                lesson.setContentType(lessonRequest.getContentType());
+                lesson.setContentText(lessonRequest.getContentText());
+                String previousVideoUrl = lesson.getVideoUrl();
+                lesson.setVideoUrl(lessonRequest.getVideoUrl());
+                lesson.setMaterialUrl(lessonRequest.getMaterialUrl());
+                lesson.setDurationMinutes(defaultInt(lessonRequest.getDurationMinutes()));
+                lesson.setDisplayOrder(defaultInt(lessonRequest.getDisplayOrder()));
+                lesson.setPreview(Boolean.TRUE.equals(lessonRequest.getPreview()));
+                applyLessonTranscript(lesson, lessonRequest, previousVideoUrl);
+                nextLessons.add(lesson);
+            }
+        }
+
+        for (Lesson existingLesson : new ArrayList<>(existingLessons)) {
+            if (existingLesson.getId() != null && !incomingLessonIds.contains(existingLesson.getId())) {
+                ensureLessonCanBeRemoved(existingLesson);
+            }
+        }
+
+        existingLessons.clear();
+        nextLessons.forEach(module::addLesson);
+    }
+
+    private void synchronizeAssessments(OnlineCourse course, List<ContentManagerCourseAssessmentRequest> requests) {
+        List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
+        Set<Long> incomingAssessmentIds = new HashSet<>();
+        List<CourseModule> modules = new ArrayList<>(course.getModules());
+
+        for (int index = 0; index < requests.size(); index++) {
+            ContentManagerCourseAssessmentRequest request = requests.get(index);
+            CourseAssessment assessment = findExistingAssessment(existingAssessments, request.getId());
+
+            if (assessment == null) {
+                assessment = CourseAssessment.builder().onlineCourse(course).build();
+            } else if (assessment.getId() != null) {
+                incomingAssessmentIds.add(assessment.getId());
+            }
+
+            CourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
+            AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
+            validateAssessmentConfiguration(request);
+
+            assessment.setOnlineCourse(course);
+            assessment.setModule(targetModule);
+            assessment.setRubric(rubric);
+            assessment.setTitle(request.getTitle().trim());
+            assessment.setDescription(request.getDescription());
+            assessment.setType(request.getType());
+            assessment.setSkill(request.getSkill());
+            assessment.setAiEvaluationMode(request.getAiEvaluationMode());
+            assessment.setInstructions(request.getInstructions());
+            assessment.setObjectiveAnswerKey(request.getObjectiveAnswerKey());
+            assessment.setUiConfigJson(request.getUiConfigJson());
+            assessment.setPassingScore(IeltsBandScale.normalizeConfiguredPassingScore(
+                    request.getPassingScore(),
+                    request.getType(),
+                    request.getSkill(),
+                    request.getAiEvaluationMode()
+            ));
+            assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
+                    request.getMaxScore(),
+                    request.getType(),
+                    request.getSkill(),
+                    request.getAiEvaluationMode()
+            ));
+            assessment.setTimeLimitMinutes(defaultInt(request.getTimeLimitMinutes()));
+            assessment.setDisplayOrder(request.getDisplayOrder() == null ? index + 1 : request.getDisplayOrder());
+            assessment.setActive(request.getActive() == null || request.getActive());
+            courseAssessmentRepository.save(assessment);
+        }
+
+        for (CourseAssessment existingAssessment : existingAssessments) {
+            if (existingAssessment.getId() == null || incomingAssessmentIds.contains(existingAssessment.getId())) {
+                continue;
+            }
+            if (assessmentSubmissionRepository.existsByAssessmentId(existingAssessment.getId())) {
+                existingAssessment.setActive(false);
+                continue;
+            }
+            courseAssessmentRepository.delete(existingAssessment);
+        }
+    }
+
+    private CourseModule findExistingModule(List<CourseModule> modules, Long moduleId) {
+        if (moduleId == null) {
+            return null;
+        }
+        return modules.stream()
+                .filter(module -> moduleId.equals(module.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Module not found in this course"));
+    }
+
+    private Lesson findExistingLesson(List<Lesson> lessons, Long lessonId) {
+        if (lessonId == null) {
+            return null;
+        }
+        return lessons.stream()
+                .filter(lesson -> lessonId.equals(lesson.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Lesson not found in this module"));
+    }
+
+    private CourseAssessment findExistingAssessment(List<CourseAssessment> assessments, Long assessmentId) {
+        if (assessmentId == null) {
+            return null;
+        }
+        return assessments.stream()
+                .filter(assessment -> assessmentId.equals(assessment.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Assessment not found in this course"));
+    }
+
+    private void validateAssessmentConfiguration(ContentManagerCourseAssessmentRequest request) {
+        if (request.getUiConfigJson() == null || request.getUiConfigJson().isBlank()) {
+            return;
+        }
+        try {
+            var root = objectMapper.readTree(request.getUiConfigJson());
+            if (!root.isObject() || !root.path("parts").isArray() || root.path("parts").isEmpty()) {
+                throw new RuntimeException("Cấu hình đề thi phải có ít nhất một phần.");
+            }
+            if (request.getObjectiveAnswerKey() == null || request.getObjectiveAnswerKey().isBlank()
+                    || !objectMapper.readTree(request.getObjectiveAnswerKey()).isObject()) {
+                throw new RuntimeException("Đáp án tham chiếu của đề thi không hợp lệ.");
+            }
+        } catch (JsonProcessingException exception) {
+            throw new RuntimeException("Cấu hình đề thi hoặc đáp án tham chiếu không phải JSON hợp lệ.");
+        }
+    }
+
+    private CourseModule resolveAssessmentModule(List<CourseModule> modules, Long moduleId) {
+        if (moduleId == null) {
+            return null;
+        }
+        return modules.stream()
+                .filter(module -> moduleId.equals(module.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Assessment module does not belong to this course"));
+    }
+
+    private AssessmentRubric resolveAssessmentRubric(Long rubricId) {
+        if (rubricId == null) {
+            return null;
+        }
+        AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
+                .orElseThrow(() -> new RuntimeException("Rubric not found"));
+        if (!rubric.isActive()) {
+            throw new RuntimeException("Rubric is not active");
+        }
+        return rubric;
+    }
+
+    private void ensureModuleCanBeRemoved(CourseModule module) {
+        for (Lesson lesson : module.getLessons()) {
+            ensureLessonCanBeRemoved(lesson);
+        }
+        List<CourseAssessment> moduleAssessments = courseAssessmentRepository.findByModule(module);
+        for (CourseAssessment assessment : moduleAssessments) {
+            if (assessment.getId() != null && assessmentSubmissionRepository.existsByAssessmentId(assessment.getId())) {
+                throw new RuntimeException(
+                        "Không thể xóa mô-đun \"" + module.getTitle()
+                                + "\" vì đã có bài làm học viên trong bài kiểm tra \"" + assessment.getTitle() + "\"."
+                );
+            }
+        }
+        courseAssessmentRepository.deleteAll(moduleAssessments);
+        courseAssessmentRepository.flush();
+    }
+
+    private void ensureLessonCanBeRemoved(Lesson lesson) {
+        if (lesson.getId() != null && lessonProgressRepository.existsByLessonId(lesson.getId())) {
+            throw new RuntimeException(
+                    "Không thể xóa bài học \"" + lesson.getTitle() + "\" vì đã có tiến độ học viên."
+            );
+        }
+    }
+
+    private CourseAssessmentResponse toManagerAssessmentResponse(CourseAssessment assessment) {
+        return CourseAssessmentResponse.builder()
+                .id(assessment.getId())
+                .courseId(assessment.getOnlineCourse().getId())
+                .moduleId(assessment.getModule() == null ? null : assessment.getModule().getId())
+                .moduleTitle(assessment.getModule() == null ? null : assessment.getModule().getTitle())
+                .title(assessment.getTitle())
+                .description(assessment.getDescription())
+                .type(assessment.getType())
+                .skill(assessment.getSkill())
+                .aiEvaluationMode(assessment.getAiEvaluationMode())
+                .instructions(assessment.getInstructions())
+                .objectiveAnswerKey(assessment.getObjectiveAnswerKey())
+                .uiConfigJson(resolveAssessmentUiConfig(assessment))
+                .passingScore(assessment.getPassingScore())
+                .maxScore(IeltsBandScale.resolveScoreCap(assessment))
+                .timeLimitMinutes(assessment.getTimeLimitMinutes())
+                .displayOrder(assessment.getDisplayOrder())
+                .active(assessment.isActive())
+                .rubric(toRubricResponse(assessment.getRubric()))
+                .latestSubmission((AiAssessmentSubmissionResponse) null)
+                .previousSubmission((AiAssessmentSubmissionResponse) null)
+                .build();
+    }
+
+    private String resolveAssessmentUiConfig(CourseAssessment assessment) {
+        if (assessment.getUiConfigJson() != null && !assessment.getUiConfigJson().isBlank()) {
+            return assessment.getUiConfigJson();
+        }
+        String instructions = assessment.getInstructions();
+        String marker = "[ENGLISHLAB_UI_CONFIG]";
+        if (instructions == null) {
+            return null;
+        }
+        int markerIndex = instructions.indexOf(marker);
+        if (markerIndex < 0) {
+            return null;
+        }
+        String embeddedConfig = instructions.substring(markerIndex + marker.length()).trim();
+        return embeddedConfig.isBlank() ? null : embeddedConfig;
+    }
+
+    private AssessmentRubricResponse toRubricResponse(AssessmentRubric rubric) {
+        if (rubric == null) {
+            return null;
+        }
+        return AssessmentRubricResponse.builder()
+                .id(rubric.getId())
+                .name(rubric.getName())
+                .examType(rubric.getExamType())
+                .skill(rubric.getSkill())
+                .taskType(rubric.getTaskType())
+                .scoringScale(rubric.getScoringScale())
+                .description(rubric.getDescription())
+                .criteria(rubric.getCriteria().stream()
+                        .sorted(Comparator.comparing(RubricCriterion::getDisplayOrder).thenComparing(RubricCriterion::getId))
+                        .map(criterion -> RubricCriterionResponse.builder()
+                                .id(criterion.getId())
+                                .name(criterion.getName())
+                                .weight(criterion.getWeight())
+                                .description(criterion.getDescription())
+                                .bandDescriptors(criterion.getBandDescriptors())
+                                .displayOrder(criterion.getDisplayOrder())
+                                .build())
+                        .toList())
+                .build();
+    }
+
+    private LessonResponse toLessonResponse(Lesson lesson) {
+        return LessonResponse.builder()
+                .id(lesson.getId())
+                .title(lesson.getTitle())
+                .description(lesson.getDescription())
+                .contentType(lesson.getContentType())
+                .contentText(lesson.getContentText())
+                .videoUrl(lesson.getVideoUrl())
+                .bunnyVideoId(lesson.getBunnyVideoId())
+                .bunnyLibraryId(lesson.getBunnyLibraryId())
+                .bunnyCdnUrl(lesson.getBunnyCdnUrl())
+                .materialUrl(lesson.getMaterialUrl())
+                .transcriptSegments(readTranscriptSegments(lesson.getTranscriptSegmentsJson()))
+                .durationMinutes(lesson.getDurationMinutes())
+                .displayOrder(lesson.getDisplayOrder())
+                .preview(lesson.isPreview())
+                .build();
+    }
+
+    private void applyLessonTranscript(Lesson lesson, LessonRequest lessonRequest, String previousVideoUrl) {
+        if (lessonRequest.getTranscriptSegments() != null) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(lessonRequest.getTranscriptSegments())));
+            return;
+        }
+
+        String nextVideoUrl = lessonRequest.getVideoUrl();
+        boolean videoChanged = previousVideoUrl == null
+                ? nextVideoUrl != null && !nextVideoUrl.isBlank()
+                : !previousVideoUrl.equals(nextVideoUrl);
+        boolean missingTranscript = lesson.getTranscriptSegmentsJson() == null || lesson.getTranscriptSegmentsJson().isBlank();
+
+        if ((videoChanged || missingTranscript) && youTubeTranscriptService.extractVideoId(nextVideoUrl).isPresent()) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(youTubeTranscriptService.fetchTranscriptSegments(nextVideoUrl)));
+        } else if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
+            lesson.setTranscriptSegmentsJson(null);
+        }
+    }
+
+    private List<TranscriptSegmentResponse> toTranscriptResponses(List<TranscriptSegmentRequest> segments) {
+        if (segments == null) {
+            return List.of();
+        }
+        return segments.stream()
+                .filter(segment -> segment != null && segment.getText() != null && !segment.getText().isBlank())
+                .map(segment -> TranscriptSegmentResponse.builder()
+                        .startSeconds(segment.getStartSeconds())
+                        .endSeconds(segment.getEndSeconds())
+                        .text(segment.getText().trim())
+                        .build())
+                .toList();
+    }
+
+    private String writeTranscriptSegments(List<TranscriptSegmentResponse> segments) {
+        List<TranscriptSegmentResponse> safeSegments = segments == null ? List.of() : segments;
+        try {
+            return objectMapper.writeValueAsString(safeSegments);
+        } catch (JsonProcessingException ex) {
+            return "[]";
+        }
+    }
+
+    private List<TranscriptSegmentResponse> readTranscriptSegments(String transcriptSegmentsJson) {
+        if (transcriptSegmentsJson == null || transcriptSegmentsJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(
+                    transcriptSegmentsJson,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, TranscriptSegmentResponse.class)
+            );
+        } catch (Exception ex) {
+            return List.of();
+        }
+    }
+
+    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, PackageStatus status) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            Join<OnlineCourse, LearningPackage> learningPackage = root.join("learningPackage");
+
+            Join<OnlineCourse, CourseCategory> categoryJoin = root.join("category");
+            query.distinct(true);
+            predicates.add(criteriaBuilder.isFalse(learningPackage.get("deleted")));
+
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(learningPackage.get("status"), status));
+            }
+            if (category != null && !category.isBlank()) {
+                predicates.add(criteriaBuilder.equal(categoryJoin.get("code"), normalizeCategoryCode(category)));
+            }
+            if (keyword != null) {
+                String pattern = "%" + keyword.toLowerCase(Locale.ROOT) + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("title")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("shortDescription")), pattern)
+                ));
+            }
+            if (currentBand != null) {
+                Predicate hasBandInfo = criteriaBuilder.or(
+                        criteriaBuilder.isNotNull(root.get("recommendedCurrentBandMin")),
+                        criteriaBuilder.isNotNull(root.get("recommendedCurrentBandMax"))
+                );
+                Predicate minMatches = criteriaBuilder.or(
+                        criteriaBuilder.isNull(root.get("recommendedCurrentBandMin")),
+                        criteriaBuilder.lessThanOrEqualTo(root.get("recommendedCurrentBandMin"), currentBand)
+                );
+                Predicate maxMatches = criteriaBuilder.or(
+                        criteriaBuilder.isNull(root.get("recommendedCurrentBandMax")),
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("recommendedCurrentBandMax"), currentBand)
+                );
+                predicates.add(criteriaBuilder.and(hasBandInfo, minMatches, maxMatches));
+            }
+            if (targetBand != null) {
+                predicates.add(criteriaBuilder.and(
+                        criteriaBuilder.isNotNull(root.get("targetBand")),
+                        criteriaBuilder.greaterThanOrEqualTo(root.get("targetBand"), targetBand)
+                ));
+            }
+            if (skill != null) {
+                String skillToken = skill.name().toLowerCase(Locale.ROOT);
+                var assessmentSubquery = query.subquery(Long.class);
+                var assessmentRoot = assessmentSubquery.from(fu.sap490.g23.backend.entity.assessment.CourseAssessment.class);
+                assessmentSubquery.select(assessmentRoot.get("id"));
+                assessmentSubquery.where(
+                        criteriaBuilder.equal(assessmentRoot.get("onlineCourse"), root),
+                        criteriaBuilder.isTrue(assessmentRoot.get("active")),
+                        criteriaBuilder.equal(assessmentRoot.get("skill"), skill)
+                );
+
+                Join<OnlineCourse, CourseModule> moduleJoin = root.join("modules", jakarta.persistence.criteria.JoinType.LEFT);
+                Join<CourseModule, Lesson> lessonJoin = moduleJoin.join("lessons", jakarta.persistence.criteria.JoinType.LEFT);
+                Predicate lessonMatches = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(lessonJoin.get("title")), "%" + skillToken + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(lessonJoin.get("description")), "%" + skillToken + "%"),
+                        criteriaBuilder.like(criteriaBuilder.lower(lessonJoin.get("contentText")), "%" + skillToken + "%")
+                );
+
+                predicates.add(criteriaBuilder.or(criteriaBuilder.exists(assessmentSubquery), lessonMatches));
+            }
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private void validateCourseRequest(OnlineCourseRequest request) {
+        Double minBand = request.getRecommendedCurrentBandMin();
+        Double maxBand = request.getRecommendedCurrentBandMax();
+        if (minBand != null && maxBand != null && minBand > maxBand) {
+            throw new IllegalArgumentException("Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.");
+        }
+
+        boolean hasPathCode = request.getLearningPathCode() != null && !request.getLearningPathCode().isBlank();
+        boolean hasPathName = request.getLearningPathName() != null && !request.getLearningPathName().isBlank();
+        if (hasPathCode != hasPathName) {
+            throw new IllegalArgumentException("Mã và tên lộ trình học phải được nhập cùng nhau.");
+        }
+        if (hasPathCode && request.getLearningPathOrder() == null) {
+            throw new IllegalArgumentException("Khóa học thuộc lộ trình phải có thứ tự.");
+        }
+        if (request.getStatus() == PackageStatus.PUBLISHED
+                && (request.getModules() == null
+                || request.getModules().isEmpty()
+                || request.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty()))) {
+            throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
+        }
+    }
+
+    private void validatePublishableCourse(OnlineCourse course) {
+        if (course.getModules() == null
+                || course.getModules().isEmpty()
+                || course.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty())) {
+            throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
+        }
+    }
+
+    private String normalizeCategoryCode(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private CourseCertificateResponse buildCertificateResponse(
+            OnlineCourse course,
+            PackageEnrollment enrollment,
+            User student,
+            CourseCompletionResponse completion,
+            boolean verified
+    ) {
+        if (!completion.isEligibleForCertificate()) {
+            return CourseCertificateResponse.builder()
+                    .eligible(false)
+                    .verified(false)
+                    .courseId(course.getId())
+                    .enrollmentId(enrollment.getId())
+                    .learnerName(resolveLearnerName(student))
+                    .courseTitle(course.getLearningPackage().getTitle())
+                    .targetOutcome(course.getTargetOutcome())
+                    .completionDate(completion.getCompletionDate())
+                    .platformName("EnglishLab")
+                    .message(completion.getStatusReason())
+                    .build();
+        }
+
+        String verificationCode = buildVerificationCode(enrollment, course, student);
+        return CourseCertificateResponse.builder()
+                .eligible(true)
+                .verified(verified)
+                .courseId(course.getId())
+                .enrollmentId(enrollment.getId())
+                .learnerName(resolveLearnerName(student))
+                .courseTitle(course.getLearningPackage().getTitle())
+                .targetOutcome(course.getTargetOutcome())
+                .completionDate(completion.getCompletionDate())
+                .verificationCode(verificationCode)
+                .verificationUrl("/api/online-courses/certificates/" + verificationCode)
+                .platformName("EnglishLab")
+                .message(verified
+                        ? "Chứng nhận hoàn thành hợp lệ."
+                        : "Bạn đã đủ điều kiện nhận chứng nhận hoàn thành.")
+                .build();
+    }
+
+    private PackageEnrollment findEnrollmentByCertificateCode(String verificationCode) {
+        var matcher = CERTIFICATE_CODE_PATTERN.matcher(verificationCode == null ? "" : verificationCode.trim().toUpperCase(Locale.ROOT));
+        if (!matcher.matches()) {
+            throw new RuntimeException("Mã xác thực chứng nhận không hợp lệ.");
+        }
+
+        Long enrollmentId = Long.parseLong(matcher.group(1));
+        Long courseId = Long.parseLong(matcher.group(2));
+        PackageEnrollment enrollment = enrollmentRepository.findById(enrollmentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chứng nhận cần xác thực."));
+        OnlineCourse course = onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học của chứng nhận này."));
+
+        if (!courseId.equals(course.getId())) {
+            throw new RuntimeException("Mã xác thực chứng nhận không khớp với khóa học.");
+        }
+        String expectedCode = buildVerificationCode(enrollment, course, enrollment.getStudent());
+        if (!expectedCode.equalsIgnoreCase(verificationCode)) {
+            throw new RuntimeException("Mã xác thực chứng nhận không hợp lệ.");
+        }
+        return enrollment;
+    }
+
+    private String buildVerificationCode(PackageEnrollment enrollment, OnlineCourse course, User student) {
+        try {
+            String payload = "%s:%s:%s:%s".formatted(
+                    enrollment.getId(),
+                    course.getId(),
+                    student.getId(),
+                    enrollment.getRegisteredAt()
+            );
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            String checksum = HexFormat.of().formatHex(digest.digest(payload.getBytes(StandardCharsets.UTF_8)))
+                    .substring(0, 10)
+                    .toUpperCase(Locale.ROOT);
+            return "ELC-%d-%d-%s".formatted(enrollment.getId(), course.getId(), checksum);
+        } catch (Exception ex) {
+            throw new RuntimeException("Chưa thể tạo mã xác thực. Vui lòng thử lại.");
+        }
+    }
+
+    private String resolveLearnerName(User student) {
+        return student.getFullName() == null || student.getFullName().isBlank()
+                ? "Học viên EnglishLab"
+                : student.getFullName().trim();
+    }
+
+    private String generateUniqueSlug(String title) {
+        String baseSlug = toSlug(title);
+        String slug = baseSlug;
+        int index = 2;
+        while (learningPackageRepository.existsBySlug(slug)) {
+            slug = baseSlug + "-" + index++;
+        }
+        return slug;
+    }
+
+    private String toSlug(String input) {
+        String nowhitespace = WHITESPACE.matcher(input.trim()).replaceAll("-");
+        String normalized = Normalizer.normalize(nowhitespace, Normalizer.Form.NFD);
+        String slug = NONLATIN.matcher(normalized).replaceAll("");
+        slug = slug.replaceAll("-+", "-").toLowerCase(Locale.ENGLISH);
+        return slug.isBlank() ? "online-course" : slug;
+    }
+
+    private String clean(String keyword) {
+        return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private Integer defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private BigDecimal defaultBigDecimal(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal resolveSalePrice(BigDecimal price, BigDecimal salePrice) {
+        BigDecimal originalPrice = defaultBigDecimal(price);
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return null;
+        }
+        return salePrice;
+    }
+
+    private boolean isFreeCourse(LearningPackage learningPackage) {
+        BigDecimal price = defaultBigDecimal(learningPackage.getPrice());
+
+        BigDecimal salePrice = resolveSalePrice(price, learningPackage.getSalePrice());
+        return (salePrice == null ? price : salePrice).compareTo(BigDecimal.ZERO) <= 0;
+    }
+}

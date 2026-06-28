@@ -6,7 +6,6 @@ import fu.sap490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
-
 import java.util.List;
 
 public interface ClassroomContentService {

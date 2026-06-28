@@ -2,7 +2,6 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.UpdateGradebookRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
-
 import java.util.List;
 
 public interface ClassroomGradebookService {

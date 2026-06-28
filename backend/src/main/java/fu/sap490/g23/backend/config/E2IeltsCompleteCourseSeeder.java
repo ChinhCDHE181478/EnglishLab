@@ -1,5 +1,8 @@
 package fu.sap490.g23.backend.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
@@ -14,7 +17,9 @@ import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sap490.g23.backend.service.course.YouTubeTranscriptService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
@@ -23,18 +28,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.List;
 
 @Component
 @Order(40)
 @RequiredArgsConstructor
+@Slf4j
 public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private static final String COURSE_SLUG = "e2-ielts-practice-tests";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final YouTubeTranscriptService youTubeTranscriptService;
 
     @Value("${app.seed.enabled:false}")
     private boolean seedEnabled;
@@ -71,12 +80,12 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
         learningPackage.setPackageType(packageType);
         learningPackage.setTitle("E2 IELTS Practice Tests");
-        learningPackage.setShortDescription("Free IELTS practice course curated from public E2 IELTS YouTube videos.");
-        learningPackage.setDescription("A free online course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
+        learningPackage.setShortDescription("IELTS practice course curated from public E2 IELTS YouTube videos.");
+        learningPackage.setDescription("An IELTS practice course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
         learningPackage.setTargetScore("IELTS 5.5 - 7.0");
         learningPackage.setDuration("5 hours 32 minutes");
         learningPackage.setStudyMode("Self-paced online video course");
-        learningPackage.setPrice(BigDecimal.ZERO);
+        learningPackage.setPrice(BigDecimal.valueOf(10000));
         learningPackage.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
         learningPackage.setStatus(PackageStatus.PUBLISHED);
         learningPackage.setDisplayOrder(5);
@@ -164,7 +173,29 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Choose five familiar topics and outline short answers with the Answer-Explain-Example pattern.",
                 "Build a personal speaking bank with twenty questions, idea prompts, and strong vocabulary.");
 
+        backfillMissingVideoTranscripts(onlineCourse);
         onlineCourseRepository.save(onlineCourse);
+    }
+
+    private void backfillMissingVideoTranscripts(OnlineCourse onlineCourse) {
+        onlineCourse.getModules().stream()
+                .flatMap(module -> module.getLessons().stream())
+                .filter(lesson -> lesson.getVideoUrl() != null && !lesson.getVideoUrl().isBlank())
+                .filter(lesson -> lesson.getTranscriptSegmentsJson() == null || lesson.getTranscriptSegmentsJson().isBlank())
+                .forEach(lesson -> {
+                    List<TranscriptSegmentResponse> segments =
+                            youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+                    if (segments.isEmpty()) {
+                        log.warn("Không tìm thấy caption để backfill cho bài học E2: {}", lesson.getTitle());
+                        return;
+                    }
+                    try {
+                        lesson.setTranscriptSegmentsJson(OBJECT_MAPPER.writeValueAsString(segments));
+                        log.info("Đã backfill {} đoạn transcript cho bài học E2: {}", segments.size(), lesson.getTitle());
+                    } catch (JsonProcessingException ex) {
+                        log.warn("Không thể lưu transcript cho bài học E2 {}: {}", lesson.getTitle(), ex.getMessage());
+                    }
+                });
     }
 
     private void addModule(

@@ -10,7 +10,7 @@ import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.OnlineCourseMapper;
-import fu.sap490.g23.backend.service.course.OnlineCourseServiceImpl;
+import fu.sap490.g23.backend.service.course.impl.OnlineCourseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,7 +87,6 @@ class GetMyEnrollmentsTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)).thenReturn(List.of(activeEnrollment));
         when(onlineCourseRepository.findByLearningPackage(activePackage)).thenReturn(Optional.of(activeCourse));
-        when(courseProgressService.refreshEnrollmentProgress(activeEnrollment, activeCourse, student)).thenReturn(activeEnrollment);
         when(mapper.toEnrollmentResponse(activeEnrollment)).thenReturn(enrollmentResponse);
 
         // Act
@@ -97,7 +96,6 @@ class GetMyEnrollmentsTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(enrollmentResponse, result.get(0));
-        verify(courseProgressService, times(1)).refreshEnrollmentProgress(activeEnrollment, activeCourse, student);
     }
 
     /**
@@ -110,7 +108,6 @@ class GetMyEnrollmentsTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student)).thenReturn(List.of(activeEnrollment, deletedEnrollment));
         when(onlineCourseRepository.findByLearningPackage(activePackage)).thenReturn(Optional.of(activeCourse));
-        when(courseProgressService.refreshEnrollmentProgress(activeEnrollment, activeCourse, student)).thenReturn(activeEnrollment);
         when(mapper.toEnrollmentResponse(activeEnrollment)).thenReturn(enrollmentResponse);
 
         // Act

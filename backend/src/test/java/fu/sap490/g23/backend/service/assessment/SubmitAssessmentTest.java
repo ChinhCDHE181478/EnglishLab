@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.service.assessment;
 
+import fu.sap490.g23.backend.service.assessment.impl.AiAssessmentServiceImpl;
 import fu.sap490.g23.backend.dto.request.assessment.AssessmentSubmissionRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sap490.g23.backend.entity.User;
@@ -20,6 +21,7 @@ import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
+import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +52,9 @@ class SubmitAssessmentTest {
     private CourseProgressionGuard courseProgressionGuard;
 
     @Mock
+    private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+
+    @Mock
     private AiEvaluationClient aiEvaluationClient;
 
     @Mock
@@ -57,6 +62,9 @@ class SubmitAssessmentTest {
 
     @Mock
     private CourseProgressService courseProgressService;
+
+    @Mock
+    private AssessmentPassingThresholdResolver passingThresholdResolver;
 
     @InjectMocks
     private AiAssessmentServiceImpl aiAssessmentService;
@@ -107,6 +115,7 @@ class SubmitAssessmentTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
         when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
         
         AiEvaluationResult mockAiResult = AiEvaluationResult.builder()
@@ -144,7 +153,7 @@ class SubmitAssessmentTest {
         assessment.setAiEvaluationMode(AiEvaluationMode.NONE);
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -166,7 +175,7 @@ class SubmitAssessmentTest {
         
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.of(enrollment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -184,12 +193,13 @@ class SubmitAssessmentTest {
         // Arrange
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
-        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course))
+                .thenThrow(new RuntimeException("Bạn cần đăng ký khóa học trước khi làm bài đánh giá."));
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             aiAssessmentService.submitAssessment(assessment.getId(), request, student.getEmail());
         });
-        assertEquals("Student is not enrolled in this online course", exception.getMessage());
+        assertEquals("Bạn cần đăng ký khóa học trước khi làm bài đánh giá.", exception.getMessage());
     }
 }

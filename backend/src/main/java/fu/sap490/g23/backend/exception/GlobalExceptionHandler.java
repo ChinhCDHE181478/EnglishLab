@@ -66,6 +66,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(response);
     }
 
+    @ExceptionHandler(EnrollmentAccessException.class)
+    public ResponseEntity<ErrorResponse> handleEnrollmentAccessException(EnrollmentAccessException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.FORBIDDEN.value())
+                .message(ex.getMessage())
+                .code(ex.getCode().name())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler(CourseUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleCourseUnavailableException(CourseUnavailableException ex) {
         ErrorResponse response = ErrorResponse.builder()

@@ -6,8 +6,9 @@ import fu.sap490.g23.backend.entity.AuthToken;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.service.impl.AuthService;
-import fu.sap490.g23.backend.service.impl.AuthTokenService;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sap490.g23.backend.service.auth.impl.AuthServiceImpl;
+import fu.sap490.g23.backend.service.auth.AuthTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,8 +32,11 @@ public class VerifyEmailTest {
     @Mock
     private AuthTokenService authTokenService;
 
+    @Mock
+    private PlacementTestAttemptRepository placementTestAttemptRepository;
+
     @InjectMocks
-    private AuthService authService;
+    private AuthServiceImpl authService;
 
     private VerifyEmailRequest verifyRequest;
     private User unverifiedUser;
@@ -54,6 +58,9 @@ public class VerifyEmailTest {
         validToken = new AuthToken();
         validToken.setToken("123456");
         validToken.setUser(unverifiedUser);
+
+        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_MOCK_1")))
+                .thenReturn(false);
     }
 
     /**

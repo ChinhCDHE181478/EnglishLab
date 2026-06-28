@@ -41,8 +41,8 @@ class AssessmentPassingThresholdResolverTest {
                 .maxScore(new BigDecimal("10"))
                 .build();
 
-        assertEquals(new BigDecimal("5.0"), resolver.resolve(assessment));
-        assertEquals("Ngưỡng đạt (cấu hình CMS): 5", resolver.buildDisplayLabel(assessment));
+        assertEquals(new BigDecimal("6.0"), resolver.resolve(assessment));
+        assertEquals("Ngưỡng đạt (band mục tiêu khóa − 0.5): 6", resolver.buildDisplayLabel(assessment));
     }
 
     @Test
@@ -55,7 +55,7 @@ class AssessmentPassingThresholdResolverTest {
                 .maxScore(null)
                 .build();
 
-        assertEquals(new BigDecimal("6.5"), resolver.resolve(assessment));
+        assertEquals(new BigDecimal("6.0"), resolver.resolve(assessment));
     }
 
     @Test

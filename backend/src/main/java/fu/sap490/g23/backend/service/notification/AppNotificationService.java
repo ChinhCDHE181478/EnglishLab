@@ -1,7 +1,6 @@
 package fu.sap490.g23.backend.service.notification;
 
 import fu.sap490.g23.backend.dto.response.classroom.AppNotificationResponse;
-
 import java.util.List;
 
 public interface AppNotificationService {

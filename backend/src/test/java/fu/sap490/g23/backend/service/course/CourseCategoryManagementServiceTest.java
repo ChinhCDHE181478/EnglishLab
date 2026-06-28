@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.dto.response.course.CourseCategoryResponse;
 import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sap490.g23.backend.service.course.impl.CourseCategoryManagementServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,11 +30,11 @@ class CourseCategoryManagementServiceTest {
     @Mock
     private OnlineCourseRepository courseRepository;
 
-    private CourseCategoryManagementService service;
+    private CourseCategoryManagementServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new CourseCategoryManagementService(categoryRepository, courseRepository);
+        service = new CourseCategoryManagementServiceImpl(categoryRepository, courseRepository);
     }
 
     @Test

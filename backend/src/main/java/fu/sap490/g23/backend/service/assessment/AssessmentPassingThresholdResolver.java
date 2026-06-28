@@ -16,18 +16,19 @@ public class AssessmentPassingThresholdResolver {
             return null;
         }
 
-        if (assessment.getPassingScore() != null) {
-            return IeltsBandScale.normalizeThreshold(assessment, assessment.getPassingScore());
-        }
-
         OnlineCourse course = assessment.getOnlineCourse();
         if (assessment.getType() == AssessmentType.MODULE_TEST
+                && IeltsBandScale.usesBandScale(assessment)
                 && course != null
                 && course.getTargetBand() != null) {
             return IeltsBandScale.normalizeThreshold(
                     assessment,
                     BigDecimal.valueOf(course.getTargetBand() - 0.5D)
             );
+        }
+
+        if (assessment.getPassingScore() != null) {
+            return IeltsBandScale.normalizeThreshold(assessment, assessment.getPassingScore());
         }
 
         return null;
@@ -40,15 +41,16 @@ public class AssessmentPassingThresholdResolver {
         }
 
         String formatted = formatThreshold(threshold);
-        if (assessment.getPassingScore() != null) {
-            return "Ngưỡng đạt (cấu hình CMS): " + formatted;
-        }
-
         OnlineCourse course = assessment.getOnlineCourse();
         if (assessment.getType() == AssessmentType.MODULE_TEST
+                && IeltsBandScale.usesBandScale(assessment)
                 && course != null
                 && course.getTargetBand() != null) {
             return "Ngưỡng đạt (band mục tiêu khóa − 0.5): " + formatted;
+        }
+
+        if (assessment.getPassingScore() != null) {
+            return "Ngưỡng đạt (cấu hình CMS): " + formatted;
         }
 
         return null;

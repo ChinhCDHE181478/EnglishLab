@@ -7,9 +7,9 @@ import fu.sap490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sap490.g23.backend.dto.request.RegisterRequest;
 import fu.sap490.g23.backend.dto.request.VerifyEmailRequest;
 import fu.sap490.g23.backend.dto.response.AuthResponse;
-import fu.sap490.g23.backend.service.impl.FacebookAuthService;
-import fu.sap490.g23.backend.service.impl.GoogleAuthService;
-import fu.sap490.g23.backend.service.IAuthService;
+import fu.sap490.g23.backend.service.auth.FacebookAuthService;
+import fu.sap490.g23.backend.service.auth.GoogleAuthService;
+import fu.sap490.g23.backend.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final IAuthService authService;
+    private final AuthService authService;
     private final GoogleAuthService googleAuthService;
     private final FacebookAuthService facebookAuthService;
 
