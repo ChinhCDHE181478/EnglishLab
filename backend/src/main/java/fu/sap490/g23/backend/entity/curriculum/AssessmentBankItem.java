@@ -71,6 +71,10 @@ public class AssessmentBankItem {
     @Builder.Default
     private Integer displayOrder = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

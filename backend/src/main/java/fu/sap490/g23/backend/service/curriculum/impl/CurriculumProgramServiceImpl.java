@@ -277,6 +277,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .timeLimitMinutes(request.getTimeLimitMinutes())
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
                 .displayOrder(defaultInt(request.getDisplayOrder()))
+                .active(true)
                 .build();
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
@@ -298,6 +299,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         item.setTimeLimitMinutes(request.getTimeLimitMinutes());
         item.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
         item.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        item.setActive(!"ARCHIVED".equalsIgnoreCase(item.getStatus()));
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
@@ -305,6 +307,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     public void archiveAssessmentBankItem(Long id) {
         AssessmentBankItem item = findAssessment(id);
         item.setStatus("ARCHIVED");
+        item.setActive(false);
         assessmentBankRepository.save(item);
     }
 

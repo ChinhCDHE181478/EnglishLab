@@ -19,7 +19,7 @@ const SKILLS = [
   { key: 'speaking', label: 'Speaking', icon: Mic },
 ];
 
-const DRAFT_KEY = 'englishlab.placement-test.mock-1.draft';
+const DRAFT_KEY = 'englishlab.placement-test.current.draft';
 
 const emptyDraft = {
   listeningAnswers: {},
@@ -828,7 +828,7 @@ export default function PlacementTestPage() {
   const canRetake = Boolean(test?.canRetake) && attemptCount < maxAttempts;
 
   useEffect(() => {
-    placementTestApi.getMockOne()
+    placementTestApi.getCurrent()
       .then((response) => {
         const sections = response?.sections;
         const missingSkills = SKILLS.filter((skill) => !sections?.[skill.key]);
@@ -891,7 +891,7 @@ export default function PlacementTestPage() {
     setSubmitError('');
 
     try {
-      const response = await placementTestApi.submitMockOne({
+      const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,
@@ -940,7 +940,7 @@ export default function PlacementTestPage() {
     setSubmitError('');
 
     try {
-      const response = await placementTestApi.submitMockOne({
+      const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,

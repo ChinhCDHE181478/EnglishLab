@@ -17,6 +17,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.security.JwtService;
+import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -157,7 +158,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
-                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, "IELTS_PLACEMENT_MOCK_1"))
+                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();
     }
 

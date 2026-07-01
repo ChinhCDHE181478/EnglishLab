@@ -16,13 +16,13 @@ import java.util.Map;
 public class PlacementTestController {
     private final PlacementTestService placementTestService;
 
-    @GetMapping("/mock-1")
-    public ResponseEntity<Map<String, Object>> getMockOne(Authentication authentication) {
+    @GetMapping("/current")
+    public ResponseEntity<Map<String, Object>> getCurrent(Authentication authentication) {
         return ResponseEntity.ok(placementTestService.getTest(authentication.getName()));
     }
 
-    @PostMapping("/mock-1/submit")
-    public ResponseEntity<PlacementTestAttemptResponse> submitMockOne(
+    @PostMapping("/current/submit")
+    public ResponseEntity<PlacementTestAttemptResponse> submitCurrent(
             @RequestBody PlacementTestSubmissionRequest request,
             Authentication authentication
     ) {

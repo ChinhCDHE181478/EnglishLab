@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, Edit3, Plus, RefreshCw, Save, Search } from 'lucide-react';
+import { Archive, Edit3, Plus, RefreshCw, Save, Search, X } from 'lucide-react';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -62,13 +62,13 @@ const typeOptions = [
 ];
 
 const skillOptions = [
-  { label: 'Listening', value: 'LISTENING' },
-  { label: 'Reading', value: 'READING' },
-  { label: 'Writing', value: 'WRITING' },
-  { label: 'Speaking', value: 'SPEAKING' },
-  { label: 'Vocabulary', value: 'VOCABULARY' },
-  { label: 'Grammar', value: 'GRAMMAR' },
-  { label: 'Mixed', value: 'MIXED' },
+  { label: 'Nghe', value: 'LISTENING' },
+  { label: 'Đọc', value: 'READING' },
+  { label: 'Viết', value: 'WRITING' },
+  { label: 'Nói', value: 'SPEAKING' },
+  { label: 'Từ vựng', value: 'VOCABULARY' },
+  { label: 'Ngữ pháp', value: 'GRAMMAR' },
+  { label: 'Tổng hợp', value: 'MIXED' },
 ];
 
 const statusOptions = [
@@ -80,7 +80,7 @@ const statusOptions = [
 const aiOptions = [
   { label: 'Không dùng AI', value: 'NONE' },
   { label: 'Giải thích đáp án', value: 'EXPLAIN_ONLY' },
-  { label: 'Feedback theo rubric', value: 'RUBRIC_FEEDBACK' },
+  { label: 'Phản hồi theo tiêu chí', value: 'RUBRIC_FEEDBACK' },
   { label: 'Ước lượng band', value: 'ESTIMATED_BAND' },
 ];
 
@@ -123,6 +123,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(() => emptyForm(pageConfig));
   const [editingId, setEditingId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
@@ -144,6 +145,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   useEffect(() => {
     loadItems();
     setEditingId(null);
+    setEditorOpen(false);
     setForm(emptyForm(pageConfig));
   }, [pageKey]);
 
@@ -168,9 +170,18 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
-  const resetForm = () => {
+  const startNew = () => {
     setEditingId(null);
     setForm(emptyForm(pageConfig));
+    setEditorOpen(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const closeEditor = () => {
+    setEditingId(null);
+    setForm(emptyForm(pageConfig));
+    setEditorOpen(false);
     setError('');
     setSuccess('');
   };
@@ -178,6 +189,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const openEdit = (item) => {
     setEditingId(item.id);
     setForm(toForm(item, pageConfig));
+    setEditorOpen(true);
     setError('');
     setSuccess('');
   };
@@ -225,7 +237,8 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       });
       setEditingId(saved.id);
       setForm(toForm(saved, pageConfig));
-      setSuccess(editingId ? 'Đã cập nhật đề.' : 'Đã tạo đề mới trong bank.');
+      setEditorOpen(true);
+      setSuccess(editingId ? 'Đã cập nhật đề.' : 'Đã tạo đề mới trong ngân hàng.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được đề.');
     } finally {
@@ -260,11 +273,11 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         <div>
           <h2 className="font-['Manrope'] text-2xl font-extrabold text-slate-900">{pageConfig.title}</h2>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Tạo và chỉnh sửa đề trong bank dùng chung. Curriculum hoặc course chỉ gắn reference tới đề này, không tạo bản sao mặc định.
+            Quản lý các bài luyện dùng chung để gắn vào khóa học, giáo trình hoặc bài học khi cần.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={resetForm} className={SECONDARY_BUTTON_CLASS}>
+          <button type="button" onClick={startNew} className={PRIMARY_BUTTON_CLASS}>
             <Plus className="h-4 w-4" /> Thêm bài mới
           </button>
           <button type="button" onClick={loadItems} className={SECONDARY_BUTTON_CLASS}>
@@ -276,61 +289,24 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_500px]">
-        <section className="space-y-4">
-          <div className={PANEL_CLASS}>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={keyword}
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Tìm đề, loại hoặc kỹ năng..."
-                className={SEARCH_INPUT_CLASS}
-              />
+      {editorOpen ? (
+        <section className={`${PANEL_CLASS} space-y-5`}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
+                {editingId ? 'Chỉnh sửa đề luyện tập' : 'Tạo đề mới'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.
+              </p>
             </div>
+            <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
+              <X className="h-4 w-4" /> Đóng
+            </button>
           </div>
 
-          {loading ? (
-            <p className="text-sm font-semibold text-slate-500">Đang tải ngân hàng đề...</p>
-          ) : sortedItems.length === 0 ? (
-            <div className={EMPTY_STATE_CLASS}>Chưa có đề trong mục này.</div>
-          ) : (
-            <div className="space-y-3">
-              {pageItems.map((item) => (
-                <article key={item.id} className={`${CARD_CLASS} transition hover:border-[#dfbfbd]`}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="break-words font-['Manrope'] text-lg font-extrabold text-slate-900">{item.title}</h3>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{item.status}</span>
-                      </div>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {[formatLabel(item.skill), formatLabel(item.type), item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : null].filter(Boolean).join(' · ')}
-                      </p>
-                      {item.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p> : null}
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      <button type="button" onClick={() => openEdit(item)} className={GHOST_BUTTON_CLASS}>
-                        <Edit3 className="h-3.5 w-3.5" /> Sửa
-                      </button>
-                      <button type="button" onClick={() => archiveItem(item)} disabled={working} className={DANGER_BUTTON_CLASS}>
-                        <Archive className="h-3.5 w-3.5" /> Lưu trữ
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={8} />
-            </div>
-          )}
-        </section>
-
-        <aside className="space-y-4">
-          <section className={PANEL_CLASS}>
-            <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
-              {editingId ? 'Chỉnh sửa đề' : 'Tạo đề trong bank'}
-            </h3>
-            <div className="mt-5 space-y-4">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+            <div className="space-y-4">
               <label className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên đề</span>
                 <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
@@ -351,7 +327,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">AI feedback</span>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Chấm tự động</span>
                   <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
                 </div>
                 <div>
@@ -373,7 +349,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                   <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
                 </label>
                 <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Phút</span>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng</span>
                   <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
                 </label>
               </div>
@@ -385,32 +361,90 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                 <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
                   <Save className="h-4 w-4" /> Lưu đề
                 </button>
-                <button type="button" onClick={resetForm} className={SECONDARY_BUTTON_CLASS}>
-                  <Plus className="h-4 w-4" /> Mới
+                <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
+                  <Plus className="h-4 w-4" /> Tạo đề khác
                 </button>
               </div>
             </div>
-          </section>
 
-          <section className={PANEL_CLASS}>
-            {canUseBuilder ? (
-              <AssessmentExamBuilder assessment={form} onChange={updateForm} />
-            ) : (
-              <div className="space-y-4">
-                <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Cấu hình nội dung đề</h3>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">UI config JSON</span>
-                  <textarea value={form.uiConfigJson} onChange={(event) => updateForm('uiConfigJson', event.target.value)} rows={8} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đáp án khách quan JSON</span>
-                  <textarea value={form.objectiveAnswerKey} onChange={(event) => updateForm('objectiveAnswerKey', event.target.value)} rows={6} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
-                </label>
-              </div>
-            )}
-          </section>
-        </aside>
-      </div>
+            <div className="rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
+              {canUseBuilder ? (
+                <AssessmentExamBuilder assessment={form} onChange={updateForm} />
+              ) : (
+                <div className="space-y-4">
+                  <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Cấu hình nội dung đề</h3>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">UI config JSON</span>
+                    <textarea value={form.uiConfigJson} onChange={(event) => updateForm('uiConfigJson', event.target.value)} rows={8} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đáp án khách quan JSON</span>
+                    <textarea value={form.objectiveAnswerKey} onChange={(event) => updateForm('objectiveAnswerKey', event.target.value)} rows={6} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+                  </label>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">{pageConfig.title}</h3>
+            <p className="mt-1 text-sm text-slate-600">Chọn một bài để chỉnh sửa hoặc lưu trữ.</p>
+          </div>
+          <span className="rounded-full bg-[#fff1f0] px-3 py-1 text-xs font-bold text-[#8a0010]">
+            {totalItems} bài
+          </span>
+        </div>
+
+        <div className={PANEL_CLASS}>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tìm đề, loại hoặc kỹ năng..."
+              className={SEARCH_INPUT_CLASS}
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <p className="text-sm font-semibold text-slate-500">Đang tải ngân hàng đề...</p>
+        ) : sortedItems.length === 0 ? (
+          <div className={EMPTY_STATE_CLASS}>Chưa có đề trong mục này.</div>
+        ) : (
+          <div className="space-y-3">
+            {pageItems.map((item) => (
+              <article key={item.id} className={`${CARD_CLASS} transition hover:border-[#dfbfbd]`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="break-words font-['Manrope'] text-lg font-extrabold text-slate-900">{item.title}</h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{formatLabel(item.status)}</span>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      {[formatLabel(item.skill), formatLabel(item.type), item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : null].filter(Boolean).join(' · ')}
+                    </p>
+                    {item.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p> : null}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button type="button" onClick={() => openEdit(item)} className={GHOST_BUTTON_CLASS}>
+                      <Edit3 className="h-3.5 w-3.5" /> Sửa
+                    </button>
+                    <button type="button" onClick={() => archiveItem(item)} disabled={working} className={DANGER_BUTTON_CLASS}>
+                      <Archive className="h-3.5 w-3.5" /> Lưu trữ
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={8} />
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -431,6 +465,9 @@ function formatLabel(value) {
     WRITING_TASK: 'Bài luyện viết',
     SPEAKING_TASK: 'Bài luyện nói',
     QUIZ: 'Quiz',
+    DRAFT: 'Nháp',
+    PUBLISHED: 'Đã xuất bản',
+    ARCHIVED: 'Lưu trữ',
   };
   return labels[text] || value || '-';
 }

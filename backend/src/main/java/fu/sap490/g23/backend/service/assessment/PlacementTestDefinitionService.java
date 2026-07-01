@@ -8,7 +8,7 @@ import fu.sap490.g23.backend.entity.assessment.PlacementTestDefinition;
 
 public interface PlacementTestDefinitionService {
 
-    String TEST_CODE = "IELTS_PLACEMENT_MOCK_1";
+    String TEST_CODE = "IELTS_PLACEMENT_CURRENT";
 
     PlacementTestDefinition getDefinition();
 

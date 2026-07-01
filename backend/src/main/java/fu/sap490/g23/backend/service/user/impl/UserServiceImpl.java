@@ -7,14 +7,13 @@ import fu.sap490.g23.backend.dto.response.UserResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
-    private static final String PLACEMENT_TEST_CODE = "IELTS_PLACEMENT_MOCK_1";
 
     private final UserRepository userRepository;
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
@@ -67,7 +66,7 @@ public class UserServiceImpl implements UserService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .profileCompleted(user.isProfileCompleted())
-                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PLACEMENT_TEST_CODE))
+                .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();
     }
 
