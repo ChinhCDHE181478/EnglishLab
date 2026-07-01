@@ -888,8 +888,11 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             }
 
             CourseModule targetModule = resolveAssessmentModule(modules, request.getModuleId());
-            AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
             AssessmentBankItem bankItem = resolveAssessmentBankItem(request.getAssessmentBankItemId());
+            AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId());
+            if (rubric == null && bankItem != null) {
+                rubric = bankItem.getRubric();
+            }
             validateAssessmentConfiguration(request, bankItem);
 
             assessment.setOnlineCourse(course);

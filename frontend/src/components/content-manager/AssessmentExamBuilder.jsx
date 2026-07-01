@@ -228,6 +228,7 @@ const normalizeConfig = (assessment) => {
   return {
     ...fallback,
     ...safeConfig,
+    type: fallback.type,
     parts: Array.isArray(safeConfig.parts) && safeConfig.parts.length ? safeConfig.parts : fallback.parts,
   };
 };
@@ -245,12 +246,55 @@ const parseAcceptedAnswers = (value) => {
   return answers.length <= 1 ? (answers[0] || '') : answers;
 };
 
+const getBuilderLabels = (skill) => ({
+  LISTENING: {
+    summaryTitle: 'Nội dung bài nghe',
+    openButton: 'Biên soạn bài nghe',
+    modalEyebrow: 'Listening editor',
+    saveButton: 'Lưu cấu trúc bài nghe',
+    emptySummary: 'Chưa biên soạn audio, transcript và câu hỏi.',
+    titleRequired: 'Hãy nhập tên bài nghe.',
+  },
+  READING: {
+    summaryTitle: 'Nội dung bài đọc',
+    openButton: 'Biên soạn bài đọc',
+    modalEyebrow: 'Reading editor',
+    saveButton: 'Lưu cấu trúc bài đọc',
+    emptySummary: 'Chưa biên soạn passage và câu hỏi.',
+    titleRequired: 'Hãy nhập tên bài đọc.',
+  },
+  WRITING: {
+    summaryTitle: 'Nội dung đề viết',
+    openButton: 'Biên soạn đề viết',
+    modalEyebrow: 'Writing editor',
+    saveButton: 'Lưu cấu trúc đề viết',
+    emptySummary: 'Chưa biên soạn task Writing.',
+    titleRequired: 'Hãy nhập tên đề viết.',
+  },
+  SPEAKING: {
+    summaryTitle: 'Nội dung đề nói',
+    openButton: 'Biên soạn đề nói',
+    modalEyebrow: 'Speaking editor',
+    saveButton: 'Lưu cấu trúc đề nói',
+    emptySummary: 'Chưa biên soạn Part 1, Part 2 và Part 3.',
+    titleRequired: 'Hãy nhập tên đề nói.',
+  },
+}[skill] || {
+  summaryTitle: 'Nội dung đề',
+  openButton: 'Biên soạn nội dung',
+  modalEyebrow: 'Trình biên soạn',
+  saveButton: 'Lưu cấu trúc',
+  emptySummary: 'Chưa biên soạn cấu trúc câu hỏi.',
+  titleRequired: 'Hãy nhập tên nội dung.',
+});
+
 export default function AssessmentExamBuilder({ assessment, onChange }) {
   const skill = getAssessmentSkill(assessment);
   const isObjectiveSkill = OBJECTIVE_SKILLS.includes(skill);
   const isWritingSkill = skill === 'WRITING';
   const isSpeakingSkill = skill === 'SPEAKING';
   const isSupported = SUPPORTED_SKILLS.includes(skill);
+  const builderLabels = getBuilderLabels(skill);
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState(() => normalizeConfig(assessment));
   const [answerKey, setAnswerKey] = useState(() => normalizeAnswerKey(assessment.objectiveAnswerKey, assessment.uiConfigJson));
@@ -417,7 +461,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
 
   const save = () => {
     if (!String(config.title || '').trim()) {
-      setError('Hãy nhập tên đề thi.');
+      setError(builderLabels.titleRequired);
       return;
     }
     if (isWritingSkill) {
@@ -509,14 +553,14 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
       : isSpeakingSkill
         ? `${contentCount} câu hỏi/chủ đề đã cấu hình`
         : `${questionCount} câu đã cấu hình`
-    : 'Chưa biên soạn cấu trúc câu hỏi.';
+    : builderLabels.emptySummary;
 
   return (
     <>
       <div className="mt-4 rounded-2xl border border-[#dfbfbd] bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-semibold text-[#4b0009]">Nội dung đề thi</p>
+            <p className="font-semibold text-[#4b0009]">{builderLabels.summaryTitle}</p>
             <p className="mt-1 text-sm text-[#584140]">
               {configuredSummary}
             </p>
@@ -526,7 +570,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
             onClick={openBuilder}
             type="button"
           >
-            Biên soạn nội dung đề
+            {builderLabels.openButton}
           </button>
         </div>
       </div>
@@ -536,8 +580,8 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
           <div className="flex max-h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] bg-white shadow-2xl">
             <header className="flex items-start justify-between gap-4 border-b border-[#eadcdc] px-6 py-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Trình biên soạn đề thi</p>
-                <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#4b0009]">{assessment.title || 'Bài thi mới'}</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{builderLabels.modalEyebrow}</p>
+                <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#4b0009]">{assessment.title || builderLabels.summaryTitle}</h2>
               </div>
               <button className="rounded-xl border border-[#eadcdc] p-2 text-[#730014]" onClick={() => setOpen(false)} type="button">
                 <X className="h-5 w-5" />
@@ -561,8 +605,30 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                 <Field label="Tên hiển thị của đề" value={config.title} onChange={(value) => setConfig((current) => ({ ...current, title: value }))} />
                 <Field label="Mã đề" value={config.key} onChange={(value) => setConfig((current) => ({ ...current, key: value }))} />
                 <Field label="Thời gian (phút)" type="number" value={config.durationMinutes} onChange={(value) => setConfig((current) => ({ ...current, durationMinutes: Number(value) }))} />
-                {config.type === 'ielts_listening_exam' ? (
-                  <Field label="Liên kết audio" value={config.audioUrl || ''} onChange={(value) => setConfig((current) => ({ ...current, audioUrl: value }))} />
+                {skill === 'LISTENING' ? (
+                  <>
+                    <Field label="Audio" value={config.audioUrl || ''} onChange={(value) => setConfig((current) => ({ ...current, audioUrl: value }))} />
+                    <div className="md:col-span-2">
+                      <TextAreaField label="Transcript" value={config.transcript || ''} onChange={(value) => setConfig((current) => ({ ...current, transcript: value }))} />
+                    </div>
+                  </>
+                ) : null}
+                {skill === 'READING' ? (
+                  <>
+                    <Field label="Tiêu đề passage" value={config.passageTitle || ''} onChange={(value) => setConfig((current) => ({ ...current, passageTitle: value }))} />
+                    <div className="md:col-span-2">
+                      <TextAreaField label="Passage" value={config.passage || ''} onChange={(value) => setConfig((current) => ({ ...current, passage: value }))} />
+                    </div>
+                    <label className="md:col-span-2 flex items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2.5 text-sm font-semibold text-[#4b0009]">
+                      <input
+                        checked={Boolean(config.paragraphNumbering)}
+                        className="h-4 w-4 accent-[#730014]"
+                        onChange={(event) => setConfig((current) => ({ ...current, paragraphNumbering: event.target.checked }))}
+                        type="checkbox"
+                      />
+                      Đánh số đoạn văn trong preview passage
+                    </label>
+                  </>
                 ) : null}
                 <div className="md:col-span-2">
                   <TextAreaField
@@ -619,6 +685,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                               onAnswerKeyChange={setAnswerKey}
                               onChange={(patch) => updateGroup(partIndex, groupIndex, patch)}
                               onOptionChange={(optionIndex, value) => updateOption(partIndex, groupIndex, 0, optionIndex, value, true)}
+                              skill={skill}
                             />
                           ) : (
                             <div className="mt-4 space-y-3">
@@ -639,6 +706,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                                   onOptionChange={(optionIndex, value) => updateOption(partIndex, groupIndex, questionIndex, optionIndex, value)}
                                   onRemove={() => removeQuestion(partIndex, groupIndex, questionIndex)}
                                   question={question}
+                                  skill={skill}
                                 />
                               ))}
                               <button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-3 py-2 text-sm font-semibold text-[#730014]" onClick={() => addQuestion(partIndex, groupIndex)} type="button">
@@ -675,7 +743,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
               <p className="text-sm text-[#584140]">{buildFooterSummary(config, skill, questionCount)}</p>
               <div className="flex gap-3">
                 <button className="rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-semibold text-[#730014]" onClick={() => setOpen(false)} type="button">Hủy</button>
-                <button className="rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white" onClick={save} type="button">Lưu cấu trúc đề</button>
+                <button className="rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white" onClick={save} type="button">{builderLabels.saveButton}</button>
               </div>
             </footer>
           </div>
@@ -727,13 +795,17 @@ function WritingConfigEditor({ config, onChange }) {
           </div>
           <div className="mt-4">
             <TextAreaField
-              label="Đề bài, mỗi đoạn một dòng"
+              label="Prompt"
               value={(task.promptParagraphs || []).join('\n')}
               onChange={(value) => updateTask(taskIndex, {
                 promptParagraphs: value.split('\n').map((line) => line.trim()).filter(Boolean),
                 question: value.split('\n').map((line) => line.trim()).filter(Boolean).join('\n'),
               })}
             />
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <TextAreaField label="Rubric" value={task.rubric || ''} onChange={(value) => updateTask(taskIndex, { rubric: value })} />
+            <TextAreaField label="Sample answer" value={task.sampleAnswer || ''} onChange={(value) => updateTask(taskIndex, { sampleAnswer: value })} />
           </div>
         </section>
       ))}
@@ -810,8 +882,8 @@ function SpeakingConfigEditor({ config, onChange }) {
                 <div className="grid gap-3 md:grid-cols-[1fr_1fr_120px_120px_auto]">
                   <Field label="Nhãn phần" value={part.label || ''} onChange={(value) => updatePart(variantIndex, partIndex, { label: value })} />
                   <Field label="Mô tả phần" value={part.caption || ''} onChange={(value) => updatePart(variantIndex, partIndex, { caption: value })} />
-                  <Field label="Chuẩn bị" type="number" value={part.prepSeconds || 0} onChange={(value) => updatePart(variantIndex, partIndex, { prepSeconds: Number(value) })} />
-                  <Field label="Trả lời" type="number" value={part.answerSeconds || 0} onChange={(value) => updatePart(variantIndex, partIndex, { answerSeconds: Number(value) })} />
+                  <Field label="Thời gian chuẩn bị" type="number" value={part.prepSeconds || 0} onChange={(value) => updatePart(variantIndex, partIndex, { prepSeconds: Number(value) })} />
+                  <Field label="Thời gian trả lời" type="number" value={part.answerSeconds || 0} onChange={(value) => updatePart(variantIndex, partIndex, { answerSeconds: Number(value) })} />
                   <IconButton
                     label="Xóa phần"
                     onClick={() => updateVariant(variantIndex, {
@@ -843,6 +915,9 @@ function SpeakingConfigEditor({ config, onChange }) {
                       })),
                     })}
                   />
+                </div>
+                <div className="mt-3">
+                  <TextAreaField label="Rubric" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
                 </div>
               </div>
             ))}
@@ -885,7 +960,8 @@ function buildFooterSummary(config, skill, questionCount) {
   return `${questionCount} câu · ${config.parts?.length || 0} phần`;
 }
 
-function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberChange, onOptionChange, onRemove, question }) {
+function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberChange, onOptionChange, onRemove, question, skill }) {
+  const evidenceLabel = skill === 'READING' ? 'Evidence đoạn/dòng' : 'Mốc audio/transcript';
   return (
     <div className="rounded-xl border border-[#eadcdc] bg-white p-4">
       <div className="grid gap-3 md:grid-cols-[110px_1fr_auto]">
@@ -913,13 +989,18 @@ function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberC
           <SelectField label="Đáp án đúng" value={Array.isArray(answer) ? answer[0] || '' : answer || ''} options={(question.options || []).map((option) => ({ label: option.value, value: option.value }))} onChange={onAnswerChange} />
         </div>
       )}
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
+        <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
+      </div>
     </div>
   );
 }
 
-function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumberChange, onChange, onOptionChange }) {
+function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumberChange, onChange, onOptionChange, skill }) {
   const number = Number(group.questionNumbers?.[0] || 1);
   const answer = Array.isArray(answerKey[String(number)]) ? answerKey[String(number)] : [];
+  const evidenceLabel = skill === 'READING' ? 'Evidence đoạn/dòng' : 'Mốc audio/transcript';
   return (
     <div className="mt-4 rounded-xl border border-[#eadcdc] bg-white p-4">
       <div className="grid gap-3 md:grid-cols-2">
@@ -946,6 +1027,10 @@ function MultiSelectEditor({ answerKey, group, onAnswerKeyChange, onAnswerNumber
             [String(number)]: value.split(',').map((item) => item.trim().toUpperCase()).filter(Boolean),
           }))}
         />
+      </div>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        <Field label={evidenceLabel} value={group.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
+        <TextAreaField label="Giải thích" value={group.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
       </div>
     </div>
   );

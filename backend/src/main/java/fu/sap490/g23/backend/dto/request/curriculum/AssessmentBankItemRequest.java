@@ -31,6 +31,7 @@ public class AssessmentBankItemRequest {
     private AssessmentSkill skill;
 
     private AiEvaluationMode aiEvaluationMode;
+    private Long rubricId;
     private String instructions;
     private String objectiveAnswerKey;
     private String uiConfigJson;

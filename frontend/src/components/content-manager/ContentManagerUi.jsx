@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronRight, LogOut } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Plus } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import { contentManagerNav, contentManagerPageMeta } from './contentManagerConfig';
@@ -228,15 +228,37 @@ export function ContentManagerLayout({ children }) {
             </section>
           ) : (
             <>
-              <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                  {meta.title}
-                </h1>
-                <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
-                  {meta.subtitle}
-                </p>
-              </section>
-              <div className="min-h-[500px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                    {meta.title}
+                  </h1>
+                  {meta.subtitle ? (
+                    <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
+                      {meta.subtitle}
+                    </p>
+                  ) : null}
+                </div>
+                {location.pathname === '/content-manager/courses' ? (
+                  <Link
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
+                    to="/content-manager/courses/new"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tạo khóa học mới
+                  </Link>
+                ) : null}
+                {location.pathname === '/content-manager/flashcards' ? (
+                  <Link
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
+                    to="/content-manager/flashcards?new=1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tạo bộ thẻ mới
+                  </Link>
+                ) : null}
+              </div>
+              <div className="min-h-[500px]">
                 {children}
               </div>
             </>

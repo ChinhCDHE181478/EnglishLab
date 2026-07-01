@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.dto.response.curriculum;
 
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
@@ -18,6 +19,7 @@ public class AssessmentBankItemResponse {
     private AssessmentType type;
     private AssessmentSkill skill;
     private AiEvaluationMode aiEvaluationMode;
+    private AssessmentRubricResponse rubric;
     private String instructions;
     private String objectiveAnswerKey;
     private String uiConfigJson;

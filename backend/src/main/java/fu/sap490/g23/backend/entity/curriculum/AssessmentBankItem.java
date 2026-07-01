@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.entity.curriculum;
 
+import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
@@ -43,6 +44,10 @@ public class AssessmentBankItem {
     @Column(name = "ai_evaluation_mode", nullable = false, length = 40)
     @Builder.Default
     private AiEvaluationMode aiEvaluationMode = AiEvaluationMode.NONE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_id")
+    private AssessmentRubric rubric;
 
     @Column(name = "instructions", columnDefinition = "text")
     private String instructions;

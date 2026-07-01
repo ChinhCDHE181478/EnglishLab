@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BarChart3, CheckCircle2, LoaderCircle, RefreshCw, Save, Users } from 'lucide-react';
+import { BarChart3, BookOpen, CheckCircle2, Headphones, LoaderCircle, Mic2, NotebookPen, RefreshCw, Save, Users } from 'lucide-react';
 import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import { ManagerFilterBar, ManagerStatsGrid } from '../../components/content-manager/ManagerListUi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 
 const TABS = [
@@ -55,6 +56,12 @@ export default function ContentManagerPlacementTestPage() {
     writing: definition?.writing?.tasks?.length || 0,
     speaking: countSpeakingPrompts(definition?.speaking),
   }), [definition]);
+  const statItems = useMemo(() => [
+    { label: 'Câu nghe', value: questionCounts.listening, icon: Headphones, tone: 'text-[#4b0009]' },
+    { label: 'Câu đọc', value: questionCounts.reading, icon: BookOpen, tone: 'text-[#005236]' },
+    { label: 'Task viết', value: questionCounts.writing, icon: NotebookPen, tone: 'text-amber-700' },
+    { label: 'Prompt nói', value: questionCounts.speaking, icon: Mic2, tone: 'text-emerald-700' },
+  ], [questionCounts]);
 
   const updateDefinition = (field, value) => setDefinition((current) => ({ ...current, [field]: value }));
   const updateConfig = (skill, updater) => setDefinition((current) => ({
@@ -123,25 +130,30 @@ export default function ContentManagerPlacementTestPage() {
 
   return (
     <div className="space-y-6">
-      <Panel className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0e3e4] px-6 py-5">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Bộ đánh giá đầu vào</p>
-            <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#4b0009]">{definition.title}</h2>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-bold text-white disabled:opacity-50" disabled={saving} onClick={save} type="button">
-            <Save className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </button>
+      <ManagerStatsGrid stats={statItems} />
+
+      <ManagerFilterBar>
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
+          {TABS.map((tab) => (
+            <button
+              className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-bold transition ${activeTab === tab.key ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#eff4ff]'}`}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="flex overflow-x-auto border-b border-[#f0e3e4] px-4">
-          {TABS.map((tab) => <button className={`shrink-0 border-b-2 px-4 py-4 text-sm font-bold ${activeTab === tab.key ? 'border-[#730014] text-[#730014]' : 'border-transparent text-[#735b59]'}`} key={tab.key} onClick={() => setActiveTab(tab.key)} type="button">{tab.label}</button>)}
-        </div>
-      </Panel>
+        <button className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={saving} onClick={save} type="button">
+          <Save className="h-4 w-4" /> {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
+      </ManagerFilterBar>
 
       {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
       {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
 
-      {activeTab === 'overview' ? <Overview definition={definition} counts={questionCounts} onChange={updateDefinition} /> : null}
+      {activeTab === 'overview' ? <Overview definition={definition} onChange={updateDefinition} /> : null}
       {activeTab === 'monitoring' ? <Monitoring monitoring={monitoring} loading={monitoringLoading} onRefresh={refreshMonitoring} /> : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
@@ -164,13 +176,12 @@ function Monitoring({ loading, monitoring, onRefresh }) {
 
 function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-5"><div className="flex justify-between gap-3"><div><p className="text-sm text-[#584140]">{label}</p><p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Icon className="h-5 w-5" /></span></div></Panel>; }
 
-function Overview({ definition, counts, onChange }) {
+function Overview({ definition, onChange }) {
   return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
     <TextField label="Tên bài đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
     <TextField label="Số lượt làm tối đa" onChange={(event) => onChange('maxAttempts', Number(event.target.value))} value={definition.maxAttempts} />
     <div className="lg:col-span-2"><TextField label="Mô tả" onChange={(event) => onChange('description', event.target.value)} rows={3} textarea value={definition.description} /></div>
   </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.active} className="h-4 w-4 accent-[#730014]" onChange={(event) => onChange('active', event.target.checked)} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
-    <div className="mt-6 grid gap-3 md:grid-cols-4">{[['Nghe', counts.listening], ['Đọc', counts.reading], ['Viết', counts.writing], ['Nói', counts.speaking]].map(([label, count]) => <div className="rounded-2xl border border-[#eadcdc] bg-white p-4" key={label}><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{label}</p><p className="mt-2 text-2xl font-extrabold text-[#4b0009]">{count}</p><p className="text-sm text-[#584140]">mục đang có</p></div>)}</div>
   </Panel>;
 }
 
