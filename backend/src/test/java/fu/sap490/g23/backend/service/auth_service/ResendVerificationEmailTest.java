@@ -54,7 +54,7 @@ public class ResendVerificationEmailTest {
                 .role(RoleEnum.LEARNER)
                 .build();
 
-        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_MOCK_1")))
+        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_CURRENT")))
                 .thenReturn(false);
     }
 

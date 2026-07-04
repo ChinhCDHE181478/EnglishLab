@@ -2,7 +2,9 @@ package fu.sap490.g23.backend.seed;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import fu.sap490.g23.backend.entity.course.CourseCategory;
+import fu.sap490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sap490.g23.backend.entity.course.CourseModule;
@@ -12,10 +14,12 @@ import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.PackageType;
 import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,8 +29,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 @Order(41)
@@ -34,11 +43,17 @@ import java.util.List;
 public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
 
     private static final String SEED_PATH = "course-seeds/ielts_master_vocabulary_complete_course.json";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final Pattern VOCAB_ENTRY_PATTERN = Pattern.compile(
+            "###\\s+\\d+\\.\\s+(.+?)\\R\\*\\*Meaning:\\*\\*\\s+(.+?)\\R\\R\\*\\*IELTS example:\\*\\*\\s+(.+?)\\R\\R\\*\\*Common error to avoid:\\*\\*\\s+(.+?)(?=\\R\\R###|\\R\\R##|\\z)",
+            Pattern.DOTALL
+    );
 
     private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final FlashcardSetRepository flashcardSetRepository;
 
     @Value("${app.seed.enabled:false}")
     private boolean seedEnabled;
@@ -50,7 +65,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             return;
         }
 
-        CourseSeed seed = new ObjectMapper()
+        CourseSeed seed = OBJECT_MAPPER
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                 .readValue(new ClassPathResource(SEED_PATH).getInputStream(), CourseSeed.class);
 
@@ -159,6 +174,75 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         lesson.setDurationMinutes(toMinutes(lessonSeed.durationSeconds()));
         lesson.setDisplayOrder(lessonSeed.order());
         lesson.setPreview(Boolean.TRUE.equals(lessonSeed.isPreview()));
+
+        upsertFlashcardSetForVocabularyLesson(module, lesson);
+    }
+
+    private void upsertFlashcardSetForVocabularyLesson(CourseModule module, Lesson lesson) {
+        if (lesson.getTitle() == null || !lesson.getTitle().contains("Vocabulary Bank and Model Usage")) {
+            return;
+        }
+        List<Map<String, String>> cards = extractFlashcards(lesson.getContentText());
+        if (cards.isEmpty()) {
+            return;
+        }
+
+        String title = lesson.getTitle();
+        FlashcardSet set = flashcardSetRepository.findByTitleIgnoreCase(title)
+                .orElseGet(() -> FlashcardSet.builder()
+                        .title(title)
+                        .build());
+        set.setTitle(title);
+        set.setDescription("Bộ thẻ từ vựng dùng chung cho " + module.getTitle() + ".");
+        set.setExamCategory("IELTS");
+        set.setSkill("VOCABULARY");
+        set.setTags(module.getTitle() + ", IELTS vocabulary, course-linked");
+        set.setStatus("PUBLISHED");
+        set.setDisplayOrder(module.getDisplayOrder() == null ? 0 : module.getDisplayOrder());
+        set.setCardsJson(toJson(cards));
+        FlashcardSet savedSet = flashcardSetRepository.save(set);
+
+        boolean alreadyLinked = lesson.getFlashcardRefs().stream()
+                .anyMatch(ref -> ref.getFlashcardSet() != null && savedSet.getId() != null
+                        && savedSet.getId().equals(ref.getFlashcardSet().getId()));
+        if (!alreadyLinked) {
+            lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
+                    .flashcardSet(savedSet)
+                    .displayOrder(lesson.getFlashcardRefs().size() + 1)
+                    .build());
+        }
+    }
+
+    private List<Map<String, String>> extractFlashcards(String contentText) {
+        List<Map<String, String>> cards = new ArrayList<>();
+        if (contentText == null || contentText.isBlank()) {
+            return cards;
+        }
+        Matcher matcher = VOCAB_ENTRY_PATTERN.matcher(contentText);
+        while (matcher.find()) {
+            Map<String, String> card = new LinkedHashMap<>();
+            card.put("front", cleanMarkdownValue(matcher.group(1)));
+            card.put("back", cleanMarkdownValue(matcher.group(2)));
+            card.put("example", cleanMarkdownValue(matcher.group(3)));
+            card.put("commonMistake", cleanMarkdownValue(matcher.group(4)));
+            cards.add(card);
+        }
+        return cards;
+    }
+
+    private String cleanMarkdownValue(String value) {
+        return value == null ? "" : value
+                .replace("\r", "")
+                .replaceAll("\\n+", " ")
+                .trim();
+    }
+
+    private String toJson(List<Map<String, String>> cards) {
+        try {
+            return OBJECT_MAPPER.writeValueAsString(cards);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Không thể tạo dữ liệu flashcard từ seed IELTS Vocabulary.", ex);
+        }
     }
 
     private int toMinutes(Integer seconds) {

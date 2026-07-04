@@ -1,7 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Plus, RefreshCw, RotateCcw, Save, Search, SlidersHorizontal, Trash2, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Archive, CheckCircle2, Edit3, Layers3, Plus, RefreshCw, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X, XCircle } from 'lucide-react';
 import courseApi from '../../api/courseApi';
+import {
+  ManagerEmptyState,
+  ManagerFilterBar,
+  ManagerStatsGrid,
+  ManagerStatusBadge,
+  ManagerTable,
+  ManagerTablePagination,
+} from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { usePagination } from '../../components/ui/Pagination';
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: 'ALL' },
@@ -48,6 +57,7 @@ export default function ContentManagerRubricsPage() {
   const [rubrics, setRubrics] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [skillFilter, setSkillFilter] = useState('ALL');
   const [activeFilter, setActiveFilter] = useState('ACTIVE');
@@ -55,6 +65,7 @@ export default function ContentManagerRubricsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const editorRef = useRef(null);
 
   const loadRubrics = async () => {
     setLoading(true);
@@ -99,6 +110,19 @@ export default function ContentManagerRubricsPage() {
     criteria: rubrics.reduce((sum, rubric) => sum + (rubric.criteria?.length || 0), 0),
   }), [rubrics]);
 
+  const statItems = useMemo(() => [
+    { label: 'Tổng rubric', value: stats.total, icon: SlidersHorizontal, tone: 'text-[#4b0009]' },
+    { label: 'Đang dùng', value: stats.active, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: stats.inactive, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Rule', value: stats.criteria, icon: Layers3, tone: 'text-[#005236]' },
+  ], [stats]);
+
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    filteredRubrics,
+    8,
+    `${keyword}|${skillFilter}|${activeFilter}`,
+  );
+
   const totalWeight = useMemo(
     () => form.criteria.reduce((sum, criterion) => sum + Number(criterion.weight || 0), 0),
     [form.criteria],
@@ -106,6 +130,7 @@ export default function ContentManagerRubricsPage() {
 
   const editRubric = (rubric) => {
     setEditingId(rubric.id);
+    setEditorOpen(true);
     setForm({
       name: rubric.name || '',
       examType: rubric.examType || '',
@@ -127,14 +152,22 @@ export default function ContentManagerRubricsPage() {
     });
     setSuccess('');
     setError('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.setTimeout(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   };
 
-  const resetForm = () => {
+  const resetForm = (open = false) => {
     setEditingId(null);
     setForm(emptyForm);
+    setEditorOpen(open);
     setError('');
     setSuccess('');
+    if (open) {
+      window.setTimeout(() => {
+        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
   };
 
   const updateCriterion = (index, patch) => {
@@ -240,34 +273,11 @@ export default function ContentManagerRubricsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-[#4b0009] via-[#730014] to-[#a6122a] p-6 text-white shadow-xl">
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr] xl:items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-white/80">
-              <SlidersHorizontal className="h-4 w-4" />
-              Rubric management
-            </div>
-            <h2 className="mt-5 font-['Manrope'] text-3xl font-black tracking-tight md:text-4xl">
-              Quản lý rule chấm điểm cho AI và giáo viên
-            </h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-white/75">
-              Tạo bộ tiêu chí chấm Writing, Speaking, Vocabulary hoặc Grammar; gắn rubric vào bài đánh giá online và bài tập lớp học để chấm nhất quán.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <HeroStat label="Tổng rubric" value={stats.total} />
-            <HeroStat label="Đang dùng" value={stats.active} />
-            <HeroStat label="Tạm ngưng" value={stats.inactive} />
-            <HeroStat label="Rule" value={stats.criteria} />
-          </div>
-        </div>
-      </section>
-
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
 
-      <div className="grid gap-6 2xl:grid-cols-[520px_1fr]">
-        <form className="space-y-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm" onSubmit={saveRubric}>
+      {editorOpen ? (
+        <form className="scroll-mt-24 space-y-5 rounded-xl border border-[#dcc0bf]/30 bg-white p-5 shadow-sm" onSubmit={saveRubric} ref={editorRef}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">
@@ -281,14 +291,24 @@ export default function ContentManagerRubricsPage() {
                 {totalWeight !== 100 ? ' (không bắt buộc 100%, nhưng nên chuẩn hóa để dễ đọc)' : ''}
               </p>
             </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-extrabold text-slate-600 transition hover:bg-slate-50"
-              onClick={resetForm}
-              type="button"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-slate-600 transition hover:bg-slate-50"
+                onClick={() => resetForm(true)}
+                type="button"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </button>
+              <button
+                className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]"
+                onClick={() => resetForm(false)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+                Đóng
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -347,57 +367,92 @@ export default function ContentManagerRubricsPage() {
             {working ? 'Đang lưu...' : editingId ? 'Cập nhật rubric' : 'Tạo rubric'}
           </button>
         </form>
+      ) : (
+        <>
+          <ManagerStatsGrid stats={statItems} />
 
-        <section className="space-y-4">
-          <div className="grid gap-3 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm xl:grid-cols-[1fr_180px_170px_auto] xl:items-center">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[#730014] focus:bg-white"
-                onChange={(event) => setKeyword(event.target.value)}
-                placeholder="Tìm rubric, task, thang điểm..."
-                value={keyword}
-              />
-            </label>
-            <BrandedSelect onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
-            <BrandedSelect onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
+          <ManagerFilterBar>
+            <div className="min-w-[300px] flex-1">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+                <input
+                  className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="Tìm rubric, task, thang điểm..."
+                  value={keyword}
+                />
+              </div>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
+              <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
+              <FilterSelect label="Trạng thái" onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
+            </div>
             <button
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff4f5]"
+              aria-label="Làm mới rubrics"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
               onClick={loadRubrics}
               type="button"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
             </button>
-          </div>
+            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={() => resetForm(true)} type="button">
+              <Plus className="h-4 w-4" />
+              Tạo rubric mới
+            </button>
+          </ManagerFilterBar>
 
           {loading ? (
-            <div className="flex min-h-[360px] items-center justify-center rounded-[28px] border border-slate-200 bg-white text-sm font-bold text-slate-500">
-              Đang tải rubrics...
-            </div>
+            <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải rubrics...</div>
           ) : !filteredRubrics.length ? (
-            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-200 bg-white px-6 text-center">
-              <SlidersHorizontal className="h-14 w-14 text-[#730014]" />
-              <h3 className="mt-4 font-['Manrope'] text-2xl font-extrabold text-slate-900">Chưa có rubric phù hợp</h3>
-              <p className="mt-2 max-w-xl text-sm leading-7 text-slate-500">
-                Tạo rubric đầu tiên hoặc đổi bộ lọc để xem thêm rule chấm điểm đang có.
-              </p>
-            </div>
+            <ManagerEmptyState>Chưa có rubric phù hợp.</ManagerEmptyState>
           ) : (
-            <div className="grid gap-4">
-              {filteredRubrics.map((rubric) => (
-                <RubricCard
-                  key={rubric.id}
-                  onEdit={() => editRubric(rubric)}
-                  onToggleActive={() => toggleRubricActive(rubric)}
-                  rubric={rubric}
-                  working={working}
-                />
-              ))}
-            </div>
+            <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+              <ManagerTable
+                columns={[
+                  { label: 'Tên rubric', key: 'name' },
+                  { label: 'Kỹ năng', key: 'skill' },
+                  { label: 'Task', key: 'task' },
+                  { label: 'Rule', key: 'rules', align: 'center' },
+                  { label: 'Trạng thái', key: 'status' },
+                  { label: 'Thao tác', key: 'actions', align: 'right' },
+                ]}
+                minWidth="1040px"
+              >
+                {pageItems.map((rubric) => (
+                  <tr className="transition hover:bg-[#eff4ff]" key={rubric.id}>
+                    <td className="px-6 py-5">
+                      <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{rubric.name}</p>
+                      {rubric.scoringScale ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{rubric.scoringScale}</p> : null}
+                    </td>
+                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{rubric.skill || '-'}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5 text-sm text-[#0b1c30]">{rubric.taskType || '-'}</td>
+                    <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{rubric.criteria?.length || 0}</td>
+                    <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => editRubric(rubric)} type="button">
+                          <Edit3 className="h-3.5 w-3.5" />
+                          Chỉnh sửa
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
+                          disabled={working}
+                          onClick={() => toggleRubricActive(rubric)}
+                          type="button"
+                        >
+                          {rubric.active === false ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                          {rubric.active === false ? 'Khôi phục' : 'Tạm ngưng'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </ManagerTable>
+              <ManagerTablePagination itemLabel="rubric" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+            </section>
           )}
-        </section>
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -408,6 +463,22 @@ function HeroStat({ label, value }) {
       <p className="font-['Manrope'] text-3xl font-black">{value}</p>
       <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-white/60">{label}</p>
     </div>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options }) {
+  const normalizedOptions = options.map((option) => ({
+    ...option,
+    label: `${label}: ${option.label}`,
+  }));
+
+  return (
+    <BrandedSelect
+      buttonClassName="h-10 min-w-[170px] rounded-lg border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 text-sm shadow-none"
+      onChange={onChange}
+      options={normalizedOptions}
+      value={value}
+    />
   );
 }
 

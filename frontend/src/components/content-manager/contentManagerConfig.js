@@ -68,8 +68,8 @@ export const contentManagerPageMeta = {
     searchPlaceholder: 'Tìm khóa học, bài học hoặc học liệu...',
   },
   '/content-manager/courses': {
-    title: 'Quản lý khóa học online',
-    subtitle: 'Tạo mới, chỉnh sửa, xuất bản và theo dõi toàn bộ khóa học online trong hệ thống.',
+    title: 'Quản lý khóa học Online',
+    subtitle: '',
     searchPlaceholder: 'Tìm theo tên khóa học hoặc slug...',
   },
   '/content-manager/classrooms': {

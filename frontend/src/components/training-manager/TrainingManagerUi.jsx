@@ -255,17 +255,19 @@ export default function TrainingManagerLayout() {
 
         <main className="mx-auto max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8">
           {!hidePageShell ? (
-            <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-6">
               <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
                 {meta.title}
               </h1>
-              <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
-                {meta.subtitle}
-              </p>
-            </section>
+              {meta.subtitle ? (
+                <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
+                  {meta.subtitle}
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
-          <div className={`${hidePageShell ? '' : 'min-h-[500px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6'}`}>
+          <div className={hidePageShell ? '' : 'min-h-[500px]'}>
             <Outlet />
           </div>
         </main>

@@ -96,11 +96,11 @@
           "title": "Questions 25-27",
           "instructions": "Fill in each blank with ONE WORD AND/OR A NUMBER.",
           "type": "text",
-          "imageUrl": "/placement-test/mock-1/questions-25-27.png",
+          "imageUrl": "/placement-test/current/questions-25-27.png",
           "questions": [
-            {"number": 25, "promptBefore": "50% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/mock-1/question-25.png"},
-            {"number": 26, "promptBefore": "15% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/mock-1/question-26.png"},
-            {"number": 27, "promptBefore": "35% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/mock-1/question-27.png"}
+            {"number": 25, "promptBefore": "50% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-25.png"},
+            {"number": 26, "promptBefore": "15% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-26.png"},
+            {"number": 27, "promptBefore": "35% of the people interviewed spend", "promptAfter": "a month.", "imageUrl": "/placement-test/current/question-27.png"}
           ]
         },
         {

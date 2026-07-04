@@ -170,7 +170,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 SPEAKING TASK:
                 %s
 
-                SPEAKING TRANSCRIPT:
+//                SPEAKING TRANSCRIPT:
                 %s
                 """.formatted(speakingAudioPolicy, writeJson(writingConfig), writing, writeJson(speakingConfig), speaking);
         try {

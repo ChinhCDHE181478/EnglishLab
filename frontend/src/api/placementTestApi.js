@@ -6,12 +6,12 @@ const unwrapData = (response) => {
 };
 
 const placementTestApi = {
-  async getMockOne() {
-    return unwrapData(await axiosClient.get('/api/student/placement-tests/mock-1'));
+  async getCurrent() {
+    return unwrapData(await axiosClient.get('/api/student/placement-tests/current'));
   },
 
-  async submitMockOne(payload) {
-    return unwrapData(await axiosClient.post('/api/student/placement-tests/mock-1/submit', payload));
+  async submitCurrent(payload) {
+    return unwrapData(await axiosClient.post('/api/student/placement-tests/current/submit', payload));
   },
 
   async getManagedDefinition() {

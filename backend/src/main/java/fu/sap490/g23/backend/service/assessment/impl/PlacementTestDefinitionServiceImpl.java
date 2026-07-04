@@ -1,17 +1,16 @@
 package fu.sap490.g23.backend.service.assessment.impl;
 
-import fu.sap490.g23.backend.service.assessment.*;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.dto.request.assessment.PlacementTestDefinitionRequest;
 import fu.sap490.g23.backend.dto.response.assessment.PlacementTestDefinitionResponse;
 import fu.sap490.g23.backend.dto.response.assessment.PlacementTestMonitoringResponse;
-import fu.sap490.g23.backend.entity.assessment.PlacementTestDefinition;
 import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sap490.g23.backend.entity.assessment.PlacementTestDefinition;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestDefinitionRepository;
+import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -26,22 +25,25 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class PlacementTestDefinitionServiceImpl implements PlacementTestDefinitionService {
-    public static final String TEST_CODE = "IELTS_PLACEMENT_MOCK_1";
+    public static final String TEST_CODE = PlacementTestDefinitionService.TEST_CODE;
 
     private final PlacementTestDefinitionRepository definitionRepository;
     private final PlacementTestAttemptRepository attemptRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Override
     @Transactional
     public PlacementTestDefinition getDefinition() {
         return definitionRepository.findByTestCode(TEST_CODE).orElseGet(this::createDefaultDefinition);
     }
 
+    @Override
     @Transactional
     public PlacementTestDefinitionResponse getManagementDefinition() {
         return toResponse(getDefinition());
     }
 
+    @Override
     @Transactional
     public PlacementTestDefinitionResponse updateDefinition(PlacementTestDefinitionRequest request) {
         validateConfig(request.getListeningConfigJson(), "Nghe");
@@ -62,6 +64,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         return toResponse(definitionRepository.save(definition));
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PlacementTestMonitoringResponse getMonitoring() {
         List<PlacementTestAttempt> attempts = attemptRepository.findByTestCodeOrderBySubmittedAtDesc(TEST_CODE);
@@ -75,11 +78,11 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .averageWritingBand(average(attempts, PlacementTestAttempt::getWritingScore))
                 .averageSpeakingBand(average(attempts, PlacementTestAttempt::getSpeakingScore))
                 .bandDistribution(List.of(
-                        distribution("Dưới 4.0", attempts, score -> score != null && score.compareTo(java.math.BigDecimal.valueOf(4)) < 0),
-                        distribution("4.0 - 4.5", attempts, score -> score != null && score.compareTo(java.math.BigDecimal.valueOf(4)) >= 0 && score.compareTo(java.math.BigDecimal.valueOf(5)) < 0),
-                        distribution("5.0 - 5.5", attempts, score -> score != null && score.compareTo(java.math.BigDecimal.valueOf(5)) >= 0 && score.compareTo(java.math.BigDecimal.valueOf(6)) < 0),
-                        distribution("6.0 - 6.5", attempts, score -> score != null && score.compareTo(java.math.BigDecimal.valueOf(6)) >= 0 && score.compareTo(java.math.BigDecimal.valueOf(7)) < 0),
-                        distribution("Từ 7.0", attempts, score -> score != null && score.compareTo(java.math.BigDecimal.valueOf(7)) >= 0)
+                        distribution("Dưới 4.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) < 0),
+                        distribution("4.0 - 4.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) >= 0 && score.compareTo(BigDecimal.valueOf(5)) < 0),
+                        distribution("5.0 - 5.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(5)) >= 0 && score.compareTo(BigDecimal.valueOf(6)) < 0),
+                        distribution("6.0 - 6.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(6)) >= 0 && score.compareTo(BigDecimal.valueOf(7)) < 0),
+                        distribution("Từ 7.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(7)) >= 0)
                 ))
                 .recentAttempts(attemptRepository.findTop20ByTestCodeOrderBySubmittedAtDesc(TEST_CODE).stream()
                         .map(this::toRecentAttempt)
@@ -87,6 +90,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .build();
     }
 
+    @Override
     public JsonNode getConfig(PlacementTestDefinition definition, String skill) {
         String config = switch (skill) {
             case "listening" -> definition.getListeningConfigJson();
@@ -109,10 +113,10 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .description("Một phiên đánh giá gồm Nghe, Đọc, Viết và Nói để gợi ý điểm bắt đầu phù hợp.")
                 .maxAttempts(3)
                 .active(true)
-                .listeningConfigJson(loadResource("placement-test/mock-1-listening.json"))
+                .listeningConfigJson(loadResource("placement-test/current-listening.json"))
                 .readingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_reading_test_1.json"))
                 .writingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_writing_test_1.json"))
-                .speakingConfigJson(loadResource("placement-test/mock-1-speaking.json"))
+                .speakingConfigJson(loadResource("placement-test/current-speaking.json"))
                 .updatedAt(LocalDateTime.now())
                 .build();
         return definitionRepository.save(definition);

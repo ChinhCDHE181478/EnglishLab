@@ -5,11 +5,14 @@ import fu.sap490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
 import fu.sap490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
 import fu.sap490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
 import fu.sap490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
+import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
+import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -24,6 +27,7 @@ import fu.sap490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sap490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sap490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
@@ -62,6 +66,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final CurriculumFlashcardRefRepository flashcardRefRepository;
     private final CenterMaterialLibraryItemRepository materialRepository;
     private final ExerciseBankItemRepository exerciseRepository;
+    private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
 
@@ -263,12 +268,14 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public AssessmentBankItemResponse createAssessmentBankItem(AssessmentBankItemRequest request) {
         validateAssessmentBankRequest(request);
+        AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId(), request.getSkill());
         AssessmentBankItem item = AssessmentBankItem.builder()
                 .title(requireText(request.getTitle(), "Tên đề không được để trống."))
                 .description(trimOrNull(request.getDescription()))
                 .type(request.getType())
                 .skill(request.getSkill())
                 .aiEvaluationMode(request.getAiEvaluationMode() == null ? AiEvaluationMode.NONE : request.getAiEvaluationMode())
+                .rubric(rubric)
                 .instructions(trimOrNull(request.getInstructions()))
                 .objectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()))
                 .uiConfigJson(trimOrNull(request.getUiConfigJson()))
@@ -277,6 +284,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .timeLimitMinutes(request.getTimeLimitMinutes())
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
                 .displayOrder(defaultInt(request.getDisplayOrder()))
+                .active(true)
                 .build();
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
@@ -285,11 +293,13 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     public AssessmentBankItemResponse updateAssessmentBankItem(Long id, AssessmentBankItemRequest request) {
         validateAssessmentBankRequest(request);
         AssessmentBankItem item = findAssessment(id);
+        AssessmentRubric rubric = resolveAssessmentRubric(request.getRubricId(), request.getSkill());
         item.setTitle(requireText(request.getTitle(), "Tên đề không được để trống."));
         item.setDescription(trimOrNull(request.getDescription()));
         item.setType(request.getType());
         item.setSkill(request.getSkill());
         item.setAiEvaluationMode(request.getAiEvaluationMode() == null ? AiEvaluationMode.NONE : request.getAiEvaluationMode());
+        item.setRubric(rubric);
         item.setInstructions(trimOrNull(request.getInstructions()));
         item.setObjectiveAnswerKey(trimOrNull(request.getObjectiveAnswerKey()));
         item.setUiConfigJson(trimOrNull(request.getUiConfigJson()));
@@ -298,6 +308,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         item.setTimeLimitMinutes(request.getTimeLimitMinutes());
         item.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
         item.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        item.setActive(!"ARCHIVED".equalsIgnoreCase(item.getStatus()));
         return toAssessmentResponse(assessmentBankRepository.save(item));
     }
 
@@ -305,6 +316,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     public void archiveAssessmentBankItem(Long id) {
         AssessmentBankItem item = findAssessment(id);
         item.setStatus("ARCHIVED");
+        item.setActive(false);
         assessmentBankRepository.save(item);
     }
 
@@ -488,6 +500,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .type(item.getType())
                 .skill(item.getSkill())
                 .aiEvaluationMode(item.getAiEvaluationMode())
+                .rubric(toRubricResponse(item.getRubric()))
                 .instructions(item.getInstructions())
                 .objectiveAnswerKey(item.getObjectiveAnswerKey())
                 .uiConfigJson(item.getUiConfigJson())
@@ -498,6 +511,32 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .displayOrder(item.getDisplayOrder())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
+                .build();
+    }
+
+    private AssessmentRubricResponse toRubricResponse(AssessmentRubric rubric) {
+        if (rubric == null) {
+            return null;
+        }
+        return AssessmentRubricResponse.builder()
+                .id(rubric.getId())
+                .name(rubric.getName())
+                .examType(rubric.getExamType())
+                .skill(rubric.getSkill())
+                .taskType(rubric.getTaskType())
+                .scoringScale(rubric.getScoringScale())
+                .description(rubric.getDescription())
+                .active(rubric.isActive())
+                .criteria(rubric.getCriteria().stream()
+                        .map(criterion -> RubricCriterionResponse.builder()
+                                .id(criterion.getId())
+                                .name(criterion.getName())
+                                .weight(criterion.getWeight())
+                                .description(criterion.getDescription())
+                                .bandDescriptors(criterion.getBandDescriptors())
+                                .displayOrder(criterion.getDisplayOrder())
+                                .build())
+                        .toList())
                 .build();
     }
 
@@ -526,6 +565,21 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 && !StringUtils.hasText(request.getUiConfigJson())) {
             throw new RuntimeException("Đề Writing/Speaking cần có nội dung đề trong cấu hình.");
         }
+    }
+
+    private AssessmentRubric resolveAssessmentRubric(Long rubricId, AssessmentSkill skill) {
+        if (rubricId == null) {
+            return null;
+        }
+        AssessmentRubric rubric = assessmentRubricRepository.findById(rubricId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy rubric."));
+        if (!rubric.isActive()) {
+            throw new RuntimeException("Rubric đã tạm ngưng.");
+        }
+        if (rubric.getSkill() != null && rubric.getSkill() != skill && rubric.getSkill() != AssessmentSkill.MIXED) {
+            throw new RuntimeException("Rubric không phù hợp với kỹ năng của nội dung.");
+        }
+        return rubric;
     }
 
     private String uniqueProgramSlug(String source, Long currentId) {

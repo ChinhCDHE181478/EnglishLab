@@ -61,7 +61,7 @@ public class LoginTest {
         loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
 
-        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_MOCK_1")))
+        lenient().when(placementTestAttemptRepository.existsByStudentAndTestCode(any(User.class), eq("IELTS_PLACEMENT_CURRENT")))
                 .thenReturn(false);
     }
 

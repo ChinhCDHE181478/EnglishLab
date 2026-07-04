@@ -59,7 +59,7 @@ const createAssessmentDraftFromBank = ({ bankItem, moduleKey, moduleTitle = null
   moduleKey,
   moduleTitle,
   assessmentBankItemId: String(bankItem.id),
-  rubricId: '',
+  rubricId: bankItem.rubric?.id ? String(bankItem.rubric.id) : '',
   title: bankItem.title || '',
   description: bankItem.description || '',
   type: bankItem.type || 'MODULE_TEST',
@@ -610,7 +610,7 @@ export default function ContentManagerCourseBuilderPage() {
       });
       setUploadFile(null);
       setUploadProgress(100);
-      pushToast('Tải video lên Bunny thành công.');
+      pushToast('Tải video lên thành công.');
     } catch (err) {
       const message = err?.response?.data?.message || 'Không upload được video lên Bunny.';
       setError(message);
@@ -751,7 +751,7 @@ export default function ContentManagerCourseBuilderPage() {
       {!course ? (
         <div className="rounded-2xl border border-[#dfbfbd]/55 bg-white px-5 py-8 text-sm text-[#584140]">Đang tải khu vực biên soạn...</div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_1fr_320px]">
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <Panel className="overflow-hidden p-0">
             <div className="flex items-center justify-between border-b border-[#f0e3e4] px-5 py-4">
               <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Mô-đun</h2>
@@ -850,6 +850,86 @@ export default function ContentManagerCourseBuilderPage() {
                 </button>
                 <span className="text-sm text-[#584140]">{totalLessons} bài học • {totalHours} giờ</span>
               </div>
+            </Panel>
+
+            <Panel className="p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bài học đang chọn</p>
+                  {activeLesson ? (
+                    <>
+                      <h3 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c]">{activeLesson.title}</h3>
+                      <p className="mt-2 max-w-4xl text-sm leading-6 text-[#584140]">{activeLesson.description || 'Chưa có mô tả cho bài học này.'}</p>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3 text-sm">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Loại nội dung</p>
+                          <p className="mt-1 font-bold text-[#4b0009]">{getContentTypeLabel(activeLesson.contentType)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3 text-sm">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Thời lượng</p>
+                          <p className="mt-1 font-bold text-[#4b0009]">{getLessonDurationLabel(activeLesson)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3 text-sm">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Thẻ ghi nhớ</p>
+                          <p className="mt-1 font-bold text-[#4b0009]">{countLessonFlashcardSets(activeLesson)} bộ • {countLessonFlashcards(activeLesson)} thẻ</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm text-[#584140]">Chọn một bài học hoặc thêm bài học mới để bắt đầu biên tập nội dung.</p>
+                  )}
+                </div>
+                {activeLesson ? (
+                  <button
+                    className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]"
+                    onClick={() => setLessonModalOpen(true)}
+                    type="button"
+                  >
+                    Chỉnh sửa bài học
+                  </button>
+                ) : null}
+              </div>
+
+              {activeLesson ? (
+                <div className="mt-5 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4 text-sm text-[#584140]">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                    <div>
+                      <p className="font-semibold text-[#4b0009]">Thẻ ghi nhớ của bài học</p>
+                      <p className="mt-1">
+                        {activeLesson.videoUrl ? 'Đã liên kết video.' : 'Chưa liên kết video.'}
+                        {activeLesson.contentText ? ' Nội dung bài học đã sẵn sàng.' : ' Chưa có nội dung bài học.'}
+                      </p>
+                    </div>
+                    <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(260px,1fr)_auto] xl:min-w-[520px]">
+                      <BrandedSelect
+                        onChange={(event) => setSelectedLessonFlashcardSetId(event.target.value)}
+                        options={flashcardSetOptions}
+                        placeholder="Chọn bộ flashcard trong kho"
+                        value={selectedLessonFlashcardSetId}
+                      />
+                      <button
+                        className="rounded-xl bg-[#4b0009] px-4 py-3 font-semibold text-white transition hover:bg-[#730014]"
+                        onClick={addFlashcardSetToActiveLesson}
+                        type="button"
+                      >
+                        Thêm từ kho
+                      </button>
+                    </div>
+                  </div>
+                  {(activeLesson.flashcardSets || []).length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {activeLesson.flashcardSets.map((set) => (
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-semibold text-[#4b0009]" key={set.id}>
+                          {set.title}
+                          <button className="text-[#93000a]" onClick={() => removeFlashcardSetFromActiveLesson(set.id)} type="button">Gỡ</button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs">Chưa gắn bộ flashcard nào từ kho.</p>
+                  )}
+                </div>
+              ) : null}
             </Panel>
 
             <div className="space-y-3">
@@ -999,74 +1079,6 @@ export default function ContentManagerCourseBuilderPage() {
               )}
             </Panel>
           </div>
-
-          <Panel className="p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bài học đang chọn</p>
-            {activeLesson ? (
-              <div className="mt-4 space-y-4">
-                <div>
-                  <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">{activeLesson.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#584140]">{activeLesson.description || 'Chưa có mô tả cho bài học này.'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Loại nội dung</p>
-                    <p className="mt-1 font-bold text-[#4b0009]">{getContentTypeLabel(activeLesson.contentType)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Thời lượng</p>
-                    <p className="mt-1 font-bold text-[#4b0009]">{getLessonDurationLabel(activeLesson)}</p>
-                  </div>
-                </div>
-                <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-4 text-sm leading-6 text-[#584140]">
-                  {activeLesson.videoUrl ? 'Đã liên kết video.' : 'Chưa liên kết video.'}
-                  {activeLesson.contentText ? ' Nội dung bài học đã sẵn sàng.' : ' Chưa có nội dung bài học.'}
-                </div>
-                <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4 text-sm text-[#584140]">
-                  <p className="font-semibold text-[#4b0009]">Thẻ ghi nhớ của bài học</p>
-                  <p className="mt-1">{countLessonFlashcardSets(activeLesson)} bộ từ kho • {countLessonFlashcards(activeLesson)} thẻ.</p>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <BrandedSelect
-                      onChange={(event) => setSelectedLessonFlashcardSetId(event.target.value)}
-                      options={flashcardSetOptions}
-                      placeholder="Chọn bộ flashcard trong kho"
-                      value={selectedLessonFlashcardSetId}
-                    />
-                    <button
-                      className="rounded-xl bg-[#4b0009] px-4 py-3 font-semibold text-white transition hover:bg-[#730014]"
-                      onClick={addFlashcardSetToActiveLesson}
-                      type="button"
-                    >
-                      Thêm từ kho
-                    </button>
-                  </div>
-                  {(activeLesson.flashcardSets || []).length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {activeLesson.flashcardSets.map((set) => (
-                        <span className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-semibold text-[#4b0009]" key={set.id}>
-                          {set.title}
-                          <button className="text-[#93000a]" onClick={() => removeFlashcardSetFromActiveLesson(set.id)} type="button">Gỡ</button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-xs">Chưa gắn bộ flashcard nào từ kho.</p>
-                  )}
-                </div>
-                <button
-                  className="w-full rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]"
-                  onClick={() => setLessonModalOpen(true)}
-                  type="button"
-                >
-                  Chỉnh sửa bài học
-                </button>
-              </div>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-[#dfbfbd] p-4 text-sm text-[#584140]">
-                Chọn một bài học hoặc thêm bài học mới để bắt đầu biên tập nội dung.
-              </div>
-            )}
-          </Panel>
         </div>
       )}
 
@@ -1377,10 +1389,10 @@ function LessonEditorModal({
                   <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Tải video lên Bunny</p>
-                        <p className="mt-1 text-sm text-[#584140]">
-                          {activeLesson.bunnyVideoId ? `Mã video: ${activeLesson.bunnyVideoId}` : 'Tải video trực tiếp lên Bunny Stream.'}
-                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Tải video lên hệ thống</p>
+                        {/* <p className="mt-1 text-sm text-[#584140]">
+                          {activeLesson.bunnyVideoId ? `Mã video: ${activeLesson.bunnyVideoId}` : 'Tải video trực tiếp lên .'}
+                        </p> */}
                       </div>
                       <Upload className="h-5 w-5 text-[#730014]" />
                     </div>
