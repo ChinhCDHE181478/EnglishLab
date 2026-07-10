@@ -1,4 +1,5 @@
 import CatalogCourseCard from './CatalogCourseCard';
+import BrandLoadingState from '../ui/BrandLoadingState';
 
 const RecommendedCoursesSection = ({ courses = [], loading = false, error = '', hasCurrentBand = false, currentBand = null, onRetry }) => {
   const daCoBandHienTai = hasCurrentBand || Number(currentBand) > 0;
@@ -15,7 +16,7 @@ const RecommendedCoursesSection = ({ courses = [], loading = false, error = '', 
       </div>
 
       {loading ? (
-        <div className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-8 text-center text-[#584140]">Đang tải danh sách gợi ý...</div>
+        <BrandLoadingState compact className="rounded-[28px]" message="Đang tải danh sách gợi ý..." />
       ) : error ? (
         <div className="rounded-[28px] border border-[#f0d4d7] bg-white p-8 text-center text-[#93000a]">
           <p>{error}</p>

@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -35,6 +36,10 @@ public class ClassroomHomework {
     @JoinColumn(name = "session_id")
     private ClassroomSession session;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curriculum_unit_id")
+    private CurriculumUnit curriculumUnit;
+
     @Column(nullable = false, length = 220)
     private String title;
 
@@ -54,6 +59,18 @@ public class ClassroomHomework {
 
     @Column(name = "attachment_url", length = 700)
     private String attachmentUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "activity_type", nullable = false, length = 30)
+    @Builder.Default
+    private HomeworkActivityType activityType = HomeworkActivityType.TEXT_RESPONSE;
+
+    @Column(name = "activity_config_json", columnDefinition = "text")
+    private String activityConfigJson;
+
+    @Column(name = "ai_review_enabled", nullable = false)
+    @Builder.Default
+    private boolean aiReviewEnabled = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

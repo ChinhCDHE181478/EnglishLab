@@ -190,7 +190,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 .toList();
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         for (CourseModule module : modules) {
-            AssessmentSkill skill = detectSkill(module.getTitle());
+            AssessmentSkill skill = resolvePracticeSkill(module);
             AssessmentRubric rubric = resolvePracticeRubric(skill, writingRubric, speakingRubric);
             AiEvaluationMode evaluationMode = resolvePracticeEvaluationMode(skill);
             CourseAssessment assessment = findSeededModuleAssessment(existingAssessments, module, "Module AI Check - ")
@@ -201,7 +201,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                             .active(true)
                             .build());
             assessment.setRubric(rubric);
-            assessment.setTitle("Bài đánh giá cuối mô-đun - " + module.getTitle());
+            assessment.setTitle(practiceAssessmentTitle(skill, module));
             assessment.setDescription(practiceDescription(skill));
             assessment.setSkill(skill);
             assessment.setAiEvaluationMode(evaluationMode);
@@ -215,7 +215,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                 assessment.setPassingScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(6.0) : null);
                 assessment.setMaxScore(usesBandScoring(evaluationMode) ? BigDecimal.valueOf(9.0) : null);
             }
-            assessment.setTimeLimitMinutes(skill == AssessmentSkill.READING ? 60 : (skill == AssessmentSkill.SPEAKING ? 15 : 40));
+            assessment.setTimeLimitMinutes(practiceTimeLimitMinutes(skill));
             assessment.setDisplayOrder(module.getDisplayOrder());
             assessment.setActive(true);
             CourseAssessment savedAssessment = courseAssessmentRepository.save(assessment);
@@ -241,6 +241,29 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         finalMock.setDisplayOrder(999);
         finalMock.setActive(true);
         courseAssessmentRepository.save(finalMock);
+    }
+
+    private AssessmentSkill resolvePracticeSkill(CourseModule module) {
+        if (module != null && Integer.valueOf(1).equals(module.getDisplayOrder())) {
+            return AssessmentSkill.WRITING;
+        }
+        return detectSkill(module == null ? null : module.getTitle());
+    }
+
+    private String practiceAssessmentTitle(AssessmentSkill skill, CourseModule module) {
+        String moduleTitle = module == null ? "" : module.getTitle();
+        if (skill == AssessmentSkill.WRITING) {
+            return "Bài Writing cuối mô-đun - " + moduleTitle;
+        }
+        return "Bài đánh giá cuối mô-đun - " + moduleTitle;
+    }
+
+    private int practiceTimeLimitMinutes(AssessmentSkill skill) {
+        return switch (skill) {
+            case READING, WRITING -> 60;
+            case SPEAKING -> 15;
+            default -> 40;
+        };
     }
 
     private AssessmentSkill detectSkill(String moduleTitle) {
@@ -487,9 +510,16 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
                         && item.getType() == AssessmentType.MODULE_TEST)
                 .toList();
         return matches.stream()
-                .filter(item -> item.getTitle() != null && item.getTitle().startsWith(seededTitlePrefix))
+                .filter(item -> isSeededModuleAssessmentTitle(item.getTitle(), seededTitlePrefix))
                 .findFirst()
                 .or(() -> matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty());
+    }
+
+    private boolean isSeededModuleAssessmentTitle(String title, String seededTitlePrefix) {
+        return title != null
+                && (title.startsWith(seededTitlePrefix)
+                || title.startsWith("Bài đánh giá cuối mô-đun - ")
+                || title.startsWith("Bài Writing cuối mô-đun - "));
     }
 
     private Optional<CourseAssessment> findSeededMockAssessment(List<CourseAssessment> assessments) {

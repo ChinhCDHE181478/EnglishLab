@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.entity.curriculum;
 
+import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import jakarta.persistence.*;
@@ -67,6 +68,60 @@ public class CurriculumProgram {
     @Column(nullable = false, length = 30)
     @Builder.Default
     private String status = "DRAFT";
+
+    @Column(name = "review_note", columnDefinition = "text")
+    private String reviewNote;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "submitted_by_id")
+    private User submittedBy;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    // ===== Cấu hình riêng cho chương trình virtual =====
+    @Column(name = "virtual_platform", length = 30)
+    private String virtualPlatform;
+
+    @Column(name = "recording_allowed")
+    private Boolean recordingAllowed;
+
+    @Column(name = "recording_available_days")
+    private Integer recordingAvailableDays;
+
+    @Column(name = "materials_downloadable")
+    private Boolean materialsDownloadable;
+
+    @Column(name = "session_open_before_minutes")
+    private Integer sessionOpenBeforeMinutes;
+
+    @Column(name = "session_close_after_minutes")
+    private Integer sessionCloseAfterMinutes;
+
+    @Column(name = "device_check_required")
+    private Boolean deviceCheckRequired;
+
+    @Column(name = "mic_required")
+    private Boolean micRequired;
+
+    @Column(name = "speaker_required")
+    private Boolean speakerRequired;
+
+    @Column(name = "camera_required")
+    private Boolean cameraRequired;
+
+    @Column(name = "auto_attendance_enabled")
+    private Boolean autoAttendanceEnabled;
+
+    @Column(name = "min_attendance_minutes")
+    private Integer minAttendanceMinutes;
 
     @Column(nullable = false)
     @Builder.Default

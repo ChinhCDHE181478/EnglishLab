@@ -4,6 +4,7 @@ import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { ManagerFilterBar, ManagerStatsGrid } from '../../components/content-manager/ManagerListUi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 
 const TABS = [
   { key: 'overview', label: 'Thiết lập chung' },
@@ -12,6 +13,22 @@ const TABS = [
   { key: 'reading', label: 'Đọc' },
   { key: 'writing', label: 'Viết' },
   { key: 'speaking', label: 'Nói' },
+  { key: 'toeic', label: 'TOEIC' },
+];
+
+const examTypeOptions = [
+  { label: 'IELTS 4 kỹ năng', value: 'IELTS' },
+  { label: 'TOEIC Listening & Reading', value: 'TOEIC' },
+];
+
+const TOEIC_PARTS = [
+  ['Part 1', 'Photographs', 6],
+  ['Part 2', 'Question-Response', 25],
+  ['Part 3', 'Conversations', 39],
+  ['Part 4', 'Talks', 30],
+  ['Part 5', 'Incomplete Sentences', 30],
+  ['Part 6', 'Text Completion', 16],
+  ['Part 7', 'Reading Comprehension', 54],
 ];
 
 const parseConfig = (value, fallback = {}) => {
@@ -35,18 +52,25 @@ export default function ContentManagerPlacementTestPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([placementTestApi.getManagedDefinition(), placementTestApi.getMonitoring()])
-      .then(([response, monitoringResponse]) => {
+    const loadPlacementTest = async () => {
+      try {
+        const [response, monitoringResponse] = await Promise.all([
+          placementTestApi.getManagedDefinition(),
+          placementTestApi.getMonitoring(),
+        ]);
         if (!active) return;
         setDefinition(toDraft(response));
         setMonitoring(monitoringResponse);
-      })
-      .catch((requestError) => active && setError(requestError?.response?.data?.message || 'Không tải được dữ liệu bài đánh giá đầu vào.'))
-      .finally(() => {
+      } catch (requestError) {
+        if (active) setError(requestError?.response?.data?.message || 'Không tải được dữ liệu bài đánh giá đầu vào.');
+      } finally {
         if (!active) return;
         setLoading(false);
         setMonitoringLoading(false);
-      });
+      }
+    };
+
+    loadPlacementTest();
     return () => { active = false; };
   }, []);
 
@@ -159,6 +183,7 @@ export default function ContentManagerPlacementTestPage() {
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
       {activeTab === 'writing' ? <SubjectiveEditor config={definition.writing} label="Bài đánh giá kỹ năng Viết" skill="WRITING" onChange={(field, value) => applySubjectiveChange('writing', field, value)} /> : null}
       {activeTab === 'speaking' ? <SubjectiveEditor config={definition.speaking} label="Bài đánh giá kỹ năng Nói" skill="SPEAKING" onChange={(field, value) => applySubjectiveChange('speaking', field, value)} /> : null}
+      {activeTab === 'toeic' ? <ToeicEditor config={definition.toeic} onChange={(value) => updateConfig('toeic', value)} /> : null}
     </div>
   );
 }
@@ -180,9 +205,79 @@ function Overview({ definition, onChange }) {
   return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
     <TextField label="Tên bài đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
     <TextField label="Số lượt làm tối đa" onChange={(event) => onChange('maxAttempts', Number(event.target.value))} value={definition.maxAttempts} />
+    <label className="block">
+      <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Case đề</span>
+      <BrandedSelect
+        onChange={(event) => onChange('examType', event.target.value)}
+        options={examTypeOptions}
+        value={definition.examType || 'IELTS'}
+      />
+    </label>
     <div className="lg:col-span-2"><TextField label="Mô tả" onChange={(event) => onChange('description', event.target.value)} rows={3} textarea value={definition.description} /></div>
-  </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.active} className="h-4 w-4 accent-[#730014]" onChange={(event) => onChange('active', event.target.checked)} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
+  </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.active} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('active', event.target.checked)} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
   </Panel>;
+}
+
+function ToeicEditor({ config, onChange }) {
+  const [rawJson, setRawJson] = useState(() => JSON.stringify(config || buildDefaultToeicConfig(), null, 2));
+  const [jsonError, setJsonError] = useState('');
+
+  useEffect(() => {
+    setRawJson(JSON.stringify(config || buildDefaultToeicConfig(), null, 2));
+    setJsonError('');
+  }, [config]);
+
+  const handleJsonChange = (event) => {
+    const nextRaw = event.target.value;
+    setRawJson(nextRaw);
+    try {
+      const parsed = JSON.parse(nextRaw);
+      setJsonError('');
+      onChange(parsed);
+    } catch {
+      setJsonError('JSON chưa hợp lệ. Nội dung sẽ chưa được lưu cho tới khi sửa đúng cú pháp.');
+    }
+  };
+
+  return (
+    <Panel className="p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Form đề TOEIC</h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]">
+            Dùng case TOEIC Listening & Reading gồm 7 part. Nội dung câu hỏi, audio/image URL và answer key lưu trong JSON để frontend test mode render theo cùng builder hiện tại.
+          </p>
+        </div>
+        <button
+          className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-xs font-extrabold text-[#730014]"
+          onClick={() => onChange(buildDefaultToeicConfig())}
+          type="button"
+        >
+          Nạp template TOEIC
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {TOEIC_PARTS.map(([part, title, count]) => (
+          <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4" key={part}>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{part}</p>
+            <p className="mt-1 font-extrabold text-[#1a1c1c]">{title}</p>
+            <p className="mt-1 text-xs font-semibold text-[#584140]">{count} câu</p>
+          </div>
+        ))}
+      </div>
+
+      <label className="mt-5 block space-y-2">
+        <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Cấu hình TOEIC JSON</span>
+        <textarea
+          className="min-h-[440px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white"
+          onChange={handleJsonChange}
+          value={rawJson}
+        />
+        {jsonError ? <span className="text-xs font-semibold text-[#93000a]">{jsonError}</span> : null}
+      </label>
+    </Panel>
+  );
 }
 
 function ObjectiveEditor({ config, label, onChange, skill }) {
@@ -195,11 +290,42 @@ function SubjectiveEditor({ config, label, onChange, skill }) {
 }
 
 function toDraft(response) {
-  return { ...response, listening: parseConfig(response.listeningConfigJson), reading: parseConfig(response.readingConfigJson), writing: parseConfig(response.writingConfigJson), speaking: parseConfig(response.speakingConfigJson) };
+  return { ...response, examType: response.examType || 'IELTS', listening: parseConfig(response.listeningConfigJson), reading: parseConfig(response.readingConfigJson), writing: parseConfig(response.writingConfigJson), speaking: parseConfig(response.speakingConfigJson), toeic: parseConfig(response.toeicConfigJson, buildDefaultToeicConfig()) };
 }
 
 function toPayload(draft) {
-  return { title: draft.title, description: draft.description, maxAttempts: Number(draft.maxAttempts), active: Boolean(draft.active), listeningConfigJson: JSON.stringify(draft.listening), readingConfigJson: JSON.stringify(draft.reading), writingConfigJson: JSON.stringify(draft.writing), speakingConfigJson: JSON.stringify(draft.speaking) };
+  return { title: draft.title, description: draft.description, examType: draft.examType || 'IELTS', maxAttempts: Number(draft.maxAttempts), active: Boolean(draft.active), listeningConfigJson: JSON.stringify(draft.listening), readingConfigJson: JSON.stringify(draft.reading), writingConfigJson: JSON.stringify(draft.writing), speakingConfigJson: JSON.stringify(draft.speaking), toeicConfigJson: JSON.stringify(draft.toeic || buildDefaultToeicConfig()) };
+}
+
+function buildDefaultToeicConfig() {
+    return {
+    type: 'toeic_full_test',
+    title: 'TOEIC Placement - ETS 2026 Test 10',
+    durationMinutes: 120,
+    listening: {
+      durationMinutes: 45,
+      parts: TOEIC_PARTS.slice(0, 4).map(([part, title, count]) => ({
+        part: Number(part.replace('Part ', '')),
+        title,
+        questionCount: count,
+        directions: '',
+        audioUrl: '',
+        questions: [],
+      })),
+    },
+    reading: {
+      durationMinutes: 75,
+      parts: TOEIC_PARTS.slice(4).map(([part, title, count]) => ({
+        part: Number(part.replace('Part ', '')),
+        title,
+        questionCount: count,
+        directions: '',
+        passageText: '',
+        questions: [],
+      })),
+    },
+    answerKey: {},
+  };
 }
 
 function countQuestions(config) {

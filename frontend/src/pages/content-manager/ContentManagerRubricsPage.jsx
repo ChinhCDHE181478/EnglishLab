@@ -325,7 +325,7 @@ export default function ContentManagerRubricsPage() {
             <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
               <input
                 checked={form.active}
-                className="h-4 w-4 accent-[#730014]"
+                className="h-4 w-4 accent-[#4b0009]"
                 onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
                 type="checkbox"
               />

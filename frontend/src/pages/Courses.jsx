@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
-import Header from '../components/ai-learning/Header';
 import {
   CategoryTabs,
   CourseCatalog,
-  CourseFooter,
-  CourseGlobalStyles,
   CourseHero,
   CurrentCourse,
   PopularCourses,
 } from '../components/course';
 import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { recommendCoursesForLearner } from '../utils/selfPacedHelpers';
+import LearnerPageShell from '../components/learner/LearnerPageShell';
 
 const PAGE_SIZE = 100;
 const defaultFilters = {
@@ -54,17 +53,20 @@ const Courses = () => {
       return undefined;
     }
 
-    getCurrentUser()
-      .then((response) => {
+    const loadCurrentUser = async () => {
+      try {
+        const response = await getCurrentUser();
         if (!active) return;
         localStorage.setItem('user', JSON.stringify(response.data));
         window.dispatchEvent(new Event('englishlab:user-updated'));
         setUser(response.data);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setUser(getStoredUser());
-      });
+      }
+    };
+
+    loadCurrentUser();
 
     return () => {
       active = false;
@@ -73,13 +75,16 @@ const Courses = () => {
 
   useEffect(() => {
     let active = true;
-    courseApi.getOnlineCourseCategories()
-      .then((items) => {
+    const loadCategories = async () => {
+      try {
+        const items = await courseApi.getOnlineCourseCategories();
         if (active) setCategories(items);
-      })
-      .catch(() => {
+      } catch {
         if (active) setCategories([]);
-      });
+      }
+    };
+
+    loadCategories();
     return () => {
       active = false;
     };
@@ -181,40 +186,44 @@ const Courses = () => {
   };
 
   return (
-    <div id="top" className="course-page min-h-screen overflow-x-hidden bg-[#f9f9f9] text-[#1a1c1c]">
-      <CourseGlobalStyles />
-      <Header />
-      <main className="mx-auto max-w-[1320px] px-4 pb-[80px] pt-6 md:px-10">
-        <CourseHero user={user} registeredCount={myEnrollments.length} />
-        <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
-        <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
-        {error ? (
-          <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-            {error}
-          </div>
-        ) : null}
-        <RecommendedCoursesSection
-          courses={recommendedCourses}
-          currentBand={user?.currentBand ?? null}
-          loading={loading}
-          error={error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
-          onRetry={loadCourses}
-        />
-        <PopularCourses courses={featuredCourses} />
-        <CourseCatalog
-          courses={visibleCourses}
-          keyword={keyword}
-          filters={filters}
-          onKeywordChange={setKeyword}
-          onFilterChange={handleFilterChange}
-          onClear={handleClearFilters}
-          loading={loading}
-          currentBand={user?.currentBand ?? null}
-          categories={categories}
-        />
-      </main>
-      <CourseFooter />
-    </div>
+    <LearnerPageShell
+      title="Thư viện khóa học"
+      description="Tìm kiếm và khám phá các khóa học IELTS, TOEIC và tiếng Anh giao tiếp trực tuyến chất lượng cao từ EnglishLab."
+    >
+      {loading ? (
+        <BrandLoadingState message="Đang tải danh sách khóa học..." />
+      ) : (
+        <>
+          <CourseHero user={user} registeredCount={myEnrollments.length} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
+          <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
+          {error ? (
+            <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
+              {error}
+            </div>
+          ) : null}
+          <RecommendedCoursesSection
+            courses={recommendedCourses}
+            currentBand={user?.currentBand ?? null}
+            loading={loading}
+            error={error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
+            onRetry={loadCourses}
+          />
+          <PopularCourses courses={featuredCourses} />
+          <CourseCatalog
+            courses={visibleCourses}
+            keyword={keyword}
+            filters={filters}
+            onKeywordChange={setKeyword}
+            onFilterChange={handleFilterChange}
+            onClear={handleClearFilters}
+            loading={loading}
+            currentBand={user?.currentBand ?? null}
+            categories={categories}
+          />
+        </>
+      )}
+    </LearnerPageShell>
   );
 };
 

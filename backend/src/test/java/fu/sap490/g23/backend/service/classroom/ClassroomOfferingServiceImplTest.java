@@ -10,12 +10,14 @@ import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
+import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
@@ -62,6 +64,10 @@ class ClassroomOfferingServiceImplTest {
     @Mock
     private CurriculumProgramRepository curriculumProgramRepository;
     @Mock
+    private TrainingProgramRepository trainingProgramRepository;
+    @Mock
+    private ClassroomMaterialRepository materialRepository;
+    @Mock
     private ClassroomRoomRepository roomRepository;
     @Mock
     private UserRepository userRepository;
@@ -97,6 +103,8 @@ class ClassroomOfferingServiceImplTest {
                 packageTypeRepository,
                 packageEnrollmentRepository,
                 curriculumProgramRepository,
+                trainingProgramRepository,
+                materialRepository,
                 roomRepository,
                 userRepository,
                 mapper,

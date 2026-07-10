@@ -40,20 +40,7 @@ public class AssessmentPassingThresholdResolver {
             return null;
         }
 
-        String formatted = formatThreshold(threshold);
-        OnlineCourse course = assessment.getOnlineCourse();
-        if (assessment.getType() == AssessmentType.MODULE_TEST
-                && IeltsBandScale.usesBandScale(assessment)
-                && course != null
-                && course.getTargetBand() != null) {
-            return "Ngưỡng đạt (band mục tiêu khóa − 0.5): " + formatted;
-        }
-
-        if (assessment.getPassingScore() != null) {
-            return "Ngưỡng đạt (cấu hình CMS): " + formatted;
-        }
-
-        return null;
+        return "Ngưỡng đạt: " + formatThreshold(threshold);
     }
 
     public boolean isScorePassing(BigDecimal score, CourseAssessment assessment) {

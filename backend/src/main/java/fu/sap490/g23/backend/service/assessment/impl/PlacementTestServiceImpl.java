@@ -61,6 +61,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         response.put("testCode", TEST_CODE);
         response.put("title", definition.getTitle());
         response.put("description", definition.getDescription());
+        response.put("examType", definition.getExamType());
         long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
         response.put("attemptCount", attemptCount);
         response.put("maxAttempts", definition.getMaxAttempts());
@@ -70,6 +71,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
         sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
         sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
+        sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
         response.put("sections", sections);
         attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
                 .ifPresent(attempt -> response.put("latestAttempt", toResponse(attempt)));
@@ -86,6 +88,12 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         if (attemptRepository.countByStudentAndTestCode(student, TEST_CODE) >= definition.getMaxAttempts()) {
             throw new IllegalStateException("Bạn đã dùng hết lượt làm bài đánh giá đầu vào.");
         }
+        String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());
+        if ("TOEIC".equals(examType)) {
+            validateToeicSubmission(request);
+            return submitToeicPlacement(request, student, definition);
+        }
+
         validateSubmission(request);
 
         JsonNode listeningConfig = definitionService.getConfig(definition, "listening");
@@ -135,6 +143,110 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         student.setCurrentBand(overall == null ? null : overall.doubleValue());
         userRepository.save(student);
         return toResponse(savedAttempt);
+    }
+
+    private PlacementTestAttemptResponse submitToeicPlacement(
+            PlacementTestSubmissionRequest request,
+            User student,
+            fu.sap490.g23.backend.entity.assessment.PlacementTestDefinition definition
+    ) {
+        JsonNode toeicConfig = definitionService.getConfig(definition, "toeic");
+        JsonNode answerKey = toeicConfig.path("answerKey");
+        JsonNode listeningAnswers = objectMapper.valueToTree(request.getListeningAnswers());
+        JsonNode readingAnswers = objectMapper.valueToTree(request.getReadingAnswers());
+        JsonNode deviceCheck = objectMapper.valueToTree(request.getDeviceCheck());
+
+        ObjectiveScore listening = scoreToeicSection(listeningAnswers, answerKey, toeicConfig.path("listening"), 1, 100);
+        ObjectiveScore reading = scoreToeicSection(readingAnswers, answerKey, toeicConfig.path("reading"), 101, 200);
+        BigDecimal listeningScore = toeicScaledScore(listening);
+        BigDecimal readingScore = toeicScaledScore(reading);
+        BigDecimal overall = listeningScore.add(readingScore);
+
+        ObjectNode answers = objectMapper.createObjectNode();
+        answers.set("listening", listeningAnswers);
+        answers.set("reading", readingAnswers);
+
+        PlacementTestAttempt attempt = PlacementTestAttempt.builder()
+                .student(student)
+                .testCode(TEST_CODE)
+                .answersJson(writeJson(answers))
+                .deviceCheckJson(writeJson(deviceCheck))
+                .listeningScore(listeningScore)
+                .readingScore(readingScore)
+                .writingScore(null)
+                .speakingScore(null)
+                .overallScore(overall)
+                .correctListening(listening.correct())
+                .correctReading(reading.correct())
+                .aiFeedbackJson("{\"examType\":\"TOEIC\",\"message\":\"Đã chấm khách quan TOEIC Listening & Reading theo answer key.\"}")
+                .status("COMPLETED")
+                .submittedAt(LocalDateTime.now())
+                .build();
+        PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
+        student.setCurrentBand(null);
+        userRepository.save(student);
+        return toResponse(savedAttempt, "TOEIC");
+    }
+
+    private ObjectiveScore scoreToeicSection(JsonNode submitted, JsonNode answerKey, JsonNode sectionConfig, int fallbackFrom, int fallbackTo) {
+        List<Integer> questionNumbers = toeicQuestionNumbers(sectionConfig);
+        if (questionNumbers.isEmpty()) {
+            for (int number = fallbackFrom; number <= fallbackTo; number++) {
+                questionNumbers.add(number);
+            }
+        }
+        int total = 0;
+        int correct = 0;
+        for (int number : questionNumbers) {
+            JsonNode expected = answerKey.path(String.valueOf(number));
+            if (expected.isMissingNode() || expected.isNull()) {
+                continue;
+            }
+            total++;
+            if (matches(submitted == null ? null : submitted.get(String.valueOf(number)), expected)) {
+                correct++;
+            }
+        }
+        return new ObjectiveScore(correct, total);
+    }
+
+    private List<Integer> toeicQuestionNumbers(JsonNode sectionConfig) {
+        List<Integer> numbers = new ArrayList<>();
+        if (sectionConfig == null || sectionConfig.isMissingNode()) {
+            return numbers;
+        }
+        for (JsonNode part : sectionConfig.withArray("parts")) {
+            collectQuestionNumbers(part.withArray("questions"), numbers);
+            for (JsonNode group : part.withArray("questionGroups")) {
+                if (group.has("questionNumbers")) {
+                    for (JsonNode number : group.withArray("questionNumbers")) {
+                        if (number.canConvertToInt()) {
+                            numbers.add(number.asInt());
+                        }
+                    }
+                }
+                collectQuestionNumbers(group.withArray("questions"), numbers);
+            }
+        }
+        return numbers.stream().distinct().sorted().toList();
+    }
+
+    private void collectQuestionNumbers(JsonNode questions, List<Integer> numbers) {
+        for (JsonNode question : questions) {
+            JsonNode number = question.path("number");
+            if (number.canConvertToInt()) {
+                numbers.add(number.asInt());
+            }
+        }
+    }
+
+    private BigDecimal toeicScaledScore(ObjectiveScore score) {
+        if (score.total() <= 0) {
+            return BigDecimal.ZERO;
+        }
+        int scaled = (int) Math.round((score.correct() * 495.0) / score.total());
+        scaled = Math.max(5, Math.min(495, Math.round(scaled / 5.0f) * 5));
+        return BigDecimal.valueOf(scaled);
     }
 
     private AiEvaluationResult evaluateProductiveSkills(PlacementTestSubmissionRequest request, JsonNode writingConfig, JsonNode speakingConfig) {
@@ -498,14 +610,35 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    private void validateToeicSubmission(PlacementTestSubmissionRequest request) {
+        if (request == null || request.getListeningAnswers() == null || request.getReadingAnswers() == null) {
+            throw new RuntimeException("Bài TOEIC chưa có đủ dữ liệu Listening và Reading.");
+        }
+        if (request.getDeviceCheck() == null || !Boolean.TRUE.equals(request.getDeviceCheck().get("completed"))) {
+            throw new RuntimeException("Bạn cần hoàn thành kiểm tra thiết bị trước khi nộp bài.");
+        }
+    }
+
+    private String normalizeExamType(String value) {
+        return "TOEIC".equalsIgnoreCase(safe(value)) ? "TOEIC" : "IELTS";
+    }
+
     private User requireStudent(String email) {
         return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
     }
 
     private PlacementTestAttemptResponse toResponse(PlacementTestAttempt attempt) {
+        return toResponse(attempt, null);
+    }
+
+    private PlacementTestAttemptResponse toResponse(PlacementTestAttempt attempt, String examType) {
+        String resolvedExamType = examType != null
+                ? examType
+                : resolveStoredExamType(attempt);
         return PlacementTestAttemptResponse.builder()
                 .id(attempt.getId())
                 .testCode(attempt.getTestCode())
+                .examType(resolvedExamType)
                 .listeningScore(attempt.getListeningScore())
                 .readingScore(attempt.getReadingScore())
                 .writingScore(attempt.getWritingScore())
@@ -517,6 +650,16 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .status(attempt.getStatus())
                 .submittedAt(attempt.getSubmittedAt())
                 .build();
+    }
+
+    private String resolveStoredExamType(PlacementTestAttempt attempt) {
+        String feedback = safe(attempt.getAiFeedbackJson());
+        if (feedback.contains("\"examType\":\"TOEIC\"")) {
+            return "TOEIC";
+        }
+        return attempt.getOverallScore() != null && attempt.getOverallScore().compareTo(BigDecimal.valueOf(9)) > 0
+                ? "TOEIC"
+                : "IELTS";
     }
 
     private String fallbackFeedback() {

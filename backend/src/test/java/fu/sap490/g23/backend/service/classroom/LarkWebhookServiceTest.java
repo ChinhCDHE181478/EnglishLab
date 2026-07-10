@@ -3,6 +3,8 @@ package fu.sap490.g23.backend.service.classroom;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
@@ -88,6 +90,32 @@ class LarkWebhookServiceTest {
         assertThat(participant.isActive()).isFalse();
         assertThat(participant.getLeftAt()).isNotNull();
         assertThat(session.getLarkEmptySince()).isNotNull();
+    }
+
+    @Test
+    void recordingReadyQueuesRecordingSyncWithoutCallingLarkInsideWebhook() {
+        session.setRecordingSyncAttempts(8);
+
+        service.handle(event("vc.meeting.recording_ready_v1"));
+
+        assertThat(session.getRecordingProvider()).isEqualTo("LARK");
+        assertThat(session.getRecordingSyncStatus()).isEqualTo(RecordingSyncStatus.PROCESSING);
+        assertThat(session.getRecordingSyncAttempts()).isZero();
+        assertThat(session.getRecordingLastAttemptAt()).isNull();
+        verify(sessionRepository).save(session);
+        verifyNoInteractions(virtualAttendanceService);
+    }
+
+    @Test
+    void meetingEndedClosesMeetingAndScheduledClass() {
+        session.setStatus(ClassroomSessionStatus.SCHEDULED);
+        session.setRecordingSyncStatus(RecordingSyncStatus.RECORDING);
+
+        service.handle(event("vc.meeting.meeting_ended_v1"));
+
+        assertThat(session.getLarkMeetingStatus()).isEqualTo(LarkMeetingStatus.ENDED);
+        assertThat(session.getStatus()).isEqualTo(ClassroomSessionStatus.COMPLETED);
+        assertThat(session.getRecordingSyncStatus()).isEqualTo(RecordingSyncStatus.PROCESSING);
     }
 
     private Map<String, Object> event(String eventType) {

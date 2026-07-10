@@ -44,24 +44,31 @@ import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
-import TeacherQuizSection from '../../components/teacher/TeacherQuizSection';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
   { id: 'curriculum', label: 'Giáo trình' },
   { id: 'students', label: 'Học viên' },
   { id: 'homework', label: 'Bài tập' },
-  { id: 'quizzes', label: 'Bài kiểm tra' },
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
   { id: 'change-requests', label: 'Yêu cầu thay đổi' },
 ];
 
+const combineAssignmentScores = (homeworkScore, legacyQuizScore) => {
+  const scores = [homeworkScore, legacyQuizScore]
+    .map(Number)
+    .filter(Number.isFinite);
+  if (!scores.length) return '—';
+  return Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100) / 100;
+};
+
 export default function TeacherClassroomPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab');
+  const requestedInitialTab = searchParams.get('tab');
+  const initialTab = requestedInitialTab === 'quizzes' ? 'homework' : requestedInitialTab;
   const [activeTab, setActiveTab] = useState(() => (
     teacherTabs.some((tab) => tab.id === initialTab) ? initialTab : 'sessions'
   ));
@@ -105,9 +112,15 @@ export default function TeacherClassroomPage() {
   }, [id]);
 
   useEffect(() => {
-    const tab = searchParams.get('tab');
+    const requestedTab = searchParams.get('tab');
+    const tab = requestedTab === 'quizzes' ? 'homework' : requestedTab;
     if (tab && teacherTabs.some((item) => item.id === tab)) {
       setActiveTab(tab);
+      if (requestedTab === 'quizzes') {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.set('tab', 'homework');
+        setSearchParams(nextParams, { replace: true });
+      }
     }
   }, [searchParams]);
 
@@ -151,8 +164,7 @@ export default function TeacherClassroomPage() {
       name: entry.studentName || `Học viên #${entry.studentId}`,
       email: entry.studentEmail || 'Chưa cập nhật',
       attendance: entry.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
-      hwScore: entry.homeworkScore ?? '—',
-      quizScore: entry.quizScore ?? '—',
+      assignmentScore: combineAssignmentScores(entry.homeworkScore, entry.quizScore),
       participation: entry.participationScore ?? '—',
       result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
@@ -297,10 +309,6 @@ export default function TeacherClassroomPage() {
       );
     }
 
-    if (activeTab === 'quizzes') {
-      return <TeacherQuizSection classroomId={id} />;
-    }
-
     if (activeTab === 'students') {
       if (!studentRoster.length) {
         return (
@@ -371,12 +379,8 @@ export default function TeacherClassroomPage() {
                   {/* Scores */}
                   <div className="flex items-center gap-6 flex-shrink-0 text-sm">
                     <div className="text-center">
-                      <p className="text-[10px] font-bold text-[#8b706e]">Homework</p>
-                      <p className="font-['Manrope'] font-extrabold text-[#2b2828]">{student.hwScore}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold text-[#8b706e]">Quiz</p>
-                      <p className="font-['Manrope'] font-extrabold text-[#2b2828]">{student.quizScore}</p>
+                      <p className="text-[10px] font-bold text-[#8b706e]">Bài tập</p>
+                      <p className="font-['Manrope'] font-extrabold text-[#2b2828]">{student.assignmentScore}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-[10px] font-bold text-[#8b706e]">Kết quả</p>
@@ -403,9 +407,10 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'homework') {
       return (
-        <TeacherHomeworkSection
-          classroomId={id}
-          homework={homework}
+        <TeacherHomeworkSection 
+          classroomId={id} 
+          curriculumUnits={classroom?.curriculumProgram?.units || []}
+          homework={homework} 
           initialOpenCreate={searchParams.get('action') === 'create'}
           onGradebookChange={setGradebook}
           onHomeworkChange={setHomework}
@@ -449,8 +454,7 @@ export default function TeacherClassroomPage() {
                 <thead className="bg-[#fffafb] text-xs font-bold text-[#8b706e] uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4">Học viên</th>
-                    <th className="px-6 py-4">Homework</th>
-                    <th className="px-6 py-4">Quiz</th>
+                    <th className="px-6 py-4">Bài tập</th>
                     <th className="px-6 py-4">Chuyên cần</th>
                     <th className="px-6 py-4">Phát biểu</th>
                     <th className="px-6 py-4">Kết quả</th>
@@ -462,8 +466,7 @@ export default function TeacherClassroomPage() {
                       <td className="px-6 py-4 font-extrabold text-[#2b2828]">
                         {entry.studentName || `Học viên #${entry.studentId}`}
                       </td>
-                      <td className="px-6 py-4 font-bold">{entry.homeworkScore ?? '—'}</td>
-                      <td className="px-6 py-4 font-bold">{entry.quizScore ?? '—'}</td>
+                      <td className="px-6 py-4 font-bold">{combineAssignmentScores(entry.homeworkScore, entry.quizScore)}</td>
                       <td className="px-6 py-4 font-bold">{entry.attendancePercent != null ? `${entry.attendancePercent}%` : '—'}</td>
                       <td className="px-6 py-4 font-bold">{entry.participationScore ?? '—'}</td>
                       <td className="px-6 py-4">

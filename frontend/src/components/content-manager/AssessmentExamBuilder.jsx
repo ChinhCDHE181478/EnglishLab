@@ -622,7 +622,7 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                     <label className="md:col-span-2 flex items-center gap-3 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2.5 text-sm font-semibold text-[#4b0009]">
                       <input
                         checked={Boolean(config.paragraphNumbering)}
-                        className="h-4 w-4 accent-[#730014]"
+                        className="h-4 w-4 accent-[#4b0009]"
                         onChange={(event) => setConfig((current) => ({ ...current, paragraphNumbering: event.target.checked }))}
                         type="checkbox"
                       />

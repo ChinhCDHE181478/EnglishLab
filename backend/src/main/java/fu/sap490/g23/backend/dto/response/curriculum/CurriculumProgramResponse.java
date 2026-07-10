@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,9 +26,47 @@ public class CurriculumProgramResponse {
     private String teacherGuide;
     private String interactionActivities;
     private Integer totalSessions;
+    private Integer totalUnits;
     private String status;
+    private String statusLabel;
+    private String reviewNote;
+    private String submittedByName;
+    private LocalDateTime submittedAt;
+    private String reviewedByName;
+    private LocalDateTime reviewedAt;
     private Integer displayOrder;
+    /** Tổng số lớp học đã từng gắn giáo trình này. */
+    private Integer classroomUsageCount;
+    /** Số lớp sắp khai giảng / đang diễn ra dùng giáo trình này. */
+    private Integer activeClassroomCount;
+
+    // Cấu hình riêng cho chương trình virtual
+    private String virtualPlatform;
+    private Boolean recordingAllowed;
+    private Integer recordingAvailableDays;
+    private Boolean materialsDownloadable;
+    private Integer sessionOpenBeforeMinutes;
+    private Integer sessionCloseAfterMinutes;
+    private Boolean deviceCheckRequired;
+    private Boolean micRequired;
+    private Boolean speakerRequired;
+    private Boolean cameraRequired;
+    private Boolean autoAttendanceEnabled;
+    private Integer minAttendanceMinutes;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CurriculumUnitResponse> units;
+    /** Danh sách lớp đang gắn giáo trình (chỉ trả về ở API chi tiết). */
+    private List<ClassroomUsage> usingClassrooms;
+
+    @Data
+    @Builder
+    public static class ClassroomUsage {
+        private Long id;
+        private String title;
+        private String status;
+        private String statusLabel;
+        private LocalDate startDate;
+    }
 }

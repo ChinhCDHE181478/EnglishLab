@@ -54,4 +54,23 @@ public class CurriculumProgramRequest {
 
     @Min(0)
     private Integer displayOrder;
+
+    // Cấu hình riêng cho chương trình virtual
+    @Size(max = 30)
+    private String virtualPlatform;
+    private Boolean recordingAllowed;
+    @Min(0)
+    private Integer recordingAvailableDays;
+    private Boolean materialsDownloadable;
+    @Min(0)
+    private Integer sessionOpenBeforeMinutes;
+    @Min(0)
+    private Integer sessionCloseAfterMinutes;
+    private Boolean deviceCheckRequired;
+    private Boolean micRequired;
+    private Boolean speakerRequired;
+    private Boolean cameraRequired;
+    private Boolean autoAttendanceEnabled;
+    @Min(0)
+    private Integer minAttendanceMinutes;
 }

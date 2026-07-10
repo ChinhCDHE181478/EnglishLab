@@ -26,6 +26,16 @@ public interface CurriculumProgramService {
 
     void archiveProgram(Long id);
 
+    CurriculumProgramResponse cloneProgram(Long id);
+
+    CurriculumProgramResponse submitForReview(Long id, String actorEmail);
+
+    List<CurriculumProgramResponse> listPendingReview();
+
+    CurriculumProgramResponse approveProgram(Long id, String actorEmail);
+
+    CurriculumProgramResponse rejectProgram(Long id, String reason, String actorEmail);
+
     CurriculumUnitResponse createUnit(Long programId, CurriculumUnitRequest request);
 
     CurriculumUnitResponse updateUnit(Long unitId, CurriculumUnitRequest request);
@@ -45,6 +55,10 @@ public interface CurriculumProgramService {
     List<AssessmentBankItemResponse> listAssessmentBank(AssessmentSkill skill, AssessmentType type);
 
     AssessmentBankItemResponse getAssessmentBankItem(Long id);
+
+    List<AssessmentBankItemResponse> listPublishedMockTests();
+
+    AssessmentBankItemResponse getPublishedMockTest(Long id);
 
     AssessmentBankItemResponse createAssessmentBankItem(AssessmentBankItemRequest request);
 

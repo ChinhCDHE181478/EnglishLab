@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
   Calendar,
@@ -12,20 +12,19 @@ import {
   ChevronRight,
   Info,
   CheckCircle2,
-  AlertTriangle,
   Lock,
   MapPin,
   Video,
   TrendingUp,
+  RefreshCw,
+  ShieldCheck,
+  Building
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
   LoadingSkeleton,
-  ClassroomTabBar,
-  ClassroomTypeBadge,
-  StatusBadge,
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -38,11 +37,11 @@ import { getStoredUser, hasAccessToken } from '../../utils/auth';
 
 // ─── Tab definitions ────────────────────────────────────────────────────────
 const learnerTabs = [
-  { id: 'all', label: 'Tất cả' },
-  { id: 'active', label: 'Đang học' },
+  { id: 'all', label: 'Tất cả lớp học' },
+  { id: 'active', label: 'Đang diễn ra' },
   { id: 'upcoming', label: 'Sắp khai giảng' },
   { id: 'pending', label: 'Chờ xếp lớp' },
-  { id: 'completed', label: 'Đã kết thúc' },
+  { id: 'completed', label: 'Đã hoàn thành' },
 ];
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
@@ -76,30 +75,21 @@ const isCompletedClass = (item) => ['COMPLETED', 'CANCELLED', 'CLOSED'].includes
 const isPendingClass = (item) =>
   ['PENDING_CONFIRMATION', 'PENDING_TUITION_PAYMENT', 'WAITLIST', 'DEPOSIT_PAID', 'PARTIALLY_PAID'].includes(item.registrationStatus);
 
-// ─── Derive a concise status descriptor for the card ─────────────────────────
-const getCardStatusInfo = (classroom) => {
+// ─── Custom Minimalist Status configuration ───────────────────────────────────
+const getMinimalistStatusInfo = (classroom) => {
   const days = daysUntil(classroom.startDate);
   if (isActiveClass(classroom)) {
     const end = daysUntil(classroom.endDate);
-    if (end != null && end > 0) return { text: `Còn ${end} ngày`, color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
-    return { text: 'Đang diễn ra', color: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
+    if (end != null && end > 0) return { text: `Còn ${end} ngày`, dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', badgeBg: 'bg-emerald-50 border-emerald-100' };
+    return { text: 'Đang hoạt động', dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', badgeBg: 'bg-emerald-50 border-emerald-100' };
   }
   if (isUpcomingClass(classroom)) {
-    if (days != null && days > 0) return { text: `Khai giảng sau ${days} ngày`, color: 'text-amber-700 bg-amber-50 border-amber-100' };
-    if (days === 0) return { text: 'Khai giảng hôm nay!', color: 'text-[#730014] bg-rose-50 border-rose-100' };
+    if (days != null && days > 0) return { text: `Khai giảng sau ${days} ngày`, dotColor: 'bg-amber-500', textColor: 'text-amber-700', badgeBg: 'bg-amber-50 border-amber-100' };
+    if (days === 0) return { text: 'Khai giảng hôm nay!', dotColor: 'bg-rose-500 animate-ping', textColor: 'text-[#730014]', badgeBg: 'bg-rose-50 border-rose-100' };
   }
-  if (isCompletedClass(classroom)) return { text: 'Đã kết thúc', color: 'text-gray-500 bg-gray-50 border-gray-100' };
-  if (isPendingClass(classroom)) return { text: 'Chờ xác nhận', color: 'text-blue-700 bg-blue-50 border-blue-100' };
-  return { text: formatClassroomDate(classroom.startDate), color: 'text-gray-500 bg-gray-50 border-gray-100' };
-};
-
-// ─── Card accent color based on class lifecycle ───────────────────────────────
-const getCardAccent = (classroom) => {
-  if (isActiveClass(classroom)) return 'border-l-4 border-l-emerald-500';
-  if (isUpcomingClass(classroom)) return 'border-l-4 border-l-amber-400';
-  if (isCompletedClass(classroom)) return 'border-l-4 border-l-gray-200';
-  if (isPendingClass(classroom)) return 'border-l-4 border-l-blue-300';
-  return 'border-l-4 border-l-gray-100';
+  if (isCompletedClass(classroom)) return { text: 'Đã hoàn thành', dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
+  if (isPendingClass(classroom)) return { text: 'Chờ xếp lớp', dotColor: 'bg-blue-500', textColor: 'text-blue-700', badgeBg: 'bg-blue-50 border-blue-100' };
+  return { text: formatClassroomDate(classroom.startDate), dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -108,6 +98,8 @@ export default function MyClassroomsPage() {
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingId, setCancellingId] = useState(null);
+  const [cancelMessage, setCancelMessage] = useState('');
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
 
   const loadClassrooms = async () => {
@@ -129,6 +121,22 @@ export default function MyClassroomsPage() {
     loadClassrooms();
   }, [isAuthenticated]);
 
+  const handleCancelRegistration = async (classroom) => {
+    const confirmed = window.confirm(`Bạn có chắc chắn muốn hủy đăng ký lớp "${classroom.title}"?`);
+    if (!confirmed) return;
+    setCancellingId(classroom.id);
+    setCancelMessage('');
+    try {
+      await classroomApi.cancelClassRegistration(classroom.id);
+      setCancelMessage(`Đã hủy đăng ký lớp "${classroom.title}".`);
+      await loadClassrooms();
+    } catch (err) {
+      setCancelMessage(getClassroomErrorMessage(err, 'Không thể hủy đăng ký.'));
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const filteredClassrooms = useMemo(() => classrooms.filter((item) => {
     if (activeTab === 'active') return isActiveClass(item);
     if (activeTab === 'upcoming') return isUpcomingClass(item);
@@ -137,8 +145,8 @@ export default function MyClassroomsPage() {
     return true;
   }), [activeTab, classrooms]);
 
-  // Summary stats for mini banner
   const counts = useMemo(() => ({
+    all: classrooms.length,
     active: classrooms.filter(isActiveClass).length,
     upcoming: classrooms.filter(isUpcomingClass).length,
     pending: classrooms.filter(isPendingClass).length,
@@ -147,237 +155,316 @@ export default function MyClassroomsPage() {
 
   return (
     <LearnerPageShell
-      description="Theo dõi lớp đang học, lịch buổi học, bài tập và điểm số tại một nơi."
-      title="Lớp của tôi"
+      description="Xem danh sách lớp đang diễn ra, thời khóa biểu, tiến độ và cập nhật chi tiết học phí cá nhân."
+      title="Lớp học của tôi"
     >
       {!isAuthenticated ? (
-        <ClassroomEmptyState
-          icon={Lock}
-          actionLabel="Đăng nhập"
-          actionTo="/login"
-          description="Bạn cần đăng nhập để xem các lớp đã ghi danh."
-          title="Chưa đăng nhập"
-        />
+        <div className="flex flex-1 flex-col items-center justify-center py-16">
+          <ClassroomEmptyState
+            icon={Lock}
+            actionLabel="Đăng nhập hệ thống"
+            actionTo="/login"
+            description="Bạn phải đăng nhập để xem thông tin chi tiết các lớp đã ghi danh."
+            title="Quyền truy cập bị giới hạn"
+          />
+        </div>
       ) : loading ? (
-        <LoadingSkeleton count={4} type="list" />
+        <div className="space-y-6 flex-1">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 w-full animate-pulse rounded-[24px] border border-gray-100 bg-white/60 p-4" />
+            ))}
+          </div>
+          <LoadingSkeleton count={3} type="card" />
+        </div>
       ) : error ? (
-        <ClassroomErrorState message={error} onRetry={loadClassrooms} />
-      ) : !classrooms.length ? (
-        <ClassroomEmptyState
-          icon={BookOpen}
-          actionLabel="Xem danh mục lớp học"
-          actionTo="/opening-schedule"
-          description="Bạn chưa đăng ký lớp học nào. Khám phá các khóa học IELTS / TOEIC ngay bây giờ."
-          title="Chưa có lớp học"
-        />
+        <div className="flex flex-1 flex-col items-center justify-center py-12">
+          <ClassroomErrorState message={error} onRetry={loadClassrooms} />
+        </div>
+      ) : classrooms.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center py-16">
+          <ClassroomEmptyState
+            icon={BookOpen}
+            actionLabel="Tìm lớp mới mở"
+            actionTo="/opening-schedule"
+            description="Hiện bạn chưa đăng ký lớp học nào tại EnglishLab. Hãy tham khảo lịch khai giảng để chọn lớp học phù hợp với trình độ mục tiêu."
+            title="Chưa tham gia lớp nào"
+          />
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8 flex-1">
+          
+          {/* Flat Minimal Counter Cards */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <GlassCounterCard label="Đang tham gia" value={counts.active} dotColor="bg-emerald-500" icon={<BookOpen className="h-5 w-5" />} />
+            <GlassCounterCard label="Sắp diễn ra" value={counts.upcoming} dotColor="bg-amber-500" icon={<Calendar className="h-5 w-5" />} />
+            <GlassCounterCard label="Chờ xếp lớp" value={counts.pending} dotColor="bg-blue-500" icon={<Clock className="h-5 w-5" />} />
+            <GlassCounterCard label="Đã kết thúc" value={counts.completed} dotColor="bg-gray-400" icon={<Award className="h-5 w-5" />} />
+          </div>
 
-          {/* Snapshot banner */}
-          {classrooms.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <SnapCard label="Đang học" value={counts.active} accent="emerald" icon={<BookOpen className="h-4 w-4" />} />
-              <SnapCard label="Sắp khai giảng" value={counts.upcoming} accent="amber" icon={<Calendar className="h-4 w-4" />} />
-              <SnapCard label="Chờ xác nhận" value={counts.pending} accent="blue" icon={<Clock className="h-4 w-4" />} />
-              <SnapCard label="Đã kết thúc" value={counts.completed} accent="gray" icon={<Award className="h-4 w-4" />} />
+          {/* Filters & Alerts Area */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-3">
+            <div className="flex flex-wrap gap-2.5">
+              {learnerTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    className={`relative rounded-xl px-5 py-3 text-xs font-extrabold tracking-wide transition-all duration-300 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
+                        : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
+                    }`}
+                    onClick={() => setActiveTab(tab.id)}
+                    type="button"
+                  >
+                    {tab.label}
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-gray-150 text-[#584140]'
+                    }`}>
+                      {counts[tab.id] ?? 0}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+            
+            {cancelMessage && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 flex items-center gap-1.5"
+              >
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                {cancelMessage}
+              </motion.div>
+            )}
+          </div>
 
-          {/* Filter Tabs */}
-          <ClassroomTabBar activeTab={activeTab} onChange={setActiveTab} tabs={learnerTabs} />
-
-          {/* Classroom List */}
-          {filteredClassrooms.length ? (
-            <div className="space-y-4">
-              {filteredClassrooms.map((classroom, idx) => (
+          {/* Clean Minimalist Cards Grid */}
+          <div className="space-y-6">
+            <AnimatePresence mode="popLayout">
+              {filteredClassrooms.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredClassrooms.map((classroom, idx) => (
+                    <motion.div
+                      key={classroom.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.3) }}
+                      className="h-full"
+                    >
+                      <MinimalistClassroomCard
+                        cancelling={cancellingId === classroom.id}
+                        classroom={classroom}
+                        onCancel={handleCancelRegistration}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
                 <motion.div
-                  key={classroom.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.32, delay: Math.min(idx * 0.07, 0.42), ease: 'easeOut' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="py-12"
                 >
-                  <ClassroomCard classroom={classroom} />
+                  <ClassroomEmptyState
+                    description="Không tìm thấy thông tin lớp nào khớp với bộ lọc hiện tại."
+                    title="Trống danh sách lớp"
+                  />
                 </motion.div>
-              ))}
-            </div>
-          ) : (
-            <ClassroomEmptyState
-              description="Không có lớp học nào khớp với bộ lọc này."
-              title="Không có lớp phù hợp"
-            />
-          )}
+              )}
+            </AnimatePresence>
+          </div>
+
         </div>
       )}
     </LearnerPageShell>
   );
 }
 
-// ─── Snapshot stat mini-card ─────────────────────────────────────────────────
-function SnapCard({ label, value, accent, icon }) {
-  const colors = {
-    emerald: 'border-emerald-100 bg-emerald-50/60 text-emerald-800',
-    amber: 'border-amber-100 bg-amber-50/60 text-amber-800',
-    blue: 'border-blue-100 bg-blue-50/60 text-blue-800',
-    gray: 'border-gray-100 bg-gray-50/60 text-gray-600',
-  };
+// ─── Minimal counter card component ───────────────────────────────────────────
+function GlassCounterCard({ label, value, dotColor, icon }) {
   return (
-    <div className={`rounded-lg border px-4 py-3 ${colors[accent]}`}>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">{label}</span>
-        <span className="opacity-40">{icon}</span>
+    <div className="relative overflow-hidden rounded-[24px] border border-gray-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.02)] transition-all duration-300 hover:border-[#dfbfbd]/60 hover:shadow-[0_15px_35px_rgba(75,0,9,0.04)] hover:-translate-y-0.5 flex items-center justify-between group">
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl p-2.5 shrink-0 bg-[#fff0f1] text-[#730014]">
+          {icon}
+        </div>
+        <div>
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">{label}</span>
+          <p className="font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c] mt-0.5">{value}</p>
+        </div>
       </div>
-      <p className="font-['Manrope'] text-2xl font-extrabold">{value}</p>
+      <span className={`h-2 w-2 rounded-full ${dotColor} opacity-70 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300`} />
     </div>
   );
 }
 
-// ─── Classroom card ───────────────────────────────────────────────────────────
-function ClassroomCard({ classroom }) {
+// ─── Minimalist Classroom card component ────────────────────────────────────────
+function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
   const isClassActive = isActiveClass(classroom);
   const isClassCompleted = isCompletedClass(classroom);
   const isWaiting = !classroom.hasClassAccess;
   const isVirtual = classroom.deliveryMode === 'VIRTUAL';
+  const canCancel = isPendingClass(classroom) && !classroom.hasClassAccess;
 
   const tuitionDue = classroom.tuitionAmountDue ?? 0;
   const tuitionPaid = classroom.tuitionAmountPaid ?? 0;
   const tuitionRemaining = Math.max(0, tuitionDue - tuitionPaid);
   const isFullyPaid = tuitionDue > 0 && tuitionRemaining === 0;
 
-  const statusInfo = getCardStatusInfo(classroom);
-  const accentClass = getCardAccent(classroom);
+  const statusInfo = getMinimalistStatusInfo(classroom);
 
   return (
-    <article className={`group overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm transition-shadow hover:shadow-md ${accentClass}`}>
-      <div className="p-5 md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <article className="relative overflow-hidden rounded-[28px] border border-gray-200/80 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.02)] transition-all duration-350 hover:shadow-[0_20px_50px_rgba(115,0,20,0.07)] hover:border-[#730014]/30 hover:-translate-y-1.5 flex flex-col justify-between h-full group">
+      
+      <div className="space-y-4">
+        {/* Card Header Row */}
+        <div className="flex items-center justify-between w-full">
+          {/* Status Indicator Dot */}
+          <div className="flex items-center gap-2">
+            <span className={`h-2 w-2 rounded-full ${statusInfo.dotColor}`} />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">
+              {statusInfo.text}
+            </span>
+          </div>
 
-          {/* ── Left: Main Info ── */}
-          <div className="flex-1 min-w-0 space-y-3">
-            {/* Badge row */}
-            <div className="flex flex-wrap items-center gap-2">
-              <ClassroomTypeBadge mode={classroom.deliveryMode} />
-              <StatusBadge status={classroom.registrationStatus || classroom.classroomStatus} />
-              {/* Lifecycle time pill */}
-              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${statusInfo.color}`}>
-                {statusInfo.text}
+          {/* Delivery Mode Badge */}
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
+            {isVirtual ? <Video className="h-3 w-3 text-purple-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
+            {isVirtual ? 'Zoom/Meet' : 'Tại cơ sở'}
+          </span>
+        </div>
+
+        {/* Title */}
+        <div className="space-y-2">
+          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">Mã lớp: #{classroom.id}</span>
+          <h3 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors duration-300 line-clamp-2">
+            {classroom.title}
+          </h3>
+        </div>
+
+        {/* Details list */}
+        <div className="space-y-2.5 text-xs text-[#584140] pt-2 border-t border-gray-50">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-[#730014] shrink-0" />
+            <span>Giảng viên: <strong className="text-[#1a1c1c] font-semibold">{classroom.primaryTeacherName || 'Đang cập nhật'}</strong></span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-[#730014] shrink-0" />
+            <span>Thời gian: {formatClassroomDate(classroom.startDate)} – {formatClassroomDate(classroom.endDate)}</span>
+          </div>
+
+          {!isVirtual && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-[#730014] shrink-0" />
+              <span className="truncate">{classroom.offlineAddress || 'Cơ sở Hà Nội'}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Progress bar for active courses */}
+        {isClassActive && classroom.hasClassAccess && classroom.progressPercent != null && (
+          <div className="pt-2 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">
+              <span className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-[#730014]" /> Tiến độ hoàn thành</span>
+              <span className="text-[#730014]">{classroom.progressPercent}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-gray-150/60">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#730014] to-rose-600 shadow-[0_0_8px_rgba(115,0,20,0.2)] transition-all duration-500"
+                style={{ width: `${classroom.progressPercent}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Access message info box */}
+        {isWaiting && !isClassCompleted && (
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/30 p-3 text-[11px] font-semibold text-amber-800 leading-normal flex items-start gap-2">
+            <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <span>Ban đào tạo đang thực hiện xếp lịch học. Bạn sẽ sớm có quyền truy cập đầy đủ bài học.</span>
+          </div>
+        )}
+      </div>
+
+      {/* Tuition details & navigation */}
+      <div className="space-y-4 pt-4 mt-4 border-t border-gray-50">
+        
+        {/* Tuition Status Row */}
+        {tuitionDue > 0 && (
+          <div className={`rounded-2xl border p-3 flex items-center justify-between ${
+            isFullyPaid ? 'border-emerald-100/70 bg-emerald-50/15' : 'border-[#dfbfbd]/35 bg-[#fff0f1]/20'
+          }`}>
+            <div className="flex items-center gap-1.5">
+              <DollarSign className={`h-4 w-4 shrink-0 ${isFullyPaid ? 'text-emerald-600' : 'text-[#730014]'}`} />
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">
+                Học phí
               </span>
             </div>
-
-            {/* Class name */}
-            <h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828] leading-tight group-hover:text-[#730014] transition-colors line-clamp-2">
-              {classroom.title}
-            </h3>
-
-            {/* Key info row */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#584140]">
-              <span className="flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-[#730014]" />
-                <strong className="text-[#2b2828]">{classroom.primaryTeacherName || 'Đang cập nhật'}</strong>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-[#730014]" />
-                {formatClassroomDate(classroom.startDate)} – {formatClassroomDate(classroom.endDate)}
-              </span>
-              {isVirtual ? (
-                <span className="flex items-center gap-1.5 text-purple-700">
-                  <Video className="h-3.5 w-3.5" />
-                  <span className="font-bold">Trực tuyến</span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-[#730014]" />
-                  {classroom.offlineAddress || 'Cơ sở Hà Nội'}
+            <div className="text-right">
+              <p className={`text-xs font-extrabold ${isFullyPaid ? 'text-emerald-700' : 'text-[#730014]'}`}>
+                {isFullyPaid ? 'Đã đóng đủ' : `Còn thiếu: ${formatClassroomPrice(tuitionRemaining)}`}
+              </p>
+              {formatTuitionSettlement(classroom.tuitionSettlementType, classroom.tuitionSettlementTypeLabel) && (
+                <span className="text-[8px] font-bold text-[#8a0018] uppercase tracking-wider block mt-0.5">
+                  {formatTuitionSettlement(classroom.tuitionSettlementType, classroom.tuitionSettlementTypeLabel)}
                 </span>
               )}
             </div>
-
-            {/* Progress bar for active classes */}
-            {isClassActive && classroom.hasClassAccess && classroom.progressPercent != null && (
-              <div className="pt-1">
-                <div className="flex items-center justify-between text-[10px] font-bold text-[#8b706e] mb-1.5">
-                  <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tiến độ khóa học</span>
-                  <span>{classroom.progressPercent}%</span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full bg-[#4b0009] transition-all"
-                    style={{ width: `${classroom.progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Waiting notice */}
-            {isWaiting && !isClassCompleted && (
-              <div className="inline-flex items-center gap-1.5 rounded-xl border border-amber-100 bg-amber-50/60 px-3 py-1.5 text-[10px] font-bold text-amber-800">
-                <Info className="h-3.5 w-3.5 flex-shrink-0" />
-                Bạn sẽ truy cập đầy đủ nội dung sau khi điều phối đào tạo xếp lớp
-              </div>
-            )}
           </div>
+        )}
 
-          {/* ── Right: Tuition + CTA ── */}
-          <div className="flex flex-col items-end gap-3 flex-shrink-0">
-            {/* Tuition status pill */}
-            {tuitionDue > 0 && (
-              <div className={`rounded-2xl border px-3 py-2 text-right ${
-                isFullyPaid
-                  ? 'border-emerald-100 bg-emerald-50/50'
-                  : 'border-amber-100 bg-amber-50/50'
-              }`}>
-                <div className="flex items-center gap-1 justify-end">
-                  <DollarSign className={`h-3.5 w-3.5 ${isFullyPaid ? 'text-emerald-700' : 'text-amber-700'}`} />
-                  <span className={`text-[10px] font-extrabold uppercase tracking-wider ${isFullyPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {isFullyPaid ? 'Đã thanh toán đủ' : 'Còn thiếu học phí'}
-                  </span>
-                </div>
-                {!isFullyPaid && (
-                  <p className="text-xs font-extrabold text-[#2b2828] mt-0.5">
-                    {formatClassroomPrice(tuitionRemaining)}
-                  </p>
-                )}
-                {isFullyPaid && (
-                  <p className="text-xs font-extrabold text-emerald-700 flex items-center justify-end gap-0.5 mt-0.5">
-                    <CheckCircle2 className="h-3 w-3" />
-                    {formatClassroomPrice(tuitionPaid)}
-                  </p>
-                )}
-                {formatTuitionSettlement(classroom.tuitionSettlementType, classroom.tuitionSettlementTypeLabel) && (
-                  <p className="text-[10px] font-bold text-[#730014] mt-1">
-                    {formatTuitionSettlement(classroom.tuitionSettlementType, classroom.tuitionSettlementTypeLabel)}
-                  </p>
-                )}
-              </div>
-            )}
+        {/* Action CTAs */}
+        <div className="flex gap-2 w-full">
+          {classroom.hasClassAccess ? (
+            <Link
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#730014] to-[#4b0009] py-3 text-xs font-bold text-white shadow-sm transition hover:shadow-md active:scale-95 btn-hover"
+              to={`/my-classrooms/${classroom.id}`}
+            >
+              Vào học
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          ) : isClassCompleted ? (
+            <Link
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-3 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95"
+              to={`/opening-schedule/${classroom.slug || classroom.id}`}
+            >
+              Xem chi tiết
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Link
+              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white py-3 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
+              to={`/opening-schedule/${classroom.slug || classroom.id}`}
+            >
+              Đăng ký học
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
 
-            {/* CTA */}
-            {classroom.hasClassAccess ? (
-              <Link
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] hover:shadow active:scale-95"
-                to={`/my-classrooms/${classroom.id}`}
-              >
-                Vào lớp học
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
-            ) : isClassCompleted ? (
-              <Link
-                className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-extrabold text-gray-600 transition hover:bg-gray-50 active:scale-95"
-                to={`/opening-schedule/${classroom.slug || classroom.id}`}
-              >
-                Xem lớp
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            ) : (
-              <Link
-                className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-xs font-extrabold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
-                to={`/opening-schedule/${classroom.slug || classroom.id}`}
-              >
-                Chi tiết đăng ký
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
-          </div>
+          {canCancel && (
+            <button
+              className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-3 text-xs font-bold text-rose-700 transition hover:bg-rose-50 active:scale-95 disabled:opacity-60 shrink-0"
+              disabled={cancelling}
+              onClick={() => onCancel?.(classroom)}
+              type="button"
+              title="Hủy đăng ký lớp học này"
+            >
+              {cancelling ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-rose-700" />
+              ) : (
+                'Hủy'
+              )}
+            </button>
+          )}
         </div>
+
       </div>
     </article>
   );

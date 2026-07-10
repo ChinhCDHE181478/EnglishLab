@@ -36,6 +36,13 @@ public class AssessmentBankItem {
     @Column(nullable = false, length = 30)
     private AssessmentType type;
 
+    /** Giữ tương thích với schema cũ còn dùng cột assessment_type bắt buộc. */
+    @Column(name = "assessment_type", nullable = false, length = 30)
+    private String legacyAssessmentType;
+
+    @Column(name = "content_json", nullable = false, columnDefinition = "text")
+    private String legacyContentJson;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private AssessmentSkill skill;
@@ -87,4 +94,11 @@ public class AssessmentBankItem {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void synchronizeLegacyAssessmentType() {
+        legacyAssessmentType = type == null ? AssessmentType.MODULE_TEST.name() : type.name();
+        legacyContentJson = uiConfigJson == null || uiConfigJson.isBlank() ? "{}" : uiConfigJson;
+    }
 }
