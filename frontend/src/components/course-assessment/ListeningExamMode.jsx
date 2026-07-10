@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
+import ExamDeviceCheck from './ExamDeviceCheck';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -55,8 +57,10 @@ export default function ListeningExamMode({
   const [activePartKey, setActivePartKey] = useState(parts[0]?.key || 'part_1');
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 40)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingPartChange, setPendingPartChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const [audioStatus, setAudioStatus] = useState(() => (config?.audioUrl ? 'loading' : 'idle'));
   const [sampleStatus, setSampleStatus] = useState('idle');
@@ -70,6 +74,29 @@ export default function ListeningExamMode({
 
   const activePart = parts.find((part) => part.key === activePartKey) || parts[0] || null;
   const allQuestionNumbers = useMemo(() => flattenQuestionNumbers(parts), [parts]);
+  // Map each individual question number to a filled/unfilled flag so the footer
+  // tracker stays correct even for grouped answers (e.g. "choose THREE letters"
+  // stores all picks under one combined key like "28-29-30").
+  const filledQuestionNumbers = useMemo(() => {
+    const filled = new Set();
+    parts.forEach((part) => {
+      (part.questionGroups || []).forEach((group) => {
+        if (group.type === 'multi_select_letters') {
+          const numbers = group.questionNumbers || [];
+          const groupKey = numbers.join('-') || 'multi';
+          const selectedCount = Array.isArray(answers[groupKey]) ? answers[groupKey].length : 0;
+          numbers.slice(0, selectedCount).forEach((number) => filled.add(String(number)));
+          return;
+        }
+        (group.questions || []).forEach((question) => {
+          if (answerIsFilled(answers[String(question.number)])) {
+            filled.add(String(question.number));
+          }
+        });
+      });
+    });
+    return filled;
+  }, [answers, parts]);
   const answeredCount = useMemo(() => {
     let total = 0;
     Object.values(answers).forEach((value) => {
@@ -83,17 +110,18 @@ export default function ListeningExamMode({
   }, [answers, allQuestionNumbers.length]);
 
   useEffect(() => {
+    if (stage !== 'exam' || isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
-      setRemainingSeconds((current) => (stage === 'exam' ? Math.max(0, current - 1) : current));
+      setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [stage]);
+  }, [isLocked, stage, submissionPending, submitting]);
 
   useEffect(() => {
-    if (stage !== 'exam' || remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (stage !== 'exam' || remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, stage, submitting, isLocked]);
+  }, [remainingSeconds, stage, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -288,12 +316,12 @@ export default function ListeningExamMode({
   };
 
   const updateAnswer = (key, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => ({ ...current, [String(key)]: value }));
   };
 
   const toggleLetter = (groupKey, letter, maxSelections) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setAnswers((current) => {
       const currentValues = Array.isArray(current[groupKey]) ? current[groupKey] : [];
       if (currentValues.includes(letter)) {
@@ -345,8 +373,40 @@ export default function ListeningExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
+  };
+
+  const countAnsweredInPart = (part) => {
+    let answered = 0;
+    (part?.questionGroups || []).forEach((group) => {
+      if (group.type === 'multi_select_letters') {
+        const groupKey = group.questionNumbers?.join('-') || 'multi';
+        answered += Math.min(
+          Array.isArray(answers[groupKey]) ? answers[groupKey].length : 0,
+          (group.questionNumbers || []).length,
+        );
+        return;
+      }
+      answered += (group.questions || []).filter((question) => answerIsFilled(answers[String(question.number)])).length;
+    });
+    return answered;
+  };
+
+  const requestPartChange = (part) => {
+    if (part.key === activePartKey) return;
+    const total = flattenQuestionNumbers([activePart]).length;
+    const missingCount = Math.max(0, total - countAnsweredInPart(activePart));
+    if (missingCount > 0) {
+      setPendingPartChange({ part, missingCount });
+      return;
+    }
+    setActivePartKey(part.key);
   };
 
   const renderQuestion = (group, question) => {
@@ -479,6 +539,7 @@ export default function ListeningExamMode({
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi nghe EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
+          {config?.rules?.length ? <p className="mt-1 max-w-3xl text-xs leading-5 text-[#6f5a58]">{config.rules.join(' · ')}</p> : null}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <div className="rounded-full bg-[#fff0f1] px-5 py-2 text-xl font-black text-[#8a0018] shadow-[0_10px_24px_rgba(138,0,24,0.10)]">
@@ -516,66 +577,22 @@ export default function ListeningExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={stage !== 'exam' || isLocked || submitting}
+            disabled={stage !== 'exam' || isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
         {stage === 'check_audio' ? (
-          <div className="mx-auto max-w-4xl rounded-[28px] border border-[#ead8d5] bg-white p-6 shadow-sm">
-            <div className="rounded-[26px] border border-[#ecd7db] bg-[linear-gradient(145deg,#fffdfc,#fff7f7)] p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Bước 1 · Kiểm tra bản nghe</p>
-                  <h1 className="mt-2 font-['Manrope'] text-3xl font-black text-[#341c1d]">Kiểm tra âm thanh bài nghe</h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
-                    Hãy phát đoạn âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn đang hoạt động ổn định trước khi vào bài Listening.
-                  </p>
-                </div>
-                <span className="rounded-full bg-[#fff0f1] px-4 py-2 text-sm font-bold text-[#8a0018]">
-                  {sampleStatus === 'playing' ? 'Đang phát bản nghe mẫu' : sampleStatus === 'done' ? 'Đã kiểm tra âm thanh' : 'Chưa kiểm tra âm thanh'}
-                </span>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-                <div className="rounded-2xl border border-[#ead8d5] bg-white px-5 py-4">
-                  <p className="text-sm font-bold text-[#4b0009]">Bản nghe mẫu</p>
-                  <p className="mt-2 text-sm leading-6 text-[#584140]">
-                    Nhấn phát để nghe 3 tiếng mẫu tăng dần. Nếu bạn nghe rõ cả 3 tiếng, có thể tiếp tục vào bài thi.
-                  </p>
-                </div>
-                <button
-                  className="rounded-2xl border border-[#8a0018]/20 bg-white px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-                  onClick={playSampleAudio}
-                  type="button"
-                >
-                  {sampleStatus === 'playing' ? 'Đang phát...' : 'Phát bản nghe mẫu'}
-                </button>
-              </div>
-
-              <div className="mt-6 flex flex-wrap justify-end gap-3">
-                <button
-                  className="rounded-2xl border border-[#8a0018]/20 px-5 py-3 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
-                  onClick={handleCloseExam}
-                  type="button"
-                >
-                  Thoát bài thi
-                </button>
-                <button
-                  className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105"
-                  onClick={() => setStage('exam')}
-                  type="button"
-                >
-                  Tiếp tục vào bài nghe
-                </button>
-              </div>
-            </div>
-          </div>
+          <ExamDeviceCheck
+            onCancel={handleCloseExam}
+            onComplete={() => setStage('exam')}
+            title="Kiểm tra thiết bị"
+          />
         ) : (
         <div className="rounded-[28px] border border-[#ead8d5] bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -608,25 +625,23 @@ export default function ListeningExamMode({
       <footer className="grid gap-3 border-t border-[#ead8d5] bg-white px-5 py-3 lg:grid-cols-4">
         {parts.map((part) => {
           const partQuestionNumbers = flattenQuestionNumbers([part]);
-          const partAnswered = partQuestionNumbers.filter((number) => answerIsFilled(answers[String(number)])).length;
-          const multiGroup = (part.questionGroups || []).find((group) => group.type === 'multi_select_letters');
-          const multiAnswered = multiGroup ? (answers[multiGroup.questionNumbers?.join('-') || 'multi'] || []).length : 0;
+          const partAnswered = countAnsweredInPart(part);
           return (
             <button
               key={part.key}
               className={`rounded-[24px] border px-4 py-3 text-left transition ${part.key === activePartKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ead8d5] bg-white hover:bg-[#fff7f7]'}`}
-              onClick={() => setActivePartKey(part.key)}
+              onClick={() => requestPartChange(part)}
               type="button"
             >
               <span className="font-black text-[#341c1d]">Part {part.partNumber}</span>
               <span className="ml-2 text-sm font-semibold text-[#6f5a58]">
-                {Math.min(partAnswered + multiAnswered, partQuestionNumbers.length)} / {partQuestionNumbers.length} câu
+                {Math.min(partAnswered, partQuestionNumbers.length)} / {partQuestionNumbers.length} câu
               </span>
               <div className="mt-2 flex flex-wrap gap-1">
                 {partQuestionNumbers.map((number) => (
                   <span
                     key={number}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${answerIsFilled(answers[String(number)]) ? 'bg-[#8a0018] text-white' : 'bg-[#f6ecea] text-[#8c716f]'}`}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${filledQuestionNumbers.has(String(number)) ? 'bg-[#8a0018] text-white' : 'bg-[#f6ecea] text-[#8c716f]'}`}
                   >
                     {number}
                   </span>
@@ -684,6 +699,19 @@ export default function ListeningExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingPartChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={`Part ${activePart?.partNumber || ''}`}
+          missingCount={pendingPartChange.missingCount}
+          onCancel={() => setPendingPartChange(null)}
+          onConfirm={() => {
+            setActivePartKey(pendingPartChange.part.key);
+            setPendingPartChange(null);
+          }}
+          targetLabel={`Part ${pendingPartChange.part.partNumber || ''}`}
+        />
       ) : null}
     </div>
   );

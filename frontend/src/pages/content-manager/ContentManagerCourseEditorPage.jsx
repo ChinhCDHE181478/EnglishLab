@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Brain } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 
 const emptyForm = {
   title: '',
@@ -15,6 +16,9 @@ const emptyForm = {
   recommendedCurrentBandMin: '',
   recommendedCurrentBandMax: '',
   targetBand: '',
+  learningPathCode: '',
+  learningPathName: '',
+  learningPathOrder: '',
   targetOutcome: '',
   recommendedNextCourseSlug: '',
   duration: '',
@@ -40,6 +44,9 @@ const mapCourseToForm = (course = {}) => ({
   recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
   recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
   targetBand: course.targetBand ?? '',
+  learningPathCode: course.learningPathCode ?? '',
+  learningPathName: course.learningPathName ?? '',
+  learningPathOrder: course.learningPathOrder ?? '',
   targetOutcome: course.targetOutcome ?? '',
   recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
   duration: course.duration ?? '',
@@ -59,12 +66,28 @@ export default function ContentManagerCourseEditorPage() {
   const navigate = useNavigate();
   const editMode = Boolean(slugOrId);
   const [courseId, setCourseId] = useState(null);
+  const [courseSlug, setCourseSlug] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(editMode);
   const [saving, setSaving] = useState(false);
   const [savingAction, setSavingAction] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    courseApi.getManagedCourseCategories()
+      .then((items) => {
+        if (active) setCategories(items);
+      })
+      .catch(() => {
+        if (active) setCategories([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!editMode) return undefined;
@@ -75,6 +98,7 @@ export default function ContentManagerCourseEditorPage() {
       .then((course) => {
         if (!active) return;
         setCourseId(course.id);
+        setCourseSlug(course.slug || '');
         setForm(mapCourseToForm(course));
       })
       .catch(() => {
@@ -90,6 +114,14 @@ export default function ContentManagerCourseEditorPage() {
   }, [editMode, slugOrId]);
 
   const hasNoStructure = useMemo(() => !form.modules?.length && Number(form.totalLessons || 0) === 0, [form.modules, form.totalLessons]);
+  const flashcardOverview = useMemo(() => getFlashcardOverview(form.modules), [form.modules]);
+  const categoryOptions = useMemo(() => {
+    const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE'];
+    const available = categories
+      .filter((category) => category.active || category.code === form.category)
+      .map((category) => ({ label: category.name, value: category.code }));
+    return available.length ? available : fallback.map((value) => ({ label: value, value }));
+  }, [categories, form.category]);
 
   const handleChange = (field) => (event) => {
     const value = field === 'featured' ? event.target.checked : event.target.value;
@@ -97,8 +129,15 @@ export default function ContentManagerCourseEditorPage() {
   };
 
   const handleSubmit = async (nextStatus = null) => {
-    setSaving(true);
     const targetStatus = nextStatus ?? form.status;
+    const validationMessage = validateCourseForm(form, targetStatus, hasNoStructure);
+    if (validationMessage) {
+      setError(validationMessage);
+      setSuccess('');
+      return;
+    }
+
+    setSaving(true);
     setSavingAction(targetStatus === 'PUBLISHED' && nextStatus === 'PUBLISHED' ? 'publish' : 'save');
     setError('');
     setSuccess('');
@@ -110,6 +149,10 @@ export default function ContentManagerCourseEditorPage() {
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
+      learningPathCode: form.learningPathCode.trim() || null,
+      learningPathName: form.learningPathName.trim() || null,
+      learningPathOrder: form.learningPathOrder === '' ? null : Number(form.learningPathOrder),
+      recommendedNextCourseSlug: form.recommendedNextCourseSlug.trim() || null,
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
@@ -126,8 +169,9 @@ export default function ContentManagerCourseEditorPage() {
         : await courseApi.createOnlineCourse(payload);
 
       setCourseId(response.id);
+      setCourseSlug(response.slug || '');
       setForm(mapCourseToForm(response));
-      setSuccess(targetStatus === 'PUBLISHED' ? 'Khóa học đã được lưu và chuyển sang Published.' : 'Khóa học đã được lưu thành công.');
+      setSuccess(targetStatus === 'PUBLISHED' ? 'Khóa học đã được lưu và chuyển sang trạng thái đã xuất bản.' : 'Khóa học đã được lưu thành công.');
 
       if (!editMode) {
         navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
@@ -149,11 +193,11 @@ export default function ContentManagerCourseEditorPage() {
       <div className="flex flex-wrap items-center gap-3">
         <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/courses">
           <ArrowLeft className="h-4 w-4" />
-          Back to courses
+          Quay lại danh sách khóa học
         </Link>
         {editMode && form.title ? (
           <Link className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${slugOrId}/builder`}>
-            Open Builder
+            Mở khu vực biên soạn
           </Link>
         ) : null}
       </div>
@@ -164,51 +208,66 @@ export default function ContentManagerCourseEditorPage() {
 
         <Panel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
-            <TextField label="Course title" onChange={handleChange('title')} value={form.title} />
-            <SelectField label="Category" onChange={handleChange('category')} options={['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE']} value={form.category} />
-            <TextField label="Short description" onChange={handleChange('shortDescription')} value={form.shortDescription} />
-            <SelectField label="Level" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
-            <TextField label="Target label / outcome" onChange={handleChange('targetScore')} value={form.targetScore} />
-            <TextField label="Recommended current band min" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
-            <TextField label="Recommended current band max" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
-            <TextField label="Target band number" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
-            <TextField label="Recommended next course slug" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
-            <TextField label="Estimated duration" onChange={handleChange('duration')} value={form.duration} />
-            <TextField label="Study mode" onChange={handleChange('studyMode')} value={form.studyMode} />
-            <TextField label="Price" onChange={handleChange('price')} value={String(form.price)} />
-            <TextField label="System sale price" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
-            <TextField label="Thumbnail URL" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
-            <SelectField label="Status" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
-            <TextField label="Total lessons" onChange={handleChange('totalLessons')} value={String(form.totalLessons)} />
-            <TextField label="Total hours" onChange={handleChange('totalHours')} value={String(form.totalHours)} />
+            <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
+            <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
+            <TextField label="Mô tả ngắn" onChange={handleChange('shortDescription')} value={form.shortDescription} />
+            <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
+            <TextField label="Nhãn mục tiêu hiển thị" onChange={handleChange('targetScore')} value={form.targetScore} />
+            <TextField label="Band đầu vào tối thiểu" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
+            <TextField label="Band đầu vào tối đa" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
+            <TextField label="Band mục tiêu" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
+            <TextField label="Mã lộ trình học" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
+            <TextField label="Tên lộ trình học" onChange={handleChange('learningPathName')} value={form.learningPathName} />
+            <TextField label="Thứ tự trong lộ trình" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
+            <TextField label="Slug khóa học gợi ý tiếp theo" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
+            <TextField label="Thời lượng ước tính" onChange={handleChange('duration')} value={form.duration} />
+            <TextField label="Hình thức học" onChange={handleChange('studyMode')} value={form.studyMode} />
+            <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
+            <TextField label="Giá ưu đãi hệ thống" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
+            <TextField label="Liên kết ảnh bìa" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
+            <SelectField label="Trạng thái" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
+            <TextField label="Tổng số bài học" onChange={handleChange('totalLessons')} value={String(form.totalLessons)} />
+            <TextField label="Tổng số giờ học" onChange={handleChange('totalHours')} value={String(form.totalHours)} />
           </div>
           <div className="mt-4 grid gap-4">
-            <TextField label="Full description" onChange={handleChange('description')} rows={5} textarea value={form.description} />
-            <TextField label="Target output / course completion outcome" onChange={handleChange('targetOutcome')} rows={3} textarea value={form.targetOutcome} />
+            <TextField label="Mô tả đầy đủ" onChange={handleChange('description')} rows={5} textarea value={form.description} />
+            <TextField label="Đầu ra / kết quả hoàn thành khóa học" onChange={handleChange('targetOutcome')} rows={3} textarea value={form.targetOutcome} />
           </div>
         </Panel>
       </div>
 
       <div className="space-y-6">
+        {editMode ? (
+          <Panel className="p-6">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Brain className="h-5 w-5" /></span>
+              <div>
+                <h2 className="font-['Manrope'] text-lg font-extrabold text-[#4b0009]">Thẻ ghi nhớ trong khóa học</h2>
+                <p className="mt-1 text-sm leading-6 text-[#584140]">{flashcardOverview.setCount} bộ thẻ · {flashcardOverview.cardCount} thẻ, được gắn từ kho flashcard.</p>
+              </div>
+            </div>
+            {courseSlug ? <Link className="mt-4 inline-flex rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/flashcards">Mở ngân hàng flashcard</Link> : null}
+          </Panel>
+        ) : null}
         <Panel className="p-6">
           <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fcfbfb] p-5 text-sm text-[#584140]">
-            Publishing note: set entry band, target band and target outcome here. Then use the builder page to manage modules, lessons and AI module checks.
+            Hãy thiết lập band đầu vào, band mục tiêu và đầu ra của khóa học tại đây. Sau đó dùng khu vực biên soạn để quản lý mô-đun, bài học và bài kiểm tra cuối mô-đun.
           </div>
           {hasNoStructure ? (
             <div className="mt-4 rounded-2xl border border-[#f0d8db] bg-[#fff7f7] p-4 text-sm text-[#730014]">
-              Warning: this course currently has no modules or lessons. Publishing should be confirmed carefully.
+              Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
             </div>
           ) : null}
           <label className="mt-4 flex items-center gap-3 text-sm text-[#1a1c1c]">
             <input checked={form.featured} onChange={handleChange('featured')} type="checkbox" />
-            Mark as featured
+            Đánh dấu là khóa học nổi bật
           </label>
           <div className="mt-6 grid gap-3">
             <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white" disabled={saving} onClick={() => handleSubmit()} type="button">
-              {saving && savingAction === 'save' ? 'Saving...' : 'Save Changes'}
+              {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
             <button className="rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009]" disabled={saving} onClick={() => handleSubmit('PUBLISHED')} type="button">
-              {saving && savingAction === 'publish' ? 'Publishing...' : 'Publish'}
+              {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
             </button>
           </div>
         </Panel>
@@ -219,44 +278,71 @@ export default function ContentManagerCourseEditorPage() {
 }
 
 function SelectField({ label, value, onChange, options }) {
-  const [open, setOpen] = useState(false);
   return (
-    <label className="relative block">
+    <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
-      <button
-        className="flex w-full items-center justify-between rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-left text-sm font-semibold text-[#1a1c1c] outline-none transition hover:border-[#730014]/40 hover:bg-[#fff7f7]"
-        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
-        onClick={() => setOpen((current) => !current)}
-        type="button"
-      >
-        {value}
-        <ChevronDown className={`h-4 w-4 text-[#730014] transition ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open ? (
-        <div className="absolute left-0 top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border border-[#dfbfbd]/75 bg-white p-1 shadow-[0_18px_45px_rgba(75,0,9,0.16)]">
-          {options.map((option) => (
-            <button
-              key={option}
-              className={`block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold transition ${
-                option === value ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#fff2f3]'
-              }`}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onChange({ target: { value: option } });
-                setOpen(false);
-              }}
-              type="button"
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <select className="sr-only" onChange={onChange} value={value}>
-        {options.map((option) => (
-          <option key={option} value={option}>{option}</option>
-        ))}
-      </select>
+      <BrandedSelect onChange={onChange} options={options} value={value} />
     </label>
   );
+}
+
+function validateCourseForm(form, targetStatus, hasNoStructure) {
+  if (!form.title.trim()) return 'Tên khóa học không được để trống.';
+  if (!form.category) return 'Hãy chọn danh mục khóa học.';
+
+  const minBand = form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin);
+  const maxBand = form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax);
+  const targetBand = form.targetBand === '' ? null : Number(form.targetBand);
+  if ([minBand, maxBand, targetBand].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9))) {
+    return 'Band IELTS phải nằm trong khoảng từ 0 đến 9.';
+  }
+  if (minBand != null && maxBand != null && minBand > maxBand) {
+    return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
+  }
+
+  const pathCode = form.learningPathCode.trim();
+  const pathName = form.learningPathName.trim();
+  if ((pathCode && !pathName) || (!pathCode && pathName)) {
+    return 'Mã và tên lộ trình học phải được nhập cùng nhau.';
+  }
+  if (pathCode && form.learningPathOrder === '') {
+    return 'Hãy nhập thứ tự của khóa học trong lộ trình.';
+  }
+  if (targetStatus === 'PUBLISHED' && hasNoStructure) {
+    return 'Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.';
+  }
+  return '';
+}
+
+function getFlashcardOverview(modules) {
+  let setCount = 0;
+  let cardCount = 0;
+  (modules || []).forEach((module) => (module.lessons || []).forEach((lesson) => {
+    if ((lesson.flashcardSets || []).length) {
+      setCount += lesson.flashcardSets.length;
+      cardCount += lesson.flashcardSets.reduce((sum, set) => sum + countFlashcardCards(set.cardsJson), 0);
+      return;
+    }
+    const content = String(lesson.contentText || '');
+    const headings = [...content.matchAll(/^###\s+\d+\.\s+.+$/gm)];
+    const cards = headings.filter((heading, index) => {
+      const start = (heading.index || 0) + heading[0].length;
+      const end = headings[index + 1]?.index ?? content.length;
+      return /^\*\*Meaning:\*\*/mi.test(content.slice(start, end));
+    });
+    if (cards.length) {
+      setCount += 1;
+      cardCount += cards.length;
+    }
+  }));
+  return { setCount, cardCount };
+}
+
+function countFlashcardCards(cardsJson) {
+  try {
+    const cards = JSON.parse(cardsJson || '[]');
+    return Array.isArray(cards) ? cards.length : 0;
+  } catch {
+    return 0;
+  }
 }

@@ -15,9 +15,8 @@ public class CourseCategory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true, length = 40)
-    private CourseCategoryCode code;
+    private String code;
 
     @Column(nullable = false, length = 120)
     private String name;

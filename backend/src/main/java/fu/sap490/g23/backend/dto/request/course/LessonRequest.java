@@ -1,5 +1,6 @@
 package fu.sap490.g23.backend.dto.request.course;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -36,7 +37,10 @@ public class LessonRequest {
     @Size(max = 700)
     private String materialUrl;
 
+    @Valid
     private List<TranscriptSegmentRequest> transcriptSegments;
+
+    private List<Long> flashcardSetIds;
 
     @Min(0)
     private Integer durationMinutes;

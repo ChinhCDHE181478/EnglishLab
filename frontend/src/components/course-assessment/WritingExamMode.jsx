@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -82,8 +84,10 @@ export default function WritingExamMode({
   const [activeTaskKey, setActiveTaskKey] = useState(tasks[0]?.key || 'task_1');
   const [responses, setResponses] = useState(() => buildInitialResponses(tasks, initialSubmissionText));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [pendingTaskChange, setPendingTaskChange] = useState(null);
   const [violations, setViolations] = useState([]);
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
@@ -97,17 +101,18 @@ export default function WritingExamMode({
   );
 
   useEffect(() => {
+    if (isLocked || submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [isLocked, submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting || isLocked) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending || isLocked) return;
     submittedRef.current = true;
     handleSubmitExam(true);
-  }, [remainingSeconds, submitting, isLocked]);
+  }, [remainingSeconds, submitting, submissionPending, isLocked]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -195,7 +200,7 @@ export default function WritingExamMode({
   };
 
   const updateResponse = (taskKey, value) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || submissionPending) return;
     setResponses((current) => ({ ...current, [taskKey]: value }));
   };
 
@@ -229,8 +234,29 @@ export default function WritingExamMode({
   });
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting) return;
-    await onSubmit(buildPayload(autoSubmitted));
+    if (isLocked || submitting || submissionPending) return;
+    setSubmissionPending(true);
+    try {
+      await onSubmit(buildPayload(autoSubmitted));
+    } finally {
+      setSubmissionPending(false);
+    }
+  };
+
+  const requestTaskChange = (task, index) => {
+    const targetKey = task?.key || `task_${index + 1}`;
+    if (!task || targetKey === activeTaskKey) return;
+    const currentMinimum = Number(activeTask?.minimumWords || activeTask?.minWords || 0);
+    const currentWords = countWords(responses[activeTaskKey]);
+    if (currentWords < currentMinimum) {
+      setPendingTaskChange({
+        task,
+        targetKey,
+        missingCount: Math.max(1, currentMinimum - currentWords),
+      });
+      return;
+    }
+    setActiveTaskKey(targetKey);
   };
 
   return (
@@ -263,11 +289,11 @@ export default function WritingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={isLocked || submitting}
+            disabled={isLocked || submitting || submissionPending}
             onClick={() => handleSubmitExam(false)}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -345,7 +371,7 @@ export default function WritingExamMode({
               <button
                 key={taskKey}
                 className={`rounded-[24px] border px-5 py-4 text-left transition ${taskKey === activeTaskKey ? 'border-[#8a0018] bg-[#fff0f1]' : 'border-[#ead8d5] bg-white hover:bg-[#fff7f7]'}`}
-                onClick={() => setActiveTaskKey(taskKey)}
+                onClick={() => requestTaskChange(task, index)}
                 type="button"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -366,18 +392,24 @@ export default function WritingExamMode({
           <button
             className="rounded-full border border-[#dfbfbd] px-4 py-3 text-[#8a0018] transition hover:bg-[#fff0f1] disabled:opacity-40"
             disabled={activeTaskIndex <= 0}
-            onClick={() => setActiveTaskKey(tasks[Math.max(0, activeTaskIndex - 1)]?.key || activeTaskKey)}
+            onClick={() => {
+              const nextIndex = Math.max(0, activeTaskIndex - 1);
+              requestTaskChange(tasks[nextIndex], nextIndex);
+            }}
             type="button"
           >
-            <span className="material-symbols-outlined">arrow_back</span>
+            <ArrowLeft aria-hidden="true" size={20} strokeWidth={2.2} />
           </button>
           <button
             className="rounded-full border border-[#dfbfbd] px-4 py-3 text-[#8a0018] transition hover:bg-[#fff0f1] disabled:opacity-40"
             disabled={activeTaskIndex < 0 || activeTaskIndex >= tasks.length - 1}
-            onClick={() => setActiveTaskKey(tasks[Math.min(tasks.length - 1, activeTaskIndex + 1)]?.key || activeTaskKey)}
+            onClick={() => {
+              const nextIndex = Math.min(tasks.length - 1, activeTaskIndex + 1);
+              requestTaskChange(tasks[nextIndex], nextIndex);
+            }}
             type="button"
           >
-            <span className="material-symbols-outlined">arrow_forward</span>
+            <ArrowRight aria-hidden="true" size={20} strokeWidth={2.2} />
           </button>
         </div>
       </footer>
@@ -428,6 +460,20 @@ export default function WritingExamMode({
             </div>
           </div>
         </div>
+      ) : null}
+
+      {pendingTaskChange ? (
+        <ExamSectionChangeDialog
+          currentLabel={activeTask?.title || 'Task hiện tại'}
+          missingCount={pendingTaskChange.missingCount}
+          onCancel={() => setPendingTaskChange(null)}
+          onConfirm={() => {
+            setActiveTaskKey(pendingTaskChange.targetKey);
+            setPendingTaskChange(null);
+          }}
+          targetLabel={pendingTaskChange.task.title || 'Task tiếp theo'}
+          unitLabel="từ"
+        />
       ) : null}
     </div>
   );

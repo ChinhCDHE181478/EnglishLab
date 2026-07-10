@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "englishlab_placement_mock_1_speaking",
+  "title": "IELTS Speaking Mock Test 1",
+  "durationMinutes": 15,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Where are you from?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4"
+        },
+        {
+          "text": "Where do you live now?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q2-Where%20do%20you%20live%20now.mp4"
+        },
+        {
+          "text": "How long have you lived there?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q3-How%20long%20have%20you%20lived%20there.mp4"
+        },
+        {
+          "text": "Who do you live with?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q4-Who%20do%20you%20live%20with.mp4"
+        },
+        {
+          "text": "Do you plan to live there for a long time?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q5-Do%20you%20plan%20to%20live%20there%20for%20a%20long%20time.mp4"
+        },
+        {
+          "text": "What kinds of films do you like best?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q7-What%20kinds%20of%20movies%20do%20you%20like%20best.mp4"
+        },
+        {
+          "text": "How often do you watch films?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q8-How%20often%20do%20you%20watch%20films.mp4"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Cue Card",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%202-Describe%20an%20activity%20you%20would%20do%20when%20you%20are%20alone.mp4",
+      "cueCardTitle": "Describe a leisure activity you enjoy.",
+      "cueCardBullets": [
+        "What the activity is",
+        "When and where you do it",
+        "Who you do it with",
+        "Why you enjoy it"
+      ]
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Do you think people should only focus on work?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%203-%20Q1-Do%20you%20think%20people%20should%20only%20focus%20on%20work.mp4"
+        },
+        {
+          "text": "How much leisure time should adults have each week?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Should parents plan their children's leisure activities?",
+          "videoUrl": ""
+        },
+        {
+          "text": "How are young people's activities different from those of older generations?",
+          "videoUrl": ""
+        }
+      ]
+    }
+  ]
+}

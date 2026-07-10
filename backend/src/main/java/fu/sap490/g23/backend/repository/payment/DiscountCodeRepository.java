@@ -13,6 +13,8 @@ public interface DiscountCodeRepository extends JpaRepository<DiscountCode, Long
     Optional<DiscountCode> findByCodeIgnoreCase(String code);
     boolean existsByCodeIgnoreCase(String code);
 
+    org.springframework.data.domain.Page<DiscountCode> findByActiveTrue(org.springframework.data.domain.Pageable pageable);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select discountCode from DiscountCode discountCode where lower(discountCode.code) = lower(:code)")
     Optional<DiscountCode> findByCodeIgnoreCaseForUpdate(@Param("code") String code);

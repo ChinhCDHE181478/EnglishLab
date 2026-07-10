@@ -1,11 +1,11 @@
 package fu.sap490.g23.backend.dto.request.course;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
-import fu.sap490.g23.backend.entity.course.CourseLevel;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,8 +34,9 @@ public class OnlineCourseRequest {
 
     private String description;
 
-    @NotNull(message = "Course category is required")
-    private CourseCategoryCode category;
+    @NotBlank(message = "Course category is required")
+    @Size(max = 40)
+    private String category;
 
     @NotNull(message = "Course level is required")
     private CourseLevel level;
@@ -45,8 +46,16 @@ public class OnlineCourseRequest {
     @Size(max = 80)
     private String targetScore;
 
+    @DecimalMin(value = "0.0")
+    @DecimalMax(value = "9.0")
     private Double recommendedCurrentBandMin;
+
+    @DecimalMin(value = "0.0")
+    @DecimalMax(value = "9.0")
     private Double recommendedCurrentBandMax;
+
+    @DecimalMin(value = "0.0")
+    @DecimalMax(value = "9.0")
     private Double targetBand;
 
     @Size(max = 80)

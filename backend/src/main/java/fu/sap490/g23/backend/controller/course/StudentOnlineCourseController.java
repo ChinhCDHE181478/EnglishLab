@@ -2,11 +2,15 @@ package fu.sap490.g23.backend.controller.course;
 
 import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sap490.g23.backend.dto.request.course.CourseReviewRequest;
+import fu.sap490.g23.backend.dto.response.course.CourseRatingResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
-import fu.sap490.g23.backend.entity.course.VocabularyProgressStatus;
+import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
+import fu.sap490.g23.backend.service.course.CourseReviewService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,10 +31,16 @@ import java.util.List;
 public class StudentOnlineCourseController {
 
     private final OnlineCourseService onlineCourseService;
+    private final CourseReviewService courseReviewService;
 
     @PostMapping("/{courseId}/register")
     public ResponseEntity<OnlineCourseResponse> registerCourse(@PathVariable Long courseId, Authentication authentication) {
         return ResponseEntity.ok(onlineCourseService.registerCourse(courseId, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/content")
+    public ResponseEntity<OnlineCourseResponse> getEnrolledCourse(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getEnrolledCourse(courseId, authentication.getName()));
     }
 
     @GetMapping({"/my-enrollments", "/my-courses"})
@@ -51,6 +62,20 @@ public class StudentOnlineCourseController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(onlineCourseService.getCourseCertificate(courseId, authentication.getName()));
+    }
+
+    @GetMapping("/{courseId}/rating")
+    public ResponseEntity<CourseRatingResponse> getMyRating(@PathVariable Long courseId, Authentication authentication) {
+        return ResponseEntity.ok(courseReviewService.getMyRating(courseId, authentication.getName()));
+    }
+
+    @PostMapping("/{courseId}/rating")
+    public ResponseEntity<CourseRatingResponse> saveRating(
+            @PathVariable Long courseId,
+            @Valid @RequestBody CourseReviewRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(courseReviewService.saveRating(courseId, request, authentication.getName()));
     }
 
     @PatchMapping("/{courseId}/lessons/{lessonId}/progress")

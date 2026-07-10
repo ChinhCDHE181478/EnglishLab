@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.dto.response.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +21,7 @@ public class AssessmentRubricResponse {
     private String taskType;
     private String scoringScale;
     private String description;
+    private boolean active;
     @Builder.Default
     private List<RubricCriterionResponse> criteria = new ArrayList<>();
 }

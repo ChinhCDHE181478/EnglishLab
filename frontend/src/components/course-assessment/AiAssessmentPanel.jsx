@@ -1,8 +1,11 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Mic, UserRound } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import { formatPassingThresholdLabel } from '../../utils/selfPacedHelpers';
 import ListeningExamMode from './ListeningExamMode';
 import ReadingExamMode from './ReadingExamMode';
+import SpeakingExamMode from './SpeakingExamMode';
 import WritingExamMode from './WritingExamMode';
 
 const statusLabels = {
@@ -253,235 +256,6 @@ const objectiveScoringCriteria = (assessment) => {
 };
 const isExamSkill = (skill) => ['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(String(skill || '').toUpperCase());
 const waveformBars = [28, 44, 36, 58, 32, 52, 40, 62, 34, 48, 30, 54];
-const SPEAKING_PROMPT_VIDEO_MAP = {
-  jan_2025_test_1: {
-    part_1: [
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q2-Where%20do%20you%20live%20now.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q3-How%20long%20have%20you%20lived%20there.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q4-Who%20do%20you%20live%20with.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q5-Do%20you%20plan%20to%20live%20there%20for%20a%20long%20time.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q6-Do%20you%20like%20watching%20films.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q7-What%20kinds%20of%20movies%20do%20you%20like%20best.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q8-How%20often%20do%20you%20watch%20films.mp4',
-      'http://link.intergreat.com/7o2T1',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q10-Would%20you%20like%20to%20be%20in%20a%20movie.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q11-How%20often%20do%20you%20drink%20water.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202023/1/Test%201/Part%201%20-%20Q12%20-%20What%20kinds%20of%20water%20do%20you%20like%20to%20drink.mp4',
-      'http://link.intergreat.com/5gEnA',
-    ],
-    part_2: ['http://link.intergreat.com/RSi4I'],
-    part_3: [
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%203-%20Q1-Do%20you%20think%20people%20should%20only%20focus%20on%20work.mp4',
-      'http://link.intergreat.com/M93tA',
-      'http://link.intergreat.com/LwsAe',
-      'http://link.intergreat.com/6SSIw',
-    ],
-  },
-  jan_2025_test_2: {
-    part_1: [
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q1-Are%20you%20a%20student%20or%20do%20you%20work%20now.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q2-Why%20did%20you%20choose%20this%20coursejob.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q3-Talk%20about%20your%20daily%20routine.mp4',
-      'http://link.intergreat.com/D8I5B',
-      'http://link.intergreat.com/iP0zN',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q6-Who%20does%20most%20of%20the%20shopping%20in%20your%20household.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q7-What%20type%20of%20shopping%20do%20you%20like%20%28Why%29.mp4',
-      'http://link.intergreat.com/bYnoU',
-      'http://link.intergreat.com/lOMN3',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q10-Let%E2%80%99s%20talk%20about%20films..mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q11-What%20type%20of%20films%20do%20you%20like%20best%20%28Why%29.mp4',
-      'http://link.intergreat.com/3FbDt',
-    ],
-    part_2: ['https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%202-Describe%20an%20important%20event%20in%20your%20life..mp4'],
-    part_3: [
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%203-%20Q1-What%20days%20are%20important%20in%20your%20country.mp4',
-      'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%203-%20Q2-Why%20it%20is%20important%20to%20have%20national%20celebrations.mp4',
-      'http://link.intergreat.com/Q2kcd',
-      'http://link.intergreat.com/2W3Bd',
-      'http://link.intergreat.com/PAQjN',
-      'http://link.intergreat.com/lATrc',
-    ],
-  },
-};
-const SPEAKING_PART_VIDEO_FALLBACKS = {
-  jan_2025_test_1: {
-    part_1: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4',
-    part_2: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4',
-    part_3: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%201/Part%203-%20Q1-Do%20you%20think%20people%20should%20only%20focus%20on%20work.mp4',
-  },
-  jan_2025_test_2: {
-    part_1: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%201-%20Q1-Are%20you%20a%20student%20or%20do%20you%20work%20now.mp4',
-    part_2: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%202-Describe%20an%20important%20event%20in%20your%20life..mp4',
-    part_3: 'https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/1/Test%202/Part%203-%20Q1-What%20days%20are%20important%20in%20your%20country.mp4',
-  },
-};
-
-const SPEAKING_MOCK_VARIANTS = [
-  {
-    key: 'jan_2025_test_1',
-    label: 'Đề mô phỏng 1',
-    sourceLabel: 'Theo bộ đề January Practice Test 1',
-    parts: [
-      {
-        key: 'part_1',
-        label: 'Phần 1',
-        caption: 'Làm quen và trả lời ngắn',
-        description: 'Trả lời ngắn, tự nhiên và đi thẳng vào ý. Mỗi câu nên có answer + explain + example.',
-        prepSeconds: 0,
-        answerSeconds: 300,
-        prompts: [
-          'Where are you from?',
-          'Where do you live now?',
-          'How long have you lived there?',
-          'Who do you live with?',
-          'Do you plan to live there for a long time?',
-          'Do you like watching films?',
-          'What kinds of movies do you like best?',
-          'How often do you watch films?',
-          'Do you like to watch movies alone or with your friends?',
-          'Would you like to be in a movie?',
-          'How often do you drink water?',
-          'What kinds of water do you like to drink?',
-          'Do you drink bottled water or water from water machines?',
-        ],
-      },
-      {
-        key: 'part_2',
-        label: 'Phần 2',
-        caption: 'Thẻ gợi ý',
-        description: 'Bạn có 1 phút chuẩn bị và khoảng 2 phút nói liên tục.',
-        prepSeconds: 60,
-        answerSeconds: 120,
-        cueCardTitle: 'Describe an activity you would do when you are alone in your free time.',
-        cueCardBullets: [
-          'What you do',
-          'How often you do it',
-          'Why you like to do this activity',
-          'How you feel when you do it',
-        ],
-      },
-      {
-        key: 'part_3',
-        label: 'Phần 3',
-        caption: 'Thảo luận chủ đề',
-        description: 'Mở rộng, so sánh, nêu nguyên nhân - hệ quả và ý kiến cá nhân rõ ràng hơn Phần 1.',
-        prepSeconds: 0,
-        answerSeconds: 300,
-        prompts: [
-          'Do you think people should only focus on work?',
-          'Do you ever think how much time we will spend at work in a week?',
-          'Should parents plan children’s leisure time and activities?',
-          'Do you think the activities of the younger generation are different from those of the older generation?',
-        ],
-      },
-    ],
-  },
-  {
-    key: 'jan_2025_test_2',
-    label: 'Đề mô phỏng 2',
-    sourceLabel: 'Theo bộ đề January Practice Test 2',
-    parts: [
-      {
-        key: 'part_1',
-        label: 'Phần 1',
-        caption: 'Làm quen và trả lời ngắn',
-        description: 'Giữ câu trả lời linh hoạt, tránh học thuộc từng câu.',
-        prepSeconds: 0,
-        answerSeconds: 300,
-        prompts: [
-          'Are you a student or do you work now?',
-          'Why did you choose this course or job?',
-          'Talk about your daily routine.',
-          'Is there anything about your course or job you would like to change?',
-          'I’d like to move on and ask you some questions about shopping.',
-          'Who does most of the shopping in your household?',
-          'What type of shopping do you like? Why?',
-          'Is shopping a popular activity in your country? Why or why not?',
-          'What type of shops do teenagers like best in your country?',
-          'Let’s talk about films. How often do you go to the cinema?',
-          'What type of films do you like best? Why?',
-          'What type of films don’t you like? Why not?',
-        ],
-      },
-      {
-        key: 'part_2',
-        label: 'Phần 2',
-        caption: 'Thẻ gợi ý',
-        description: 'Dành 1 phút ghi ý chính rồi nói liền mạch trong khoảng 2 phút.',
-        prepSeconds: 60,
-        answerSeconds: 120,
-        cueCardTitle: 'Describe an important event in your life.',
-        cueCardBullets: [
-          'When it happened',
-          'Who you were with',
-          'What happened',
-          'Why you feel it was important',
-        ],
-      },
-      {
-        key: 'part_3',
-        label: 'Phần 3',
-        caption: 'Thảo luận chủ đề',
-        description: 'Tập trung vào góc nhìn xã hội, xu hướng, lợi ích và sự thay đổi theo thời gian.',
-        prepSeconds: 0,
-        answerSeconds: 300,
-        prompts: [
-          'What days are important in your country?',
-          'Why is it important to have national celebrations?',
-          'How are national celebrations now different from those in the past?',
-          'Do you think any new national celebrations will appear in the future?',
-          'Are there any celebrations from other countries that people celebrate in your country?',
-          'What are the benefits of having events that many people around the world celebrate on the same day?',
-        ],
-      },
-    ],
-  },
-];
-
-const SPEAKING_TOPIC_BANK = {
-  key: 'part_1_topic_bank',
-  label: 'Ngân hàng chủ đề phần 1',
-  sourceLabel: 'Theo module 100 IELTS Speaking Questions',
-  topics: [
-    {
-      title: 'Hometown and Living Place',
-      prompts: [
-        'Where are you from?',
-        'What do you like most about your hometown?',
-        'Has your hometown changed much in recent years?',
-        'Would you like to live there in the future?',
-      ],
-    },
-    {
-      title: 'Work or Study',
-      prompts: [
-        'Do you work or are you a student?',
-        'Why did you choose this course or job?',
-        'What is the most interesting part of your daily routine?',
-        'Is there anything you would like to change about your work or study?',
-      ],
-    },
-    {
-      title: 'Shopping',
-      prompts: [
-        'Do you enjoy shopping?',
-        'Who usually does the shopping in your family?',
-        'What kinds of shops do young people like?',
-        'Is online shopping more popular than before?',
-      ],
-    },
-    {
-      title: 'Films and Entertainment',
-      prompts: [
-        'How often do you watch films?',
-        'What kinds of films do you enjoy most?',
-        'Do you prefer watching films alone or with other people?',
-        'Would you ever like to be in a film?',
-      ],
-    },
-  ],
-};
 
 const formatSeconds = (totalSeconds) => {
   const safeValue = Math.max(0, Number(totalSeconds) || 0);
@@ -500,13 +274,14 @@ const parseAssessmentUiConfig = (assessment) => {
   }
 };
 
-const resolveSpeakingExperience = (assessment, moduleTitle, selectedVariantKey) => {
+const resolveSpeakingExperience = (assessment, selectedVariantKey) => {
   if (assessment?.skill !== 'SPEAKING') return null;
 
   const uiConfig = parseAssessmentUiConfig(assessment);
   if (uiConfig?.type === 'speaking_mock_test') {
-    const variants = Array.isArray(uiConfig.variants) ? uiConfig.variants : [];
-    const activeVariant = variants.find((variant) => variant.key === selectedVariantKey) || variants[0] || null;
+    const variants = Array.isArray(uiConfig.variants) ? uiConfig.variants.filter(Boolean) : [];
+    if (!variants.length) return null;
+    const activeVariant = variants.find((variant) => variant.key === selectedVariantKey) || variants[0];
     return {
       kind: 'mock_test',
       flow: uiConfig.flow || [],
@@ -516,35 +291,14 @@ const resolveSpeakingExperience = (assessment, moduleTitle, selectedVariantKey) 
     };
   }
   if (uiConfig?.type === 'speaking_topic_bank') {
+    const topics = Array.isArray(uiConfig.topicBank?.topics) ? uiConfig.topicBank.topics : [];
+    if (!topics.length) return null;
     return {
       kind: 'topic_bank',
       flow: uiConfig.flow || [],
       briefing: uiConfig.briefing || null,
       sourceLabel: uiConfig.topicBank?.sourceLabel || '',
-      topics: Array.isArray(uiConfig.topicBank?.topics) ? uiConfig.topicBank.topics : [],
-    };
-  }
-
-  const rawContext = `${assessment?.moduleTitle || ''} ${moduleTitle || ''} ${assessment?.title || ''}`.toLowerCase();
-
-  if (rawContext.includes('100 ielts speaking questions')) {
-    return {
-      kind: 'topic_bank',
-      ...SPEAKING_TOPIC_BANK,
-    };
-  }
-
-  if (rawContext.includes('speaking practice test with answers')) {
-    const activeVariant = SPEAKING_MOCK_VARIANTS.find((variant) => variant.key === selectedVariantKey) || SPEAKING_MOCK_VARIANTS[0];
-    return {
-      kind: 'mock_test',
-      variants: SPEAKING_MOCK_VARIANTS,
-      activeVariant,
-      briefing: {
-        title: 'Bài nói mô phỏng IELTS',
-        summary: 'Hoàn thành kiểm tra thiết bị, sau đó lần lượt làm Phần 1, Phần 2 và Phần 3.',
-      },
-      flow: ['mic_check', 'briefing', 'mock_test', 'recording', 'submit'],
+      topics,
     };
   }
 
@@ -747,12 +501,18 @@ const persistRecoveredSpeakingAudioUrl = (assessmentId, url) => {
 export default function AiAssessmentPanel({
   assessments = [],
   moduleTitle,
+  courseTargetBand = null,
   isLocked = false,
+  lockReason = '',
   onMoveStep,
   onSubmitAssessment,
   draftGetter,
   onDraftChange,
   onClearDraft,
+  skipSpeakingDeviceCheck = false,
+  speakingDirectExam = false,
+  onCloseExam,
+  uploadSpeakingAudio,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [answer, setAnswer] = useState('');
@@ -764,6 +524,7 @@ export default function AiAssessmentPanel({
   const [recordingError, setRecordingError] = useState('');
   const [selectedSpeakingMockKey, setSelectedSpeakingMockKey] = useState('');
   const [activeSpeakingPartKey, setActiveSpeakingPartKey] = useState('part_1');
+  const [completedSpeakingPartKeys, setCompletedSpeakingPartKeys] = useState([]);
   const [speakingStage, setSpeakingStage] = useState('mic_check');
   const [micPermissionState, setMicPermissionState] = useState('idle');
   const [micTesting, setMicTesting] = useState(false);
@@ -815,7 +576,6 @@ export default function AiAssessmentPanel({
   const recordingDurationRef = useRef(0);
   const headphoneAudioContextRef = useRef(null);
   const headphoneTestAudioRef = useRef(null);
-  const speakingVideoRef = useRef(null);
   const examViolationLockRef = useRef(false);
   const examIntentionalExitRef = useRef(false);
 
@@ -845,6 +605,7 @@ export default function AiAssessmentPanel({
     setRecordingError('');
     setSelectedSpeakingMockKey(speakingExperience?.activeVariant?.key || '');
     setActiveSpeakingPartKey(speakingExperience?.activeVariant?.parts?.[0]?.key || 'part_1');
+    setCompletedSpeakingPartKeys([]);
     setSpeakingStage('mic_check');
     setMicPermissionState('idle');
     setMicTesting(false);
@@ -960,6 +721,7 @@ export default function AiAssessmentPanel({
     setRecordingHasVoiceSignal(false);
     setSelectedSpeakingMockKey(speakingExperience?.activeVariant?.key || '');
     setActiveSpeakingPartKey(speakingExperience?.activeVariant?.parts?.[0]?.key || 'part_1');
+    setCompletedSpeakingPartKeys([]);
     setSpeakingStage('mic_check');
     setMicPermissionState('idle');
     setMicTesting(false);
@@ -1014,6 +776,7 @@ export default function AiAssessmentPanel({
       }
     }
     setExamModeOpen(false);
+    onCloseExam?.();
   };
 
   const orderedAssessments = useMemo(() => (
@@ -1026,13 +789,21 @@ export default function AiAssessmentPanel({
   ), [assessments]);
 
   const selected = orderedAssessments.find((item) => String(item.id) === String(selectedId)) || orderedAssessments[0];
-  const speakingExperience = resolveSpeakingExperience(selected, moduleTitle, selectedSpeakingMockKey);
+  const selectedPassingLabel = useMemo(
+    () => (selected ? formatPassingThresholdLabel(selected, { targetBand: courseTargetBand }) : null),
+    [selected, courseTargetBand],
+  );
+  const speakingExperience = resolveSpeakingExperience(selected, selectedSpeakingMockKey);
   const inputCopy = assessmentInputCopy(selected?.skill);
   const assessmentUiConfig = parseAssessmentUiConfig(selected);
   const isReadingExamMode = selected?.skill === 'READING' && assessmentUiConfig?.type === 'ielts_reading_exam';
   const isListeningExamMode = selected?.skill === 'LISTENING' && assessmentUiConfig?.type === 'ielts_listening_exam';
   const isWritingExamMode = selected?.skill === 'WRITING' && assessmentUiConfig?.type === 'ielts_writing_exam';
-  const isDedicatedExamMode = isReadingExamMode || isListeningExamMode || isWritingExamMode;
+  const isSpeakingExamMode = selected?.skill === 'SPEAKING'
+    && assessmentUiConfig?.type === 'speaking_mock_test'
+    && Array.isArray(assessmentUiConfig?.variants)
+    && assessmentUiConfig.variants.length > 0;
+  const isDedicatedExamMode = isReadingExamMode || isListeningExamMode || isWritingExamMode || isSpeakingExamMode;
   const feedback = tryParseFeedback(result?.aiFeedbackJson);
   const previousSubmission = selected?.previousSubmission || null;
   const submissionComparison = buildSubmissionComparison(result, previousSubmission);
@@ -1062,15 +833,16 @@ export default function AiAssessmentPanel({
   const isLockedAfterResult = Boolean(result) && !creatingNewAttempt;
   const isSubmissionLocked = isLocked || isLockedAfterResult;
   const activeSpeakingVariant = speakingExperience?.kind === 'mock_test' ? speakingExperience.activeVariant : null;
-  const activeSpeakingPart = activeSpeakingVariant?.parts?.find((part) => part.key === activeSpeakingPartKey) || activeSpeakingVariant?.parts?.[0] || null;
-  const activeSpeakingQuestions = Array.isArray(activeSpeakingPart?.prompts) ? activeSpeakingPart.prompts : [];
-  const currentSpeakingQuestion = activeSpeakingQuestions[speakingQuestionIndex] || null;
-  const isSpeakingMockFlow = selected?.skill === 'SPEAKING' && speakingExperience?.kind === 'mock_test';
-  const isLastSpeakingQuestionInPart = speakingQuestionIndex >= activeSpeakingQuestions.length - 1;
-  const activeSpeakingPartIndex = activeSpeakingVariant?.parts?.findIndex((part) => part.key === activeSpeakingPartKey) ?? -1;
-  const isLastSpeakingPart = activeSpeakingPartIndex >= 0 && activeSpeakingPartIndex === (activeSpeakingVariant?.parts?.length ?? 0) - 1;
-  const isFinalSpeakingPrompt = isSpeakingMockFlow && isLastSpeakingPart && isLastSpeakingQuestionInPart;
-  const showSpeakingResultOnly = isSpeakingMockFlow && isLockedAfterResult;
+  const speakingExamConfig = isSpeakingExamMode ? {
+    title: assessmentUiConfig?.title || formatAssessmentTitle(selected),
+    submissionLabel: activeSpeakingVariant?.label || formatAssessmentTitle(selected),
+    durationMinutes: assessmentUiConfig?.durationMinutes || selected?.timeLimitMinutes || 15,
+    parts: (activeSpeakingVariant?.parts || []).map((part, index) => ({
+      ...part,
+      title: `${part.label || `Part ${index + 1}`} · ${part.caption || ''}`.trim(),
+    })),
+  } : null;
+  const showSpeakingResultOnly = isSpeakingExamMode && isLockedAfterResult;
   const vocabularySentences = answer
     .split(/[.!?]+/)
     .map((sentence) => sentence.trim())
@@ -1095,20 +867,6 @@ export default function AiAssessmentPanel({
       hint: 'Có liên kết ý',
     },
   ];
-  const activeFallbackPromptVideoUrl = SPEAKING_PROMPT_VIDEO_MAP[selectedSpeakingMockKey]?.[activeSpeakingPartKey]?.[speakingQuestionIndex] || '';
-  const activeSpeakingVideoUrl = currentSpeakingQuestion?.videoUrl
-    || activeFallbackPromptVideoUrl
-    || activeSpeakingPart?.videoUrl
-    || SPEAKING_PART_VIDEO_FALLBACKS[selectedSpeakingMockKey]?.[activeSpeakingPartKey]
-    || '';
-  const speakingMeterBars = Array.from({ length: 40 }, (_, index) => {
-    if (!isRecording) return 4;
-    const center = 19.5;
-    const distance = Math.abs(index - center);
-    const curve = Math.max(0, 1 - (distance / center));
-    const base = 6 + (curve * 12);
-    return Math.max(6, Math.round(base + (recordingLevel * 0.18 * curve)));
-  });
   const hasRecordedAudio = Boolean(audioPreviewUrl || audioUrl.trim());
   const hasMeaningfulSpeakingEvidence = selected?.skill === 'SPEAKING'
     ? (
@@ -1122,7 +880,7 @@ export default function AiAssessmentPanel({
       [String(entry.questionNumber || entry.id || '')]: entry.answer || '',
     }), {})
   ), [objectiveDraft.responses]);
-  const isFullscreenExamMode = examModeOpen && !isDedicatedExamMode;
+  const isFullscreenExamMode = examModeOpen && !isDedicatedExamMode && !isSpeakingExamMode;
   const showStartExamCard = !examModeOpen && !isLockedAfterResult;
   const startExamButtonLabel = selected?.skill === 'SPEAKING' ? 'Bắt đầu kiểm tra' : 'Vào chế độ làm bài';
 
@@ -1220,6 +978,30 @@ export default function AiAssessmentPanel({
       finished: false,
     });
   }, [speakingExperience?.kind, speakingExperience?.activeVariant?.key]);
+
+  useEffect(() => {
+    if (!skipSpeakingDeviceCheck) return;
+    if (selected?.skill !== 'SPEAKING') return;
+    if (speakingExperience?.kind !== 'mock_test') return;
+
+    stopMicCheck();
+    setHeadphoneCheckPlayed(true);
+    setMicPermissionState('granted');
+    setMicCheckPassed(true);
+    setSpeakingStage((current) => (current === 'mic_check' ? 'briefing' : current));
+  }, [skipSpeakingDeviceCheck, selected?.id, selected?.skill, speakingExperience?.kind]);
+
+  useEffect(() => {
+    if (!speakingDirectExam) return;
+    if (selected?.skill !== 'SPEAKING' || speakingExperience?.kind !== 'mock_test') return;
+
+    stopMicCheck();
+    setHeadphoneCheckPlayed(true);
+    setMicPermissionState('granted');
+    setMicCheckPassed(true);
+    setSpeakingStage('test');
+    setExamModeOpen(true);
+  }, [speakingDirectExam, selected?.id, selected?.skill, speakingExperience?.kind]);
 
   useEffect(() => {
     setSpeakingQuestionIndex(0);
@@ -1320,16 +1102,6 @@ export default function AiAssessmentPanel({
   }, [isFullscreenExamMode]);
 
   useEffect(() => {
-    if (!isSpeakingMockFlow) return;
-    if (speakingStage !== 'test' && speakingStage !== 'recording') return;
-    if (!activeSpeakingPart?.key) return;
-    if (speakingTimer.partKey === activeSpeakingPart.key && (speakingTimer.running || speakingTimer.remainingSeconds > 0)) {
-      return;
-    }
-    startSpeakingTimer(activeSpeakingPart);
-  }, [isSpeakingMockFlow, speakingStage, activeSpeakingPart?.key]);
-
-  useEffect(() => {
     if (!isRecording) {
       return undefined;
     }
@@ -1360,7 +1132,7 @@ export default function AiAssessmentPanel({
   }, [pendingSpeakingSubmit, selected?.skill, isRecording, uploadingAudio, submitting, hasMeaningfulSpeakingEvidence]);
 
   useEffect(() => {
-    if (!speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
+    if (submitting || pendingSpeakingSubmit || !speakingTimer.running || speakingTimer.remainingSeconds <= 0) {
       return undefined;
     }
 
@@ -1404,7 +1176,7 @@ export default function AiAssessmentPanel({
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant]);
+  }, [speakingTimer.running, speakingTimer.remainingSeconds, activeSpeakingVariant, pendingSpeakingSubmit, submitting]);
 
   useEffect(() => () => {
     if (audioPreviewUrl) {
@@ -1454,8 +1226,8 @@ export default function AiAssessmentPanel({
       setError('Bản ghi đang được xử lý. Hãy đợi vài giây rồi gửi chấm.');
       return;
     }
-    if (selected.skill === 'SPEAKING' && speakingStage !== 'recording') {
-      setError('Hãy hoàn thành bước kiểm tra micro, xem đề Speaking rồi chuyển sang bước ghi âm trước khi gửi chấm.');
+    if (selected.skill === 'SPEAKING' && !isSpeakingExamMode && speakingStage !== 'recording') {
+      setError('Hãy chuyển sang phần ghi âm và hoàn thành câu trả lời trước khi nộp bài.');
       return;
     }
     if (selected.skill === 'SPEAKING' && hasRecordedAudio && !audioUrl.trim()) {
@@ -1738,43 +1510,6 @@ export default function AiAssessmentPanel({
     }
   };
 
-  const handleNextSpeakingQuestion = () => {
-    if (speakingQuestionIndex < activeSpeakingQuestions.length - 1) {
-      setSpeakingQuestionIndex((current) => current + 1);
-      return;
-    }
-    const currentPartIndex = activeSpeakingVariant?.parts?.findIndex((part) => part.key === activeSpeakingPartKey) ?? -1;
-    const nextPart = currentPartIndex >= 0 ? activeSpeakingVariant?.parts?.[currentPartIndex + 1] : null;
-    if (nextPart) {
-      setActiveSpeakingPartKey(nextPart.key);
-      setSpeakingQuestionIndex(0);
-      resetSpeakingTimer(nextPart);
-    }
-  };
-
-  const handleAdvanceSpeakingFlow = () => {
-    if (isFinalSpeakingPrompt) {
-      setError('');
-      if (isRecording) {
-        setPendingSpeakingSubmit(true);
-        handleStopRecording();
-        return;
-      }
-      if (uploadingAudio) {
-        setPendingSpeakingSubmit(true);
-        return;
-      }
-      handleSubmit();
-      return;
-    }
-    handleNextSpeakingQuestion();
-  };
-
-  const handleSpeakingVideoEnded = () => {
-    if (!isSpeakingMockFlow || isRecording || uploadingAudio || isSubmissionLocked) return;
-    handleStartRecording();
-  };
-
   const handleStartRecording = async () => {
     if (isSubmissionLocked || submitting || isRecording) return;
 
@@ -1850,7 +1585,10 @@ export default function AiAssessmentPanel({
           const extension = mimeType.includes('mpeg') ? 'mp3' : mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'webm';
           const file = new File([blob], `speaking-answer.${extension}`, { type: mimeType });
           setUploadingAudio(true);
-          courseApi.uploadAssessmentAudio(file)
+          const uploadAudio = typeof uploadSpeakingAudio === 'function'
+            ? uploadSpeakingAudio
+            : courseApi.uploadAssessmentAudio;
+          uploadAudio(file)
             .then((uploadResponse) => {
               const uploadedUrl = uploadResponse?.url || '';
               setAudioUrl(uploadedUrl);
@@ -1926,7 +1664,12 @@ export default function AiAssessmentPanel({
             </p>
             {isLocked ? (
               <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-[#8a0018]">
-                Bài kiểm tra này sẽ mở sau khi bạn hoàn thành toàn bộ bài học trong module.
+                {lockReason || 'Bài kiểm tra này sẽ mở sau khi bạn hoàn thành các yêu cầu của mô-đun.'}
+              </p>
+            ) : null}
+            {!isLocked && selectedPassingLabel ? (
+              <p className="mt-2 max-w-3xl rounded-xl border border-[#dfbfbd]/30 bg-[#fff7f7] px-4 py-2.5 text-sm font-semibold leading-6 text-[#4b0009]">
+                {selectedPassingLabel}
               </p>
             ) : null}
           </div>
@@ -1982,6 +1725,11 @@ export default function AiAssessmentPanel({
               <span>•</span>
               <span>Tiêu chí: {formatRubricName(assessment.rubric?.name, assessment.skill)}</span>
             </div>
+            {formatPassingThresholdLabel(assessment, { targetBand: courseTargetBand }) ? (
+              <p className="mt-3 rounded-xl border border-[#dfbfbd]/25 bg-[#fff7f7] px-3 py-2 text-[11px] font-bold normal-case tracking-normal text-[#4b0009]">
+                {formatPassingThresholdLabel(assessment, { targetBand: courseTargetBand })}
+              </p>
+            ) : null}
           </button>
         ))}
       </div>
@@ -1989,7 +1737,7 @@ export default function AiAssessmentPanel({
 
       {selected ? (
         <div className="mt-5 rounded-3xl border border-[#dfbfbd]/25 bg-[#fffdfc] p-5">
-          {!isSpeakingMockFlow && !isFullscreenExamMode ? (
+          {!isSpeakingExamMode && !isFullscreenExamMode ? (
             <div className="rounded-2xl border border-[#dfbfbd]/25 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-extrabold text-[#2b2828]">Tiêu chí chấm</p>
@@ -2047,7 +1795,7 @@ export default function AiAssessmentPanel({
 
           {!showSpeakingResultOnly && (isFullscreenExamMode || (isDedicatedExamMode && !isLockedAfterResult)) ? (
           <div className="mt-5">
-            {!isSpeakingMockFlow ? (
+            {!isSpeakingExamMode ? (
               <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">{inputCopy.label}</label>
             ) : null}
             {isReadingExamMode ? (
@@ -2158,6 +1906,55 @@ export default function AiAssessmentPanel({
                   )}
                 </div>
               </div>
+                        ) : isSpeakingExamMode ? (
+              <div className="rounded-[28px] border border-[#dfbfbd]/30 bg-[linear-gradient(135deg,#fff7f7,#ffffff)] p-6">
+                <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">IELTS Speaking simulation</p>
+                    <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">
+                      {assessmentUiConfig?.title || formatAssessmentTitle(selected)}
+                    </h4>
+                    <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
+                      {speakingExperience?.briefing?.summary || 'Bài Speaking sẽ mở trong màn hình thi riêng với kiểm tra micro, đề theo từng phần và ghi âm câu trả lời.'}
+                    </p>
+                    {(speakingExperience?.variants || []).length > 1 ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {(speakingExperience.variants || []).map((variant) => (
+                          <button
+                            key={variant.key}
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition ${variant.key === activeSpeakingVariant?.key ? 'bg-[#8a0018] text-white' : 'bg-[#faf7f7] text-[#7a6766]'}`}
+                            type="button"
+                            onClick={() => setSelectedSpeakingMockKey(variant.key)}
+                          >
+                            {variant.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8c716f]">
+                      <span>{(activeSpeakingVariant?.parts || []).length || 3} parts</span>
+                      <span>•</span>
+                      <span>{assessmentUiConfig?.durationMinutes || selected.timeLimitMinutes || 15} minutes</span>
+                      <span>•</span>
+                      <span>Device check + recording</span>
+                    </div>
+                  </div>
+                  {isLockedAfterResult ? (
+                    <span className="inline-flex rounded-2xl bg-[#ebe3e2] px-6 py-4 text-sm font-black text-[#7a6766]">
+                      Đã có kết quả
+                    </span>
+                  ) : (
+                    <button
+                      className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
+                      disabled={isLocked || submitting || !(activeSpeakingVariant?.parts || []).length}
+                      onClick={() => setExamModeOpen(true)}
+                      type="button"
+                    >
+                      Vào phòng thi Speaking
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : isObjectiveSkill(selected.skill) && !isDedicatedExamMode ? (
               <div className="space-y-4">
                 {(objectiveSections[selected.skill] || []).map((section) => (
@@ -2216,8 +2013,9 @@ export default function AiAssessmentPanel({
               </div>
             ) : (
               <div className="space-y-4">
-                {selected.skill === 'SPEAKING' ? (
+                {selected.skill === 'SPEAKING' && !isSpeakingExamMode ? (
                   <>
+                    {!speakingDirectExam ? (
                     <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                       <div className="flex flex-wrap items-center gap-2">
                         {[
@@ -2235,6 +2033,7 @@ export default function AiAssessmentPanel({
                         ))}
                       </div>
                     </div>
+                    ) : null}
 
                     {speakingStage === 'mic_check' ? (
                       <div className="rounded-[30px] border border-[#dfbfbd]/25 bg-white p-6">
@@ -2420,145 +2219,7 @@ export default function AiAssessmentPanel({
                       </div>
                     ) : null}
 
-                    {(speakingStage === 'test' || speakingStage === 'recording') && speakingExperience?.kind === 'mock_test' ? (
-                      <div className="overflow-hidden rounded-[30px] border border-[#dfbfbd]/25 bg-white">
-                        <div className="flex items-center justify-between border-b border-[#f0e6e6] px-6 py-4">
-                          <div className="flex flex-wrap gap-2">
-                            {(speakingExperience.variants || []).map((variant) => (
-                              <button
-                                key={variant.key}
-                                className={`rounded-full px-4 py-2 text-sm font-bold transition ${variant.key === activeSpeakingVariant?.key ? 'bg-[#8a0018] text-white' : 'bg-[#faf7f7] text-[#7a6766]'}`}
-                                type="button"
-                                onClick={() => setSelectedSpeakingMockKey(variant.key)}
-                              >
-                                {variant.label}
-                              </button>
-                            ))}
-                          </div>
-                          <p className="font-['Manrope'] text-3xl font-extrabold text-[#8a0018]">
-                            {formatSeconds(
-                              speakingTimer.partKey === activeSpeakingPart?.key && speakingTimer.remainingSeconds > 0
-                                ? speakingTimer.remainingSeconds
-                                : activeSpeakingPart?.answerSeconds || 0
-                            )}
-                            <span className="ml-1 text-sm font-medium text-[#2b2828]">minutes remaining</span>
-                          </p>
-                        </div>
-
-                        <div className="px-6 py-8 text-center">
-                          <p className="text-3xl font-extrabold text-[#21446d]">
-                            {activeSpeakingPart?.label?.toUpperCase()}
-                            <span className="font-medium text-[#2b2828]">: {activeSpeakingPart?.caption}</span>
-                          </p>
-
-                          <div className="mx-auto mt-8 max-w-[430px]">
-                            {activeSpeakingVideoUrl ? (
-                              <video
-                                ref={speakingVideoRef}
-                                key={activeSpeakingVideoUrl}
-                                className="h-[250px] w-full rounded-[10px] object-cover"
-                                autoPlay
-                                controls={false}
-                                controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
-                                disablePictureInPicture
-                                onEnded={handleSpeakingVideoEnded}
-                                onContextMenu={(event) => event.preventDefault()}
-                                playsInline
-                                preload="auto"
-                                src={activeSpeakingVideoUrl}
-                              />
-                            ) : (
-                              <div className="flex h-[250px] w-full items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)]">
-                                <div className="text-center">
-                                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-white text-[#cf6f83] shadow-[0_14px_40px_rgba(207,111,131,0.18)]">
-                                    <span className="material-symbols-outlined text-[42px]">person</span>
-                                  </div>
-                                  <p className="mt-5 text-sm font-semibold text-[#7a6766]">Examiner video sẽ hiển thị ở đây khi đề có kèm video.</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mx-auto mt-6 max-w-3xl">
-                            {activeSpeakingPart?.cueCardTitle ? (
-                              <div className="rounded-[24px] border border-[#efd9de] bg-[#fffdfc] p-5 text-left">
-                            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Thẻ gợi ý</p>
-                                <h5 className="mt-2 text-xl font-extrabold text-[#2b2828]">{activeSpeakingPart.cueCardTitle}</h5>
-                                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                                  {(activeSpeakingPart.cueCardBullets || []).map((bullet) => (
-                                    <div key={bullet} className="rounded-2xl bg-[#faf7f7] px-4 py-3 text-sm font-semibold text-[#4b0009]">
-                                      {bullet}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <div className="mx-auto mt-8 max-w-[560px]">
-                            <div className="relative flex items-center justify-center">
-                              <div className="absolute left-0 right-0 flex items-center justify-between gap-[2px] px-3">
-                                <div className="flex h-10 items-center gap-[2px]">
-                                  {speakingMeterBars.map((height, index) => (
-                                    <span
-                                      key={`left-${index}`}
-                                      className={`w-[2px] rounded-full transition-all duration-150 ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`}
-                                      style={{ height }}
-                                    />
-                                  ))}
-                                </div>
-                                <div className="w-20 shrink-0" />
-                                <div className="flex h-10 items-center gap-[2px]">
-                                  {[...speakingMeterBars].reverse().map((height, index) => (
-                                    <span
-                                      key={`right-${index}`}
-                                      className={`w-[2px] rounded-full transition-all duration-150 ${isRecording ? 'bg-[#8a0018]' : 'bg-[#dfbfbd]'}`}
-                                      style={{ height }}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            <div
-                              className={`relative z-10 flex h-16 w-16 items-center justify-center rounded-full border-4 border-white mx-auto shadow-[0_12px_30px_rgba(75,0,9,0.16)] ${isRecording ? 'bg-[#8a0018] text-white' : 'bg-white text-[#8a0018]'}`}
-                              aria-hidden="true"
-                            >
-                              <span className="material-symbols-outlined text-[34px]">{isRecording ? 'mic' : 'mic'}</span>
-                            </div>
-                            </div>
-                            <p className="mt-4 font-['Manrope'] text-2xl font-extrabold text-[#8a0018]">{formatSeconds(recordingDurationSeconds)}</p>
-                          </div>
-
-                          <div className="mt-6 flex flex-wrap justify-center gap-3">
-                            <button
-                              className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-base font-extrabold text-white shadow-[0_10px_24px_rgba(75,0,9,0.18)] transition hover:brightness-95 disabled:opacity-60"
-                              disabled={submitting || pendingSpeakingSubmit}
-                              type="button"
-                              onClick={handleAdvanceSpeakingFlow}
-                            >
-                              {isFinalSpeakingPrompt
-                                ? (submitting || pendingSpeakingSubmit ? 'Đang gửi...' : 'Nộp bài')
-                                : speakingQuestionIndex < activeSpeakingQuestions.length - 1 ? 'Next question' : 'Next part'}
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-4 border-t border-[#f0e6e6] px-6 py-4 md:grid-cols-3">
-                          {(activeSpeakingVariant?.parts || []).map((part) => (
-                            <button
-                              key={part.key}
-                              className={`rounded-[18px] border px-5 py-4 text-center text-xl font-extrabold transition ${part.key === activeSpeakingPartKey ? 'border-[#8a0018] text-[#21446d]' : 'border-[#dfe8e0] text-[#21446d]'}`}
-                              type="button"
-                              onClick={() => {
-                                setActiveSpeakingPartKey(part.key);
-                                setSpeakingQuestionIndex(0);
-                              }}
-                            >
-                              {part.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (speakingStage === 'test' || speakingStage === 'recording') && speakingExperience?.kind === 'topic_bank' ? (
+                    {(speakingStage === 'test' || speakingStage === 'recording') && speakingExperience?.kind === 'topic_bank' ? (
                       <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
@@ -2605,7 +2266,7 @@ export default function AiAssessmentPanel({
                       </div>
                     ) : null}
 
-                    {speakingStage === 'recording' && !isSpeakingMockFlow ? (
+                    {speakingStage === 'recording' && !isSpeakingExamMode ? (
                     <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                       <div className="flex flex-wrap items-center gap-3">
                         {!isRecording ? (
@@ -2788,10 +2449,10 @@ export default function AiAssessmentPanel({
                 )}
               </div>
             )}
-            {!isSpeakingMockFlow && !isDedicatedExamMode && selected.skill !== 'VOCABULARY' ? (
+            {!isSpeakingExamMode && !isDedicatedExamMode && selected.skill !== 'VOCABULARY' ? (
               <p className="mt-2 text-sm leading-6 text-[#7a6766]">{inputCopy.helper}</p>
             ) : null}
-            {selected.skill === 'SPEAKING' && speakingStage === 'recording' && !isSpeakingMockFlow ? (
+            {selected.skill === 'SPEAKING' && speakingStage === 'recording' && !isSpeakingExamMode ? (
               <div className="mt-4 space-y-4 rounded-2xl border border-[#dfbfbd]/30 bg-white p-4">
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">{inputCopy.audioLabel}</label>
@@ -2810,14 +2471,16 @@ export default function AiAssessmentPanel({
               </div>
             ) : null}
             {isLocked ? (
-              <p className="mt-2 text-sm text-[#7a6766]">Bạn cần hoàn thành hết các bài học trong module rồi mới có thể mở phần nộp bài này.</p>
+              <p className="mt-2 text-sm font-semibold text-[#8a0018]">
+                {lockReason || 'Bạn cần hoàn thành các yêu cầu của mô-đun trước khi mở phần nộp bài này.'}
+              </p>
             ) : null}
             {isLockedAfterResult ? (
               <p className="mt-2 text-sm text-[#7a6766]">Bài làm này đã có kết quả. Muốn chỉnh sửa và gửi lại, hãy bấm làm lại bài.</p>
             ) : null}
             {error ? <p className="mt-2 text-sm font-semibold text-[#93000a]">{error}</p> : null}
 
-            {!isSpeakingMockFlow && !isDedicatedExamMode ? (
+            {!isSpeakingExamMode && !isDedicatedExamMode ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {!isLockedAfterResult ? (
                   <button
@@ -2962,6 +2625,19 @@ export default function AiAssessmentPanel({
                 )}
                 <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-[#8a0018]">{statusLabels[result.status] || result.status}</span>
               </div>
+
+              {result.status === 'NEEDS_IMPROVEMENT' ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm font-extrabold text-amber-900">Chưa đạt yêu cầu để qua mô-đun</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-800">
+                    {selectedPassingLabel
+                      ? `${selectedPassingLabel}. Bạn chưa đạt ngưỡng này — hãy xem phản hồi chi tiết bên dưới và làm lại bài test.`
+                      : selected?.type === 'MODULE_TEST'
+                        ? 'Bạn cần đạt band mục tiêu của khóa học (cho phép chênh 0.5) để mở mô-đun tiếp theo. Hãy xem phản hồi chi tiết bên dưới và làm lại bài test.'
+                        : 'Kết quả chưa đạt ngưỡng yêu cầu. Hãy xem phản hồi và làm lại bài để tiếp tục học.'}
+                  </p>
+                </div>
+              ) : null}
 
               {partFeedback.length ? (
                 <div className="mt-4">
@@ -3217,7 +2893,22 @@ export default function AiAssessmentPanel({
         submitting={submitting}
       />
     ) : null}
+    {examModeOpen && isSpeakingExamMode && speakingExamConfig && (speakingExamConfig.parts || []).length ? (
+      <SpeakingExamMode
+        config={speakingExamConfig}
+        initialAudioUrl={audioUrl}
+        onAudioReady={(uploadedUrl) => {
+          setAudioUrl(uploadedUrl);
+          persistRecoveredSpeakingAudioUrl(selected?.id, uploadedUrl);
+        }}
+        onClose={() => setExamModeOpen(false)}
+        onSubmit={handleExamModeSubmit}
+        submitting={submitting}
+        uploadAudio={typeof uploadSpeakingAudio === 'function'
+          ? uploadSpeakingAudio
+          : courseApi.uploadAssessmentAudio}
+      />
+    ) : null}
     </>
   );
 }
-

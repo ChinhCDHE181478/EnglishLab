@@ -38,8 +38,8 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
   const buttonSizeClassName = compact ? 'h-10 w-10' : '';
   const iconSizeClassName = compact ? 'h-4 w-4' : 'h-[18px] w-[18px]';
 
-  const handleAddCart = () => {
-    const result = addCourseToCart(course);
+  const handleAddCart = async () => {
+    const result = await addCourseToCart(course);
     if (result.ok) {
       setCartAdded(true);
       addNotification({
@@ -65,9 +65,9 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
     });
   };
 
-  const handleAddWishlist = () => {
+  const handleAddWishlist = async () => {
     if (wishlistAdded) {
-      removeCourseFromWishlist(course?.id);
+      await removeCourseFromWishlist(course?.id);
       setWishlistAdded(false);
       addNotification({
         title: 'Đã bỏ khỏi danh sách yêu thích',
@@ -76,7 +76,7 @@ const CourseCommerceActions = ({ course, compact = false, className = '' }) => {
       return;
     }
 
-    const result = addCourseToWishlist(course);
+    const result = await addCourseToWishlist(course);
     if (result.ok) {
       setWishlistAdded(true);
       addNotification({

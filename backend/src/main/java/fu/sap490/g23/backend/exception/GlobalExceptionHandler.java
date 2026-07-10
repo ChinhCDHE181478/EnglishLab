@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.exception;
 
 import fu.sap490.g23.backend.dto.response.ErrorResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomConflictErrorResponse;
 import fu.sap490.g23.backend.service.ai.AiEvaluationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,6 +66,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(response);
     }
 
+    @ExceptionHandler(EnrollmentAccessException.class)
+    public ResponseEntity<ErrorResponse> handleEnrollmentAccessException(EnrollmentAccessException ex) {
+        ErrorResponse response = ErrorResponse.builder()
+                .status(HttpStatus.FORBIDDEN.value())
+                .message(ex.getMessage())
+                .code(ex.getCode().name())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
     @ExceptionHandler(CourseUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleCourseUnavailableException(CourseUnavailableException ex) {
         ErrorResponse response = ErrorResponse.builder()
@@ -74,6 +87,18 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(ClassroomConflictException.class)
+    public ResponseEntity<ClassroomConflictErrorResponse> handleClassroomConflictException(ClassroomConflictException ex) {
+        ClassroomConflictErrorResponse response = ClassroomConflictErrorResponse.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .message(ex.getMessage())
+                .timestamp(LocalDateTime.now())
+                .conflicts(ex.getConflictResult())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(RuntimeException.class)

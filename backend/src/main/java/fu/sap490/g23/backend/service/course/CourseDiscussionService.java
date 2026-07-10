@@ -1,15 +1,14 @@
 package fu.sap490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
 import fu.sap490.g23.backend.dto.request.course.CourseDiscussionReactionRequest;
+import fu.sap490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
 import fu.sap490.g23.backend.dto.request.course.CourseDiscussionReportRequest;
 import fu.sap490.g23.backend.dto.request.course.CourseDiscussionThreadRequest;
 import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReactionResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReplyResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionThreadResponse;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReportTarget;
-
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import java.util.List;
 
 public interface CourseDiscussionService {

@@ -40,10 +40,49 @@ const extractTermsFromLesson = (lesson, module, moduleIndex) => {
     .filter(Boolean);
 };
 
-export const extractVocabularyTerms = (course) =>
+const parseFlashcardSetCards = (set) => {
+  try {
+    const cards = JSON.parse(set?.cardsJson || '[]');
+    return Array.isArray(cards) ? cards : [];
+  } catch {
+    return [];
+  }
+};
+
+const extractTermsFromFlashcardSet = (set, lesson, module, moduleIndex) =>
+  parseFlashcardSetCards(set)
+    .map((card, index) => {
+      const term = cleanInlineMarkdown(card?.term || card?.front || card?.question || card?.word || '');
+      const meaning = cleanInlineMarkdown(card?.meaning || card?.back || card?.answer || card?.definition || '');
+      if (!term || !meaning) return null;
+      return {
+        termKey: `flashcard-set-${set.id || set.title}-${index}-${term.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        term,
+        meaning,
+        example: cleanInlineMarkdown(card?.example || card?.sentence || ''),
+        commonError: cleanInlineMarkdown(card?.commonError || card?.note || ''),
+        moduleTitle: module?.title || `Module ${moduleIndex + 1}`,
+        lessonTitle: lesson?.title || set?.title || 'Flashcard bank',
+        status: 'NEW',
+        starred: false,
+      };
+    })
+    .filter(Boolean);
+
+const extractBankFlashcardTerms = (course) =>
   (course?.modules || []).flatMap((module, moduleIndex) =>
+    (module.lessons || []).flatMap((lesson) =>
+      (lesson.flashcardSets || []).flatMap((set) => extractTermsFromFlashcardSet(set, lesson, module, moduleIndex))
+    )
+  );
+
+export const extractVocabularyTerms = (course) => {
+  const bankTerms = extractBankFlashcardTerms(course);
+  if (bankTerms.length) return bankTerms;
+  return (course?.modules || []).flatMap((module, moduleIndex) =>
     (module.lessons || []).flatMap((lesson) => extractTermsFromLesson(lesson, module, moduleIndex))
   );
+};
 
 const modeTabs = [
   { id: 'cards', label: 'Thẻ', icon: 'style' },
@@ -76,6 +115,7 @@ const Toggle = ({ checked, onChange }) => (
 
 const WorkspaceFlashcards = ({ course }) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
+  const hasBankFlashcards = useMemo(() => extractBankFlashcardTerms(course).length > 0, [course]);
   const [terms, setTerms] = useState(fallbackTerms);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -181,6 +221,11 @@ const WorkspaceFlashcards = ({ course }) => {
         setLoading(false);
         return;
       }
+      if (hasBankFlashcards) {
+        setTerms(fallbackTerms);
+        setLoading(false);
+        return;
+      }
 
       setLoading(!fallbackTerms.length);
       setError('');
@@ -190,7 +235,7 @@ const WorkspaceFlashcards = ({ course }) => {
       } catch (err) {
         if (mounted) {
           setTerms(fallbackTerms);
-          setError(err?.response?.data?.message || 'Chưa tải được tiến độ flashcards từ backend, đang dùng dữ liệu bài học hiện có.');
+          setError(err?.response?.data?.message || 'Chưa tải được tiến độ flashcards từ backend, đang dùng bộ flashcard của khóa học.');
         }
       } finally {
         if (mounted) setLoading(false);
@@ -201,7 +246,7 @@ const WorkspaceFlashcards = ({ course }) => {
     return () => {
       mounted = false;
     };
-  }, [course?.id, fallbackTerms]);
+  }, [course?.id, fallbackTerms, hasBankFlashcards]);
 
   useEffect(() => {
     if (activeIndex >= studyTerms.length) setActiveIndex(0);
@@ -709,7 +754,7 @@ const WorkspaceFlashcards = ({ course }) => {
       <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-8 text-center shadow-sm">
         <span className="material-symbols-outlined text-4xl text-[#8c716f]">style</span>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Chưa có bộ từ vựng</h2>
-        <p className="mt-2 text-sm leading-7 text-[#584140]">Khóa học này chưa có phần new words để tạo flashcards.</p>
+        <p className="mt-2 text-sm leading-7 text-[#584140]">Khóa học này chưa gắn bộ flashcard nào từ kho.</p>
       </section>
     );
   }

@@ -1,7 +1,10 @@
 package fu.sap490.g23.backend.entity.assessment;
 
+import fu.sap490.g23.backend.entity.assessment.enums.*;
+
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,6 +34,10 @@ public class CourseAssessment {
     @JoinColumn(name = "rubric_id")
     private AssessmentRubric rubric;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_bank_item_id")
+    private AssessmentBankItem assessmentBankItem;
+
     @Column(nullable = false, length = 180)
     private String title;
 
@@ -55,6 +62,9 @@ public class CourseAssessment {
 
     @Column(name = "objective_answer_key", columnDefinition = "text")
     private String objectiveAnswerKey;
+
+    @Column(name = "ui_config_json", columnDefinition = "text")
+    private String uiConfigJson;
 
     @Column(name = "passing_score", precision = 4, scale = 1)
     private BigDecimal passingScore;

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, Headphones, Mic, PenLine } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { BookOpen, CheckCircle2, CircleDot, Headphones, Hourglass, Mic, PenLine, Play } from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
-import Footer from '../components/ai-learning/Footer';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
+import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
+import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
+import CourseFooter from '../components/course/CourseFooter';
 import BrandedSelect from '../components/ui/BrandedSelect';
+import { formatBandValue } from '../utils/selfPacedHelpers';
 
 const SKILLS = [
   { key: 'listening', label: 'Listening', icon: Headphones },
@@ -16,7 +19,7 @@ const SKILLS = [
   { key: 'speaking', label: 'Speaking', icon: Mic },
 ];
 
-const DRAFT_KEY = 'englishlab.placement-test.mock-1.draft';
+const DRAFT_KEY = 'englishlab.placement-test.current.draft';
 
 const emptyDraft = {
   listeningAnswers: {},
@@ -158,6 +161,16 @@ const toWritingSubmissionText = (config = {}, writingAnswers = {}) => {
   }).join('\n\n');
 };
 
+const toSpeakingExamConfig = (config = {}) => {
+  const variants = Array.isArray(config?.variants) ? config.variants.filter(Boolean) : [];
+  const activeVariant = variants[0] || null;
+  return {
+    ...config,
+    submissionLabel: activeVariant?.label || config.submissionLabel || config.title,
+    parts: activeVariant?.parts || config.parts || [],
+  };
+};
+
 function DeviceCheck({ onComplete }) {
   const [inputs, setInputs] = useState([]);
   const [outputs, setOutputs] = useState([]);
@@ -165,8 +178,37 @@ function DeviceCheck({ onComplete }) {
   const [outputId, setOutputId] = useState('');
   const [soundPassed, setSoundPassed] = useState(false);
   const [micState, setMicState] = useState('idle');
+  const [micLevel, setMicLevel] = useState(0);
+  const [micCountdown, setMicCountdown] = useState(5);
   const [previewUrl, setPreviewUrl] = useState('');
   const audioRef = useRef(null);
+  const micStreamRef = useRef(null);
+  const micRecorderRef = useRef(null);
+  const micContextRef = useRef(null);
+  const micAnalyserRef = useRef(null);
+  const micFrameRef = useRef(null);
+  const micTimeoutRef = useRef(null);
+  const micIntervalRef = useRef(null);
+  const micChunksRef = useRef([]);
+
+  const stopMicTest = () => {
+    if (micFrameRef.current) window.cancelAnimationFrame(micFrameRef.current);
+    if (micTimeoutRef.current) window.clearTimeout(micTimeoutRef.current);
+    if (micIntervalRef.current) window.clearInterval(micIntervalRef.current);
+    micFrameRef.current = null;
+    micTimeoutRef.current = null;
+    micIntervalRef.current = null;
+    if (micRecorderRef.current?.state === 'recording') micRecorderRef.current.stop();
+    micStreamRef.current?.getTracks?.().forEach((track) => track.stop());
+    micStreamRef.current = null;
+    micRecorderRef.current = null;
+    micAnalyserRef.current = null;
+    if (micContextRef.current && micContextRef.current.state !== 'closed') {
+      micContextRef.current.close().catch(() => {});
+    }
+    micContextRef.current = null;
+    setMicLevel(0);
+  };
 
   useEffect(() => {
     navigator.mediaDevices?.enumerateDevices?.().then((devices) => {
@@ -180,6 +222,7 @@ function DeviceCheck({ onComplete }) {
   }, []);
 
   useEffect(() => () => {
+    stopMicTest();
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -211,99 +254,182 @@ function DeviceCheck({ onComplete }) {
   };
 
   const testMic = async () => {
+    stopMicTest();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl('');
+    }
     setMicState('testing');
+    setMicCountdown(5);
+    setMicLevel(0);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: inputId ? { deviceId: { exact: inputId } } : true,
       });
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor || typeof MediaRecorder === 'undefined') {
+        stream.getTracks().forEach((track) => track.stop());
+        setMicState('unsupported');
+        return;
+      }
+      const context = new AudioContextCtor();
+      if (context.state === 'suspended') await context.resume();
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      context.createMediaStreamSource(stream).connect(analyser);
+      navigator.mediaDevices.enumerateDevices().then((devices) => {
+        setInputs(devices.filter((device) => device.kind === 'audioinput'));
+        setOutputs(devices.filter((device) => device.kind === 'audiooutput'));
+      }).catch(() => {});
       const recorder = new MediaRecorder(stream);
-      const chunks = [];
+      micStreamRef.current = stream;
+      micRecorderRef.current = recorder;
+      micContextRef.current = context;
+      micAnalyserRef.current = analyser;
+      micChunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size) chunks.push(event.data);
+        if (event.data.size) micChunksRef.current.push(event.data);
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        const blob = new Blob(micChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        micChunksRef.current = [];
         setPreviewUrl((current) => {
           if (current) URL.revokeObjectURL(current);
-          return URL.createObjectURL(blob);
+          return blob.size ? URL.createObjectURL(blob) : '';
         });
-        setMicState('passed');
-        stream.getTracks().forEach((track) => track.stop());
+        setMicState(blob.size ? 'passed' : 'failed');
+      };
+
+      const data = new Uint8Array(analyser.fftSize);
+      const updateLevel = () => {
+        if (!micAnalyserRef.current) return;
+        micAnalyserRef.current.getByteTimeDomainData(data);
+        const rms = Math.sqrt(data.reduce((sum, value) => {
+          const normalized = (value - 128) / 128;
+          return sum + (normalized * normalized);
+        }, 0) / Math.max(data.length, 1));
+        setMicLevel(Math.min(100, Math.round(rms * 260)));
+        micFrameRef.current = window.requestAnimationFrame(updateLevel);
       };
 
       recorder.start();
-      window.setTimeout(() => {
-        if (recorder.state === 'recording') recorder.stop();
+      micFrameRef.current = window.requestAnimationFrame(updateLevel);
+      micIntervalRef.current = window.setInterval(() => {
+        setMicCountdown((current) => (current > 1 ? current - 1 : 0));
+      }, 1000);
+      micTimeoutRef.current = window.setTimeout(() => {
+        stopMicTest();
       }, 5000);
     } catch {
       setMicState('failed');
+      stopMicTest();
     }
   };
 
+  const ready = soundPassed && micState === 'passed';
+
   return (
-    <div className="mx-auto max-w-4xl rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
+    <div className="mx-auto max-w-5xl rounded-[32px] border border-[#dfbfbd]/35 bg-white p-6 shadow-[0_24px_70px_rgba(75,0,9,0.10)] md:p-9">
       <audio ref={audioRef} className="hidden" />
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Bước chuẩn bị duy nhất</p>
-      <h1 className="mt-3 font-['Manrope'] text-3xl font-black text-[#341c1d]">Kiểm tra thiết bị trước khi thi</h1>
-      <p className="mt-3 leading-7 text-[#584140]">Loa/tai nghe và microphone chỉ được kiểm tra ở đây. Khi bắt đầu, bạn sẽ làm liên tục cả bốn kỹ năng.</p>
+      <h1 className="text-center font-['Manrope'] text-2xl font-extrabold text-[#21446d]">Kiểm tra thiết bị</h1>
 
-      <div className="mt-7 grid gap-5 md:grid-cols-2">
-        <div className="rounded-3xl border border-[#ead7d5] bg-[#fffaf9] p-5">
-          <Headphones className="text-[#8a0018]" size={30} />
-          <h2 className="mt-3 text-xl font-black">Loa hoặc tai nghe</h2>
-          <BrandedSelect
-            buttonClassName="mt-4 w-full py-3"
-            onChange={(event) => setOutputId(event.target.value)}
-            options={outputs.length
-              ? outputs.map((device, index) => ({
-                label: device.label || `Thiết bị phát ${index + 1}`,
-                value: device.deviceId,
-              }))
-              : [{ label: 'Thiết bị mặc định', value: '' }]}
-            value={outputId}
-          />
-          <button className="mt-4 w-full rounded-xl bg-[#8a0018] px-4 py-3 font-black text-white" onClick={playTone} type="button">
-            {soundPassed ? 'Phát lại âm thanh' : 'Phát âm thanh kiểm tra'}
-          </button>
-          <p className="mt-3 text-sm font-semibold text-[#6e5553]">{soundPassed ? 'Đã phát âm thanh mẫu.' : 'Hãy xác nhận bạn nghe rõ âm thanh mẫu.'}</p>
-        </div>
+      <div className="mt-8 space-y-9">
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
+            <Headphones aria-hidden="true" size={23} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">1.</span>Kiểm tra tai nghe</h2>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy thử phát âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn nghe rõ trước khi bắt đầu bài thi.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
+              <button aria-label="Phát âm thanh kiểm tra" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]" onClick={playTone} type="button">
+                <Play aria-hidden="true" className="ml-0.5" fill="currentColor" size={20} />
+              </button>
+              <div className="min-w-[180px] flex-1">
+                <div className="h-2 rounded-full bg-[#f3d7dd]">
+                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: soundPassed ? '100%' : '0%' }} />
+                </div>
+              </div>
+              <span className="text-sm font-semibold text-[#7a6766]">{soundPassed ? '00:08' : '00:00'}</span>
+              <BrandedSelect
+                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
+                onChange={(event) => {
+                  setOutputId(event.target.value);
+                  setSoundPassed(false);
+                }}
+                options={outputs.length
+                  ? outputs.map((device, index) => ({ label: device.label || `Loa hoặc tai nghe ${index + 1}`, value: device.deviceId }))
+                  : [{ label: 'Thiết bị phát mặc định', value: '' }]}
+                value={outputId}
+              />
+            </div>
+          </div>
+        </section>
 
-        <div className="rounded-3xl border border-[#ead7d5] bg-[#fffaf9] p-5">
-          <Mic className="text-[#8a0018]" size={30} />
-          <h2 className="mt-3 text-xl font-black">Microphone</h2>
-          <BrandedSelect
-            buttonClassName="mt-4 w-full py-3"
-            onChange={(event) => setInputId(event.target.value)}
-            options={inputs.length
-              ? inputs.map((device, index) => ({
-                label: device.label || `Micro ${index + 1}`,
-                value: device.deviceId,
-              }))
-              : [{ label: 'Micro mặc định', value: '' }]}
-            value={inputId}
-          />
-          <button className="mt-4 w-full rounded-xl bg-[#8a0018] px-4 py-3 font-black text-white disabled:opacity-50" disabled={micState === 'testing'} onClick={testMic} type="button">
-            {micState === 'testing' ? 'Đang ghi thử 5 giây...' : 'Kiểm tra microphone'}
-          </button>
-          {previewUrl ? <audio className="mt-3 w-full" controls src={previewUrl} /> : null}
-          {micState === 'failed' ? <p className="mt-3 text-sm font-semibold text-red-700">Không truy cập được micro. Hãy cấp quyền rồi thử lại.</p> : null}
-        </div>
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
+            <Mic aria-hidden="true" size={23} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">2.</span>Kiểm tra microphone</h2>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy bấm kiểm tra micro và đọc to câu sau để xem tiếng thu vào có ổn định hay không.</p>
+            <p className="mt-5 text-center text-base font-semibold leading-8 text-[#8c716f]">Hãy đọc to:<br />“I love English. My English is great and I practice it every day!”</p>
+            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
+              <button className={`flex h-14 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-extrabold ${micState === 'testing' ? 'bg-[#fff0f1] text-[#8a0018]' : 'bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]'}`} disabled={micState === 'testing'} onClick={testMic} type="button">
+                {micState === 'testing' ? <CircleDot aria-hidden="true" size={19} /> : <Mic aria-hidden="true" size={19} />}
+                {micState === 'testing' ? `Đang ghi thử ${micCountdown}s` : 'Bắt đầu kiểm tra'}
+              </button>
+              <div className="min-w-[180px] flex-1">
+                <div className="h-2 rounded-full bg-[#f3d7dd]">
+                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: `${micLevel}%` }} />
+                </div>
+              </div>
+              <span className="min-w-8 text-sm font-semibold text-[#7a6766]">{micLevel}%</span>
+              <BrandedSelect
+                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
+                onChange={(event) => {
+                  setInputId(event.target.value);
+                  setMicState('idle');
+                  setPreviewUrl((current) => {
+                    if (current) URL.revokeObjectURL(current);
+                    return '';
+                  });
+                }}
+                options={inputs.length
+                  ? inputs.map((device, index) => ({ label: device.label || `Micro ${index + 1}`, value: device.deviceId }))
+                  : [{ label: 'Micro mặc định', value: '' }]}
+                value={inputId}
+              />
+            </div>
+            {previewUrl ? <div className="mt-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fff7f7] p-4"><p className="text-sm font-bold text-[#4b0009]">Bản ghi thử 5 giây đã sẵn sàng. Hãy nghe lại để kiểm tra chất lượng âm thanh.</p><audio className="mt-3 w-full" controls src={previewUrl} /></div> : null}
+            <p className={`mt-3 text-sm leading-7 ${['failed', 'unsupported'].includes(micState) ? 'font-semibold text-red-700' : 'text-[#7a6766]'}`}>
+              {micState === 'idle' && 'Bấm Bắt đầu kiểm tra để cấp quyền micro và ghi thử trong 5 giây.'}
+              {micState === 'testing' && 'Micro đang được ghi thử. Hãy đọc câu mẫu thật rõ để kiểm tra chất lượng thu âm.'}
+              {micState === 'passed' && 'Micro đã ghi thử xong. Nếu bản nghe lại rõ, thiết bị của bạn đã sẵn sàng.'}
+              {micState === 'failed' && 'Không truy cập được micro. Hãy cấp quyền cho trình duyệt rồi thử lại.'}
+              {micState === 'unsupported' && 'Trình duyệt hiện không hỗ trợ kiểm tra micro. Hãy thử bằng Chrome hoặc Edge.'}
+            </p>
+          </div>
+        </section>
+
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${ready ? 'border-[#8a0018]/25 bg-[#fff0f1] text-[#8a0018]' : 'border-[#f2d6dc] text-[#d9a4af]'}`}>
+            {ready ? <CheckCircle2 aria-hidden="true" size={23} /> : <Hourglass aria-hidden="true" size={23} />}
+          </div>
+          <div>
+            <h2 className={`text-2xl font-extrabold ${ready ? 'text-[#21446d]' : 'text-[#9aa8b8]'}`}><span className="mr-2 opacity-60">3.</span>Sẵn sàng vào phòng thi</h2>
+            <p className={`mt-3 text-sm leading-7 ${ready ? 'text-[#584140]' : 'text-[#a89b9d]'}`}>{ready ? 'Tai nghe và micro đã sẵn sàng. Bạn có thể bắt đầu bài đánh giá đầu vào.' : 'Hoàn thành hai bước kiểm tra phía trên để bắt đầu bài thi.'}</p>
+          </div>
+        </section>
       </div>
 
       <button
-        className="mt-7 w-full rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={!soundPassed || micState !== 'passed'}
-        onClick={() => onComplete({
-          completed: true,
-          soundPassed,
-          microphonePassed: true,
-          inputDeviceId: inputId,
-          outputDeviceId: outputId,
-          checkedAt: new Date().toISOString(),
-        })}
+        className="mt-8 ml-auto block rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-7 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(75,0,9,0.20)] disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={!ready}
+        onClick={() => onComplete({ completed: true, soundPassed, microphonePassed: true, inputDeviceId: inputId, outputDeviceId: outputId, checkedAt: new Date().toISOString() })}
         type="button"
       >
         Bắt đầu bài đánh giá đầu vào
@@ -409,7 +535,7 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
               </div>
             </div>
 
-            <p className="mt-4 text-sm leading-7 text-[#584140]">Bước kiểm tra thiết bị sẽ không xuất hiện lại. Bạn có thể ghi âm một lần cho cả ba phần rồi thêm transcript dự phòng nếu cần.</p>
+            <p className="mt-4 text-sm leading-7 text-[#584140]">Thiết bị đã được kiểm tra trước khi bắt đầu bài đánh giá. Hãy ghi âm một lần cho cả ba phần Speaking.</p>
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -426,18 +552,18 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
 
             {previewUrl ? <audio className="mt-4 w-full" controls src={previewUrl} /> : null}
 
-            <label className="mt-6 block text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Transcript dự phòng</label>
+            <label className="mt-6 block text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Nội dung đã nói, nếu cần bổ sung</label>
             <textarea
               className="mt-3 min-h-[46vh] w-full rounded-[24px] border border-[#dfbfbd]/60 bg-white px-5 py-4 text-[15px] leading-8 text-[#2b1718] outline-none transition focus:border-[#8a0018]"
               onChange={(event) => onTranscriptChange(event.target.value)}
-              placeholder="Nếu cần, bạn có thể ghi chú lại transcript hoặc ý chính của phần nói ở đây..."
+              placeholder="Nếu cần, bạn có thể ghi lại nội dung hoặc ý chính của phần nói ở đây..."
               spellCheck={false}
               value={transcript}
             />
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[#6f5a58]">
-              <span>Số từ transcript: {countWords(transcript)}</span>
-              <span>Bạn có thể nộp bằng bản ghi âm, transcript hoặc cả hai.</span>
+              <span>Số từ đã ghi lại: {countWords(transcript)}</span>
+              <span>Bạn có thể nộp bằng bản ghi âm, nội dung đã nói hoặc cả hai.</span>
             </div>
           </div>
         </div>
@@ -446,7 +572,7 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
   );
 }
 
-function PlacementSpeakingExamMode({
+function LegacyPlacementSpeakingExamMode({
   assessment,
   config,
   transcript,
@@ -459,6 +585,7 @@ function PlacementSpeakingExamMode({
   submitLabel = 'Nộp toàn bộ bài thi',
 }) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 15)) * 60);
+  const [submissionPending, setSubmissionPending] = useState(false);
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [violations, setViolations] = useState([]);
@@ -466,17 +593,19 @@ function PlacementSpeakingExamMode({
   const intentionalExitRef = useRef(false);
 
   useEffect(() => {
+    if (submitting || submissionPending) return undefined;
     const timer = window.setInterval(() => {
       setRemainingSeconds((current) => Math.max(0, current - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [submissionPending, submitting]);
 
   useEffect(() => {
-    if (remainingSeconds !== 0 || submittedRef.current || submitting) return;
+    if (remainingSeconds !== 0 || submittedRef.current || submitting || submissionPending) return;
     submittedRef.current = true;
-    void onSubmit(true);
-  }, [onSubmit, remainingSeconds, submitting]);
+    setSubmissionPending(true);
+    Promise.resolve(onSubmit(true)).finally(() => setSubmissionPending(false));
+  }, [onSubmit, remainingSeconds, submissionPending, submitting]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -586,8 +715,8 @@ function PlacementSpeakingExamMode({
     >
       <header className="flex min-h-[78px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">EnglishLab Placement Test</p>
-          <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{config?.title || assessment?.title}</h2>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Đánh giá đầu vào EnglishLab</p>
+          <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{assessment?.title || config?.title}</h2>
         </div>
 
         <div className="flex items-center gap-3">
@@ -604,11 +733,18 @@ function PlacementSpeakingExamMode({
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
-            disabled={submitting}
-            onClick={() => onSubmit(false)}
+            disabled={submitting || submissionPending}
+            onClick={async () => {
+              setSubmissionPending(true);
+              try {
+                await onSubmit(false);
+              } finally {
+                setSubmissionPending(false);
+              }
+            }}
             type="button"
           >
-            {submitting ? 'Đang lưu...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -646,7 +782,7 @@ function PlacementSpeakingExamMode({
           <div className="max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Thoát chế độ thi?</p>
             <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">Bài Speaking hiện chưa được nộp</h3>
-            <p className="mt-3 text-sm leading-7 text-[#584140]">Nếu bạn thoát bây giờ, EnglishLab sẽ quay về màn hình chính và lần làm bài này chưa được ghi nhận nộp.</p>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Nếu bạn thoát bây giờ, EnglishLab sẽ quay về màn hình bắt đầu đánh giá. Bản nháp vẫn được giữ và phần Speaking này chưa được ghi nhận nộp.</p>
             <div className="mt-5 flex gap-3">
               <button
                 className="flex-1 rounded-2xl border border-[#dfbfbd] px-5 py-3 text-sm font-bold text-[#8a0018]"
@@ -672,6 +808,7 @@ function PlacementSpeakingExamMode({
 
 export default function PlacementTestPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -682,12 +819,16 @@ export default function PlacementTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState(null);
+  const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
   const activeSkill = SKILLS[skillIndex];
   const activeConfig = test?.sections?.[activeSkill?.key];
+  const attemptCount = Number(test?.attemptCount || 0);
+  const maxAttempts = Number(test?.maxAttempts || 3);
+  const canRetake = Boolean(test?.canRetake) && attemptCount < maxAttempts;
 
   useEffect(() => {
-    placementTestApi.getMockOne()
+    placementTestApi.getCurrent()
       .then((response) => {
         const sections = response?.sections;
         const missingSkills = SKILLS.filter((skill) => !sections?.[skill.key]);
@@ -697,6 +838,11 @@ export default function PlacementTestPage() {
         }
 
         setTest(response);
+
+        if (searchParams.get('view') === 'result' && response.latestAttempt) {
+          setResult(response.latestAttempt);
+          setStage('result');
+        }
       })
       .catch((error) => setLoadError(error?.response?.data?.message || error?.message || 'Không tải được đề thi thử.'))
       .finally(() => setLoading(false));
@@ -737,7 +883,7 @@ export default function PlacementTestPage() {
 
   const submitAll = async ({ skipSpeakingValidation = false } = {}) => {
     if (!skipSpeakingValidation && !draft.speakingAudioUrl && !draft.speakingTranscript.trim()) {
-      setSubmitError('Hãy ghi âm hoặc nhập transcript cho phần Speaking trước khi nộp.');
+      setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
       return;
     }
 
@@ -745,7 +891,7 @@ export default function PlacementTestPage() {
     setSubmitError('');
 
     try {
-      const response = await placementTestApi.submitMockOne({
+      const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,
@@ -757,12 +903,69 @@ export default function PlacementTestPage() {
 
       setResult(response);
       setStage('result');
+      setSearchParams({ view: 'result' }, { replace: true });
+
+      setTest((current) => current ? {
+        ...current,
+        latestAttempt: response,
+        attemptCount: Number(current.attemptCount || 0) + 1,
+        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+      } : current);
 
       if (response.status === 'COMPLETED') {
         localStorage.removeItem(DRAFT_KEY);
       }
     } catch (error) {
       setSubmitError(error?.response?.data?.message || 'Chưa thể nộp bài. Bản nháp vẫn được giữ trên thiết bị này.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePlacementSpeakingSubmit = async (_assessmentId, payload = {}) => {
+    const speakingTranscript = String(payload.submittedText || '').trim();
+    const speakingAudioUrl = String(payload.submittedAudioUrl || '').trim();
+
+    if (!speakingAudioUrl && !speakingTranscript) {
+      setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
+      return null;
+    }
+
+    setDraft((current) => ({
+      ...current,
+      speakingTranscript,
+      speakingAudioUrl,
+    }));
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const response = await placementTestApi.submitCurrent({
+        testCode: test.testCode,
+        listeningAnswers: draft.listeningAnswers,
+        readingAnswers: draft.readingAnswers,
+        writingAnswers: draft.writingAnswers,
+        speakingTranscript,
+        speakingAudioUrl,
+        deviceCheck,
+      });
+
+      setResult(response);
+      setStage('result');
+      setSearchParams({ view: 'result' }, { replace: true });
+      setTest((current) => current ? {
+        ...current,
+        latestAttempt: response,
+        attemptCount: Number(current.attemptCount || 0) + 1,
+        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+      } : current);
+      if (response.status === 'COMPLETED') {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+      return response;
+    } catch (error) {
+      setSubmitError(error?.response?.data?.message || 'Chưa thể nộp bài. Bài làm của bạn vẫn được lưu an toàn.');
+      throw error;
     } finally {
       setSubmitting(false);
     }
@@ -775,6 +978,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.listening, payload);
       setDraft((current) => ({ ...current, listeningAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -788,6 +997,12 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.reading, payload);
       setDraft((current) => ({ ...current, readingAnswers: nextAnswers }));
+      const parsed = parseObjectivePayload(payload);
+      const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
+      if (missingCount > 0) {
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
@@ -801,10 +1016,44 @@ export default function PlacementTestPage() {
     try {
       const nextAnswers = toWritingAnswers(test?.sections?.writing, payload);
       setDraft((current) => ({ ...current, writingAnswers: { ...current.writingAnswers, ...nextAnswers } }));
+      const parsed = parseObjectivePayload(payload);
+      const incompleteTasks = (parsed.tasks || []).filter((task) => Number(task.wordCount || 0) < Number(task.minimumWords || 0)).length;
+      if (incompleteTasks > 0) {
+        setPendingSkillAdvance({ missingCount: incompleteTasks, unitLabel: 'task' });
+        return;
+      }
       goToNextSkill();
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderSkillAdvanceDialog = () => pendingSkillAdvance ? (
+    <ExamSectionChangeDialog
+      currentLabel={activeSkill?.label || 'Phần hiện tại'}
+      missingCount={pendingSkillAdvance.missingCount}
+      onCancel={() => setPendingSkillAdvance(null)}
+      onConfirm={() => {
+        setPendingSkillAdvance(null);
+        goToNextSkill();
+      }}
+      targetLabel={SKILLS[skillIndex + 1]?.label || 'phần tiếp theo'}
+      unitLabel={pendingSkillAdvance.unitLabel}
+    />
+  ) : null;
+
+  const startRetake = () => {
+    if (!canRetake) return;
+    const cleanDraft = { ...emptyDraft, writingAnswers: { ...emptyDraft.writingAnswers } };
+    localStorage.removeItem(DRAFT_KEY);
+    setDraft(cleanDraft);
+    setResult(null);
+    setSubmitError('');
+    setSkillIndex(0);
+    setDeviceCheck(null);
+    setStage('device');
+    setSearchParams({}, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -840,13 +1089,13 @@ export default function PlacementTestPage() {
         <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-12">
           <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
-            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Band tổng quan: {result.overallScore ?? 'Đang chấm'}</h1>
+            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Band tổng quan: {result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}</h1>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {SKILLS.map((skill) => (
                 <div className="rounded-2xl bg-[#fff0f1] p-5" key={skill.key}>
                   <p className="text-sm font-bold text-[#7a4a4e]">{skill.label}</p>
-                  <p className="mt-2 text-3xl font-black text-[#8a0018]">{result[`${skill.key}Score`] ?? '—'}</p>
+                  <p className="mt-2 text-3xl font-black text-[#8a0018]">{result[`${skill.key}Score`] != null ? formatBandValue(result[`${skill.key}Score`]) : '—'}</p>
                 </div>
               ))}
             </div>
@@ -858,12 +1107,31 @@ export default function PlacementTestPage() {
                 : ' Kết quả đã được lưu vào hồ sơ đánh giá đầu vào.'}
             </p>
 
-            <button className="mt-6 rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/courses')} type="button">
-              Xem khóa học phù hợp
-            </button>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
+                onClick={() => {
+                  setResult(null);
+                  setStage('intro');
+                  setSearchParams({}, { replace: true });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                type="button"
+              >
+                Quay lại trang đánh giá
+              </button>
+              {canRetake ? (
+                <button className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]" onClick={startRetake} type="button">
+                  Làm lại ({attemptCount + 1}/{maxAttempts})
+                </button>
+              ) : null}
+              <button className="rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/complete-profile')} type="button">
+                Tiếp tục hoàn thiện hồ sơ
+              </button>
+            </div>
           </div>
         </main>
-        <Footer />
+        <CourseFooter />
       </div>
     );
   }
@@ -895,6 +1163,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -913,6 +1182,7 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
@@ -931,23 +1201,34 @@ export default function PlacementTestPage() {
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+          {renderSkillAdvanceDialog()}
         </>
       );
     }
 
     return (
       <>
-        <PlacementSpeakingExamMode
-          assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
-          audioUrl={draft.speakingAudioUrl}
-          config={activeConfig}
-          onAudioReady={(value) => setDraft((current) => ({ ...current, speakingAudioUrl: value }))}
-          onClose={() => navigate('/')}
-          onSubmit={(autoSubmitted) => submitAll({ skipSpeakingValidation: autoSubmitted })}
-          onTranscriptChange={(value) => setDraft((current) => ({ ...current, speakingTranscript: value }))}
-          submitLabel="Nộp toàn bộ bài thi"
+        <SpeakingExamMode
+          config={{ ...toSpeakingExamConfig(activeConfig), submissionLabel: 'Đánh giá đầu vào' }}
+          initialAudioUrl={draft.speakingAudioUrl}
+          onAudioReady={(speakingAudioUrl) => {
+            setDraft((current) => ({ ...current, speakingAudioUrl }));
+          }}
+          onClose={() => {
+            setSubmitError('');
+            setStage('intro');
+          }}
+          onSubmit={(payload) => {
+            setDraft((current) => ({
+              ...current,
+              speakingTranscript: payload.submittedText,
+              speakingAudioUrl: payload.submittedAudioUrl,
+            }));
+            return handlePlacementSpeakingSubmit('placement-speaking', payload);
+          }}
+          skipDeviceCheck
           submitting={submitting}
-          transcript={draft.speakingTranscript}
+          uploadAudio={placementTestApi.uploadSpeakingAudio}
         />
         {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
       </>
@@ -964,6 +1245,10 @@ export default function PlacementTestPage() {
             <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Một bài thi thử hoàn chỉnh cho cả 4 kỹ năng</h1>
             <p className="mt-5 max-w-2xl leading-8 text-[#584140]">Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.</p>
 
+            <div className="mt-5 rounded-2xl border border-[#e9c9c2] bg-[#fff8f6] p-4 text-sm font-semibold leading-7 text-[#7a3430]">
+              Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.
+            </div>
+
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {SKILLS.map((skill) => {
                 const Icon = skill.icon;
@@ -977,9 +1262,21 @@ export default function PlacementTestPage() {
             </div>
 
             {test.latestAttempt ? (
-              <p className="mt-5 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-4 text-sm font-semibold">
-                Lần gần nhất: band {test.latestAttempt.overallScore ?? 'đang chấm'} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
-              </p>
+              <button
+                className="mt-5 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-4 text-left text-sm font-semibold text-[#341c1d] transition hover:border-[#8a0018]/40 hover:bg-[#fff3f4]"
+                onClick={() => {
+                  setResult(test.latestAttempt);
+                  setStage('result');
+                  setSearchParams({ view: 'result' }, { replace: true });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                type="button"
+              >
+                <span>
+                  Lần gần nhất: band {test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                </span>
+                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
+              </button>
             ) : null}
           </div>
 
@@ -990,10 +1287,11 @@ export default function PlacementTestPage() {
               <li>• Dùng Chrome hoặc Edge và cấp quyền microphone.</li>
               <li>• Không tải lại trang; bản nháp được lưu tự động trên thiết bị.</li>
               <li>• Nếu mất mạng lúc nộp, hãy thử lại — bài làm không bị xóa.</li>
+              <li>• Bạn có tối đa {maxAttempts} lượt làm; hiện đã dùng {attemptCount}/{maxAttempts} lượt.</li>
             </ul>
 
-            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012]" onClick={() => setStage('device')} type="button">
-              Kiểm tra thiết bị
+            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
+              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount + 1}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
             </button>
 
             {hasDraftProgress ? (
@@ -1002,7 +1300,7 @@ export default function PlacementTestPage() {
           </aside>
         </div>
       </main>
-      <Footer />
+      <CourseFooter />
     </div>
   );
 }

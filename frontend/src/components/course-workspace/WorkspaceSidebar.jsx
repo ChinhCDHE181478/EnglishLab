@@ -7,6 +7,7 @@ const WorkspaceSidebar = ({
   course,
   activeLessonId,
   assessmentLockByModule,
+  assessmentLockReasonByModule,
   assessmentModuleIds,
   completedLessonIds,
   lessonItems = [],
@@ -96,6 +97,7 @@ const WorkspaceSidebar = ({
             const assessmentStepId = getAssessmentStepId(module.id);
             const hasModuleAssessment = hasAssessments && assessmentModuleIds?.has(String(module.id));
             const assessmentLocked = assessmentLockByModule?.get(String(module.id));
+            const assessmentLockReason = assessmentLockReasonByModule?.get(String(module.id));
             const moduleUnlocked = moduleProgress?.get(String(module.id))?.moduleUnlocked ?? true;
             const open = openModuleIds.has(moduleKey);
 
@@ -164,9 +166,9 @@ const WorkspaceSidebar = ({
                           <span className="block text-sm font-semibold leading-6 text-[#1f2430]">Bài đánh giá cuối mô-đun</span>
                           <span className="mt-1 block text-xs text-[#63718a]">
                             {assessmentLocked
-                              ? moduleUnlocked
+                              ? assessmentLockReason || (moduleUnlocked
                                 ? 'Hoàn thành toàn bộ bài học trong mô-đun để mở.'
-                                : 'Hoàn thành và đạt yêu cầu ở mô-đun trước để mở.'
+                                : 'Hoàn thành và đạt yêu cầu ở mô-đun trước để mở.')
                               : 'Nộp bài để hoàn tất mô-đun.'}
                           </span>
                         </span>

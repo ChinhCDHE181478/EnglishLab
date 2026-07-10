@@ -1,15 +1,15 @@
+import { clampBand, normalizeBandThreshold } from './ieltsBandScale';
+
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
 export const formatBandValue = (value) => {
-  const parsed = toNumber(value);
+  const parsed = clampBand(value) ?? toNumber(value);
   if (parsed == null) return '';
   return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
 };
-
-const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
 const isUnavailableCourse = (course) => ['PAUSED', 'UNAVAILABLE'].includes(String(course?.status || '').toUpperCase());
 
@@ -72,10 +72,64 @@ export const getBandFitInfo = (course, currentBand) => {
   };
 };
 
-export const isAssessmentPassed = (assessment) => {
+export const resolveAssessmentPassingThreshold = (assessment, course = null) => {
+  if (assessment?.resolvedPassingThreshold != null) {
+    return normalizeBandThreshold(assessment, assessment.resolvedPassingThreshold);
+  }
+
+  const skill = String(assessment?.skill || '').toUpperCase();
+  const usesBandScale = !['LISTENING', 'READING'].includes(skill);
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
+    return normalizeBandThreshold(assessment, Number(course.targetBand) - 0.5);
+  }
+
+  if (toNumber(assessment?.passingScore) != null) {
+    return normalizeBandThreshold(assessment, assessment.passingScore);
+  }
+
+  return null;
+};
+
+const formatThresholdValue = (value) => {
+  const parsed = toNumber(value);
+  if (parsed == null) return '';
+  return Number.isInteger(parsed) ? parsed.toFixed(1) : String(parsed);
+};
+
+export const formatPassingThresholdLabel = (assessment, course = null) => {
+  if (assessment?.passingThresholdLabel) {
+    return assessment.passingThresholdLabel;
+  }
+
+  const threshold = resolveAssessmentPassingThreshold(assessment, course);
+  if (threshold == null) {
+    return null;
+  }
+
+  const formatted = formatThresholdValue(threshold);
+  const skill = String(assessment?.skill || '').toUpperCase();
+  const usesBandScale = !['LISTENING', 'READING'].includes(skill);
+  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
+    return `Ngưỡng đạt (band mục tiêu khóa - 0.5): ${formatted}`;
+  }
+  if (toNumber(assessment?.passingScore) != null) {
+    return `Ngưỡng đạt (cấu hình CMS): ${formatted}`;
+  }
+  return null;
+};
+
+export const isAssessmentPassed = (assessment, course = null) => {
   const latestStatus = String(assessment?.latestSubmission?.status || '');
   if (latestStatus === 'PASSED') return true;
-  if (latestStatus === 'AI_EVALUATED' && (assessment?.passingScore == null || assessment?.passingScore === '')) {
+  if (latestStatus === 'NEEDS_IMPROVEMENT') return false;
+
+  const score = toNumber(assessment?.latestSubmission?.aiScore);
+  const threshold = resolveAssessmentPassingThreshold(assessment, course);
+  if (score != null && threshold != null) {
+    return score >= threshold;
+  }
+
+  if (latestStatus === 'AI_EVALUATED' && threshold == null) {
     return true;
   }
   return false;
@@ -108,7 +162,7 @@ export const calculateCompletionStatus = ({ course, enrollment, assessments = []
 
   const requiredAssessments = (assessments || []).filter((item) => item?.active !== false);
   const submittedAssessments = requiredAssessments.filter(isAssessmentSubmitted);
-  const passedAssessments = requiredAssessments.filter(isAssessmentPassed);
+  const passedAssessments = requiredAssessments.filter((item) => isAssessmentPassed(item, course));
   const failedAssessments = requiredAssessments.filter((item) => String(item?.latestSubmission?.status || '') === 'NEEDS_IMPROVEMENT');
   const assessmentPercent = requiredAssessments.length ? Math.round((passedAssessments.length / requiredAssessments.length) * 100) : 100;
 
@@ -153,18 +207,23 @@ export const calculateCompletionStatus = ({ course, enrollment, assessments = []
   };
 };
 
-export const buildRecommendationReason = ({ course, currentBand }) => {
+export const buildRecommendationReason = ({ course, currentBand, targetBand = null }) => {
   const min = toNumber(course?.recommendedCurrentBandMin);
   const max = toNumber(course?.recommendedCurrentBandMax);
-  const targetBand = toNumber(course?.targetBand);
+  const courseTargetBand = toNumber(course?.targetBand);
   const current = toNumber(currentBand);
+  const learnerTargetBand = toNumber(targetBand);
 
   if (current != null && min != null && max != null && current >= min && current <= max) {
     return 'Phù hợp với band hiện tại của bạn.';
   }
 
-  if (current != null && targetBand != null && targetBand > current) {
-    return `Giúp bạn tiến tới mục tiêu band ${formatBandValue(targetBand)}`;
+  if (learnerTargetBand != null && courseTargetBand != null && Math.abs(courseTargetBand - learnerTargetBand) <= 0.5) {
+    return `Khớp sát với mục tiêu band ${formatBandValue(learnerTargetBand)} của bạn.`;
+  }
+
+  if (current != null && courseTargetBand != null && courseTargetBand > current) {
+    return `Giúp bạn tiến tới mục tiêu band ${formatBandValue(courseTargetBand)}`;
   }
 
   return 'Khóa học phù hợp với mục tiêu học hiện tại của bạn.';
@@ -172,21 +231,30 @@ export const buildRecommendationReason = ({ course, currentBand }) => {
 
 export const recommendCoursesForLearner = ({ courses, enrollments, currentBand, targetBand = null }) => {
   const registeredIds = new Set((enrollments || []).map((item) => String(item.courseId || item.id)));
+  const learnerTargetBand = toNumber(targetBand);
 
   return (courses || [])
     .filter((course) => !registeredIds.has(String(course.id)) && !isUnavailableCourse(course) && !isCourseTooEasy(course, currentBand))
     .map((course) => {
       const fit = getBandFitInfo(course, currentBand);
+      const courseTargetBand = toNumber(course?.targetBand);
 
       let score = 0;
       if (fit.tone === 'good') score += 5;
       if (fit.tone === 'warning') score -= 2;
-      if (toNumber(course.targetBand) != null && toNumber(currentBand) != null && toNumber(course.targetBand) > toNumber(currentBand)) score += 3;
+      if (courseTargetBand != null && toNumber(currentBand) != null && courseTargetBand > toNumber(currentBand)) score += 3;
+      if (learnerTargetBand != null && courseTargetBand != null) {
+        const distance = Math.abs(courseTargetBand - learnerTargetBand);
+        if (distance <= 0.25) score += 4;
+        else if (distance <= 0.5) score += 3;
+        else if (distance <= 1) score += 1;
+        if (courseTargetBand > learnerTargetBand + 1) score -= 2;
+      }
       if (course.discountPercent) score += 1;
 
       return {
         ...course,
-        recommendationReason: buildRecommendationReason({ course, currentBand }),
+        recommendationReason: buildRecommendationReason({ course, currentBand, targetBand: learnerTargetBand }),
         recommendationScore: score,
       };
     })

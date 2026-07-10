@@ -18,6 +18,8 @@ public interface PackageEnrollmentRepository extends JpaRepository<PackageEnroll
     @EntityGraph(attributePaths = {"learningPackage"})
     List<PackageEnrollment> findByStudentOrderByRegisteredAtDesc(User student);
 
+    List<PackageEnrollment> findByLearningPackage(LearningPackage learningPackage);
+
     long countByLearningPackage(LearningPackage learningPackage);
     long count();
 }

@@ -63,6 +63,14 @@ const WorkspaceOverview = ({
           </div>
         </div>
       </div>
+      {progressPercent >= 100 ? (
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#eadedf] pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-base font-extrabold text-[#1a1c1c]">Đánh giá khóa học này</span>
+          <button className="inline-flex items-center gap-3 self-start text-sm font-extrabold text-[#730014] sm:self-auto" type="button">
+            Đánh giá khóa học này <span className="text-xl tracking-[0.12em] text-[#e11d48]">☆☆☆☆☆</span>
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 };

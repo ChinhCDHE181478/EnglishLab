@@ -8,8 +8,7 @@ import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.entity.course.CourseCategoryCode;
-import fu.sap490.g23.backend.entity.course.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +44,7 @@ public class ContentManagerOnlineCourseController {
     @GetMapping
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) CourseCategoryCode category,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) PackageStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -95,6 +94,11 @@ public class ContentManagerOnlineCourseController {
     @PatchMapping("/{id}/publish")
     public ResponseEntity<OnlineCourseResponse> publishCourse(@PathVariable Long id) {
         return ResponseEntity.ok(onlineCourseService.publishCourse(id));
+    }
+
+    @PatchMapping("/{id}/submit-review")
+    public ResponseEntity<OnlineCourseResponse> submitForReview(@PathVariable Long id) {
+        return ResponseEntity.ok(onlineCourseService.submitForReview(id));
     }
 
     @PatchMapping("/{id}/archive")

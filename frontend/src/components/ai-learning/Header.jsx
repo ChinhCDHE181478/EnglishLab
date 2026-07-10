@@ -2,16 +2,111 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, ChevronDown, LogOut, Menu, ShoppingCart, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
-import { clearSession, getStoredUser } from '../../utils/auth';
+import { clearSession, getStoredUser, hasAnyUserRole } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
-const navItems = [
+const studentNavItems = [
   { label: 'Khóa học', to: '/courses' },
   { label: 'IELTS', href: '/#courses' },
   { label: 'TOEIC', href: '/#courses' },
-  { label: 'Lịch khai giảng', href: '/#cta' },
+  { label: 'Lịch khai giảng', to: '/opening-schedule' },
   { label: 'Về EnglishLab', href: '/#testimonials' },
 ];
+
+const hasRole = (user, roles) => hasAnyUserRole(user, roles);
+
+const getNavItemsByRole = (user) => {
+  if (!user) return studentNavItems;
+  const role = String(user.role || '').toUpperCase();
+  if (role === 'TEACHER') {
+    return [
+      { label: 'Giảng dạy', to: '/teacher' },
+      { label: 'Lịch dạy', to: '/teacher/schedule' },
+      { label: 'Yêu cầu thay đổi', to: '/teacher/requests' },
+    ];
+  }
+  if (role === 'TRAINING_MANAGER') {
+    return [
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
+      { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
+      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+    ];
+  }
+  if (role === 'MANAGER' || role === 'ADMIN') {
+    return [
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
+      { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
+      { label: 'Giảng dạy', to: '/teacher' },
+      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+    ];
+  }
+  if (role === 'CONTENT_MANAGER') {
+    return [
+      { label: 'Quản lý nội dung', to: '/content-manager' },
+      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+    ];
+  }
+  return studentNavItems;
+};
+
+const getProfileItemsByRole = (user) => {
+  if (!user) return [];
+  const role = String(user.role || '').toUpperCase();
+  if (role === 'TEACHER') {
+    return [
+      { label: 'Giảng dạy', to: '/teacher' },
+      { label: 'Lịch dạy', to: '/teacher/schedule' },
+      { label: 'Yêu cầu thay đổi', to: '/teacher/requests' },
+    ];
+  }
+  if (role === 'TRAINING_MANAGER') {
+    return [
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
+      { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
+    ];
+  }
+  if (role === 'MANAGER' || role === 'ADMIN') {
+    return [
+      { label: 'Bảng điều khiển', to: '/training-manager' },
+      { label: 'Lớp học', to: '/training-manager/classrooms' },
+      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
+      { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
+      { label: 'Giảng dạy', to: '/teacher' },
+    ];
+  }
+  if (role === 'CONTENT_MANAGER') {
+    return [
+      { label: 'Quản lý nội dung', to: '/content-manager' },
+    ];
+  }
+  // Student
+  return [
+    { label: 'Khóa học của tôi', to: '/my-courses' },
+    { label: 'Lớp của tôi', to: '/my-classrooms' },
+    { label: 'Lịch học', to: '/my-schedule' },
+    { label: 'Bài tập', to: '/my-homework' },
+    { label: 'Quiz lớp học', to: '/my-quizzes' },
+    { label: 'Hồ sơ', to: '/profile' },
+    { label: 'Lịch sử giao dịch', to: '/transaction-history' },
+  ];
+};
+
+const getRoleLabel = (user) => {
+  if (!user) return '';
+  const role = String(user.role || '').toUpperCase();
+  if (role === 'TEACHER') return 'Giáo viên';
+  if (role === 'TRAINING_MANAGER') return 'Quản lý đào tạo';
+  if (role === 'MANAGER' || role === 'ADMIN') return 'Quản lý';
+  if (role === 'CONTENT_MANAGER') return 'Quản lý nội dung';
+  return user.targetExam || 'Học viên EnglishLab';
+};
+
+const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 const Header = () => {
   const location = useLocation();
@@ -83,14 +178,9 @@ const Header = () => {
     navigate('/');
   };
 
-  const profileMenuItems = useMemo(
-    () => [
-      { label: 'Khóa học của tôi', to: '/my-courses' },
-      { label: 'Hồ sơ', to: '/profile' },
-      { label: 'Lịch sử giao dịch', to: '/transaction-history' },
-    ],
-    [],
-  );
+  const navItems = useMemo(() => getNavItemsByRole(user), [user]);
+  const profileMenuItems = useMemo(() => getProfileItemsByRole(user), [user]);
+  const isStaff = user && hasAnyUserRole(user, STAFF_ROLES);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#dfbfbd]/30 bg-[#f9f9f9]/95 shadow-sm backdrop-blur-md">
@@ -106,11 +196,24 @@ const Header = () => {
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-6 xl:flex xl:gap-9" aria-label="Điều hướng chính">
-          {navItems.map((item) => (
-            item.to ? (
+          {navItems.map((item) => {
+            // If any nav item exactly matches the current path, use exact-only matching
+            // to prevent parent paths (e.g. /teacher) from staying lit on child routes (e.g. /teacher/schedule)
+            const anyExactMatch = navItems.some((n) => n.to && location.pathname === n.to);
+            const isActive = item.to && (
+              item.to === '/'
+                ? location.pathname === '/'
+                : anyExactMatch
+                ? location.pathname === item.to
+                : location.pathname.startsWith(item.to)
+            );
+            const baseClass = 'relative whitespace-nowrap text-sm font-bold transition-colors';
+            const activeClass = 'text-[#8a0018] after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-[#8a0018]';
+            const inactiveClass = 'text-[#6a5553] hover:text-[#8a0018]';
+            return item.to ? (
               <Link
                 key={item.label}
-                className="whitespace-nowrap text-sm font-bold text-[#6a5553] transition-colors hover:text-[#8a0018]"
+                className={`${baseClass} ${isActive ? activeClass : inactiveClass}`}
                 to={item.to}
                 reloadDocument={shouldReloadWhenLeavingWorkspace}
               >
@@ -119,30 +222,32 @@ const Header = () => {
             ) : (
               <a
                 key={item.label}
-                className="whitespace-nowrap text-sm font-bold text-[#6a5553] transition-colors hover:text-[#8a0018]"
+                className={`${baseClass} ${inactiveClass}`}
                 href={item.href}
               >
                 {item.label}
               </a>
-            )
-          ))}
+            );
+          })}
         </nav>
 
         {user ? (
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            <Link
-              aria-label="Giỏ hàng"
-              className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
-              to="/cart"
-              reloadDocument={shouldReloadWhenLeavingWorkspace}
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#c5162e] px-1 text-[11px] font-extrabold leading-none text-white">
-                  {cartCount > 9 ? '9+' : cartCount}
-                </span>
-              ) : null}
-            </Link>
+            {!isStaff && (
+              <Link
+                aria-label="Giỏ hàng"
+                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                to="/cart"
+                reloadDocument={shouldReloadWhenLeavingWorkspace}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#c5162e] px-1 text-[11px] font-extrabold leading-none text-white">
+                    {cartCount > 9 ? '9+' : cartCount}
+                  </span>
+                ) : null}
+              </Link>
+            )}
 
             <Link
               aria-label="Thông báo"
@@ -171,7 +276,7 @@ const Header = () => {
                     {user.fullName || user.email}
                   </p>
                   <p className="max-w-[150px] truncate text-xs font-semibold text-[#6a5553]">
-                    {user.targetExam || 'Học viên EnglishLab'}
+                    {getRoleLabel(user)}
                   </p>
                 </div>
                 <ChevronDown
@@ -183,7 +288,7 @@ const Header = () => {
                 <div className="absolute right-0 top-[calc(100%+12px)] z-[70] w-[240px] overflow-hidden rounded-[28px] border border-[#dfbfbd]/70 bg-white shadow-[0_20px_45px_rgba(75,0,9,0.15)]">
                   <div className="border-b border-[#f1e4e5] px-5 py-4">
                     <p className="truncate text-sm font-extrabold text-[#2b2828]">{user.fullName || user.email}</p>
-                    <p className="mt-1 truncate text-xs font-semibold text-[#6a5553]">{user.targetExam || 'Học viên EnglishLab'}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-[#6a5553]">{getRoleLabel(user)}</p>
                   </div>
 
                   <div className="p-2">

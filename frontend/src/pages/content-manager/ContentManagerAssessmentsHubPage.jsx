@@ -1,0 +1,777 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Archive,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Edit3,
+  FileQuestion,
+  Headphones,
+  Mic2,
+  NotebookPen,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  X,
+} from 'lucide-react';
+import courseApi from '../../api/courseApi';
+import curriculumApi from '../../api/curriculumApi';
+import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import {
+  ManagerEmptyState,
+  ManagerFilterBar,
+  ManagerStatsGrid,
+  ManagerStatusBadge,
+  ManagerTable,
+  ManagerTablePagination,
+} from '../../components/content-manager/ManagerListUi';
+import ListeningPracticeWorkspace from '../../components/content-manager/skill-practice/ListeningPracticeWorkspace';
+import ReadingPracticeWorkspace from '../../components/content-manager/skill-practice/ReadingPracticeWorkspace';
+import SkillPracticeShell from '../../components/content-manager/skill-practice/SkillPracticeShell';
+import SpeakingPracticeWorkspace from '../../components/content-manager/skill-practice/SpeakingPracticeWorkspace';
+import WritingPracticeWorkspace from '../../components/content-manager/skill-practice/WritingPracticeWorkspace';
+import BrandedSelect from '../../components/ui/BrandedSelect';
+import { usePagination } from '../../components/ui/Pagination';
+import {
+  ERROR_NOTICE_CLASS,
+  FIELD_CLASS,
+  PANEL_CLASS,
+  PRIMARY_BUTTON_CLASS,
+  SECONDARY_BUTTON_CLASS,
+  SUCCESS_NOTICE_CLASS,
+  TEXTAREA_CLASS,
+} from '../../utils/formStyles';
+
+const strictSkill = (skill) => (item) => String(item.skill || '').toUpperCase() === skill;
+
+const pageMap = {
+  listening: {
+    title: 'Luyện nghe',
+    subtitle: 'Chỉ quản lý nội dung Listening. Bài tạo mới trong trang này luôn là bài nghe.',
+    skill: 'LISTENING',
+    type: 'LESSON_PRACTICE',
+    allowedTypes: ['LESSON_PRACTICE', 'MODULE_TEST', 'QUIZ'],
+    lockedSkill: true,
+    createLabel: 'Tạo bài nghe',
+    editLabel: 'Chỉnh sửa bài nghe',
+    emptyLabel: 'Chưa có bài luyện nghe nào.',
+    loadingLabel: 'Đang tải bài luyện nghe...',
+    searchPlaceholder: 'Tìm bài nghe theo tiêu đề hoặc mô tả...',
+    successNoun: 'bài nghe',
+    tableTitle: 'Tên bài nghe',
+    itemLabel: 'bài nghe',
+    totalLabel: 'Bài nghe',
+    statsIcon: Headphones,
+    matcher: strictSkill('LISTENING'),
+  },
+  reading: {
+    title: 'Luyện đọc',
+    subtitle: 'Chỉ quản lý nội dung Reading. Bài tạo mới trong trang này luôn là bài đọc.',
+    skill: 'READING',
+    type: 'LESSON_PRACTICE',
+    allowedTypes: ['LESSON_PRACTICE', 'MODULE_TEST', 'QUIZ'],
+    lockedSkill: true,
+    createLabel: 'Tạo bài đọc',
+    editLabel: 'Chỉnh sửa bài đọc',
+    emptyLabel: 'Chưa có bài luyện đọc nào.',
+    loadingLabel: 'Đang tải bài luyện đọc...',
+    searchPlaceholder: 'Tìm bài đọc theo tiêu đề hoặc mô tả...',
+    successNoun: 'bài đọc',
+    tableTitle: 'Tên bài đọc',
+    itemLabel: 'bài đọc',
+    totalLabel: 'Bài đọc',
+    statsIcon: BookOpen,
+    matcher: strictSkill('READING'),
+  },
+  writing: {
+    title: 'Luyện viết',
+    subtitle: 'Chỉ quản lý nội dung Writing. Đề tạo mới trong trang này luôn là đề viết.',
+    skill: 'WRITING',
+    type: 'WRITING_TASK',
+    allowedTypes: ['WRITING_TASK', 'MODULE_TEST'],
+    lockedSkill: true,
+    createLabel: 'Tạo đề viết',
+    editLabel: 'Chỉnh sửa đề viết',
+    emptyLabel: 'Chưa có đề luyện viết nào.',
+    loadingLabel: 'Đang tải đề luyện viết...',
+    searchPlaceholder: 'Tìm đề viết theo tiêu đề hoặc mô tả...',
+    successNoun: 'đề viết',
+    tableTitle: 'Tên đề viết',
+    itemLabel: 'đề viết',
+    totalLabel: 'Đề viết',
+    statsIcon: NotebookPen,
+    matcher: strictSkill('WRITING'),
+  },
+  speaking: {
+    title: 'Luyện nói',
+    subtitle: 'Chỉ quản lý nội dung Speaking. Đề tạo mới trong trang này luôn là đề nói.',
+    skill: 'SPEAKING',
+    type: 'SPEAKING_TASK',
+    allowedTypes: ['SPEAKING_TASK', 'MODULE_TEST'],
+    lockedSkill: true,
+    createLabel: 'Tạo đề nói',
+    editLabel: 'Chỉnh sửa đề nói',
+    emptyLabel: 'Chưa có đề luyện nói nào.',
+    loadingLabel: 'Đang tải đề luyện nói...',
+    searchPlaceholder: 'Tìm đề nói theo tiêu đề hoặc mô tả...',
+    successNoun: 'đề nói',
+    tableTitle: 'Tên đề nói',
+    itemLabel: 'đề nói',
+    totalLabel: 'Đề nói',
+    statsIcon: Mic2,
+    matcher: strictSkill('SPEAKING'),
+  },
+  mockExams: {
+    title: 'Ngân hàng đề thi thử',
+    subtitle: 'Quản lý các đề thi thử tổng hợp trong ngân hàng dùng chung.',
+    skill: 'MIXED',
+    type: 'MOCK_TEST',
+    createLabel: 'Tạo đề thi thử',
+    editLabel: 'Chỉnh sửa đề thi thử',
+    emptyLabel: 'Chưa có đề thi thử nào.',
+    loadingLabel: 'Đang tải ngân hàng đề thi thử...',
+    searchPlaceholder: 'Tìm đề thi thử theo tiêu đề, loại hoặc kỹ năng...',
+    successNoun: 'đề thi thử',
+    tableTitle: 'Tên đề',
+    itemLabel: 'đề',
+    totalLabel: 'Tổng đề',
+    statsIcon: FileQuestion,
+    matcher: (item) => String(item.type || '').toUpperCase() === 'MOCK_TEST',
+  },
+};
+
+const typeOptions = [
+  { label: 'Bài luyện trong bài học', value: 'LESSON_PRACTICE' },
+  { label: 'Bài kiểm tra mô-đun', value: 'MODULE_TEST' },
+  { label: 'Đề thi thử', value: 'MOCK_TEST' },
+  { label: 'Bài luyện viết', value: 'WRITING_TASK' },
+  { label: 'Bài luyện nói', value: 'SPEAKING_TASK' },
+  { label: 'Quiz', value: 'QUIZ' },
+];
+
+const skillOptions = [
+  { label: 'Nghe', value: 'LISTENING' },
+  { label: 'Đọc', value: 'READING' },
+  { label: 'Viết', value: 'WRITING' },
+  { label: 'Nói', value: 'SPEAKING' },
+  { label: 'Từ vựng', value: 'VOCABULARY' },
+  { label: 'Ngữ pháp', value: 'GRAMMAR' },
+  { label: 'Tổng hợp', value: 'MIXED' },
+];
+
+const statusOptions = [
+  { label: 'Nháp', value: 'DRAFT' },
+  { label: 'Đã xuất bản', value: 'PUBLISHED' },
+  { label: 'Lưu trữ', value: 'ARCHIVED' },
+];
+
+const aiOptions = [
+  { label: 'Không dùng AI', value: 'NONE' },
+  { label: 'Giải thích đáp án', value: 'EXPLAIN_ONLY' },
+  { label: 'Phản hồi theo tiêu chí', value: 'RUBRIC_FEEDBACK' },
+  { label: 'Ước lượng band', value: 'ESTIMATED_BAND' },
+];
+
+const allOption = { label: 'Tất cả', value: 'ALL' };
+
+const emptyForm = (pageConfig) => ({
+  title: '',
+  description: '',
+  type: pageConfig?.type || 'LESSON_PRACTICE',
+  skill: pageConfig?.skill || 'LISTENING',
+  aiEvaluationMode: 'NONE',
+  instructions: '',
+  objectiveAnswerKey: '',
+  uiConfigJson: '',
+  passingScore: '',
+  maxScore: 100,
+  timeLimitMinutes: '',
+  status: 'DRAFT',
+  displayOrder: 0,
+});
+
+const toForm = (item = {}, pageConfig) => ({
+  title: item.title || '',
+  description: item.description || '',
+  type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
+  skill: item.skill || pageConfig?.skill || 'LISTENING',
+  aiEvaluationMode: item.aiEvaluationMode || 'NONE',
+  instructions: item.instructions || '',
+  objectiveAnswerKey: item.objectiveAnswerKey || '',
+  uiConfigJson: item.uiConfigJson || '',
+  passingScore: item.passingScore ?? '',
+  maxScore: item.maxScore ?? 100,
+  timeLimitMinutes: item.timeLimitMinutes ?? '',
+  status: item.status || 'DRAFT',
+  displayOrder: item.displayOrder ?? 0,
+});
+
+const supportedBuilderSkills = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
+
+export default function ContentManagerAssessmentsHubPage({ pageKey }) {
+  const pageConfig = pageMap[pageKey] || pageMap.listening;
+  const isSkillLocked = Boolean(pageConfig.lockedSkill);
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState(() => emptyForm(pageConfig));
+  const [editingId, setEditingId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [filters, setFilters] = useState({ type: 'ALL', status: 'ALL' });
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const editorRef = useRef(null);
+
+  const lockFormToPage = (draft) => (
+    isSkillLocked ? { ...draft, skill: pageConfig.skill, type: pageConfig.type } : draft
+  );
+
+  const loadItems = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
+      setItems(await curriculumApi.getAssessmentBank(params));
+    } catch (err) {
+      setError(err?.response?.data?.message || `Không tải được ${pageConfig.successNoun}.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItems();
+    setEditingId(null);
+    setEditorOpen(false);
+    setKeyword('');
+    setFilters({ type: 'ALL', status: 'ALL' });
+    setForm(emptyForm(pageConfig));
+  }, [pageKey]);
+
+  const filteredItems = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    return items
+      .filter((item) => pageConfig.matcher(item))
+      .filter((item) => {
+        const keywordMatched = !normalized || [item.title, item.description, item.type, item.skill, item.status]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalized));
+        const typeMatched = isSkillLocked || filters.type === 'ALL' || item.type === filters.type;
+        const statusMatched = filters.status === 'ALL' || item.status === filters.status;
+        return keywordMatched && typeMatched && statusMatched;
+      });
+  }, [items, filters, keyword, pageConfig, isSkillLocked]);
+
+  const sortedItems = useMemo(
+    () => [...filteredItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.title).localeCompare(String(b.title), 'vi')),
+    [filteredItems],
+  );
+
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(sortedItems, 8, `${pageKey}-${keyword}-${filters.type}-${filters.status}`);
+
+  const pageItemsAll = useMemo(() => items.filter((item) => pageConfig.matcher(item)), [items, pageConfig]);
+  const stats = useMemo(() => [
+    { label: pageConfig.totalLabel, value: pageItemsAll.length, icon: pageConfig.statsIcon, tone: 'text-[#4b0009]' },
+    { label: 'Đã xuất bản', value: pageItemsAll.filter((item) => item.status === 'PUBLISHED').length, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Bản nháp', value: pageItemsAll.filter((item) => item.status === 'DRAFT').length, icon: Edit3, tone: 'text-amber-700' },
+    { label: 'Có thời lượng', value: pageItemsAll.filter((item) => Number(item.timeLimitMinutes || 0) > 0).length, icon: Clock3, tone: 'text-[#005236]' },
+  ], [pageItemsAll, pageConfig]);
+
+  const updateForm = (field, value) => {
+    if (isSkillLocked && (field === 'skill' || field === 'type')) return;
+    setForm((current) => lockFormToPage({ ...current, [field]: value }));
+  };
+
+  const startNew = () => {
+    setEditingId(null);
+    setForm(lockFormToPage(emptyForm(pageConfig)));
+    setEditorOpen(true);
+    setError('');
+    setSuccess('');
+    window.setTimeout(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const closeEditor = () => {
+    setEditingId(null);
+    setForm(lockFormToPage(emptyForm(pageConfig)));
+    setEditorOpen(false);
+    setError('');
+    setSuccess('');
+  };
+
+  const itemBelongsToPage = (item) => !isSkillLocked || String(item.skill || '').toUpperCase() === pageConfig.skill;
+
+  const openEdit = (item) => {
+    if (!itemBelongsToPage(item)) {
+      setError('Nội dung này không thuộc kỹ năng hiện tại. Vui lòng mở đúng trang kỹ năng để chỉnh sửa.');
+      setSuccess('');
+      setEditorOpen(false);
+      return;
+    }
+    setEditingId(item.id);
+    setForm(lockFormToPage(toForm(item, pageConfig)));
+    setEditorOpen(true);
+    setError('');
+    setSuccess('');
+    window.setTimeout(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const buildPayload = (draft) => {
+    const lockedDraft = lockFormToPage(draft);
+    return {
+      ...lockedDraft,
+      passingScore: lockedDraft.passingScore === '' ? null : Number(lockedDraft.passingScore),
+      maxScore: lockedDraft.maxScore === '' ? null : Number(lockedDraft.maxScore),
+      timeLimitMinutes: lockedDraft.timeLimitMinutes === '' ? null : Number(lockedDraft.timeLimitMinutes),
+      displayOrder: Number(lockedDraft.displayOrder || 0),
+    };
+  };
+
+  const saveItem = async () => {
+    if (!form.title.trim()) {
+      setError(isSkillLocked ? `Vui lòng nhập tên ${pageConfig.successNoun}.` : 'Vui lòng nhập tên đề.');
+      return;
+    }
+    if (form.uiConfigJson) {
+      try {
+        JSON.parse(form.uiConfigJson);
+      } catch {
+        setError('Cấu hình nội dung phải là JSON hợp lệ.');
+        return;
+      }
+    }
+    if (form.objectiveAnswerKey) {
+      try {
+        JSON.parse(form.objectiveAnswerKey);
+      } catch {
+        setError('Đáp án khách quan phải là JSON hợp lệ.');
+        return;
+      }
+    }
+
+    const payload = buildPayload(form);
+    if (isSkillLocked && String(payload.skill || '').toUpperCase() !== pageConfig.skill) {
+      setError('Kỹ năng của payload không khớp trang hiện tại. Vui lòng tải lại trang và thử lại.');
+      return;
+    }
+
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = editingId
+        ? await curriculumApi.updateAssessmentBankItem(editingId, payload)
+        : await curriculumApi.createAssessmentBankItem(payload);
+      setItems((current) => {
+        if (editingId) {
+          return current.map((item) => (String(item.id) === String(saved.id) ? saved : item));
+        }
+        return [saved, ...current];
+      });
+      setEditingId(saved.id);
+      setForm(lockFormToPage(toForm(saved, pageConfig)));
+      setEditorOpen(true);
+      setSuccess(editingId ? `Đã cập nhật ${pageConfig.successNoun}.` : `Đã tạo ${pageConfig.successNoun}.`);
+    } catch (err) {
+      setError(err?.response?.data?.message || `Không lưu được ${pageConfig.successNoun}.`);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const archiveItem = async (item) => {
+    if (!itemBelongsToPage(item)) {
+      setError('Nội dung này không thuộc kỹ năng hiện tại. Vui lòng mở đúng trang kỹ năng để chỉnh sửa.');
+      setSuccess('');
+      return;
+    }
+    if (!window.confirm(`Lưu trữ ${pageConfig.successNoun} "${item.title}"?`)) return;
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      await curriculumApi.archiveAssessmentBankItem(item.id);
+      setItems((current) => current.map((row) => (
+        String(row.id) === String(item.id) ? { ...row, status: 'ARCHIVED' } : row
+      )));
+      if (String(editingId) === String(item.id)) updateForm('status', 'ARCHIVED');
+      setSuccess(`Đã lưu trữ ${pageConfig.successNoun}.`);
+    } catch (err) {
+      setError(err?.response?.data?.message || `Không lưu trữ được ${pageConfig.successNoun}.`);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const restoreItem = async (item) => {
+    if (!itemBelongsToPage(item)) {
+      setError('Nội dung này không thuộc kỹ năng hiện tại. Vui lòng mở đúng trang kỹ năng để chỉnh sửa.');
+      setSuccess('');
+      return;
+    }
+    if (!window.confirm(`Khôi phục ${pageConfig.successNoun} "${item.title}" về bản nháp?`)) return;
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = await curriculumApi.updateAssessmentBankItem(item.id, buildPayload({
+        ...toForm(item, pageConfig),
+        status: 'DRAFT',
+      }));
+      setItems((current) => current.map((row) => (
+        String(row.id) === String(saved.id) ? saved : row
+      )));
+      if (String(editingId) === String(item.id)) setForm(lockFormToPage(toForm(saved, pageConfig)));
+      setSuccess(`Đã khôi phục ${pageConfig.successNoun} về bản nháp.`);
+    } catch (err) {
+      setError(err?.response?.data?.message || `Không khôi phục được ${pageConfig.successNoun}.`);
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const canUseBuilder = supportedBuilderSkills.has(String(form.skill || '').toUpperCase());
+  const lockedForm = lockFormToPage(form);
+
+  const renderWorkspace = () => {
+    if (isSkillLocked && pageConfig.skill === 'LISTENING') {
+      return <ListeningPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+    }
+    if (isSkillLocked && pageConfig.skill === 'READING') {
+      return <ReadingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+    }
+    if (isSkillLocked && pageConfig.skill === 'WRITING') {
+      return <WritingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+    }
+    if (isSkillLocked && pageConfig.skill === 'SPEAKING') {
+      return <SpeakingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
+    }
+    if (canUseBuilder) {
+      return <AssessmentExamBuilder assessment={form} onChange={updateForm} />;
+    }
+    return (
+      <div className="space-y-4">
+        <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Cấu hình nội dung đề</h3>
+        <label className="block">
+          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">UI config JSON</span>
+          <textarea value={form.uiConfigJson} onChange={(event) => updateForm('uiConfigJson', event.target.value)} rows={8} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+        </label>
+        <label className="block">
+          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đáp án khách quan JSON</span>
+          <textarea value={form.objectiveAnswerKey} onChange={(event) => updateForm('objectiveAnswerKey', event.target.value)} rows={6} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
+        </label>
+      </div>
+    );
+  };
+
+  const renderFilters = () => (
+    <>
+      <div className="min-w-[300px] flex-1">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+          <input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder={pageConfig.searchPlaceholder}
+            className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+          />
+        </div>
+      </div>
+      <div className={`grid w-full gap-3 ${isSkillLocked ? 'sm:w-auto' : 'sm:grid-cols-2 lg:w-auto'}`}>
+        {!isSkillLocked ? (
+          <FilterSelect label="Loại đề" onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))} options={[allOption, ...typeOptions]} value={filters.type} />
+        ) : null}
+        <FilterSelect label="Trạng thái" onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} options={[allOption, ...statusOptions]} value={filters.status} />
+      </div>
+      <button
+        aria-label="Làm mới danh sách"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
+        onClick={loadItems}
+        type="button"
+      >
+        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+      </button>
+      {!isSkillLocked ? (
+        <button type="button" onClick={startNew} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]">
+          <Plus className="h-4 w-4" />
+          {pageConfig.createLabel}
+        </button>
+      ) : null}
+    </>
+  );
+
+  const renderTable = () => {
+    if (loading) {
+      return <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">{pageConfig.loadingLabel}</div>;
+    }
+    if (sortedItems.length === 0) {
+      return <ManagerEmptyState>{pageConfig.emptyLabel}</ManagerEmptyState>;
+    }
+
+    const columns = isSkillLocked
+      ? [
+        { label: pageConfig.tableTitle, key: 'title' },
+        { label: 'Thời lượng', key: 'time', align: 'center' },
+        { label: 'Trạng thái', key: 'status' },
+        { label: 'Thứ tự', key: 'order', align: 'center' },
+        { label: 'Thao tác', key: 'actions', align: 'right' },
+      ]
+      : [
+        { label: pageConfig.tableTitle, key: 'title' },
+        { label: 'Loại đề', key: 'type' },
+        { label: 'Kỹ năng', key: 'skill' },
+        { label: 'Thời lượng', key: 'time', align: 'center' },
+        { label: 'Trạng thái', key: 'status' },
+        { label: 'Thứ tự', key: 'order', align: 'center' },
+        { label: 'Thao tác', key: 'actions', align: 'right' },
+      ];
+
+    return (
+      <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+        <ManagerTable columns={columns} minWidth={isSkillLocked ? '900px' : '1080px'}>
+          {pageItems.map((item) => (
+            <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
+              <td className="px-6 py-5">
+                <p className="max-w-[360px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
+                {item.description ? <p className="mt-1 max-w-[360px] truncate text-xs text-[#564241]">{item.description}</p> : null}
+              </td>
+              {!isSkillLocked ? (
+                <>
+                  <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
+                  <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatLabel(item.skill)}</ManagerStatusBadge></td>
+                </>
+              ) : null}
+              <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : '-'}</td>
+              <td className="px-6 py-5"><AssessmentStatusBadge status={item.status} /></td>
+              <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{item.displayOrder ?? 0}</td>
+              <td className="px-6 py-5 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5"
+                    onClick={() => openEdit(item)}
+                    type="button"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    Chỉnh sửa
+                  </button>
+                  {item.status === 'ARCHIVED' ? (
+                    <button
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
+                      disabled={working}
+                      onClick={() => restoreItem(item)}
+                      type="button"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Khôi phục
+                    </button>
+                  ) : (
+                    <button
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
+                      disabled={working}
+                      onClick={() => archiveItem(item)}
+                      type="button"
+                    >
+                      <Archive className="h-3.5 w-3.5" />
+                      Lưu trữ
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </ManagerTable>
+        <ManagerTablePagination itemLabel={pageConfig.itemLabel} onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+      </section>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
+      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+
+      {editorOpen ? (
+        <section className={`${PANEL_CLASS} scroll-mt-24 space-y-5`} ref={editorRef}>
+          {isSkillLocked ? <SkillPracticeTabs activeSkill={pageConfig.skill} /> : null}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
+                {editingId ? pageConfig.editLabel : pageConfig.createLabel}
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                {isSkillLocked
+                  ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
+                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
+              </p>
+            </div>
+            <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
+              <X className="h-4 w-4" /> Đóng
+            </button>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+            <div className="space-y-4">
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên {pageConfig.successNoun}</span>
+                <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
+                <textarea value={form.description} onChange={(event) => updateForm('description', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+              </label>
+              {isSkillLocked ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <LockedMeta label="Trang kỹ năng" value={pageConfig.title} />
+                  <LockedMeta label="Dạng nội dung" value={formatLabel(pageConfig.type)} />
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
+                    <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={skillOptions} />
+                  </div>
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại đề</span>
+                    <BrandedSelect value={form.type} onChange={(event) => updateForm('type', event.target.value)} options={typeOptions} />
+                  </div>
+                </div>
+              )}
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Chấm tự động</span>
+                  <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
+                </div>
+                <div>
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
+                  <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
+                </div>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
+                <textarea value={form.instructions} onChange={(event) => updateForm('instructions', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+              </label>
+              <div className="grid gap-3 md:grid-cols-3">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm đạt</span>
+                  <input type="number" value={form.passingScore} onChange={(event) => updateForm('passingScore', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm tối đa</span>
+                  <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng</span>
+                  <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
+                </label>
+              </div>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
+                <input type="number" value={form.displayOrder} onChange={(event) => updateForm('displayOrder', event.target.value)} className={FIELD_CLASS} />
+              </label>
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
+                  <Save className="h-4 w-4" /> Lưu {pageConfig.successNoun}
+                </button>
+                <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
+                  <Plus className="h-4 w-4" /> {pageConfig.createLabel}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
+              {renderWorkspace()}
+            </div>
+          </div>
+        </section>
+      ) : isSkillLocked ? (
+        <SkillPracticeShell
+          activeSkill={pageConfig.skill}
+          createLabel={pageConfig.createLabel}
+          filterChildren={renderFilters()}
+          onCreate={startNew}
+          stats={stats}
+          subtitle={pageConfig.subtitle}
+          title={pageConfig.title}
+        >
+          {renderTable()}
+        </SkillPracticeShell>
+      ) : (
+        <>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{pageConfig.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#564241]">{pageConfig.subtitle}</p>
+            </div>
+          </div>
+          <ManagerStatsGrid stats={stats} />
+          <ManagerFilterBar>{renderFilters()}</ManagerFilterBar>
+          {renderTable()}
+        </>
+      )}
+    </div>
+  );
+}
+
+function LockedMeta({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <span className="block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{label}</span>
+      <span className="mt-1 block text-sm font-extrabold text-[#0b1c30]">{value}</span>
+    </div>
+  );
+}
+
+function formatLabel(value) {
+  const text = String(value || '').toUpperCase();
+  const labels = {
+    LISTENING: 'Nghe',
+    READING: 'Đọc',
+    WRITING: 'Viết',
+    SPEAKING: 'Nói',
+    VOCABULARY: 'Từ vựng',
+    GRAMMAR: 'Ngữ pháp',
+    MIXED: 'Tổng hợp',
+    MOCK_TEST: 'Đề thi thử',
+    MODULE_TEST: 'Bài kiểm tra mô-đun',
+    LESSON_PRACTICE: 'Bài luyện trong bài học',
+    WRITING_TASK: 'Bài luyện viết',
+    SPEAKING_TASK: 'Bài luyện nói',
+    QUIZ: 'Quiz',
+    DRAFT: 'Nháp',
+    PUBLISHED: 'Đã xuất bản',
+    ARCHIVED: 'Lưu trữ',
+  };
+  return labels[text] || value || '-';
+}
+
+function FilterSelect({ label, value, onChange, options }) {
+  const normalizedOptions = options.map((option) => ({
+    ...option,
+    label: `${label}: ${option.label}`,
+  }));
+
+  return (
+    <BrandedSelect
+      buttonClassName="h-10 min-w-[170px] rounded-lg border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 text-sm shadow-none"
+      onChange={onChange}
+      options={normalizedOptions}
+      value={value}
+    />
+  );
+}
+
+function AssessmentStatusBadge({ status }) {
+  const normalized = String(status || '').toUpperCase();
+  const tone = normalized === 'PUBLISHED'
+    ? 'success'
+    : normalized === 'DRAFT'
+      ? 'warning'
+      : 'neutral';
+  return <ManagerStatusBadge tone={tone}>{formatLabel(status)}</ManagerStatusBadge>;
+}

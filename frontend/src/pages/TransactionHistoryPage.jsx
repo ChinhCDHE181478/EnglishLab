@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import courseApi from '../api/courseApi';
+import paymentApi from '../api/paymentApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { hasAccessToken } from '../utils/auth';
-import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+
+const statusLabel = (status) => {
+  switch (status) {
+    case 'PAID': return { text: 'Đã thanh toán', className: 'bg-[#eef8f1] text-[#1f6b3b]' };
+    case 'PENDING':
+    case 'PROCESSING': return { text: 'Đang xử lý', className: 'bg-[#fff8e8] text-[#8a5b00]' };
+    case 'FAILED':
+    case 'CANCELLED':
+    case 'EXPIRED': return { text: 'Không thành công', className: 'bg-[#ffdad6] text-[#93000a]' };
+    default: return { text: status || 'Không xác định', className: 'bg-[#fcf8f8] text-[#584140]' };
+  }
+};
+
+const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
 
 const TransactionHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [items, setItems] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -21,29 +34,13 @@ const TransactionHistoryPage = () => {
     const loadHistory = async () => {
       setLoading(true);
       setError('');
-
       try {
-        const enrollments = (await courseApi.getMyOnlineCourses()).map(normalizeEnrollment);
-        const detailResults = await Promise.allSettled(
-          enrollments.map(async (enrollment) => {
-            const courseResponse = await courseApi.getOnlineCourse(enrollment.courseSlug || enrollment.courseId);
-            return {
-              enrollment,
-              course: normalizeCourse({ ...courseResponse, registered: true }),
-            };
-          }),
-        );
-
+        const data = await paymentApi.listMyOrders();
         if (!active) return;
-
-        setItems(
-          detailResults
-            .filter((result) => result.status === 'fulfilled')
-            .map((result) => result.value),
-        );
-      } catch {
+        setOrders(Array.isArray(data) ? data : []);
+      } catch (err) {
         if (!active) return;
-        setError('Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
+        setError(err?.response?.data?.message || 'Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
       } finally {
         if (active) setLoading(false);
       }
@@ -58,10 +55,10 @@ const TransactionHistoryPage = () => {
   return (
     <LearnerPageShell
       title="Lịch sử giao dịch"
-      description="Theo dõi các khóa học đã được ghi nhận vào tài khoản học tập của bạn."
+      description="Theo dõi các đơn thanh toán thực tế của bạn trên EnglishLab."
     >
       {!hasAccessToken() ? (
-        <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center">
+        <section className="flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center">
           <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn cần đăng nhập để xem lịch sử giao dịch.</h2>
           <div className="mt-6">
             <Link className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/login" state={{ from: '/transaction-history' }}>
@@ -70,16 +67,20 @@ const TransactionHistoryPage = () => {
           </div>
         </section>
       ) : loading ? (
-        <section className="rounded-[28px] border border-[#dfbfbd]/25 bg-white px-6 py-16 text-center text-[#584140]">
+        <section className="flex min-h-[320px] flex-1 items-center justify-center rounded-[28px] border border-[#dfbfbd]/25 bg-white px-6 py-16 text-center text-[#584140]">
           Đang tải lịch sử giao dịch...
         </section>
       ) : error ? (
-        <section className="rounded-[28px] border border-[#f0d4d7] bg-white px-6 py-16 text-center text-[#93000a]">
-          {error}
+        <section className="flex min-h-[320px] flex-1 flex-col items-center justify-center rounded-[28px] border border-[#f0d4d7] bg-white px-6 py-16 text-center text-[#93000a]">
+          <p>{error}</p>
+          <button className="mt-4 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white" onClick={() => window.location.reload()} type="button">
+            Thử lại
+          </button>
         </section>
-      ) : !items.length ? (
-        <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center">
+      ) : !orders.length ? (
+        <section className="flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center">
           <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn chưa có giao dịch nào.</h2>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[#584140]">Các đơn thanh toán qua PayOS sẽ xuất hiện tại đây sau khi bạn mua khóa học.</p>
           <div className="mt-6">
             <Link className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/courses">
               Xem khóa học
@@ -87,53 +88,44 @@ const TransactionHistoryPage = () => {
           </div>
         </section>
       ) : (
-        <section className="grid gap-6">
-          {items.map(({ enrollment, course }) => (
-            <article key={course.id} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
-              <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                <img
-                  alt={course.title}
-                  className="h-28 w-full rounded-3xl object-cover md:w-44"
-                  src={course.thumbnailUrl}
-                />
-                <div className="flex-1">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">Đã mua</p>
-                      <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{course.title}</h2>
-                      <p className="mt-2 text-sm leading-7 text-[#584140]">
-                        {course.targetOutcome || 'Khóa học đã được ghi nhận thành công vào tài khoản của bạn.'}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-[#eef8f1] px-3 py-2 text-xs font-extrabold text-[#1f6b3b]">
-                      Đã ghi nhận thành công
-                    </span>
+        <section className="grid flex-1 gap-6">
+          {orders.map((order) => {
+            const badge = statusLabel(order.status);
+            return (
+              <article key={order.orderCode} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">Mã đơn #{order.orderCode}</p>
+                    <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                      {(order.courseTitles || []).join(' · ') || order.description || 'Thanh toán khóa học'}
+                    </h2>
+                    <p className="mt-2 text-sm leading-7 text-[#584140]">
+                      Tạo lúc {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '—'}
+                      {order.paidAt ? ` · Thanh toán lúc ${new Date(order.paidAt).toLocaleString('vi-VN')}` : ''}
+                    </p>
                   </div>
+                  <span className={`self-start rounded-full px-3 py-2 text-xs font-extrabold ${badge.className}`}>
+                    {badge.text}
+                  </span>
+                </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                      Tiến độ học hiện tại: <strong className="text-[#2b2828]">{enrollment.progressPercent}%</strong>
-                    </div>
-                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                      Giá hiện tại: <strong className="text-[#2b2828]">{course.price > 0 ? `${course.price.toLocaleString('vi-VN')} đ` : 'Miễn phí'}</strong>
-                    </div>
-                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                      Chuỗi học: <strong className="text-[#2b2828]">{enrollment.streakDays} ngày</strong>
-                    </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-4">
+                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                    Số tiền: <strong className="text-[#2b2828]">{formatMoney(order.amount)}</strong>
                   </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <Link className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to={`/courses/${course.slug}/home`} state={{ course, enrollment }}>
-                      Tiếp tục học
-                    </Link>
-                    <Link className="rounded-2xl border border-[#dfbfbd]/30 px-5 py-3 text-sm font-extrabold text-[#4b0009]" to={`/courses/${course.slug}`}>
-                      Xem khóa học
-                    </Link>
+                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                    Giá gốc: <strong className="text-[#2b2828]">{formatMoney(order.originalAmount)}</strong>
+                  </div>
+                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                    Giảm giá: <strong className="text-[#2b2828]">{formatMoney((order.systemDiscountAmount || 0) + (order.couponDiscountAmount || 0))}</strong>
+                  </div>
+                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                    Mã giảm: <strong className="text-[#2b2828]">{order.discountCodeText || 'Không có'}</strong>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </section>
       )}
     </LearnerPageShell>

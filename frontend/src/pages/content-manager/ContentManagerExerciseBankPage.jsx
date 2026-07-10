@@ -1,0 +1,373 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Archive, CheckCircle2, Dumbbell, Edit3, Layers3, Plus, RefreshCw, Save, Search, X } from 'lucide-react';
+import courseApi from '../../api/courseApi';
+import {
+  ManagerEmptyState,
+  ManagerFilterBar,
+  ManagerStatsGrid,
+  ManagerStatusBadge,
+  ManagerTable,
+  ManagerTablePagination,
+} from '../../components/content-manager/ManagerListUi';
+import BrandedSelect from '../../components/ui/BrandedSelect';
+import { usePagination } from '../../components/ui/Pagination';
+import {
+  ERROR_NOTICE_CLASS,
+  FIELD_CLASS,
+  PANEL_CLASS,
+  PRIMARY_BUTTON_CLASS,
+  SECONDARY_BUTTON_CLASS,
+  SUCCESS_NOTICE_CLASS,
+  TEXTAREA_CLASS,
+} from '../../utils/formStyles';
+
+const skillOptions = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Listening', value: 'LISTENING' },
+  { label: 'Reading', value: 'READING' },
+  { label: 'Writing', value: 'WRITING' },
+  { label: 'Speaking', value: 'SPEAKING' },
+  { label: 'Grammar', value: 'GRAMMAR' },
+  { label: 'Vocabulary', value: 'VOCABULARY' },
+];
+
+const typeOptions = [
+  { label: 'Bài tập về nhà', value: 'HOMEWORK' },
+  { label: 'Quiz', value: 'QUIZ' },
+  { label: 'Luyện tập', value: 'PRACTICE' },
+];
+
+const statusOptions = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Đang dùng', value: 'ACTIVE' },
+  { label: 'Đã tạm ngưng', value: 'INACTIVE' },
+];
+
+const emptyForm = {
+  title: '',
+  skill: 'WRITING',
+  level: '',
+  exerciseType: 'HOMEWORK',
+  prompt: '',
+  answerKey: '',
+  explanation: '',
+  tags: '',
+  active: true,
+};
+
+export default function ContentManagerExerciseBankPage() {
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [skillFilter, setSkillFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [keyword, setKeyword] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const editorRef = useRef(null);
+
+  const loadItems = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await courseApi.getExerciseBankItems({
+        skill: skillFilter === 'ALL' ? undefined : skillFilter,
+        includeInactive: true,
+      });
+      setItems(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không tải được ngân hàng bài tập.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadItems(); }, [skillFilter]);
+
+  const filteredItems = useMemo(() => {
+    const normalized = keyword.trim().toLowerCase();
+    return items.filter((item) => {
+      const keywordMatched = !normalized || [item.title, item.prompt, item.tags, item.skill, item.exerciseType]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalized));
+      const typeMatched = typeFilter === 'ALL' || item.exerciseType === typeFilter;
+      const statusMatched = statusFilter === 'ALL'
+        || (statusFilter === 'ACTIVE' ? item.active !== false : item.active === false);
+      return keywordMatched && typeMatched && statusMatched;
+    });
+  }, [items, keyword, statusFilter, typeFilter]);
+
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    filteredItems,
+    8,
+    `${keyword}|${skillFilter}|${typeFilter}|${statusFilter}`,
+  );
+
+  const stats = useMemo(() => [
+    { label: 'Tổng bài tập', value: items.length, icon: Dumbbell, tone: 'text-[#4b0009]' },
+    { label: 'Đang dùng', value: items.filter((item) => item.active !== false).length, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: items.filter((item) => item.active === false).length, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Kỹ năng', value: new Set(items.map((item) => item.skill).filter(Boolean)).size, icon: Layers3, tone: 'text-[#005236]' },
+  ], [items]);
+
+  const resetForm = (open = true) => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setComposerOpen(open);
+    if (open) {
+      window.setTimeout(() => {
+        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
+    }
+  };
+
+  const openEdit = (item) => {
+    setEditingId(item.id);
+    setComposerOpen(true);
+    setForm({
+      title: item.title || '',
+      skill: item.skill || 'WRITING',
+      level: item.level || '',
+      exerciseType: item.exerciseType || 'HOMEWORK',
+      prompt: item.prompt || '',
+      answerKey: item.answerKey || '',
+      explanation: item.explanation || '',
+      tags: item.tags || '',
+      active: item.active !== false,
+    });
+    window.setTimeout(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
+  const saveItem = async () => {
+    if (!form.title.trim() || !form.prompt.trim()) {
+      setError('Vui lòng nhập tiêu đề và đề bài.');
+      return;
+    }
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      let saved;
+      if (editingId) {
+        saved = await courseApi.updateExerciseBankItem(editingId, form);
+      } else {
+        saved = await courseApi.createExerciseBankItem(form);
+      }
+      setItems((current) => {
+        if (!saved?.id) return current;
+        const exists = current.some((item) => item.id === saved.id);
+        return exists
+          ? current.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current];
+      });
+      await loadItems();
+      resetForm(false);
+      setSuccess('Đã lưu bài tập.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không lưu được bài tập.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const deactivateItem = async (id) => {
+    if (!window.confirm('Tạm ngưng bài tập này?')) return;
+    await courseApi.deleteExerciseBankItem(id);
+    await loadItems();
+  };
+
+  const restoreItem = async (item) => {
+    if (!window.confirm(`Khôi phục bài tập "${item.title}"?`)) return;
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      await courseApi.updateExerciseBankItem(item.id, { ...item, active: true });
+      await loadItems();
+      setSuccess('Đã khôi phục bài tập.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không khôi phục được bài tập.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
+      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+
+      {composerOpen ? (
+        <section className={`${PANEL_CLASS} scroll-mt-24 space-y-5`} ref={editorRef}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">
+                {editingId ? 'Chỉnh sửa bài tập' : 'Thêm bài tập mới'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">Nội dung ở đây dùng chung cho giáo trình, lớp học và hoạt động luyện tập.</p>
+            </div>
+            <button type="button" onClick={() => resetForm(false)} className={SECONDARY_BUTTON_CLASS}>
+              <X className="h-4 w-4" /> Đóng
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Tiêu đề" className={FIELD_CLASS} />
+            <div className="grid gap-4 md:grid-cols-2">
+              <BrandedSelect label="Kỹ năng" value={form.skill} onChange={(event) => setForm({ ...form, skill: event.target.value })} options={skillOptions.filter((o) => o.value !== 'ALL')} />
+              <BrandedSelect label="Loại bài" value={form.exerciseType} onChange={(event) => setForm({ ...form, exerciseType: event.target.value })} options={typeOptions} />
+            </div>
+            <input value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Cấp độ (vd: IELTS 6.0)" className={FIELD_CLASS} />
+            <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
+            <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
+            <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Giải thích" rows={3} className={TEXTAREA_CLASS} />
+            <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="Thẻ (cách nhau bởi dấu phẩy)" className={FIELD_CLASS} />
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <button type="button" onClick={saveItem} disabled={working} className={PRIMARY_BUTTON_CLASS}>
+                <Save className="h-4 w-4" /> Lưu
+              </button>
+              <button type="button" onClick={() => resetForm(true)} className={SECONDARY_BUTTON_CLASS}>
+                <Plus className="h-4 w-4" /> Mới
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <ManagerStatsGrid stats={stats} />
+
+          <ManagerFilterBar>
+            <div className="min-w-[300px] flex-1">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+                <input
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder="Tìm bài tập, kỹ năng hoặc tag..."
+                  className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+                />
+              </div>
+            </div>
+            <div className="grid w-full gap-3 sm:grid-cols-3 lg:w-auto">
+              <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
+              <FilterSelect label="Loại bài" onChange={(event) => setTypeFilter(event.target.value)} options={[{ label: 'Tất cả', value: 'ALL' }, ...typeOptions]} value={typeFilter} />
+              <FilterSelect label="Trạng thái" onChange={(event) => setStatusFilter(event.target.value)} options={statusOptions} value={statusFilter} />
+            </div>
+            <button
+              aria-label="Làm mới ngân hàng bài tập"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
+              onClick={loadItems}
+              type="button"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button type="button" onClick={() => resetForm(true)} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]">
+              <Plus className="h-4 w-4" />
+              Thêm bài mới
+            </button>
+          </ManagerFilterBar>
+
+          {loading ? (
+            <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải ngân hàng bài tập...</div>
+          ) : filteredItems.length === 0 ? (
+            <ManagerEmptyState>Chưa có bài tập phù hợp.</ManagerEmptyState>
+          ) : (
+            <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+              <ManagerTable
+                columns={[
+                  { label: 'Tên bài tập', key: 'title' },
+                  { label: 'Kỹ năng', key: 'skill' },
+                  { label: 'Loại bài', key: 'type' },
+                  { label: 'Cấp độ', key: 'level' },
+                  { label: 'Trạng thái', key: 'status' },
+                  { label: 'Thao tác', key: 'actions', align: 'right' },
+                ]}
+                minWidth="1040px"
+              >
+                {pageItems.map((item) => (
+                  <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
+                    <td className="px-6 py-5">
+                      <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
+                      {item.prompt ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{item.prompt}</p> : null}
+                    </td>
+                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatSkill(item.skill)}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatExerciseType(item.exerciseType)}</td>
+                    <td className="px-6 py-5 text-sm text-[#564241]">{item.level || '-'}</td>
+                    <td className="px-6 py-5"><ManagerStatusBadge tone={item.active === false ? 'neutral' : 'success'}>{item.active === false ? 'Đã tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5"
+                          onClick={() => openEdit(item)}
+                          type="button"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                          Chỉnh sửa
+                        </button>
+                        {item.active === false ? (
+                          <button className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => restoreItem(item)} type="button">
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Khôi phục
+                          </button>
+                        ) : (
+                          <button className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => deactivateItem(item.id)} type="button">
+                            <Archive className="h-3.5 w-3.5" />
+                            Tạm ngưng
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </ManagerTable>
+              <ManagerTablePagination itemLabel="bài tập" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options }) {
+  const normalizedOptions = options.map((option) => ({
+    ...option,
+    label: `${label}: ${option.label}`,
+  }));
+
+  return (
+    <BrandedSelect
+      buttonClassName="h-10 min-w-[150px] rounded-lg border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 text-sm shadow-none"
+      onChange={onChange}
+      options={normalizedOptions}
+      value={value}
+    />
+  );
+}
+
+function formatSkill(value) {
+  const labels = {
+    LISTENING: 'Nghe',
+    READING: 'Đọc',
+    WRITING: 'Viết',
+    SPEAKING: 'Nói',
+    GRAMMAR: 'Ngữ pháp',
+    VOCABULARY: 'Từ vựng',
+  };
+  return labels[String(value || '').toUpperCase()] || value || '-';
+}
+
+function formatExerciseType(value) {
+  const labels = {
+    HOMEWORK: 'Bài tập về nhà',
+    QUIZ: 'Quiz',
+    PRACTICE: 'Luyện tập',
+  };
+  return labels[String(value || '').toUpperCase()] || value || '-';
+}

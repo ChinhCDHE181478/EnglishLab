@@ -11,9 +11,9 @@ import WorkspaceRightRail from '../components/course-workspace/WorkspaceRightRai
 import WorkspaceSidebar from '../components/course-workspace/WorkspaceSidebar';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { hasAccessToken } from '../utils/auth';
-import { findFallbackCourse, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
-import { readEnrollments } from '../utils/learnerStore';
-import { isAssessmentPassed } from '../utils/selfPacedHelpers';
+import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
+import { isAssessmentPassed, formatPassingThresholdLabel } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -111,7 +111,7 @@ const CourseWorkspace = () => {
       const lessonIds = lessonItemsForModule.map((item) => item.id);
       const lessonsCompleted = lessonIds.every((lessonId) => completedLessonIds.has(lessonId));
       const moduleAssessments = assessmentsByModule.get(String(module.id)) || [];
-      const moduleAssessmentsPassed = moduleAssessments.every(isAssessmentPassed);
+      const moduleAssessmentsPassed = moduleAssessments.every((assessment) => isAssessmentPassed(assessment, course));
       const readyForNextModule = lessonsCompleted && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
 
       progressByModule.set(String(module.id), {
@@ -126,7 +126,7 @@ const CourseWorkspace = () => {
     });
 
     return progressByModule;
-  }, [assessmentsByModule, completedLessonIds, course?.modules]);
+  }, [assessmentsByModule, completedLessonIds, course?.modules, course?.targetBand]);
 
   const lessonItems = useMemo(() => {
     if (!course?.modules?.length) return [];
@@ -173,6 +173,59 @@ const CourseWorkspace = () => {
     return lockMap;
   }, [course?.modules, moduleProgress]);
 
+  const assessmentLockReasonByModule = useMemo(() => {
+    const reasonMap = new Map();
+    const modules = course?.modules || [];
+
+    modules.forEach((module, moduleIndex) => {
+      const moduleState = moduleProgress.get(String(module.id));
+      if (!moduleState || (moduleState.moduleUnlocked && moduleState.lessonsCompleted)) {
+        reasonMap.set(String(module.id), '');
+        return;
+      }
+
+      if (!moduleState.moduleUnlocked) {
+        const previousModule = modules[moduleIndex - 1];
+        const previousState = previousModule ? moduleProgress.get(String(previousModule.id)) : null;
+        if (previousState && !previousState.lessonsCompleted) {
+          const remainingLessons = previousState.lessonItems.filter(
+            (item) => !completedLessonIds.has(item.id),
+          ).length;
+          reasonMap.set(
+            String(module.id),
+            `Mô-đun trước còn ${remainingLessons} bài học chưa hoàn thành.`,
+          );
+          return;
+        }
+        if (previousState && !previousState.moduleAssessmentsPassed) {
+          const previousModuleAssessments = assessmentsByModule.get(String(previousModule.id)) || [];
+          const thresholdLabel = previousModuleAssessments
+            .map((assessment) => formatPassingThresholdLabel(assessment, course))
+            .find(Boolean);
+          reasonMap.set(
+            String(module.id),
+            thresholdLabel
+              ? `Bài test cuối mô-đun trước chưa đạt yêu cầu (${thresholdLabel}). Hãy làm lại bài test để mở mô-đun tiếp theo.`
+              : 'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
+          );
+          return;
+        }
+        reasonMap.set(String(module.id), 'Hãy hoàn thành mô-đun trước để mở bài đánh giá này.');
+        return;
+      }
+
+      const remainingLessons = moduleState.lessonItems.filter(
+        (item) => !completedLessonIds.has(item.id),
+      ).length;
+      reasonMap.set(
+        String(module.id),
+        `Còn ${remainingLessons} bài học trong mô-đun này chưa hoàn thành.`,
+      );
+    });
+
+    return reasonMap;
+  }, [assessmentsByModule, completedLessonIds, course, moduleProgress]);
+
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
     const courseLevelAssessments = assessmentsByModule.get('course') || [];
@@ -203,13 +256,14 @@ const CourseWorkspace = () => {
           module,
           moduleIndex,
           isLocked: assessmentLockByModule.get(String(module.id)) ?? false,
+          lockReason: assessmentLockReasonByModule.get(String(module.id)) || '',
           assessments: trailingAssessments,
           title: `Bài kiểm tra cuối module: ${module.title}`,
           description: 'Nộp bài viết hoặc câu trả lời để nhận góp ý theo tiêu chí đánh giá của module.',
         },
       ];
     });
-  }, [assessmentLockByModule, assessmentsByModule, course?.modules, lessonItems]);
+  }, [assessmentLockByModule, assessmentLockReasonByModule, assessmentsByModule, course?.modules, lessonItems]);
 
   const activeWorkspaceItem = useMemo(() => {
     if (!workspaceItems.length) return null;
@@ -357,16 +411,24 @@ const CourseWorkspace = () => {
         if (!active) return;
 
         const normalizedCourse = normalizeCourse({ ...courseResponse, registered: true });
-        const localStoredEnrollments = readEnrollments().map(normalizeEnrollment);
-        const matchedEnrollment = [...myCourses.map(normalizeEnrollment), ...localStoredEnrollments]
+        const matchedEnrollment = myCourses
+          .map(normalizeEnrollment)
           .find((item) => item.courseSlug === normalizedCourse.slug || String(item.courseId) === String(normalizedCourse.id));
 
-        if (!matchedEnrollment) {
-          navigate(`/courses/${normalizedCourse.slug}`, { replace: true, state: { course: normalizedCourse } });
+        if (!matchedEnrollment || !isActiveOnlineEnrollment(matchedEnrollment)) {
+          navigate(`/courses/${normalizedCourse.slug}`, {
+            replace: true,
+            state: {
+              course: normalizedCourse,
+              accessMessage: 'Bạn cần đăng ký khóa học (hoặc đăng ký lại nếu đã hủy) để vào không gian học.',
+            },
+          });
           return;
         }
 
-        setCourse(normalizedCourse);
+        const enrolledCourseResponse = await courseApi.getEnrolledCourseContent(normalizedCourse.id);
+        if (!active) return;
+        setCourse(normalizeCourse({ ...enrolledCourseResponse, registered: true }));
         applyEnrollment(matchedEnrollment);
         try {
           const items = await courseApi.getCourseAssessments(normalizedCourse.id);
@@ -383,40 +445,7 @@ const CourseWorkspace = () => {
       } catch {
         if (!active) return;
         setAssessmentsLoaded(true);
-        const stateCourse = location.state?.course ? normalizeCourse(location.state.course) : null;
-        const stateEnrollment = location.state?.enrollment ? normalizeEnrollment(location.state.enrollment) : null;
-        const localEnrollment = readEnrollments()
-          .map(normalizeEnrollment)
-          .find((item) => item.courseSlug === slugOrId || String(item.courseId) === String(slugOrId));
-
-        if (stateCourse?.registered) {
-          setCourse(stateCourse);
-          applyEnrollment(
-            stateEnrollment
-              ?? normalizeEnrollment({
-                courseId: stateCourse.id,
-                courseSlug: stateCourse.slug,
-                courseTitle: stateCourse.title,
-                thumbnailUrl: stateCourse.thumbnailUrl,
-                progressPercent: stateCourse.progressPercent ?? 0,
-              }),
-          );
-          return;
-        }
-
-        const fallback = findFallbackCourse(slugOrId);
-        if (fallback && (location.state?.course?.registered || localEnrollment)) {
-          setCourse(normalizeCourse({ ...fallback, registered: true }));
-          applyEnrollment(localEnrollment || normalizeEnrollment({
-            courseId: fallback.id,
-            courseSlug: fallback.slug,
-            courseTitle: fallback.title,
-            thumbnailUrl: fallback.thumbnailUrl,
-            progressPercent: 68,
-          }));
-        } else {
-          setError('Không mở được không gian học của khóa học này.');
-        }
+        setError('Bạn cần đăng ký khóa học (hoặc đăng ký lại nếu đã hủy) để vào không gian học.');
       } finally {
         if (active) setLoading(false);
       }
@@ -449,9 +478,9 @@ const CourseWorkspace = () => {
   const handleSelectLesson = (lessonId) => {
     const targetItem = workspaceItems.find((item) => String(item.id) === String(lessonId));
     if (targetItem?.isLocked) {
-      setError(targetItem.type === 'assessment'
-        ? 'Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi mở bài đánh giá cuối mô-đun.'
-        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.');
+      setError(targetItem.lockReason || (targetItem.type === 'assessment'
+        ? 'Bài đánh giá cuối mô-đun này chưa được mở.'
+        : 'Bạn cần hoàn thành bài học trước đó trước khi mở nội dung này.'));
       return;
     }
     setError('');
@@ -470,9 +499,13 @@ const CourseWorkspace = () => {
         nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
       } catch (err) {
         const message = err?.response?.data?.message || '';
-        if (!/not enrolled|chưa đăng ký|not registered/i.test(message)) throw err;
-        await courseApi.registerOnlineCourse(course.id);
-        nextEnrollment = await courseApi.updateLessonProgress(course.id, lessonId, shouldComplete);
+        if (/not enrolled|chưa đăng ký|not registered/i.test(message)) {
+          navigate(`/courses/${course.slug || course.id}`, {
+            state: { course, accessMessage: 'Bạn cần hoàn tất ghi danh hoặc thanh toán trước khi học khóa này.' },
+          });
+          return;
+        }
+        throw err;
       }
       applyEnrollment(nextEnrollment);
     } catch (err) {
@@ -671,6 +704,7 @@ const CourseWorkspace = () => {
             course={course}
             activeLessonId={activeLessonId}
             assessmentLockByModule={assessmentLockByModule}
+            assessmentLockReasonByModule={assessmentLockReasonByModule}
             assessmentModuleIds={moduleAssessmentIds}
             completedLessonIds={completedLessonIds}
             lessonItems={lessonItems}
@@ -689,7 +723,9 @@ const CourseWorkspace = () => {
               <AiAssessmentPanel
                 assessments={activeWorkspaceItem.assessments}
                 moduleTitle={activeWorkspaceItem.module?.title}
+                courseTargetBand={course?.targetBand}
                 isLocked={activeWorkspaceItem.isLocked}
+                lockReason={activeWorkspaceItem.lockReason}
                 onMoveStep={handleMoveLesson}
                 onSubmitAssessment={handleSubmitAssessment}
                 draftGetter={getAssessmentDraft}
@@ -723,7 +759,7 @@ const CourseWorkspace = () => {
           </div>
 
           {!hideRightRail ? (
-            <div className="hidden min-w-0 self-stretch xl:block">
+            <div className="sticky top-[96px] hidden h-[calc(100dvh-112px)] min-w-0 self-start xl:block">
               <WorkspaceRightRail
                 activeLesson={activeWorkspaceItem}
                 mode={rightPanelVisible ? rightPanelMode : null}

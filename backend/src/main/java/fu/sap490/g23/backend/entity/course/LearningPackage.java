@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.entity.course;
 
+import fu.sap490.g23.backend.entity.course.enums.*;
+
 import fu.sap490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -78,6 +80,19 @@ public class LearningPackage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
+
+    @Column(name = "review_note", columnDefinition = "text")
+    private String reviewNote;
+
+    @Column(name = "submitted_for_review_at")
+    private LocalDateTime submittedForReviewAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by_id")
+    private User reviewedBy;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

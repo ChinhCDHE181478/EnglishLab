@@ -25,8 +25,17 @@ const defaultFilters = {
   promotion: '',
 };
 
+const deriveLearnerTargetBand = (user) => {
+  if (!user || String(user.targetExam || '').toUpperCase() !== 'IELTS') {
+    return null;
+  }
+  const parsed = Number(user.targetScore);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const Courses = () => {
   const [allCourses, setAllCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
   const [keyword, setKeyword] = useState('');
@@ -62,6 +71,20 @@ const Courses = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    courseApi.getOnlineCourseCategories()
+      .then((items) => {
+        if (active) setCategories(items);
+      })
+      .catch(() => {
+        if (active) setCategories([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const loadMyEnrollments = useCallback(async () => {
     if (!hasAccessToken()) {
       setMyEnrollments([]);
@@ -70,7 +93,9 @@ const Courses = () => {
 
     try {
       const enrollments = await courseApi.getMyOnlineCourses();
-      const normalized = enrollments.map(normalizeEnrollment);
+      const normalized = enrollments
+        .map(normalizeEnrollment)
+        .filter((enrollment) => enrollment.courseId && enrollment.courseSlug);
       setMyEnrollments(normalized);
       return normalized;
     } catch {
@@ -139,9 +164,9 @@ const Courses = () => {
       courses: allCourses,
       enrollments: myEnrollments,
       currentBand: user?.currentBand ?? null,
-      targetBand: user?.targetBand ?? null,
+      targetBand: deriveLearnerTargetBand(user),
     }),
-    [allCourses, myEnrollments, user?.currentBand, user?.targetBand],
+    [allCourses, myEnrollments, user],
   );
 
   const handleClearFilters = () => {
@@ -161,7 +186,7 @@ const Courses = () => {
       <Header />
       <main className="mx-auto max-w-[1320px] px-4 pb-[80px] pt-6 md:px-10">
         <CourseHero user={user} registeredCount={myEnrollments.length} />
-        <CategoryTabs activeCategory={activeCategory} onChange={setActiveCategory} />
+        <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
         <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
         {error ? (
           <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
@@ -185,6 +210,7 @@ const Courses = () => {
           onClear={handleClearFilters}
           loading={loading}
           currentBand={user?.currentBand ?? null}
+          categories={categories}
         />
       </main>
       <CourseFooter />

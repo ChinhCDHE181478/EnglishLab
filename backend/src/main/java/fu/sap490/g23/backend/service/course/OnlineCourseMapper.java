@@ -2,24 +2,27 @@ package fu.sap490.g23.backend.service.course;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sap490.g23.backend.dto.response.course.LessonResponse;
 import fu.sap490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
-import fu.sap490.g23.backend.entity.assessment.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.course.CourseCategory;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sap490.g23.backend.repository.course.CourseReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -39,14 +42,23 @@ public class OnlineCourseMapper {
     private final OnlineCourseRepository onlineCourseRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
+    private final CourseReviewRepository courseReviewRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OnlineCourseResponse toResponse(OnlineCourse course) {
-        return toResponse(course, false, null, null);
+        return toResponse(course, false, null, null, true);
+    }
+
+    public OnlineCourseResponse toPublicResponse(OnlineCourse course) {
+        return toResponse(course, false, null, null, false);
     }
 
     public OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId) {
+        return toResponse(course, registered, progressPercent, enrollmentId, true);
+    }
+
+    private OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId, boolean includeLessonContent) {
         LearningPackage learningPackage = course.getLearningPackage();
         CourseCategory category = course.getCategory();
         BigDecimal originalPrice = safePrice(learningPackage.getPrice());
@@ -86,10 +98,12 @@ public class OnlineCourseMapper {
                 .progressPercent(progressPercent)
                 .enrollmentId(enrollmentId)
                 .enrollmentCount(packageEnrollmentRepository.countByLearningPackage(learningPackage))
+                .averageRating(resolveAverageRating(course))
+                .reviewCount(courseReviewRepository.countByCourse(course))
                 .createdAt(learningPackage.getCreatedAt())
                 .updatedAt(learningPackage.getUpdatedAt())
                 .focusSkills(resolveFocusSkills(course))
-                .modules(toModuleResponses(course.getModules()))
+                .modules(toModuleResponses(course.getModules(), includeLessonContent))
                 .build();
     }
 
@@ -116,7 +130,7 @@ public class OnlineCourseMapper {
                 .build();
     }
 
-    private List<ModuleResponse> toModuleResponses(List<CourseModule> modules) {
+    private List<ModuleResponse> toModuleResponses(List<CourseModule> modules, boolean includeLessonContent) {
         return modules.stream()
                 .sorted(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(CourseModule::getId))
                 .map(module -> ModuleResponse.builder()
@@ -124,30 +138,34 @@ public class OnlineCourseMapper {
                         .title(module.getTitle())
                         .description(module.getDescription())
                         .displayOrder(module.getDisplayOrder())
-                        .lessons(toLessonResponses(module.getLessons()))
+                        .lessons(toLessonResponses(module.getLessons(), includeLessonContent))
                         .build())
                 .toList();
     }
 
-    private List<LessonResponse> toLessonResponses(List<Lesson> lessons) {
+    private List<LessonResponse> toLessonResponses(List<Lesson> lessons, boolean includeLessonContent) {
         return lessons.stream()
                 .sorted(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(Lesson::getId))
-                .map(lesson -> LessonResponse.builder()
+                .map(lesson -> {
+                    boolean exposeContent = includeLessonContent || lesson.isPreview();
+                    return LessonResponse.builder()
                         .id(lesson.getId())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
                         .contentType(lesson.getContentType())
-                        .contentText(lesson.getContentText())
-                        .videoUrl(lesson.getVideoUrl())
-                        .bunnyVideoId(lesson.getBunnyVideoId())
-                        .bunnyLibraryId(lesson.getBunnyLibraryId())
-                        .bunnyCdnUrl(lesson.getBunnyCdnUrl())
-                        .materialUrl(lesson.getMaterialUrl())
-                        .transcriptSegments(parseTranscriptSegments(lesson.getTranscriptSegmentsJson()))
+                        .contentText(exposeContent ? lesson.getContentText() : null)
+                        .videoUrl(exposeContent ? lesson.getVideoUrl() : null)
+                        .bunnyVideoId(exposeContent ? lesson.getBunnyVideoId() : null)
+                        .bunnyLibraryId(includeLessonContent ? lesson.getBunnyLibraryId() : null)
+                        .bunnyCdnUrl(exposeContent ? lesson.getBunnyCdnUrl() : null)
+                        .materialUrl(exposeContent ? lesson.getMaterialUrl() : null)
+                        .transcriptSegments(exposeContent ? parseTranscriptSegments(lesson.getTranscriptSegmentsJson()) : List.of())
+                        .flashcardSets(exposeContent ? toFlashcardSetResponses(lesson) : List.of())
                         .durationMinutes(lesson.getDurationMinutes())
                         .displayOrder(lesson.getDisplayOrder())
                         .preview(lesson.isPreview())
-                        .build())
+                        .build();
+                })
                 .toList();
     }
 
@@ -187,7 +205,12 @@ public class OnlineCourseMapper {
         Set<String> skills = new LinkedHashSet<>();
 
         courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
-                .map(assessment -> assessment.getSkill() == null ? null : assessment.getSkill().name())
+                .map(assessment -> {
+                    AssessmentSkill skill = assessment.getAssessmentBankItem() == null
+                            ? assessment.getSkill()
+                            : assessment.getAssessmentBankItem().getSkill();
+                    return skill == null ? null : skill.name();
+                })
                 .filter(skill -> skill != null && !skill.isBlank())
                 .forEach(skills::add);
 
@@ -223,6 +246,11 @@ public class OnlineCourseMapper {
         return value == null ? BigDecimal.ZERO : value;
     }
 
+    private Double resolveAverageRating(OnlineCourse course) {
+        Double average = courseReviewRepository.findAverageRatingByCourse(course);
+        return average == null ? 0D : BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP).doubleValue();
+    }
+
     private BigDecimal resolveSalePrice(LearningPackage learningPackage) {
         BigDecimal originalPrice = safePrice(learningPackage.getPrice());
         BigDecimal salePrice = learningPackage.getSalePrice();
@@ -252,5 +280,34 @@ public class OnlineCourseMapper {
         } catch (Exception ex) {
             return List.of();
         }
+    }
+
+    private List<FlashcardSetResponse> toFlashcardSetResponses(Lesson lesson) {
+        if (lesson.getFlashcardRefs() == null) {
+            return List.of();
+        }
+        return lesson.getFlashcardRefs().stream()
+                .map(ref -> toFlashcardSetResponse(ref.getFlashcardSet()))
+                .filter(response -> response != null)
+                .toList();
+    }
+
+    private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
+        if (set == null) {
+            return null;
+        }
+        return FlashcardSetResponse.builder()
+                .id(set.getId())
+                .title(set.getTitle())
+                .description(set.getDescription())
+                .examCategory(set.getExamCategory())
+                .skill(set.getSkill())
+                .tags(set.getTags())
+                .cardsJson(set.getCardsJson())
+                .status(set.getStatus())
+                .displayOrder(set.getDisplayOrder())
+                .createdAt(set.getCreatedAt())
+                .updatedAt(set.getUpdatedAt())
+                .build();
     }
 }
