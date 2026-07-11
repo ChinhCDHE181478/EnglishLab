@@ -63,6 +63,8 @@ const WorkspaceRightRail = ({
   reviewFlags = [],
   recentLessons = [],
   canPersist = false,
+  syncing = false,
+  syncError = '',
   onModeChange,
   onSeekTranscript,
   onSaveTranscriptNote,
@@ -257,6 +259,8 @@ const WorkspaceRightRail = ({
         </div>
 
         <div ref={transcriptContainerRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
+        {syncing ? <p className="mt-4 text-xs font-semibold text-[#8c716f]">Đang đồng bộ ghi chú...</p> : null}
+        {syncError ? <p className="mt-4 rounded-lg bg-[#fff0f1] px-3 py-2 text-xs font-semibold text-[#730014]">{syncError}</p> : null}
         {panelMode === 'transcript' ? (
           <div className="mt-6">
             {message ? <p className="mb-4 text-sm font-semibold text-[#730014]">{message}</p> : null}
@@ -310,6 +314,16 @@ const WorkspaceRightRail = ({
               >
                 <span className="material-symbols-outlined text-[18px]">add</span>
                 Thêm ghi chú
+              </button>
+              <button
+                className={`rounded-[8px] px-3 py-2 text-xs font-extrabold transition ${
+                  flagged ? 'bg-[#fff0f1] text-[#730014]' : 'border border-[#dfbfbd] bg-white text-[#584140] hover:bg-[#fff8f8]'
+                }`}
+                disabled={syncing}
+                type="button"
+                onClick={() => onToggleReviewFlag?.()}
+              >
+                {flagged ? 'Đã đánh dấu học lại' : 'Đánh dấu học lại'}
               </button>
             </div>
 

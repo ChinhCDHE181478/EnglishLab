@@ -31,6 +31,8 @@ const CourseWorkspace = () => {
   const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
   const {
     isAuthenticated,
+    studyToolsSyncing,
+    studyToolsSyncError,
     lessonNotes,
     lessonFlags,
     recentLessons,
@@ -768,6 +770,8 @@ const CourseWorkspace = () => {
                 reviewFlags={courseReviewFlags}
                 recentLessons={courseRecentLessons}
                 canPersist={isAuthenticated}
+                syncing={studyToolsSyncing}
+                syncError={studyToolsSyncError}
                 onModeChange={(nextMode) => setRightPanelMode((current) => (current === nextMode ? null : nextMode))}
                 onSeekTranscript={handleSeekTranscript}
                 onSaveTranscriptNote={({ content, selectedText, transcriptStartSeconds }) => saveLessonNote({
