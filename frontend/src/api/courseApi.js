@@ -150,6 +150,41 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getLearnerLessonNotes() {
+    const response = await axiosClient.get('/api/student/learning/notes');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createLearnerLessonNote(courseId, lessonId, payload) {
+    const response = await axiosClient.post(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/notes`, payload);
+    return unwrapData(response);
+  },
+
+  async updateLearnerLessonNote(noteId, payload) {
+    const response = await axiosClient.put(`/api/student/learning/notes/${noteId}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteLearnerLessonNote(noteId) {
+    await axiosClient.delete(`/api/student/learning/notes/${noteId}`);
+  },
+
+  async getLearnerLessonReviewFlags() {
+    const response = await axiosClient.get('/api/student/learning/review-flags');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async addLearnerLessonReviewFlag(courseId, lessonId) {
+    const response = await axiosClient.post(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
+    return unwrapData(response);
+  },
+
+  async removeLearnerLessonReviewFlag(courseId, lessonId) {
+    await axiosClient.delete(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
+  },
+
   async getLessonDiscussions(courseId, lessonId, filter = 'ALL') {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/lessons/${lessonId}/discussions`, {
       params: { filter },
