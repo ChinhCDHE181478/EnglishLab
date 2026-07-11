@@ -23,6 +23,8 @@ import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
@@ -65,6 +67,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -474,6 +478,139 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
                 .map(mapper::toEnrollmentResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LearnerLearningPathResponse getMyLearningPath(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        List<OnlineCourse> courses = onlineCourseRepository.findPublishedLearningPathCourses(PackageStatus.PUBLISHED);
+        Map<Long, PackageEnrollment> enrollmentsByPackageId = enrollmentRepository
+                .findByStudentOrderByRegisteredAtDesc(student)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        enrollment -> enrollment.getLearningPackage().getId(),
+                        enrollment -> enrollment,
+                        (first, ignored) -> first
+                ));
+
+        Map<String, List<OnlineCourse>> groupedCourses = new LinkedHashMap<>();
+        courses.forEach(course -> groupedCourses
+                .computeIfAbsent(course.getLearningPathCode().trim(), ignored -> new ArrayList<>())
+                .add(course));
+
+        List<LearnerLearningPathResponse.PathOverview> paths = groupedCourses.entrySet().stream()
+                .map(entry -> buildLearningPathOverview(entry.getKey(), entry.getValue(), enrollmentsByPackageId))
+                .sorted(Comparator.comparing(LearnerLearningPathResponse.PathOverview::getCode)
+                        .thenComparing(LearnerLearningPathResponse.PathOverview::getName))
+                .toList();
+
+        return LearnerLearningPathResponse.builder()
+                .currentBand(student.getCurrentBand())
+                .targetExam(student.getTargetExam())
+                .targetScore(student.getTargetScore())
+                .paths(paths)
+                .build();
+    }
+
+    private LearnerLearningPathResponse.PathOverview buildLearningPathOverview(
+            String code,
+            List<OnlineCourse> pathCourses,
+            Map<Long, PackageEnrollment> enrollmentsByPackageId
+    ) {
+        List<OnlineCourse> sortedCourses = pathCourses.stream()
+                .sorted(Comparator.comparing((OnlineCourse course) -> defaultInt(course.getLearningPathOrder()))
+                        .thenComparing(OnlineCourse::getId))
+                .toList();
+
+        OnlineCourse enrolledCurrentCourse = sortedCourses.stream()
+                .filter(course -> {
+                    PackageEnrollment enrollment = activeLearningPathEnrollment(
+                            enrollmentsByPackageId.get(course.getLearningPackage().getId())
+                    );
+                    return enrollment != null
+                            && enrollment.getStatus() == EnrollmentStatus.ACTIVE
+                            && defaultInt(enrollment.getProgressPercent()) < 100;
+                })
+                .findFirst()
+                .orElse(null);
+
+        Long nextCourseId = null;
+        Long currentStepCourseId;
+        if (enrolledCurrentCourse != null) {
+            currentStepCourseId = enrolledCurrentCourse.getId();
+            int currentIndex = sortedCourses.indexOf(enrolledCurrentCourse);
+            for (int index = currentIndex + 1; index < sortedCourses.size(); index++) {
+                OnlineCourse candidate = sortedCourses.get(index);
+                PackageEnrollment enrollment = activeLearningPathEnrollment(
+                        enrollmentsByPackageId.get(candidate.getLearningPackage().getId())
+                );
+                if (enrollment == null) {
+                    nextCourseId = candidate.getId();
+                    break;
+                }
+            }
+        } else {
+            currentStepCourseId = null;
+            boolean previousCoursesCompleted = true;
+            for (OnlineCourse course : sortedCourses) {
+                PackageEnrollment enrollment = activeLearningPathEnrollment(
+                        enrollmentsByPackageId.get(course.getLearningPackage().getId())
+                );
+                boolean completed = isLearningPathCourseCompleted(enrollment);
+                if (previousCoursesCompleted && enrollment == null) {
+                    currentStepCourseId = course.getId();
+                    nextCourseId = course.getId();
+                    break;
+                }
+                previousCoursesCompleted = previousCoursesCompleted && completed;
+            }
+        }
+
+        List<LearnerLearningPathCourseResponse> courseResponses = new ArrayList<>();
+        boolean prerequisiteCompleted = true;
+        for (OnlineCourse course : sortedCourses) {
+            PackageEnrollment enrollment = activeLearningPathEnrollment(
+                    enrollmentsByPackageId.get(course.getLearningPackage().getId())
+            );
+            boolean completed = isLearningPathCourseCompleted(enrollment);
+            boolean accessible = enrollment != null || prerequisiteCompleted;
+            courseResponses.add(LearnerLearningPathCourseResponse.builder()
+                    .courseId(course.getId())
+                    .slug(course.getLearningPackage().getSlug())
+                    .title(course.getLearningPackage().getTitle())
+                    .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
+                    .learningPathOrder(course.getLearningPathOrder())
+                    .enrollmentStatus(enrollment == null ? "NOT_ENROLLED" : enrollment.getStatus().name())
+                    .progressPercent(enrollment == null ? 0 : defaultInt(enrollment.getProgressPercent()))
+                    .completed(completed)
+                    .lockedReason(accessible ? null : "Hoàn thành khóa học trước để mở bước này.")
+                    .build());
+            prerequisiteCompleted = prerequisiteCompleted && completed;
+        }
+
+        return LearnerLearningPathResponse.PathOverview.builder()
+                .code(code)
+                .name(sortedCourses.getFirst().getLearningPathName())
+                .totalCourses(sortedCourses.size())
+                .completedCourses((int) courseResponses.stream().filter(LearnerLearningPathCourseResponse::isCompleted).count())
+                .currentStepCourseId(currentStepCourseId)
+                .nextCourseId(nextCourseId)
+                .courses(courseResponses)
+                .build();
+    }
+
+    private boolean isLearningPathCourseCompleted(PackageEnrollment enrollment) {
+        return enrollment != null
+                && (enrollment.getStatus() == EnrollmentStatus.COMPLETED || defaultInt(enrollment.getProgressPercent()) >= 100);
+    }
+
+    private PackageEnrollment activeLearningPathEnrollment(PackageEnrollment enrollment) {
+        if (enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+            return null;
+        }
+        return enrollment;
     }
 
     @Override

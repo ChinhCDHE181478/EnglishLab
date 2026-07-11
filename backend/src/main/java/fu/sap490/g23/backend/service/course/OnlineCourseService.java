@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
@@ -41,6 +42,7 @@ public interface OnlineCourseService {
     OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail);
     OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail);
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
+    LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);
     PackageEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail);

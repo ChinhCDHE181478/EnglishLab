@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -25,6 +26,17 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
 
     @EntityGraph(attributePaths = {"learningPackage", "category"})
     List<OnlineCourse> findAllByCategoryIsNull();
+
+    @EntityGraph(attributePaths = {"learningPackage"})
+    @Query("""
+            select c from OnlineCourse c
+            where c.learningPackage.deleted = false
+              and c.learningPackage.status = :status
+              and c.learningPathCode is not null
+              and trim(c.learningPathCode) <> ''
+            order by c.learningPathCode asc, c.learningPathName asc, c.learningPathOrder asc, c.id asc
+            """)
+    List<OnlineCourse> findPublishedLearningPathCourses(PackageStatus status);
 
     long countByCategoryAndLearningPackageDeletedFalse(CourseCategory category);
 
