@@ -15,7 +15,6 @@ import {
 import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
-import { recommendCoursesForLearner } from '../utils/selfPacedHelpers';
 
 const PAGE_SIZE = 100;
 const defaultFilters = {
@@ -24,14 +23,6 @@ const defaultFilters = {
   targetBand: '',
   skill: '',
   promotion: '',
-};
-
-const deriveLearnerTargetBand = (user) => {
-  if (!user || String(user.targetExam || '').toUpperCase() !== 'IELTS') {
-    return null;
-  }
-  const parsed = Number(user.targetScore);
-  return Number.isFinite(parsed) ? parsed : null;
 };
 
 const Courses = () => {
@@ -43,6 +34,9 @@ const Courses = () => {
   const [filters, setFilters] = useState(defaultFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [backendRecommendations, setBackendRecommendations] = useState([]);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState('');
   const [user, setUser] = useState(() => (hasAccessToken() ? getStoredUser() : null));
 
   const isAuthenticated = Boolean(user && hasAccessToken());
@@ -55,17 +49,19 @@ const Courses = () => {
       return undefined;
     }
 
-    getCurrentUser()
-      .then((response) => {
+    const loadUser = async () => {
+      try {
+        const response = await getCurrentUser();
         if (!active) return;
         localStorage.setItem('user', JSON.stringify(response.data));
         window.dispatchEvent(new Event('englishlab:user-updated'));
         setUser(response.data);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setUser(getStoredUser());
-      });
+      }
+    };
+    loadUser();
 
     return () => {
       active = false;
@@ -74,17 +70,42 @@ const Courses = () => {
 
   useEffect(() => {
     let active = true;
-    courseApi.getOnlineCourseCategories()
-      .then((items) => {
+    const loadCategories = async () => {
+      try {
+        const items = await courseApi.getOnlineCourseCategories();
         if (active) setCategories(items);
-      })
-      .catch(() => {
+      } catch {
         if (active) setCategories([]);
-      });
+      }
+    };
+    loadCategories();
     return () => {
       active = false;
     };
   }, []);
+
+  const loadRecommendations = useCallback(async () => {
+    if (!hasAccessToken()) {
+      setBackendRecommendations([]);
+      setRecommendationError('');
+      return;
+    }
+    setRecommendationLoading(true);
+    setRecommendationError('');
+    try {
+      const items = await courseApi.getRecommendedCourses();
+      setBackendRecommendations(items.map(normalizeCourse));
+    } catch {
+      setBackendRecommendations([]);
+      setRecommendationError('Không thể tải gợi ý cá nhân hóa. Vui lòng thử lại.');
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations, user?.id]);
 
   const loadMyEnrollments = useCallback(async () => {
     if (!hasAccessToken()) {
@@ -160,15 +181,14 @@ const Courses = () => {
     return (featured.length ? featured : visibleCourses).slice(0, 4);
   }, [visibleCourses]);
 
-  const recommendedCourses = useMemo(
-    () => recommendCoursesForLearner({
-      courses: allCourses,
-      enrollments: myEnrollments,
-      currentBand: user?.currentBand ?? null,
-      targetBand: deriveLearnerTargetBand(user),
-    }),
-    [allCourses, myEnrollments, user],
-  );
+  const recommendedCourses = useMemo(() => (
+    isAuthenticated
+      ? backendRecommendations
+      : featuredCourses.slice(0, 3).map((course) => ({
+        ...course,
+        recommendationReason: 'Khóa học nổi bật để bạn tham khảo trước khi cập nhật hồ sơ học tập.',
+      }))
+  ), [backendRecommendations, featuredCourses, isAuthenticated]);
 
   const handleClearFilters = () => {
     setKeyword('');
@@ -206,9 +226,10 @@ const Courses = () => {
         <RecommendedCoursesSection
           courses={recommendedCourses}
           currentBand={user?.currentBand ?? null}
-          loading={loading}
-          error={error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
-          onRetry={loadCourses}
+          loading={isAuthenticated ? recommendationLoading : loading}
+          error={isAuthenticated ? recommendationError : error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
+          profileBased={isAuthenticated}
+          onRetry={isAuthenticated ? loadRecommendations : loadCourses}
         />
         <PopularCourses courses={featuredCourses} />
         <CourseCatalog

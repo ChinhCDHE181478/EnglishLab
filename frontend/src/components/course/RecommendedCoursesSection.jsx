@@ -1,6 +1,6 @@
 import CatalogCourseCard from './CatalogCourseCard';
 
-const RecommendedCoursesSection = ({ courses = [], loading = false, error = '', hasCurrentBand = false, currentBand = null, onRetry }) => {
+const RecommendedCoursesSection = ({ courses = [], loading = false, error = '', hasCurrentBand = false, currentBand = null, profileBased = false, onRetry }) => {
   const daCoBandHienTai = hasCurrentBand || Number(currentBand) > 0;
 
   return (
@@ -8,7 +8,9 @@ const RecommendedCoursesSection = ({ courses = [], loading = false, error = '', 
       <div className="mb-6 flex flex-col gap-2">
         <h2 className="font-['Manrope'] text-[32px] font-extrabold leading-[1.2] text-[#4b0009]">Khóa học phù hợp với bạn</h2>
         <p className="text-sm leading-7 text-[#584140]">
-          {daCoBandHienTai
+          {profileBased
+            ? 'Gợi ý cá nhân hóa từ hồ sơ, band hiện tại, mục tiêu và kỹ năng cần cải thiện của bạn.'
+            : daCoBandHienTai
             ? 'Gợi ý dựa trên trình độ hiện tại, mục tiêu đầu ra và dữ liệu khóa học hiện có.'
             : 'Hãy cập nhật trình độ hiện tại để nhận gợi ý khóa học chính xác hơn. Trong lúc này, EnglishLab vẫn hiển thị các khóa học nổi bật.'}
         </p>
