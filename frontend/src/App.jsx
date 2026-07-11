@@ -13,6 +13,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
+import LearningPathPage from './pages/LearningPathPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PlacementTestPage from './pages/PlacementTestPage';
 import Register from './pages/Register';
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/my-courses" element={<MyCoursesPage />} />
+        <Route path="/learning-path" element={<LearningPathPage />} />
         <Route path="/my-classrooms" element={<MyClassroomsPage />} />
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />
