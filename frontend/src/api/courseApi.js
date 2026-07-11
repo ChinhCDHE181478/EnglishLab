@@ -150,6 +150,11 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getMyLearningPath() {
+    const response = await axiosClient.get('/api/student/learning-path');
+    return unwrapData(response);
+  },
+
   async getLearnerLessonNotes() {
     const response = await axiosClient.get('/api/student/learning/notes');
     const data = unwrapData(response);
