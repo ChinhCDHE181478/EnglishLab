@@ -5,10 +5,13 @@ const formatDateLong = (value) => {
   return `${date.getDate().toString().padStart(2, '0')} tháng ${(date.getMonth() + 1).toString().padStart(2, '0')} năm ${date.getFullYear()}`;
 };
 
-const CertificatePreview = ({ certificate }) => {
+const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp = '' }) => {
   if (!certificate) return null;
 
-  const verificationUrl = `englishlab.edu.vn/xac-thuc/${certificate.verificationCode}`;
+  const verificationPath = verificationUrlProp || `/certificates/${encodeURIComponent(certificate.verificationCode || '')}`;
+  const verificationUrl = verificationPath.startsWith('http') || typeof window === 'undefined'
+    ? verificationPath
+    : `${window.location.origin}${verificationPath}`;
 
   return (
     <div className="mx-auto w-full max-w-[1122px]">
@@ -25,6 +28,11 @@ const CertificatePreview = ({ certificate }) => {
               box-shadow: none !important;
               margin: 0 !important;
             }
+            .certificate-print-page {
+              width: 297mm !important;
+              height: 210mm !important;
+              max-width: none !important;
+            }
             @page {
               size: A4 landscape;
               margin: 0;
@@ -33,7 +41,7 @@ const CertificatePreview = ({ certificate }) => {
         `}
       </style>
 
-      <div className="khung-chung-nhan relative mx-auto h-[794px] overflow-hidden bg-white shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
+      <div className="certificate-print-page khung-chung-nhan relative mx-auto h-[794px] overflow-hidden bg-white shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
         <div className="absolute inset-0 bg-[radial-gradient(rgba(115,0,20,0.03)_1px,transparent_1px)] bg-[length:20px_20px] opacity-60" />
         <div className="pointer-events-none absolute left-5 top-5 h-[calc(100%-40px)] w-[calc(100%-40px)] border-4 border-double border-[#dadad9]" />
 
