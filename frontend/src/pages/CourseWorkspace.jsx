@@ -762,6 +762,7 @@ const CourseWorkspace = () => {
             <div className="sticky top-[96px] hidden h-[calc(100dvh-112px)] min-w-0 self-start xl:block">
               <WorkspaceRightRail
                 activeLesson={activeWorkspaceItem}
+                courseId={course.id}
                 mode={rightPanelVisible ? rightPanelMode : null}
                 notes={courseNotes}
                 reviewFlags={courseReviewFlags}

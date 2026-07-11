@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import WorkspaceLessonDiscussion from './WorkspaceLessonDiscussion';
 
 const formatTime = (seconds = 0) => {
   const value = Math.max(0, Number(seconds) || 0);
@@ -51,10 +52,12 @@ const normalizeTranscriptSegments = (lesson) => {
 const getModeButtons = (hasVideo) => [
   ...(hasVideo ? [{ key: 'transcript', label: 'Bản chép lời', icon: 'subtitles' }] : []),
   { key: 'notes', label: 'Ghi chú', icon: 'edit_note' },
+  { key: 'discussion', label: 'Hỏi đáp', icon: 'forum' },
 ];
 
 const WorkspaceRightRail = ({
   activeLesson,
+  courseId,
   mode = null,
   notes = [],
   reviewFlags = [],
@@ -237,7 +240,7 @@ const WorkspaceRightRail = ({
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#f0e3e4] px-5 py-5">
           <div>
             <h2 className="text-xl font-extrabold text-[#1f2430]">
-              {panelMode === 'transcript' ? 'Bản chép lời' : 'Ghi chú'}
+              {panelMode === 'transcript' ? 'Bản chép lời' : panelMode === 'notes' ? 'Ghi chú' : 'Hỏi đáp'}
             </h2>
             {panelMode === 'transcript' ? (
               <p className="mt-2 text-sm font-semibold text-[#3f4d63]">Ngôn ngữ: Tiếng Anh</p>
@@ -437,6 +440,11 @@ const WorkspaceRightRail = ({
                 ))}
               </div>
             ) : null}
+          </div>
+        ) : null}
+        {panelMode === 'discussion' ? (
+          <div className="mt-6">
+            <WorkspaceLessonDiscussion courseId={courseId} lessonId={lessonId} canPersist={canPersist} />
           </div>
         ) : null}
         </div>
