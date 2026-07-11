@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
+    java.util.Optional<Lesson> findByIdAndModuleOnlineCourseId(Long lessonId, Long courseId);
+
     @Query("""
             select count(l)
             from Lesson l

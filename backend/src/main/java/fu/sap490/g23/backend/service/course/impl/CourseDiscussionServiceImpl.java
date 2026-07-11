@@ -23,6 +23,7 @@ import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyRepository;
@@ -31,6 +32,7 @@ import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyVoteReposito
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sap490.g23.backend.repository.course.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,6 +64,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final CourseDiscussionReplyVoteRepository voteRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final LessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final UserRepository userRepository;
 
@@ -71,10 +74,30 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         ensureCourseExists(courseId);
         User currentUser = email == null ? null : findUser(email);
         List<CourseDiscussionThreadResponse> items = threadRepository
-                .findByCourseIdAndStatusNotOrderByUpdatedAtDesc(courseId, CourseDiscussionStatus.HIDDEN)
+                .findByCourseIdAndLessonIsNullAndStatusNotOrderByUpdatedAtDesc(courseId, CourseDiscussionStatus.HIDDEN)
                 .stream()
                 .map(thread -> toThreadResponse(thread, currentUser))
                 .toList();
+
+        return filterDiscussions(items, filter);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email) {
+        ensureCourseExists(courseId);
+        findLessonInCourse(courseId, lessonId);
+        User currentUser = email == null ? null : findUser(email);
+        List<CourseDiscussionThreadResponse> items = threadRepository
+                .findByCourseIdAndLessonIdAndStatusNotOrderByUpdatedAtDesc(courseId, lessonId, CourseDiscussionStatus.HIDDEN)
+                .stream()
+                .map(thread -> toThreadResponse(thread, currentUser))
+                .toList();
+
+        return filterDiscussions(items, filter);
+    }
+
+    private List<CourseDiscussionThreadResponse> filterDiscussions(List<CourseDiscussionThreadResponse> items, String filter) {
 
         String normalizedFilter = String.valueOf(filter == null ? "ALL" : filter).toUpperCase(Locale.ROOT);
         if ("UNANSWERED".equals(normalizedFilter)) {
@@ -104,6 +127,30 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
         CourseDiscussionThread thread = CourseDiscussionThread.builder()
                 .course(course)
+                .author(author)
+                .title(title)
+                .content(content)
+                .status(status)
+                .build();
+
+        return toThreadResponse(threadRepository.save(thread), author);
+    }
+
+    @Override
+    public CourseDiscussionThreadResponse createLessonThread(Long courseId, Long lessonId, CourseDiscussionThreadRequest request, String email) {
+        OnlineCourse course = findPublicCourse(courseId);
+        Lesson lesson = findLessonInCourse(courseId, lessonId);
+        User author = findUser(email);
+        ensureDiscussionAccess(author, course);
+        String title = clean(request.getTitle());
+        String content = clean(request.getContent());
+        CourseDiscussionStatus status = shouldModerate(title + " " + content)
+                ? CourseDiscussionStatus.PENDING_REVIEW
+                : CourseDiscussionStatus.OPEN;
+
+        CourseDiscussionThread thread = CourseDiscussionThread.builder()
+                .course(course)
+                .lesson(lesson)
                 .author(author)
                 .title(title)
                 .content(content)
@@ -268,6 +315,11 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     private void ensureCourseExists(Long courseId) {
         findPublicCourse(courseId);
+    }
+
+    private Lesson findLessonInCourse(Long courseId, Long lessonId) {
+        return lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
     }
 
     private CourseDiscussionThread findThread(Long threadId) {

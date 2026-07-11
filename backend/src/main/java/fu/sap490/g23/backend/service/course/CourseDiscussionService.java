@@ -14,7 +14,11 @@ import java.util.List;
 public interface CourseDiscussionService {
     List<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email);
 
+    List<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email);
+
     CourseDiscussionThreadResponse createThread(Long courseId, CourseDiscussionThreadRequest request, String email);
+
+    CourseDiscussionThreadResponse createLessonThread(Long courseId, Long lessonId, CourseDiscussionThreadRequest request, String email);
 
     CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email);
 

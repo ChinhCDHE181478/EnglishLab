@@ -11,5 +11,15 @@ import java.util.List;
 @Repository
 public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDiscussionThread, Long> {
     @EntityGraph(attributePaths = {"author", "replies", "replies.author"})
-    List<CourseDiscussionThread> findByCourseIdAndStatusNotOrderByUpdatedAtDesc(Long courseId, CourseDiscussionStatus status);
+    List<CourseDiscussionThread> findByCourseIdAndLessonIsNullAndStatusNotOrderByUpdatedAtDesc(
+            Long courseId,
+            CourseDiscussionStatus status
+    );
+
+    @EntityGraph(attributePaths = {"author", "replies", "replies.author"})
+    List<CourseDiscussionThread> findByCourseIdAndLessonIdAndStatusNotOrderByUpdatedAtDesc(
+            Long courseId,
+            Long lessonId,
+            CourseDiscussionStatus status
+    );
 }

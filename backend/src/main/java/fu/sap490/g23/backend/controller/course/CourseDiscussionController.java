@@ -44,6 +44,19 @@ public class CourseDiscussionController {
         return ResponseEntity.ok(discussionService.getCourseDiscussions(courseId, filter, email));
     }
 
+    @GetMapping("/api/online-courses/{courseId}/lessons/{lessonId}/discussions")
+    public ResponseEntity<List<CourseDiscussionThreadResponse>> getLessonDiscussions(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestParam(defaultValue = "ALL") String filter,
+            Authentication authentication
+    ) {
+        String email = authentication == null || authentication instanceof AnonymousAuthenticationToken
+                ? null
+                : authentication.getName();
+        return ResponseEntity.ok(discussionService.getLessonDiscussions(courseId, lessonId, filter, email));
+    }
+
     @PostMapping("/api/student/online-courses/{courseId}/discussions")
     public ResponseEntity<CourseDiscussionThreadResponse> createThread(
             @PathVariable Long courseId,
@@ -51,6 +64,16 @@ public class CourseDiscussionController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(discussionService.createThread(courseId, request, authentication.getName()));
+    }
+
+    @PostMapping("/api/student/online-courses/{courseId}/lessons/{lessonId}/discussions")
+    public ResponseEntity<CourseDiscussionThreadResponse> createLessonThread(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @Valid @RequestBody CourseDiscussionThreadRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(discussionService.createLessonThread(courseId, lessonId, request, authentication.getName()));
     }
 
     @PostMapping("/api/student/online-courses/discussions/{threadId}/replies")
