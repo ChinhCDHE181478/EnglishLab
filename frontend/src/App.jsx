@@ -4,6 +4,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import { LearnerExperienceProvider } from './context/LearnerExperienceContext';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CertificateVerifyPage from './pages/CertificateVerifyPage';
 import CompleteProfile from './pages/CompleteProfile';
 import CourseDetail from './pages/CourseDetail';
 import CourseHome from './pages/CourseHome';
@@ -68,6 +69,7 @@ function AppRoutes() {
   return (
     <Routes location={location}>
       <Route path="/" element={<Home />} />
+      <Route path="/certificates/:code" element={<CertificateVerifyPage />} />
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
       </Route>
