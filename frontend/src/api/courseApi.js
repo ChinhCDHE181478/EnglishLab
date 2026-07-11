@@ -49,6 +49,13 @@ const normalizePage = (payload) => {
 };
 
 export const courseApi = {
+  async getWritingFeedback(payload) {
+    const response = await axiosClient.post('/api/ai/writing-feedback/demo', payload, {
+      skipAuthRedirect: true,
+    });
+    return unwrapData(response);
+  },
+
   async getOnlineCourses(params = {}) {
     const response = await axiosClient.get('/api/online-courses', {
       params,
