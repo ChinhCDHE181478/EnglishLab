@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, CheckCircle2, CircleDot, Headphones, Hourglass, Mic, PenLine, Play } from 'lucide-react';
+import { BookOpen, Headphones, Mic, PenLine } from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
@@ -8,8 +8,8 @@ import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
 import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
 import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
+import ExamDeviceCheck from '../components/course-assessment/ExamDeviceCheck';
 import CourseFooter from '../components/course/CourseFooter';
-import BrandedSelect from '../components/ui/BrandedSelect';
 import { formatBandValue } from '../utils/selfPacedHelpers';
 
 const SKILLS = [
@@ -170,273 +170,6 @@ const toSpeakingExamConfig = (config = {}) => {
     parts: activeVariant?.parts || config.parts || [],
   };
 };
-
-function DeviceCheck({ onComplete }) {
-  const [inputs, setInputs] = useState([]);
-  const [outputs, setOutputs] = useState([]);
-  const [inputId, setInputId] = useState('');
-  const [outputId, setOutputId] = useState('');
-  const [soundPassed, setSoundPassed] = useState(false);
-  const [micState, setMicState] = useState('idle');
-  const [micLevel, setMicLevel] = useState(0);
-  const [micCountdown, setMicCountdown] = useState(5);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const audioRef = useRef(null);
-  const micStreamRef = useRef(null);
-  const micRecorderRef = useRef(null);
-  const micContextRef = useRef(null);
-  const micAnalyserRef = useRef(null);
-  const micFrameRef = useRef(null);
-  const micTimeoutRef = useRef(null);
-  const micIntervalRef = useRef(null);
-  const micChunksRef = useRef([]);
-
-  const stopMicTest = () => {
-    if (micFrameRef.current) window.cancelAnimationFrame(micFrameRef.current);
-    if (micTimeoutRef.current) window.clearTimeout(micTimeoutRef.current);
-    if (micIntervalRef.current) window.clearInterval(micIntervalRef.current);
-    micFrameRef.current = null;
-    micTimeoutRef.current = null;
-    micIntervalRef.current = null;
-    if (micRecorderRef.current?.state === 'recording') micRecorderRef.current.stop();
-    micStreamRef.current?.getTracks?.().forEach((track) => track.stop());
-    micStreamRef.current = null;
-    micRecorderRef.current = null;
-    micAnalyserRef.current = null;
-    if (micContextRef.current && micContextRef.current.state !== 'closed') {
-      micContextRef.current.close().catch(() => {});
-    }
-    micContextRef.current = null;
-    setMicLevel(0);
-  };
-
-  useEffect(() => {
-    navigator.mediaDevices?.enumerateDevices?.().then((devices) => {
-      const microphones = devices.filter((device) => device.kind === 'audioinput');
-      const speakers = devices.filter((device) => device.kind === 'audiooutput');
-      setInputs(microphones);
-      setOutputs(speakers);
-      setInputId(microphones[0]?.deviceId || '');
-      setOutputId(speakers[0]?.deviceId || '');
-    }).catch(() => {});
-  }, []);
-
-  useEffect(() => () => {
-    stopMicTest();
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-  }, [previewUrl]);
-
-  const playTone = async () => {
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) return;
-
-    const context = new AudioContextCtor();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const destination = context.createMediaStreamDestination();
-
-    oscillator.connect(gain).connect(destination);
-    oscillator.frequency.value = 523.25;
-    gain.gain.value = 0.15;
-    audioRef.current.srcObject = destination.stream;
-
-    if (outputId && audioRef.current.setSinkId) {
-      await audioRef.current.setSinkId(outputId).catch(() => {});
-    }
-
-    await audioRef.current.play();
-    oscillator.start();
-    oscillator.stop(context.currentTime + 1.2);
-    window.setTimeout(() => context.close(), 1600);
-    setSoundPassed(true);
-  };
-
-  const testMic = async () => {
-    stopMicTest();
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl('');
-    }
-    setMicState('testing');
-    setMicCountdown(5);
-    setMicLevel(0);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: inputId ? { deviceId: { exact: inputId } } : true,
-      });
-      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextCtor || typeof MediaRecorder === 'undefined') {
-        stream.getTracks().forEach((track) => track.stop());
-        setMicState('unsupported');
-        return;
-      }
-      const context = new AudioContextCtor();
-      if (context.state === 'suspended') await context.resume();
-      const analyser = context.createAnalyser();
-      analyser.fftSize = 256;
-      context.createMediaStreamSource(stream).connect(analyser);
-      navigator.mediaDevices.enumerateDevices().then((devices) => {
-        setInputs(devices.filter((device) => device.kind === 'audioinput'));
-        setOutputs(devices.filter((device) => device.kind === 'audiooutput'));
-      }).catch(() => {});
-      const recorder = new MediaRecorder(stream);
-      micStreamRef.current = stream;
-      micRecorderRef.current = recorder;
-      micContextRef.current = context;
-      micAnalyserRef.current = analyser;
-      micChunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size) micChunksRef.current.push(event.data);
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(micChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        micChunksRef.current = [];
-        setPreviewUrl((current) => {
-          if (current) URL.revokeObjectURL(current);
-          return blob.size ? URL.createObjectURL(blob) : '';
-        });
-        setMicState(blob.size ? 'passed' : 'failed');
-      };
-
-      const data = new Uint8Array(analyser.fftSize);
-      const updateLevel = () => {
-        if (!micAnalyserRef.current) return;
-        micAnalyserRef.current.getByteTimeDomainData(data);
-        const rms = Math.sqrt(data.reduce((sum, value) => {
-          const normalized = (value - 128) / 128;
-          return sum + (normalized * normalized);
-        }, 0) / Math.max(data.length, 1));
-        setMicLevel(Math.min(100, Math.round(rms * 260)));
-        micFrameRef.current = window.requestAnimationFrame(updateLevel);
-      };
-
-      recorder.start();
-      micFrameRef.current = window.requestAnimationFrame(updateLevel);
-      micIntervalRef.current = window.setInterval(() => {
-        setMicCountdown((current) => (current > 1 ? current - 1 : 0));
-      }, 1000);
-      micTimeoutRef.current = window.setTimeout(() => {
-        stopMicTest();
-      }, 5000);
-    } catch {
-      setMicState('failed');
-      stopMicTest();
-    }
-  };
-
-  const ready = soundPassed && micState === 'passed';
-
-  return (
-    <div className="mx-auto max-w-5xl rounded-[32px] border border-[#dfbfbd]/35 bg-white p-6 shadow-[0_24px_70px_rgba(75,0,9,0.10)] md:p-9">
-      <audio ref={audioRef} className="hidden" />
-      <h1 className="text-center font-['Manrope'] text-2xl font-extrabold text-[#21446d]">Kiểm tra thiết bị</h1>
-
-      <div className="mt-8 space-y-9">
-        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
-            <Headphones aria-hidden="true" size={23} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">1.</span>Kiểm tra tai nghe</h2>
-            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy thử phát âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn nghe rõ trước khi bắt đầu bài thi.</p>
-            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
-              <button aria-label="Phát âm thanh kiểm tra" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]" onClick={playTone} type="button">
-                <Play aria-hidden="true" className="ml-0.5" fill="currentColor" size={20} />
-              </button>
-              <div className="min-w-[180px] flex-1">
-                <div className="h-2 rounded-full bg-[#f3d7dd]">
-                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: soundPassed ? '100%' : '0%' }} />
-                </div>
-              </div>
-              <span className="text-sm font-semibold text-[#7a6766]">{soundPassed ? '00:08' : '00:00'}</span>
-              <BrandedSelect
-                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
-                onChange={(event) => {
-                  setOutputId(event.target.value);
-                  setSoundPassed(false);
-                }}
-                options={outputs.length
-                  ? outputs.map((device, index) => ({ label: device.label || `Loa hoặc tai nghe ${index + 1}`, value: device.deviceId }))
-                  : [{ label: 'Thiết bị phát mặc định', value: '' }]}
-                value={outputId}
-              />
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
-            <Mic aria-hidden="true" size={23} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">2.</span>Kiểm tra microphone</h2>
-            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy bấm kiểm tra micro và đọc to câu sau để xem tiếng thu vào có ổn định hay không.</p>
-            <p className="mt-5 text-center text-base font-semibold leading-8 text-[#8c716f]">Hãy đọc to:<br />“I love English. My English is great and I practice it every day!”</p>
-            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
-              <button className={`flex h-14 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-extrabold ${micState === 'testing' ? 'bg-[#fff0f1] text-[#8a0018]' : 'bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]'}`} disabled={micState === 'testing'} onClick={testMic} type="button">
-                {micState === 'testing' ? <CircleDot aria-hidden="true" size={19} /> : <Mic aria-hidden="true" size={19} />}
-                {micState === 'testing' ? `Đang ghi thử ${micCountdown}s` : 'Bắt đầu kiểm tra'}
-              </button>
-              <div className="min-w-[180px] flex-1">
-                <div className="h-2 rounded-full bg-[#f3d7dd]">
-                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: `${micLevel}%` }} />
-                </div>
-              </div>
-              <span className="min-w-8 text-sm font-semibold text-[#7a6766]">{micLevel}%</span>
-              <BrandedSelect
-                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
-                onChange={(event) => {
-                  setInputId(event.target.value);
-                  setMicState('idle');
-                  setPreviewUrl((current) => {
-                    if (current) URL.revokeObjectURL(current);
-                    return '';
-                  });
-                }}
-                options={inputs.length
-                  ? inputs.map((device, index) => ({ label: device.label || `Micro ${index + 1}`, value: device.deviceId }))
-                  : [{ label: 'Micro mặc định', value: '' }]}
-                value={inputId}
-              />
-            </div>
-            {previewUrl ? <div className="mt-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fff7f7] p-4"><p className="text-sm font-bold text-[#4b0009]">Bản ghi thử 5 giây đã sẵn sàng. Hãy nghe lại để kiểm tra chất lượng âm thanh.</p><audio className="mt-3 w-full" controls src={previewUrl} /></div> : null}
-            <p className={`mt-3 text-sm leading-7 ${['failed', 'unsupported'].includes(micState) ? 'font-semibold text-red-700' : 'text-[#7a6766]'}`}>
-              {micState === 'idle' && 'Bấm Bắt đầu kiểm tra để cấp quyền micro và ghi thử trong 5 giây.'}
-              {micState === 'testing' && 'Micro đang được ghi thử. Hãy đọc câu mẫu thật rõ để kiểm tra chất lượng thu âm.'}
-              {micState === 'passed' && 'Micro đã ghi thử xong. Nếu bản nghe lại rõ, thiết bị của bạn đã sẵn sàng.'}
-              {micState === 'failed' && 'Không truy cập được micro. Hãy cấp quyền cho trình duyệt rồi thử lại.'}
-              {micState === 'unsupported' && 'Trình duyệt hiện không hỗ trợ kiểm tra micro. Hãy thử bằng Chrome hoặc Edge.'}
-            </p>
-          </div>
-        </section>
-
-        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${ready ? 'border-[#8a0018]/25 bg-[#fff0f1] text-[#8a0018]' : 'border-[#f2d6dc] text-[#d9a4af]'}`}>
-            {ready ? <CheckCircle2 aria-hidden="true" size={23} /> : <Hourglass aria-hidden="true" size={23} />}
-          </div>
-          <div>
-            <h2 className={`text-2xl font-extrabold ${ready ? 'text-[#21446d]' : 'text-[#9aa8b8]'}`}><span className="mr-2 opacity-60">3.</span>Sẵn sàng vào phòng thi</h2>
-            <p className={`mt-3 text-sm leading-7 ${ready ? 'text-[#584140]' : 'text-[#a89b9d]'}`}>{ready ? 'Tai nghe và micro đã sẵn sàng. Bạn có thể bắt đầu bài đánh giá đầu vào.' : 'Hoàn thành hai bước kiểm tra phía trên để bắt đầu bài thi.'}</p>
-          </div>
-        </section>
-      </div>
-
-      <button
-        className="mt-8 ml-auto block rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-7 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(75,0,9,0.20)] disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={!ready}
-        onClick={() => onComplete({ completed: true, soundPassed, microphonePassed: true, inputDeviceId: inputId, outputDeviceId: outputId, checkedAt: new Date().toISOString() })}
-        type="button"
-      >
-        Bắt đầu bài đánh giá đầu vào
-      </button>
-    </div>
-  );
-}
 
 function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChange, onAudioReady }) {
   const [recording, setRecording] = useState(false);
@@ -1072,11 +805,15 @@ export default function PlacementTestPage() {
   if (stage === 'device') {
     return (
       <main className="min-h-screen bg-[#f8f4f1] px-4 py-10">
-        <DeviceCheck
+        <ExamDeviceCheck
+          description="Kiểm tra tai nghe và microphone trước khi bắt đầu bài đánh giá đầu vào. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi."
           onComplete={(value) => {
             setDeviceCheck(value);
             setStage('exam');
           }}
+          requireFullscreen={false}
+          requireMic
+          title="Kiểm tra thiết bị trước khi làm bài"
         />
       </main>
     );
