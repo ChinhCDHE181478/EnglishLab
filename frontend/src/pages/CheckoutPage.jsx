@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import paymentApi from '../api/paymentApi';
 import { formatCoursePrice } from '../components/course/courseFormatters';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { readCart, removeCourseFromCart } from '../utils/commerceStore';
 import { buildCourseHomePath, normalizeCourse } from '../utils/courseModels';
 
@@ -63,6 +64,7 @@ const CheckoutPage = () => {
     }
 
     const orderCode = returnParams.get('orderCode');
+    const code = returnParams.get('code');
     const status = String(returnParams.get('status') || '').toUpperCase();
     const cancelled = isTruthyReturnValue(returnParams.get('cancel')) || status === 'CANCELLED';
 
@@ -100,8 +102,9 @@ const CheckoutPage = () => {
       orderCode,
     });
 
-    paymentApi.getPaymentOrderStatus(orderCode)
-      .then((result) => {
+    const checkPaymentStatus = async () => {
+      try {
+        const result = await paymentApi.getPaymentOrderStatus(orderCode);
         if (!active) return;
         const paid = Boolean(result?.paid) || String(result?.status || '').toUpperCase() === 'PAID';
         if (paid) {
@@ -117,8 +120,7 @@ const CheckoutPage = () => {
             : 'Đơn thanh toán đang chờ PayOS xác nhận. Vui lòng tải lại sau vài giây.'),
           orderCode,
         });
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!active) return;
         const serverMessage =
           error?.response?.data?.message
@@ -132,7 +134,10 @@ const CheckoutPage = () => {
           message: serverMessage || 'Không thể xác nhận trạng thái thanh toán. Vui lòng thử lại.',
           orderCode,
         });
-      });
+      }
+    };
+
+    checkPaymentStatus();
 
     return () => {
       active = false;
@@ -240,12 +245,7 @@ const CheckoutPage = () => {
         title="Đang xác nhận thanh toán"
         description="EnglishLab đang kiểm tra trạng thái giao dịch với PayOS."
       >
-        <section className="flex min-h-[420px] items-center justify-center rounded-[32px] border border-[#dfbfbd]/30 bg-white p-10 text-center shadow-sm">
-          <div>
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#730014]" />
-            <p className="mt-5 text-sm font-bold text-[#584140]">{paymentReturn.message}</p>
-          </div>
-        </section>
+        <BrandLoadingState className="rounded-[32px]" message={paymentReturn.message || 'Đang xác nhận thanh toán...'} />
       </LearnerPageShell>
     );
   }

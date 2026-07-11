@@ -95,11 +95,19 @@ export default function TrainingManagerClassroomDetailPage() {
     setLoading(true);
     setError('');
     try {
+      const loadSessionTemplates = async () => {
+        try {
+          return await classroomApi.listSessionTemplates();
+        } catch {
+          return [];
+        }
+      };
+
       const [data, teacherData, roomData, templateData] = await Promise.all([
         classroomApi.getManagerClassroom(id),
         classroomApi.getTrainingManagerTeachers(),
         classroomApi.getTrainingManagerRooms(),
-        classroomApi.listSessionTemplates().catch(() => []),
+        loadSessionTemplates(),
       ]);
       setClassroom(data);
       setTeachers(teacherData);

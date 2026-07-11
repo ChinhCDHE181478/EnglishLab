@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class PlacementTestDefinitionServiceImpl implements PlacementTestDefinitionService {
     public static final String TEST_CODE = PlacementTestDefinitionService.TEST_CODE;
+    private static final String DEFAULT_TOEIC_RESOURCE = "placement-test/current-toeic.json";
 
     private final PlacementTestDefinitionRepository definitionRepository;
     private final PlacementTestAttemptRepository attemptRepository;
@@ -50,16 +52,23 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         validateConfig(request.getReadingConfigJson(), "Đọc");
         validateConfig(request.getWritingConfigJson(), "Viết");
         validateConfig(request.getSpeakingConfigJson(), "Nói");
+        if (request.getToeicConfigJson() != null && !request.getToeicConfigJson().isBlank()) {
+            validateConfig(request.getToeicConfigJson(), "TOEIC");
+        }
 
         PlacementTestDefinition definition = getDefinition();
         definition.setTitle(request.getTitle().trim());
         definition.setDescription(request.getDescription() == null ? "" : request.getDescription().trim());
+        definition.setExamType(normalizeExamType(request.getExamType()));
         definition.setMaxAttempts(request.getMaxAttempts());
         definition.setActive(request.isActive());
         definition.setListeningConfigJson(request.getListeningConfigJson());
         definition.setReadingConfigJson(request.getReadingConfigJson());
         definition.setWritingConfigJson(request.getWritingConfigJson());
         definition.setSpeakingConfigJson(request.getSpeakingConfigJson());
+        definition.setToeicConfigJson(request.getToeicConfigJson() == null || request.getToeicConfigJson().isBlank()
+                ? defaultToeicConfig()
+                : request.getToeicConfigJson());
         definition.setUpdatedAt(LocalDateTime.now());
         return toResponse(definitionRepository.save(definition));
     }
@@ -97,6 +106,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
             case "reading" -> definition.getReadingConfigJson();
             case "writing" -> definition.getWritingConfigJson();
             case "speaking" -> definition.getSpeakingConfigJson();
+            case "toeic" -> normalizedToeicConfig(definition.getToeicConfigJson());
             default -> throw new IllegalArgumentException("Kỹ năng đánh giá đầu vào không hợp lệ.");
         };
         try {
@@ -111,15 +121,25 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .testCode(TEST_CODE)
                 .title("Bài đánh giá đầu vào IELTS")
                 .description("Một phiên đánh giá gồm Nghe, Đọc, Viết và Nói để gợi ý điểm bắt đầu phù hợp.")
+                .examType("IELTS")
                 .maxAttempts(3)
                 .active(true)
                 .listeningConfigJson(loadResource("placement-test/current-listening.json"))
                 .readingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_reading_test_1.json"))
                 .writingConfigJson(loadResource("assessment-data/ielts_mock_2025_january_writing_test_1.json"))
                 .speakingConfigJson(loadResource("placement-test/current-speaking.json"))
+                .toeicConfigJson(defaultToeicConfig())
                 .updatedAt(LocalDateTime.now())
                 .build();
         return definitionRepository.save(definition);
+    }
+
+    private String normalizeExamType(String value) {
+        if (value == null || value.isBlank()) {
+            return "IELTS";
+        }
+        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+        return "TOEIC".equals(normalized) ? "TOEIC" : "IELTS";
     }
 
     private void validateConfig(String json, String skill) {
@@ -147,14 +167,104 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
                 .testCode(definition.getTestCode())
                 .title(definition.getTitle())
                 .description(definition.getDescription())
+                .examType(definition.getExamType())
                 .maxAttempts(definition.getMaxAttempts())
                 .active(definition.isActive())
                 .listeningConfigJson(definition.getListeningConfigJson())
                 .readingConfigJson(definition.getReadingConfigJson())
                 .writingConfigJson(definition.getWritingConfigJson())
                 .speakingConfigJson(definition.getSpeakingConfigJson())
+                .toeicConfigJson(normalizedToeicConfig(definition.getToeicConfigJson()))
                 .updatedAt(definition.getUpdatedAt())
                 .build();
+    }
+
+    private String normalizedToeicConfig(String config) {
+        if (config == null || config.isBlank()) {
+            return defaultToeicConfig();
+        }
+        try {
+            JsonNode root = objectMapper.readTree(config);
+            if (isEmptyToeicConfig(root) || isIncompleteToeicConfig(root)) {
+                return defaultToeicConfig();
+            }
+            return config;
+        } catch (JsonProcessingException exception) {
+            return defaultToeicConfig();
+        }
+    }
+
+    private boolean isEmptyToeicConfig(JsonNode root) {
+        if (root == null || !root.isObject()) {
+            return true;
+        }
+        return countToeicQuestions(root.path("listening")) + countToeicQuestions(root.path("reading")) == 0;
+    }
+
+    private boolean isIncompleteToeicConfig(JsonNode root) {
+        if (root == null || !root.isObject()) {
+            return false;
+        }
+        if (!"toeic_full_test".equals(root.path("type").asText())) {
+            return false;
+        }
+        List<Integer> numbers = new ArrayList<>();
+        collectToeicQuestionNumbers(root.path("listening"), numbers);
+        collectToeicQuestionNumbers(root.path("reading"), numbers);
+        if (numbers.size() != 200) {
+            return true;
+        }
+        for (int expected = 1; expected <= 200; expected++) {
+            if (!numbers.contains(expected)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int countToeicQuestions(JsonNode section) {
+        if (section == null || !section.has("parts")) {
+            return 0;
+        }
+        int total = 0;
+        for (JsonNode part : section.withArray("parts")) {
+            total += part.withArray("questions").size();
+            for (JsonNode group : part.withArray("questionGroups")) {
+                total += group.withArray("questions").size();
+            }
+        }
+        return total;
+    }
+
+    private void collectToeicQuestionNumbers(JsonNode section, List<Integer> numbers) {
+        if (section == null || !section.has("parts")) {
+            return;
+        }
+        for (JsonNode part : section.withArray("parts")) {
+            for (JsonNode question : part.withArray("questions")) {
+                JsonNode number = question.path("number");
+                if (number.canConvertToInt()) {
+                    numbers.add(number.asInt());
+                }
+            }
+            for (JsonNode group : part.withArray("questionGroups")) {
+                for (JsonNode number : group.withArray("questionNumbers")) {
+                    if (number.canConvertToInt()) {
+                        numbers.add(number.asInt());
+                    }
+                }
+                for (JsonNode question : group.withArray("questions")) {
+                    JsonNode number = question.path("number");
+                    if (number.canConvertToInt()) {
+                        numbers.add(number.asInt());
+                    }
+                }
+            }
+        }
+    }
+
+    private String defaultToeicConfig() {
+        return loadResource(DEFAULT_TOEIC_RESOURCE);
     }
 
     private BigDecimal average(List<PlacementTestAttempt> attempts, java.util.function.Function<PlacementTestAttempt, BigDecimal> extractor) {

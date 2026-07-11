@@ -35,6 +35,10 @@ public class PlacementTestDefinition {
     @Column(columnDefinition = "text")
     private String description;
 
+    @Column(name = "exam_type", nullable = false, length = 20)
+    @Builder.Default
+    private String examType = "IELTS";
+
     @Column(name = "max_attempts", nullable = false)
     private Integer maxAttempts;
 
@@ -52,6 +56,9 @@ public class PlacementTestDefinition {
 
     @Column(name = "speaking_config_json", nullable = false, columnDefinition = "text")
     private String speakingConfigJson;
+
+    @Column(name = "toeic_config_json", columnDefinition = "text")
+    private String toeicConfigJson;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

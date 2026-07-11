@@ -19,4 +19,9 @@ public class LarkProperties {
     private String timezone = "Asia/Ho_Chi_Minh";
     private String baseUrl = "https://open.larksuite.com/open-apis";
     private String verificationToken;
+    private boolean autoRecord;
+    private boolean recordingAutoPublish;
+    private String defaultOwnerOpenId;
+    private int recordingMaxSyncAttempts = 20;
+    private long recordingSyncDelayMs = 60_000;
 }

@@ -31,7 +31,7 @@ public class CourseAssessmentResponse {
     private String uiConfigJson;
     private BigDecimal passingScore;
     private BigDecimal maxScore;
-    /** Ngưỡng pass thực tế sau khi áp dụng fallback (CMS → band mục tiêu khóa − 0.5). */
+    /** Ngưỡng pass thực tế sau khi áp dụng fallback. */
     private BigDecimal resolvedPassingThreshold;
     /** Nhãn tiếng Việt giải thích nguồn ngưỡng pass. */
     private String passingThresholdLabel;

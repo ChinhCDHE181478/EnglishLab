@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   ClipboardCheck,
   DollarSign,
+  ExternalLink,
   HelpCircle,
   History,
+  Receipt,
   User,
   XCircle,
 } from 'lucide-react';
@@ -76,6 +78,10 @@ export default function TrainingManagerRegistrationPanel({
   const [tuitionHistory, setTuitionHistory] = useState([]);
   const [conflictResult, setConflictResult] = useState(null);
   const [checkingConflict, setCheckingConflict] = useState(false);
+  const [pendingProofs, setPendingProofs] = useState([]);
+  const [selectedProofs, setSelectedProofs] = useState([]);
+  const [proofRejectReasons, setProofRejectReasons] = useState({});
+  const [processingProofId, setProcessingProofId] = useState(null);
 
   const statusTabs = classroomOfferingId ? queueOnlyTabs : globalStatusTabs;
 
@@ -93,12 +99,16 @@ export default function TrainingManagerRegistrationPanel({
         params.status = activeTab;
       }
 
-      const [registrationData, classroomData] = await Promise.all([
+      const [registrationData, classroomData, proofData] = await Promise.all([
         classroomApi.getTrainingManagerRegistrations(params),
         classroomApi.getTrainingManagerClassrooms(),
+        classroomApi.getPendingTuitionProofs().catch(() => []),
       ]);
       setRegistrations(registrationData);
       setClassrooms(classroomData);
+      setPendingProofs(classroomOfferingId
+        ? proofData.filter((proof) => proof.classroomOfferingId === classroomOfferingId)
+        : proofData);
       if (registrationData.length > 0) {
         const exists = registrationData.some((item) => String(item.id) === selectedId);
         if (!exists) {
@@ -139,6 +149,7 @@ export default function TrainingManagerRegistrationPanel({
     const loadHistory = async () => {
       if (!selected?.id) {
         setTuitionHistory([]);
+        setSelectedProofs([]);
         return;
       }
       try {
@@ -146,6 +157,12 @@ export default function TrainingManagerRegistrationPanel({
         setTuitionHistory(history);
       } catch {
         setTuitionHistory(selected.tuitionPayments || []);
+      }
+      try {
+        const proofs = await classroomApi.getEnrollmentTuitionProofs(selected.id);
+        setSelectedProofs(proofs);
+      } catch {
+        setSelectedProofs([]);
       }
     };
     loadHistory();
@@ -177,6 +194,56 @@ export default function TrainingManagerRegistrationPanel({
     targetClassroomOfferingId: Number(transferClassroomId),
   }));
 
+  const refreshSelectedProofs = async () => {
+    if (!selectedId) {
+      return;
+    }
+    try {
+      const proofs = await classroomApi.getEnrollmentTuitionProofs(Number(selectedId));
+      setSelectedProofs(proofs);
+    } catch {
+      setSelectedProofs([]);
+    }
+  };
+
+  const handleConfirmProof = async (proofId) => {
+    setActionMessage('');
+    setProcessingProofId(proofId);
+    try {
+      await classroomApi.confirmTuitionProof(proofId);
+      setActionMessage('Đã xác nhận minh chứng thanh toán thành công.');
+      await loadData();
+      await refreshSelectedProofs();
+      onUpdated?.();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể xác nhận minh chứng.'));
+    } finally {
+      setProcessingProofId(null);
+    }
+  };
+
+  const handleRejectProof = async (proofId) => {
+    const reason = (proofRejectReasons[proofId] || '').trim();
+    if (!reason) {
+      setActionMessage('Vui lòng nhập lý do từ chối minh chứng.');
+      return;
+    }
+    setActionMessage('');
+    setProcessingProofId(proofId);
+    try {
+      await classroomApi.rejectTuitionProof(proofId, { reason });
+      setActionMessage('Đã từ chối minh chứng thanh toán và thông báo cho học viên.');
+      setProofRejectReasons((current) => ({ ...current, [proofId]: '' }));
+      await loadData();
+      await refreshSelectedProofs();
+      onUpdated?.();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể từ chối minh chứng.'));
+    } finally {
+      setProcessingProofId(null);
+    }
+  };
+
   const handleConflictCheck = async () => {
     setActionMessage('');
     setCheckingConflict(true);
@@ -202,6 +269,29 @@ export default function TrainingManagerRegistrationPanel({
         >
           <p className="leading-5">{actionMessage}</p>
         </div>
+      ) : null}
+
+      {pendingProofs.length ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 space-y-3">
+          <h3 className="font-['Manrope'] text-base font-extrabold text-amber-900 flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Minh chứng thanh toán chờ xác nhận ({pendingProofs.length})
+          </h3>
+          <div className="space-y-2">
+            {pendingProofs.map((proof) => (
+              <TuitionProofRow
+                key={proof.id}
+                onConfirm={handleConfirmProof}
+                onReasonChange={(value) => setProofRejectReasons((current) => ({ ...current, [proof.id]: value }))}
+                onReject={handleRejectProof}
+                processing={processingProofId === proof.id}
+                proof={proof}
+                reason={proofRejectReasons[proof.id] || ''}
+                showStudent
+              />
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <ClassroomTabBar activeTab={activeTab} onChange={setActiveTab} tabs={statusTabs} />
@@ -264,11 +354,17 @@ export default function TrainingManagerRegistrationPanel({
               onAssign={handleAssign}
               onConflictCheck={handleConflictCheck}
               onConfirm={handleConfirm}
+              onConfirmProof={handleConfirmProof}
+              onProofReasonChange={(proofId, value) => setProofRejectReasons((current) => ({ ...current, [proofId]: value }))}
               onRecordTuition={handleRecordTuition}
               onReject={handleReject}
+              onRejectProof={handleRejectProof}
               onTransfer={handleTransfer}
+              processingProofId={processingProofId}
+              proofRejectReasons={proofRejectReasons}
               rejectReason={rejectReason}
               selected={selected}
+              selectedProofs={selectedProofs}
               setRejectReason={setRejectReason}
               setTransferClassroomId={setTransferClassroomId}
               setTuitionForm={setTuitionForm}
@@ -288,6 +384,82 @@ export default function TrainingManagerRegistrationPanel({
   );
 }
 
+function TuitionProofRow({ proof, reason, processing, showStudent = false, onConfirm, onReject, onReasonChange }) {
+  const isPending = proof.status === 'PENDING';
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-extrabold text-[#2b2828]">
+            {formatClassroomPrice(proof.amount)}
+            <span className="ml-2 text-[11px] font-bold text-[#8b706e]">{proof.paymentKindLabel}</span>
+          </p>
+          {showStudent ? (
+            <p className="text-[11px] text-[#8b706e]">
+              {proof.studentName || proof.studentEmail} · {proof.classroomTitle}
+            </p>
+          ) : null}
+          {proof.note ? <p className="text-[11px] text-[#8b706e]">Ghi chú: {proof.note}</p> : null}
+          {proof.status === 'REJECTED' && proof.reviewNote ? (
+            <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
+          ) : null}
+        </div>
+        <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${
+          proof.status === 'CONFIRMED'
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            : proof.status === 'REJECTED'
+              ? 'bg-rose-50 text-rose-700 border-rose-100'
+              : 'bg-amber-50 text-amber-700 border-amber-100'
+        }`}
+        >
+          {proof.statusLabel || proof.status}
+        </span>
+      </div>
+      {proof.fileUrl ? (
+        <a
+          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
+          href={proof.fileUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Xem minh chứng chuyển khoản
+        </a>
+      ) : null}
+      {isPending ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            className="flex-1 rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-3 py-2 text-xs text-[#2b2828] outline-none focus:border-[#730014]"
+            onChange={(event) => onReasonChange(event.target.value)}
+            placeholder="Lý do từ chối (bắt buộc khi từ chối)..."
+            value={reason}
+          />
+          <div className="flex gap-2">
+            <button
+              className="inline-flex items-center gap-1 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-extrabold text-white hover:bg-emerald-800 disabled:opacity-60"
+              disabled={processing}
+              onClick={() => onConfirm(proof.id)}
+              type="button"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {processing ? 'Đang xử lý...' : 'Xác nhận'}
+            </button>
+            <button
+              className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50/30 px-4 py-2 text-xs font-extrabold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+              disabled={processing}
+              onClick={() => onReject(proof.id)}
+              type="button"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Từ chối
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function RegistrationDetail({
   selected,
   tuitionForm,
@@ -297,11 +469,17 @@ function RegistrationDetail({
   transferClassroomId,
   setTransferClassroomId,
   tuitionHistory,
+  selectedProofs,
+  proofRejectReasons,
+  processingProofId,
   conflictResult,
   checkingConflict,
   classrooms,
   onConfirm,
+  onConfirmProof,
+  onProofReasonChange,
   onReject,
+  onRejectProof,
   onAssign,
   onRecordTuition,
   onTransfer,
@@ -436,6 +614,28 @@ function RegistrationDetail({
           <button className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white hover:bg-[#730014]" onClick={onRecordTuition} type="button">
             Ghi nhận học phí
           </button>
+        </section>
+      ) : null}
+
+      {selectedProofs.length ? (
+        <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-4">
+          <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-[#730014]" />
+            Minh chứng thanh toán của học viên
+          </h3>
+          <div className="space-y-2">
+            {selectedProofs.map((proof) => (
+              <TuitionProofRow
+                key={proof.id}
+                onConfirm={onConfirmProof}
+                onReasonChange={(value) => onProofReasonChange(proof.id, value)}
+                onReject={onRejectProof}
+                processing={processingProofId === proof.id}
+                proof={proof}
+                reason={proofRejectReasons[proof.id] || ''}
+              />
+            ))}
+          </div>
         </section>
       ) : null}
 

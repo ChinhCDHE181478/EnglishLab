@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.dto.request.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sap490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,6 +34,10 @@ public class CreateHomeworkRequest {
 
     private HomeworkStatus status;
     private Long sessionId;
+    private Long curriculumUnitId;
+    private HomeworkActivityType activityType;
+    private String activityConfigJson;
+    private Boolean aiReviewEnabled;
     private HomeworkGradingMode gradingMode;
     private AssessmentSkill skill;
     private Long rubricId;

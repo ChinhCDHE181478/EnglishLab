@@ -26,6 +26,18 @@ public class ClassroomHomeworkGradingSchemaMigration {
                         ALTER TABLE classroom_homework
                             ADD COLUMN IF NOT EXISTS rubric_id BIGINT;
 
+                        ALTER TABLE classroom_homework
+                            ADD COLUMN IF NOT EXISTS curriculum_unit_id BIGINT;
+
+                        ALTER TABLE classroom_homework
+                            ADD COLUMN IF NOT EXISTS activity_type VARCHAR(30) NOT NULL DEFAULT 'TEXT_RESPONSE';
+
+                        ALTER TABLE classroom_homework
+                            ADD COLUMN IF NOT EXISTS activity_config_json TEXT;
+
+                        ALTER TABLE classroom_homework
+                            ADD COLUMN IF NOT EXISTS ai_review_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+
                         IF to_regclass('public.assessment_rubrics') IS NOT NULL
                            AND NOT EXISTS (
                                 SELECT 1
@@ -35,6 +47,17 @@ public class ClassroomHomeworkGradingSchemaMigration {
                             ALTER TABLE classroom_homework
                                 ADD CONSTRAINT fk_classroom_homework_rubric
                                 FOREIGN KEY (rubric_id) REFERENCES assessment_rubrics(id);
+                        END IF;
+
+                        IF to_regclass('public.curriculum_units') IS NOT NULL
+                           AND NOT EXISTS (
+                                SELECT 1
+                                FROM pg_constraint
+                                WHERE conname = 'fk_classroom_homework_curriculum_unit'
+                           ) THEN
+                            ALTER TABLE classroom_homework
+                                ADD CONSTRAINT fk_classroom_homework_curriculum_unit
+                                FOREIGN KEY (curriculum_unit_id) REFERENCES curriculum_units(id);
                         END IF;
                     END IF;
                 END $$;

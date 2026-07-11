@@ -11,11 +11,13 @@ public class PlacementTestDefinitionResponse {
     String testCode;
     String title;
     String description;
+    String examType;
     Integer maxAttempts;
     boolean active;
     String listeningConfigJson;
     String readingConfigJson;
     String writingConfigJson;
     String speakingConfigJson;
+    String toeicConfigJson;
     LocalDateTime updatedAt;
 }

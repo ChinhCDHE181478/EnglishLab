@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import BrandLoadingState from '../ui/BrandLoadingState';
 import {
   Calendar,
   Clock,
@@ -41,13 +42,7 @@ import {
 // ==========================================
 
 export const ClassroomLoadingState = ({ message = 'Đang tải dữ liệu...' }) => (
-  <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-xl border border-[#e5e7eb] bg-white px-6 py-16 text-center shadow-sm">
-    <div className="relative flex h-16 w-16 items-center justify-center">
-      <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-[#dfbfbd]/30 border-t-[#730014]"></div>
-      <div className="h-6 w-6 rounded-full bg-[#4b0009]/10"></div>
-    </div>
-    <p className="mt-6 font-['Manrope'] text-base font-extrabold text-[#730014] animate-pulse">{message}</p>
-  </div>
+  <BrandLoadingState message={message} />
 );
 
 export const LoadingSkeleton = ({ count = 3, type = 'card' }) => {
@@ -257,23 +252,23 @@ export const ClassroomTabBar = ({ tabs, activeTab, onChange }) => (
 // ==========================================
 
 export const PageHero = ({ title, subtitle, stats = [], action }) => (
-  <section className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm md:p-8">
-    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
-        <div className="mb-2 flex items-center gap-3">
-          <span className="h-7 w-1 rounded-full bg-[#8a0018]" />
-          <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
+  <section className="rounded-[28px] border border-gray-200/80 bg-white p-6 md:p-8 shadow-[0_10px_35px_rgba(0,0,0,0.015)] transition-all duration-300 hover:shadow-[0_15px_45px_rgba(75,0,9,0.035)]">
+    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-3">
+          <span className="h-6 w-1 shrink-0 rounded-full bg-[#8a0018]" />
+          <h1 className="font-['Manrope'] text-xl font-extrabold tracking-tight text-[#1a1c1c] md:text-2xl leading-snug">
             {title}
           </h1>
         </div>
         {subtitle ? (
-          <p className="pl-4 text-sm leading-7 text-[#6a5553]">{subtitle}</p>
+          <p className="text-xs leading-relaxed text-[#584140] pl-4">{subtitle}</p>
         ) : null}
-        {action ? <div className="mt-4 pl-4">{action}</div> : null}
+        {action ? <div className="pt-2 pl-4">{action}</div> : null}
       </div>
 
       {stats.length ? (
-        <div className="flex flex-wrap gap-x-8 gap-y-3 pl-4 md:pl-0">
+        <div className="flex flex-wrap gap-x-8 gap-y-3 shrink-0">
           {stats.map((stat, idx) => (
             <StatCard key={idx} {...stat} />
           ))}

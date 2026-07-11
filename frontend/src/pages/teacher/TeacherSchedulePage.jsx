@@ -852,21 +852,24 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
     if (!newDate) return undefined;
 
     setChecking(true);
-    Promise.all(
-      TIME_SLOTS.map((slot) =>
-        classroomApi
-          .checkTeacherChangeConflict({
+    const checkSlots = async () => {
+      try {
+        const results = await Promise.all(
+          TIME_SLOTS.map(async (slot) => {
+            try {
+              const res = await classroomApi.checkTeacherChangeConflict({
             requestType: 'RESCHEDULE_SESSION',
             classroomOfferingId: offeringId,
             targetSessionId: session.id,
             newValuesJson: buildNewValues(slot, newDate),
             reason: 'Kiểm tra trùng lịch',
-          })
-          .then((res) => ({ available: !res?.hasBlockingConflict, conflicts: res?.conflicts || [] }))
-          .catch(() => ({ available: false, conflicts: [], failed: true })),
-      ),
-    )
-      .then((results) => {
+              });
+              return { available: !res?.hasBlockingConflict, conflicts: res?.conflicts || [] };
+            } catch {
+              return { available: false, conflicts: [], failed: true };
+            }
+          }),
+        );
         if (!active) return;
         const map = {};
         results.forEach((r, i) => { map[i] = r; });
@@ -879,10 +882,12 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
         if (results.every((r) => r.failed)) {
           setError('Không thể kiểm tra trùng lịch. Vui lòng thử lại.');
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setChecking(false);
-      });
+      }
+    };
+
+    checkSlots();
 
     return () => {
       active = false;

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
+import TuitionPaymentSection from '../../components/classroom/TuitionPaymentSection';
 import CourseFooter from '../../components/course/CourseFooter';
 import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
 import {
@@ -121,6 +122,24 @@ export default function ClassroomPublicDetailPage() {
     }
   };
 
+  const handleCancelRegistration = async () => {
+    setRegistering(true);
+    setActionMessage('');
+    setActionSuccess(false);
+    try {
+      await classroomApi.cancelClassRegistration(offering.id);
+      setRegistration(null);
+      setActionMessage('Đã hủy đăng ký lớp. Bạn có thể đăng ký lại bất cứ lúc nào khi lớp còn mở.');
+      setActionSuccess(true);
+      await loadOffering();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể hủy đăng ký.'));
+      setActionSuccess(false);
+    } finally {
+      setRegistering(false);
+    }
+  };
+
   const registrationStatus = registration?.registrationStatus || offering?.registrationStatus;
   const registrationLabel = registration?.registrationStatusLabel || offering?.registrationStatusLabel;
   const hasClassAccess = registration?.hasClassAccess || offering?.hasClassAccess;
@@ -129,7 +148,20 @@ export default function ClassroomPublicDetailPage() {
 
   const pct = capacityPercent(offering?.enrolledCount, offering?.maxCapacity);
   const isFull = pct >= 100 || offering?.classroomStatus === 'FULL';
-  const canRegister = !isRegistered && !isFull && ['OPEN', 'UPCOMING'].includes(offering?.classroomStatus);
+  const isOpenStatus = ['OPEN', 'UPCOMING'].includes(offering?.classroomStatus);
+  // Lớp đầy vẫn cho đăng ký — backend tự xếp vào danh sách chờ (WAITLIST).
+  const canRegister = !isRegistered && isOpenStatus;
+  const canCancelRegistration = isRegistered && !hasClassAccess && registrationStatus !== 'ASSIGNED';
+  const curriculumProgram = offering?.curriculumProgram;
+  const sessionCount = offering?.sessions?.length || 0;
+  const sessionDurationMinutes = (() => {
+    const first = offering?.sessions?.find((s) => s.startTime && s.endTime);
+    if (!first) return null;
+    const [sh, sm] = first.startTime.split(':').map(Number);
+    const [eh, em] = first.endTime.split(':').map(Number);
+    const minutes = (eh * 60 + em) - (sh * 60 + sm);
+    return minutes > 0 ? minutes : null;
+  })();
 
   return (
     <div className={PAGE_SHELL_CLASS}>
@@ -175,20 +207,19 @@ export default function ClassroomPublicDetailPage() {
               {/* ── LEFT COLUMN ── */}
               <div className="space-y-8">
                 {/* Hero header */}
-                <section className="relative overflow-hidden rounded-[32px] border border-[#dfbfbd]/15 bg-white p-8 shadow-sm">
-                  <div className="absolute right-0 top-0 -mr-20 -mt-20 h-72 w-72 rounded-full bg-[#fff3f4] blur-3xl" />
-                  <div className="relative">
-                    <div className="flex flex-wrap gap-2 mb-4">
+                <section className="relative overflow-hidden rounded-[28px] border border-[#dfc4c2]/40 shadow-[0_20px_50px_rgba(75,0,9,0.08)]">
+                  <div className={`absolute inset-0 ${isVirtual ? 'bg-gradient-to-br from-violet-950 via-purple-900 to-[#4b0009]' : 'bg-gradient-to-br from-[#3d0008] via-[#730014] to-[#9a1830]'}`} />
+                  <div className="pointer-events-none absolute -right-10 top-0 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+                  <div className="relative p-8 text-white md:p-10">
+                    <div className="mb-4 flex flex-wrap gap-2">
                       <ClassroomTypeBadge mode={offering.deliveryMode} />
                       <StatusBadge status={offering.classroomStatus} />
-                      {isRegistered && (
-                        <StatusBadge status={registrationStatus} />
-                      )}
+                      {isRegistered ? <StatusBadge status={registrationStatus} /> : null}
                     </div>
-                    <h1 className="font-['Manrope'] text-3xl font-extrabold tracking-tight text-[#2b2828] md:text-4xl">
+                    <h1 className="font-['Manrope'] text-3xl font-extrabold tracking-tight md:text-4xl max-w-3xl">
                       {offering.title}
                     </h1>
-                    <p className="mt-3 text-base leading-8 text-[#584140]">
+                    <p className="mt-4 max-w-2xl text-sm leading-7 text-white/85 md:text-base">
                       {offering.description || offering.shortDescription || 'Đang cập nhật mô tả chi tiết về lớp học này.'}
                     </p>
                   </div>
@@ -225,6 +256,34 @@ export default function ClassroomPublicDetailPage() {
                       value={offering.offlineAddress || 'Cơ sở Hà Nội'}
                     />
                   )}
+                  {!isVirtual && offering.roomName ? (
+                    <InfoCard
+                      icon={<MapPin className="h-5 w-5" />}
+                      label="Phòng học"
+                      value={offering.roomName}
+                    />
+                  ) : null}
+                  <InfoCard
+                    icon={<Clock className="h-5 w-5" />}
+                    label="Số buổi học"
+                    value={sessionCount > 0
+                      ? `${sessionCount} buổi${sessionDurationMinutes ? ` · ${sessionDurationMinutes} phút/buổi` : ''}`
+                      : (curriculumProgram?.totalSessions ? `${curriculumProgram.totalSessions} buổi (dự kiến)` : 'Đang cập nhật')}
+                  />
+                  {offering.entryLevel ? (
+                    <InfoCard
+                      icon={<Star className="h-5 w-5" />}
+                      label="Trình độ đầu vào"
+                      value={offering.entryLevel}
+                    />
+                  ) : null}
+                  {offering.targetOutcome ? (
+                    <InfoCard
+                      icon={<CheckCircle2 className="h-5 w-5" />}
+                      label="Mục tiêu đầu ra"
+                      value={offering.targetOutcome}
+                    />
+                  ) : null}
                   <div className="sm:col-span-2 lg:col-span-2 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1 mb-3">
                       <Users className="h-4 w-4 text-[#730014]" />
@@ -258,6 +317,52 @@ export default function ClassroomPublicDetailPage() {
                   </section>
                 )}
 
+                {/* Curriculum program (giáo trình theo lộ trình) */}
+                {curriculumProgram && (
+                  <section className="rounded-[28px] border border-[#dfbfbd]/15 bg-white p-6 shadow-sm space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828] flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-[#730014]" />
+                        Giáo trình: {curriculumProgram.title}
+                      </h2>
+                      <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[10px] font-extrabold text-[#730014]">
+                        {curriculumProgram.examCategory}
+                        {curriculumProgram.targetBand ? ` · Target ${curriculumProgram.targetBand}` : ''}
+                        {curriculumProgram.targetScore ? ` · Target ${curriculumProgram.targetScore}` : ''}
+                      </span>
+                    </div>
+                    {curriculumProgram.outcomes ? (
+                      <p className="whitespace-pre-line text-sm leading-7 text-[#584140]">{curriculumProgram.outcomes}</p>
+                    ) : null}
+                    {curriculumProgram.units?.length > 0 && (
+                      <div className="space-y-2.5">
+                        <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Chương trình học theo buổi</p>
+                        {curriculumProgram.units.map((unit, idx) => {
+                          const resourceCount = (unit.materials?.length || 0)
+                            + (unit.exercises?.length || 0)
+                            + (unit.assessments?.length || 0)
+                            + (unit.flashcards?.length || 0);
+                          return (
+                            <div className="rounded-2xl border border-gray-100 bg-[#fffafb]/50 p-4" key={unit.id}>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-extrabold text-[#2b2828]">
+                                  Buổi {idx + 1}: {unit.title}
+                                </p>
+                                {resourceCount > 0 && (
+                                  <span className="text-[10px] font-bold text-[#8b706e]">{resourceCount} học liệu / bài tập</span>
+                                )}
+                              </div>
+                              {unit.description ? (
+                                <p className="mt-1 text-xs leading-5 text-[#584140]">{unit.description}</p>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                )}
+
                 {/* Syllabus */}
                 {offering.syllabusSummary && (
                   <section className="rounded-[28px] border border-[#dfbfbd]/15 bg-white p-6 shadow-sm space-y-4">
@@ -274,27 +379,29 @@ export default function ClassroomPublicDetailPage() {
                   <section className="rounded-[28px] border border-[#dfbfbd]/15 bg-white p-6 shadow-sm space-y-4">
                     <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828] flex items-center gap-2">
                       <Clock className="h-5 w-5 text-[#730014]" />
-                      Lịch học dự kiến
+                      Lịch học toàn khóa ({offering.sessions.length} buổi)
                     </h2>
-                    <div className="space-y-2.5">
-                      {offering.sessions.slice(0, 5).map((session) => (
+                    <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
+                      {offering.sessions.map((session, idx) => (
                         <div
                           key={session.id}
                           className="flex flex-col gap-2 rounded-2xl border border-gray-100 bg-[#fffafb]/50 p-4 sm:flex-row sm:items-center sm:justify-between"
                         >
-                          <div className="flex items-center gap-3 text-sm text-[#584140]">
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-[#584140]">
+                            <span className="text-[10px] font-extrabold text-[#8b706e]">Buổi {idx + 1}</span>
                             <Calendar className="h-4 w-4 text-[#730014] flex-shrink-0" />
                             <span className="font-extrabold text-[#2b2828]">{formatClassroomDate(session.sessionDate)}</span>
                             <span>{formatClassroomTime(session.startTime)} – {formatClassroomTime(session.endTime)}</span>
+                            {session.roomName ? (
+                              <span className="text-xs font-bold text-[#8b706e]">Phòng {session.roomName}</span>
+                            ) : null}
+                            {session.sessionContent ? (
+                              <span className="text-xs text-[#8b706e] truncate max-w-[240px]">{session.sessionContent}</span>
+                            ) : null}
                           </div>
                           <StatusBadge status={session.status} />
                         </div>
                       ))}
-                      {offering.sessions.length > 5 && (
-                        <p className="text-xs font-bold text-[#8b706e] text-center pt-1">
-                          + {offering.sessions.length - 5} buổi học khác...
-                        </p>
-                      )}
                     </div>
                   </section>
                 )}
@@ -350,20 +457,30 @@ export default function ClassroomPublicDetailPage() {
                           onClick={() => handleRegister(false)}
                           type="button"
                         >
-                          {registering ? 'Đang gửi...' : isAuthenticated ? 'Đăng ký lớp ngay' : 'Đăng nhập để đăng ký'}
+                          {registering
+                            ? 'Đang gửi...'
+                            : !isAuthenticated
+                              ? 'Đăng nhập để đăng ký'
+                              : isFull
+                                ? 'Đăng ký vào danh sách chờ'
+                                : 'Đăng ký lớp ngay'}
                           {!registering && <ChevronRight className="h-4 w-4" />}
                         </button>
-                        <button
-                          className="flex items-center justify-center gap-2 w-full rounded-2xl border-2 border-[#4b0009] bg-white py-3.5 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95 disabled:opacity-60"
-                          disabled={registering}
-                          onClick={() => handleRegister(true)}
-                          type="button"
-                        >
-                          Giữ chỗ trước
-                        </button>
-                        <p className="text-[10px] text-[#8b706e] text-center leading-4">
-                          Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Điều phối đào tạo sẽ xác nhận.
-                        </p>
+                        {!isFull && (
+                          <>
+                            <button
+                              className="flex items-center justify-center gap-2 w-full rounded-2xl border-2 border-[#4b0009] bg-white py-3.5 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95 disabled:opacity-60"
+                              disabled={registering}
+                              onClick={() => handleRegister(true)}
+                              type="button"
+                            >
+                              Giữ chỗ trước
+                            </button>
+                            <p className="text-[10px] text-[#8b706e] text-center leading-4">
+                              Giữ chỗ giúp bảo lưu vị trí trong khi bạn chuẩn bị học phí. Điều phối đào tạo sẽ xác nhận.
+                            </p>
+                          </>
+                        )}
                       </>
                     )}
 
@@ -377,10 +494,24 @@ export default function ClassroomPublicDetailPage() {
                       </Link>
                     )}
 
+                    {canCancelRegistration && (
+                      <button
+                        className="flex items-center justify-center gap-2 w-full rounded-2xl border border-rose-200 bg-white py-3 text-xs font-extrabold text-rose-700 transition hover:bg-rose-50 active:scale-95 disabled:opacity-60"
+                        disabled={registering}
+                        onClick={handleCancelRegistration}
+                        type="button"
+                      >
+                        {registering ? 'Đang xử lý...' : 'Hủy đăng ký / giữ chỗ'}
+                      </button>
+                    )}
+
                     {isFull && !isRegistered && (
                       <div className="rounded-2xl bg-rose-50 border border-rose-100 p-4 text-xs text-rose-800 text-center">
                         <p className="font-extrabold">Lớp học đã đủ chỗ</p>
-                        <p className="mt-1">Bạn vẫn có thể đăng ký để vào danh sách chờ xếp lớp.</p>
+                        <p className="mt-1">
+                          Đăng ký ngay để vào danh sách chờ xếp lớp
+                          {offering.waitlistCount > 0 ? ` (hiện có ${offering.waitlistCount} người đang chờ)` : ''}.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -415,9 +546,18 @@ export default function ClassroomPublicDetailPage() {
 
                     <div className="rounded-xl bg-blue-50/50 border border-blue-100/50 p-3 text-[10px] text-blue-800 flex items-start gap-2">
                       <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
-                      <p className="leading-4">Học phí được ghi nhận bởi điều phối đào tạo. Liên hệ trung tâm để nộp học phí nếu được yêu cầu.</p>
+                      <p className="leading-4">Học phí được ghi nhận bởi điều phối đào tạo. Bạn có thể chuyển khoản và gửi minh chứng bên dưới để được xác nhận nhanh hơn.</p>
                     </div>
                   </div>
+                )}
+
+                {/* Tuition payment: history + proof upload */}
+                {isRegistered && (
+                  <TuitionPaymentSection
+                    canSubmitProof={!hasClassAccess && registrationStatus !== 'ASSIGNED'}
+                    classroomId={offering.id}
+                    onUpdated={() => loadRegistration(offering.id)}
+                  />
                 )}
 
                 {/* Highlights */}

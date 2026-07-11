@@ -26,7 +26,9 @@ import {
 } from '../../utils/classroomHelpers';
 import {
   getHomeworkGradingModeLabel,
+  getHomeworkActivityTypeLabel,
   getHomeworkSkillLabel,
+  HOMEWORK_ACTIVITY_TYPES,
   HOMEWORK_GRADING_MODES,
   HOMEWORK_SKILLS,
   isAiGradedHomework,
@@ -40,9 +42,34 @@ const emptyForm = {
   allowResubmission: false,
   status: 'OPEN',
   sessionId: '',
+  curriculumUnitId: '',
+  activityType: 'SKILL_PRACTICE',
+  activityConfigJson: '',
+  aiReviewEnabled: false,
   gradingMode: 'TEACHER',
   skill: 'SPEAKING',
   rubricId: '',
+};
+
+const createEmptyQuestion = () => ({
+  prompt: '',
+  options: ['', '', '', ''],
+  correctAnswer: 'A',
+});
+
+const parseQuestionBuilderConfig = (value) => {
+  try {
+    const config = JSON.parse(value || '{}');
+    return (config.questions || []).map((question, index) => ({
+      prompt: question.prompt || '',
+      options: (question.options || []).map((option) => (
+        typeof option === 'object' ? String(option.label || option.value || '') : String(option)
+      )).concat(['', '', '', '']).slice(0, 4),
+      correctAnswer: config.answerKey?.[String(question.number || index + 1)] || question.correctAnswer || 'A',
+    }));
+  } catch {
+    return [];
+  }
 };
 
 const homeworkStatusOptions = [
@@ -66,12 +93,14 @@ export default function TeacherHomeworkSection({
   onMessage,
   initialOpenCreate = false,
   onCreateFormOpened,
+  curriculumUnits = [],
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingHomework, setEditingHomework] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [attachmentFile, setAttachmentFile] = useState(null);
+  const [questionDrafts, setQuestionDrafts] = useState([createEmptyQuestion()]);
 
   const [gradingHomework, setGradingHomework] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -86,9 +115,27 @@ export default function TeacherHomeworkSection({
     [],
   );
 
-  const skillOptions = useMemo(
-    () => HOMEWORK_SKILLS.map((item) => ({ label: item.label, value: item.value })),
+  const aiSkillOptions = useMemo(
+    () => HOMEWORK_SKILLS
+      .filter((item) => item.aiSupported)
+      .map((item) => ({ label: item.label, value: item.value })),
     [],
+  );
+
+  const activityTypeOptions = useMemo(
+    () => HOMEWORK_ACTIVITY_TYPES.map((item) => ({ label: item.label, value: item.value })),
+    [],
+  );
+
+  const curriculumUnitOptions = useMemo(
+    () => [
+      { label: 'Không gắn unit cụ thể', value: '' },
+      ...curriculumUnits.map((unit) => ({
+        label: `${unit.displayOrder ?? 0}. ${unit.title}`,
+        value: String(unit.id),
+      })),
+    ],
+    [curriculumUnits],
   );
 
   const rubricOptions = useMemo(
@@ -126,17 +173,19 @@ export default function TeacherHomeworkSection({
 
     let active = true;
     setRubricsLoading(true);
-    classroomApi.getHomeworkRubrics(form.skill)
-      .then((data) => {
+    const loadRubrics = async () => {
+      try {
+        const data = await classroomApi.getHomeworkRubrics(form.skill);
         if (!active) return;
         setRubrics(data);
-      })
-      .catch(() => {
+      } catch {
         if (active) setRubrics([]);
-      })
-      .finally(() => {
+      } finally {
         if (active) setRubricsLoading(false);
-      });
+      }
+    };
+
+    loadRubrics();
 
     return () => {
       active = false;
@@ -156,12 +205,14 @@ export default function TeacherHomeworkSection({
     setEditingHomework(null);
     setFormOpen(false);
     setAttachmentFile(null);
+    setQuestionDrafts([createEmptyQuestion()]);
   };
 
   const openCreateForm = () => {
     setEditingHomework(null);
     setForm(emptyForm);
     setAttachmentFile(null);
+    setQuestionDrafts([createEmptyQuestion()]);
     setFormOpen(true);
   };
 
@@ -183,15 +234,21 @@ export default function TeacherHomeworkSection({
       allowResubmission: Boolean(item.allowResubmission),
       status: item.status || 'OPEN',
       sessionId: item.sessionId ? String(item.sessionId) : '',
+      curriculumUnitId: item.curriculumUnitId ? String(item.curriculumUnitId) : '',
+      activityType: item.activityType || 'TEXT_RESPONSE',
+      activityConfigJson: item.activityConfigJson || '',
+      aiReviewEnabled: Boolean(item.aiReviewEnabled || item.gradingMode === 'AI'),
       gradingMode: item.gradingMode || 'TEACHER',
       skill: item.skill || 'SPEAKING',
       rubricId: item.rubricId ? String(item.rubricId) : '',
     });
     setAttachmentFile(null);
+    const parsedQuestions = parseQuestionBuilderConfig(item.activityConfigJson);
+    setQuestionDrafts(parsedQuestions.length ? parsedQuestions : [createEmptyQuestion()]);
     setFormOpen(true);
   };
 
-  const buildPayload = (attachmentUrl) => ({
+  const buildPayload = (attachmentUrl, activityConfigJson = form.activityConfigJson) => ({
     title: form.title.trim(),
     instruction: form.instruction.trim(),
     deadline: fromDateTimeLocalValue(form.deadline),
@@ -199,6 +256,10 @@ export default function TeacherHomeworkSection({
     allowResubmission: Boolean(form.allowResubmission),
     status: form.status,
     sessionId: form.sessionId ? Number(form.sessionId) : null,
+    curriculumUnitId: form.curriculumUnitId ? Number(form.curriculumUnitId) : null,
+    activityType: form.activityType,
+    activityConfigJson: activityConfigJson?.trim() || '',
+    aiReviewEnabled: Boolean(form.aiReviewEnabled && form.gradingMode === 'AI'),
     attachmentUrl,
     gradingMode: form.gradingMode,
     skill: form.gradingMode === 'AI' ? form.skill : null,
@@ -214,6 +275,25 @@ export default function TeacherHomeworkSection({
       onMessage?.('Vui lòng chọn bộ tiêu chí chấm AI.');
       return;
     }
+    if (form.gradingMode === 'AI' && !['SPEAKING', 'WRITING'].includes(form.skill)) {
+      onMessage?.('AI chỉ hỗ trợ đánh giá Speaking hoặc Writing. Reading/Listening nên dùng answer key và giáo viên review.');
+      return;
+    }
+    if (form.activityType === 'FILE_RESPONSE' && !attachmentFile && !editingHomework?.attachmentUrl) {
+      onMessage?.('Vui lòng tải tệp đề bài khi chọn hình thức giao bài bằng file.');
+      return;
+    }
+    if (form.activityType === 'SKILL_PRACTICE') {
+      const invalidQuestion = questionDrafts.find((question) => (
+        !question.prompt.trim()
+        || question.options.some((option) => !option.trim())
+        || !question.correctAnswer
+      ));
+      if (invalidQuestion) {
+        onMessage?.('Vui lòng nhập đủ câu hỏi, 4 lựa chọn và đáp án đúng cho bài soạn trên hệ thống.');
+        return;
+      }
+    }
 
     setSaving(true);
     onMessage?.('');
@@ -223,7 +303,20 @@ export default function TeacherHomeworkSection({
         const uploaded = await classroomApi.uploadHomeworkAttachment(attachmentFile);
         attachmentUrl = uploaded.url;
       }
-      const payload = buildPayload(attachmentUrl);
+      const activityConfigJson = form.activityType === 'SKILL_PRACTICE'
+        ? JSON.stringify({
+          questions: questionDrafts.map((question, index) => ({
+            number: index + 1,
+            prompt: question.prompt.trim(),
+            options: question.options.map((option, optionIndex) => ({
+              value: String.fromCharCode(65 + optionIndex),
+              label: option.trim(),
+            })),
+          })),
+          answerKey: Object.fromEntries(questionDrafts.map((question, index) => [String(index + 1), question.correctAnswer])),
+        })
+        : form.activityConfigJson;
+      const payload = buildPayload(attachmentUrl, activityConfigJson);
       if (editingHomework?.id) {
         await classroomApi.updateHomework(editingHomework.id, payload);
         onMessage?.('Đã cập nhật bài tập.');
@@ -275,6 +368,10 @@ export default function TeacherHomeworkSection({
         gradingMode: item.gradingMode || 'TEACHER',
         skill: item.skill || null,
         rubricId: item.rubricId || null,
+        curriculumUnitId: item.curriculumUnitId || null,
+        activityType: item.activityType || 'TEXT_RESPONSE',
+        activityConfigJson: item.activityConfigJson || '',
+        aiReviewEnabled: Boolean(item.aiReviewEnabled),
       });
       const refreshed = await classroomApi.getTeacherHomework(classroomId);
       onHomeworkChange?.(refreshed);
@@ -380,8 +477,32 @@ export default function TeacherHomeworkSection({
               />
             </label>
 
+            <div className="md:col-span-2 space-y-2">
+              <span className="text-xs font-bold text-[#8b706e]">Hình thức giao bài</span>
+              <div className="grid gap-2 rounded-xl border border-[#e5e7eb] bg-gray-50 p-1.5 sm:grid-cols-2">
+                <button
+                  className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-xs font-extrabold transition ${form.activityType !== 'FILE_RESPONSE' ? 'bg-white text-[#730014] shadow-sm' : 'text-[#584140] hover:bg-white/70'}`}
+                  onClick={() => setForm((current) => ({ ...current, activityType: 'SKILL_PRACTICE' }))}
+                  type="button"
+                >
+                  <FileText className="h-4 w-4" />
+                  Soạn trên hệ thống
+                </button>
+                <button
+                  className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-xs font-extrabold transition ${form.activityType === 'FILE_RESPONSE' ? 'bg-white text-[#730014] shadow-sm' : 'text-[#584140] hover:bg-white/70'}`}
+                  onClick={() => setForm((current) => ({ ...current, activityType: 'FILE_RESPONSE' }))}
+                  type="button"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  Giao bằng tệp
+                </button>
+              </div>
+            </div>
+
             <label className="block space-y-2 md:col-span-2">
-              <span className="text-xs font-bold text-[#8b706e]">Tệp đính kèm (tối đa 20 MB)</span>
+              <span className="text-xs font-bold text-[#8b706e]">
+                Tệp đính kèm {form.activityType === 'FILE_RESPONSE' ? '*' : '(không bắt buộc)'} · tối đa 20 MB
+              </span>
               <input
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
                 className="block w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-3 text-sm text-[#584140] file:mr-4 file:rounded-lg file:border-0 file:bg-[#fff0f1] file:px-3 file:py-2 file:text-xs file:font-bold file:text-[#730014] hover:file:bg-[#ffe2e6]"
@@ -442,6 +563,113 @@ export default function TeacherHomeworkSection({
               />
             </label>
 
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-[#8b706e]">Unit trong chương trình học</span>
+              <BrandedSelect
+                onChange={(event) => setForm((current) => ({ ...current, curriculumUnitId: event.target.value }))}
+                options={curriculumUnitOptions}
+                value={form.curriculumUnitId}
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-xs font-bold text-[#8b706e]">Loại bài học viên sẽ làm</span>
+              <BrandedSelect
+                onChange={(event) => setForm((current) => ({ ...current, activityType: event.target.value }))}
+                options={activityTypeOptions}
+                value={form.activityType}
+              />
+              <p className="text-xs leading-5 text-[#8b706e]">
+                {HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === form.activityType)?.description}
+              </p>
+            </label>
+
+            {form.activityType === 'SKILL_PRACTICE' ? (
+              <div className="space-y-4 md:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-[#8b706e]">Câu hỏi làm trực tiếp</span>
+                    <p className="mt-1 text-xs text-[#8b706e]">Học viên chọn đáp án ngay trên website; đáp án đúng được lưu cùng đề.</p>
+                  </div>
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-extrabold text-[#730014]"
+                    onClick={() => setQuestionDrafts((current) => [...current, createEmptyQuestion()])}
+                    type="button"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Thêm câu
+                  </button>
+                </div>
+
+                {questionDrafts.map((question, questionIndex) => (
+                  <div className="space-y-3 rounded-xl border border-[#e5e7eb] bg-[#fffafb] p-4" key={`question-${questionIndex}`}>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-extrabold text-[#730014]">Câu {questionIndex + 1}</span>
+                      {questionDrafts.length > 1 ? (
+                        <button
+                          aria-label={`Xóa câu ${questionIndex + 1}`}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                          onClick={() => setQuestionDrafts((current) => current.filter((_, index) => index !== questionIndex))}
+                          title={`Xóa câu ${questionIndex + 1}`}
+                          type="button"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </div>
+                    <input
+                      className="w-full rounded-xl border border-[#e5e7eb] bg-white px-4 py-3 text-sm outline-none focus:border-[#730014]"
+                      onChange={(event) => setQuestionDrafts((current) => current.map((item, index) => (
+                        index === questionIndex ? { ...item, prompt: event.target.value } : item
+                      )))}
+                      placeholder="Nhập nội dung câu hỏi"
+                      value={question.prompt}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {question.options.map((option, optionIndex) => (
+                        <label className="flex items-center gap-2" key={`option-${questionIndex}-${optionIndex}`}>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fff0f1] text-xs font-extrabold text-[#730014]">
+                            {String.fromCharCode(65 + optionIndex)}
+                          </span>
+                          <input
+                            className="w-full rounded-xl border border-[#e5e7eb] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#730014]"
+                            onChange={(event) => setQuestionDrafts((current) => current.map((item, index) => {
+                              if (index !== questionIndex) return item;
+                              const options = [...item.options];
+                              options[optionIndex] = event.target.value;
+                              return { ...item, options };
+                            }))}
+                            placeholder={`Lựa chọn ${String.fromCharCode(65 + optionIndex)}`}
+                            value={option}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <label className="block max-w-xs space-y-2">
+                      <span className="text-xs font-bold text-[#8b706e]">Đáp án đúng</span>
+                      <BrandedSelect
+                        onChange={(event) => setQuestionDrafts((current) => current.map((item, index) => (
+                          index === questionIndex ? { ...item, correctAnswer: event.target.value } : item
+                        )))}
+                        options={['A', 'B', 'C', 'D'].map((value) => ({ label: `Đáp án ${value}`, value }))}
+                        value={question.correctAnswer}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            ) : form.activityType === 'FLASHCARD_REVIEW' || form.activityType === 'MIXED' ? (
+              <label className="block space-y-2 md:col-span-2">
+                <span className="text-xs font-bold text-[#8b706e]">Cấu hình hoạt động bổ sung</span>
+                <textarea
+                  className="min-h-[96px] w-full rounded-xl border border-[#e5e7eb] px-4 py-3 font-mono text-xs outline-none focus:border-[#730014]"
+                  onChange={(event) => setForm((current) => ({ ...current, activityConfigJson: event.target.value }))}
+                  placeholder='{"flashcardSetIds":[1]}'
+                  value={form.activityConfigJson}
+                />
+              </label>
+            ) : null}
+
             <label className="block space-y-2 md:col-span-2">
               <span className="text-xs font-bold text-[#8b706e]">Cách chấm bài</span>
               <BrandedSelect
@@ -458,6 +686,19 @@ export default function TeacherHomeworkSection({
               ) : null}
             </label>
 
+            <label className="flex items-center gap-3 md:col-span-2 rounded-xl border border-[#e5e7eb] px-4 py-3">
+              <input
+                checked={form.aiReviewEnabled && form.gradingMode === 'AI'}
+                className="h-4 w-4 accent-[#4b0009]"
+                disabled={form.gradingMode !== 'AI'}
+                onChange={(event) => setForm((current) => ({ ...current, aiReviewEnabled: event.target.checked }))}
+                type="checkbox"
+              />
+              <span className="text-sm text-[#584140]">
+                Cho phép AI đánh giá nháp cho Speaking/Writing để giáo viên review lại
+              </span>
+            </label>
+
             {form.gradingMode === 'AI' ? (
               <>
                 <label className="block space-y-2">
@@ -468,7 +709,7 @@ export default function TeacherHomeworkSection({
                       skill: event.target.value,
                       rubricId: '',
                     }))}
-                    options={skillOptions}
+                    options={aiSkillOptions}
                     value={form.skill}
                   />
                   {selectedSkillMeta?.description ? (
@@ -515,7 +756,7 @@ export default function TeacherHomeworkSection({
             <label className="flex items-center gap-3 md:col-span-2 rounded-xl border border-[#e5e7eb] px-4 py-3">
               <input
                 checked={form.allowResubmission}
-                className="h-4 w-4 accent-[#730014]"
+                className="h-4 w-4 accent-[#4b0009]"
                 onChange={(event) => setForm((current) => ({ ...current, allowResubmission: event.target.checked }))}
                 type="checkbox"
               />
@@ -682,6 +923,16 @@ export default function TeacherHomeworkSection({
                 {item.rubricName ? (
                   <p className="mt-1 text-xs font-semibold text-purple-700">Rubric: {item.rubricName}</p>
                 ) : null}
+                <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-bold text-[#8b706e]">
+                  {item.curriculumUnitTitle ? (
+                    <span className="rounded-full bg-[#fff0f1] px-2.5 py-1 text-[#730014]">
+                      Unit: {item.curriculumUnitTitle}
+                    </span>
+                  ) : null}
+                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">
+                    {getHomeworkActivityTypeLabel(item.activityType)}
+                  </span>
+                </div>
                 <p className="mt-2 line-clamp-3 text-sm text-[#584140]">{item.instruction || 'Không có hướng dẫn chi tiết.'}</p>
 
                 <div className="mt-4 flex flex-wrap gap-3 text-xs text-[#8b706e]">

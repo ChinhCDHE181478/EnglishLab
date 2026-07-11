@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sap490.g23.backend.service.classroom.TuitionProofService;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ public class TrainingManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
     private final CurriculumProgramService curriculumProgramService;
+    private final TuitionProofService tuitionProofService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
 
@@ -71,6 +73,32 @@ public class TrainingManagerClassroomController {
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
         return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
+    }
+
+    @GetMapping("/curriculum-programs/pending-review")
+    public ResponseEntity<List<CurriculumProgramResponse>> listPendingCurriculumPrograms() {
+        return ResponseEntity.ok(curriculumProgramService.listPendingReview());
+    }
+
+    @PostMapping("/curriculum-programs/{id}/approve")
+    public ResponseEntity<CurriculumProgramResponse> approveCurriculumProgram(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.approveProgram(id, authentication.getName()));
+    }
+
+    @PostMapping("/curriculum-programs/{id}/reject")
+    public ResponseEntity<CurriculumProgramResponse> rejectCurriculumProgram(
+            @PathVariable Long id,
+            @RequestBody(required = false) RejectRegistrationRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.rejectProgram(
+                id,
+                request == null ? null : request.getReason(),
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/{id}")
@@ -211,6 +239,37 @@ public class TrainingManagerClassroomController {
     @GetMapping("/enrollments/{enrollmentId}/tuition-history")
     public ResponseEntity<List<ClassroomTuitionPaymentResponse>> getTuitionHistory(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(classroomOfferingService.getTuitionHistory(enrollmentId));
+    }
+
+    @GetMapping("/tuition-proofs/pending")
+    public ResponseEntity<List<TuitionProofResponse>> listPendingTuitionProofs() {
+        return ResponseEntity.ok(tuitionProofService.listPendingProofs());
+    }
+
+    @GetMapping("/enrollments/{enrollmentId}/tuition-proofs")
+    public ResponseEntity<List<TuitionProofResponse>> listTuitionProofsForEnrollment(@PathVariable Long enrollmentId) {
+        return ResponseEntity.ok(tuitionProofService.listProofsForEnrollment(enrollmentId));
+    }
+
+    @PostMapping("/tuition-proofs/{proofId}/confirm")
+    public ResponseEntity<TuitionProofResponse> confirmTuitionProof(
+            @PathVariable Long proofId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(tuitionProofService.confirmProof(proofId, authentication.getName()));
+    }
+
+    @PostMapping("/tuition-proofs/{proofId}/reject")
+    public ResponseEntity<TuitionProofResponse> rejectTuitionProof(
+            @PathVariable Long proofId,
+            @RequestBody(required = false) RejectRegistrationRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(tuitionProofService.rejectProof(
+                proofId,
+                request == null ? null : request.getReason(),
+                authentication.getName()
+        ));
     }
 
     @PostMapping("/enrollments/{enrollmentId}/assign")

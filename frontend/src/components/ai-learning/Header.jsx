@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, ChevronDown, LogOut, Menu, ShoppingCart, UserRound } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
-import { clearSession, getStoredUser, hasAnyUserRole } from '../../utils/auth';
+import classroomApi from '../../api/classroomApi';
+import { hasAccessToken, hasAnyUserRole } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
 const studentNavItems = [
@@ -90,7 +92,6 @@ const getProfileItemsByRole = (user) => {
     { label: 'Lớp của tôi', to: '/my-classrooms' },
     { label: 'Lịch học', to: '/my-schedule' },
     { label: 'Bài tập', to: '/my-homework' },
-    { label: 'Quiz lớp học', to: '/my-quizzes' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },
   ];
@@ -111,27 +112,22 @@ const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER'
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const { markAllNotificationsRead, unreadNotificationCount } = useLearnerExperience();
   const menuRef = useRef(null);
-  const [user, setUser] = useState(() => getStoredUser());
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(() => readCart().length);
+  const [apiUnreadCount, setApiUnreadCount] = useState(0);
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
+  const displayUnreadCount = Math.max(apiUnreadCount, unreadNotificationCount);
 
   useEffect(() => {
-    const syncUser = () => setUser(getStoredUser());
     const syncCart = () => setCartCount(readCart().length);
-    window.addEventListener('storage', syncUser);
-    window.addEventListener('focus', syncUser);
-    window.addEventListener('englishlab:user-updated', syncUser);
     window.addEventListener('storage', syncCart);
     window.addEventListener(commerceEventName, syncCart);
     window.addEventListener('focus', syncCart);
 
     return () => {
-      window.removeEventListener('storage', syncUser);
-      window.removeEventListener('focus', syncUser);
-      window.removeEventListener('englishlab:user-updated', syncUser);
       window.removeEventListener('storage', syncCart);
       window.removeEventListener(commerceEventName, syncCart);
       window.removeEventListener('focus', syncCart);
@@ -141,6 +137,33 @@ const Header = () => {
   useEffect(() => {
     setIsProfileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!hasAccessToken()) {
+      setApiUnreadCount(0);
+      return undefined;
+    }
+
+    let active = true;
+    const syncUnread = async () => {
+      try {
+        const count = await classroomApi.getUnreadNotificationCount();
+        if (active) {
+          setApiUnreadCount(Number(count?.count ?? count ?? 0));
+        }
+      } catch {
+        if (active) setApiUnreadCount(0);
+      }
+    };
+
+    syncUnread();
+    const intervalId = window.setInterval(syncUnread, 60000);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [location.pathname, user?.id]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return undefined;
@@ -167,9 +190,7 @@ const Header = () => {
   }, [isProfileMenuOpen]);
 
   const handleLogout = () => {
-    clearSession();
-    window.dispatchEvent(new Event('englishlab:user-updated'));
-    setUser(null);
+    logout();
     setIsProfileMenuOpen(false);
     if (shouldReloadWhenLeavingWorkspace) {
       window.location.assign('/');
@@ -257,7 +278,7 @@ const Header = () => {
               reloadDocument={shouldReloadWhenLeavingWorkspace}
             >
               <Bell className="h-5 w-5" />
-              {unreadNotificationCount > 0 ? (
+              {displayUnreadCount > 0 ? (
                 <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#c5162e]" />
               ) : null}
             </Link>

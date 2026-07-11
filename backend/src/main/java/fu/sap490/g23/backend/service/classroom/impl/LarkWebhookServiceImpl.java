@@ -14,11 +14,29 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LarkWebhookServiceImpl implements LarkWebhookService {
+
+    private static final String MEETING_STARTED = "vc.meeting.meeting_started_v1";
+    private static final String MEETING_ENDED = "vc.meeting.meeting_ended_v1";
+    private static final String PARTICIPANT_JOINED = "vc.meeting.join_meeting_v1";
+    private static final String PARTICIPANT_LEFT = "vc.meeting.leave_meeting_v1";
+    private static final String RECORDING_STARTED = "vc.meeting.recording_started_v1";
+    private static final String RECORDING_ENDED = "vc.meeting.recording_ended_v1";
+    private static final String RECORDING_READY = "vc.meeting.recording_ready_v1";
+    private static final Set<String> SUPPORTED_EVENTS = Set.of(
+            MEETING_STARTED,
+            MEETING_ENDED,
+            PARTICIPANT_JOINED,
+            PARTICIPANT_LEFT,
+            RECORDING_STARTED,
+            RECORDING_ENDED,
+            RECORDING_READY
+    );
 
     private final LarkProperties properties;
     private final ClassroomSessionRepository sessionRepository;
@@ -26,15 +44,20 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
     private final UserRepository userRepository;
     private final VirtualAttendanceService virtualAttendanceService;
 
+    @Override
+    public void verifyChallenge(Map<String, Object> payload) {
+        verifyToken(stringValue(payload.get("token")));
+    }
+
+    @Override
     @Transactional
     public void handle(Map<String, Object> payload) {
         Map<String, Object> header = asMap(payload.get("header"));
+        verifyToken(stringValue(header.get("token")));
         String eventType = stringValue(header.get("event_type"));
-        if (!"vc.meeting.join_meeting_v1".equals(eventType)
-                && !"vc.meeting.leave_meeting_v1".equals(eventType)) {
+        if (!SUPPORTED_EVENTS.contains(eventType)) {
             return;
         }
-        verifyToken(header);
 
         Map<String, Object> event = asMap(payload.get("event"));
         Map<String, Object> meeting = asMap(event.get("meeting"));
@@ -48,19 +71,66 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
 
         session.setLarkMeetingId(blankToNull(meetingId));
         session.setLarkMeetingNo(blankToNull(meetingNo));
+        if (!PARTICIPANT_JOINED.equals(eventType) && !PARTICIPANT_LEFT.equals(eventType)) {
+            updateMeetingState(session, eventType);
+            sessionRepository.save(session);
+            return;
+        }
+
         String participantKey = resolveParticipantKey(event);
         if (participantKey.isBlank()) {
             log.warn("Webhook Lark {} không có định danh người tham gia.", eventType);
             return;
         }
 
-        if ("vc.meeting.join_meeting_v1".equals(eventType)) {
+        if (PARTICIPANT_JOINED.equals(eventType)) {
             markJoined(session, participantKey);
         } else {
             markLeft(session, participantKey);
         }
         virtualAttendanceService.syncLarkParticipantAttendance(session);
         sessionRepository.save(session);
+    }
+
+    private void updateMeetingState(ClassroomSession session, String eventType) {
+        switch (eventType) {
+            case MEETING_STARTED -> {
+                session.setLarkMeetingStatus(LarkMeetingStatus.IN_PROGRESS);
+                if (session.getStatus() == ClassroomSessionStatus.SCHEDULED
+                        || session.getStatus() == ClassroomSessionStatus.OPEN) {
+                    session.setStatus(ClassroomSessionStatus.IN_PROGRESS);
+                }
+            }
+            case MEETING_ENDED -> {
+                session.setLarkMeetingStatus(LarkMeetingStatus.ENDED);
+                if (session.getStatus() == ClassroomSessionStatus.IN_PROGRESS
+                        || session.getStatus() == ClassroomSessionStatus.OPEN
+                        || session.getStatus() == ClassroomSessionStatus.SCHEDULED) {
+                    session.setStatus(ClassroomSessionStatus.COMPLETED);
+                }
+                if (session.getRecordingSyncStatus() == RecordingSyncStatus.RECORDING) {
+                    markRecordingProcessing(session);
+                }
+            }
+            case RECORDING_STARTED -> {
+                session.setRecordingProvider("LARK");
+                session.setRecordingSyncStatus(RecordingSyncStatus.RECORDING);
+                session.setRecordingSyncError(null);
+            }
+            case RECORDING_ENDED -> markRecordingProcessing(session);
+            case RECORDING_READY -> {
+                markRecordingProcessing(session);
+                session.setRecordingSyncAttempts(0);
+                session.setRecordingLastAttemptAt(null);
+            }
+            default -> log.debug("Bỏ qua trạng thái webhook Lark {}.", eventType);
+        }
+    }
+
+    private void markRecordingProcessing(ClassroomSession session) {
+        session.setRecordingProvider("LARK");
+        session.setRecordingSyncStatus(RecordingSyncStatus.PROCESSING);
+        session.setRecordingSyncError(null);
     }
 
     private void markJoined(ClassroomSession session, String participantKey) {
@@ -111,10 +181,10 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         return unionId.isBlank() ? "" : "union_id:" + unionId;
     }
 
-    private void verifyToken(Map<String, Object> header) {
+    private void verifyToken(String actual) {
         String expected = properties.getVerificationToken();
         if (expected != null && !expected.isBlank()
-                && !expected.equals(stringValue(header.get("token")))) {
+                && !expected.equals(actual)) {
             throw new RuntimeException("Webhook Lark không hợp lệ.");
         }
     }

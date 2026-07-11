@@ -256,7 +256,7 @@ export default function ContentManagerDiscountCodesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-left">
-              <thead className="bg-[#fcf8f8] text-[11px] uppercase tracking-[0.16em] text-[#8b706e]">
+              <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.16em] text-[#8e7371]">
                 <tr>
                   <th className="px-5 py-4">Mã</th>
                   <th className="px-5 py-4">Giá trị</th>

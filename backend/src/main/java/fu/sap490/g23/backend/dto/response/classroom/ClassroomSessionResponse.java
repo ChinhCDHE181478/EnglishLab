@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.dto.response.classroom;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -36,6 +37,15 @@ public class ClassroomSessionResponse {
     private LocalDateTime larkSyncedAt;
     private String recordingUrl;
     private boolean recordingVisible;
+    private RecordingSyncStatus recordingSyncStatus;
+    private String recordingProvider;
+    private Long recordingDurationMs;
+    private LocalDateTime recordingSyncedAt;
+    private LocalDateTime recordingLastAttemptAt;
+    private String recordingSyncError;
+    private Integer recordingSyncAttempts;
+    private LocalDateTime recordingPublishedAt;
+    private LocalDateTime recordingExpiresAt;
     private String sessionContent;
     private String note;
     private boolean locked;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, FileQuestion, RefreshCw, Send } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
+import BrandLoadingState from '../../components/ui/BrandLoadingState';
 
 export default function MyClassroomQuizzesPage() {
   const [quizzes, setQuizzes] = useState([]);
@@ -95,9 +96,7 @@ export default function MyClassroomQuizzesPage() {
         </div>
 
         {loading ? (
-          <section className="flex min-h-[360px] items-center justify-center rounded-[28px] border border-[#dfbfbd]/25 bg-white text-sm font-bold text-[#584140]">
-            Đang tải quiz...
-          </section>
+          <BrandLoadingState className="rounded-[28px]" message="Đang tải quiz..." />
         ) : !quizzes.length ? (
           <section className="flex min-h-[420px] flex-col items-center justify-center rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 text-center">
             <CheckCircle2 className="h-14 w-14 text-emerald-600" />
@@ -152,7 +151,7 @@ function QuizCard({ answers, onAnswer, onSubmit, quiz, submitting }) {
                   <label className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${answers[question.id] === option ? 'border-[#730014] bg-[#fff1f3] text-[#4b0009]' : 'border-[#dfbfbd]/25 bg-white text-[#584140]'}`} key={option}>
                     <input
                       checked={answers[question.id] === option}
-                      className="accent-[#730014]"
+                      className="accent-[#4b0009]"
                       disabled={overdue}
                       onChange={() => onAnswer(question.id, option)}
                       type="radio"

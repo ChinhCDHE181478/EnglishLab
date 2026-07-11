@@ -71,6 +71,9 @@ public class ClassroomSession {
     @Column(name = "lark_meeting_no", length = 30)
     private String larkMeetingNo;
 
+    @Column(name = "lark_reserve_id", length = 255)
+    private String larkReserveId;
+
     @Column(name = "lark_empty_since")
     private LocalDateTime larkEmptySince;
 
@@ -94,6 +97,41 @@ public class ClassroomSession {
     @Column(name = "recording_visible")
     @Builder.Default
     private Boolean recordingVisible = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "recording_sync_status",
+            nullable = false,
+            length = 30,
+            columnDefinition = "VARCHAR(30) DEFAULT 'NOT_AVAILABLE'"
+    )
+    @Builder.Default
+    private RecordingSyncStatus recordingSyncStatus = RecordingSyncStatus.NOT_AVAILABLE;
+
+    @Column(name = "recording_provider", length = 30)
+    private String recordingProvider;
+
+    @Column(name = "recording_duration_ms")
+    private Long recordingDurationMs;
+
+    @Column(name = "recording_synced_at")
+    private LocalDateTime recordingSyncedAt;
+
+    @Column(name = "recording_last_attempt_at")
+    private LocalDateTime recordingLastAttemptAt;
+
+    @Column(name = "recording_sync_error", length = 1000)
+    private String recordingSyncError;
+
+    @Column(name = "recording_sync_attempts", nullable = false, columnDefinition = "INTEGER DEFAULT 0")
+    @Builder.Default
+    private Integer recordingSyncAttempts = 0;
+
+    @Column(name = "recording_published_at")
+    private LocalDateTime recordingPublishedAt;
+
+    @Column(name = "recording_expires_at")
+    private LocalDateTime recordingExpiresAt;
 
     @Column(name = "session_content", columnDefinition = "text")
     private String sessionContent;

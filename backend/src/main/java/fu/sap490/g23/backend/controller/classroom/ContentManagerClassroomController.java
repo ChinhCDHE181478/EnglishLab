@@ -2,17 +2,27 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateMaterialRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
+import fu.sap490.g23.backend.dto.request.classroom.TrainingProgramRequest;
 import fu.sap490.g23.backend.dto.request.classroom.UpdateClassroomProgramRequest;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.CenterMaterialLibraryService;
 import fu.sap490.g23.backend.service.classroom.ClassroomContentApprovalService;
 import fu.sap490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.ClassroomProgramService;
 import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
+import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -22,7 +32,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/content-manager/classrooms")
@@ -32,9 +44,13 @@ public class ContentManagerClassroomController {
     private final ClassroomOfferingService classroomOfferingService;
     private final ClassroomContentService contentService;
     private final ClassroomProgramService programService;
+    private final TrainingProgramService trainingProgramService;
     private final ClassroomContentApprovalService approvalService;
     private final CenterMaterialLibraryService centerMaterialLibraryService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
+    private final CurriculumProgramService curriculumProgramService;
+    private final UserRepository userRepository;
+    private final ClassroomRoomRepository roomRepository;
 
     @GetMapping
     public ResponseEntity<List<ClassroomOfferingResponse>> listOfferings() {
@@ -44,6 +60,95 @@ public class ContentManagerClassroomController {
     @GetMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> getOffering(@PathVariable Long id) {
         return ResponseEntity.ok(classroomOfferingService.getOffering(id, true));
+    }
+
+    @PostMapping
+    public ResponseEntity<ClassroomOfferingResponse> createOffering(
+            @Valid @RequestBody CreateClassroomOfferingRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.createOffering(request, authentication.getName()));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ClassroomOfferingResponse> updateOffering(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateClassroomOfferingRequest request
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request));
+    }
+
+    @GetMapping("/teachers")
+    public ResponseEntity<List<ClassroomPickerOptionResponse>> listTeachers() {
+        List<ClassroomPickerOptionResponse> options = userRepository.findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+                .stream()
+                .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(user -> ClassroomPickerOptionResponse.builder()
+                        .id(user.getId())
+                        .label((user.getFullName() == null || user.getFullName().isBlank() ? user.getEmail() : user.getFullName())
+                                + " - " + user.getEmail())
+                        .build())
+                .toList();
+        return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/rooms")
+    public ResponseEntity<List<ClassroomPickerOptionResponse>> listRooms() {
+        List<ClassroomPickerOptionResponse> options = roomRepository.findByActiveTrue()
+                .stream()
+                .sorted(Comparator.comparing(ClassroomRoom::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .map(room -> ClassroomPickerOptionResponse.builder()
+                        .id(room.getId())
+                        .label(room.getCapacity() == null ? room.getName() : room.getName() + " - " + room.getCapacity() + " chỗ")
+                        .capacity(room.getCapacity())
+                        .build())
+                .toList();
+        return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/curriculum-programs")
+    public ResponseEntity<List<CurriculumProgramResponse>> listCurriculumPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
+    }
+
+    @GetMapping("/training-programs")
+    public ResponseEntity<List<TrainingProgramResponse>> listTrainingPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(trainingProgramService.listPrograms(deliveryMode));
+    }
+
+    @GetMapping("/training-programs/{id}")
+    public ResponseEntity<TrainingProgramResponse> getTrainingProgram(@PathVariable Long id) {
+        return ResponseEntity.ok(trainingProgramService.getProgram(id));
+    }
+
+    @PostMapping("/training-programs")
+    public ResponseEntity<TrainingProgramResponse> createTrainingProgram(
+            @Valid @RequestBody TrainingProgramRequest request
+    ) {
+        return ResponseEntity.ok(trainingProgramService.createProgram(request));
+    }
+
+    @PutMapping("/training-programs/{id}")
+    public ResponseEntity<TrainingProgramResponse> updateTrainingProgram(
+            @PathVariable Long id,
+            @Valid @RequestBody TrainingProgramRequest request
+    ) {
+        return ResponseEntity.ok(trainingProgramService.updateProgram(id, request));
+    }
+
+    @PostMapping("/training-programs/{id}/clone")
+    public ResponseEntity<TrainingProgramResponse> cloneTrainingProgram(@PathVariable Long id) {
+        return ResponseEntity.ok(trainingProgramService.cloneProgram(id));
+    }
+
+    @DeleteMapping("/training-programs/{id}")
+    public ResponseEntity<Void> archiveTrainingProgram(@PathVariable Long id) {
+        trainingProgramService.archiveProgram(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/materials")
@@ -58,6 +163,15 @@ public class ContentManagerClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(contentService.createMaterial(id, request, authentication.getName()));
+    }
+
+    @PutMapping("/materials/{materialId}")
+    public ResponseEntity<ClassroomMaterialResponse> updateMaterial(
+            @PathVariable Long materialId,
+            @Valid @RequestBody CreateMaterialRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(contentService.updateMaterial(materialId, request, authentication.getName()));
     }
 
     @PostMapping(value = "/materials/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

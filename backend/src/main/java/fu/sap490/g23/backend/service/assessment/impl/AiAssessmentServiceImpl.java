@@ -656,6 +656,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - correctedExamples must explain errors clearly for English learners.
                 - Add an originality analysis based only on the submission text itself. Do not claim web search or exact source matching.
                 - If the submission looks memorized, copied, template-heavy, or likely AI-assisted, report that as a risk signal with reasons.
+                - If the learner explicitly states or the submission metadata indicates 100%% AI use, fully AI-generated work, or complete automated-tool use, aiUsageRisk must be HIGH.
                 - originality or AI-use risk must be framed as non-final guidance for teachers, managers, or learners.
                 - For vocabulary assessments, score harshly if the learner fails to use the target vocabulary of the module, uses unrelated vocabulary, or ignores the IELTS topic.
                 - If the response is off-topic for the module or does not meaningfully use the target vocabulary list, Topic Relevance and Meaning Accuracy must be low, not maximum.
@@ -667,7 +668,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - If actual speaking audio is attached, infer the spoken wording from the audio when needed, but clearly lower confidence when the audio is unclear or noisy.
                 - Do not pretend that you listened to the audio if the system only provides an audio URL or recording metadata instead of actual audio content.
                 - If only an audio URL or recording metadata is provided, clearly state that pronunciation, exact wording, and meaning cannot be judged reliably from the current pipeline.
-                - For speaking mock tests, if the submission includes part metadata, provide a separate partFeedback entry for Part 1, Part 2, and Part 3 whenever possible.
+                - For speaking mock tests, if the submission includes part metadata, partFeedback is required and must include one separate entry for each available part such as Part 1, Part 2, and Part 3.
+                - For speaking mock tests, suggestions and recommendedReview are also required so the learner can see Hành động tiếp theo and Nên ôn lại.
                 - If a speaking response is empty, nearly empty, silent, or lacks meaningful evidence, say that directly, keep estimatedScore as null, and do not invent performance.
                 - For writing assessments, evaluate the essay or paragraph as a writing response according to the writing rubric.
 

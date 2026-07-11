@@ -10,6 +10,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -25,6 +26,12 @@ public class ClassroomOfferingResponse {
     private String deliveryModeLabel;
     private ClassroomOfferingStatus classroomStatus;
     private PackageStatus packageStatus;
+    private Long trainingProgramId;
+    private String trainingProgramTitle;
+    private String trainingProgramCode;
+    private String trainingProgramSlug;
+    private String trainingProgramStatus;
+    private TrainingProgramResponse trainingProgram;
     private Long curriculumProgramId;
     private String curriculumProgramTitle;
     private String curriculumProgramCode;
@@ -54,6 +61,12 @@ public class ClassroomOfferingResponse {
     private String teacherGuide;
     private String interactionActivities;
     private BigDecimal price;
+    private BigDecimal salePrice;
+    private String targetScore;
+    private String duration;
+    private String studyMode;
+    private Integer displayOrder;
+    private boolean featured;
     private String thumbnailUrl;
     private ClassroomSessionResponse nextSession;
     private Integer progressPercent;
@@ -71,6 +84,14 @@ public class ClassroomOfferingResponse {
     private String tuitionSettlementTypeLabel;
     private String tuitionSettlementNote;
     private Integer waitlistCount;
+    /** Lịch học tóm tắt, ví dụ "T2, T4 · 18:00–20:00". */
+    private String scheduleSummary;
+    /** Các thứ trong tuần có buổi học (1 = Thứ 2 ... 7 = Chủ nhật). */
+    private List<Integer> scheduleDaysOfWeek;
+    /** Giờ bắt đầu phổ biến nhất của các buổi học. */
+    private LocalTime typicalStartTime;
+    /** Giờ kết thúc phổ biến nhất của các buổi học. */
+    private LocalTime typicalEndTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<ClassroomSessionResponse> sessions;

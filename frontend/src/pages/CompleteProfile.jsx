@@ -19,6 +19,7 @@ import { getCurrentUser, updateCurrentUser } from '../api/authApi';
 import Footer from '../components/ai-learning/Footer';
 import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
+import { useAuth } from '../context/AuthContext';
 import { getStoredUser, hasAnyUserRole } from '../utils/auth';
 
 const targetOptions = ['IELTS', 'TOEIC'];
@@ -146,6 +147,7 @@ function SaveBtn({ loading, label = 'Lưu thay đổi' }) {
 // ── Tab: Tài khoản ──────────────────────────────────────────────────────────
 function AccountTab({ user, onUserUpdate, onboarding }) {
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const [formData, setFormData] = useState({
     fullName: user?.fullName || '',
     phoneNumber: user?.phoneNumber || '',
@@ -193,8 +195,7 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
     try {
       await updateCurrentUser(formData);
       const res = await getCurrentUser();
-      localStorage.setItem('user', JSON.stringify(res.data));
-      window.dispatchEvent(new Event('englishlab:user-updated'));
+      updateUser(res.data);
       onUserUpdate?.(res.data);
       setInfoMsg({ type: 'success', text: 'Thông tin đã được cập nhật.' });
       if (onboarding) {
@@ -507,17 +508,17 @@ const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER'
 // ── Main page ───────────────────────────────────────────────────────────────
 const CompleteProfile = () => {
   const [activeTab, setActiveTab] = useState('account');
-  const [user, setUser] = useState(() => getStoredUser());
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const isStaff = hasAnyUserRole(user, STAFF_ROLES);
   const onboarding = Boolean(user && !user.profileCompleted);
 
   useEffect(() => {
-    const sync = () => setUser(getStoredUser());
-    window.addEventListener('englishlab:user-updated', sync);
-    return () => window.removeEventListener('englishlab:user-updated', sync);
-  }, []);
+    if (!user && getStoredUser()) {
+      updateUser(getStoredUser());
+    }
+  }, [updateUser, user]);
 
   useEffect(() => {
     if (user && isStaff) {
@@ -575,7 +576,7 @@ const CompleteProfile = () => {
           transition={{ duration: 0.22, ease: 'easeOut' }}
         >
           {activeTab === 'account' && (
-            <AccountTab user={user} onUserUpdate={setUser} onboarding={onboarding} />
+            <AccountTab user={user} onUserUpdate={updateUser} onboarding={onboarding} />
           )}
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>

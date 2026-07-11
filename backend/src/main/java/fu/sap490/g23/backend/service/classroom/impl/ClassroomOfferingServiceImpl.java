@@ -29,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
@@ -64,6 +65,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final PackageTypeRepository packageTypeRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
+    private final TrainingProgramRepository trainingProgramRepository;
+    private final ClassroomMaterialRepository materialRepository;
     private final ClassroomRoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
@@ -86,7 +89,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Transactional(readOnly = true)
     public ClassroomOfferingResponse getPublicOffering(String slugOrId) {
         ClassroomOffering offering = findPublicOffering(slugOrId);
-        return mapper.toOfferingResponse(offering);
+        return mapper.toPublicOfferingDetailResponse(offering);
     }
 
     @Override
@@ -170,19 +173,23 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 request.getCurriculumProgramId(),
                 request.getDeliveryMode()
         );
+        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId(), request.getDeliveryMode());
+        if (trainingProgram != null) {
+            curriculumProgram = trainingProgram.getCurriculumProgram();
+        }
 
         LearningPackage learningPackage = LearningPackage.builder()
                 .packageType(packageType)
                 .title(request.getTitle().trim())
                 .slug(generateUniqueSlug(request.getTitle()))
-                .shortDescription(request.getShortDescription())
-                .description(request.getDescription())
-                .targetScore(request.getTargetScore())
-                .duration(request.getDuration())
-                .studyMode(request.getStudyMode())
-                .price(defaultBigDecimal(request.getPrice()))
-                .salePrice(request.getSalePrice())
-                .thumbnailUrl(request.getThumbnailUrl())
+                .shortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()))
+                .description(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()))
+                .targetScore(defaultText(request.getTargetScore(), trainingProgram == null ? null : trainingProgram.getTargetScore()))
+                .duration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()))
+                .studyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()))
+                .price(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()))
+                .salePrice(request.getSalePrice() != null ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice())
+                .thumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()))
                 .status(request.getPackageStatus() == null ? PackageStatus.DRAFT : request.getPackageStatus())
                 .displayOrder(defaultInt(request.getDisplayOrder()))
                 .featured(Boolean.TRUE.equals(request.getFeatured()))
@@ -193,11 +200,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomOffering offering = ClassroomOffering.builder()
                 .learningPackage(learningPackage)
                 .deliveryMode(request.getDeliveryMode())
+                .trainingProgram(trainingProgram)
                 .curriculumProgram(curriculumProgram)
                 .status(request.getClassroomStatus() == null ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus())
-                .entryLevel(request.getEntryLevel())
-                .targetOutcome(request.getTargetOutcome())
-                .maxCapacity(request.getMaxCapacity() == null ? 30 : request.getMaxCapacity())
+                .entryLevel(defaultText(request.getEntryLevel(), trainingProgram == null ? null : trainingProgram.getEntryLevel()))
+                .targetOutcome(defaultText(request.getTargetOutcome(), trainingProgram == null ? null : trainingProgram.getTargetOutcome()))
+                .maxCapacity(request.getMaxCapacity() == null ? (trainingProgram == null ? 30 : trainingProgram.getDefaultCapacity()) : request.getMaxCapacity())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .primaryTeacher(resolveTeacher(request.getPrimaryTeacherId()))
@@ -208,16 +216,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingStatus(larkMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
                 .recordingUrl(request.getRecordingUrl())
                 .recordingVisible(Boolean.TRUE.equals(request.getRecordingVisible()))
-                .syllabusSummary(request.getSyllabusSummary())
+                .syllabusSummary(defaultText(request.getSyllabusSummary(), trainingProgram == null ? null : trainingProgram.getSyllabusSummary()))
+                .programOutcomes(trainingProgram == null ? null : trainingProgram.getProgramOutcomes())
+                .teacherGuide(trainingProgram == null ? null : trainingProgram.getTeacherGuide())
+                .interactionActivities(trainingProgram == null ? null : trainingProgram.getInteractionActivities())
                 .build();
 
         if (offering.getPrimaryTeacher() != null) {
             offering = offeringRepository.save(offering);
             assignTeacherInternal(offering, offering.getPrimaryTeacher(), ClassroomTeacherRole.PRIMARY, "Giáo viên chính khi tạo lớp");
+            attachTrainingProgramMaterials(offering, creator);
             return mapper.toOfferingResponse(offering, true, null, null, true);
         }
 
-        return mapper.toOfferingResponse(offeringRepository.save(offering), true, null, null, true);
+        ClassroomOffering saved = offeringRepository.save(offering);
+        attachTrainingProgramMaterials(saved, creator);
+        return mapper.toOfferingResponse(saved, true, null, null, true);
     }
 
     @Override
@@ -228,17 +242,21 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 request.getCurriculumProgramId(),
                 request.getDeliveryMode()
         );
+        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId(), request.getDeliveryMode());
+        if (trainingProgram != null) {
+            curriculumProgram = trainingProgram.getCurriculumProgram();
+        }
 
 
         learningPackage.setTitle(request.getTitle().trim());
-        learningPackage.setShortDescription(request.getShortDescription());
-        learningPackage.setDescription(request.getDescription());
-        learningPackage.setTargetScore(request.getTargetScore());
-        learningPackage.setDuration(request.getDuration());
-        learningPackage.setStudyMode(request.getStudyMode());
-        learningPackage.setPrice(defaultBigDecimal(request.getPrice()));
-        learningPackage.setSalePrice(request.getSalePrice());
-        learningPackage.setThumbnailUrl(request.getThumbnailUrl());
+        learningPackage.setShortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()));
+        learningPackage.setDescription(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()));
+        learningPackage.setTargetScore(defaultText(request.getTargetScore(), trainingProgram == null ? null : trainingProgram.getTargetScore()));
+        learningPackage.setDuration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()));
+        learningPackage.setStudyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()));
+        learningPackage.setPrice(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()));
+        learningPackage.setSalePrice(request.getSalePrice() != null ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice());
+        learningPackage.setThumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()));
         if (request.getPackageStatus() != null) {
             learningPackage.setStatus(request.getPackageStatus());
         }
@@ -246,14 +264,17 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         learningPackage.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
 
         offering.setDeliveryMode(request.getDeliveryMode());
+        offering.setTrainingProgram(trainingProgram);
         offering.setCurriculumProgram(curriculumProgram);
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
-        offering.setEntryLevel(request.getEntryLevel());
-        offering.setTargetOutcome(request.getTargetOutcome());
+        offering.setEntryLevel(defaultText(request.getEntryLevel(), trainingProgram == null ? null : trainingProgram.getEntryLevel()));
+        offering.setTargetOutcome(defaultText(request.getTargetOutcome(), trainingProgram == null ? null : trainingProgram.getTargetOutcome()));
         if (request.getMaxCapacity() != null) {
             offering.setMaxCapacity(request.getMaxCapacity());
+        } else if (trainingProgram != null) {
+            offering.setMaxCapacity(trainingProgram.getDefaultCapacity());
         }
         offering.setStartDate(request.getStartDate());
         offering.setEndDate(request.getEndDate());
@@ -267,9 +288,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getRecordingVisible() != null) {
             offering.setRecordingVisible(request.getRecordingVisible());
         }
-        offering.setSyllabusSummary(request.getSyllabusSummary());
+        offering.setSyllabusSummary(defaultText(request.getSyllabusSummary(), trainingProgram == null ? null : trainingProgram.getSyllabusSummary()));
+        if (trainingProgram != null) {
+            offering.setProgramOutcomes(trainingProgram.getProgramOutcomes());
+            offering.setTeacherGuide(trainingProgram.getTeacherGuide());
+            offering.setInteractionActivities(trainingProgram.getInteractionActivities());
+        }
 
-        return mapper.toOfferingResponse(offeringRepository.save(offering), true, null, null, true);
+        ClassroomOffering saved = offeringRepository.save(offering);
+        attachTrainingProgramMaterials(saved, null);
+        return mapper.toOfferingResponse(saved, true, null, null, true);
     }
 
     @Override
@@ -585,6 +613,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .checkCapacity(false)
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
+        // Chặn ngay từ lúc đăng ký nếu học viên đang học lớp khác trùng lịch với các buổi của lớp này.
+        assertLearnerScheduleForOffering(offering, learner.getId());
 
         boolean holdSpot = request != null && Boolean.TRUE.equals(request.getHoldSpot());
         BigDecimal tuitionDue = resolveTuitionDue(offering);
@@ -637,6 +667,71 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
         return mapper.toEnrollmentResponse(enrollment);
+    }
+
+    @Override
+    public ClassroomEnrollmentResponse cancelMyRegistration(Long offeringId, String learnerEmail) {
+        User learner = accessHelper.requireUser(learnerEmail);
+        ClassroomEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+                .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
+                .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
+            throw new RuntimeException("Bạn đã được xếp lớp. Vui lòng gửi yêu cầu hủy để Training Manager xử lý.");
+        }
+
+        ClassroomOffering offering = enrollment.getClassroomOffering();
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
+        enrollment.setHoldSpot(false);
+        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+        enrollment = enrollmentRepository.save(enrollment);
+
+        String classTitle = offering.getLearningPackage().getTitle();
+        notificationService.notifyTrainingManagers(
+                "CLASSROOM_REGISTRATION_CANCELLED",
+                "Học viên hủy đăng ký lớp",
+                learner.getFullName() + " đã hủy đăng ký lớp " + classTitle + ".",
+                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId(), "studentId", learner.getId())
+        );
+        notificationService.notifyUser(
+                learner,
+                "CLASSROOM_REGISTRATION_CANCELLED",
+                "Đã hủy đăng ký lớp",
+                "Bạn đã hủy đăng ký lớp " + classTitle + ".",
+                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
+        );
+        notifyWaitlistIfSlotAvailable(offering);
+        return mapper.toEnrollmentResponse(enrollment);
+    }
+
+    /**
+     * Báo cho học viên trong danh sách chờ khi lớp vừa trống chỗ (sau khi có người hủy/bị từ chối).
+     */
+    private void notifyWaitlistIfSlotAvailable(ClassroomOffering offering) {
+        if (offering.getMaxCapacity() == null || offering.getMaxCapacity() <= 0) {
+            return;
+        }
+        long occupied = enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                offering.getId(), ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT);
+        if (occupied >= offering.getMaxCapacity()) {
+            return;
+        }
+        List<ClassroomEnrollment> waitlisted = enrollmentRepository
+                .findByClassroomOfferingIdAndRegistrationStatusIn(
+                        offering.getId(), Set.of(ClassroomRegistrationStatus.WAITLIST));
+        if (waitlisted.isEmpty()) {
+            return;
+        }
+        String classTitle = offering.getLearningPackage().getTitle();
+        for (ClassroomEnrollment waiting : waitlisted) {
+            notificationService.notifyUser(
+                    waiting.getStudent(),
+                    "CLASSROOM_SLOT_AVAILABLE",
+                    "Lớp đã có chỗ trống",
+                    "Lớp " + classTitle + " vừa có chỗ trống. Đăng ký của bạn trong danh sách chờ có thể được xử lý sớm.",
+                    Map.of("enrollmentId", waiting.getId(), "classroomId", offering.getId())
+            );
+        }
     }
 
     @Override
@@ -1532,6 +1627,51 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Giáo trình đã lưu trữ, không thể gắn vào lớp.");
         }
         return program;
+    }
+
+    private TrainingProgram resolveTrainingProgram(Long trainingProgramId, ClassroomDeliveryMode deliveryMode) {
+        if (trainingProgramId == null) {
+            return null;
+        }
+        TrainingProgram program = trainingProgramRepository.findById(trainingProgramId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chương trình học."));
+        if (deliveryMode != null && program.getDeliveryMode() != deliveryMode) {
+            throw new RuntimeException("Chương trình học không khớp với hình thức đào tạo của lớp.");
+        }
+        if (program.getStatus() == PackageStatus.ARCHIVED) {
+            throw new RuntimeException("Chương trình học đã lưu trữ, không thể gắn vào lớp.");
+        }
+        return program;
+    }
+
+    private void attachTrainingProgramMaterials(ClassroomOffering offering, User actor) {
+        TrainingProgram trainingProgram = offering.getTrainingProgram();
+        if (trainingProgram == null || trainingProgram.getMaterials().isEmpty()) {
+            return;
+        }
+        for (TrainingProgramMaterial programMaterial : trainingProgram.getMaterials()) {
+            CenterMaterialLibraryItem material = programMaterial.getMaterial();
+            if (materialRepository.existsByClassroomOfferingIdAndCenterMaterialIdAndSessionIsNull(offering.getId(), material.getId())) {
+                continue;
+            }
+            materialRepository.save(ClassroomMaterial.builder()
+                    .classroomOffering(offering)
+                    .title(material.getTitle())
+                    .fileUrl(material.getFileUrl())
+                    .fileType(material.getFileType())
+                    .description(material.getDescription())
+                    .materialType(material.getMaterialType())
+                    .provider(material.getProvider())
+                    .visibility("CLASS")
+                    .sourceType("PROGRAM_LIBRARY")
+                    .centerMaterialId(material.getId())
+                    .uploadedBy(actor)
+                    .build());
+        }
+    }
+
+    private String defaultText(String value, String fallback) {
+        return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
     private Long getPrimaryTeacherId(ClassroomOffering offering) {

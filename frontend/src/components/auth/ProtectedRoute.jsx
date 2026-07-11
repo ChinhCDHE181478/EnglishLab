@@ -1,41 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { getCurrentUser } from '../../api/authApi';
-import { getStoredUser, hasAccessToken, hasAnyUserRole, needsPlacementTest, needsProfileCompletion } from '../../utils/auth';
+import { useAuth } from '../../context/AuthContext';
+import { hasAccessToken, hasAnyUserRole, needsPlacementTest, needsProfileCompletion } from '../../utils/auth';
 
 const ProtectedRoute = ({ requireCompleteProfile = true, requirePlacementTest = false, allowedRoles = null }) => {
   const location = useLocation();
-  const [user, setUser] = useState(() => getStoredUser());
-  const [status, setStatus] = useState(() => (hasAccessToken() && getStoredUser() ? 'authenticated' : 'checking'));
+  const { refreshUser, status, user } = useAuth();
 
   useEffect(() => {
     let active = true;
 
-    if (!hasAccessToken()) {
-      setStatus('guest');
-      return undefined;
-    }
+    if (hasAccessToken()) {
+      const refreshCurrentUser = async () => {
+        try {
+          await refreshUser();
+        } catch {
+          if (!active) return;
+        }
+      };
 
-    if (getStoredUser()) {
-      setStatus('authenticated');
+      refreshCurrentUser();
     }
-
-    getCurrentUser()
-      .then((response) => {
-        if (!active) return;
-        localStorage.setItem('user', JSON.stringify(response.data));
-        setUser(response.data);
-        setStatus('authenticated');
-      })
-      .catch(() => {
-        if (!active) return;
-        setStatus('guest');
-      });
 
     return () => {
       active = false;
     };
-  }, [location.pathname]);
+  }, [location.pathname, refreshUser]);
 
   if (!hasAccessToken() || status === 'guest') {
     return <Navigate to="/login" replace state={{ from: location }} />;
