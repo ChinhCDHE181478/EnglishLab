@@ -358,6 +358,8 @@ export default function ListeningExamMode({
     });
 
     return {
+      fullscreenExitCount: violations.filter((item) => String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
+      tabSwitchCount: violations.filter((item) => !String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
       objectiveAnswersJson: JSON.stringify({
         mode: 'ielts_listening_exam',
         testKey: config?.key,

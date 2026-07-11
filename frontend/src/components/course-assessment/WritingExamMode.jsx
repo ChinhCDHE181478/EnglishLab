@@ -205,6 +205,8 @@ export default function WritingExamMode({
   };
 
   const buildPayload = (autoSubmitted = false) => ({
+    fullscreenExitCount: violations.filter((item) => String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
+    tabSwitchCount: violations.filter((item) => !String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
     submittedText: tasks.map((task, index) => {
       const taskKey = task.key || `task_${index + 1}`;
       return [
