@@ -41,6 +41,18 @@ public class AssessmentSubmission {
     @Column(name = "objective_answers_json", columnDefinition = "text")
     private String objectiveAnswersJson;
 
+    @Column(name = "fullscreen_exit_count")
+    private Integer fullscreenExitCount;
+
+    @Column(name = "tab_switch_count")
+    private Integer tabSwitchCount;
+
+    @Column(name = "microphone_checked")
+    private Boolean microphoneChecked;
+
+    @Column(name = "device_check_passed")
+    private Boolean deviceCheckPassed;
+
     @Column(name = "ai_score", precision = 4, scale = 1)
     private BigDecimal aiScore;
 

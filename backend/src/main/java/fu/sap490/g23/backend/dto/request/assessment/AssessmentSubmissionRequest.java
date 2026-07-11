@@ -7,4 +7,8 @@ public class AssessmentSubmissionRequest {
     private String submittedText;
     private String submittedAudioUrl;
     private String objectiveAnswersJson;
+    private Integer fullscreenExitCount;
+    private Integer tabSwitchCount;
+    private Boolean microphoneChecked;
+    private Boolean deviceCheckPassed;
 }
