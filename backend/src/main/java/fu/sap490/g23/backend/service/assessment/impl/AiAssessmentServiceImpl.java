@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fu.sap490.g23.backend.dto.request.assessment.AssessmentSubmissionRequest;
+import fu.sap490.g23.backend.dto.request.assessment.WritingFeedbackRequest;
 import fu.sap490.g23.backend.dto.response.assessment.*;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.*;
@@ -67,6 +68,87 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Override
+    public WritingFeedbackResponse evaluateWritingFeedback(WritingFeedbackRequest request) {
+        String exam = firstNonBlank(request.getTargetExam(), "IELTS").trim().toUpperCase(Locale.ROOT);
+        String prompt = buildStandaloneWritingPrompt(request, exam);
+        try {
+            AiEvaluationResult result = aiEvaluationClient.evaluate(prompt);
+            return toWritingFeedbackResponse(result, false);
+        } catch (Exception ignored) {
+            return buildWritingFallback(request.getEssayText(), exam);
+        }
+    }
+
+    private String buildStandaloneWritingPrompt(WritingFeedbackRequest request, String exam) {
+        return """
+                You are EnglishLab's writing evaluator. Assess this standalone learner essay for %s.
+                Task prompt: %s
+                Target band: %s
+                Essay: %s
+
+                Return valid JSON only with: estimatedScore, overallFeedback, strengths (array),
+                improvements (array), criteria (array of name, score, feedback), correctedHighlights (array).
+                Scores must use the 0-9 IELTS band scale in 0.5 steps. Be concise, constructive, and evidence-based.
+                """.formatted(exam, safe(request.getPrompt()), safe(request.getTargetBand()), request.getEssayText());
+    }
+
+    private WritingFeedbackResponse toWritingFeedbackResponse(AiEvaluationResult result, boolean fallback) {
+        try {
+            JsonNode root = objectMapper.readTree(result.getFeedbackJson());
+            List<String> strengths = readTextArray(root, "strengths");
+            List<String> improvements = readTextArray(root, "improvements");
+            if (improvements.isEmpty()) improvements = readTextArray(root, "suggestions");
+            if (improvements.isEmpty()) improvements = readTextArray(root, "weaknesses");
+            List<WritingFeedbackResponse.Criterion> criteria = new ArrayList<>();
+            root.path("criteria").forEach(node -> criteria.add(WritingFeedbackResponse.Criterion.builder()
+                    .name(node.path("name").asText("Tiêu chí"))
+                    .score(readDecimal(node.path("score")))
+                    .feedback(node.path("feedback").asText(""))
+                    .build()));
+            return WritingFeedbackResponse.builder()
+                    .estimatedScore(result.getEstimatedScore() == null ? readDecimal(root.path("estimatedScore")) : result.getEstimatedScore())
+                    .overallFeedback(firstNonBlank(root.path("overallFeedback").asText(null), root.path("summary").asText("Đã phân tích bài viết của bạn.")))
+                    .strengths(strengths)
+                    .improvements(improvements)
+                    .criteria(criteria)
+                    .correctedHighlights(readTextArray(root, "correctedHighlights"))
+                    .fallback(fallback)
+                    .build();
+        } catch (Exception exception) {
+            return buildWritingFallback("", "IELTS");
+        }
+    }
+
+    private WritingFeedbackResponse buildWritingFallback(String essay, String exam) {
+        int words = essay == null || essay.isBlank() ? 0 : essay.trim().split("\\s+").length;
+        BigDecimal score = words >= 250 ? BigDecimal.valueOf(6.0) : words >= 150 ? BigDecimal.valueOf(5.5) : BigDecimal.valueOf(5.0);
+        return WritingFeedbackResponse.builder()
+                .estimatedScore(score)
+                .overallFeedback("Hệ thống AI tạm thời chưa khả dụng. EnglishLab đã tạo phản hồi nền ổn định dựa trên cấu trúc bài viết " + exam + " của bạn.")
+                .strengths(List.of("Bài viết đã trình bày một nội dung hoàn chỉnh để có thể tiếp tục chỉnh sửa.", "Bạn đã duy trì độ dài khoảng " + words + " từ."))
+                .improvements(List.of("Làm rõ luận điểm chính và dùng ví dụ cụ thể để hỗ trợ từng ý.", "Kiểm tra liên kết giữa các đoạn, ngữ pháp và sự đa dạng của từ vựng."))
+                .criteria(List.of(
+                        WritingFeedbackResponse.Criterion.builder().name("Task Response").score(score).feedback("Bám sát đề và phát triển đầy đủ từng luận điểm.").build(),
+                        WritingFeedbackResponse.Criterion.builder().name("Coherence & Cohesion").score(score).feedback("Dùng câu chủ đề và từ nối tự nhiên giữa các ý.").build(),
+                        WritingFeedbackResponse.Criterion.builder().name("Lexical Resource").score(score).feedback("Ưu tiên từ chính xác, tránh lặp và tránh dùng từ quá phức tạp sai ngữ cảnh.").build(),
+                        WritingFeedbackResponse.Criterion.builder().name("Grammar").score(score).feedback("Soát lại hòa hợp chủ-vị, mạo từ và dấu câu.").build()))
+                .correctedHighlights(List.of())
+                .fallback(true)
+                .build();
+    }
+
+    private List<String> readTextArray(JsonNode root, String field) {
+        List<String> values = new ArrayList<>();
+        root.path(field).forEach(node -> values.add(node.isTextual() ? node.asText() : node.path("text").asText(node.toString())));
+        return values;
+    }
+
+    private BigDecimal readDecimal(JsonNode node) {
+        try { return node.isMissingNode() || node.isNull() ? null : new BigDecimal(node.asText().replaceAll("[^0-9.]", "")); }
+        catch (Exception ignored) { return null; }
+    }
 
     @Override
     @Transactional(readOnly = true)
