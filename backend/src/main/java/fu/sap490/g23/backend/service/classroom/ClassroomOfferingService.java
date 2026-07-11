@@ -57,6 +57,8 @@ public interface ClassroomOfferingService {
 
     ClassroomEnrollmentResponse getMyRegistration(Long offeringId, String learnerEmail);
 
+    ClassroomEnrollmentResponse cancelMyRegistration(Long offeringId, String learnerEmail);
+
     List<ClassroomEnrollmentResponse> getMyRegistrations(String learnerEmail);
 
     ClassroomEnrollmentResponse confirmRegistration(Long enrollmentId, String actorEmail);

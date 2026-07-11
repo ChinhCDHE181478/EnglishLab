@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, loginWithFacebook, loginWithGoogle } from '../api/authApi';
+import { useAuth } from '../context/AuthContext';
 import { hasAnyUserRole, isContentManagerUser, needsPlacementTest, needsProfileCompletion } from '../utils/auth';
 
 const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
@@ -27,6 +28,7 @@ const FacebookIcon = () => (
 
 const Login = () => {
   const navigate = useNavigate();
+  const { saveSession } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -45,10 +47,9 @@ const Login = () => {
     return '/home';
   };
 
-  const saveSession = (response) => {
+  const handleSaveSession = (response) => {
     const { accessToken, user } = response.data;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('user', JSON.stringify(user));
+    saveSession({ accessToken, user });
     navigate(resolvePostLoginPath(user), { replace: true });
   };
 
@@ -112,7 +113,7 @@ const Login = () => {
         localStorage.removeItem('rememberMe');
       }
 
-      saveSession(response);
+      handleSaveSession(response);
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
@@ -143,7 +144,7 @@ const Login = () => {
 
         try {
           const response = await loginWithFacebook(fbResponse.authResponse.accessToken);
-          saveSession(response);
+          handleSaveSession(response);
         } catch (err) {
           setError(err.response?.data?.message || 'Đăng nhập Facebook thất bại. Vui lòng thử lại.');
         } finally {
@@ -176,7 +177,7 @@ const Login = () => {
 
         try {
           const response = await loginWithGoogle(tokenResponse.access_token);
-          saveSession(response);
+          handleSaveSession(response);
         } catch (err) {
           setError(err.response?.data?.message || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
         } finally {
@@ -261,7 +262,7 @@ const Login = () => {
           <label className="flex cursor-pointer items-center" htmlFor="remember-me">
             <input
               checked={rememberMe}
-              className="h-4 w-4 cursor-pointer rounded border-[#E5E2E0] accent-[#730014] focus:ring-[#730014]"
+              className="h-4 w-4 cursor-pointer rounded border-[#E5E2E0] accent-[#4b0009] focus:ring-[#730014]"
               id="remember-me"
               onChange={(event) => setRememberMe(event.target.checked)}
               type="checkbox"

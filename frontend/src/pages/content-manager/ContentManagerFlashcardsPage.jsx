@@ -741,10 +741,10 @@ export default function ContentManagerFlashcardsPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1040px] border-collapse text-left">
                 <thead>
-                  <tr className="border-b border-[#dcc0bf]/30 bg-[#eff4ff]">
+                  <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
                     {['Tên bộ thẻ', 'Danh mục', 'Kỹ năng', 'Số thẻ', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
                       <th
-                        className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#564241] ${heading === 'Số thẻ' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
+                        className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Số thẻ' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
                         key={heading}
                       >
                         {heading}

@@ -7,6 +7,7 @@ import java.util.Map;
 @Data
 public class PlacementTestSubmissionRequest {
     private String testCode;
+    private String examType;
     private Map<String, Object> listeningAnswers;
     private Map<String, Object> readingAnswers;
     private Map<String, Object> writingAnswers;

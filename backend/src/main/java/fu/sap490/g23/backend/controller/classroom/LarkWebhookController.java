@@ -18,6 +18,7 @@ public class LarkWebhookController {
     public ResponseEntity<Map<String, Object>> receiveEvent(@RequestBody Map<String, Object> payload) {
         Object challenge = payload.get("challenge");
         if (challenge != null) {
+            webhookService.verifyChallenge(payload);
             return ResponseEntity.ok(Map.of("challenge", challenge));
         }
         webhookService.handle(payload);

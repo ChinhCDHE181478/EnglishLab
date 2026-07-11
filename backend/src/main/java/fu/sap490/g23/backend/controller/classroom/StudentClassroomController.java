@@ -4,10 +4,14 @@ import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.service.classroom.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -20,6 +24,8 @@ public class StudentClassroomController {
     private final ClassroomGradebookService classroomGradebookService;
     private final ClassroomContentService classroomContentService;
     private final ClassroomAttendanceService classroomAttendanceService;
+    private final TuitionProofService tuitionProofService;
+    private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
 
     @GetMapping({"/my-classrooms", "/my-classes"})
     public ResponseEntity<List<ClassroomOfferingResponse>> getMyClasses(Authentication authentication) {
@@ -46,6 +52,47 @@ public class StudentClassroomController {
     @GetMapping("/registrations/me")
     public ResponseEntity<List<ClassroomEnrollmentResponse>> getMyRegistrations(Authentication authentication) {
         return ResponseEntity.ok(classroomOfferingService.getMyRegistrations(authentication.getName()));
+    }
+
+    @PostMapping("/{id}/registration/cancel")
+    public ResponseEntity<ClassroomEnrollmentResponse> cancelMyRegistration(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.cancelMyRegistration(id, authentication.getName()));
+    }
+
+    @PostMapping(value = "/{id}/tuition-proofs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TuitionProofResponse> submitTuitionProof(
+            @PathVariable Long id,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam BigDecimal amount,
+            @RequestParam(required = false) String paymentKind,
+            @RequestParam(required = false) String note,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/classroom-homework/attachments")
+                .toUriString();
+        return ResponseEntity.ok(tuitionProofService.submitProof(
+                id, file, amount, paymentKind, note, authentication.getName(), publicUrlBase
+        ));
+    }
+
+    @GetMapping("/{id}/tuition-proofs")
+    public ResponseEntity<List<TuitionProofResponse>> getMyTuitionProofs(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(tuitionProofService.getMyProofs(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/tuition-history")
+    public ResponseEntity<List<ClassroomTuitionPaymentResponse>> getMyTuitionHistory(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(tuitionProofService.getMyTuitionHistory(id, authentication.getName()));
     }
 
     @GetMapping("/{id}")
@@ -103,6 +150,17 @@ public class StudentClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomHomeworkService.submit(homeworkId, request, authentication.getName()));
+    }
+
+    @PostMapping(value = "/homework/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<HomeworkAttachmentUploadResponse> uploadHomeworkSubmissionAttachment(
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/classroom-homework/attachments")
+                .toUriString();
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase));
     }
 
     @GetMapping("/my-homework")

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Archive,
@@ -13,6 +12,7 @@ import {
   Plus,
   RefreshCw,
   Save,
+  Search,
   Trash2,
   Upload,
 } from 'lucide-react';
@@ -97,6 +97,7 @@ export default function ContentManagerMaterialsPage() {
   const [editingId, setEditingId] = useState(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [keyword, setKeyword] = useState('');
   const [filters, setFilters] = useState({
     examCategory: 'ALL',
     materialType: 'ALL',
@@ -126,7 +127,7 @@ export default function ContentManagerMaterialsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters, keyword]);
 
   const providerOptions = useMemo(() => {
     const values = Array.from(new Set(items.map((item) => item.provider).filter(Boolean)));
@@ -136,14 +137,26 @@ export default function ContentManagerMaterialsPage() {
   const filteredItems = useMemo(
     () =>
       items.filter(
-        (item) =>
+        (item) => {
+          const normalizedKeyword = keyword.trim().toLowerCase();
+          const haystack = [
+            item.title,
+            item.description,
+            item.provider,
+            item.skill,
+            item.materialType,
+            item.examCategory,
+            item.tags,
+          ].filter(Boolean).join(' ').toLowerCase();
+          return (!normalizedKeyword || haystack.includes(normalizedKeyword)) &&
           (filters.examCategory === 'ALL' || (item.examCategory || 'GENERAL') === filters.examCategory) &&
           (filters.materialType === 'ALL' || (item.materialType || 'LINK') === filters.materialType) &&
           (filters.skill === 'ALL' || (item.skill || 'Mixed') === filters.skill) &&
           (filters.status === 'ALL' || (item.status || 'PUBLISHED') === filters.status) &&
-          (filters.provider === 'ALL' || (item.provider || '') === filters.provider),
+          (filters.provider === 'ALL' || (item.provider || '') === filters.provider);
+        },
       ),
-    [filters, items],
+    [filters, items, keyword],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
@@ -453,40 +466,87 @@ export default function ContentManagerMaterialsPage() {
         <StatCard icon={Globe} label="TOEIC" value={stats.toeic} note="Theo dải điểm mục tiêu" />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-6">
         <div className="space-y-6">
-          <Panel className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <SectionTitle title="Bộ lọc thư viện" />
+          <Panel className="rounded-xl border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="min-w-[300px] flex-1">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+                  <input
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
+                    placeholder="Tìm học liệu, nguồn, kỹ năng hoặc tag..."
+                    className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+                  />
+                </div>
+              </div>
+              <div className="grid w-full gap-3 sm:grid-cols-2 xl:w-auto xl:grid-cols-5">
+                <FilterSelect compact label="Kỳ thi" value={filters.examCategory} options={[{ label: 'Tất cả', value: 'ALL' }, ...examOptions.map((value) => ({ label: value, value }))]} onChange={(value) => setFilters((current) => ({ ...current, examCategory: value }))} />
+                <FilterSelect compact label="Loại" value={filters.materialType} options={[{ label: 'Tất cả', value: 'ALL' }, ...materialTypeOptions.map((value) => ({ label: value, value }))]} onChange={(value) => setFilters((current) => ({ ...current, materialType: value }))} />
+                <FilterSelect compact label="Kỹ năng" value={filters.skill} options={[{ label: 'Tất cả', value: 'ALL' }, ...skillOptions]} onChange={(value) => setFilters((current) => ({ ...current, skill: value }))} />
+                <FilterSelect compact label="Trạng thái" value={filters.status} options={[{ label: 'Tất cả', value: 'ALL' }, ...statusOptions.map((value) => ({ label: labelStatus(value), value }))]} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
+                <FilterSelect compact label="Nguồn" value={filters.provider} options={providerOptions} onChange={(value) => setFilters((current) => ({ ...current, provider: value }))} />
+              </div>
               <button
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]"
+                aria-label="Làm mới kho học liệu"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white text-[#564241] transition hover:bg-[#eff4ff]"
                 onClick={loadItems}
                 type="button"
               >
                 <RefreshCw className="h-4 w-4" />
-                Làm mới dữ liệu
               </button>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <FilterSelect label="Kỳ thi" value={filters.examCategory} options={[{ label: 'Tất cả', value: 'ALL' }, ...examOptions.map((value) => ({ label: value, value }))]} onChange={(value) => setFilters((current) => ({ ...current, examCategory: value }))} />
-              <FilterSelect label="Loại học liệu" value={filters.materialType} options={[{ label: 'Tất cả', value: 'ALL' }, ...materialTypeOptions.map((value) => ({ label: value, value }))]} onChange={(value) => setFilters((current) => ({ ...current, materialType: value }))} />
-              <FilterSelect label="Kỹ năng" value={filters.skill} options={[{ label: 'Tất cả', value: 'ALL' }, ...skillOptions]} onChange={(value) => setFilters((current) => ({ ...current, skill: value }))} />
-              <FilterSelect label="Trạng thái" value={filters.status} options={[{ label: 'Tất cả', value: 'ALL' }, ...statusOptions.map((value) => ({ label: labelStatus(value), value }))]} onChange={(value) => setFilters((current) => ({ ...current, status: value }))} />
-              <FilterSelect label="Nguồn" value={filters.provider} options={providerOptions} onChange={(value) => setFilters((current) => ({ ...current, provider: value }))} />
             </div>
           </Panel>
 
-          <Panel className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#f0e3e4] px-6 py-5">
-              <SectionTitle title="Danh sách học liệu" />
-              <span className="text-sm font-semibold text-[#8b706e]">
-                Trang {currentPage}/{totalPages}
-              </span>
+          <Panel className="overflow-hidden rounded-xl border-[#dcc0bf]/30 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1080px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
+                    {['Học liệu', 'Loại', 'Kỹ năng', 'Kỳ thi / mức', 'Nguồn', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
+                      <th className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#dcc0bf]/15">
+                  {pageItems.map((item) => (
+                    <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
+                      <td className="px-6 py-5">
+                        <p className="max-w-[320px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
+                        <p className="mt-1 max-w-[360px] overflow-hidden text-xs leading-5 text-[#584140] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                          {item.description || item.tags || 'Chưa có mô tả'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5 text-sm font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
+                      <td className="px-6 py-5 text-sm text-[#564241]">{item.skill || 'Mixed'}</td>
+                      <td className="px-6 py-5 text-sm text-[#564241]">{formatTargetRange(item)}</td>
+                      <td className="px-6 py-5 text-sm text-[#564241]">{item.provider || 'EnglishLab'}</td>
+                      <td className="px-6 py-5"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
+                      <td className="px-6 py-5 text-sm text-[#564241]">{formatDate(item.updatedAt)}</td>
+                      <td className="px-6 py-5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <a className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/40 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]" href={item.fileUrl} rel="noreferrer" target="_blank">
+                            <LinkIcon className="h-3.5 w-3.5" />
+                            Mở
+                          </a>
+                          <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => openEdit(item)} type="button">
+                            <PencilLine className="h-3.5 w-3.5" />
+                            Sửa
+                          </button>
+                          <button className="inline-flex items-center rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50" onClick={() => handleDelete(item)} type="button">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             {!filteredItems.length ? (
-              <div className="p-6">
+              <div className="border-t border-[#dcc0bf]/20 px-6 py-10">
                 <ClassroomEmptyState
                   title="Chưa có học liệu phù hợp"
                   description="Hãy thêm học liệu mới hoặc nới bộ lọc để xem lại toàn bộ thư viện."
@@ -495,114 +555,35 @@ export default function ContentManagerMaterialsPage() {
                 />
               </div>
             ) : (
-              <div className="divide-y divide-[#f0e3e4]">
-                {pageItems.map((item) => (
-                  <article key={item.id} className="space-y-4 px-6 py-5">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">{item.title}</h3>
-                          <StatusBadge label={labelStatus(item.status || 'PUBLISHED')} />
-                        </div>
-                        <p className="max-w-3xl text-sm leading-6 text-[#584140]">
-                          {item.description || 'Chưa có mô tả. Học liệu này hiện sẵn sàng để giáo viên gắn vào lớp học phù hợp.'}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd]/70 bg-white px-4 py-2.5 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]"
-                          onClick={() => openEdit(item)}
-                          type="button"
-                        >
-                          <PencilLine className="h-4 w-4" />
-                          Sửa
-                        </button>
-                        <button
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]"
-                          onClick={() => handleDelete(item)}
-                          type="button"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Xóa
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoPill label="Loại học liệu" value={item.materialType || 'LINK'} />
-                      <InfoPill label="Nguồn" value={item.provider || 'EnglishLab'} />
-                      <InfoPill label="Kỹ năng" value={item.skill || 'Mixed'} />
-                      <InfoPill label="Kỳ thi / mức" value={formatTargetRange(item)} />
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] px-4 py-3">
-                      <div className="text-sm text-[#584140]">
-                        Cập nhật gần nhất: <span className="font-semibold text-[#2b2828]">{formatDate(item.updatedAt)}</span>
-                      </div>
-                      <a
-                        className="inline-flex items-center gap-2 text-sm font-bold text-[#730014] hover:underline"
-                        href={item.fileUrl}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        <LinkIcon className="h-4 w-4" />
-                        Mở học liệu
-                      </a>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-
-            {filteredItems.length ? (
-              <div className="flex items-center justify-between border-t border-[#f0e3e4] px-6 py-4">
-                <span className="text-sm text-[#8b706e]">
-                  Hiển thị {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredItems.length)} trên {filteredItems.length} học liệu
-                </span>
-                <div className="flex gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
+                <p className="text-sm text-[#2b2828]">
+                  Trang {currentPage} / {totalPages} · <span className="font-bold text-[#0b1c30]">{filteredItems.length}</span> học liệu
+                </p>
+                <div className="flex items-center gap-2">
                   <button
-                    className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2 text-sm font-bold text-[#584140] transition hover:bg-[#fff2f3] disabled:opacity-45"
+                    aria-label="Trang trước"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                     type="button"
                   >
-                    Trang trước
+                    &lt;
                   </button>
                   <button
-                    className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2 text-sm font-bold text-[#584140] transition hover:bg-[#fff2f3] disabled:opacity-45"
+                    aria-label="Trang sau"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
                     type="button"
                   >
-                    Trang sau
+                    &gt;
                   </button>
                 </div>
               </div>
-            ) : null}
+            )}
           </Panel>
         </div>
 
-        <Panel className="p-6">
-          <SectionTitle title="Truy cập nhanh" />
-          <div className="mt-5 space-y-4">
-            <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-4">
-              <p className="text-sm font-semibold text-[#4b0009]">Theo dõi tài liệu đã gắn</p>
-              <p className="mt-2 text-sm leading-7 text-[#584140]">
-                Xem lớp nào đang dùng tài liệu nào và tách rõ tài liệu từ kho trung tâm với tài liệu riêng của lớp.
-              </p>
-              <Link
-                className="mt-4 inline-flex items-center rounded-xl border border-[#dfbfbd]/70 bg-white px-4 py-2.5 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]"
-                to="/content-manager/classrooms"
-              >
-                Mở tài liệu lớp học
-              </Link>
-            </div>
-            <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-4 text-sm leading-7 text-[#584140]">
-              Dùng bộ lọc band, kỹ năng, nguồn và trạng thái để giữ kho học liệu gọn và dễ tái sử dụng.
-            </div>
-          </div>
-        </Panel>
       </div>
     </motion.div>
   );
@@ -625,11 +606,19 @@ function StatCard({ icon: Icon, label, value, note }) {
   );
 }
 
-function FilterSelect({ label, value, options, onChange }) {
+function FilterSelect({ label, value, options, onChange, compact = false }) {
+  const normalizedOptions = compact
+    ? options.map((option) => ({ ...option, buttonLabel: `${label}: ${option.label}` }))
+    : options;
   return (
-    <div className="space-y-2">
-      <label className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</label>
-      <BrandedSelect value={value} onChange={(event) => onChange(event.target.value)} options={options} />
+    <div className={compact ? '' : 'space-y-2'}>
+      {!compact ? <label className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</label> : null}
+      <BrandedSelect
+        buttonClassName={compact ? 'h-10 rounded-lg border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 text-sm shadow-none' : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        options={normalizedOptions}
+      />
     </div>
   );
 }
@@ -659,15 +648,6 @@ function TextArea({ label, value, onChange, placeholder }) {
         placeholder={placeholder}
       />
     </label>
-  );
-}
-
-function InfoPill({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] px-4 py-3">
-      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-[#2b2828]">{value}</p>
-    </div>
   );
 }
 

@@ -1,21 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { BookMarked, Link2, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { BookMarked, Check, ChevronDown, ChevronUp, GraduationCap, Link2, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import {
-  CARD_CLASS,
-  DANGER_BUTTON_CLASS,
-  EMPTY_STATE_CLASS,
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
-  GHOST_BUTTON_CLASS,
-  PANEL_CLASS,
-  PRIMARY_BUTTON_CLASS,
-  SEARCH_INPUT_CLASS,
-  SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
@@ -35,6 +27,31 @@ const emptyAttach = {
   note: '',
 };
 
+const emptyProgramForm = {
+  title: '',
+  code: '',
+  slug: '',
+  deliveryMode: 'OFFLINE',
+  examCategory: 'IELTS',
+  targetBand: '',
+  targetScore: '',
+  entryLevel: '',
+  outcomes: '',
+  totalSessions: 0,
+  status: 'DRAFT',
+};
+
+const deliveryModeOptions = [
+  { label: 'Tại trung tâm', value: 'OFFLINE' },
+  { label: 'Virtual', value: 'VIRTUAL' },
+];
+
+const examOptions = [
+  { label: 'IELTS', value: 'IELTS' },
+  { label: 'TOEIC', value: 'TOEIC' },
+  { label: 'General English', value: 'GENERAL' },
+];
+
 const typeOptions = [
   { label: 'Học liệu', value: 'MATERIAL', description: 'Gắn file/tài liệu từ kho học liệu trung tâm.' },
   { label: 'Bài tập', value: 'EXERCISE', description: 'Gắn bài tập dùng chung từ ngân hàng bài tập.' },
@@ -50,14 +67,46 @@ const refGroups = [
 ];
 
 const asList = (value) => (Array.isArray(value) ? value : value?.content || value?.items || []);
+const PAGE_SIZE = 8;
+
+const toSlug = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/đ/g, 'd')
+  .replace(/Đ/g, 'D')
+  .replace(/[^\w\s-]/g, '')
+  .trim()
+  .replace(/\s+/g, '-')
+  .replace(/-+/g, '-')
+  .toLowerCase();
+
+const makeCode = (title, mode) => {
+  const words = String(title || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^\w\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 4)
+    .map((word) => word.slice(0, 4).toUpperCase());
+  return [mode, ...words].filter(Boolean).join('-');
+};
 
 export default function ContentManagerSyllabusBuilderPage() {
   const [programs, setPrograms] = useState([]);
   const [selectedProgramId, setSelectedProgramId] = useState('');
   const [programDetail, setProgramDetail] = useState(null);
+  const [programForm, setProgramForm] = useState(emptyProgramForm);
+  const [programCreatorOpen, setProgramCreatorOpen] = useState(false);
   const [unitForm, setUnitForm] = useState(emptyUnit);
   const [editingUnitId, setEditingUnitId] = useState(null);
+  const [unitEditorOpen, setUnitEditorOpen] = useState(false);
   const [attachForm, setAttachForm] = useState(emptyAttach);
+  const [resourcePanelOpen, setResourcePanelOpen] = useState(false);
+  const [expandedUnitId, setExpandedUnitId] = useState(null);
   const [keyword, setKeyword] = useState('');
   const [banks, setBanks] = useState({
     materials: [],
@@ -74,9 +123,11 @@ export default function ContentManagerSyllabusBuilderPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await curriculumApi.getCurriculumPrograms();
-      setPrograms(data);
-      setSelectedProgramId((current) => current || (data[0]?.id ? String(data[0].id) : ''));
+      const programData = await curriculumApi.getCurriculumPrograms();
+      setPrograms(programData);
+      setSelectedProgramId((current) => (
+        current && programData.some((program) => String(program.id) === current) ? current : ''
+      ));
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được danh sách giáo trình.');
     } finally {
@@ -139,8 +190,92 @@ export default function ContentManagerSyllabusBuilderPage() {
       setEditingUnitId(null);
       setUnitForm(emptyUnit);
       setAttachForm(emptyAttach);
+    } else {
+      setProgramDetail(null);
     }
   }, [selectedProgramId]);
+
+  const openProgramWorkspace = (program) => {
+    setSelectedProgramId(String(program.id));
+    setKeyword('');
+    setError('');
+    setSuccess('');
+  };
+
+  const closeProgramWorkspace = () => {
+    setSelectedProgramId('');
+    setProgramDetail(null);
+    setKeyword('');
+    setEditingUnitId(null);
+    setUnitForm(emptyUnit);
+    setAttachForm(emptyAttach);
+    setError('');
+    setSuccess('');
+  };
+
+  const updateProgramForm = (patch) => {
+    setProgramForm((current) => {
+      const next = { ...current, ...patch };
+      if (Object.prototype.hasOwnProperty.call(patch, 'title')) {
+        next.code = current.code || makeCode(patch.title, current.deliveryMode);
+        next.slug = current.slug || toSlug(patch.title);
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'deliveryMode') && !current.code) {
+        next.code = makeCode(current.title, patch.deliveryMode);
+      }
+      return next;
+    });
+  };
+
+  const openProgramCreator = () => {
+    setProgramForm(emptyProgramForm);
+    setProgramCreatorOpen(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const closeProgramCreator = () => {
+    setProgramCreatorOpen(false);
+    setProgramForm(emptyProgramForm);
+  };
+
+  const createProgram = async (event) => {
+    event.preventDefault();
+    if (!programForm.title.trim()) {
+      setError('Vui lòng nhập tên giáo trình.');
+      return;
+    }
+    const generatedCode = programForm.code.trim() || makeCode(programForm.title, programForm.deliveryMode);
+    if (!generatedCode) {
+      setError('Vui lòng nhập mã giáo trình.');
+      return;
+    }
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = await curriculumApi.createCurriculumProgram({
+        ...programForm,
+        title: programForm.title.trim(),
+        code: generatedCode,
+        slug: programForm.slug.trim() || toSlug(programForm.title),
+        targetBand: programForm.targetBand === '' ? null : Number(programForm.targetBand),
+        targetScore: programForm.targetScore === '' ? null : Number(programForm.targetScore),
+        totalSessions: Number(programForm.totalSessions || 0),
+        status: 'DRAFT',
+        displayOrder: 0,
+      });
+      setPrograms((current) => [saved, ...current]);
+      setSelectedProgramId(String(saved.id));
+      setProgramDetail(saved);
+      closeProgramCreator();
+      setSuccess('Đã tạo giáo trình. Bắt đầu thêm unit/buổi học cho giáo trình này.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không tạo được giáo trình.');
+    } finally {
+      setWorking(false);
+    }
+  };
 
   const programsOptions = programs.map((program) => ({
     label: `${program.title} · ${program.code}`,
@@ -179,7 +314,19 @@ export default function ContentManagerSyllabusBuilderPage() {
     return banks.flashcards;
   }, [attachForm.type, banks]);
 
-  const resourceOptions = currentResources.map((item) => ({
+  const selectedAttachUnit = units.find((unit) => String(unit.id) === String(attachForm.unitId)) || null;
+  const selectedGroup = refGroups.find((group) => group.key === ({
+    MATERIAL: 'materials',
+    EXERCISE: 'exercises',
+    ASSESSMENT: 'assessments',
+    FLASHCARD: 'flashcards',
+  })[attachForm.type]);
+  const attachedResourceIds = new Set(
+    (selectedAttachUnit?.[selectedGroup?.key] || []).map((reference) => String(reference.resourceId)),
+  );
+  const availableResources = currentResources.filter((item) => !attachedResourceIds.has(String(item.id)));
+  const selectedResource = currentResources.find((item) => String(item.id) === String(attachForm.resourceId));
+  const resourceOptions = availableResources.map((item) => ({
     label: item.title,
     value: String(item.id),
     description: [
@@ -206,6 +353,7 @@ export default function ContentManagerSyllabusBuilderPage() {
   const resetUnitForm = () => {
     setEditingUnitId(null);
     setUnitForm(emptyUnit);
+    setUnitEditorOpen(true);
     setError('');
     setSuccess('');
   };
@@ -219,6 +367,17 @@ export default function ContentManagerSyllabusBuilderPage() {
       sessionPlan: unit.sessionPlan || '',
     });
     setAttachForm((current) => ({ ...current, unitId: String(unit.id) }));
+    setUnitEditorOpen(true);
+  };
+
+  const openResourcePanel = (unitId = attachForm.unitId) => {
+    setAttachForm((current) => ({
+      ...current,
+      unitId: unitId ? String(unitId) : current.unitId,
+      resourceId: '',
+      note: '',
+    }));
+    setResourcePanelOpen(true);
   };
 
   const saveUnit = async () => {
@@ -243,6 +402,7 @@ export default function ContentManagerSyllabusBuilderPage() {
         : await curriculumApi.createCurriculumUnit(selectedProgramId, payload);
       updateUnitInState(saved);
       setEditingUnitId(saved.id);
+      setUnitEditorOpen(false);
       setUnitForm({
         title: saved.title || '',
         description: saved.description || '',
@@ -301,8 +461,14 @@ export default function ContentManagerSyllabusBuilderPage() {
         savedUnit = await curriculumApi.attachUnitFlashcard(attachForm.unitId, payload);
       }
       updateUnitInState(savedUnit);
-      setAttachForm((current) => ({ ...current, resourceId: '', note: '' }));
-      setSuccess('Đã gắn tài nguyên vào unit.');
+      setExpandedUnitId(savedUnit.id);
+      setAttachForm((current) => ({
+        ...current,
+        resourceId: '',
+        displayOrder: Number(current.displayOrder || 0) + 1,
+        note: '',
+      }));
+      setSuccess(`Đã gắn ${typeOptions.find((option) => option.value === attachForm.type)?.label?.toLowerCase() || 'tài nguyên'} vào unit.`);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không gắn được tài nguyên.');
     } finally {
@@ -327,207 +493,649 @@ export default function ContentManagerSyllabusBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-['Manrope'] text-2xl font-extrabold text-slate-900">Biên soạn giáo trình</h2>
-          <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Chọn giáo trình, biên soạn unit/buổi học và gắn tài nguyên từ các kho dùng chung. Lớp học chỉ tham chiếu giáo trình này khi được mở lớp.
-          </p>
-        </div>
-        <button type="button" onClick={reloadAll} className={SECONDARY_BUTTON_CLASS}>
-          <RefreshCw className="h-4 w-4" /> Tải lại
-        </button>
-      </div>
-
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <section className={`${PANEL_CLASS} space-y-4`}>
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Giáo trình</span>
-            <BrandedSelect
-              value={selectedProgramId}
-              onChange={(event) => setSelectedProgramId(event.target.value)}
-              options={programsOptions}
-              placeholder={loading ? 'Đang tải giáo trình...' : 'Chọn giáo trình'}
-            />
-          </div>
-          <div className="relative self-end">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Tìm unit..."
-              className={SEARCH_INPUT_CLASS}
-            />
-          </div>
-        </div>
-        {programDetail ? (
-          <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-4">
-            <div><span className="font-bold text-slate-900">{programDetail.code}</span><br />Mã giáo trình</div>
-            <div><span className="font-bold text-slate-900">{programDetail.deliveryModeLabel || programDetail.deliveryMode}</span><br />Hình thức</div>
-            <div><span className="font-bold text-slate-900">{programDetail.targetBand || programDetail.targetScore || 'Chưa đặt'}</span><br />Target</div>
-            <div><span className="font-bold text-slate-900">{units.length}</span><br />Unit/buổi học</div>
-          </div>
-        ) : null}
-      </section>
+      {programCreatorOpen ? (
+        <SyllabusProgramCreateModal
+          form={programForm}
+          onChange={updateProgramForm}
+          onClose={closeProgramCreator}
+          onSubmit={createProgram}
+          saving={working}
+        />
+      ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="space-y-3">
-          {loading ? (
-            <p className="text-sm font-semibold text-slate-500">Đang tải...</p>
-          ) : !selectedProgramId ? (
-            <div className={EMPTY_STATE_CLASS}>Chưa có giáo trình để biên soạn.</div>
-          ) : filteredUnits.length === 0 ? (
-            <div className={EMPTY_STATE_CLASS}>Giáo trình này chưa có unit/buổi học.</div>
-          ) : (
-            <>
-              {pageItems.map((unit) => (
-                <article key={unit.id} className={`${CARD_CLASS} transition hover:border-[#dfbfbd]`}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <BookMarked className="h-4 w-4 text-[#730014]" />
-                        <h3 className="break-words font-['Manrope'] text-lg font-extrabold text-slate-900">
-                          {unit.displayOrder ?? 0}. {unit.title}
-                        </h3>
-                      </div>
-                      {unit.description ? <p className="mt-1 text-sm text-slate-600">{unit.description}</p> : null}
-                      {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{unit.sessionPlan}</p> : null}
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-2">
-                      <button type="button" onClick={() => openEditUnit(unit)} className={GHOST_BUTTON_CLASS}>Sửa</button>
-                      <button type="button" onClick={() => deleteUnit(unit)} disabled={working} className={DANGER_BUTTON_CLASS}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+      {!selectedProgramId ? (
+        <SyllabusProgramListPanel
+          programs={programs}
+          loading={loading}
+          onCreate={openProgramCreator}
+          onOpen={openProgramWorkspace}
+          onRefresh={loadPrograms}
+        />
+      ) : (
+        <>
+          <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#dcc0bf]/25 bg-[#fbf3f4] px-6 py-5">
+              <div className="min-w-0">
+                <button
+                  className="mb-4 inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf]/40 bg-white px-3 py-2 text-sm font-bold text-[#4b0009] transition hover:bg-[#fff7f7]"
+                  onClick={closeProgramWorkspace}
+                  type="button"
+                >
+                  <span aria-hidden="true">&lt;</span>
+                  Quay lại danh sách giáo trình
+                </button>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8e7371]">Biên soạn giáo trình</p>
+                <h2 className="mt-2 max-w-3xl break-words font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{programDetail?.title}</h2>
+                <p className="mt-2 text-sm text-[#584140]">
+                  {programDetail ? `${programDetail.code} · ${programDetail.deliveryModeLabel || programDetail.deliveryMode || 'Giáo trình'}` : 'Đang tải giáo trình...'}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={reloadAll} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dcc0bf]/40 bg-white px-4 py-2.5 text-sm font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">
+                  <RefreshCw className="h-4 w-4" /> Tải lại
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 px-6 py-5 md:grid-cols-4">
+              <InfoTile label="Mã giáo trình" value={programDetail?.code || '-'} />
+              <InfoTile label="Hình thức" value={programDetail?.deliveryModeLabel || programDetail?.deliveryMode || '-'} />
+              <InfoTile label="Target" value={programDetail?.targetBand || programDetail?.targetScore || '-'} />
+              <InfoTile label="Unit/buổi học" value={units.length} />
+            </div>
+          </section>
+
+          <div className="space-y-6">
+              <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+                    <input
+                      value={keyword}
+                      onChange={(event) => setKeyword(event.target.value)}
+                      placeholder="Tìm unit, mô tả hoặc kế hoạch buổi học..."
+                      className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+                    />
                   </div>
+                  <BrandedSelect
+                    value={selectedProgramId}
+                    onChange={(event) => setSelectedProgramId(event.target.value)}
+                    options={programsOptions}
+                    placeholder={loading ? 'Đang tải giáo trình...' : 'Chọn giáo trình'}
+                  />
+                </div>
+              </section>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {refGroups.map((group) => {
-                      const refs = unit[group.key] || [];
-                      return (
-                        <div key={group.key} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{group.title}</p>
-                          {refs.length === 0 ? (
-                            <p className="mt-2 text-xs text-slate-500">Chưa gắn.</p>
-                          ) : (
-                            <div className="mt-2 space-y-2">
-                              {refs.map((ref) => (
-                                <div key={`${ref.type}-${ref.id}`} className="flex items-start justify-between gap-2 rounded-xl bg-white px-3 py-2 text-sm shadow-sm">
-                                  <div className="min-w-0">
-                                    <p className="break-words font-semibold text-slate-900">{ref.title}</p>
-                                    <p className="text-xs text-slate-500">{[ref.skill, ref.subtitle, ref.status].filter(Boolean).join(' · ')}</p>
+              {unitEditorOpen ? (
+                <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">
+                      {editingUnitId ? 'Chỉnh sửa unit' : 'Thêm unit mới'}
+                    </h3>
+                    <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => setUnitEditorOpen(false)} type="button">
+                      Đóng
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tiêu đề</span>
+                      <input value={unitForm.title} onChange={(event) => setUnitForm({ ...unitForm, title: event.target.value })} className={FIELD_CLASS} />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự</span>
+                      <input type="number" min="0" value={unitForm.displayOrder} onChange={(event) => setUnitForm({ ...unitForm, displayOrder: event.target.value })} className={FIELD_CLASS} />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Mô tả</span>
+                      <textarea value={unitForm.description} onChange={(event) => setUnitForm({ ...unitForm, description: event.target.value })} rows={4} className={TEXTAREA_CLASS} />
+                    </label>
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Kế hoạch buổi học</span>
+                      <textarea value={unitForm.sessionPlan} onChange={(event) => setUnitForm({ ...unitForm, sessionPlan: event.target.value })} rows={4} className={TEXTAREA_CLASS} />
+                    </label>
+                  </div>
+                  <div className="mt-5 flex flex-wrap gap-2 border-t border-[#dcc0bf]/20 pt-4">
+                    <button type="button" onClick={saveUnit} disabled={working || !selectedProgramId} className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-60">
+                      <Save className="h-4 w-4" /> Lưu unit
+                    </button>
+                    <button type="button" onClick={resetUnitForm} className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]">
+                      <Plus className="h-4 w-4" /> Mới
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
+              {resourcePanelOpen ? (
+                <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-5 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Gắn tài nguyên vào unit</h3>
+                      <p className="mt-1 text-sm font-semibold text-[#584140]">
+                        {selectedAttachUnit ? `${selectedAttachUnit.displayOrder}. ${selectedAttachUnit.title}` : 'Chọn unit nhận nội dung'}
+                      </p>
+                    </div>
+                    <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => setResourcePanelOpen(false)} type="button">
+                      Đóng
+                    </button>
+                  </div>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-4">
+                    <FieldSelect label="Unit nhận tài nguyên" value={attachForm.unitId} onChange={(value) => setAttachForm({ ...attachForm, unitId: value })} options={unitOptions} placeholder="Chọn unit" />
+                    <FieldSelect label="Loại tài nguyên" value={attachForm.type} onChange={(value) => setAttachForm({ ...attachForm, type: value, resourceId: '' })} options={typeOptions} />
+                    <FieldSelect label="Tài nguyên" value={attachForm.resourceId} onChange={(value) => setAttachForm({ ...attachForm, resourceId: value })} options={resourceOptions} placeholder={resourceOptions.length ? 'Chọn tài nguyên' : 'Kho này đang trống'} disabled={!resourceOptions.length} />
+                    <label className="block">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự</span>
+                      <input type="number" min="0" value={attachForm.displayOrder} onChange={(event) => setAttachForm({ ...attachForm, displayOrder: event.target.value })} className={FIELD_CLASS} />
+                    </label>
+                    <label className="block lg:col-span-4">
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Ghi chú</span>
+                      <textarea value={attachForm.note} onChange={(event) => setAttachForm({ ...attachForm, note: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
+                    </label>
+                  </div>
+                  {selectedResource ? (
+                    <div className="mt-4 border-l-4 border-[#8a0018] bg-[#fbf3f4] px-4 py-3">
+                      <p className="text-sm font-extrabold text-[#26364a]">{selectedResource.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#584140]">
+                        {[selectedResource.description, selectedResource.prompt, selectedResource.skill, selectedResource.examCategory]
+                          .filter(Boolean).join(' · ') || 'Tài nguyên đã sẵn sàng để gắn vào unit.'}
+                      </p>
+                    </div>
+                  ) : null}
+                  {!resourceOptions.length && selectedAttachUnit ? (
+                    <p className="mt-4 border border-[#dcc0bf]/30 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#584140]">
+                      Tất cả tài nguyên thuộc loại này đã được gắn vào unit, hoặc kho tài nguyên đang trống.
+                    </p>
+                  ) : null}
+                  <button type="button" onClick={attachResource} disabled={working || !attachForm.unitId || !attachForm.resourceId} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-60">
+                    <Link2 className="h-4 w-4" /> Gắn tài nguyên
+                  </button>
+                  {selectedAttachUnit ? (
+                    <div className="mt-6 border-t border-[#dcc0bf]/25 pt-5">
+                      <h4 className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#8b706e]">Nội dung hiện có trong unit</h4>
+                      <UnitResourceGroups
+                        onDetach={detachResource}
+                        unit={selectedAttachUnit}
+                        working={working}
+                      />
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
+              <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dcc0bf]/25 px-6 py-4">
+                  <div>
+                    <h3 className="font-['Manrope'] text-xl font-extrabold text-[#0b1c30]">Cấu trúc unit</h3>
+                    <p className="mt-1 text-sm text-[#584140]">{filteredUnits.length} unit phù hợp.</p>
+                  </div>
+                  <button type="button" onClick={resetUnitForm} className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]">
+                    <Plus className="h-4 w-4" /> Thêm unit
+                  </button>
+                </div>
+
+                {loading ? (
+                  <div className="p-6 text-sm font-semibold text-slate-500">Đang tải...</div>
+                ) : !selectedProgramId ? (
+                  <div className="p-8 text-center text-sm font-semibold text-[#584140]">Chọn giáo trình để bắt đầu biên soạn.</div>
+                ) : filteredUnits.length === 0 ? (
+                  <div className="p-8 text-center text-sm font-semibold text-[#584140]">Giáo trình này chưa có unit/buổi học.</div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[860px] border-collapse text-left">
+                        <thead>
+                          <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
+                            {['Unit', 'Kế hoạch', 'Tài nguyên', 'Thao tác'].map((heading) => (
+                              <th className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#dcc0bf]/15">
+                          {pageItems.map((unit) => {
+                            const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
+                            const expanded = String(expandedUnitId) === String(unit.id);
+                            return (
+                              <Fragment key={unit.id}>
+                              <tr className="align-top transition hover:bg-[#eff4ff]">
+                                <td className="px-6 py-5">
+                                  <p className="text-sm font-extrabold text-[#4b0009]">{unit.displayOrder ?? 0}. {unit.title}</p>
+                                  {unit.description ? <p className="mt-1 max-w-[360px] text-xs leading-5 text-[#584140]">{unit.description}</p> : null}
+                                </td>
+                                <td className="px-6 py-5 text-sm leading-6 text-[#564241]">
+                                  <p className="max-w-[320px] whitespace-pre-wrap">{unit.sessionPlan || 'Chưa có kế hoạch buổi học.'}</p>
+                                </td>
+                                <td className="px-6 py-5">
+                                  <span className="inline-flex rounded-lg border border-[#dcc0bf]/40 bg-[#dce9ff] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-[#564241]">
+                                    {resourceCount} tài nguyên
+                                  </span>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {refGroups.map((group) => (
+                                      <span className="rounded-md bg-[#fbf3f4] px-2 py-1 text-[10px] font-bold text-[#8e7371]" key={group.key}>
+                                        {group.title}: {unit[group.key]?.length || 0}
+                                      </span>
+                                    ))}
                                   </div>
-                                  <button type="button" onClick={() => detachResource(ref)} className="shrink-0 text-rose-600" title="Gỡ tài nguyên">
-                                    <Trash2 className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))}
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={6} />
-            </>
-          )}
-        </section>
+                                  {resourceCount ? (
+                                    <button
+                                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#730014] hover:text-[#4b0009]"
+                                      onClick={() => setExpandedUnitId(expanded ? null : unit.id)}
+                                      type="button"
+                                    >
+                                      {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                      {expanded ? 'Thu gọn' : 'Xem tài nguyên'}
+                                    </button>
+                                  ) : null}
+                                </td>
+                                <td className="px-6 py-5 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button type="button" onClick={() => openEditUnit(unit)} className="rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5">Sửa</button>
+                                    <button type="button" onClick={() => openResourcePanel(unit.id)} className="rounded-lg border border-[#dcc0bf]/40 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">Gắn</button>
+                                    <button type="button" onClick={() => deleteUnit(unit)} disabled={working} className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                              {expanded ? (
+                                <tr className="bg-[#fcfbfb]">
+                                  <td className="border-t border-[#dcc0bf]/20 px-6 py-5" colSpan={4}>
+                                    <UnitResourceGroups
+                                      onDetach={detachResource}
+                                      unit={unit}
+                                      working={working}
+                                    />
+                                  </td>
+                                </tr>
+                              ) : null}
+                              </Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
+                      <Pagination page={page} totalPages={totalPages} onChange={setPage} totalItems={totalItems} pageSize={6} />
+                    </div>
+                  </>
+                )}
+              </section>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-        <aside className="space-y-4">
-          <section className={PANEL_CLASS}>
-            <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
-              {editingUnitId ? 'Chỉnh sửa unit' : 'Thêm unit/buổi học'}
-            </h3>
-            <div className="mt-4 space-y-4">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tiêu đề</span>
-                <input value={unitForm.title} onChange={(event) => setUnitForm({ ...unitForm, title: event.target.value })} className={FIELD_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                <textarea value={unitForm.description} onChange={(event) => setUnitForm({ ...unitForm, description: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kế hoạch buổi học</span>
-                <textarea value={unitForm.sessionPlan} onChange={(event) => setUnitForm({ ...unitForm, sessionPlan: event.target.value })} rows={5} className={TEXTAREA_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={unitForm.displayOrder}
-                  onChange={(event) => setUnitForm({ ...unitForm, displayOrder: event.target.value })}
-                  className={FIELD_CLASS}
-                />
-              </label>
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                <button type="button" onClick={saveUnit} disabled={working || !selectedProgramId} className={PRIMARY_BUTTON_CLASS}>
-                  <Save className="h-4 w-4" /> Lưu unit
-                </button>
-                <button type="button" onClick={resetUnitForm} className={SECONDARY_BUTTON_CLASS}>
-                  <Plus className="h-4 w-4" /> Mới
-                </button>
-              </div>
-            </div>
-          </section>
+function InfoTile({ label, value }) {
+  return (
+    <div className="rounded-xl border border-[#dcc0bf]/25 bg-[#fcfbfb] px-4 py-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8b706e]">{label}</p>
+      <p className="mt-2 break-words text-sm font-extrabold text-[#0b1c30]">{value}</p>
+    </div>
+  );
+}
 
-          <section className={PANEL_CLASS}>
-            <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Thêm từ kho</h3>
-            <div className="mt-4 space-y-4">
-              <div>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Unit nhận tài nguyên</span>
-                <BrandedSelect
-                  value={attachForm.unitId}
-                  onChange={(event) => setAttachForm({ ...attachForm, unitId: event.target.value })}
-                  options={unitOptions}
-                  placeholder="Chọn unit"
-                />
-              </div>
-              <div>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại tài nguyên</span>
-                <BrandedSelect
-                  value={attachForm.type}
-                  onChange={(event) => setAttachForm({ ...attachForm, type: event.target.value, resourceId: '' })}
-                  options={typeOptions}
-                />
-              </div>
-              <div>
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tài nguyên</span>
-                <BrandedSelect
-                  value={attachForm.resourceId}
-                  onChange={(event) => setAttachForm({ ...attachForm, resourceId: event.target.value })}
-                  options={resourceOptions}
-                  placeholder={resourceOptions.length ? 'Chọn tài nguyên' : 'Kho này đang trống'}
-                  disabled={!resourceOptions.length}
-                />
-              </div>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ghi chú</span>
-                <textarea value={attachForm.note} onChange={(event) => setAttachForm({ ...attachForm, note: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự trong unit</span>
-                <input
-                  type="number"
-                  min="0"
-                  value={attachForm.displayOrder}
-                  onChange={(event) => setAttachForm({ ...attachForm, displayOrder: event.target.value })}
-                  className={FIELD_CLASS}
-                />
-              </label>
-              <button type="button" onClick={attachResource} disabled={working || !attachForm.unitId || !attachForm.resourceId} className={PRIMARY_BUTTON_CLASS}>
-                <Link2 className="h-4 w-4" /> Gắn tài nguyên
-              </button>
+function FieldSelect({ label, value, options, onChange, placeholder, disabled }) {
+  return (
+    <div>
+      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{label}</span>
+      <BrandedSelect
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        options={options}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function SyllabusProgramCreateModal({ form, onChange, onClose, onSubmit, saving }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#1a0004]/45 px-3 py-4 backdrop-blur-sm sm:px-6" role="dialog" aria-modal="true">
+      <button aria-label="Đóng modal" className="fixed inset-0 cursor-default" onClick={onClose} type="button" />
+      <div className="relative z-10 w-full max-w-[760px] rounded-xl bg-white p-5 shadow-2xl">
+        <form className="space-y-5" onSubmit={onSubmit}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Biên soạn giáo trình</p>
+              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">Tạo giáo trình mới</h2>
+              <p className="mt-2 text-sm leading-6 text-[#584140]">Tạo khung giáo trình trước, sau đó thêm unit/buổi học và gắn tài nguyên ngay trong trang này.</p>
             </div>
-          </section>
-        </aside>
+            <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={onClose} type="button">Đóng</button>
+          </div>
+
+          <div className="max-h-[calc(100dvh-220px)] space-y-4 overflow-y-auto pr-1">
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tên giáo trình</span>
+              <input className={FIELD_CLASS} onChange={(event) => onChange({ title: event.target.value })} value={form.title} />
+            </label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Mã</span>
+                <input className={FIELD_CLASS} onChange={(event) => onChange({ code: event.target.value })} value={form.code} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Slug</span>
+                <input className={FIELD_CLASS} onChange={(event) => onChange({ slug: event.target.value })} value={form.slug} />
+              </label>
+              <FieldSelect label="Hình thức" onChange={(value) => onChange({ deliveryMode: value })} options={deliveryModeOptions} value={form.deliveryMode} />
+              <FieldSelect label="Nhóm thi" onChange={(value) => onChange({ examCategory: value })} options={examOptions} value={form.examCategory} />
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Band IELTS</span>
+                <input className={FIELD_CLASS} max="9" min="0" onChange={(event) => onChange({ targetBand: event.target.value })} step="0.5" type="number" value={form.targetBand} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Target TOEIC</span>
+                <input className={FIELD_CLASS} min="0" onChange={(event) => onChange({ targetScore: event.target.value })} type="number" value={form.targetScore} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Cấp độ đầu vào</span>
+                <input className={FIELD_CLASS} onChange={(event) => onChange({ entryLevel: event.target.value })} value={form.entryLevel} />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tổng số buổi dự kiến</span>
+                <input className={FIELD_CLASS} min="0" onChange={(event) => onChange({ totalSessions: event.target.value })} type="number" value={form.totalSessions} />
+              </label>
+            </div>
+            <label className="block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Chuẩn đầu ra</span>
+              <textarea className={TEXTAREA_CLASS} onChange={(event) => onChange({ outcomes: event.target.value })} rows={4} value={form.outcomes} />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3 border-t border-[#dcc0bf]/20 pt-4">
+            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009]" onClick={onClose} type="button">Hủy</button>
+            <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
+              <Plus className="h-4 w-4" />
+              {saving ? 'Đang tạo...' : 'Tạo và biên soạn'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
+}
+
+function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefresh }) {
+  const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [modeFilter, setModeFilter] = useState('ALL');
+  const [listPage, setListPage] = useState(1);
+
+  const statusOptions = useMemo(() => {
+    const values = [...new Set(programs.map((item) => item.status).filter(Boolean))];
+    return [{ label: 'Trạng thái: Tất cả', value: 'ALL' }, ...values.map((value) => ({ label: `Trạng thái: ${formatStatusLabel(value)}`, value }))];
+  }, [programs]);
+
+  const modeOptions = useMemo(() => {
+    const values = [...new Set(programs.map((item) => item.deliveryMode).filter(Boolean))];
+    return [{ label: 'Hình thức: Tất cả', value: 'ALL' }, ...values.map((value) => ({ label: `Hình thức: ${formatDeliveryMode(value)}`, value }))];
+  }, [programs]);
+
+  const filteredPrograms = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return programs.filter((item) => {
+      const status = item.status || '';
+      const statusMatched = statusFilter === 'ALL' || status === statusFilter;
+      const modeMatched = modeFilter === 'ALL' || item.deliveryMode === modeFilter;
+      const haystack = [
+        item.title,
+        item.code,
+        item.slug,
+        item.examCategory,
+        item.entryLevel,
+        item.targetBand,
+        item.targetScore,
+        item.deliveryModeLabel,
+        item.deliveryMode,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return statusMatched && modeMatched && (!normalizedKeyword || haystack.includes(normalizedKeyword));
+    });
+  }, [programs, keyword, modeFilter, statusFilter]);
+
+  const totalListPages = Math.max(1, Math.ceil(filteredPrograms.length / PAGE_SIZE));
+  const visiblePrograms = filteredPrograms.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE);
+
+  const stats = useMemo(() => {
+    const publishedCount = programs.filter((item) => item.status === 'PUBLISHED').length;
+    const draftCount = programs.filter((item) => item.status === 'DRAFT').length;
+    const totalUnits = programs.reduce((total, item) => total + Number(item.totalUnits ?? item.unitCount ?? item.units?.length ?? 0), 0);
+    return [
+      { label: 'Tổng giáo trình', value: programs.length, icon: BookMarked, tone: 'text-[#4b0009]' },
+      { label: 'Có unit nội dung', value: programs.filter((item) => Number(item.totalUnits ?? item.unitCount ?? item.units?.length ?? 0) > 0).length, icon: Check, tone: 'text-emerald-700' },
+      { label: 'Bản nháp', value: draftCount, icon: GraduationCap, tone: 'text-amber-700' },
+      { label: 'Tổng unit', value: totalUnits, icon: Link2, tone: 'text-[#005236]' },
+    ];
+  }, [programs]);
+
+  useEffect(() => {
+    setListPage(1);
+  }, [keyword, modeFilter, statusFilter]);
+
+  useEffect(() => {
+    if (listPage > totalListPages) setListPage(totalListPages);
+  }, [listPage, totalListPages]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={onCreate} type="button">
+          <Plus className="h-4 w-4" />
+          Tạo giáo trình nội dung
+        </button>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-4">
+        {stats.map((item) => {
+          const Icon = item.icon;
+          return (
+            <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-[0_4px_12px_rgba(75,0,9,0.05)]" key={item.label}>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <span className={`text-xs font-bold uppercase tracking-[0.12em] ${item.tone}`}>{item.label}</span>
+                <Icon className={`h-5 w-5 ${item.tone}`} />
+              </div>
+              <p className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{item.value}</p>
+            </section>
+          );
+        })}
+      </div>
+
+      <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="min-w-[300px] flex-1">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm giáo trình, mã, danh mục hoặc target..."
+                className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+              />
+            </div>
+          </div>
+          <div className="w-full sm:w-[220px]">
+            <BrandedSelect
+              onChange={(event) => setModeFilter(event.target.value)}
+              options={modeOptions}
+              value={modeFilter}
+            />
+          </div>
+          <div className="w-full sm:w-[220px]">
+            <BrandedSelect
+              onChange={(event) => setStatusFilter(event.target.value)}
+              options={statusOptions}
+              value={statusFilter}
+            />
+          </div>
+          <button
+            aria-label="Làm mới danh sách giáo trình"
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1080px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
+                {['Giáo trình nội dung', 'Unit/Buổi học', 'Dùng làm mẫu', 'Lớp đang dùng', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
+                  <th
+                    className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Unit/Buổi học' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
+                    key={heading}
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#dcc0bf]/15">
+              {visiblePrograms.map((item) => (
+                <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
+                  <td className="px-6 py-5">
+                    <div className="min-w-0">
+                      <p className="max-w-[300px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
+                      <p className="mt-1 text-xs text-[#584140]">{item.code || item.slug || '-'}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">
+                    {Number(item.totalUnits ?? item.unitCount ?? item.units?.length ?? 0)} / {item.totalSessions ?? item.sessionCount ?? '-'}
+                  </td>
+                  <td className="px-6 py-5 text-sm text-[#564241]">{item.deliveryModeLabel || formatDeliveryMode(item.deliveryMode)}</td>
+                  <td className="px-6 py-5 text-sm text-[#564241]">{item.activeClassroomCount ?? item.classroomUsageCount ?? 0}</td>
+                  <td className="px-6 py-5"><StatusBadge value={item.status} /></td>
+                  <td className="px-6 py-5 text-sm text-[#564241]">{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '-'}</td>
+                  <td className="px-6 py-5 text-right">
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5"
+                      onClick={() => onOpen(item)}
+                      type="button"
+                    >
+                      Mở biên soạn
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!filteredPrograms.length ? (
+          <div className="border-t border-[#dcc0bf]/20 px-6 py-10 text-center text-sm font-semibold text-[#584140]">
+            Không có giáo trình phù hợp với bộ lọc hiện tại.
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
+            <p className="text-sm text-[#2b2828]">
+              Trang {listPage} / {totalListPages} · <span className="font-bold text-[#0b1c30]">{filteredPrograms.length}</span> giáo trình
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Trang trước"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={listPage <= 1}
+                onClick={() => setListPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                &lt;
+              </button>
+              <button
+                aria-label="Trang sau"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={listPage >= totalListPages}
+                onClick={() => setListPage((current) => Math.min(totalListPages, current + 1))}
+                type="button"
+              >
+                &gt;
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function UnitResourceGroups({ onDetach, unit, working }) {
+  const total = refGroups.reduce((sum, group) => sum + (unit?.[group.key]?.length || 0), 0);
+  if (!total) {
+    return <p className="mt-3 text-sm font-semibold text-[#69778a]">Unit này chưa có tài nguyên nào.</p>;
+  }
+
+  return (
+    <div className="mt-3 grid gap-5 lg:grid-cols-2">
+      {refGroups.map((group) => {
+        const references = unit?.[group.key] || [];
+        if (!references.length) return null;
+        return (
+          <section key={group.key}>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h5 className="text-xs font-extrabold uppercase tracking-[0.1em] text-[#8b706e]">{group.title}</h5>
+              <span className="text-xs font-bold text-[#69778a]">{references.length}</span>
+            </div>
+            <div className="divide-y divide-[#dcc0bf]/25 border-y border-[#dcc0bf]/25">
+              {references.map((reference) => (
+                <div className="flex items-start justify-between gap-3 py-3" key={`${reference.type}-${reference.id}`}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold text-[#26364a]">{reference.title || `Tài nguyên #${reference.resourceId}`}</p>
+                    <p className="mt-1 text-xs leading-5 text-[#584140]">
+                      {[reference.skill, reference.subtitle, reference.note].filter(Boolean).join(' · ') || 'Không có ghi chú bổ sung.'}
+                    </p>
+                  </div>
+                  <button
+                    aria-label={`Gỡ ${reference.title || 'tài nguyên'} khỏi unit`}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center border border-rose-200 text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                    disabled={working}
+                    onClick={() => onDetach(reference)}
+                    title="Gỡ khỏi unit"
+                    type="button"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatusBadge({ value }) {
+  return (
+    <span className="inline-flex rounded-lg border border-[#dcc0bf]/40 bg-[#fbf3f4] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[#4b0009]">
+      {formatStatusLabel(value)}
+    </span>
+  );
+}
+
+function formatStatusLabel(value) {
+  const labels = {
+    ACTIVE: 'Đang hoạt động',
+    ONGOING: 'Đang hoạt động',
+    UPCOMING: 'Sắp khai giảng',
+    PUBLISHED: 'Đã xuất bản',
+    DRAFT: 'Bản nháp',
+    ARCHIVED: 'Đã lưu trữ',
+    COMPLETED: 'Đã kết thúc',
+    CANCELLED: 'Đã hủy',
+  };
+  return labels[value] || value || 'Chưa rõ';
+}
+
+function formatDeliveryMode(value) {
+  const labels = {
+    OFFLINE: 'Offline',
+    VIRTUAL: 'Virtual',
+    ONLINE: 'Online',
+    HYBRID: 'Hybrid',
+  };
+  return labels[value] || value || '-';
 }

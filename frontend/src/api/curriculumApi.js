@@ -29,6 +29,16 @@ export const curriculumApi = {
     return unwrapData(response);
   },
 
+  async cloneCurriculumProgram(id) {
+    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/clone`);
+    return unwrapData(response);
+  },
+
+  async submitCurriculumProgramForReview(id) {
+    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/submit-review`);
+    return unwrapData(response);
+  },
+
   async createCurriculumUnit(programId, payload) {
     const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${programId}/units`, payload);
     return unwrapData(response);

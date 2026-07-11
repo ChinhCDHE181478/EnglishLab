@@ -1,0 +1,4966 @@
+{
+  "type": "toeic_full_test",
+  "title": "EnglishLab TOEIC Placement Test - Form A",
+  "source": {
+    "provider": "EnglishLab",
+    "contentType": "original",
+    "referenceFormat": "TOEIC Listening & Reading, 7 parts",
+    "generatedAt": "2026-07-10T08:38:53.658Z"
+  },
+  "durationMinutes": 120,
+  "listening": {
+    "title": "TOEIC Listening - Form A",
+    "durationMinutes": 45,
+    "rules": [
+      "100 câu",
+      "4 Part",
+      "Mỗi đoạn nghe có nút phát giọng đọc tiếng Anh"
+    ],
+    "parts": [
+      {
+        "part": 1,
+        "title": "Photographs",
+        "instructions": "For each question, choose the statement that best describes the photograph.",
+        "questionCount": 6,
+        "questionGroups": [
+          {
+            "title": "Questions 1-6",
+            "type": "single_choice",
+            "hideOptionText": true,
+            "perQuestionAudio": true,
+            "questions": [
+              {
+                "number": 1,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Several people are working around a table."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The room is being painted."
+                  },
+                  {
+                    "value": "C",
+                    "label": "The chairs have been stacked outdoors."
+                  },
+                  {
+                    "value": "D",
+                    "label": "A speaker is standing at a podium."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-1.jpg",
+                "audioScript": "Question 1. A. Several people are working around a table. B. The room is being painted. C. The chairs have been stacked outdoors. D. A speaker is standing at a podium."
+              },
+              {
+                "number": 2,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "A crowd is waiting outside the building."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Some boxes are being loaded onto a truck."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Glass partitions line an office corridor."
+                  },
+                  {
+                    "value": "D",
+                    "label": "A meal is being served to customers."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-2.jpg",
+                "audioScript": "Question 2. A. A crowd is waiting outside the building. B. Some boxes are being loaded onto a truck. C. Glass partitions line an office corridor. D. A meal is being served to customers."
+              },
+              {
+                "number": 3,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The shelves are completely empty."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Food and cooking utensils have been placed on a counter."
+                  },
+                  {
+                    "value": "C",
+                    "label": "A customer is paying at a counter."
+                  },
+                  {
+                    "value": "D",
+                    "label": "Some dishes are displayed in a window."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-3.jpg",
+                "audioScript": "Question 3. A. The shelves are completely empty. B. Food and cooking utensils have been placed on a counter. C. A customer is paying at a counter. D. Some dishes are displayed in a window."
+              },
+              {
+                "number": 4,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Passengers are boarding an airplane."
+                  },
+                  {
+                    "value": "B",
+                    "label": "A road is being repaired."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Bicycles are parked beside a station."
+                  },
+                  {
+                    "value": "D",
+                    "label": "A train is traveling along the tracks."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-4.jpg",
+                "audioScript": "Question 4. A. Passengers are boarding an airplane. B. A road is being repaired. C. Bicycles are parked beside a station. D. A train is traveling along the tracks."
+              },
+              {
+                "number": 5,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Packages are stored inside a warehouse."
+                  },
+                  {
+                    "value": "B",
+                    "label": "A conference room is being decorated."
+                  },
+                  {
+                    "value": "C",
+                    "label": "A cashier is scanning groceries."
+                  },
+                  {
+                    "value": "D",
+                    "label": "The loading area has been closed."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-5.jpg",
+                "audioScript": "Question 5. A. Packages are stored inside a warehouse. B. A conference room is being decorated. C. A cashier is scanning groceries. D. The loading area has been closed."
+              },
+              {
+                "number": 6,
+                "prompt": "Choose the statement that best describes the photograph.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Cosmetics have been arranged beside a mirror."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Several guests are seated in a theater."
+                  },
+                  {
+                    "value": "C",
+                    "label": "A mechanic is repairing an engine."
+                  },
+                  {
+                    "value": "D",
+                    "label": "A gardener is watering flowers."
+                  }
+                ],
+                "imageUrl": "/placement-test/toeic/part1-6.jpg",
+                "audioScript": "Question 6. A. Cosmetics have been arranged beside a mirror. B. Several guests are seated in a theater. C. A mechanic is repairing an engine. D. A gardener is watering flowers."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 2,
+        "title": "Question-Response",
+        "instructions": "Listen to each question and choose the best response.",
+        "questionCount": 25,
+        "questionGroups": [
+          {
+            "title": "Questions 7-31",
+            "type": "single_choice",
+            "hidePrompt": true,
+            "hideOptionText": true,
+            "perQuestionAudio": true,
+            "questions": [
+              {
+                "number": 7,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "By Thursday afternoon."
+                  },
+                  {
+                    "value": "B",
+                    "label": "In the supply cabinet."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Yes, I printed three copies."
+                  }
+                ],
+                "audioScript": "Question 7. When will the replacement printer arrive? A. By Thursday afternoon. B. In the supply cabinet. C. Yes, I printed three copies."
+              },
+              {
+                "number": 8,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The main conference room."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Nina from the sales team."
+                  },
+                  {
+                    "value": "C",
+                    "label": "At half past two."
+                  }
+                ],
+                "audioScript": "Question 8. Who is leading the client presentation? A. The main conference room. B. Nina from the sales team. C. At half past two."
+              },
+              {
+                "number": 9,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Sure, I will attach it to an email."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The train was delayed."
+                  },
+                  {
+                    "value": "C",
+                    "label": "No, the office is upstairs."
+                  }
+                ],
+                "audioScript": "Question 9. Could you send me the revised schedule? A. Sure, I will attach it to an email. B. The train was delayed. C. No, the office is upstairs."
+              },
+              {
+                "number": 10,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "About twenty dollars."
+                  },
+                  {
+                    "value": "B",
+                    "label": "I signed the form yesterday."
+                  },
+                  {
+                    "value": "C",
+                    "label": "In the blue cabinet."
+                  }
+                ],
+                "audioScript": "Question 10. Where should these invoices be filed? A. About twenty dollars. B. I signed the form yesterday. C. In the blue cabinet."
+              },
+              {
+                "number": 11,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Because the director is traveling."
+                  },
+                  {
+                    "value": "B",
+                    "label": "In the large meeting room."
+                  },
+                  {
+                    "value": "C",
+                    "label": "It lasted an hour."
+                  }
+                ],
+                "audioScript": "Question 11. Why was the staff meeting postponed? A. Because the director is traveling. B. In the large meeting room. C. It lasted an hour."
+              },
+              {
+                "number": 12,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The cafe closes at six."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Coffee would be great."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I met her yesterday."
+                  }
+                ],
+                "audioScript": "Question 12. Do you want tea or coffee? A. The cafe closes at six. B. Coffee would be great. C. I met her yesterday."
+              },
+              {
+                "number": 13,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Every three months."
+                  },
+                  {
+                    "value": "B",
+                    "label": "By the maintenance team."
+                  },
+                  {
+                    "value": "C",
+                    "label": "It is in good condition."
+                  }
+                ],
+                "audioScript": "Question 13. How often is the equipment inspected? A. Every three months. B. By the maintenance team. C. It is in good condition."
+              },
+              {
+                "number": 14,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "A shipping label."
+                  },
+                  {
+                    "value": "B",
+                    "label": "No, it is still at the warehouse."
+                  },
+                  {
+                    "value": "C",
+                    "label": "To our branch in Singapore."
+                  }
+                ],
+                "audioScript": "Question 14. The shipment has already left, has it not? A. A shipping label. B. No, it is still at the warehouse. C. To our branch in Singapore."
+              },
+              {
+                "number": 15,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The one beside the parking garage."
+                  },
+                  {
+                    "value": "B",
+                    "label": "At six thirty."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I opened the package."
+                  }
+                ],
+                "audioScript": "Question 15. Which entrance is open after six? A. The one beside the parking garage. B. At six thirty. C. I opened the package."
+              },
+              {
+                "number": 16,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The quarterly report."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Not at all. What time?"
+                  },
+                  {
+                    "value": "C",
+                    "label": "Four copies should be enough."
+                  }
+                ],
+                "audioScript": "Question 16. Would you mind reserving a table for four? A. The quarterly report. B. Not at all. What time? C. Four copies should be enough."
+              },
+              {
+                "number": 17,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "It was very well received."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The technical support desk."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Next Monday morning."
+                  }
+                ],
+                "audioScript": "Question 17. How did the software demonstration go? A. It was very well received. B. The technical support desk. C. Next Monday morning."
+              },
+              {
+                "number": 18,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The first one has expired."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Around five hundred units."
+                  },
+                  {
+                    "value": "C",
+                    "label": "From a local supplier."
+                  }
+                ],
+                "audioScript": "Question 18. Why do we need another price estimate? A. The first one has expired. B. Around five hundred units. C. From a local supplier."
+              },
+              {
+                "number": 19,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The ride takes forty minutes."
+                  },
+                  {
+                    "value": "B",
+                    "label": "At the machine near the entrance."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I use it every day."
+                  }
+                ],
+                "audioScript": "Question 19. Where can I recharge my transit card? A. The ride takes forty minutes. B. At the machine near the entrance. C. I use it every day."
+              },
+              {
+                "number": 20,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "A graphic designer."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The blue version."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Not yet, but she will review it today."
+                  }
+                ],
+                "audioScript": "Question 20. Has Ms. Patel approved the design yet? A. A graphic designer. B. The blue version. C. Not yet, but she will review it today."
+              },
+              {
+                "number": 21,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "In Studio B."
+                  },
+                  {
+                    "value": "B",
+                    "label": "At nine fifteen."
+                  },
+                  {
+                    "value": "C",
+                    "label": "A digital marketing workshop."
+                  }
+                ],
+                "audioScript": "Question 21. What time does the workshop begin? A. In Studio B. B. At nine fifteen. C. A digital marketing workshop."
+              },
+              {
+                "number": 22,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The receptionist can do it."
+                  },
+                  {
+                    "value": "B",
+                    "label": "A package from Osaka."
+                  },
+                  {
+                    "value": "C",
+                    "label": "On the bottom line."
+                  }
+                ],
+                "audioScript": "Question 22. Who should sign for this delivery? A. The receptionist can do it. B. A package from Osaka. C. On the bottom line."
+              },
+              {
+                "number": 23,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "It is already fully booked."
+                  },
+                  {
+                    "value": "B",
+                    "label": "At Terminal Two."
+                  },
+                  {
+                    "value": "C",
+                    "label": "A window seat, please."
+                  }
+                ],
+                "audioScript": "Question 23. Why not take the earlier flight? A. It is already fully booked. B. At Terminal Two. C. A window seat, please."
+              },
+              {
+                "number": 24,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The project files."
+                  },
+                  {
+                    "value": "B",
+                    "label": "I will ask the department head."
+                  },
+                  {
+                    "value": "C",
+                    "label": "It was submitted online."
+                  }
+                ],
+                "audioScript": "Question 24. Can the deadline be extended? A. The project files. B. I will ask the department head. C. It was submitted online."
+              },
+              {
+                "number": 25,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "I ordered ten."
+                  },
+                  {
+                    "value": "B",
+                    "label": "They are reusable."
+                  },
+                  {
+                    "value": "C",
+                    "label": "On the front desk."
+                  }
+                ],
+                "audioScript": "Question 25. Where did you put the visitor badges? A. I ordered ten. B. They are reusable. C. On the front desk."
+              },
+              {
+                "number": 26,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Six of them."
+                  },
+                  {
+                    "value": "B",
+                    "label": "For the accounting position."
+                  },
+                  {
+                    "value": "C",
+                    "label": "By the hiring committee."
+                  }
+                ],
+                "audioScript": "Question 26. How many applicants were interviewed? A. Six of them. B. For the accounting position. C. By the hiring committee."
+              },
+              {
+                "number": 27,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Yes, there are more vegetarian dishes."
+                  },
+                  {
+                    "value": "B",
+                    "label": "A table near the window."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I brought my own lunch."
+                  }
+                ],
+                "audioScript": "Question 27. The cafeteria menu changed this week, did it not? A. Yes, there are more vegetarian dishes. B. A table near the window. C. I brought my own lunch."
+              },
+              {
+                "number": 28,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "With a full tank of fuel."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Before noon tomorrow."
+                  },
+                  {
+                    "value": "C",
+                    "label": "At the airport counter."
+                  }
+                ],
+                "audioScript": "Question 28. When should I return the rental car? A. With a full tank of fuel. B. Before noon tomorrow. C. At the airport counter."
+              },
+              {
+                "number": 29,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "That format is fine."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The report was accurate."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I prefer working from home."
+                  }
+                ],
+                "audioScript": "Question 29. Would you prefer the report as a PDF? A. That format is fine. B. The report was accurate. C. I prefer working from home."
+              },
+              {
+                "number": 30,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "It has eight characters."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Call the IT help desk."
+                  },
+                  {
+                    "value": "C",
+                    "label": "I changed it last month."
+                  }
+                ],
+                "audioScript": "Question 30. Who can help me reset my password? A. It has eight characters. B. Call the IT help desk. C. I changed it last month."
+              },
+              {
+                "number": 31,
+                "prompt": "Choose the best response.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "A tour group just arrived."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Near the elevators."
+                  },
+                  {
+                    "value": "C",
+                    "label": "It has a marble floor."
+                  }
+                ],
+                "audioScript": "Question 31. Why is the lobby so crowded? A. A tour group just arrived. B. Near the elevators. C. It has a marble floor."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 3,
+        "title": "Conversations",
+        "instructions": "Listen to each conversation and answer the three questions.",
+        "questionCount": 39,
+        "questionGroups": [
+          {
+            "title": "Questions 32-34",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a guest room is not ready. Woman: I see. I can offer luggage storage three o clock. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 32,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a hotel front desk"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 33,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a guest room is not ready"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 34,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "offer luggage storage three o clock"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 35-37",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: the campaign image needs approval. Woman: I see. I can send a revised draft this afternoon. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 35,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a marketing agency"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 36,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "the campaign image needs approval"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 37,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "visit a new customer"
+                  },
+                  {
+                    "value": "D",
+                    "label": "send a revised draft this afternoon"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 38-40",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a tablet is out of stock. Woman: I see. I can reserve the next delivery Friday. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 38,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "an electronics store"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 39,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "an employee forgot a password"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a tablet is out of stock"
+                  }
+                ]
+              },
+              {
+                "number": 40,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "reserve the next delivery Friday"
+                  },
+                  {
+                    "value": "B",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 41-43",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: an appointment must be moved. Woman: I see. I can book a morning time next Tuesday. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 41,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a factory cafeteria"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a medical clinic"
+                  }
+                ]
+              },
+              {
+                "number": 42,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "an appointment must be moved"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 43,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "book a morning time next Tuesday"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 44-46",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a permit has not arrived. Woman: I see. I can call the city office before noon. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 44,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a construction office"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 45,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a permit has not arrived"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 46,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "call the city office before noon"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 47-49",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a supplier sent the wrong vegetables. Woman: I see. I can request a replacement this evening. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 47,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a restaurant"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 48,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a supplier sent the wrong vegetables"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 49,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "visit a new customer"
+                  },
+                  {
+                    "value": "D",
+                    "label": "request a replacement this evening"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 50-52",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a platform has changed. Woman: I see. I can make an announcement in ten minutes. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 50,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a train station"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 51,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "an employee forgot a password"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a platform has changed"
+                  }
+                ]
+              },
+              {
+                "number": 52,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "make an announcement in ten minutes"
+                  },
+                  {
+                    "value": "B",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 53-55",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a chapter contains outdated figures. Woman: I see. I can ask the author for corrections by Wednesday. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 53,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a factory cafeteria"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a publishing company"
+                  }
+                ]
+              },
+              {
+                "number": 54,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a chapter contains outdated figures"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 55,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "ask the author for corrections by Wednesday"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 56-58",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: an exercise class is full. Woman: I see. I can add another session Saturday morning. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 56,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a fitness center"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 57,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "an exercise class is full"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 58,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "add another session Saturday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 59-61",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a customer needs a larger vehicle. Woman: I see. I can check another branch within an hour. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 59,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a car rental office"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 60,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a customer needs a larger vehicle"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 61,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "visit a new customer"
+                  },
+                  {
+                    "value": "D",
+                    "label": "check another branch within an hour"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 62-64",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a reserved book is missing. Woman: I see. I can search the return area after lunch. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 62,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a university library"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 63,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "C",
+                    "label": "an employee forgot a password"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a reserved book is missing"
+                  }
+                ]
+              },
+              {
+                "number": 64,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "search the return area after lunch"
+                  },
+                  {
+                    "value": "B",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 65-67",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: the sound check is delayed. Woman: I see. I can contact the technician at four thirty. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 65,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a factory cafeteria"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an event venue"
+                  }
+                ]
+              },
+              {
+                "number": 66,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "the sound check is delayed"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 67,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "contact the technician at four thirty"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 68-70",
+            "type": "single_choice",
+            "audioScript": "Man: We have a problem: a package address is incomplete. Woman: I see. I can call the sender before dispatch. Man: Thank you. Please let me know when it is done.",
+            "questions": [
+              {
+                "number": 68,
+                "prompt": "Where do the speakers most likely work?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a shipping company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a bank"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a public park"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a factory cafeteria"
+                  }
+                ]
+              },
+              {
+                "number": 69,
+                "prompt": "What problem do the speakers discuss?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "a payment was duplicated"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a package address is incomplete"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a meeting room is too small"
+                  },
+                  {
+                    "value": "D",
+                    "label": "an employee forgot a password"
+                  }
+                ]
+              },
+              {
+                "number": 70,
+                "prompt": "What will the woman most likely do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "cancel the entire project"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepare a monthly invoice"
+                  },
+                  {
+                    "value": "C",
+                    "label": "call the sender before dispatch"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit a new customer"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 4,
+        "title": "Talks",
+        "instructions": "Listen to each talk and answer the three questions.",
+        "questionCount": 30,
+        "questionGroups": [
+          {
+            "title": "Questions 71-73",
+            "type": "single_choice",
+            "audioScript": "This is a store announcement. We are calling about a weekend furniture sale. Please note that this applies Saturday at nine. Listeners should visit the second floor showroom. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 71,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a weekend furniture sale"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 72,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "Saturday at nine"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 73,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait outside the building"
+                  },
+                  {
+                    "value": "D",
+                    "label": "visit the second floor showroom"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 74-76",
+            "type": "single_choice",
+            "audioScript": "This is a voicemail message. We are calling about a repaired laptop is ready. Please note that this applies before Friday at six. Listeners should bring the service receipt. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 74,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a repaired laptop is ready"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 75,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "before Friday at six"
+                  }
+                ]
+              },
+              {
+                "number": 76,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "bring the service receipt"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 77-79",
+            "type": "single_choice",
+            "audioScript": "This is a museum tour. We are calling about a new photography exhibition. Please note that this applies after the orientation. Listeners should follow the guide upstairs. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 77,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to explain a new tax rule"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a new photography exhibition"
+                  }
+                ]
+              },
+              {
+                "number": 78,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "after the orientation"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 79,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "follow the guide upstairs"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 80-82",
+            "type": "single_choice",
+            "audioScript": "This is a weather report. We are calling about heavy rain is expected. Please note that this applies during the evening commute. Listeners should allow extra travel time. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 80,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "heavy rain is expected"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 81,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "during the evening commute"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 82,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "C",
+                    "label": "allow extra travel time"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 83-85",
+            "type": "single_choice",
+            "audioScript": "This is a company orientation. We are calling about new employee security procedures. Please note that this applies after the lunch break. Listeners should collect an identification badge. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 83,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "new employee security procedures"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 84,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "after the lunch break"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 85,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait outside the building"
+                  },
+                  {
+                    "value": "D",
+                    "label": "collect an identification badge"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 86-88",
+            "type": "single_choice",
+            "audioScript": "This is a radio advertisement. We are calling about discounted language classes. Please note that this applies registration closes Monday. Listeners should complete the online form. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 86,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discounted language classes"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 87,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "registration closes Monday"
+                  }
+                ]
+              },
+              {
+                "number": 88,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "complete the online form"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 89-91",
+            "type": "single_choice",
+            "audioScript": "This is an airport announcement. We are calling about a gate change for Flight 218. Please note that this applies boarding begins in twenty minutes. Listeners should proceed to Gate 14. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 89,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to explain a new tax rule"
+                  },
+                  {
+                    "value": "D",
+                    "label": "a gate change for Flight 218"
+                  }
+                ]
+              },
+              {
+                "number": 90,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "boarding begins in twenty minutes"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 91,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "proceed to Gate 14"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 92-94",
+            "type": "single_choice",
+            "audioScript": "This is a recorded library notice. We are calling about the building will close for maintenance. Please note that this applies next Wednesday. Listeners should return borrowed items early. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 92,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "the building will close for maintenance"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 93,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "next Wednesday"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 94,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "C",
+                    "label": "return borrowed items early"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 95-97",
+            "type": "single_choice",
+            "audioScript": "This is a conference introduction. We are calling about a presentation on sustainable packaging. Please note that this applies at ten fifteen. Listeners should silence mobile phones. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 95,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "a presentation on sustainable packaging"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 96,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "at ten fifteen"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 97,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait outside the building"
+                  },
+                  {
+                    "value": "D",
+                    "label": "silence mobile phones"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 98-100",
+            "type": "single_choice",
+            "audioScript": "This is a delivery update. We are calling about a road closure is delaying drivers. Please note that this applies until approximately three o clock. Listeners should check the tracking page. Thank you for your attention.",
+            "questions": [
+              {
+                "number": 98,
+                "prompt": "What is the purpose of the talk?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "to announce a staff promotion"
+                  },
+                  {
+                    "value": "B",
+                    "label": "to request a product refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "a road closure is delaying drivers"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to explain a new tax rule"
+                  }
+                ]
+              },
+              {
+                "number": 99,
+                "prompt": "When does the speaker say this will occur?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of next month"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every weekday morning"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "until approximately three o clock"
+                  }
+                ]
+              },
+              {
+                "number": 100,
+                "prompt": "What are listeners asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "check the tracking page"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competitor"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard their receipts"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait outside the building"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "reading": {
+    "title": "TOEIC Reading - Form A",
+    "durationMinutes": 75,
+    "rules": [
+      "100 câu",
+      "3 Part",
+      "Có thể chuyển Part và xem lại đáp án"
+    ],
+    "parts": [
+      {
+        "part": 5,
+        "title": "Incomplete Sentences",
+        "instructions": "Choose the word or phrase that best completes each sentence.",
+        "questionCount": 30,
+        "questionGroups": [
+          {
+            "title": "Questions 101-130",
+            "type": "single_choice",
+            "questions": [
+              {
+                "number": 101,
+                "prompt": "All expense reports must be submitted ------- Friday afternoon.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at"
+                  },
+                  {
+                    "value": "B",
+                    "label": "by"
+                  },
+                  {
+                    "value": "C",
+                    "label": "from"
+                  },
+                  {
+                    "value": "D",
+                    "label": "during"
+                  }
+                ]
+              },
+              {
+                "number": 102,
+                "prompt": "The new warehouse is considerably ------- than the previous facility.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "large"
+                  },
+                  {
+                    "value": "B",
+                    "label": "largest"
+                  },
+                  {
+                    "value": "C",
+                    "label": "larger"
+                  },
+                  {
+                    "value": "D",
+                    "label": "largely"
+                  }
+                ]
+              },
+              {
+                "number": 103,
+                "prompt": "Ms. Ortega will lead the meeting ------- Mr. Chen is away.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "while"
+                  },
+                  {
+                    "value": "B",
+                    "label": "unless"
+                  },
+                  {
+                    "value": "C",
+                    "label": "despite"
+                  },
+                  {
+                    "value": "D",
+                    "label": "whether"
+                  }
+                ]
+              },
+              {
+                "number": 104,
+                "prompt": "Customers may return unused items with ------- original receipt.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "they"
+                  },
+                  {
+                    "value": "B",
+                    "label": "them"
+                  },
+                  {
+                    "value": "C",
+                    "label": "their"
+                  },
+                  {
+                    "value": "D",
+                    "label": "theirs"
+                  }
+                ]
+              },
+              {
+                "number": 105,
+                "prompt": "The committee reached a decision after a ------- discussion.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "length"
+                  },
+                  {
+                    "value": "B",
+                    "label": "lengthen"
+                  },
+                  {
+                    "value": "C",
+                    "label": "lengthy"
+                  },
+                  {
+                    "value": "D",
+                    "label": "lengthwise"
+                  }
+                ]
+              },
+              {
+                "number": 106,
+                "prompt": "Please notify reception ------- your visitor arrives.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "because of"
+                  },
+                  {
+                    "value": "B",
+                    "label": "as soon as"
+                  },
+                  {
+                    "value": "C",
+                    "label": "in spite of"
+                  },
+                  {
+                    "value": "D",
+                    "label": "rather than"
+                  }
+                ]
+              },
+              {
+                "number": 107,
+                "prompt": "The software update will be installed ------- on all office computers.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "automatic"
+                  },
+                  {
+                    "value": "B",
+                    "label": "automatically"
+                  },
+                  {
+                    "value": "C",
+                    "label": "automation"
+                  },
+                  {
+                    "value": "D",
+                    "label": "automate"
+                  }
+                ]
+              },
+              {
+                "number": 108,
+                "prompt": "Neither proposal ------- the technical requirements of the project.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "meet"
+                  },
+                  {
+                    "value": "B",
+                    "label": "meets"
+                  },
+                  {
+                    "value": "C",
+                    "label": "meeting"
+                  },
+                  {
+                    "value": "D",
+                    "label": "to meet"
+                  }
+                ]
+              },
+              {
+                "number": 109,
+                "prompt": "The director thanked the team for completing the audit -------.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "success"
+                  },
+                  {
+                    "value": "B",
+                    "label": "successful"
+                  },
+                  {
+                    "value": "C",
+                    "label": "successfully"
+                  },
+                  {
+                    "value": "D",
+                    "label": "succeed"
+                  }
+                ]
+              },
+              {
+                "number": 110,
+                "prompt": "A confirmation email will be sent ------- the payment is processed.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "once"
+                  },
+                  {
+                    "value": "B",
+                    "label": "although"
+                  },
+                  {
+                    "value": "C",
+                    "label": "during"
+                  },
+                  {
+                    "value": "D",
+                    "label": "beside"
+                  }
+                ]
+              },
+              {
+                "number": 111,
+                "prompt": "The conference room is available ------- two and four o clock.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "among"
+                  },
+                  {
+                    "value": "B",
+                    "label": "between"
+                  },
+                  {
+                    "value": "C",
+                    "label": "through"
+                  },
+                  {
+                    "value": "D",
+                    "label": "inside"
+                  }
+                ]
+              },
+              {
+                "number": 112,
+                "prompt": "Employees are encouraged to share ------- suggestions with management.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "construct"
+                  },
+                  {
+                    "value": "B",
+                    "label": "constructive"
+                  },
+                  {
+                    "value": "C",
+                    "label": "construction"
+                  },
+                  {
+                    "value": "D",
+                    "label": "constructively"
+                  }
+                ]
+              },
+              {
+                "number": 113,
+                "prompt": "Our supplier has agreed ------- the damaged units at no charge.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "replace"
+                  },
+                  {
+                    "value": "B",
+                    "label": "replacing"
+                  },
+                  {
+                    "value": "C",
+                    "label": "to replace"
+                  },
+                  {
+                    "value": "D",
+                    "label": "replaced"
+                  }
+                ]
+              },
+              {
+                "number": 114,
+                "prompt": "The final contract is ------- identical to the draft reviewed yesterday.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "near"
+                  },
+                  {
+                    "value": "B",
+                    "label": "nearly"
+                  },
+                  {
+                    "value": "C",
+                    "label": "nearest"
+                  },
+                  {
+                    "value": "D",
+                    "label": "nearness"
+                  }
+                ]
+              },
+              {
+                "number": 115,
+                "prompt": "Applicants should have at least three years of ------- experience.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "relevance"
+                  },
+                  {
+                    "value": "B",
+                    "label": "relevant"
+                  },
+                  {
+                    "value": "C",
+                    "label": "relevantly"
+                  },
+                  {
+                    "value": "D",
+                    "label": "relate"
+                  }
+                ]
+              },
+              {
+                "number": 116,
+                "prompt": "The restaurant will remain closed ------- the kitchen renovation is complete.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "until"
+                  },
+                  {
+                    "value": "B",
+                    "label": "throughout"
+                  },
+                  {
+                    "value": "C",
+                    "label": "besides"
+                  },
+                  {
+                    "value": "D",
+                    "label": "toward"
+                  }
+                ]
+              },
+              {
+                "number": 117,
+                "prompt": "Mr. Lewis is responsible for ------- the monthly inventory report.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "prepare"
+                  },
+                  {
+                    "value": "B",
+                    "label": "prepares"
+                  },
+                  {
+                    "value": "C",
+                    "label": "prepared"
+                  },
+                  {
+                    "value": "D",
+                    "label": "preparing"
+                  }
+                ]
+              },
+              {
+                "number": 118,
+                "prompt": "The company plans to open ------- branch in the northern district.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "another"
+                  },
+                  {
+                    "value": "B",
+                    "label": "other"
+                  },
+                  {
+                    "value": "C",
+                    "label": "others"
+                  },
+                  {
+                    "value": "D",
+                    "label": "the others"
+                  }
+                ]
+              },
+              {
+                "number": 119,
+                "prompt": "Please keep your receipt ------- you need to exchange the product.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "in case"
+                  },
+                  {
+                    "value": "B",
+                    "label": "even though"
+                  },
+                  {
+                    "value": "C",
+                    "label": "so that"
+                  },
+                  {
+                    "value": "D",
+                    "label": "as if"
+                  }
+                ]
+              },
+              {
+                "number": 120,
+                "prompt": "Sales increased ------- after the new advertising campaign began.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "steady"
+                  },
+                  {
+                    "value": "B",
+                    "label": "steadiness"
+                  },
+                  {
+                    "value": "C",
+                    "label": "steadily"
+                  },
+                  {
+                    "value": "D",
+                    "label": "steadied"
+                  }
+                ]
+              },
+              {
+                "number": 121,
+                "prompt": "The maintenance crew inspected every elevator ------- found no safety issues.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "or"
+                  },
+                  {
+                    "value": "B",
+                    "label": "but"
+                  },
+                  {
+                    "value": "C",
+                    "label": "and"
+                  },
+                  {
+                    "value": "D",
+                    "label": "so"
+                  }
+                ]
+              },
+              {
+                "number": 122,
+                "prompt": "Copies of the policy are available ------- request.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "on"
+                  },
+                  {
+                    "value": "B",
+                    "label": "with"
+                  },
+                  {
+                    "value": "C",
+                    "label": "of"
+                  },
+                  {
+                    "value": "D",
+                    "label": "into"
+                  }
+                ]
+              },
+              {
+                "number": 123,
+                "prompt": "The consultant provided several ------- recommendations.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "practice"
+                  },
+                  {
+                    "value": "B",
+                    "label": "practical"
+                  },
+                  {
+                    "value": "C",
+                    "label": "practically"
+                  },
+                  {
+                    "value": "D",
+                    "label": "practiced"
+                  }
+                ]
+              },
+              {
+                "number": 124,
+                "prompt": "Production was delayed ------- a shortage of raw materials.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "because"
+                  },
+                  {
+                    "value": "B",
+                    "label": "because of"
+                  },
+                  {
+                    "value": "C",
+                    "label": "although"
+                  },
+                  {
+                    "value": "D",
+                    "label": "whenever"
+                  }
+                ]
+              },
+              {
+                "number": 125,
+                "prompt": "The revised schedule gives technicians ------- time to test the equipment.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "additional"
+                  },
+                  {
+                    "value": "B",
+                    "label": "addition"
+                  },
+                  {
+                    "value": "C",
+                    "label": "additionally"
+                  },
+                  {
+                    "value": "D",
+                    "label": "add"
+                  }
+                ]
+              },
+              {
+                "number": 126,
+                "prompt": "Visitors must wear an identification badge at ------- times.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "all"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every"
+                  },
+                  {
+                    "value": "C",
+                    "label": "much"
+                  },
+                  {
+                    "value": "D",
+                    "label": "each"
+                  }
+                ]
+              },
+              {
+                "number": 127,
+                "prompt": "The board will review the budget before ------- it.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "approve"
+                  },
+                  {
+                    "value": "B",
+                    "label": "approved"
+                  },
+                  {
+                    "value": "C",
+                    "label": "approving"
+                  },
+                  {
+                    "value": "D",
+                    "label": "approval"
+                  }
+                ]
+              },
+              {
+                "number": 128,
+                "prompt": "This model is popular ------- customers who travel frequently.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "among"
+                  },
+                  {
+                    "value": "B",
+                    "label": "across"
+                  },
+                  {
+                    "value": "C",
+                    "label": "under"
+                  },
+                  {
+                    "value": "D",
+                    "label": "toward"
+                  }
+                ]
+              },
+              {
+                "number": 129,
+                "prompt": "The package includes installation as well as technical -------.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "assist"
+                  },
+                  {
+                    "value": "B",
+                    "label": "assistant"
+                  },
+                  {
+                    "value": "C",
+                    "label": "assistance"
+                  },
+                  {
+                    "value": "D",
+                    "label": "assisting"
+                  }
+                ]
+              },
+              {
+                "number": 130,
+                "prompt": "Please respond ------- so that we can confirm your reservation.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "prompt"
+                  },
+                  {
+                    "value": "B",
+                    "label": "promptly"
+                  },
+                  {
+                    "value": "C",
+                    "label": "promptness"
+                  },
+                  {
+                    "value": "D",
+                    "label": "prompted"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 6,
+        "title": "Text Completion",
+        "instructions": "Read each text and choose the best answer for each blank or question.",
+        "questionCount": 16,
+        "questionGroups": [
+          {
+            "title": "Questions 131-134 refer to the following email.",
+            "type": "single_choice",
+            "passage": "To: All Staff | Subject: Bicycle Parking. Beginning next month, employees who cycle to work may use the new bicycle room beside the west entrance. Access cards will be updated automatically. Please register your bicycle with Facilities before using the room.",
+            "questions": [
+              {
+                "number": 131,
+                "prompt": "The new room is located ------- the west entrance.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "among"
+                  },
+                  {
+                    "value": "B",
+                    "label": "beside"
+                  },
+                  {
+                    "value": "C",
+                    "label": "across"
+                  },
+                  {
+                    "value": "D",
+                    "label": "during"
+                  }
+                ]
+              },
+              {
+                "number": 132,
+                "prompt": "Access cards will be updated -------.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "automatic"
+                  },
+                  {
+                    "value": "B",
+                    "label": "automatically"
+                  },
+                  {
+                    "value": "C",
+                    "label": "automation"
+                  },
+                  {
+                    "value": "D",
+                    "label": "automate"
+                  }
+                ]
+              },
+              {
+                "number": 133,
+                "prompt": "Employees should register their bicycles ------- using the room.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "before"
+                  },
+                  {
+                    "value": "B",
+                    "label": "unless"
+                  },
+                  {
+                    "value": "C",
+                    "label": "despite"
+                  },
+                  {
+                    "value": "D",
+                    "label": "between"
+                  }
+                ]
+              },
+              {
+                "number": 134,
+                "prompt": "Which sentence best completes the email?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Lockers and a repair station will also be available."
+                  },
+                  {
+                    "value": "B",
+                    "label": "The annual sales report is attached."
+                  },
+                  {
+                    "value": "C",
+                    "label": "Lunch will be served at noon."
+                  },
+                  {
+                    "value": "D",
+                    "label": "The parking fee has increased."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 135-138 refer to the following notice.",
+            "type": "single_choice",
+            "passage": "The Riverside Cafe will close at 3:00 P.M. on Monday for staff training. Customers may continue to place online orders until 2:30 P.M. Normal hours will resume Tuesday. We apologize for any inconvenience.",
+            "questions": [
+              {
+                "number": 135,
+                "prompt": "The cafe will close early ------- staff training.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "because of"
+                  },
+                  {
+                    "value": "B",
+                    "label": "although"
+                  },
+                  {
+                    "value": "C",
+                    "label": "next to"
+                  },
+                  {
+                    "value": "D",
+                    "label": "instead"
+                  }
+                ]
+              },
+              {
+                "number": 136,
+                "prompt": "Online orders will be accepted ------- 2:30 P.M.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "between"
+                  },
+                  {
+                    "value": "B",
+                    "label": "until"
+                  },
+                  {
+                    "value": "C",
+                    "label": "since"
+                  },
+                  {
+                    "value": "D",
+                    "label": "throughout"
+                  }
+                ]
+              },
+              {
+                "number": 137,
+                "prompt": "Normal hours will ------- on Tuesday.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "resume"
+                  },
+                  {
+                    "value": "B",
+                    "label": "resumes"
+                  },
+                  {
+                    "value": "C",
+                    "label": "resumed"
+                  },
+                  {
+                    "value": "D",
+                    "label": "resuming"
+                  }
+                ]
+              },
+              {
+                "number": 138,
+                "prompt": "What is suggested about Monday?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "The cafe will offer a new menu."
+                  },
+                  {
+                    "value": "B",
+                    "label": "Employees will attend a training session."
+                  },
+                  {
+                    "value": "C",
+                    "label": "All orders must be made in person."
+                  },
+                  {
+                    "value": "D",
+                    "label": "The building will remain open late."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 139-142 refer to the following memo.",
+            "type": "single_choice",
+            "passage": "Our annual inventory count is scheduled for August 12. Each department must submit a list of equipment by August 8. Team leaders will receive counting instructions this week. Contact Priya Nair with questions.",
+            "questions": [
+              {
+                "number": 139,
+                "prompt": "The inventory count is held -------.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "annual"
+                  },
+                  {
+                    "value": "B",
+                    "label": "annually"
+                  },
+                  {
+                    "value": "C",
+                    "label": "annualize"
+                  },
+                  {
+                    "value": "D",
+                    "label": "annuals"
+                  }
+                ]
+              },
+              {
+                "number": 140,
+                "prompt": "Equipment lists are due ------- August 8.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "on"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at"
+                  },
+                  {
+                    "value": "C",
+                    "label": "with"
+                  },
+                  {
+                    "value": "D",
+                    "label": "from"
+                  }
+                ]
+              },
+              {
+                "number": 141,
+                "prompt": "Team leaders will ------- instructions this week.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "receive"
+                  },
+                  {
+                    "value": "B",
+                    "label": "received"
+                  },
+                  {
+                    "value": "C",
+                    "label": "receiving"
+                  },
+                  {
+                    "value": "D",
+                    "label": "reception"
+                  }
+                ]
+              },
+              {
+                "number": 142,
+                "prompt": "Who should employees contact for more information?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "A department supplier"
+                  },
+                  {
+                    "value": "B",
+                    "label": "Priya Nair"
+                  },
+                  {
+                    "value": "C",
+                    "label": "The building manager"
+                  },
+                  {
+                    "value": "D",
+                    "label": "An equipment technician"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 143-146 refer to the following letter.",
+            "type": "single_choice",
+            "passage": "Thank you for choosing Northline Movers. Your move is confirmed for September 18 at 8:30 A.M. Please ensure that all small items are packed before our crew arrives. Payment is due after delivery at your new address.",
+            "questions": [
+              {
+                "number": 143,
+                "prompt": "The move has been ------- for September 18.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "confirm"
+                  },
+                  {
+                    "value": "B",
+                    "label": "confirmed"
+                  },
+                  {
+                    "value": "C",
+                    "label": "confirmation"
+                  },
+                  {
+                    "value": "D",
+                    "label": "confirming"
+                  }
+                ]
+              },
+              {
+                "number": 144,
+                "prompt": "Customers should pack small items ------- the crew arrives.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "before"
+                  },
+                  {
+                    "value": "B",
+                    "label": "because"
+                  },
+                  {
+                    "value": "C",
+                    "label": "while"
+                  },
+                  {
+                    "value": "D",
+                    "label": "except"
+                  }
+                ]
+              },
+              {
+                "number": 145,
+                "prompt": "Payment is required ------- delivery.",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "among"
+                  },
+                  {
+                    "value": "B",
+                    "label": "after"
+                  },
+                  {
+                    "value": "C",
+                    "label": "behind"
+                  },
+                  {
+                    "value": "D",
+                    "label": "through"
+                  }
+                ]
+              },
+              {
+                "number": 146,
+                "prompt": "What is the purpose of the letter?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "To confirm a moving appointment"
+                  },
+                  {
+                    "value": "B",
+                    "label": "To advertise storage space"
+                  },
+                  {
+                    "value": "C",
+                    "label": "To request an address change"
+                  },
+                  {
+                    "value": "D",
+                    "label": "To explain a damaged item"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "part": 7,
+        "title": "Reading Comprehension",
+        "instructions": "Read the documents and choose the best answer to each question.",
+        "questionCount": 54,
+        "questionGroups": [
+          {
+            "title": "Questions 147-149 refer to an email.",
+            "type": "single_choice",
+            "passage": "Document type: an email. Purpose: confirm a product demonstration. Timing: Thursday at 2:00 P.M.. Required action: reply with the number of attendees. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 147,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "confirm a product demonstration"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 148,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "Thursday at 2:00 P.M."
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 149,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "reply with the number of attendees"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 150-152 refer to a notice.",
+            "type": "single_choice",
+            "passage": "Document type: a notice. Purpose: announce elevator maintenance. Timing: Monday morning. Required action: use the east stairway. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 150,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce elevator maintenance"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 151,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "Monday morning"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 152,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait for a newspaper advertisement"
+                  },
+                  {
+                    "value": "D",
+                    "label": "use the east stairway"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 153-155 refer to a memo.",
+            "type": "single_choice",
+            "passage": "Document type: a memo. Purpose: explain a new expense policy. Timing: starting July 1. Required action: attach digital receipts. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 153,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "explain a new expense policy"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 154,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "starting July 1"
+                  }
+                ]
+              },
+              {
+                "number": 155,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "attach digital receipts"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 156-158 refer to an advertisement.",
+            "type": "single_choice",
+            "passage": "Document type: an advertisement. Purpose: promote a weekend cooking class. Timing: Saturday at 10:00 A.M.. Required action: register on the studio website. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 156,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "cancel a public holiday"
+                  },
+                  {
+                    "value": "D",
+                    "label": "promote a weekend cooking class"
+                  }
+                ]
+              },
+              {
+                "number": 157,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "Saturday at 10:00 A.M."
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 158,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "register on the studio website"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 159-161 refer to a text message.",
+            "type": "single_choice",
+            "passage": "Document type: a text message. Purpose: report a delayed delivery. Timing: after 4:00 P.M. today. Required action: leave the reception desk staffed. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 159,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "report a delayed delivery"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 160,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "after 4:00 P.M. today"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 161,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "leave the reception desk staffed"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 162-164 refer to a letter.",
+            "type": "single_choice",
+            "passage": "Document type: a letter. Purpose: renew a business license. Timing: before October 15. Required action: submit the enclosed form. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 162,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "renew a business license"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 163,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "before October 15"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 164,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait for a newspaper advertisement"
+                  },
+                  {
+                    "value": "D",
+                    "label": "submit the enclosed form"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 165-167 refer to a schedule.",
+            "type": "single_choice",
+            "passage": "Document type: a schedule. Purpose: list conference workshops. Timing: throughout Friday. Required action: choose one afternoon session. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 165,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "list conference workshops"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 166,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "throughout Friday"
+                  }
+                ]
+              },
+              {
+                "number": 167,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "choose one afternoon session"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 168-170 refer to a customer review.",
+            "type": "single_choice",
+            "passage": "Document type: a customer review. Purpose: describe a hotel stay. Timing: last weekend. Required action: contact the front desk manager. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 168,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "cancel a public holiday"
+                  },
+                  {
+                    "value": "D",
+                    "label": "describe a hotel stay"
+                  }
+                ]
+              },
+              {
+                "number": 169,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "last weekend"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 170,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "contact the front desk manager"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 171-173 refer to a job posting.",
+            "type": "single_choice",
+            "passage": "Document type: a job posting. Purpose: hire a laboratory assistant. Timing: applications close May 30. Required action: upload a resume and references. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 171,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "hire a laboratory assistant"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 172,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "applications close May 30"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 173,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "upload a resume and references"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 174-176 refer to an invoice.",
+            "type": "single_choice",
+            "passage": "Document type: an invoice. Purpose: request payment for office furniture. Timing: within thirty days. Required action: pay by bank transfer. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 174,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request payment for office furniture"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 175,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "within thirty days"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 176,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait for a newspaper advertisement"
+                  },
+                  {
+                    "value": "D",
+                    "label": "pay by bank transfer"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 177-179 refer to a web page.",
+            "type": "single_choice",
+            "passage": "Document type: a web page. Purpose: announce a community recycling event. Timing: June 8 from 9:00 A.M.. Required action: bring clean household electronics. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 177,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "announce a community recycling event"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 178,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "June 8 from 9:00 A.M."
+                  }
+                ]
+              },
+              {
+                "number": 179,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "bring clean household electronics"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 180-182 refer to a newsletter.",
+            "type": "single_choice",
+            "passage": "Document type: a newsletter. Purpose: introduce a new branch manager. Timing: at next weeks reception. Required action: welcome Ms. Gomez. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 180,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "cancel a public holiday"
+                  },
+                  {
+                    "value": "D",
+                    "label": "introduce a new branch manager"
+                  }
+                ]
+              },
+              {
+                "number": 181,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at next weeks reception"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 182,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "welcome Ms. Gomez"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 183-185 refer to two emails.",
+            "type": "single_choice",
+            "passage": "Document type: two emails. Purpose: reschedule a supplier meeting. Timing: Wednesday at 11:30 A.M.. Required action: send an updated calendar invitation. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 183,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "reschedule a supplier meeting"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 184,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "Wednesday at 11:30 A.M."
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 185,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "send an updated calendar invitation"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 186-188 refer to a form and a note.",
+            "type": "single_choice",
+            "passage": "Document type: a form and a note. Purpose: request conference travel approval. Timing: before booking a flight. Required action: obtain a supervisors signature. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 186,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request conference travel approval"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 187,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "before booking a flight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 188,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait for a newspaper advertisement"
+                  },
+                  {
+                    "value": "D",
+                    "label": "obtain a supervisors signature"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 189-191 refer to a receipt and an email.",
+            "type": "single_choice",
+            "passage": "Document type: a receipt and an email. Purpose: correct an incorrect shipping charge. Timing: within two business days. Required action: keep the original receipt. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 189,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "correct an incorrect shipping charge"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 190,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "immediately after midnight"
+                  },
+                  {
+                    "value": "D",
+                    "label": "within two business days"
+                  }
+                ]
+              },
+              {
+                "number": 191,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "keep the original receipt"
+                  },
+                  {
+                    "value": "B",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 192-194 refer to a timetable and a notice.",
+            "type": "single_choice",
+            "passage": "Document type: a timetable and a notice. Purpose: explain a temporary bus route. Timing: during the bridge closure. Required action: board at Pine Street. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 192,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "C",
+                    "label": "cancel a public holiday"
+                  },
+                  {
+                    "value": "D",
+                    "label": "explain a temporary bus route"
+                  }
+                ]
+              },
+              {
+                "number": 193,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "during the bridge closure"
+                  },
+                  {
+                    "value": "B",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 194,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "board at Pine Street"
+                  },
+                  {
+                    "value": "C",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 195-197 refer to three messages.",
+            "type": "single_choice",
+            "passage": "Document type: three messages. Purpose: coordinate a store window installation. Timing: Tuesday before opening. Required action: meet the contractor at 7:30 A.M.. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 195,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "coordinate a store window installation"
+                  },
+                  {
+                    "value": "B",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 196,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "Tuesday before opening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 197,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "meet the contractor at 7:30 A.M."
+                  },
+                  {
+                    "value": "D",
+                    "label": "wait for a newspaper advertisement"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Questions 198-200 refer to a brochure and two emails.",
+            "type": "single_choice",
+            "passage": "Document type: a brochure and two emails. Purpose: arrange a museum group visit. Timing: April 22 at 1:00 P.M.. Required action: confirm the final student count. For questions, contact the EnglishLab Service Desk at service@englishlab.vn.",
+            "questions": [
+              {
+                "number": 198,
+                "prompt": "What is the main purpose of the document?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "announce a company merger"
+                  },
+                  {
+                    "value": "B",
+                    "label": "arrange a museum group visit"
+                  },
+                  {
+                    "value": "C",
+                    "label": "request a tax refund"
+                  },
+                  {
+                    "value": "D",
+                    "label": "cancel a public holiday"
+                  }
+                ]
+              },
+              {
+                "number": 199,
+                "prompt": "When does the event or requirement apply?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "at the end of December"
+                  },
+                  {
+                    "value": "B",
+                    "label": "every Sunday evening"
+                  },
+                  {
+                    "value": "C",
+                    "label": "April 22 at 1:00 P.M."
+                  },
+                  {
+                    "value": "D",
+                    "label": "immediately after midnight"
+                  }
+                ]
+              },
+              {
+                "number": 200,
+                "prompt": "What is the reader asked to do?",
+                "options": [
+                  {
+                    "value": "A",
+                    "label": "call a competing company"
+                  },
+                  {
+                    "value": "B",
+                    "label": "discard all documents"
+                  },
+                  {
+                    "value": "C",
+                    "label": "wait for a newspaper advertisement"
+                  },
+                  {
+                    "value": "D",
+                    "label": "confirm the final student count"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "answerKey": {
+    "1": "A",
+    "2": "C",
+    "3": "B",
+    "4": "D",
+    "5": "A",
+    "6": "A",
+    "7": "A",
+    "8": "B",
+    "9": "A",
+    "10": "C",
+    "11": "A",
+    "12": "B",
+    "13": "A",
+    "14": "B",
+    "15": "A",
+    "16": "B",
+    "17": "A",
+    "18": "A",
+    "19": "B",
+    "20": "C",
+    "21": "B",
+    "22": "A",
+    "23": "A",
+    "24": "B",
+    "25": "C",
+    "26": "A",
+    "27": "A",
+    "28": "B",
+    "29": "A",
+    "30": "B",
+    "31": "A",
+    "32": "A",
+    "33": "B",
+    "34": "C",
+    "35": "B",
+    "36": "C",
+    "37": "D",
+    "38": "C",
+    "39": "D",
+    "40": "A",
+    "41": "D",
+    "42": "A",
+    "43": "B",
+    "44": "A",
+    "45": "B",
+    "46": "C",
+    "47": "B",
+    "48": "C",
+    "49": "D",
+    "50": "C",
+    "51": "D",
+    "52": "A",
+    "53": "D",
+    "54": "A",
+    "55": "B",
+    "56": "A",
+    "57": "B",
+    "58": "C",
+    "59": "B",
+    "60": "C",
+    "61": "D",
+    "62": "C",
+    "63": "D",
+    "64": "A",
+    "65": "D",
+    "66": "A",
+    "67": "B",
+    "68": "A",
+    "69": "B",
+    "70": "C",
+    "71": "B",
+    "72": "C",
+    "73": "D",
+    "74": "C",
+    "75": "D",
+    "76": "A",
+    "77": "D",
+    "78": "A",
+    "79": "B",
+    "80": "A",
+    "81": "B",
+    "82": "C",
+    "83": "B",
+    "84": "C",
+    "85": "D",
+    "86": "C",
+    "87": "D",
+    "88": "A",
+    "89": "D",
+    "90": "A",
+    "91": "B",
+    "92": "A",
+    "93": "B",
+    "94": "C",
+    "95": "B",
+    "96": "C",
+    "97": "D",
+    "98": "C",
+    "99": "D",
+    "100": "A",
+    "101": "B",
+    "102": "C",
+    "103": "A",
+    "104": "C",
+    "105": "C",
+    "106": "B",
+    "107": "B",
+    "108": "B",
+    "109": "C",
+    "110": "A",
+    "111": "B",
+    "112": "B",
+    "113": "C",
+    "114": "B",
+    "115": "B",
+    "116": "A",
+    "117": "D",
+    "118": "A",
+    "119": "A",
+    "120": "C",
+    "121": "C",
+    "122": "A",
+    "123": "B",
+    "124": "B",
+    "125": "A",
+    "126": "A",
+    "127": "C",
+    "128": "A",
+    "129": "C",
+    "130": "B",
+    "131": "B",
+    "132": "B",
+    "133": "A",
+    "134": "A",
+    "135": "A",
+    "136": "B",
+    "137": "A",
+    "138": "B",
+    "139": "B",
+    "140": "A",
+    "141": "A",
+    "142": "B",
+    "143": "B",
+    "144": "A",
+    "145": "B",
+    "146": "A",
+    "147": "A",
+    "148": "B",
+    "149": "C",
+    "150": "B",
+    "151": "C",
+    "152": "D",
+    "153": "C",
+    "154": "D",
+    "155": "A",
+    "156": "D",
+    "157": "A",
+    "158": "B",
+    "159": "A",
+    "160": "B",
+    "161": "C",
+    "162": "B",
+    "163": "C",
+    "164": "D",
+    "165": "C",
+    "166": "D",
+    "167": "A",
+    "168": "D",
+    "169": "A",
+    "170": "B",
+    "171": "A",
+    "172": "B",
+    "173": "C",
+    "174": "B",
+    "175": "C",
+    "176": "D",
+    "177": "C",
+    "178": "D",
+    "179": "A",
+    "180": "D",
+    "181": "A",
+    "182": "B",
+    "183": "A",
+    "184": "B",
+    "185": "C",
+    "186": "B",
+    "187": "C",
+    "188": "D",
+    "189": "C",
+    "190": "D",
+    "191": "A",
+    "192": "D",
+    "193": "A",
+    "194": "B",
+    "195": "A",
+    "196": "B",
+    "197": "C",
+    "198": "B",
+    "199": "C",
+    "200": "D"
+  }
+}

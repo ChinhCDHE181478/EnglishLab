@@ -9,6 +9,7 @@ import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDetailHero from '../components/course-detail/CourseDetailHero';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
 import CourseModuleAccordion from '../components/course-detail/CourseModuleAccordion';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 
@@ -31,17 +32,20 @@ const CourseDetail = () => {
       return undefined;
     }
 
-    getCurrentUser()
-      .then((response) => {
+    const loadCurrentUser = async () => {
+      try {
+        const response = await getCurrentUser();
         if (!active) return;
         localStorage.setItem('user', JSON.stringify(response.data));
         window.dispatchEvent(new Event('englishlab:user-updated'));
         setUser(response.data);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setUser(getStoredUser());
-      });
+      }
+    };
+
+    loadCurrentUser();
 
     return () => {
       active = false;
@@ -53,11 +57,21 @@ const CourseDetail = () => {
     setLoading(true);
     setError('');
 
-    Promise.all([
-      courseApi.getOnlineCourse(slugOrId),
-      hasAccessToken() ? courseApi.getMyOnlineCourses().catch(() => []) : Promise.resolve([]),
-    ])
-      .then(([response, enrollments]) => {
+    const loadEnrollments = async () => {
+      if (!hasAccessToken()) return [];
+      try {
+        return await courseApi.getMyOnlineCourses();
+      } catch {
+        return [];
+      }
+    };
+
+    const loadCourse = async () => {
+      try {
+        const [response, enrollments] = await Promise.all([
+          courseApi.getOnlineCourse(slugOrId),
+          loadEnrollments(),
+        ]);
         if (!active) return;
 
         const normalized = normalizeCourse(response);
@@ -67,15 +81,16 @@ const CourseDetail = () => {
         );
 
         setCourse({ ...normalized, registered: Boolean(matchedEnrollment) });
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setCourse(null);
         setError('Không tìm thấy khóa học bạn cần xem hoặc máy chủ chưa trả dữ liệu chi tiết.');
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    loadCourse();
 
     return () => {
       active = false;
@@ -99,9 +114,7 @@ const CourseDetail = () => {
           </div>
         ) : null}
         {loading ? (
-          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#584140]">
-            Đang tải chi tiết khóa học...
-          </div>
+          <BrandLoadingState className="rounded-3xl" message="Đang tải chi tiết khóa học..." />
         ) : !course ? (
           <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#93000a]">
             {error || 'Không tìm thấy khóa học.'}

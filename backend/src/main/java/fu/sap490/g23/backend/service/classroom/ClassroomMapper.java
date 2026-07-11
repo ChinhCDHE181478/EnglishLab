@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +61,7 @@ public class ClassroomMapper {
 
         ClassroomSessionResponse nextSession = resolveNextSession(sessions);
         Integer progressPercent = viewerStudentId == null ? null : computeProgressPercent(sessions);
+        ScheduleSummary scheduleSummary = computeScheduleSummary(offering);
 
         return ClassroomOfferingResponse.builder()
                 .id(offering.getId())
@@ -72,6 +74,12 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
                 .classroomStatus(offering.getStatus())
                 .packageStatus(learningPackage.getStatus())
+                .trainingProgramId(offering.getTrainingProgram() == null ? null : offering.getTrainingProgram().getId())
+                .trainingProgramTitle(offering.getTrainingProgram() == null ? null : offering.getTrainingProgram().getTitle())
+                .trainingProgramCode(offering.getTrainingProgram() == null ? null : offering.getTrainingProgram().getCode())
+                .trainingProgramSlug(offering.getTrainingProgram() == null ? null : offering.getTrainingProgram().getSlug())
+                .trainingProgramStatus(offering.getTrainingProgram() == null ? null : offering.getTrainingProgram().getStatus().name())
+                .trainingProgram(toTrainingProgramSummary(offering.getTrainingProgram()))
                 .curriculumProgramId(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getId())
                 .curriculumProgramTitle(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getTitle())
                 .curriculumProgramCode(offering.getCurriculumProgram() == null ? null : offering.getCurriculumProgram().getCode())
@@ -103,6 +111,12 @@ public class ClassroomMapper {
                 .teacherGuide(offering.getTeacherGuide())
                 .interactionActivities(offering.getInteractionActivities())
                 .price(learningPackage.getPrice())
+                .salePrice(learningPackage.getSalePrice())
+                .targetScore(learningPackage.getTargetScore())
+                .duration(learningPackage.getDuration())
+                .studyMode(learningPackage.getStudyMode())
+                .displayOrder(learningPackage.getDisplayOrder())
+                .featured(learningPackage.isFeatured())
                 .thumbnailUrl(learningPackage.getThumbnailUrl())
                 .nextSession(nextSession)
                 .progressPercent(progressPercent)
@@ -122,6 +136,10 @@ public class ClassroomMapper {
                         enrollment == null ? null : enrollment.getTuitionSettlementType()))
                 .tuitionSettlementNote(enrollment == null ? null : enrollment.getTuitionSettlementNote())
                 .waitlistCount((int) waitlistCount)
+                .scheduleSummary(scheduleSummary == null ? null : scheduleSummary.summary())
+                .scheduleDaysOfWeek(scheduleSummary == null ? null : scheduleSummary.daysOfWeek())
+                .typicalStartTime(scheduleSummary == null ? null : scheduleSummary.startTime())
+                .typicalEndTime(scheduleSummary == null ? null : scheduleSummary.endTime())
                 .createdAt(offering.getCreatedAt())
                 .updatedAt(offering.getUpdatedAt())
                 .sessions(includeDetails ? sessions.stream().map(this::toSessionResponse).toList() : null)
@@ -137,6 +155,39 @@ public class ClassroomMapper {
                 .build();
     }
 
+    /**
+     * Chi tiết lớp cho trang public: có lịch buổi học + giáo trình theo buổi,
+     * nhưng loại bỏ dữ liệu nội bộ (danh sách học viên, link phòng học, recording, ghi chú giáo viên).
+     */
+    public ClassroomOfferingResponse toPublicOfferingDetailResponse(ClassroomOffering offering) {
+        ClassroomOfferingResponse response = toOfferingResponse(offering, true, null, null, true);
+        response.setEnrollments(null);
+        response.setTeacherGuide(null);
+        response.setDefaultLarkMeetingUrl(null);
+        response.setRecordingUrl(null);
+        if (response.getCurriculumProgram() != null) {
+            response.getCurriculumProgram().setTeacherGuide(null);
+        }
+        if (response.getSessions() != null) {
+            response.getSessions().forEach(this::sanitizePublicSession);
+        }
+        if (response.getNextSession() != null) {
+            sanitizePublicSession(response.getNextSession());
+        }
+        return response;
+    }
+
+    private void sanitizePublicSession(ClassroomSessionResponse session) {
+        session.setLarkMeetingUrl(null);
+        session.setLarkJoinable(false);
+        session.setLarkSyncStatus(null);
+        session.setLarkSyncError(null);
+        session.setLarkSyncedAt(null);
+        session.setRecordingUrl(null);
+        session.setRecordingVisible(false);
+        session.setNote(null);
+    }
+
     private boolean isActiveTeacherAssignment(ClassroomTeacherAssignment assignment) {
         LocalDate today = LocalDate.now();
         return (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
@@ -144,8 +195,19 @@ public class ClassroomMapper {
     }
 
     public ClassroomSessionResponse toSessionResponse(ClassroomSession session) {
+        return toSessionResponse(session, false);
+    }
+
+    public ClassroomSessionResponse toManagerSessionResponse(ClassroomSession session) {
+        return toSessionResponse(session, true);
+    }
+
+    private ClassroomSessionResponse toSessionResponse(ClassroomSession session, boolean includeHiddenRecording) {
         User teacher = session.getTeacher();
         LarkMeetingStatus larkStatus = session.getLarkMeetingStatus();
+        boolean recordingExpired = session.getRecordingExpiresAt() != null
+                && !session.getRecordingExpiresAt().isAfter(LocalDateTime.now());
+        boolean recordingAvailable = Boolean.TRUE.equals(session.getRecordingVisible()) && !recordingExpired;
         return ClassroomSessionResponse.builder()
                 .id(session.getId())
                 .classroomOfferingId(session.getClassroomOffering().getId())
@@ -170,8 +232,19 @@ public class ClassroomMapper {
                 .larkSyncStatus(session.getLarkSyncStatus())
                 .larkSyncError(session.getLarkSyncError())
                 .larkSyncedAt(session.getLarkSyncedAt())
-                .recordingUrl(Boolean.TRUE.equals(session.getRecordingVisible()) ? session.getRecordingUrl() : null)
-                .recordingVisible(Boolean.TRUE.equals(session.getRecordingVisible()))
+                .recordingUrl(includeHiddenRecording || recordingAvailable ? session.getRecordingUrl() : null)
+                .recordingVisible(includeHiddenRecording
+                        ? Boolean.TRUE.equals(session.getRecordingVisible())
+                        : recordingAvailable)
+                .recordingSyncStatus(session.getRecordingSyncStatus())
+                .recordingProvider(session.getRecordingProvider())
+                .recordingDurationMs(session.getRecordingDurationMs())
+                .recordingSyncedAt(session.getRecordingSyncedAt())
+                .recordingLastAttemptAt(session.getRecordingLastAttemptAt())
+                .recordingSyncError(includeHiddenRecording ? session.getRecordingSyncError() : null)
+                .recordingSyncAttempts(session.getRecordingSyncAttempts())
+                .recordingPublishedAt(session.getRecordingPublishedAt())
+                .recordingExpiresAt(session.getRecordingExpiresAt())
                 .sessionContent(session.getSessionContent())
                 .note(session.getNote())
                 .locked(session.isLocked())
@@ -305,12 +378,17 @@ public class ClassroomMapper {
                 .id(homework.getId())
                 .classroomOfferingId(homework.getClassroomOffering().getId())
                 .sessionId(homework.getSession() == null ? null : homework.getSession().getId())
+                .curriculumUnitId(homework.getCurriculumUnit() == null ? null : homework.getCurriculumUnit().getId())
+                .curriculumUnitTitle(homework.getCurriculumUnit() == null ? null : homework.getCurriculumUnit().getTitle())
                 .title(homework.getTitle())
                 .instruction(homework.getInstruction())
                 .deadline(homework.getDeadline())
                 .maxScore(homework.getMaxScore())
                 .allowResubmission(homework.isAllowResubmission())
                 .attachmentUrl(homework.getAttachmentUrl())
+                .activityType(homework.getActivityType())
+                .activityConfigJson(homework.getActivityConfigJson())
+                .aiReviewEnabled(homework.isAiReviewEnabled())
                 .status(homework.getStatus())
                 .gradingMode(homework.getGradingMode())
                 .skill(homework.getSkill())
@@ -428,6 +506,40 @@ public class ClassroomMapper {
         };
     }
 
+    private TrainingProgramResponse toTrainingProgramSummary(TrainingProgram program) {
+        if (program == null) {
+            return null;
+        }
+        CurriculumProgram curriculum = program.getCurriculumProgram();
+        return TrainingProgramResponse.builder()
+                .id(program.getId())
+                .title(program.getTitle())
+                .code(program.getCode())
+                .slug(program.getSlug())
+                .deliveryMode(program.getDeliveryMode())
+                .deliveryModeLabel(deliveryModeLabel(program.getDeliveryMode()))
+                .curriculumProgramId(curriculum == null ? null : curriculum.getId())
+                .curriculumProgramTitle(curriculum == null ? null : curriculum.getTitle())
+                .curriculumProgramCode(curriculum == null ? null : curriculum.getCode())
+                .curriculumProgramExamCategory(curriculum == null ? null : curriculum.getExamCategory())
+                .curriculumProgramStatus(curriculum == null ? null : curriculum.getStatus())
+                .entryLevel(program.getEntryLevel())
+                .targetScore(program.getTargetScore())
+                .targetOutcome(program.getTargetOutcome())
+                .defaultCapacity(program.getDefaultCapacity())
+                .price(program.getPrice())
+                .salePrice(program.getSalePrice())
+                .duration(program.getDuration())
+                .studyMode(program.getStudyMode())
+                .status(program.getStatus())
+                .statusLabel(program.getStatus() == null ? null : program.getStatus().name())
+                .materialCount(program.getMaterials().size())
+                .classroomCount(program.getClassroomOfferings().size())
+                .createdAt(program.getCreatedAt())
+                .updatedAt(program.getUpdatedAt())
+                .build();
+    }
+
     private CurriculumProgramResponse toCurriculumProgramResponse(CurriculumProgram program, boolean includeUnits) {
         if (program == null) {
             return null;
@@ -529,6 +641,7 @@ public class ClassroomMapper {
                 .status(set.getStatus())
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
+                .contentJson(set.getCardsJson())
                 .build();
     }
 
@@ -577,6 +690,55 @@ public class ClassroomMapper {
                 .findFirst()
                 .map(this::toSessionResponse)
                 .orElse(null);
+    }
+
+    private record ScheduleSummary(String summary, List<Integer> daysOfWeek, LocalTime startTime, LocalTime endTime) {
+    }
+
+    private static final String[] DAY_OF_WEEK_LABELS = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
+
+    private ScheduleSummary computeScheduleSummary(ClassroomOffering offering) {
+        List<ClassroomSession> allSessions;
+        try {
+            allSessions = offering.getSessions();
+        } catch (RuntimeException exception) {
+            return null;
+        }
+        List<ClassroomSession> active = allSessions.stream()
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .filter(session -> session.getSessionDate() != null && session.getStartTime() != null)
+                .toList();
+        if (active.isEmpty()) {
+            return null;
+        }
+        List<Integer> days = active.stream()
+                .map(session -> session.getSessionDate().getDayOfWeek().getValue())
+                .distinct()
+                .sorted()
+                .toList();
+        // Khung giờ phổ biến nhất trong các buổi học
+        var timeGroups = active.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        session -> session.getStartTime() + "|" + session.getEndTime(),
+                        java.util.stream.Collectors.counting()));
+        String typicalKey = timeGroups.entrySet().stream()
+                .max(java.util.Map.Entry.comparingByValue())
+                .map(java.util.Map.Entry::getKey)
+                .orElse(null);
+        LocalTime start = null;
+        LocalTime end = null;
+        if (typicalKey != null) {
+            String[] parts = typicalKey.split("\\|");
+            start = LocalTime.parse(parts[0]);
+            end = parts.length > 1 && !"null".equals(parts[1]) ? LocalTime.parse(parts[1]) : null;
+        }
+        String dayText = days.stream()
+                .map(day -> DAY_OF_WEEK_LABELS[day - 1])
+                .collect(java.util.stream.Collectors.joining(", "));
+        String timeText = start == null
+                ? ""
+                : " · " + start + (end == null ? "" : "–" + end);
+        return new ScheduleSummary(dayText + timeText, days, start, end);
     }
 
     private Integer computeProgressPercent(List<ClassroomSession> sessions) {

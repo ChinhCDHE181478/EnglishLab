@@ -38,6 +38,11 @@ input[type='password']::-webkit-textfield-decoration-container {
   pointer-events: none;
 }
 
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: #4b0009;
+}
+
 a[href],
 button:not(:disabled),
 [role='button'] {

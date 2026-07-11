@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Settings2, Video } from 'lucide-react';
+import { AlertTriangle, BookOpen, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Settings2, Video } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
@@ -15,6 +15,7 @@ const trainingManagerNav = [
       { label: 'Khiếu nại điểm danh', href: '/training-manager/attendance-disputes', icon: AlertTriangle },
       { label: 'Hạ tầng lớp học', href: '/training-manager/infrastructure', icon: Settings2 },
       { label: 'Quản lý ghi hình', href: '/training-manager/recordings', icon: Video },
+      { label: 'Duyệt giáo trình', href: '/training-manager/curriculum-approvals', icon: BookOpen },
       { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: FileCheck2 },
       { label: 'Duyệt nội dung lớp', href: '/manager/content-approvals', icon: FileCheck2 },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList },
@@ -57,6 +58,12 @@ function resolvePageMeta(pathname) {
     return {
       title: 'Khiếu nại điểm danh',
       subtitle: 'Duyệt khiếu nại từ học viên và cập nhật điểm danh có ghi chú xử lý rõ ràng.',
+    };
+  }
+  if (pathname.startsWith('/training-manager/curriculum-approvals')) {
+    return {
+      title: 'Duyệt giáo trình',
+      subtitle: 'Phê duyệt hoặc từ chối phiên bản giáo trình offline/virtual do Content Manager gửi duyệt.',
     };
   }
   if (pathname.startsWith('/manager/course-approvals')) {

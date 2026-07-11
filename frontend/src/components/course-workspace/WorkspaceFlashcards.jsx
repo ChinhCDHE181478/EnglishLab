@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import courseApi from '../../api/courseApi';
+import BrandLoadingState from '../ui/BrandLoadingState';
 
 const cleanInlineMarkdown = (text = '') => String(text).replace(/\*\*/g, '').replace(/^["']|["']$/g, '').trim();
 
@@ -747,7 +748,7 @@ const WorkspaceFlashcards = ({ course }) => {
     </div>
   );
 
-  if (loading && !terms.length) return <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-8 text-center text-[#584140] shadow-sm">Đang mở flashcards...</section>;
+  if (loading && !terms.length) return <BrandLoadingState compact className="rounded-[28px]" message="Đang mở flashcards..." />;
 
   if (!terms.length) {
     return (

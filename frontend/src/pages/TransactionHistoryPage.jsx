@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import paymentApi from '../api/paymentApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { hasAccessToken } from '../utils/auth';
 
 const statusLabel = (status) => {
@@ -67,9 +68,7 @@ const TransactionHistoryPage = () => {
           </div>
         </section>
       ) : loading ? (
-        <section className="flex min-h-[320px] flex-1 items-center justify-center rounded-[28px] border border-[#dfbfbd]/25 bg-white px-6 py-16 text-center text-[#584140]">
-          Đang tải lịch sử giao dịch...
-        </section>
+        <BrandLoadingState compact className="rounded-[28px]" message="Đang tải lịch sử giao dịch..." />
       ) : error ? (
         <section className="flex min-h-[320px] flex-1 flex-col items-center justify-center rounded-[28px] border border-[#f0d4d7] bg-white px-6 py-16 text-center text-[#93000a]">
           <p>{error}</p>

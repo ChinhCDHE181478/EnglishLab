@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.dto.response.classroom;
 
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
@@ -17,12 +18,17 @@ public class ClassroomHomeworkResponse {
     private Long id;
     private Long classroomOfferingId;
     private Long sessionId;
+    private Long curriculumUnitId;
+    private String curriculumUnitTitle;
     private String title;
     private String instruction;
     private LocalDateTime deadline;
     private BigDecimal maxScore;
     private boolean allowResubmission;
     private String attachmentUrl;
+    private HomeworkActivityType activityType;
+    private String activityConfigJson;
+    private boolean aiReviewEnabled;
     private HomeworkStatus status;
     private HomeworkGradingMode gradingMode;
     private AssessmentSkill skill;

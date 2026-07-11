@@ -11,6 +11,34 @@ export const HOMEWORK_GRADING_MODES = [
   },
 ];
 
+export const HOMEWORK_ACTIVITY_TYPES = [
+  {
+    value: 'TEXT_RESPONSE',
+    label: 'Làm bài trực tiếp',
+    description: 'Học viên viết câu trả lời ngay trong giao diện bài tập.',
+  },
+  {
+    value: 'FILE_RESPONSE',
+    label: 'Nộp file',
+    description: 'Giáo viên giao đề/tài liệu, học viên tải file bài làm lên để giáo viên nhận lại file.',
+  },
+  {
+    value: 'SKILL_PRACTICE',
+    label: 'Reading/Listening worksheet',
+    description: 'Học viên nhập đáp án theo từng câu trong answer sheet; giáo viên dùng đáp án sẵn để review.',
+  },
+  {
+    value: 'FLASHCARD_REVIEW',
+    label: 'Ôn flashcard theo unit',
+    description: 'Bài giao yêu cầu học viên ôn bộ flashcard của unit/chương trình học.',
+  },
+  {
+    value: 'MIXED',
+    label: 'Bài tổng hợp',
+    description: 'Kết hợp hướng dẫn, answer sheet, bài viết/nói và file nộp kèm.',
+  },
+];
+
 export const HOMEWORK_SKILLS = [
   {
     value: 'SPEAKING',
@@ -27,14 +55,14 @@ export const HOMEWORK_SKILLS = [
   {
     value: 'LISTENING',
     label: 'Listening',
-    description: 'Nộp đáp án Listening. AI kiểm tra độ chính xác và phân tích lỗi nghe.',
-    aiSupported: true,
+    description: 'Nộp đáp án Listening. Giáo viên review theo answer key có sẵn.',
+    aiSupported: false,
   },
   {
     value: 'READING',
     label: 'Reading',
-    description: 'Nộp đáp án Reading. AI kiểm tra độ chính xác và phân tích lỗi đọc hiểu.',
-    aiSupported: true,
+    description: 'Nộp đáp án Reading. Giáo viên review theo answer key có sẵn.',
+    aiSupported: false,
   },
   {
     value: 'VOCABULARY',
@@ -50,6 +78,10 @@ export const getHomeworkSkillLabel = (skill) => (
 
 export const getHomeworkGradingModeLabel = (mode) => (
   HOMEWORK_GRADING_MODES.find((item) => item.value === mode)?.label || 'Giáo viên tự chấm'
+);
+
+export const getHomeworkActivityTypeLabel = (type) => (
+  HOMEWORK_ACTIVITY_TYPES.find((item) => item.value === type)?.label || 'Làm bài trực tiếp'
 );
 
 export const isAiGradedHomework = (homework) => homework?.gradingMode === 'AI';

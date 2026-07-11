@@ -96,21 +96,24 @@ export default function TeacherChangeRequestForm({
     setCheckingSlots(true);
     setForm((current) => ({ ...current, slotIndex: '', roomId: '' }));
 
-    Promise.all(
-      CLASSROOM_TIME_SLOTS.map((slot) =>
-        classroomApi
-          .checkTeacherChangeConflict({
-            requestType: 'RESCHEDULE_SESSION',
-            classroomOfferingId: Number(classroomId),
-            targetSessionId: Number(form.sessionId),
-            newValuesJson: buildRescheduleValues(selectedSession, slot, form.newDate, ''),
-            reason: 'Kiểm tra trùng lịch',
-          })
-          .then((result) => ({ available: !result?.hasBlockingConflict }))
-          .catch(() => ({ available: false })),
-      ),
-    )
-      .then((results) => {
+    const checkSlots = async () => {
+      try {
+        const results = await Promise.all(
+          CLASSROOM_TIME_SLOTS.map(async (slot) => {
+            try {
+              const result = await classroomApi.checkTeacherChangeConflict({
+                requestType: 'RESCHEDULE_SESSION',
+                classroomOfferingId: Number(classroomId),
+                targetSessionId: Number(form.sessionId),
+                newValuesJson: buildRescheduleValues(selectedSession, slot, form.newDate, ''),
+                reason: 'Kiểm tra trùng lịch',
+              });
+              return { available: !result?.hasBlockingConflict };
+            } catch {
+              return { available: false };
+            }
+          }),
+        );
         if (!active) return;
         const nextStatus = {};
         results.forEach((result, index) => {
@@ -124,10 +127,12 @@ export default function TeacherChangeRequestForm({
         if (preferredIndex >= 0) {
           setForm((current) => ({ ...current, slotIndex: String(preferredIndex) }));
         }
-      })
-      .finally(() => {
+      } finally {
         if (active) setCheckingSlots(false);
-      });
+      }
+    };
+
+    checkSlots();
 
     return () => {
       active = false;
@@ -156,18 +161,19 @@ export default function TeacherChangeRequestForm({
       params.endTime = times.endTime;
     }
 
-    classroomApi
-      .getAvailableRooms(form.sessionId, params)
-      .then((rooms) => {
+    const loadAvailableRooms = async () => {
+      try {
+        const rooms = await classroomApi.getAvailableRooms(form.sessionId, params);
         if (!active) return;
         setAvailableRooms(rooms);
-      })
-      .catch(() => {
+      } catch {
         if (active) setAvailableRooms([]);
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoadingOptions(false);
-      });
+      }
+    };
+
+    loadAvailableRooms();
 
     return () => {
       active = false;
@@ -184,18 +190,19 @@ export default function TeacherChangeRequestForm({
     setLoadingOptions(true);
     setForm((current) => ({ ...current, teacherId: '' }));
 
-    classroomApi
-      .getAvailableTeachers(form.sessionId)
-      .then((teachers) => {
+    const loadAvailableTeachers = async () => {
+      try {
+        const teachers = await classroomApi.getAvailableTeachers(form.sessionId);
         if (!active) return;
         setAvailableTeachers(teachers);
-      })
-      .catch(() => {
+      } catch {
         if (active) setAvailableTeachers([]);
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoadingOptions(false);
-      });
+      }
+    };
+
+    loadAvailableTeachers();
 
     return () => {
       active = false;

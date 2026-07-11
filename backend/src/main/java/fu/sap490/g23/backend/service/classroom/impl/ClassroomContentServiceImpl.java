@@ -147,6 +147,34 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     }
 
     @Override
+    public ClassroomMaterialResponse updateMaterial(Long materialId, CreateMaterialRequest request, String editorEmail) {
+        User editor = accessHelper.requireUser(editorEmail);
+        assertContentAccess(editor);
+
+        ClassroomMaterial material = materialRepository.findById(materialId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu."));
+        Long offeringId = material.getClassroomOffering().getId();
+        ClassroomSession session = resolveSession(offeringId, request.getSessionId());
+        if (!StringUtils.hasText(request.getFileUrl())) {
+            throw new IllegalArgumentException("Vui lòng cung cấp tệp hoặc liên kết tài liệu.");
+        }
+
+        material.setSession(session);
+        material.setTitle(request.getTitle().trim());
+        material.setFileUrl(request.getFileUrl().trim());
+        material.setFileType(normalizeUpper(request.getFileType()));
+        material.setDescription(normalize(request.getDescription()));
+        material.setMaterialType(normalize(request.getMaterialType()));
+        material.setProvider(normalize(request.getProvider()));
+        material.setVisibility(normalizeDefault(request.getVisibility(), "LEARNERS_IN_CLASS"));
+        material.setSourceType(normalizeDefaultUpper(request.getSourceType(), material.getSourceType()));
+        material.setCenterMaterialId(request.getCenterMaterialId());
+        material.setUploadedBy(editor);
+
+        return mapper.toMaterialResponse(materialRepository.save(material));
+    }
+
+    @Override
     public void deleteMaterial(Long materialId) {
         materialRepository.delete(materialRepository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu.")));
