@@ -42,6 +42,7 @@ public interface OnlineCourseService {
     OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail);
     OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail);
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
+    List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);
