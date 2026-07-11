@@ -119,8 +119,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false }) =
   return (
     <div className="space-y-4 pb-5">
       <div>
-        <h3 className="font-['Manrope'] text-lg font-extrabold text-[#1f2430]">Hỏi đáp bài học</h3>
-        <p className="mt-1 text-xs leading-5 text-[#6a5352]">Đặt câu hỏi cho đúng bài đang học để giáo viên và học viên khác hỗ trợ nhanh hơn.</p>
+        <p className="text-xs leading-5 text-[#6a5352]">Đặt câu hỏi cho đúng bài đang học để giáo viên và học viên khác hỗ trợ nhanh hơn.</p>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
