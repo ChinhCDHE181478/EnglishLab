@@ -8,7 +8,7 @@ const feedbackVariants = {
   exit: { opacity: 0, x: -20, transition: { duration: 0.3 } }
 };
 
-const AIFeedback = ({ activeTab }) => {
+const AIFeedback = ({ activeTab, feedback, loading }) => {
   // Điểm số mô phỏng cho từng tab
   const bandScores = {
     listening: 7.5,
@@ -25,7 +25,7 @@ const AIFeedback = ({ activeTab }) => {
         </h3>
         <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full shadow-sm border border-[#dfbfbd]">
           <Target size={16} className="text-[#730014]" />
-          <span className="font-bold text-[#1a1c1c]">Band {bandScores[activeTab]}</span>
+          <span className="font-bold text-[#1a1c1c]">Band {activeTab === 'writing' && feedback?.estimatedScore != null ? feedback.estimatedScore : bandScores[activeTab]}</span>
         </div>
       </div>
 
@@ -33,14 +33,16 @@ const AIFeedback = ({ activeTab }) => {
         <AnimatePresence mode="wait">
           {activeTab === 'writing' && (
             <motion.div key="writing" variants={feedbackVariants} initial="hidden" animate="visible" exit="exit" className="space-y-4">
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-sm text-gray-800 mb-2 flex items-center gap-2"><AlertCircle size={16} className="text-amber-500"/> Grammar & Accuracy</h4>
-                <p className="text-sm text-gray-600">You have a good grasp of complex structures, but watch out for subject-verb agreement in longer sentences.</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-sm text-gray-800 mb-2 flex items-center gap-2"><CheckCircle2 size={16} className="text-green-500"/> Lexical Resource</h4>
-                <p className="text-sm text-gray-600">Great use of uncommon vocabulary like "upward trend" and "proportion". Try to vary your linking words more.</p>
-              </div>
+              {loading ? <p className="py-16 text-center text-sm font-semibold text-[#730014]">AI đang đọc và phân tích bài viết...</p> : null}
+              {!loading && !feedback ? <p className="py-12 text-center text-sm leading-6 text-gray-500">Nhập bài viết và chọn “Nhận phản hồi AI” để xem điểm ước tính cùng góp ý chi tiết.</p> : null}
+              {!loading && feedback ? <>
+                <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+                  <h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800"><Zap size={16} className="text-[#730014]"/> Nhận xét tổng quan</h4>
+                  <p className="text-sm leading-6 text-gray-600">{feedback.overallFeedback}</p>
+                </div>
+                {(feedback.strengths || []).map((item) => <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm" key={item}><h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800"><CheckCircle2 size={16} className="text-green-500"/> Điểm mạnh</h4><p className="text-sm text-gray-600">{item}</p></div>)}
+                {(feedback.improvements || []).map((item) => <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm" key={item}><h4 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800"><AlertCircle size={16} className="text-amber-500"/> Cần cải thiện</h4><p className="text-sm text-gray-600">{item}</p></div>)}
+              </> : null}
             </motion.div>
           )}
 
