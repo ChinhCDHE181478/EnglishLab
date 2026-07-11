@@ -12,6 +12,7 @@ import CourseWorkspace from './pages/CourseWorkspace';
 import Courses from './pages/Courses';
 import ForgotPassword from './pages/ForgotPassword';
 import Home from './pages/Home';
+import WritingFeedbackPage from './pages/WritingFeedbackPage';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
 import LearningPathPage from './pages/LearningPathPage';
@@ -69,6 +70,7 @@ function AppRoutes() {
   return (
     <Routes location={location}>
       <Route path="/" element={<Home />} />
+      <Route path="/ai/writing-feedback" element={<WritingFeedbackPage />} />
       <Route path="/certificates/:code" element={<CertificateVerifyPage />} />
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
