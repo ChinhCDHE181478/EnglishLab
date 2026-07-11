@@ -150,6 +150,20 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getLessonDiscussions(courseId, lessonId, filter = 'ALL') {
+    const response = await axiosClient.get(`/api/online-courses/${courseId}/lessons/${lessonId}/discussions`, {
+      params: { filter },
+      skipAuthRedirect: true,
+    });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createLessonDiscussion(courseId, lessonId, payload) {
+    const response = await axiosClient.post(`/api/student/online-courses/${courseId}/lessons/${lessonId}/discussions`, payload);
+    return unwrapData(response);
+  },
+
   async createDiscussionReply(threadId, payload) {
     const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/replies`, payload);
     return unwrapData(response);
