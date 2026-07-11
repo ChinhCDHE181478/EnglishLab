@@ -8,6 +8,7 @@ import { CourseFooter, CourseGlobalStyles } from '../components/course';
 const statusInfo = (course, path) => {
   if (course.completed) return { label: 'Đã hoàn thành', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 };
   if (['ACTIVE', 'COMPLETED'].includes(course.enrollmentStatus)) return { label: 'Đang học', tone: 'bg-amber-50 text-amber-700 border-amber-200', icon: Circle };
+  if (course.lockedReason) return { label: 'Chưa mở', tone: 'bg-slate-50 text-slate-500 border-slate-200', icon: LockKeyhole };
   if (String(course.courseId) === String(path.nextCourseId)) return { label: 'Tiếp theo', tone: 'bg-[#fff0f1] text-[#8a0018] border-[#e5bcc2]', icon: ArrowRight };
   return { label: 'Chưa mở', tone: 'bg-slate-50 text-slate-500 border-slate-200', icon: LockKeyhole };
 };
