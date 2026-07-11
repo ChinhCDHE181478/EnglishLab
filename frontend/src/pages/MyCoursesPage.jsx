@@ -32,7 +32,7 @@ const CertificateModal = ({ certificate, onClose }) => {
       <div className="mx-auto flex max-w-[1160px] flex-col gap-6">
         <div className="khong-in flex flex-wrap justify-end gap-3">
           <button className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white" onClick={() => window.print()} type="button">
-            Tải xuống
+            In / Tải PDF
           </button>
           <button className="rounded-2xl border border-[#dfbfbd]/30 bg-white px-5 py-3 text-sm font-extrabold text-[#4b0009]" onClick={handleCopy} type="button">
             Sao chép mã xác thực
