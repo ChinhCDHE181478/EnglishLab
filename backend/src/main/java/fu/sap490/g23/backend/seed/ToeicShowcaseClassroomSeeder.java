@@ -41,6 +41,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @Order(200)
@@ -154,9 +155,11 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         List<ClassroomSession> sessions = ensureSessions(offering, teacher, units);
         ensureSyllabus(offering, units, sessions);
         ensureClassroomMaterials(offering, units, teacher);
-        CourseAssessment moduleTestSource = ensureModuleTestSource();
-        AssessmentBankItem moduleTestBankItem = ensureAssessmentBankItem(moduleTestSource);
-        ensureCurriculumAssessment(units.get(4), moduleTestBankItem);
+        CourseAssessment moduleTestSource = ensureModuleTestSource().orElse(null);
+        if (moduleTestSource != null) {
+            AssessmentBankItem moduleTestBankItem = ensureAssessmentBankItem(moduleTestSource);
+            ensureCurriculumAssessment(units.get(4), moduleTestBankItem);
+        }
         ensureHomework(offering, units, sessions, teacher, moduleTestSource);
         ensureAnnouncement(offering, teacher);
         ensureGradebook(offering, learner, teacher);
@@ -366,21 +369,23 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         };
     }
 
-    private CourseAssessment ensureModuleTestSource() {
-        return courseAssessmentRepository.findAll().stream()
+    private Optional<CourseAssessment> ensureModuleTestSource() {
+        Optional<CourseAssessment> existing = courseAssessmentRepository.findAll().stream()
                 .filter(CourseAssessment::isActive)
                 .filter(item -> item.getType() == AssessmentType.MODULE_TEST)
                 .filter(item -> item.getSkill() == AssessmentSkill.READING)
                 .filter(item -> StringUtils.hasText(item.getUiConfigJson()) && item.getUiConfigJson().contains("\"parts\""))
-                .findFirst()
-                .orElseGet(this::createModuleTestSource);
-    }
-
-    private CourseAssessment createModuleTestSource() {
-        CourseModule module = onlineCourseRepository.findAll().stream()
+                .findFirst();
+        if (existing.isPresent()) {
+            return existing;
+        }
+        return onlineCourseRepository.findAll().stream()
                 .flatMap(course -> course.getModules().stream())
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Không có module khóa học để tạo bài Module Test mẫu."));
+                .map(this::createModuleTestSource);
+    }
+
+    private CourseAssessment createModuleTestSource(CourseModule module) {
         return courseAssessmentRepository.save(CourseAssessment.builder()
                 .onlineCourse(module.getOnlineCourse())
                 .module(module)
@@ -724,7 +729,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .createdBy(teacher)
                 .build());
 
-        ensureModuleTestHomework(offering, units.get(4), sessions.get(4), teacher, moduleTestSource);
+        if (moduleTestSource != null) {
+            ensureModuleTestHomework(offering, units.get(4), sessions.get(4), teacher, moduleTestSource);
+        }
 
         ensureHomeworkItem(offering, "Unit 6 Text Completion - System Practice", ClassroomHomework.builder()
                 .classroomOffering(offering)
