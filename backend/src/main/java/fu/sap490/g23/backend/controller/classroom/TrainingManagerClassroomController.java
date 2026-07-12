@@ -205,6 +205,19 @@ public class TrainingManagerClassroomController {
         return ResponseEntity.ok(classroomOfferingService.listRegistrations(status, classroomOfferingId, needsAction));
     }
 
+    @PutMapping("/{id}/waitlist/order")
+    public ResponseEntity<List<ClassroomEnrollmentResponse>> reorderWaitlist(
+            @PathVariable Long id,
+            @Valid @RequestBody ReorderWaitlistRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomOfferingService.reorderWaitlist(
+                id,
+                request,
+                authentication.getName()
+        ));
+    }
+
     @GetMapping("/enrollments/{enrollmentId}")
     public ResponseEntity<ClassroomEnrollmentResponse> getEnrollment(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(classroomOfferingService.getRegistration(enrollmentId));

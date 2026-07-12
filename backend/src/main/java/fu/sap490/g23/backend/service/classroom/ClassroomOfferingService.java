@@ -41,6 +41,16 @@ public interface ClassroomOfferingService {
 
     ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request);
 
+    /**
+     * Tạo buổi học sau khi Training Manager đã duyệt yêu cầu thay đổi.
+     * Khi {@code enforceConflictCheck} = false, bỏ qua kiểm tra xung đột vì TM đã ghi đè.
+     */
+    ClassroomSessionResponse createSession(
+            Long offeringId,
+            CreateClassroomSessionRequest request,
+            boolean enforceConflictCheck
+    );
+
     ClassroomSessionResponse updateSession(Long sessionId, CreateClassroomSessionRequest request);
 
     void deleteSession(Long sessionId);
@@ -73,6 +83,12 @@ public interface ClassroomOfferingService {
             ClassroomRegistrationStatus status,
             Long classroomOfferingId,
             Boolean needsAction
+    );
+
+    List<ClassroomEnrollmentResponse> reorderWaitlist(
+            Long classroomOfferingId,
+            ReorderWaitlistRequest request,
+            String actorEmail
     );
 
     ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request);

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  ArrowDown,
   ArrowLeftRight,
+  ArrowUp,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -49,6 +51,7 @@ const globalStatusTabs = [
 
 const queueOnlyTabs = [
   { id: 'NEEDS_ACTION', label: 'Cần xử lý' },
+  { id: 'WAITLIST', label: 'Danh sách chờ' },
   { id: 'ASSIGNED', label: 'Đã xếp lớp' },
 ];
 
@@ -82,6 +85,7 @@ export default function TrainingManagerRegistrationPanel({
   const [selectedProofs, setSelectedProofs] = useState([]);
   const [proofRejectReasons, setProofRejectReasons] = useState({});
   const [processingProofId, setProcessingProofId] = useState(null);
+  const [reorderingWaitlist, setReorderingWaitlist] = useState(false);
 
   const statusTabs = classroomOfferingId ? queueOnlyTabs : globalStatusTabs;
 
@@ -193,6 +197,30 @@ export default function TrainingManagerRegistrationPanel({
   const handleTransfer = () => runAction(() => classroomApi.transferClassEnrollment(selected.id, {
     targetClassroomOfferingId: Number(transferClassroomId),
   }));
+
+  const handleMoveWaitlist = async (index, direction) => {
+    const targetIndex = index + direction;
+    if (!classroomOfferingId || targetIndex < 0 || targetIndex >= registrations.length) {
+      return;
+    }
+    const reordered = [...registrations];
+    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
+    setActionMessage('');
+    setReorderingWaitlist(true);
+    try {
+      const updated = await classroomApi.reorderClassWaitlist(
+        classroomOfferingId,
+        reordered.map((item) => item.id),
+      );
+      setRegistrations(updated);
+      setActionMessage('Đã cập nhật thứ tự danh sách chờ thành công.');
+      onUpdated?.();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể cập nhật thứ tự danh sách chờ.'));
+    } finally {
+      setReorderingWaitlist(false);
+    }
+  };
 
   const refreshSelectedProofs = async () => {
     if (!selectedId) {
@@ -313,10 +341,10 @@ export default function TrainingManagerRegistrationPanel({
           <aside className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm space-y-3 max-h-[750px] overflow-y-auto">
             <h3 className="text-xs font-bold text-[#8b706e] uppercase tracking-wider px-2">Hàng đợi</h3>
             <div className="space-y-2">
-              {registrations.map((item) => {
+              {registrations.map((item, index) => {
                 const isSelected = String(item.id) === selectedId;
                 return (
-                  <button
+                  <div
                     key={item.id}
                     className={`w-full rounded-2xl p-4 text-left transition-all duration-200 border ${
                       isSelected
@@ -324,7 +352,13 @@ export default function TrainingManagerRegistrationPanel({
                         : 'bg-[#fffafb]/50 border-gray-100 text-[#584140] hover:bg-[#fff3f4] hover:border-[#dfbfbd]/30'
                     }`}
                     onClick={() => setSelectedId(String(item.id))}
-                    type="button"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        setSelectedId(String(item.id));
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <p className="font-extrabold text-sm">{item.studentName || item.studentEmail}</p>
                     {!classroomOfferingId ? (
@@ -332,15 +366,45 @@ export default function TrainingManagerRegistrationPanel({
                         {item.classroomTitle}
                       </p>
                     ) : null}
-                    <div className="mt-3 flex items-center justify-between">
+                    <div className="mt-3 flex items-center justify-between gap-2">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         isSelected ? 'bg-white/20 text-white' : 'bg-[#fff1f3] text-[#730014]'
                       }`}
                       >
-                        {formatRegistrationStatus(item.registrationStatus, item.registrationStatusLabel)}
+                        {item.registrationStatus === 'WAITLIST' && item.waitlistPosition
+                          ? `Vị trí #${item.waitlistPosition}`
+                          : formatRegistrationStatus(item.registrationStatus, item.registrationStatusLabel)}
                       </span>
+                      {classroomOfferingId && activeTab === 'WAITLIST' ? (
+                        <span className="flex gap-1">
+                          <button
+                            aria-label="Chuyển học viên lên một vị trí"
+                            className={`rounded-lg p-1 ${isSelected ? 'bg-white/15 hover:bg-white/25' : 'bg-white text-[#730014] hover:bg-rose-50'} disabled:cursor-not-allowed disabled:opacity-35`}
+                            disabled={reorderingWaitlist || index === 0}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleMoveWaitlist(index, -1);
+                            }}
+                            type="button"
+                          >
+                            <ArrowUp className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            aria-label="Chuyển học viên xuống một vị trí"
+                            className={`rounded-lg p-1 ${isSelected ? 'bg-white/15 hover:bg-white/25' : 'bg-white text-[#730014] hover:bg-rose-50'} disabled:cursor-not-allowed disabled:opacity-35`}
+                            disabled={reorderingWaitlist || index === registrations.length - 1}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleMoveWaitlist(index, 1);
+                            }}
+                            type="button"
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      ) : null}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -526,6 +590,18 @@ function RegistrationDetail({
             </p>
           </div>
         </div>
+
+        {selected.registrationStatus === 'WAITLIST' ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-amber-800">Thứ tự danh sách chờ</p>
+            <p className="mt-1 text-2xl font-extrabold text-amber-950">
+              #{selected.waitlistPosition || '—'}
+              {selected.waitlistSize ? (
+                <span className="ml-2 text-sm font-bold text-amber-700">/ {selected.waitlistSize} học viên</span>
+              ) : null}
+            </p>
+          </div>
+        ) : null}
 
         <TuitionStatusCard
           due={selected.tuitionAmountDue}

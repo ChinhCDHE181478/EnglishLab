@@ -35,7 +35,8 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.EnumSet;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -367,20 +368,31 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     public ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request) {
+        return createSession(offeringId, request, true);
+    }
+
+    @Override
+    public ClassroomSessionResponse createSession(
+            Long offeringId,
+            CreateClassroomSessionRequest request,
+            boolean enforceConflictCheck
+    ) {
         ClassroomOffering offering = findOffering(offeringId);
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
         Long roomId = request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering);
 
-        ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
-                .classroomOfferingId(offeringId)
-                .teacherId(teacher == null ? null : teacher.getId())
-                .roomId(roomId)
-                .sessionDate(request.getSessionDate())
-                .startTime(request.getStartTime())
-                .endTime(request.getEndTime())
-                .learnerIds(resolveActiveLearnerIds(offeringId))
-                .build();
-        conflictService.assertNoBlockingConflict(conflictRequest);
+        if (enforceConflictCheck) {
+            ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
+                    .classroomOfferingId(offeringId)
+                    .teacherId(teacher == null ? null : teacher.getId())
+                    .roomId(roomId)
+                    .sessionDate(request.getSessionDate())
+                    .startTime(request.getStartTime())
+                    .endTime(request.getEndTime())
+                    .learnerIds(resolveActiveLearnerIds(offeringId))
+                    .build();
+            conflictService.assertNoBlockingConflict(conflictRequest);
+        }
 
         ClassroomSession session = buildSession(offering, request, teacher);
         session = sessionRepository.save(session);
@@ -493,6 +505,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                         .tuitionDepositPaid(BigDecimal.ZERO)
                         .note(request.getNote())
                         .build());
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
 
         enrollment.setTuitionAmountDue(tuitionDue);
         enrollment.setTuitionAmountPaid(tuitionDue);
@@ -508,7 +521,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             tryAssignEnrollment(enrollment, offering, student, null, "Xếp lớp trực tiếp");
         }
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         return mapper.toEnrollmentResponse(enrollment);
     }
 
@@ -525,9 +538,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public void removeStudent(Long offeringId, Long studentId) {
         ClassroomEnrollment enrollment = enrollmentRepository.findByStudentIdAndClassroomOfferingId(studentId, offeringId)
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         enrollment.setStatus(ClassroomEnrollmentStatus.CANCELLED);
-        enrollmentRepository.save(enrollment);
+        saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
+        notifyWaitlistIfSlotAvailable(enrollment.getClassroomOffering());
     }
 
     @Override
@@ -555,10 +570,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         TuitionSettlementType settlementType = ClassroomRegistrationSupport.computeSettlement(targetDue, carriedPaid);
         String settlementNote = buildSettlementNote(settlementType, targetDue, carriedPaid);
 
+        ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         sourceEnrollment.setStatus(ClassroomEnrollmentStatus.TRANSFERRED);
         sourceEnrollment.setNote(appendNote(sourceEnrollment.getNote(), "Đã chuyển sang lớp #" + target.getId()));
-        enrollmentRepository.save(sourceEnrollment);
+        saveEnrollmentWithWaitlistOrder(sourceEnrollment, sourcePreviousStatus);
 
         if (enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
                 student.getId(), target.getId(), ACTIVE_REGISTRATIONS)) {
@@ -592,7 +608,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         ClassroomRegistrationSupport.syncLegacyStatus(targetEnrollment);
-        targetEnrollment = enrollmentRepository.save(targetEnrollment);
+        targetEnrollment = saveEnrollmentWithWaitlistOrder(targetEnrollment, null);
+        notifyWaitlistIfSlotAvailable(source);
         return mapper.toEnrollmentResponse(targetEnrollment);
     }
 
@@ -626,6 +643,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomEnrollment enrollment;
         if (existingEnrollment.isPresent()) {
             enrollment = existingEnrollment.get();
+            ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
             enrollment.setHoldSpot(holdSpot);
             enrollment.setRegistrationStatus(initialStatus);
             enrollment.setTuitionAmountDue(tuitionDue);
@@ -635,6 +653,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             enrollment.setTuitionSettlementNote(null);
             enrollment.setNote(request == null ? null : request.getNote());
             enrollment.setPackageEnrollment(ensurePackageEnrollment(learner, offering));
+            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         } else {
             enrollment = ClassroomEnrollment.builder()
                     .student(learner)
@@ -648,9 +668,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .tuitionSettlementType(TuitionSettlementType.NONE)
                     .note(request == null ? null : request.getNote())
                     .build();
+            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, null);
         }
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
 
         String classTitle = offering.getLearningPackage().getTitle();
         notificationService.notifyTrainingManagers(
@@ -681,10 +701,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         ClassroomOffering offering = enrollment.getClassroomOffering();
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         enrollment.setHoldSpot(false);
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getLearningPackage().getTitle();
         notificationService.notifyTrainingManagers(
@@ -769,11 +790,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationStatus nextStatus = isClassFull(offering)
                 ? ClassroomRegistrationStatus.WAITLIST
                 : ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(nextStatus);
         enrollment.setConfirmedAt(LocalDateTime.now());
         enrollment.setConfirmedBy(actor);
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         String classTitle = offering.getLearningPackage().getTitle();
         notificationService.notifyUser(
@@ -804,10 +826,11 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Đăng ký không thể từ chối ở trạng thái hiện tại.");
         }
 
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.REJECTED);
         enrollment.setNote(appendNote(enrollment.getNote(), request == null ? null : request.getReason()));
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
                 learner,
@@ -848,6 +871,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             enrollment.setTuitionDepositPaid(deposit.add(amount));
         }
 
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationSupport.resolveRegistrationStatusAfterPayment(
                 enrollment.getTuitionAmountDue(),
                 enrollment.getTuitionAmountPaid(),
@@ -871,7 +895,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         notificationService.notifyUser(
                 learner,
@@ -900,6 +924,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             return mapper.toEnrollmentResponse(enrollment);
         }
 
+        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         assertLearnerScheduleForOffering(offering, learner.getId());
         tryAssignEnrollment(
                 enrollment,
@@ -909,7 +934,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 request == null ? null : request.getAssignmentNote()
         );
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = enrollmentRepository.save(enrollment);
+        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
         if (enrollment.hasClassAccess()) {
             notificationService.notifyUser(
@@ -935,7 +960,43 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? enrollmentRepository.findByRegistrationStatusIn(statuses)
                 : enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(classroomOfferingId, statuses);
         return enrollments.stream()
-                .sorted((a, b) -> b.getEnrolledAt().compareTo(a.getEnrolledAt()))
+                .sorted(registrationQueueComparator())
+                .map(mapper::toEnrollmentResponse)
+                .toList();
+    }
+
+    @Override
+    public List<ClassroomEnrollmentResponse> reorderWaitlist(
+            Long classroomOfferingId,
+            ReorderWaitlistRequest request,
+            String actorEmail
+    ) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTrainingManager(actor);
+        offeringRepository.findByIdForUpdate(classroomOfferingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
+
+        List<ClassroomEnrollment> waitlist = getOrderedWaitlist(classroomOfferingId);
+        List<Long> requestedIds = request.getEnrollmentIds();
+        Set<Long> requestedIdSet = new HashSet<>(requestedIds);
+        Set<Long> currentIdSet = waitlist.stream()
+                .map(ClassroomEnrollment::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (requestedIds.size() != requestedIdSet.size()
+                || requestedIds.size() != waitlist.size()
+                || !requestedIdSet.equals(currentIdSet)) {
+            throw new RuntimeException("Thứ tự mới phải chứa đúng toàn bộ học viên đang trong danh sách chờ.");
+        }
+
+        Map<Long, ClassroomEnrollment> enrollmentById = waitlist.stream()
+                .collect(java.util.stream.Collectors.toMap(ClassroomEnrollment::getId, item -> item));
+        for (int index = 0; index < requestedIds.size(); index++) {
+            enrollmentById.get(requestedIds.get(index)).setWaitlistPriority(index + 1);
+        }
+        enrollmentRepository.saveAll(waitlist);
+
+        return requestedIds.stream()
+                .map(enrollmentById::get)
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
@@ -1435,6 +1496,73 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private ClassroomEnrollment findEnrollment(Long enrollmentId) {
         return enrollmentRepository.findById(enrollmentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đăng ký lớp."));
+    }
+
+    private ClassroomEnrollment saveEnrollmentWithWaitlistOrder(
+            ClassroomEnrollment enrollment,
+            ClassroomRegistrationStatus previousStatus
+    ) {
+        Long offeringId = enrollment.getClassroomOffering().getId();
+        boolean isWaitlisted = enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
+        if (isWaitlisted && enrollment.getWaitlistPriority() == null) {
+            offeringRepository.findByIdForUpdate(offeringId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
+            Integer maxPriority = enrollmentRepository.findMaxWaitlistPriority(
+                    offeringId,
+                    ClassroomRegistrationStatus.WAITLIST
+            );
+            enrollment.setWaitlistPriority(maxPriority == null ? 1 : maxPriority + 1);
+        } else if (!isWaitlisted) {
+            enrollment.setWaitlistPriority(null);
+        }
+
+        ClassroomEnrollment saved = enrollmentRepository.saveAndFlush(enrollment);
+        if (previousStatus == ClassroomRegistrationStatus.WAITLIST && !isWaitlisted) {
+            compactWaitlist(offeringId);
+        }
+        return saved;
+    }
+
+    private void compactWaitlist(Long classroomOfferingId) {
+        offeringRepository.findByIdForUpdate(classroomOfferingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
+        List<ClassroomEnrollment> waitlist = getOrderedWaitlist(classroomOfferingId);
+        for (int index = 0; index < waitlist.size(); index++) {
+            waitlist.get(index).setWaitlistPriority(index + 1);
+        }
+        enrollmentRepository.saveAll(waitlist);
+    }
+
+    private List<ClassroomEnrollment> getOrderedWaitlist(Long classroomOfferingId) {
+        return enrollmentRepository
+                .findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
+                        classroomOfferingId,
+                        ClassroomRegistrationStatus.WAITLIST
+                );
+    }
+
+    private Comparator<ClassroomEnrollment> registrationQueueComparator() {
+        return (left, right) -> {
+            boolean leftWaitlisted = left.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
+            boolean rightWaitlisted = right.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
+            if (leftWaitlisted && !rightWaitlisted) {
+                return -1;
+            }
+            if (!leftWaitlisted && rightWaitlisted) {
+                return 1;
+            }
+            if (leftWaitlisted) {
+                int priorityComparison = Comparator.nullsLast(Integer::compareTo)
+                        .compare(left.getWaitlistPriority(), right.getWaitlistPriority());
+                if (priorityComparison != 0) {
+                    return priorityComparison;
+                }
+                return Comparator.nullsLast(LocalDateTime::compareTo)
+                        .compare(left.getEnrolledAt(), right.getEnrolledAt());
+            }
+            return Comparator.nullsLast(Comparator.<LocalDateTime>reverseOrder())
+                    .compare(left.getEnrolledAt(), right.getEnrolledAt());
+        };
     }
 
     private BigDecimal resolveTuitionDue(ClassroomOffering offering) {

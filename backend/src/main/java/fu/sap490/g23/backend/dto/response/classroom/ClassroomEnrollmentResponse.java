@@ -24,6 +24,9 @@ public class ClassroomEnrollmentResponse {
     private ClassroomRegistrationStatus registrationStatus;
     private String registrationStatusLabel;
     private boolean holdSpot;
+    private Integer waitlistPriority;
+    private Integer waitlistPosition;
+    private Integer waitlistSize;
     private BigDecimal tuitionAmountDue;
     private BigDecimal tuitionAmountPaid;
     private BigDecimal tuitionDepositPaid;

@@ -50,6 +50,22 @@ public interface ClassroomEnrollmentRepository extends JpaRepository<ClassroomEn
             Collection<ClassroomRegistrationStatus> statuses
     );
 
+    List<ClassroomEnrollment> findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
+            Long classroomOfferingId,
+            ClassroomRegistrationStatus status
+    );
+
+    @Query("""
+            SELECT MAX(e.waitlistPriority)
+            FROM ClassroomEnrollment e
+            WHERE e.classroomOffering.id = :offeringId
+              AND e.registrationStatus = :status
+            """)
+    Integer findMaxWaitlistPriority(
+            @Param("offeringId") Long offeringId,
+            @Param("status") ClassroomRegistrationStatus status
+    );
+
     List<ClassroomEnrollment> findByRegistrationStatusIn(Collection<ClassroomRegistrationStatus> statuses);
 
     List<ClassroomEnrollment> findAllByOrderByEnrolledAtDesc();

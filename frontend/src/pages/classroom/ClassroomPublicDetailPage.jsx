@@ -529,6 +529,25 @@ export default function ClassroomPublicDetailPage() {
 
                     <StatusBadge status={registrationStatus} />
 
+                    {registrationStatus === 'WAITLIST' ? (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 text-amber-950">
+                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
+                          Vị trí của bạn trong danh sách chờ
+                        </p>
+                        <p className="mt-1 text-2xl font-extrabold">
+                          #{registration?.waitlistPosition || offering?.waitlistPosition || '—'}
+                          {(registration?.waitlistSize || offering?.waitlistCount) ? (
+                            <span className="ml-2 text-xs font-bold text-amber-700">
+                              / {registration?.waitlistSize || offering?.waitlistCount} học viên
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-amber-800">
+                          Thứ tự sẽ tự cập nhật khi danh sách chờ thay đổi.
+                        </p>
+                      </div>
+                    ) : null}
+
                     {/* Tuition summary */}
                     {(registration?.tuitionAmountDue ?? offering?.tuitionAmountDue) != null && (
                       <TuitionStatusCard

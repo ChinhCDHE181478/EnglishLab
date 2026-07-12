@@ -60,6 +60,9 @@ public class ClassroomEnrollment {
     @Builder.Default
     private boolean holdSpot = false;
 
+    @Column(name = "waitlist_priority")
+    private Integer waitlistPriority;
+
     @Column(name = "tuition_amount_due", precision = 12, scale = 2)
     private BigDecimal tuitionAmountDue;
 
@@ -153,6 +156,9 @@ public class ClassroomEnrollment {
         }
         if (tuitionSettlementType == null) {
             tuitionSettlementType = TuitionSettlementType.NONE;
+        }
+        if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
+            waitlistPriority = null;
         }
         fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport.syncLegacyStatus(this);
     }
