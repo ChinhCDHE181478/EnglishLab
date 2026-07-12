@@ -299,6 +299,22 @@ export const courseApi = {
     return normalizePage(unwrapData(response));
   },
 
+  async getDiscussionModerationReports(status = 'PENDING') {
+    const response = await axiosClient.get('/api/content-manager/discussion-reports', { params: { status } });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async hideReportedDiscussion(reportId, payload = {}) {
+    const response = await axiosClient.post(`/api/content-manager/discussion-reports/${reportId}/hide`, payload);
+    return unwrapData(response);
+  },
+
+  async dismissDiscussionReport(reportId, payload = {}) {
+    const response = await axiosClient.post(`/api/content-manager/discussion-reports/${reportId}/dismiss`, payload);
+    return unwrapData(response);
+  },
+
   async getManagedOnlineCourse(slugOrId) {
     const response = await axiosClient.get(`/api/content-manager/online-courses/${slugOrId}`);
     return unwrapData(response);
