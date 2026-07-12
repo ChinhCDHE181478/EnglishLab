@@ -17,6 +17,7 @@ import {
   X,
   Plus,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import CoursePageShell from '../../components/course/CoursePageShell';
@@ -37,6 +38,7 @@ import {
   formatClassroomTime,
   formatSessionStatus,
 } from '../../utils/classroomHelpers';
+import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 const attendanceOptions = [
   { label: 'Có mặt', value: 'PRESENT' },
   { label: 'Vắng mặt', value: 'ABSENT' },
@@ -185,6 +187,27 @@ export default function TeacherSessionPage() {
 
     return { present, absent, late, excused };
   }, [attendance, records]);
+
+  const handleExportAttendance = () => {
+    const rows = attendance.map((item) => {
+      const key = item.studentId || item.enrollmentId;
+      const status = records[key] || item.status || 'PRESENT';
+      return [
+        item.studentName || `Học viên #${key}`,
+        item.studentEmail || '',
+        formatAttendanceStatus(status),
+        sessionMeta?.sessionDate ? formatClassroomDate(sessionMeta.sessionDate) : '',
+        [formatClassroomTime(sessionMeta?.startTime), formatClassroomTime(sessionMeta?.endTime)].filter(Boolean).join(' - '),
+        sessionMeta?.classroomTitle || sessionMeta?.classroomName || '',
+      ];
+    });
+    const datePart = sessionMeta?.sessionDate || `session-${sessionId}`;
+    downloadCsv(
+      `${sanitizeCsvFilename(`diem-danh-${datePart}`)}.csv`,
+      ['Tên học viên', 'Email', 'Trạng thái điểm danh', 'Ngày học', 'Giờ học', 'Lớp học'],
+      rows
+    );
+  };
 
   const attendanceSummaryBar = !loading && !error && attendance.length ? (
     <div className="mt-auto pb-2">
@@ -392,6 +415,14 @@ export default function TeacherSessionPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-extrabold text-[#4b0009] transition hover:bg-slate-50 disabled:opacity-50"
+                    disabled={!attendance.length}
+                    onClick={handleExportAttendance}
+                    type="button"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Xuất CSV điểm danh
+                  </button>
                   <button
                     className="inline-flex items-center gap-1 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-2 text-xs font-extrabold text-emerald-800 hover:bg-emerald-50 transition"
                     onClick={handleMarkAllPresent}
