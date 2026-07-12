@@ -14,6 +14,7 @@ import fu.sap490.g23.backend.repository.course.CourseDiscussionReplyRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sap490.g23.backend.service.course.DiscussionModerationService;
+import fu.sap490.g23.backend.service.admin.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     private final CourseDiscussionThreadRepository threadRepository;
     private final CourseDiscussionReplyRepository replyRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -48,6 +50,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
             findReply(report.getTargetId()).setStatus(CourseDiscussionStatus.HIDDEN);
         }
         review(report, CourseDiscussionReportStatus.ACTION_TAKEN, request, reviewerEmail);
+        auditLogService.record(reviewerEmail,"DISCUSSION_CONTENT_HIDDEN",report.getTargetType().name(),report.getTargetId().toString(),"Ẩn nội dung từ báo cáo #"+reportId);
         return toResponse(report);
     }
 
@@ -55,6 +58,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     public DiscussionModerationReportResponse dismiss(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
         CourseDiscussionReport report = findPendingReport(reportId);
         review(report, CourseDiscussionReportStatus.DISMISSED, request, reviewerEmail);
+        auditLogService.record(reviewerEmail,"DISCUSSION_REPORT_DISMISSED",report.getTargetType().name(),report.getTargetId().toString(),"Bỏ qua báo cáo #"+reportId);
         return toResponse(report);
     }
 

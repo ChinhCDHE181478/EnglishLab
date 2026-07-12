@@ -6,6 +6,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.service.admin.AdminUserService;
+import fu.sap490.g23.backend.service.admin.AuditLogService;
 import fu.sap490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -72,7 +74,9 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .profileCompleted(false)
                 .build();
         userRoleService.replaceRoles(user, rolesOrLearner(request.getRoles()));
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditLogService.record(requesterEmail,"ADMIN_USER_CREATED","USER",saved.getId().toString(),"Tạo người dùng " + saved.getEmail());
+        return toResponse(saved);
     }
 
     @Override
@@ -86,7 +90,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setPhoneNumber(trimToNull(request.getPhoneNumber()));
         if (request.getPassword() != null && !request.getPassword().isBlank()) user.setPassword(passwordEncoder.encode(request.getPassword()));
         if (request.getRoles() != null && !request.getRoles().isEmpty()) userRoleService.replaceRoles(user, request.getRoles());
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditLogService.record(requesterEmail,"ADMIN_USER_UPDATED","USER",id.toString(),"Cập nhật hồ sơ " + saved.getEmail());
+        return toResponse(saved);
     }
 
     @Override
@@ -94,7 +100,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         requireAdmin(requesterEmail);
         User user = findUser(id);
         userRoleService.replaceRoles(user, request.getRoles());
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditLogService.record(requesterEmail,"ADMIN_USER_ROLES_UPDATED","USER",id.toString(),"Vai trò: " + request.getRoles());
+        return toResponse(saved);
     }
 
     @Override
@@ -103,7 +111,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = findUser(id);
         if (requester.getId().equals(id) && !request.getEnabled()) throw new IllegalArgumentException("Bạn không thể tự vô hiệu hóa tài khoản đang đăng nhập.");
         user.setEmailVerified(request.getEnabled());
-        return toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        auditLogService.record(requesterEmail,"ADMIN_USER_STATUS_UPDATED","USER",id.toString(),"Trạng thái: " + (request.getEnabled()?"ENABLED":"DISABLED"));
+        return toResponse(saved);
     }
 
     private User requireAdmin(String email) {
