@@ -23,6 +23,7 @@ import {
 
 const REQUEST_TYPE_OPTIONS = [
   { label: 'Đổi lịch buổi học', value: 'RESCHEDULE_SESSION' },
+  { label: 'Tạo buổi học bù', value: 'CREATE_MAKEUP_SESSION' },
   { label: 'Đổi phòng học', value: 'CHANGE_ROOM' },
   { label: 'Đổi giáo viên', value: 'CHANGE_TEACHER' },
 ];
@@ -37,7 +38,7 @@ const emptyForm = {
   teacherId: '',
 };
 
-const buildRescheduleValues = (session, slot, date, roomId) => {
+const buildScheduleValues = (session, slot, date, roomId) => {
   const times = buildSlotTimes(slot);
   return JSON.stringify({
     sessionDate: date,
@@ -65,29 +66,35 @@ export default function TeacherChangeRequestForm({
 
   const isVirtual = classroom?.deliveryMode === 'VIRTUAL';
   const requiresRoom = !isVirtual;
+  const isScheduleRequest = form.type === 'RESCHEDULE_SESSION'
+    || form.type === 'CREATE_MAKEUP_SESSION';
 
   const eligibleSessions = useMemo(
     () => (sessions || []).filter((session) => session.status !== 'COMPLETED' && session.status !== 'CANCELLED'),
     [sessions],
   );
 
+  const selectableSessions = form.type === 'CREATE_MAKEUP_SESSION'
+    ? (sessions || [])
+    : eligibleSessions;
+
   const selectedSession = useMemo(
-    () => eligibleSessions.find((session) => String(session.id) === form.sessionId) || null,
-    [eligibleSessions, form.sessionId],
+    () => selectableSessions.find((session) => String(session.id) === form.sessionId) || null,
+    [selectableSessions, form.sessionId],
   );
 
   const sessionOptions = useMemo(
-    () => eligibleSessions.map((session) => ({
+    () => selectableSessions.map((session) => ({
       label: `Buổi #${session.id}: ${formatClassroomDate(session.sessionDate)} (${formatClassroomTime(session.startTime)})`,
       value: String(session.id),
     })),
-    [eligibleSessions],
+    [selectableSessions],
   );
 
   const currentSlotIndex = selectedSession ? getSessionSlotIndex(selectedSession.startTime) : -1;
 
   useEffect(() => {
-    if (form.type !== 'RESCHEDULE_SESSION' || !form.sessionId || !form.newDate) {
+    if (!isScheduleRequest || !form.sessionId || !form.newDate) {
       setSlotStatus({});
       return undefined;
     }
@@ -102,10 +109,10 @@ export default function TeacherChangeRequestForm({
           CLASSROOM_TIME_SLOTS.map(async (slot) => {
             try {
               const result = await classroomApi.checkTeacherChangeConflict({
-                requestType: 'RESCHEDULE_SESSION',
+                requestType: form.type,
                 classroomOfferingId: Number(classroomId),
                 targetSessionId: Number(form.sessionId),
-                newValuesJson: buildRescheduleValues(selectedSession, slot, form.newDate, ''),
+                newValuesJson: buildScheduleValues(selectedSession, slot, form.newDate, ''),
                 reason: 'Kiểm tra trùng lịch',
               });
               return { available: !result?.hasBlockingConflict };
@@ -137,11 +144,11 @@ export default function TeacherChangeRequestForm({
     return () => {
       active = false;
     };
-  }, [form.type, form.sessionId, form.newDate, classroomId, selectedSession, currentSlotIndex]);
+  }, [form.type, form.sessionId, form.newDate, classroomId, selectedSession, currentSlotIndex, isScheduleRequest]);
 
   useEffect(() => {
     const shouldLoadRooms = form.type === 'CHANGE_ROOM'
-      || (form.type === 'RESCHEDULE_SESSION' && requiresRoom && form.sessionId && form.slotIndex !== '');
+      || (isScheduleRequest && requiresRoom && form.sessionId && form.slotIndex !== '');
 
     if (!shouldLoadRooms || !form.sessionId) {
       setAvailableRooms([]);
@@ -153,7 +160,7 @@ export default function TeacherChangeRequestForm({
     setForm((current) => ({ ...current, roomId: '' }));
 
     const params = {};
-    if (form.type === 'RESCHEDULE_SESSION' && form.newDate && form.slotIndex !== '') {
+    if (isScheduleRequest && form.newDate && form.slotIndex !== '') {
       const slot = CLASSROOM_TIME_SLOTS[Number(form.slotIndex)];
       const times = buildSlotTimes(slot);
       params.sessionDate = form.newDate;
@@ -178,7 +185,7 @@ export default function TeacherChangeRequestForm({
     return () => {
       active = false;
     };
-  }, [form.type, form.sessionId, form.newDate, form.slotIndex, requiresRoom]);
+  }, [form.type, form.sessionId, form.newDate, form.slotIndex, requiresRoom, isScheduleRequest]);
 
   useEffect(() => {
     if (form.type !== 'CHANGE_TEACHER' || !form.sessionId) {
@@ -226,14 +233,14 @@ export default function TeacherChangeRequestForm({
     value: String(teacher.id),
   }));
 
-  const isSameSchedule = form.type === 'RESCHEDULE_SESSION'
+  const isSameSchedule = isScheduleRequest
     && selectedSession
     && form.newDate === selectedSession.sessionDate
     && Number(form.slotIndex) === currentSlotIndex;
 
   const canSubmit = (() => {
     if (!form.sessionId || !form.reason.trim() || submitting) return false;
-    if (form.type === 'RESCHEDULE_SESSION') {
+    if (isScheduleRequest) {
       if (!form.newDate || form.slotIndex === '' || checkingSlots || isSameSchedule) return false;
       if (requiresRoom && !form.roomId) return false;
       return Boolean(slotStatus[Number(form.slotIndex)]?.available);
@@ -248,9 +255,9 @@ export default function TeacherChangeRequestForm({
   })();
 
   const buildNewValuesJson = () => {
-    if (form.type === 'RESCHEDULE_SESSION') {
+    if (isScheduleRequest) {
       const slot = CLASSROOM_TIME_SLOTS[Number(form.slotIndex)];
-      return buildRescheduleValues(selectedSession, slot, form.newDate, form.roomId);
+      return buildScheduleValues(selectedSession, slot, form.newDate, form.roomId);
     }
     if (form.type === 'CHANGE_ROOM') {
       return JSON.stringify({ roomId: Number(form.roomId) });
@@ -302,6 +309,8 @@ export default function TeacherChangeRequestForm({
             onChange={(event) => setForm((current) => ({
               ...current,
               type: event.target.value,
+              sessionId: '',
+              newDate: todayDateInputValue(),
               slotIndex: '',
               roomId: '',
               teacherId: '',
@@ -312,12 +321,16 @@ export default function TeacherChangeRequestForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Buổi học áp dụng *</label>
+          <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
+            {form.type === 'CREATE_MAKEUP_SESSION' ? 'Buổi học cần học bù *' : 'Buổi học áp dụng *'}
+          </label>
           <BrandedSelect
             onChange={(event) => setForm((current) => ({
               ...current,
               sessionId: event.target.value,
-              newDate: eligibleSessions.find((session) => String(session.id) === event.target.value)?.sessionDate || current.newDate,
+              newDate: form.type === 'CREATE_MAKEUP_SESSION'
+                ? todayDateInputValue()
+                : selectableSessions.find((session) => String(session.id) === event.target.value)?.sessionDate || current.newDate,
               slotIndex: '',
               roomId: '',
               teacherId: '',
@@ -329,10 +342,12 @@ export default function TeacherChangeRequestForm({
         </div>
       </div>
 
-      {form.type === 'RESCHEDULE_SESSION' && form.sessionId ? (
+      {isScheduleRequest && form.sessionId ? (
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Ngày học mới *</label>
+            <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
+              {form.type === 'CREATE_MAKEUP_SESSION' ? 'Ngày học bù *' : 'Ngày học mới *'}
+            </label>
             <input
               className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
               min={todayDateInputValue()}
@@ -348,7 +363,9 @@ export default function TeacherChangeRequestForm({
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Khung giờ mới *</label>
+            <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
+              {form.type === 'CREATE_MAKEUP_SESSION' ? 'Khung giờ học bù *' : 'Khung giờ mới *'}
+            </label>
             {checkingSlots ? (
               <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs font-semibold text-[#8b706e]">
                 <Loader2 className="h-4 w-4 animate-spin" />
