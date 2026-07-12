@@ -1,0 +1,10 @@
+import { useEffect, useState } from 'react';
+import { CreditCard, Mail, Server } from 'lucide-react';
+import adminApi from '../../api/adminApi';
+
+export default function AdminSystemSettingsPage(){
+ const [config,setConfig]=useState(null);const [error,setError]=useState('');
+ useEffect(()=>{const load=async()=>{try{setConfig(await adminApi.getSystemConfig());}catch(err){setError(err.response?.data?.message||'Không tải được cấu hình.');}};load();},[]);
+ const cards=config?[{title:'PayOS',icon:CreditCard,configured:config.payos.configured,rows:[['Client ID',config.payos.clientIdMasked],['API Key',config.payos.apiKeyMasked],['Checksum Key',config.payos.checksumKeyMasked]]},{title:'Mail',icon:Mail,configured:config.mail.configured,rows:[['Host',config.mail.host],['Port',config.mail.port],['Username',config.mail.usernameMasked]]},{title:'Ứng dụng',icon:Server,configured:true,rows:[['Active profile',config.app.activeProfile]]}]:[];
+ return <div><div className="mb-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-[#8a0018]">Read only</p><h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold">Cấu hình hệ thống</h1><p className="mt-2 text-sm text-slate-500">Thông tin nhạy cảm luôn được che trước khi hiển thị.</p></div>{error?<p className="rounded-xl bg-rose-50 p-4 text-rose-700">{error}</p>:null}<div className="grid gap-5 lg:grid-cols-3">{cards.map(({title,icon:Icon,configured,rows})=><section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" key={title}><div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-3"><Icon className="text-[#730014]"/><h2 className="font-['Manrope'] text-xl font-extrabold">{title}</h2></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${configured?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}`}>{configured?'Đã cấu hình':'Thiếu cấu hình'}</span></div><dl className="space-y-4">{rows.map(([label,value])=><div key={label}><dt className="text-xs font-bold uppercase text-slate-400">{label}</dt><dd className="mt-1 break-all font-mono text-sm text-slate-700">{value}</dd></div>)}</dl></section>)}</div></div>;
+}

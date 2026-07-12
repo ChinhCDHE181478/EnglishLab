@@ -9,6 +9,8 @@ export const adminApi = {
   async updateUser(id, payload) { return unwrap(await axiosClient.put(`/api/admin/users/${id}`, payload)); },
   async updateUserRoles(id, roles) { return unwrap(await axiosClient.patch(`/api/admin/users/${id}/roles`, { roles })); },
   async updateUserStatus(id, enabled) { return unwrap(await axiosClient.patch(`/api/admin/users/${id}/status`, { enabled })); },
+  async getSystemConfig() { return unwrap(await axiosClient.get('/api/admin/system/config')); },
+  async getAuditLogs(params = {}) { return unwrap(await axiosClient.get('/api/admin/audit-logs', { params })); },
 };
 
 export default adminApi;

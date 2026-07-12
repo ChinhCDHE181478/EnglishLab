@@ -1,10 +1,12 @@
-import { LayoutDashboard, LogOut, Shield, Users } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, LogOut, Settings, Shield, Users } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 
 const items = [
   { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/admin/users', label: 'Người dùng & vai trò', icon: Users },
+  { to: '/admin/settings', label: 'Cấu hình hệ thống', icon: Settings },
+  { to: '/admin/audit-logs', label: 'Nhật ký thao tác', icon: ClipboardList },
 ];
 
 export default function AdminLayout() {
