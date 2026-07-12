@@ -281,6 +281,11 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async unpublishGradebook(classroomId) {
+    const response = await axiosClient.post(`/api/teacher/classrooms/${classroomId}/gradebook/unpublish`);
+    return asList(unwrapData(response));
+  },
+
   async getTeacherMaterials(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/materials`);
     return asList(unwrapData(response));
@@ -515,6 +520,14 @@ export const classroomApi = {
 
   async getTrainingManagerRegistrations(params = {}) {
     const response = await axiosClient.get('/api/training-manager/classrooms/registrations', { params });
+    return asList(unwrapData(response));
+  },
+
+  async reorderClassWaitlist(classroomId, enrollmentIds) {
+    const response = await axiosClient.put(
+      `/api/training-manager/classrooms/${classroomId}/waitlist/order`,
+      { enrollmentIds },
+    );
     return asList(unwrapData(response));
   },
 

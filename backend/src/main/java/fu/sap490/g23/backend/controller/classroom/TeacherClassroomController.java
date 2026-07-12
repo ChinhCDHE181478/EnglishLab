@@ -203,6 +203,14 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(gradebookService.publishGradebook(id, authentication.getName()));
     }
 
+    @PostMapping("/{id}/gradebook/unpublish")
+    public ResponseEntity<List<ClassroomGradebookResponse>> unpublishGradebook(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(gradebookService.unpublishGradebook(id, authentication.getName()));
+    }
+
     @GetMapping("/{id}/materials")
     public ResponseEntity<List<ClassroomMaterialResponse>> getMaterials(@PathVariable Long id) {
         return ResponseEntity.ok(contentService.getMaterials(id));

@@ -116,4 +116,27 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
                 .map(mapper::toGradebookResponse)
                 .toList();
     }
+
+    @Override
+    public List<ClassroomGradebookResponse> unpublishGradebook(Long offeringId, String publisherEmail) {
+        User publisher = accessHelper.requireUser(publisherEmail);
+        accessHelper.assertTeacher(publisher);
+
+        List<ClassroomGradebookEntry> entries = gradebookEntryRepository.findByClassroomOfferingId(offeringId);
+        List<ClassroomGradebookEntry> publishedEntries = entries.stream()
+                .filter(entry -> entry.getStatus() == GradebookEntryStatus.PUBLISHED)
+                .toList();
+        if (publishedEntries.isEmpty()) {
+            throw new RuntimeException("Bảng điểm chưa được công bố.");
+        }
+
+        publishedEntries.forEach(entry -> {
+            entry.setStatus(GradebookEntryStatus.GRADED);
+            entry.setUpdatedBy(publisher);
+        });
+        gradebookEntryRepository.saveAll(publishedEntries);
+        return entries.stream()
+                .map(mapper::toGradebookResponse)
+                .toList();
+    }
 }

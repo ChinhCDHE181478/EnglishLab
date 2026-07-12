@@ -8,7 +8,6 @@ import {
   MapPin,
   Video,
   Users,
-  Award,
   Plus,
   ArrowLeft,
   FileText,
@@ -38,12 +37,12 @@ import {
   formatClassroomTime,
   formatGradebookFinalResult,
   formatSessionStatus,
-  isGradebookPassed,
 } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION_CARD_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
+import TeacherGradebookSection from '../../components/teacher/TeacherGradebookSection';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
@@ -53,16 +52,8 @@ const teacherTabs = [
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
-  { id: 'change-requests', label: 'Yêu cầu thay đổi' },
+  { id: 'change-requests', label: 'Gửi yêu cầu' },
 ];
-
-const combineAssignmentScores = (homeworkScore, legacyQuizScore) => {
-  const scores = [homeworkScore, legacyQuizScore]
-    .map(Number)
-    .filter(Number.isFinite);
-  if (!scores.length) return '—';
-  return Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100) / 100;
-};
 
 export default function TeacherClassroomPage() {
   const { id } = useParams();
@@ -156,6 +147,17 @@ export default function TeacherClassroomPage() {
     }
   };
 
+  const handleUnpublishGradebook = async () => {
+    setActionMessage('');
+    try {
+      const data = await classroomApi.unpublishGradebook(id);
+      setGradebook(data);
+      setActionMessage('Đã thu hồi công bố bảng điểm.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể thu hồi công bố bảng điểm.'));
+    }
+  };
+
   // Build a beautiful student roster using gradebook entries
   const studentRoster = useMemo(() => {
     if (!gradebook.length) return [];
@@ -164,7 +166,7 @@ export default function TeacherClassroomPage() {
       name: entry.studentName || `Học viên #${entry.studentId}`,
       email: entry.studentEmail || 'Chưa cập nhật',
       attendance: entry.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
-      assignmentScore: combineAssignmentScores(entry.homeworkScore, entry.quizScore),
+      assignmentScore: entry.homeworkScore ?? '—',
       participation: entry.participationScore ?? '—',
       result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
@@ -427,64 +429,14 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'gradebook') {
       return (
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#fffafb] border border-[#dfbfbd]/15 p-5 rounded-2xl">
-            <div>
-              <h4 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Công bố bảng điểm chính thức</h4>
-              <p className="text-xs text-[#584140] mt-1">Sau khi chấm điểm đầy đủ, hãy công bố bảng điểm để học viên có thể xem kết quả đánh giá.</p>
-            </div>
-            <button
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
-              onClick={handlePublishGradebook}
-              type="button"
-            >
-              <Award className="h-4 w-4" />
-              Công bố bảng điểm
-            </button>
-          </div>
-
-          {!gradebook.length ? (
-            <ClassroomEmptyState
-              description="Chưa có dữ liệu bảng điểm nào được ghi nhận."
-              title="Chưa có bảng điểm"
-            />
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
-              <table className="min-w-full divide-y divide-gray-100 text-left text-sm">
-                <thead className="bg-[#fffafb] text-xs font-bold text-[#8b706e] uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4">Học viên</th>
-                    <th className="px-6 py-4">Bài tập</th>
-                    <th className="px-6 py-4">Chuyên cần</th>
-                    <th className="px-6 py-4">Phát biểu</th>
-                    <th className="px-6 py-4">Kết quả</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-[#584140]">
-                  {gradebook.map((entry) => (
-                    <tr key={entry.studentId || entry.id} className="hover:bg-[#fffafb]/30">
-                      <td className="px-6 py-4 font-extrabold text-[#2b2828]">
-                        {entry.studentName || `Học viên #${entry.studentId}`}
-                      </td>
-                      <td className="px-6 py-4 font-bold">{combineAssignmentScores(entry.homeworkScore, entry.quizScore)}</td>
-                      <td className="px-6 py-4 font-bold">{entry.attendancePercent != null ? `${entry.attendancePercent}%` : '—'}</td>
-                      <td className="px-6 py-4 font-bold">{entry.participationScore ?? '—'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          isGradebookPassed(entry.finalResult)
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {formatGradebookFinalResult(entry.finalResult)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <TeacherGradebookSection
+          classroomId={id}
+          gradebook={gradebook}
+          onGradebookChange={setGradebook}
+          onMessage={setActionMessage}
+          onPublish={handlePublishGradebook}
+          onUnpublish={handleUnpublishGradebook}
+        />
       );
     }
 

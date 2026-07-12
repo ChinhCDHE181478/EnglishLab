@@ -71,14 +71,6 @@ const detailTabs = [
   { id: 'announcements', label: 'Thông báo' },
 ];
 
-const combineAssignmentScores = (homeworkScore, legacyQuizScore) => {
-  const scores = [homeworkScore, legacyQuizScore]
-    .map(Number)
-    .filter(Number.isFinite);
-  if (!scores.length) return null;
-  return Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100) / 100;
-};
-
 const usesModuleExamWorkspace = (homework) => {
   if (!homework || homework.activityType === 'FILE_RESPONSE' || homework.activityType === 'FLASHCARD_REVIEW') {
     return false;
@@ -1018,7 +1010,10 @@ export default function MyClassroomDetailPage() {
           
           {/* Grade Summary Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <GradeIndicatorCard label="Bài tập" score={combineAssignmentScores(gradebook.homeworkScore, gradebook.quizScore)} color="red" />
+            <GradeIndicatorCard label="Bài tập" score={gradebook.homeworkScore} color="red" />
+            {gradebook.quizScore != null ? (
+              <GradeIndicatorCard label="Quiz" score={gradebook.quizScore} color="blue" />
+            ) : null}
             <GradeIndicatorCard label="Chuyên cần" score={gradebook.attendancePercent != null ? gradebook.attendancePercent / 10 : null} suffix="%" customScore={gradebook.attendancePercent} color="emerald" />
             <GradeIndicatorCard label="Tương tác phát biểu" score={gradebook.participationScore} color="purple" />
           </div>
