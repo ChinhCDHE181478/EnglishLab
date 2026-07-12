@@ -113,10 +113,11 @@ const Toggle = ({ checked, onChange }) => (
   </label>
 );
 
-const WorkspaceFlashcards = ({ course }) => {
+const WorkspaceFlashcards = ({ course, termsOverride }) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
+  const externalTerms = Array.isArray(termsOverride) ? termsOverride : null;
   const hasBankFlashcards = useMemo(() => extractBankFlashcardTerms(course).length > 0, [course]);
-  const [terms, setTerms] = useState(fallbackTerms);
+  const [terms, setTerms] = useState(externalTerms || fallbackTerms);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('cards');
@@ -216,6 +217,12 @@ const WorkspaceFlashcards = ({ course }) => {
   useEffect(() => {
     let mounted = true;
     const loadTerms = async () => {
+      if (externalTerms) {
+        setTerms(externalTerms);
+        setLoading(false);
+        setError('');
+        return;
+      }
       if (!course?.id) {
         setTerms(fallbackTerms);
         setLoading(false);
@@ -246,7 +253,7 @@ const WorkspaceFlashcards = ({ course }) => {
     return () => {
       mounted = false;
     };
-  }, [course?.id, fallbackTerms, hasBankFlashcards]);
+  }, [course?.id, externalTerms, fallbackTerms, hasBankFlashcards]);
 
   useEffect(() => {
     if (activeIndex >= studyTerms.length) setActiveIndex(0);
