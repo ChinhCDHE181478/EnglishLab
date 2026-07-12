@@ -49,6 +49,7 @@ import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
 import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
+import AdminRoutes from './pages/admin/AdminRoutes';
 
 function CourseDetailRoute() {
   const { slugOrId } = useParams();
@@ -75,6 +76,9 @@ function AppRoutes() {
       <Route path="/certificates/:code" element={<CertificateVerifyPage />} />
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
+      </Route>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['ADMIN']} />}>
+        <Route path="/admin/*" element={<AdminRoutes />} />
       </Route>
       {/* Public / student-facing marketing pages */}
       <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
