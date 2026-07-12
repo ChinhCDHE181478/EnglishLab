@@ -113,7 +113,7 @@ const Toggle = ({ checked, onChange }) => (
   </label>
 );
 
-const WorkspaceFlashcards = ({ course, termsOverride }) => {
+const WorkspaceFlashcards = ({ course, termsOverride, emptyStateDescription = 'Khóa học này chưa gắn bộ flashcard nào từ kho.' }) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
   const externalTerms = Array.isArray(termsOverride) ? termsOverride : null;
   const hasBankFlashcards = useMemo(() => extractBankFlashcardTerms(course).length > 0, [course]);
@@ -761,7 +761,7 @@ const WorkspaceFlashcards = ({ course, termsOverride }) => {
       <section className="rounded-[28px] border border-[#dfbfbd]/20 bg-white p-8 text-center shadow-sm">
         <span className="material-symbols-outlined text-4xl text-[#8c716f]">style</span>
         <h2 className="mt-3 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">Chưa có bộ từ vựng</h2>
-        <p className="mt-2 text-sm leading-7 text-[#584140]">Khóa học này chưa gắn bộ flashcard nào từ kho.</p>
+        <p className="mt-2 text-sm leading-7 text-[#584140]">{emptyStateDescription}</p>
       </section>
     );
   }

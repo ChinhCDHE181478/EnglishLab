@@ -157,6 +157,12 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getGlobalFlashcardPractice(params = {}) {
+    const response = await axiosClient.get('/api/student/flashcards/practice', { params });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
   async getRecommendedCourses() {
     const response = await axiosClient.get('/api/student/online-courses/recommendations');
     const data = unwrapData(response);

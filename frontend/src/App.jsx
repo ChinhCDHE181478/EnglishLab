@@ -13,6 +13,7 @@ import Courses from './pages/Courses';
 import ForgotPassword from './pages/ForgotPassword';
 import Home from './pages/Home';
 import WritingFeedbackPage from './pages/WritingFeedbackPage';
+import FlashcardPracticePage from './pages/FlashcardPracticePage';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
 import LearningPathPage from './pages/LearningPathPage';
@@ -95,6 +96,7 @@ function AppRoutes() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/my-courses" element={<MyCoursesPage />} />
         <Route path="/learning-path" element={<LearningPathPage />} />
+        <Route path="/flashcards/practice" element={<FlashcardPracticePage />} />
         <Route path="/my-classrooms" element={<MyClassroomsPage />} />
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />
