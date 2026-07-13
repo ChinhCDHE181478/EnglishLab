@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.seed;
 
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.admin.AuditLog;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
@@ -9,6 +10,7 @@ import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.admin.AuditLogRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
@@ -36,6 +38,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private static final String PRIMARY_PATH_NAME = "IELTS 5.5 to 7.0 Self-Paced Path";
 
     private final UserRepository userRepository;
+    private final AuditLogRepository auditLogRepository;
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final LearningPackageRepository learningPackageRepository;
@@ -53,9 +56,24 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
         normalizePrimaryPathOrder("ielts-master-vocabulary-band-7-plus", 1);
         normalizePrimaryPathOrder("e2-ielts-practice-tests", 2);
+        seedAuditLogs();
         learningPackageRepository.findBySlugAndDeletedFalse(CATALOG_DEMO_SLUG)
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(this::prepareCatalogAndCertificateDemo);
+    }
+
+    private void seedAuditLogs() {
+        if (auditLogRepository.count() > 0) return;
+        auditLogRepository.saveAll(java.util.List.of(
+                audit("classroom.admin@englishlab.vn", "ADMIN_USER_CREATED", "USER", "22", "Tạo tài khoản học viên chứng nhận demo."),
+                audit("classroom.admin@englishlab.vn", "ADMIN_USER_ROLES_UPDATED", "USER", "6", "Cập nhật vai trò giáo viên demo."),
+                audit("content.manager@englishlab.vn", "DISCUSSION_CONTENT_HIDDEN", "THREAD", "1", "Ẩn nội dung hỏi đáp được báo cáo."),
+                audit("classroom.admin@englishlab.vn", "ADMIN_USER_STATUS_UPDATED", "USER", "24", "Xác nhận trạng thái tài khoản quản trị." )
+        ));
+    }
+
+    private AuditLog audit(String actorEmail, String action, String targetType, String targetId, String detail) {
+        return AuditLog.builder().actorEmail(actorEmail).action(action).targetType(targetType).targetId(targetId).detail(detail).build();
     }
 
     private void normalizePrimaryPathOrder(String slug, int order) {
