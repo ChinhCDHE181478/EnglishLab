@@ -842,7 +842,7 @@ CM quản lý được gói BUNDLE và composition; xem loại gói ở settings
 
 - **Ngày:** 2026-07-13
 - **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (working tree sau `99710d8`)
+- **Commit:** `17c2c2f`
 
 ### 1. Tóm tắt
 
@@ -971,6 +971,114 @@ Học viên quản lý avatar bền vững và đổi mật khẩu thật end-to
 - Live API smoke với `waitlist.learner.a@test.vn`: upload avatar `200`, public read `200 image/png`, refresh vẫn có URL, file >1 MB `400`, định dạng không hỗ trợ `400`, upload thiếu JWT `403`, delete trả avatar null và file cũ không còn đọc được.
 - Live password smoke: sai current/weak/confirm lệch/new trùng current đều `400`, thiếu JWT `403`, đổi mật khẩu `204`, mật khẩu cũ đăng nhập `401`, mật khẩu mới đăng nhập `200`. Sau test đã đổi lại `Password123!` (`204`) và xác nhận đăng nhập lại `200`.
 - Manual UI smoke trên Browser tích hợp: đăng nhập learner thành công, mở `/profile`, dữ liệu tài khoản hiển thị đúng; validation đổi mật khẩu hiển thị đúng cho mật khẩu yếu, confirm lệch, mật khẩu mới trùng mật khẩu hiện tại và mật khẩu hiện tại sai. Browser tích hợp không hỗ trợ file chooser nên thao tác chọn avatar trực tiếp chưa thể click-test; lifecycle avatar đã được xác nhận qua live API smoke ở trên.
+
+---
+
+## Task 11: Tùy chọn thông báo email và trong ứng dụng
+
+- **Ngày:** 2026-07-13
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit (working tree sau `17c2c2f`)
+
+### 1. Tóm tắt
+
+Thêm tùy chọn thông báo theo tài khoản tại `/profile`: người dùng có thể bật/tắt riêng email nghiệp vụ và thông báo trong ứng dụng. Khi chưa có bản ghi preference, hệ thống mặc định bật cả hai kênh để giữ nguyên hành vi cũ.
+
+### 2. Phạm vi thay đổi
+
+- Trong phạm vi: lưu preference toàn cục theo user; API đọc/cập nhật; UI profile; kiểm tra preference trước khi tạo `AppNotification` và trước khi gửi email khóa học/lớp học.
+- Ngoài phạm vi: tùy chọn theo từng loại sự kiện, push notification, SMS, xóa thông báo đã tạo và tắt email bảo mật/xác minh tài khoản.
+- Email xác minh, quên mật khẩu và các email bảo mật vẫn luôn được gửi để tránh người dùng tự khóa luồng khôi phục tài khoản.
+
+### 3. Tệp đã thay đổi
+
+- `NotificationPreference.java`, repository, DTO request/response, service và implementation.
+  - Why: cần một nguồn dữ liệu authoritative theo user cho hai kênh.
+  - What: mặc định email/in-app bật; đọc lazily và tạo/cập nhật khi người dùng lưu.
+- `NotificationPreferenceSchemaMigration.java`.
+  - Why: dự án dùng migration Java additive.
+  - What: tạo bảng, unique index và foreign key cascade đến `users`.
+- `UserController.java`.
+  - Why: profile cần API preference của tài khoản hiện tại.
+  - What: thêm GET/PUT `/api/user/me/notification-preferences`.
+- `AppNotificationService.java`, `AppNotificationServiceImpl.java`, `ClassroomNotificationServiceImpl.java`.
+  - Why: mọi producer thông báo trong ứng dụng phải tôn trọng cùng một rule.
+  - What: tập trung thao tác tạo notification vào service và bỏ qua persist khi user tắt kênh in-app.
+- `CourseEnrollmentMailServiceImpl.java`, `ClassroomHomeworkMailServiceImpl.java`.
+  - Why: email nghiệp vụ phải tôn trọng preference.
+  - What: kiểm tra kênh email trước khi gửi.
+- `frontend/src/api/authApi.js`, `frontend/src/pages/CompleteProfile.jsx`.
+  - Why: người dùng cần xem và chỉnh preference trong profile.
+  - What: tab **Thông báo**, hai switch, trạng thái loading/saving/success/error.
+- `NotificationPreferenceServiceImplTest.java`, `NotificationPreferenceEnforcementTest.java`.
+  - Why: bảo vệ default, persistence và enforcement của cả hai kênh.
+  - What: 6 case unit test.
+
+### 4. Thay đổi Backend
+
+- Không có preference được hiểu là `emailEnabled=true`, `inAppEnabled=true`, bảo đảm tương thích dữ liệu hiện hữu.
+- PUT tạo bản ghi lần đầu hoặc cập nhật bản ghi hiện có trong transaction.
+- `AppNotificationService.createForUser(...)` là điểm tạo notification tập trung; nếu in-app bị tắt thì không ghi bản ghi mới.
+- Các email enrollment và homework kiểm tra preference trước khi gọi mail sender.
+- `AuthMailServiceImpl` không bị chặn vì phục vụ xác minh và khôi phục tài khoản.
+
+### 5. Thay đổi Frontend
+
+- Thêm tab **Thông báo** trên trang `/profile`.
+- Hiển thị hai switch độc lập cho thông báo trong ứng dụng và email.
+- Dữ liệu được tải từ backend; lưu có disable/loading và thông báo thành công/lỗi.
+- UI ghi rõ email bảo mật, xác minh và khôi phục tài khoản vẫn được gửi.
+
+### 6. Thay đổi Database
+
+- Bảng mới: `notification_preferences`.
+- Cột: `id`, `user_id`, `email_enabled`, `in_app_enabled`, `created_at`, `updated_at`.
+- `user_id` unique và foreign key đến `users(id)` với `ON DELETE CASCADE`.
+- Không cần backfill: thiếu bản ghi được service hiểu là bật cả hai kênh.
+
+### 7. Thay đổi API
+
+- `GET /api/user/me/notification-preferences`
+  - Response: `{ "emailEnabled": true, "inAppEnabled": true }`.
+  - Authorization: user đã đăng nhập; chỉ đọc preference của chính mình.
+- `PUT /api/user/me/notification-preferences`
+  - Request: `{ "emailEnabled": boolean, "inAppEnabled": boolean }`.
+  - Response: preference sau cập nhật.
+  - Validation: cả hai trường bắt buộc, không nhận `null`.
+  - Authorization: user đã đăng nhập; chỉ sửa preference của chính mình.
+
+### 8. Thay đổi UI/UX
+
+- Trang/role: `/profile`, mọi user đã đăng nhập dùng trang profile hiện tại.
+- Loading state khi đọc cấu hình; nút lưu bị khóa trong lúc request.
+- Success/error hiển thị ngay trong tab; switch giữ giá trị hiện tại khi lưu thất bại.
+- Hai kênh độc lập, không ép ít nhất một kênh phải bật.
+
+### 9. Các bước test trên web
+
+1. Restart backend để migration tạo `notification_preferences`, chạy frontend và đăng nhập.
+2. Mở `/profile` → tab **Thông báo**; tài khoản chưa lưu preference phải thấy cả hai switch đang bật.
+3. Tắt **Thông báo trong ứng dụng**, giữ email bật và nhấn **Lưu tùy chọn**; refresh trang, kiểm tra giá trị vẫn được giữ.
+4. Phát sinh sự kiện lớp học/homework có AppNotification; xác nhận không có notification server mới cho user này.
+5. Bật lại in-app, phát sinh sự kiện khác; xác nhận notification mới xuất hiện tại `/notifications`.
+6. Tắt **Email**, lưu và phát sinh email enrollment/homework; xác nhận service không gửi mail nghiệp vụ.
+7. Bật lại email và xác nhận email nghiệp vụ được gửi bình thường.
+8. Khi email nghiệp vụ đang tắt, thử quên mật khẩu/xác minh tài khoản; email bảo mật vẫn phải được gửi.
+9. Gọi PUT thiếu một trường hoặc truyền `null`; backend phải trả lỗi validation.
+10. Gọi GET/PUT không có JWT; backend phải từ chối.
+
+### 10. Kết quả mong đợi
+
+Preference tồn tại sau refresh/login lại; mỗi kênh chỉ ảnh hưởng các thông báo mới thuộc kênh tương ứng. Luồng tạo `AppNotification` và email nghiệp vụ tôn trọng cấu hình, trong khi email bảo mật vẫn hoạt động.
+
+### 11. Ghi chú / Rủi ro
+
+- Preference hiện là toàn cục theo kênh, chưa chi tiết theo loại sự kiện.
+- Tắt in-app không xóa hoặc ẩn notification đã tồn tại.
+- Notification chỉ nằm trong React context cục bộ không phải `AppNotification` server nên không thuộc enforcement backend của Task 11.
+- Verification: frontend ESLint pass; frontend production build pass; Spring context pass; 6 focused backend tests pass.
+- Full backend regression: 102/103 pass. Lỗi duy nhất là test có sẵn `ToeicShowcaseClassroomSeederIntegrationTest` tại dòng 69 vì enrollment list rỗng, không thuộc luồng notification preference.
+- Maven wrapper PowerShell trên máy hiện tại gặp lỗi nội bộ; verification dùng Maven 3.9.15 đã cache, offline repository và timezone `Asia/Ho_Chi_Minh`.
 
 ---
 

@@ -1,8 +1,11 @@
 package fu.sap490.g23.backend.controller;
 
 import fu.sap490.g23.backend.dto.request.ChangePasswordRequest;
+import fu.sap490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
 import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
+import fu.sap490.g23.backend.dto.response.NotificationPreferenceResponse;
 import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
 import fu.sap490.g23.backend.service.user.AvatarStorageService;
 import fu.sap490.g23.backend.service.user.UserService;
 import jakarta.validation.Valid;
@@ -31,6 +34,7 @@ public class UserController {
 
     private final UserService userService;
     private final AvatarStorageService avatarStorageService;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
@@ -70,6 +74,21 @@ public class UserController {
     ) {
         userService.changePassword(userDetails.getUsername(), request);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me/notification-preferences")
+    public ResponseEntity<NotificationPreferenceResponse> getNotificationPreferences(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return ResponseEntity.ok(notificationPreferenceService.getForUser(userDetails.getUsername()));
+    }
+
+    @PutMapping("/me/notification-preferences")
+    public ResponseEntity<NotificationPreferenceResponse> updateNotificationPreferences(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody UpdateNotificationPreferenceRequest request
+    ) {
+        return ResponseEntity.ok(notificationPreferenceService.updateForUser(userDetails.getUsername(), request));
     }
 
     @GetMapping("/avatars/{fileName:.+}")

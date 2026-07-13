@@ -19,7 +19,9 @@ import {
   changeCurrentUserPassword,
   deleteCurrentUserAvatar,
   getCurrentUser,
+  getCurrentUserNotificationPreferences,
   updateCurrentUser,
+  updateCurrentUserNotificationPreferences,
   uploadCurrentUserAvatar,
 } from '../api/authApi';
 import Footer from '../components/ai-learning/Footer';
@@ -36,6 +38,7 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 
 const TABS = [
   { id: 'account', label: 'Tài khoản' },
+  { id: 'notifications', label: 'Thông báo' },
   { id: 'linked', label: 'Tài khoản liên kết' },
 ];
 
@@ -564,6 +567,127 @@ function LinkedTab() {
   );
 }
 
+function PreferenceToggle({ checked, description, disabled, label, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-5 py-4 first:pt-0 last:pb-0">
+      <div>
+        <p className="text-sm font-semibold text-[#1a1c1c]">{label}</p>
+        <p className="mt-1 text-sm leading-6 text-[#6a5553]">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#8a0018]/20 disabled:cursor-not-allowed disabled:opacity-60 ${
+          checked ? 'bg-[#8a0018]' : 'bg-gray-200'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function NotificationPreferencesTab() {
+  const [preferences, setPreferences] = useState({ emailEnabled: true, inAppEnabled: true });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    let active = true;
+    const loadPreferences = async () => {
+      setLoading(true);
+      setMessage({ type: '', text: '' });
+      try {
+        const response = await getCurrentUserNotificationPreferences();
+        if (active) setPreferences(response.data);
+      } catch (error) {
+        if (active) {
+          setMessage({
+            type: 'error',
+            text: error.response?.data?.message || 'Không thể tải tùy chọn thông báo.',
+          });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadPreferences();
+    return () => { active = false; };
+  }, []);
+
+  const updatePreference = (field, value) => {
+    setPreferences((current) => ({ ...current, [field]: value }));
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const response = await updateCurrentUserNotificationPreferences(preferences);
+      setPreferences(response.data);
+      setMessage({ type: 'success', text: 'Tùy chọn thông báo đã được cập nhật.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Không thể lưu tùy chọn thông báo.',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Section
+      title="Tùy chọn thông báo"
+      description="Chọn cách EnglishLab gửi các cập nhật học tập và hoạt động tài khoản cho bạn."
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Notif
+          type={message.type}
+          message={message.text}
+          onClose={() => setMessage({ type: '', text: '' })}
+        />
+
+        {loading ? (
+          <p className="text-sm text-[#6a5553]">Đang tải tùy chọn thông báo...</p>
+        ) : (
+          <div className="divide-y divide-[#f0f0f0]">
+            <PreferenceToggle
+              checked={preferences.inAppEnabled}
+              disabled={saving}
+              label="Thông báo trong ứng dụng"
+              description="Hiển thị thông báo về lớp học, bài tập, giáo trình và các hoạt động liên quan trong EnglishLab."
+              onChange={(value) => updatePreference('inAppEnabled', value)}
+            />
+            <PreferenceToggle
+              checked={preferences.emailEnabled}
+              disabled={saving}
+              label="Thông báo qua email"
+              description="Nhận email nghiệp vụ như giao bài tập hoặc đăng ký khóa học thành công. Email bảo mật tài khoản vẫn được gửi khi cần."
+              onChange={(value) => updatePreference('emailEnabled', value)}
+            />
+          </div>
+        )}
+
+        <div className="pt-1">
+          <SaveBtn loading={saving} label="Lưu tùy chọn" />
+        </div>
+      </form>
+    </Section>
+  );
+}
+
 const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 // ── Main page ───────────────────────────────────────────────────────────────
@@ -639,6 +763,7 @@ const CompleteProfile = () => {
           {activeTab === 'account' && (
             <AccountTab user={user} onUserUpdate={updateUser} onboarding={onboarding} />
           )}
+          {activeTab === 'notifications' && <NotificationPreferencesTab />}
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>
       </motion.main>
