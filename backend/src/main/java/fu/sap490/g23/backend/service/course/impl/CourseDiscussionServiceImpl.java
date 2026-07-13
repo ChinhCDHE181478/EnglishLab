@@ -378,8 +378,10 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     private boolean shouldModerate(String value) {
         String normalized = DIACRITICS.matcher(Normalizer.normalize(clean(value).toLowerCase(Locale.ROOT), Normalizer.Form.NFD)).replaceAll("");
-        String original = clean(value).toLowerCase(Locale.ROOT);
-        return UNSAFE_PHRASES.stream().anyMatch(phrase -> original.contains(phrase) || normalized.contains(removeDiacritics(phrase)));
+        String searchable = " " + normalized.replaceAll("[^\\p{L}\\p{N}]+", " ").replaceAll("\\s+", " ").trim() + " ";
+        return UNSAFE_PHRASES.stream()
+                .map(this::removeDiacritics)
+                .anyMatch(phrase -> searchable.contains(" " + phrase + " "));
     }
 
     private String removeDiacritics(String value) {

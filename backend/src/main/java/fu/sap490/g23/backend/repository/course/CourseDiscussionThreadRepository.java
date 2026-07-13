@@ -12,10 +12,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDiscussionThread, Long> {
     @Query("""
-            select t from CourseDiscussionThread t
+            select t from CourseDiscussionThread t left join t.lesson l
             where t.course.id = :courseId and t.status <> :hidden
-              and ((:moduleId is null and t.lesson is null)
-                   or (:moduleId is not null and t.lesson.module.id = :moduleId))
+              and ((:moduleId is null and l is null)
+                   or (:moduleId is not null and l.module.id = :moduleId))
               and (
                     :filter = 'ALL'
                     or (:filter = 'MINE' and :authorId is not null and t.author.id = :authorId)
