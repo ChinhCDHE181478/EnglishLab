@@ -19,6 +19,7 @@ import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReplyVote;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReport;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
@@ -33,12 +34,15 @@ import fu.sap490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sap490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.LessonRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
@@ -67,51 +71,45 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final LessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final UserRepository userRepository;
+    private final CourseDiscussionNotificationService discussionNotificationService;
 
     @Override
     @Transactional(readOnly = true)
-    public List<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email) {
+    public Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email, Pageable pageable) {
         ensureCourseExists(courseId);
         User currentUser = email == null ? null : findUser(email);
-        List<CourseDiscussionThreadResponse> items = threadRepository
-                .findByCourseIdAndLessonIsNullAndStatusNotOrderByUpdatedAtDesc(courseId, CourseDiscussionStatus.HIDDEN)
-                .stream()
-                .map(thread -> toThreadResponse(thread, currentUser))
-                .toList();
-
-        return filterDiscussions(items, filter);
+        String normalizedFilter = normalizeFilter(filter);
+        return threadRepository.findCourseDiscussionPage(
+                        courseId,
+                        normalizedFilter,
+                        currentUser == null ? null : currentUser.getId(),
+                        CourseDiscussionStatus.HIDDEN,
+                        CourseDiscussionStatus.RESOLVED,
+                        pageable)
+                .map(thread -> toThreadResponse(thread, currentUser));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email) {
+    public Page<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email, Pageable pageable) {
         ensureCourseExists(courseId);
         findLessonInCourse(courseId, lessonId);
         User currentUser = email == null ? null : findUser(email);
-        List<CourseDiscussionThreadResponse> items = threadRepository
-                .findByCourseIdAndLessonIdAndStatusNotOrderByUpdatedAtDesc(courseId, lessonId, CourseDiscussionStatus.HIDDEN)
-                .stream()
-                .map(thread -> toThreadResponse(thread, currentUser))
-                .toList();
-
-        return filterDiscussions(items, filter);
+        String normalizedFilter = normalizeFilter(filter);
+        return threadRepository.findLessonDiscussionPage(
+                        courseId,
+                        lessonId,
+                        normalizedFilter,
+                        currentUser == null ? null : currentUser.getId(),
+                        CourseDiscussionStatus.HIDDEN,
+                        CourseDiscussionStatus.RESOLVED,
+                        pageable)
+                .map(thread -> toThreadResponse(thread, currentUser));
     }
 
-    private List<CourseDiscussionThreadResponse> filterDiscussions(List<CourseDiscussionThreadResponse> items, String filter) {
-
-        String normalizedFilter = String.valueOf(filter == null ? "ALL" : filter).toUpperCase(Locale.ROOT);
-        if ("UNANSWERED".equals(normalizedFilter)) {
-            return items.stream().filter(item -> item.getReplyCount() == 0 && !item.isResolved()).toList();
-        }
-        if ("RESOLVED".equals(normalizedFilter)) {
-            return items.stream().filter(CourseDiscussionThreadResponse::isResolved).toList();
-        }
-        if ("HELPFUL".equals(normalizedFilter)) {
-            return items.stream()
-                    .sorted(Comparator.comparingInt(CourseDiscussionThreadResponse::getHelpfulCount).reversed())
-                    .toList();
-        }
-        return items;
+    private String normalizeFilter(String filter) {
+        String normalized = String.valueOf(filter == null ? "ALL" : filter).toUpperCase(Locale.ROOT);
+        return Set.of("ALL", "MINE", "UNANSWERED", "RESOLVED", "HELPFUL").contains(normalized) ? normalized : "ALL";
     }
 
     @Override
@@ -133,7 +131,9 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .status(status)
                 .build();
 
-        return toThreadResponse(threadRepository.save(thread), author);
+        CourseDiscussionThread savedThread = threadRepository.save(thread);
+        discussionNotificationService.notifyQuestionSent(savedThread);
+        return toThreadResponse(savedThread, author);
     }
 
     @Override
@@ -157,7 +157,9 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .status(status)
                 .build();
 
-        return toThreadResponse(threadRepository.save(thread), author);
+        CourseDiscussionThread savedThread = threadRepository.save(thread);
+        discussionNotificationService.notifyQuestionSent(savedThread);
+        return toThreadResponse(savedThread, author);
     }
 
     @Override
@@ -181,7 +183,9 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .status(status)
                 .build();
 
-        return toReplyResponse(replyRepository.save(reply), author);
+        CourseDiscussionReply savedReply = replyRepository.save(reply);
+        discussionNotificationService.notifyNewReply(savedReply);
+        return toReplyResponse(savedReply, author);
     }
 
     @Override
@@ -270,6 +274,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Override
     public ApiResponse reportContent(CourseDiscussionReportTarget targetType, Long targetId, CourseDiscussionReportRequest request, String email) {
         User reporter = findUser(email);
+        validateReportRequest(request);
         reportRepository.findByTargetTypeAndTargetIdAndReporter(targetType, targetId, reporter)
                 .ifPresent(existing -> {
                     throw new RuntimeException("Bạn đã báo cáo nội dung này trước đó.");
@@ -295,7 +300,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .targetType(targetType)
                 .targetId(targetId)
                 .reporter(reporter)
-                .reason(clean(request == null ? "" : request.getReason()))
+                .reason(clean(request.getReason()))
+                .reasonCategory(request.getReasonCategory())
                 .build());
 
         return ApiResponse.builder()
@@ -311,6 +317,16 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             throw new RuntimeException("Khóa học này hiện không khả dụng.");
         }
         return course;
+    }
+
+    private void validateReportRequest(CourseDiscussionReportRequest request) {
+        if (request == null || request.getReasonCategory() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vui lòng chọn loại báo cáo.");
+        }
+        if (request.getReasonCategory() == CourseDiscussionReportReasonCategory.OTHER
+                && clean(request.getReason()).isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vui lòng nhập lý do khi chọn loại báo cáo Khác.");
+        }
     }
 
     private void ensureCourseExists(Long courseId) {
@@ -398,6 +414,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .resolved(thread.getStatus() == CourseDiscussionStatus.RESOLVED)
                 .authorName(resolveAuthorName(thread.getAuthor()))
                 .authorId(thread.getAuthor().getId())
+                .lessonId(thread.getLesson() == null ? null : thread.getLesson().getId())
+                .lessonTitle(thread.getLesson() == null ? null : thread.getLesson().getTitle())
                 .createdAt(thread.getCreatedAt())
                 .updatedAt(thread.getUpdatedAt())
                 .replies(replies)
