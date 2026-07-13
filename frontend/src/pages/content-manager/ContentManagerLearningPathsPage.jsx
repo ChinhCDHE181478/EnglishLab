@@ -131,12 +131,15 @@ export default function ContentManagerLearningPathsPage() {
 
   const handleDrop = async (targetCourse) => {
     if (!draggedCourse || draggedCourse.id === targetCourse.id || draggedCourse.learningPathCode !== targetCourse.learningPathCode) return;
-    const draggedOrder = Number(draggedCourse.learningPathOrder || 0);
-    const targetOrder = Number(targetCourse.learningPathOrder || 0);
-    const updatedCourses = [
-      { ...draggedCourse, learningPathOrder: targetOrder },
-      { ...targetCourse, learningPathOrder: draggedOrder },
-    ];
+    const pathCourses = courses
+      .filter((course) => course.learningPathCode === targetCourse.learningPathCode)
+      .sort((left, right) => Number(left.learningPathOrder || 0) - Number(right.learningPathOrder || 0)
+        || Number(left.id) - Number(right.id));
+    const draggedIndex = pathCourses.findIndex((course) => course.id === draggedCourse.id);
+    const targetIndex = pathCourses.findIndex((course) => course.id === targetCourse.id);
+    if (draggedIndex < 0 || targetIndex < 0) return;
+    [pathCourses[draggedIndex], pathCourses[targetIndex]] = [pathCourses[targetIndex], pathCourses[draggedIndex]];
+    const updatedCourses = pathCourses.map((course, index) => ({ ...course, learningPathOrder: index + 1 }));
     setCourses((current) => current.map((course) => updatedCourses.find((item) => item.id === course.id) || course));
     setDraggedCourse(null);
     try {
