@@ -399,6 +399,11 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async updateLearningPathOrder(courseIds) {
+    const response = await axiosClient.patch('/api/content-manager/online-courses/learning-path-order', { courseIds });
+    return unwrapData(response);
+  },
+
   async publishOnlineCourse(id) {
     const response = await axiosClient.patch(`/api/content-manager/online-courses/${id}/publish`);
     return unwrapData(response);

@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.course;
 
 import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
@@ -32,6 +33,7 @@ public interface OnlineCourseService {
     CourseStatsResponse getStats();
     OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);
+    List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request);
     OnlineCourseResponse publishCourse(Long id);
     OnlineCourseResponse submitForReview(Long id);
     OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote);

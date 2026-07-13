@@ -9,6 +9,7 @@ import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessme
 import fu.sap490.g23.backend.dto.request.course.LessonRequest;
 import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
@@ -483,6 +484,31 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
                 .map(mapper::toEnrollmentResponse)
                 .toList();
+    }
+
+    @Override
+    public List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request) {
+        List<Long> courseIds = request.getCourseIds();
+        if (courseIds.stream().distinct().count() != courseIds.size()) {
+            throw new IllegalArgumentException("Danh sách khóa học trong lộ trình bị trùng.");
+        }
+        List<OnlineCourse> courses = onlineCourseRepository.findAllById(courseIds);
+        if (courses.size() != courseIds.size()) {
+            throw new IllegalArgumentException("Không tìm thấy đầy đủ khóa học cần sắp xếp.");
+        }
+        String pathCode = courses.getFirst().getLearningPathCode();
+        if (pathCode == null || pathCode.isBlank() || courses.stream().anyMatch(course -> !pathCode.equals(course.getLearningPathCode()))) {
+            throw new IllegalArgumentException("Chỉ có thể sắp xếp các khóa học trong cùng một lộ trình.");
+        }
+        java.util.Map<Long, OnlineCourse> byId = courses.stream().collect(java.util.stream.Collectors.toMap(OnlineCourse::getId, course -> course));
+        List<OnlineCourseResponse> responses = new java.util.ArrayList<>();
+        for (int index = 0; index < courseIds.size(); index++) {
+            OnlineCourse course = byId.get(courseIds.get(index));
+            course.setLearningPathOrder(index + 1);
+            responses.add(mapper.toResponse(course));
+        }
+        onlineCourseRepository.saveAll(courses);
+        return responses;
     }
 
     @Override

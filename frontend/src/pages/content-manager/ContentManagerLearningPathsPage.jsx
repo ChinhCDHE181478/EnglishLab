@@ -143,9 +143,7 @@ export default function ContentManagerLearningPathsPage() {
     setCourses((current) => current.map((course) => updatedCourses.find((item) => item.id === course.id) || course));
     setDraggedCourse(null);
     try {
-      await Promise.all(updatedCourses.map((course) => courseApi.updateOnlineCourse(course.id, buildManagedCoursePayload(course, {
-        learningPathOrder: course.learningPathOrder,
-      }))));
+      await courseApi.updateLearningPathOrder(updatedCourses.map((course) => course.id));
       setSuccess('Đã hoán đổi thứ tự hai khóa học trong lộ trình.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể lưu thứ tự mới. Vui lòng làm mới và thử lại.');

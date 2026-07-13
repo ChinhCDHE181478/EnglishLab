@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.controller.course;
 
 import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.response.ApiResponse;
@@ -89,6 +90,13 @@ public class ContentManagerOnlineCourseController {
     @PutMapping("/{id}")
     public ResponseEntity<OnlineCourseResponse> updateCourse(@PathVariable Long id, @Valid @RequestBody OnlineCourseRequest request) {
         return ResponseEntity.ok(onlineCourseService.updateCourse(id, request));
+    }
+
+    @PatchMapping("/learning-path-order")
+    public ResponseEntity<List<OnlineCourseResponse>> updateLearningPathOrder(
+            @Valid @RequestBody LearningPathOrderRequest request
+    ) {
+        return ResponseEntity.ok(onlineCourseService.updateLearningPathOrder(request));
     }
 
     @PatchMapping("/{id}/publish")
