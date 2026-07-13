@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WorkspaceLessonDiscussion from './WorkspaceLessonDiscussion';
+import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 
 const formatTime = (seconds = 0) => {
   const value = Math.max(0, Number(seconds) || 0);
@@ -60,7 +61,6 @@ const WorkspaceRightRail = ({
   courseId,
   mode = null,
   notes = [],
-  reviewFlags = [],
   recentLessons = [],
   canPersist = false,
   syncing = false,
@@ -71,7 +71,6 @@ const WorkspaceRightRail = ({
   onSaveManualNote,
   onUpdateNote,
   onDeleteNote,
-  onToggleReviewFlag,
   onSelectRecentLesson,
 }) => {
   const transcriptContainerRef = useRef(null);
@@ -89,6 +88,7 @@ const WorkspaceRightRail = ({
   const lesson = activeLesson?.lesson || activeLesson;
   const hasVideo = Boolean(lesson?.videoUrl);
   const modeButtons = useMemo(() => (isAssessmentStep ? [] : getModeButtons(hasVideo)), [hasVideo, isAssessmentStep]);
+  const { addNotification } = useLearnerExperience();
   const panelMode = hasVideo || mode !== 'transcript' ? mode : null;
   const transcriptSegments = useMemo(() => (
     hasVideo ? normalizeTranscriptSegments(lesson) : []
@@ -97,7 +97,6 @@ const WorkspaceRightRail = ({
     () => notes.filter((item) => String(item.lessonId) === String(lessonId)),
     [lessonId, notes],
   );
-  const flagged = reviewFlags.some((item) => String(item.lessonId) === String(lessonId));
 
   useEffect(() => {
     setSelectedText('');
@@ -315,16 +314,6 @@ const WorkspaceRightRail = ({
                 <span className="material-symbols-outlined text-[18px]">add</span>
                 Thêm ghi chú
               </button>
-              <button
-                className={`rounded-[8px] px-3 py-2 text-xs font-extrabold transition ${
-                  flagged ? 'bg-[#fff0f1] text-[#730014]' : 'border border-[#dfbfbd] bg-white text-[#584140] hover:bg-[#fff8f8]'
-                }`}
-                disabled={syncing}
-                type="button"
-                onClick={() => onToggleReviewFlag?.()}
-              >
-                {flagged ? 'Đã đánh dấu học lại' : 'Đánh dấu học lại'}
-              </button>
             </div>
 
             {showNoteForm ? (
@@ -458,7 +447,12 @@ const WorkspaceRightRail = ({
         ) : null}
         {panelMode === 'discussion' ? (
           <div className="mt-6">
-            <WorkspaceLessonDiscussion courseId={courseId} lessonId={lessonId} canPersist={canPersist} />
+          <WorkspaceLessonDiscussion
+            courseId={courseId}
+            lessonId={lessonId}
+            canPersist={canPersist}
+            addNotification={addNotification}
+          />
           </div>
         ) : null}
         </div>

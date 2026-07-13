@@ -6,6 +6,7 @@ import Header from '../components/ai-learning/Header';
 import CourseFooter from '../components/course/CourseFooter';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
+import CourseHomeLessonDiscussion from '../components/course-home/CourseHomeLessonDiscussion';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
@@ -513,6 +514,7 @@ const CourseHome = () => {
     <div className="flex min-h-[560px] flex-col">
       <h1 className="mb-6 font-['Manrope'] text-3xl font-extrabold text-[#730014]">Diễn đàn thảo luận</h1>
       <CourseDiscussionSection courseId={course.id} />
+      <CourseHomeLessonDiscussion courseId={course.id} modules={course.modules || []} />
     </div>
   );
 

@@ -4,11 +4,9 @@ const WorkspaceStudyTools = ({
   course,
   activeLesson,
   notes = [],
-  reviewFlags = [],
   recentLessons = [],
   canPersist = false,
   onSaveNote,
-  onToggleReviewFlag,
   onSelectRecentLesson,
 }) => {
   const [noteContent, setNoteContent] = useState('');
@@ -17,7 +15,6 @@ const WorkspaceStudyTools = ({
     () => notes.filter((item) => String(item.lessonId) === String(activeLesson?.id)),
     [notes, activeLesson?.id],
   );
-  const flagged = reviewFlags.some((item) => String(item.lessonId) === String(activeLesson?.id));
 
   const handleSaveNote = () => {
     if (!canPersist) {
@@ -47,17 +44,6 @@ const WorkspaceStudyTools = ({
               Ghi chú cho bài học hiện tại
             </h3>
           </div>
-          <button
-            className={`rounded-2xl px-4 py-3 text-sm font-extrabold transition ${
-              flagged
-                ? 'bg-[#fff1f3] text-[#730014]'
-                : 'bg-[#f5f1f1] text-[#584140] hover:bg-[#eee6e6]'
-            }`}
-            onClick={onToggleReviewFlag}
-            type="button"
-          >
-            {flagged ? 'Đã đánh dấu học lại' : 'Đánh dấu học lại'}
-          </button>
         </div>
 
         <textarea

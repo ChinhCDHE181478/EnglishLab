@@ -49,13 +49,6 @@ const normalizePage = (payload) => {
 };
 
 export const courseApi = {
-  async getWritingFeedback(payload) {
-    const response = await axiosClient.post('/api/ai/writing-feedback/demo', payload, {
-      skipAuthRedirect: true,
-    });
-    return unwrapData(response);
-  },
-
   async getOnlineCourses(params = {}) {
     const response = await axiosClient.get('/api/online-courses', {
       params,
@@ -143,13 +136,12 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
-  async getCourseDiscussions(courseId, filter = 'ALL') {
+  async getCourseDiscussions(courseId, { filter = 'ALL', moduleId, page = 0, size = 10 } = {}) {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/discussions`, {
-      params: { filter },
+      params: { filter, moduleId: moduleId || undefined, page, size },
       skipAuthRedirect: true,
     });
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : data?.content || data?.items || [];
+    return normalizePage(unwrapData(response));
   },
 
   async createCourseDiscussion(courseId, payload) {
@@ -209,13 +201,12 @@ export const courseApi = {
     await axiosClient.delete(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
   },
 
-  async getLessonDiscussions(courseId, lessonId, filter = 'ALL') {
+  async getLessonDiscussions(courseId, lessonId, { filter = 'ALL', page = 0, size = 10 } = {}) {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/lessons/${lessonId}/discussions`, {
-      params: { filter },
+      params: { filter, page, size },
       skipAuthRedirect: true,
     });
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : data?.content || data?.items || [];
+    return normalizePage(unwrapData(response));
   },
 
   async createLessonDiscussion(courseId, lessonId, payload) {
@@ -266,13 +257,13 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
-  async reportDiscussionThread(threadId, payload = {}) {
-    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, payload);
+  async reportDiscussionThread(threadId, { reasonCategory, reason } = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, { reasonCategory, reason });
     return unwrapData(response);
   },
 
-  async reportDiscussionReply(replyId, payload = {}) {
-    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reports`, payload);
+  async reportDiscussionReply(replyId, { reasonCategory, reason } = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reports`, { reasonCategory, reason });
     return unwrapData(response);
   },
 
@@ -305,8 +296,10 @@ export const courseApi = {
     return normalizePage(unwrapData(response));
   },
 
-  async getDiscussionModerationReports(status = 'PENDING') {
-    const response = await axiosClient.get('/api/content-manager/discussion-reports', { params: { status } });
+  async getDiscussionModerationReports(status = 'PENDING', category = '') {
+    const params = { status };
+    if (category) params.category = category;
+    const response = await axiosClient.get('/api/content-manager/discussion-reports', { params });
     const data = unwrapData(response);
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },

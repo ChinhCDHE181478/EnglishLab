@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, Circle, LockKeyhole, Route, Target } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle, LockKeyhole, Route, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
@@ -8,7 +8,6 @@ import { CourseFooter, CourseGlobalStyles } from '../components/course';
 const statusInfo = (course, path) => {
   if (course.completed) return { label: 'Đã hoàn thành', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 };
   if (['ACTIVE', 'COMPLETED'].includes(course.enrollmentStatus)) return { label: 'Đang học', tone: 'bg-amber-50 text-amber-700 border-amber-200', icon: Circle };
-  if (course.lockedReason) return { label: 'Chưa mở', tone: 'bg-slate-50 text-slate-500 border-slate-200', icon: LockKeyhole };
   if (String(course.courseId) === String(path.nextCourseId)) return { label: 'Tiếp theo', tone: 'bg-[#fff0f1] text-[#8a0018] border-[#e5bcc2]', icon: ArrowRight };
   return { label: 'Chưa mở', tone: 'bg-slate-50 text-slate-500 border-slate-200', icon: LockKeyhole };
 };
@@ -17,8 +16,7 @@ const actionInfo = (course) => {
   if (course.completed || ['ACTIVE', 'COMPLETED'].includes(course.enrollmentStatus)) {
     return { label: course.completed ? 'Xem lại khóa học' : 'Tiếp tục học', to: `/courses/${course.slug}/learn` };
   }
-  if (!course.lockedReason) return { label: 'Đăng ký', to: `/courses/${course.slug}` };
-  return { label: 'Xem khóa học', to: `/courses/${course.slug}` };
+  return { label: 'Đăng ký', to: `/courses/${course.slug}` };
 };
 
 const LearningPathPage = () => {
@@ -56,6 +54,10 @@ const LearningPathPage = () => {
       <CourseGlobalStyles />
       <Header />
       <main className="mx-auto max-w-[1200px] px-4 pb-20 pt-8 md:px-10">
+        <Link className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-[#8a0018] hover:underline" to="/courses">
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại danh sách khóa học
+        </Link>
         <section className="overflow-hidden rounded-3xl border border-[#ead9db] bg-[linear-gradient(135deg,_#fffdfc,_#fff0f1)] p-6 shadow-sm md:p-9">
           <div className="grid gap-7 lg:grid-cols-[1fr_360px] lg:items-center">
             <div>
@@ -117,7 +119,6 @@ const LearningPathPage = () => {
                           <div className="flex flex-wrap items-center gap-2"><span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#8c716f]">Bước {course.learningPathOrder || index + 1}</span><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${state.tone}`}>{state.label}</span></div>
                           <h3 className="mt-2 font-['Manrope'] text-lg font-extrabold text-[#1f1717]">{course.title}</h3>
                           {course.enrollmentStatus !== 'NOT_ENROLLED' ? <div className="mt-3 flex items-center gap-3"><div className="h-2 w-40 overflow-hidden rounded-full bg-[#f1e6e7]"><div className="h-full bg-[#8a0018]" style={{ width: `${course.progressPercent || 0}%` }} /></div><span className="text-xs font-bold text-[#730014]">{course.progressPercent || 0}%</span></div> : null}
-                          {course.lockedReason ? <p className="mt-2 text-xs font-semibold text-slate-500">{course.lockedReason}</p> : null}
                         </div>
                         <Link className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold ${isCurrent || !course.lockedReason ? 'bg-[#4b0009] text-white hover:bg-[#730014]' : 'border border-[#dfbfbd] bg-white text-[#730014]'}`} to={action.to}>{action.label}<ArrowRight className="h-4 w-4" /></Link>
                       </div>

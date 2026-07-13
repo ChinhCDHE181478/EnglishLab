@@ -58,7 +58,7 @@ export const contentManagerNav = [
     items: [
       { label: 'Hàng chờ xuất bản', href: '/content-manager/publication', icon: FileCheck2 },
       { label: 'Phân tích nội dung', href: '/content-manager/analytics', icon: BarChart3 },
-      { label: 'Kiểm duyệt thảo luận', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
+      { label: 'Báo cáo hỏi đáp', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
     ],
   },
 ];
@@ -180,7 +180,7 @@ export const contentManagerPageMeta = {
     searchPlaceholder: 'Tìm chỉ số hoặc nhóm nội dung...',
   },
   '/content-manager/discussion-moderation': {
-    title: 'Kiểm duyệt thảo luận',
+    title: 'Báo cáo hỏi đáp',
     subtitle: 'Xem xét báo cáo của học viên, ẩn nội dung vi phạm hoặc bỏ qua báo cáo không phù hợp.',
     searchPlaceholder: 'Tìm báo cáo thảo luận...',
   },

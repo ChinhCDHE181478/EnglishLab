@@ -359,7 +359,7 @@ function formatCrumbLabel(crumbs, index) {
     'learning-paths': 'Lộ trình học',
     materials: 'Kho học liệu',
     flashcards: 'Thẻ ghi nhớ',
-    'discussion-moderation': 'Kiểm duyệt thảo luận',
+    'discussion-moderation': 'Báo cáo hỏi đáp',
     listening: 'Luyện nghe',
     reading: 'Luyện đọc',
     writing: 'Luyện viết',

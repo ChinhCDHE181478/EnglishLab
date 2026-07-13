@@ -13,6 +13,7 @@ import {
   PopularCourses,
 } from '../components/course';
 import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
+import LearningPathCatalog from '../components/course/LearningPathCatalog';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 
@@ -231,6 +232,7 @@ const Courses = () => {
           profileBased={isAuthenticated}
           onRetry={isAuthenticated ? loadRecommendations : loadCourses}
         />
+        <LearningPathCatalog courses={allCourses} />
         <PopularCourses courses={featuredCourses} />
         <CourseCatalog
           courses={visibleCourses}
