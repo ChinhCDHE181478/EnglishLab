@@ -13,7 +13,9 @@ import org.springframework.stereotype.Repository;
 public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDiscussionThread, Long> {
     @Query("""
             select t from CourseDiscussionThread t
-            where t.course.id = :courseId and t.lesson is null and t.status <> :hidden
+            where t.course.id = :courseId and t.status <> :hidden
+              and ((:moduleId is null and t.lesson is null)
+                   or (:moduleId is not null and t.lesson.module.id = :moduleId))
               and (
                     :filter = 'ALL'
                     or (:filter = 'MINE' and :authorId is not null and t.author.id = :authorId)
@@ -25,6 +27,7 @@ public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDi
             """)
     Page<CourseDiscussionThread> findCourseDiscussionPage(
             @Param("courseId") Long courseId,
+            @Param("moduleId") Long moduleId,
             @Param("filter") String filter,
             @Param("authorId") Long authorId,
             @Param("hidden") CourseDiscussionStatus hidden,

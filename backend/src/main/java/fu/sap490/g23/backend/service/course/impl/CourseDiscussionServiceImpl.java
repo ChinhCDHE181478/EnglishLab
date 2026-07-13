@@ -75,12 +75,14 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email, Pageable pageable) {
+    public Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, String filter, String email, Pageable pageable) {
         ensureCourseExists(courseId);
+        ensureModuleInCourse(courseId, moduleId);
         User currentUser = email == null ? null : findUser(email);
         String normalizedFilter = normalizeFilter(filter);
         return threadRepository.findCourseDiscussionPage(
                         courseId,
+                        moduleId,
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
@@ -336,6 +338,12 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private Lesson findLessonInCourse(Long courseId, Long lessonId) {
         return lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
+    }
+
+    private void ensureModuleInCourse(Long courseId, Long moduleId) {
+        if (moduleId != null && !lessonRepository.existsByModuleIdAndModuleOnlineCourseId(moduleId, courseId)) {
+            throw new RuntimeException("Không tìm thấy mô-đun trong khóa học này.");
+        }
     }
 
     private CourseDiscussionThread findThread(Long threadId) {

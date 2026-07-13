@@ -15,7 +15,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface CourseDiscussionService {
-    Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email, Pageable pageable);
+    Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, String filter, String email, Pageable pageable);
 
     Page<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email, Pageable pageable);
 

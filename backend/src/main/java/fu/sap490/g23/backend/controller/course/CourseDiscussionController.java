@@ -40,6 +40,7 @@ public class CourseDiscussionController {
     public ResponseEntity<Page<CourseDiscussionThreadResponse>> getDiscussions(
             @PathVariable Long courseId,
             @RequestParam(defaultValue = "ALL") String filter,
+            @RequestParam(required = false) Long moduleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Authentication authentication
@@ -47,7 +48,7 @@ public class CourseDiscussionController {
         String email = authentication == null || authentication instanceof AnonymousAuthenticationToken
                 ? null
                 : authentication.getName();
-        return ResponseEntity.ok(discussionService.getCourseDiscussions(courseId, filter, email, discussionPageable(page, size)));
+        return ResponseEntity.ok(discussionService.getCourseDiscussions(courseId, moduleId, filter, email, discussionPageable(page, size)));
     }
 
     @GetMapping("/api/online-courses/{courseId}/lessons/{lessonId}/discussions")
