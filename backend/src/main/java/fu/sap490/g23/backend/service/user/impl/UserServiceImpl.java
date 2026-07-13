@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.user.impl;
 
 import fu.sap490.g23.backend.service.user.*;
 
+import fu.sap490.g23.backend.dto.request.ChangePasswordRequest;
 import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
 import fu.sap490.g23.backend.dto.response.UserResponse;
 import fu.sap490.g23.backend.entity.User;
@@ -9,7 +10,10 @@ import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +21,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
+    private final AvatarStorageService avatarStorageService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse getCurrentUser(String email) {
@@ -53,6 +59,53 @@ public class UserServiceImpl implements UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @Override
+    @Transactional
+    public UserResponse updateAvatar(String email, MultipartFile file, String publicUrlBase) {
+        User user = requireUser(email);
+        String oldAvatarUrl = user.getAvatarUrl();
+        String fileName = avatarStorageService.store(file);
+        String avatarUrl = publicUrlBase.endsWith("/") ? publicUrlBase + fileName : publicUrlBase + "/" + fileName;
+
+        try {
+            user.setAvatarUrl(avatarUrl);
+            User savedUser = userRepository.save(user);
+            avatarStorageService.deleteByUrl(oldAvatarUrl);
+            return toResponse(savedUser);
+        } catch (RuntimeException exception) {
+            avatarStorageService.delete(fileName);
+            throw exception;
+        }
+    }
+
+    @Override
+    @Transactional
+    public UserResponse deleteAvatar(String email) {
+        User user = requireUser(email);
+        String oldAvatarUrl = user.getAvatarUrl();
+        user.setAvatarUrl(null);
+        User savedUser = userRepository.save(user);
+        avatarStorageService.deleteByUrl(oldAvatarUrl);
+        return toResponse(savedUser);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = requireUser(email);
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng.");
+        }
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không khớp.");
+        }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới phải khác mật khẩu hiện tại.");
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -65,9 +118,15 @@ public class UserServiceImpl implements UserService {
                 .targetScore(user.getTargetScore())
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
+                .avatarUrl(user.getAvatarUrl())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();
+    }
+
+    private User requireUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản."));
     }
 
     private String trimToNull(String value) {

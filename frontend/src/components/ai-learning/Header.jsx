@@ -265,9 +265,17 @@ const Header = () => {
                 onClick={() => setIsProfileMenuOpen((current) => !current)}
                 type="button"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#8a0018]/10 text-[#8a0018]">
-                  <UserRound size={17} />
-                </span>
+                {user.avatarUrl ? (
+                  <img
+                    alt={user.fullName || 'Ảnh hồ sơ'}
+                    className="h-8 w-8 rounded-full object-cover ring-1 ring-[#dfbfbd]/70"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#8a0018]/10 text-[#8a0018]">
+                    <UserRound size={17} />
+                  </span>
+                )}
                 <div className="hidden text-left leading-tight md:block">
                   <p className="max-w-[150px] truncate text-sm font-extrabold text-[#2b2828]">
                     {user.fullName || user.email}

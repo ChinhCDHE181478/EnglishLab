@@ -733,7 +733,7 @@ TM xử lý hết hàng đợi NEED_REFUND có audit trong app. Tiền mặt/Pay
 ## Task 8: Cài đặt CM và quản lý gói / Bundle
 
 - **Ngày:** 2026-07-13
-- **Commit:** Chưa commit (code trên working tree sau `b13533b`)
+- **Commit:** `99710d8` — `feat(course): Task 8 — CM settings và quản lý gói Bundle`
 
 ### 1. Tóm tắt
 
@@ -834,7 +834,143 @@ CM quản lý được gói BUNDLE và composition; xem loại gói ở settings
 
 - Ngoài phạm vi: mua PayOS bundle, fan-out enrollment, CRUD `PackageType`, `package_availability`.
 - DB demo có thể chỉ có candidate CLASSROOM nếu chưa seed khóa online.
-- Commit Task 8 riêng khi sẵn sàng; cập nhật hash commit vào mục này.
+- Task 8 đã được commit riêng tại `99710d8`.
+
+---
+
+## Task 10: Upload avatar và đổi mật khẩu thật
+
+- **Ngày:** 2026-07-13
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit (working tree sau `99710d8`)
+
+### 1. Tóm tắt
+
+Thay hai luồng giả trên trang `/profile` bằng chức năng production: học viên có thể tải lên/thay/xóa ảnh hồ sơ được lưu bền vững và đổi mật khẩu sau khi backend xác minh mật khẩu hiện tại. Avatar mới được đồng bộ ngay vào `AuthContext`, local storage và header.
+
+### 2. Phạm vi thay đổi
+
+- Trong phạm vi: avatar JPG/PNG/GIF tối đa 1 MB; lưu file cục bộ có cấu hình; thay/xóa file cũ; đổi mật khẩu có xác minh và validation mạnh; cập nhật UI/header.
+- Ngoài phạm vi: crop ảnh, lưu cloud/object storage, thu hồi toàn bộ JWT sau đổi mật khẩu, 2FA và liên kết/hủy liên kết mạng xã hội.
+- Tái sử dụng: `/api/user/me`, `UserService`, `PasswordEncoder`, `AuthContext`, trang `CompleteProfile` và mẫu storage file hiện có.
+
+### 3. Tệp đã thay đổi
+
+- `backend/src/main/java/fu/sap490/g23/backend/controller/UserController.java`
+  - Why: Trang hồ sơ cần API thật cho avatar và mật khẩu.
+  - What: Thêm upload/delete/read avatar và change-password endpoint.
+- `backend/src/main/java/fu/sap490/g23/backend/service/user/impl/UserServiceImpl.java`
+  - Why: Business rule phải nằm ở service.
+  - What: Điều phối lưu/xóa avatar, cập nhật user, xác minh/hash mật khẩu.
+- `backend/src/main/java/fu/sap490/g23/backend/service/user/AvatarStorageService.java` và `impl/AvatarStorageServiceImpl.java`
+  - Why: Tách trách nhiệm filesystem và validation ảnh.
+  - What: UUID filename, giới hạn 1 MB, whitelist JPG/PNG/GIF, kiểm tra nội dung ảnh/kích thước/path traversal, load/delete file.
+- `backend/src/main/java/fu/sap490/g23/backend/dto/request/ChangePasswordRequest.java`
+  - Why: Validation authoritative tại boundary.
+  - What: Current/new/confirm password; mật khẩu mới 8–72 ký tự và đủ nhóm ký tự.
+- `backend/src/main/java/fu/sap490/g23/backend/entity/User.java`, `dto/response/UserResponse.java`
+  - Why: Persist và trả URL avatar cho mọi phiên đăng nhập/profile.
+  - What: Thêm `avatarUrl`.
+- `backend/src/main/java/fu/sap490/g23/backend/migration/UserAccountSchemaMigration.java`
+  - Why: Schema additive nhất quán với dự án.
+  - What: Thêm `users.avatar_url` nếu chưa có.
+- `backend/src/main/java/fu/sap490/g23/backend/service/auth/impl/AuthServiceImpl.java`, `GoogleAuthServiceImpl.java`, `FacebookAuthServiceImpl.java`
+  - Why: Auth response phải đồng nhất với `/api/user/me`.
+  - What: Map `avatarUrl` vào `UserResponse`.
+- `backend/src/main/java/fu/sap490/g23/backend/config/SecurityConfig.java`
+  - Why: Thẻ `<img>` không gửi Bearer token.
+  - What: Chỉ public GET URL avatar UUID; mutate vẫn bắt buộc đăng nhập.
+- `frontend/src/api/authApi.js`
+  - Why: API call phải nằm trong module API.
+  - What: Thêm upload/delete avatar và change password.
+- `frontend/src/pages/CompleteProfile.jsx`
+  - Why: UI cũ chỉ preview ảnh và giả lập đổi mật khẩu bằng `setTimeout`.
+  - What: Gọi API thật, validation/error/loading/success, confirm xóa ảnh, cập nhật user hiện tại.
+- `frontend/src/components/ai-learning/Header.jsx`
+  - Why: Avatar mới cần hiển thị ngay trên header.
+  - What: Hiển thị `user.avatarUrl`, fallback icon cũ.
+- `backend/src/test/java/fu/sap490/g23/backend/service/user/UserServiceImplTest.java`, `AvatarStorageServiceImplTest.java`
+  - Why: Bảo vệ logic account/security và filesystem.
+  - What: 8 case cho password, avatar lifecycle, file giả và traversal.
+
+### 4. Thay đổi Backend
+
+- Controller giữ mapping HTTP/DTO/resource; service xử lý business rule và transaction.
+- Upload avatar lưu file UUID rồi persist URL; khi thay ảnh sẽ xóa file cũ; khi persistence lỗi sẽ dọn file mới.
+- Delete avatar xóa URL database và file do ứng dụng quản lý.
+- Password change kiểm tra BCrypt mật khẩu hiện tại, confirm trùng, mật khẩu mới khác mật khẩu cũ rồi hash trước khi lưu.
+- `UserResponse` từ login thường, Google, Facebook và `/me` đều trả `avatarUrl`.
+
+### 5. Thay đổi Frontend
+
+- Upload thực hiện ngay khi chọn file; lỗi type/size được báo trước khi gọi backend.
+- Thành công cập nhật preview, `AuthContext`, local storage và avatar header mà không reload trang.
+- Xóa ảnh yêu cầu xác nhận và trả về avatar chữ/icon mặc định.
+- Form đổi mật khẩu gọi backend thật; hiển thị lỗi mật khẩu hiện tại, policy hoặc confirm; xóa input khi thành công.
+
+### 6. Thay đổi Database
+
+- Bảng: `users`.
+- Cột: `avatar_url VARCHAR(500)`, nullable.
+- Quan hệ: không thay đổi.
+- Migration: `UserAccountSchemaMigration`; additive `ADD COLUMN IF NOT EXISTS`, không cần backfill.
+
+### 7. Thay đổi API
+
+- `POST /api/user/me/avatar`
+  - Request: `multipart/form-data`, part `file`.
+  - Response: `UserResponse` có `avatarUrl` mới.
+  - Authorization: mọi user đã đăng nhập; chỉ sửa tài khoản hiện tại.
+  - Validation: JPG/JPEG/PNG/GIF, tối đa 1 MB, ảnh đọc được, tối đa 4096 x 4096 pixel.
+- `DELETE /api/user/me/avatar`
+  - Response: `UserResponse` với `avatarUrl = null`.
+  - Authorization: mọi user đã đăng nhập; chỉ sửa tài khoản hiện tại.
+- `GET /api/user/avatars/{fileName}`
+  - Response: binary image và content type tương ứng.
+  - Authorization: public read để trình duyệt render `<img>`; filename UUID/path được kiểm tra.
+- `PUT /api/user/me/password`
+  - Request: `{ "currentPassword", "newPassword", "confirmPassword" }`.
+  - Response: `204 No Content`.
+  - Authorization: mọi user đã đăng nhập; chỉ đổi tài khoản hiện tại.
+  - Validation: current đúng; new/confirm trùng; new khác current; 8–72 ký tự, có hoa/thường/số/ký tự đặc biệt.
+
+### 8. Thay đổi UI/UX
+
+- Trang/role: `/profile`, Learner.
+- Avatar: trạng thái đang xử lý, thành công, lỗi, fallback initials; nút xóa có confirm.
+- Password: giữ show/hide input; thêm policy rõ ràng; submit thật; success/error actionable.
+- Header: avatar cập nhật tức thì sau upload/xóa.
+- Empty state: khi chưa có avatar dùng initials/icon hiện có.
+
+### 9. Các bước test trên web
+
+1. Restart backend để `UserAccountSchemaMigration` thêm cột, chạy frontend.
+2. Đăng nhập learner `0386852628z@gmail.com` / `Password123!`, mở `/profile`.
+3. Chọn JPG/PNG/GIF nhỏ hơn 1 MB; kiểm tra preview và header đổi ngay.
+4. Refresh trang; kiểm tra avatar vẫn còn và URL ảnh tải được.
+5. Upload ảnh khác; kiểm tra ảnh mới thay ảnh cũ.
+6. Nhấn **Xóa ảnh**, xác nhận; kiểm tra fallback initials/icon và refresh vẫn không còn ảnh.
+7. Đổi từ `Password123!` sang một mật khẩu mạnh mới; đăng xuất rồi đăng nhập bằng mật khẩu mới.
+8. Negative: nhập sai mật khẩu hiện tại; backend trả lỗi và mật khẩu không đổi.
+9. Validation: thử password thiếu hoa/số/ký tự đặc biệt, confirm lệch, password mới trùng cũ.
+10. Avatar validation: thử file lớn hơn 1 MB, file không phải ảnh đổi đuôi `.png`, hoặc định dạng không hỗ trợ.
+11. Permission: gọi POST/DELETE/password không có JWT phải nhận 401/403; GET avatar hợp lệ vẫn render công khai.
+
+### 10. Kết quả mong đợi
+
+Học viên quản lý avatar bền vững và đổi mật khẩu thật end-to-end. Dữ liệu avatar tồn tại sau refresh/login lại, header đồng bộ ngay, mật khẩu cũ hết hiệu lực sau đổi, và backend là nguồn validation cuối cùng.
+
+### 11. Ghi chú / Rủi ro
+
+- File avatar hiện lưu local theo `ENGLISHLAB_AVATARS_DIR`; production nhiều instance nên chuyển sang object storage/CDN.
+- JWT hiện tại vẫn còn hiệu lực sau đổi mật khẩu theo kiến trúc stateless hiện có; chưa có token revocation/versioning.
+- 2FA và tab tài khoản liên kết vẫn ngoài Task 10.
+- Verification: backend compile pass; 8 focused tests pass; frontend production build pass.
+- Full backend regression với `-Duser.timezone=Asia/Ho_Chi_Minh`: 96/97 pass; test seeder có sẵn `ToeicShowcaseClassroomSeederIntegrationTest` fail tại dòng 69 do danh sách enrollment rỗng, không thuộc luồng account Task 10.
+- JVM mặc định `Asia/Saigon` trên máy hiện tại bị PostgreSQL từ chối; backend/test context cần timezone chuẩn `Asia/Ho_Chi_Minh`.
+- Live API smoke với `waitlist.learner.a@test.vn`: upload avatar `200`, public read `200 image/png`, refresh vẫn có URL, file >1 MB `400`, định dạng không hỗ trợ `400`, upload thiếu JWT `403`, delete trả avatar null và file cũ không còn đọc được.
+- Live password smoke: sai current/weak/confirm lệch/new trùng current đều `400`, thiếu JWT `403`, đổi mật khẩu `204`, mật khẩu cũ đăng nhập `401`, mật khẩu mới đăng nhập `200`. Sau test đã đổi lại `Password123!` (`204`) và xác nhận đăng nhập lại `200`.
+- Manual UI smoke trên Browser tích hợp: đăng nhập learner thành công, mở `/profile`, dữ liệu tài khoản hiển thị đúng; validation đổi mật khẩu hiển thị đúng cho mật khẩu yếu, confirm lệch, mật khẩu mới trùng mật khẩu hiện tại và mật khẩu hiện tại sai. Browser tích hợp không hỗ trợ file chooser nên thao tác chọn avatar trực tiếp chưa thể click-test; lifecycle avatar đã được xác nhận qua live API smoke ở trên.
 
 ---
 

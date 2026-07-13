@@ -19,6 +19,7 @@ public class UserResponse {
     private String targetScore;
     private Double currentBand;
     private String studyGoal;
+    private String avatarUrl;
     private boolean profileCompleted;
     private boolean placementTestCompleted;
 }
