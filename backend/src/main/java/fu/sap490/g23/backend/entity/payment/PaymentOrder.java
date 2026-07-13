@@ -59,6 +59,10 @@ public class PaymentOrder {
     @Column(name = "classroom_offering_ids_csv", length = 1000)
     private String classroomOfferingIdsCsv;
 
+    /** Enrollment học phí lớp gắn với đơn PayOS (null nếu đơn khóa học online). */
+    @Column(name = "enrollment_id")
+    private Long enrollmentId;
+
     @Column(name = "course_titles", columnDefinition = "text")
     private String courseTitles;
 

@@ -775,8 +775,26 @@ Khi lớp đầy, học viên vào hàng chờ có thứ tự; TM đổi thứ t
 
 ### Task 5 — Thanh toán học phí lớp online (PayOS)
 
-- **Trạng thái:** Đã phân tích, **chưa triển khai**.
-- Khi xong sẽ bổ sung quy trình test web riêng (PayOS + upload proof fallback).
+- **Trạng thái:** Đã triển khai (2026-07-12).
+- **Backend:** Mở `classroomOfferingIds` trong quote/create PayOS; lưu `enrollment_id` trên `payment_orders`; webhook/PAID gọi `applyPayosTuitionPayment` (idempotent theo note `PayOS #orderCode`); giữ upload minh chứng + TM duyệt làm phương án B.
+- **Frontend:** Nút PayOS trên `TuitionPaymentSection`; chứng từ thủ công vẫn còn; trang `/checkout` nhận return PayOS học phí và dẫn về lớp.
+- **Ràng buộc:** Không gộp khóa online + học phí lớp trong cùng đơn; mỗi đơn chỉ 1 lớp; không áp mã giảm giá cho học phí lớp; chặn thanh toán khi đăng ký còn `PENDING_CONFIRMATION`.
+
+#### Vị trí trên web
+1. Học viên → lớp của tôi / chi tiết lớp công khai (đã đăng ký) → khu vực **Thanh toán học phí**
+2. Return PayOS → `/checkout?...` → nút **Quay lại lớp học**
+
+#### Các bước test
+1. [ ] TM xác nhận đăng ký học viên → status `PENDING_TUITION_PAYMENT`, còn học phí > 0.
+2. [ ] HV bấm **Thanh toán ... qua PayOS** → chuyển sang PayOS.
+3. [ ] Thanh toán thành công → `/checkout` báo ghi nhận học phí → quay lại lớp → lịch sử có dòng `PayOS #...`, số còn lại giảm/về 0.
+4. [ ] (Fallback) Gửi minh chứng chuyển khoản → TM xác nhận/từ chối vẫn hoạt động như cũ.
+5. [ ] Thử tạo đơn PayOS thứ 2 khi đơn trước còn PENDING → bị chặn.
+
+#### Kết quả mong đợi
+- [ ] PayOS ghi nhận học phí không cần TM bấm tay.
+- [ ] Upload proof vẫn dùng được khi không PayOS.
+- [ ] Checkout khóa học online không bị ảnh hưởng.
 
 ---
 
@@ -787,6 +805,7 @@ Khi lớp đầy, học viên vào hàng chờ có thứ tự; TM đổi thứ t
 3. Task 1: gửi học bù → TM duyệt → có buổi mới.
 4. Task 2: sửa điểm → công bố → học viên xem → thu hồi → học viên mất điểm.
 5. Task 4: 2 học viên vào waitlist → TM đổi thứ tự → vị trí cập nhật.
+6. Task 5: HV PayOS học phí → về checkout thành công → lịch sử có PayOS; fallback minh chứng vẫn gửi được.
 
 ---
 
@@ -826,4 +845,78 @@ Sau test đã khôi phục lớp `#12` về `ACTIVE`, `maxCapacity=16`, `startDa
 1. Đăng nhập TM → `/training-manager/classrooms/12` → tab đăng ký **Danh sách chờ** (cần tạo lại dữ liệu waitlist nếu muốn xem UI).
 2. Hoặc giảm tạm `maxCapacity` rồi đăng ký bằng 2 tài khoản `waitlist.learner.*@test.vn`.
 3. Kiểm tra nút lên/xuống và badge `Vị trí #N` trên trang chi tiết lớp.
+
+---
+
+## Task 5 — Thanh toán học phí lớp online (PayOS) + proof fallback
+
+- **Date:** 2026-07-12
+- **Branch:** `phongdx`
+- **Commit hash:** Not committed yet
+
+### Summary
+
+Connected classroom tuition to the existing PayOS checkout pipeline while keeping manual bank-transfer proof upload as Plan B. Students pay the remaining tuition balance online; webhook/status sync records tuition via `applyPayosTuitionPayment` without requiring Training Manager manual entry.
+
+### Changed files
+
+- `backend/.../PaymentServiceImpl.java`
+- `backend/.../PaymentOrder.java` (+ `enrollmentId`)
+- `backend/.../PaymentOrderRepository.java`
+- `backend/.../PaymentOrderStatusResponse.java`
+- `backend/.../ClassroomOfferingService.java` / `ClassroomOfferingServiceImpl.java`
+- `backend/.../migration/PaymentOrderEnrollmentSchemaMigration.java`
+- `backend/.../PaymentServiceImplClassroomTuitionTest.java`
+- `frontend/src/api/paymentApi.js`
+- `frontend/src/components/classroom/TuitionPaymentSection.jsx`
+- `frontend/src/pages/CheckoutPage.jsx`
+- `frontend/src/pages/classroom/MyClassroomDetailPage.jsx`
+- `frontend/src/pages/classroom/ClassroomPublicDetailPage.jsx`
+- `docs/CHANGELOG_IMPLEMENTATION.md`
+
+### Backend changes
+
+- Allowed quote/create PayOS for a single `classroomOfferingId` (mutually exclusive with course cart).
+- Amount = enrollment tuition remaining balance; coupons not applied to classroom tuition.
+- Persisted `classroomOfferingIdsCsv` + `enrollmentId` on `PaymentOrder`.
+- On PAID: call `applyPayosTuitionPayment` (idempotent by note `PayOS #orderCode`), optionally auto-assign when fully paid.
+- Blocked duplicate PENDING/PROCESSING PayOS orders for the same enrollment.
+- Blocked PayOS while registration is still `PENDING_CONFIRMATION`.
+
+### Frontend changes
+
+- PayOS primary action on `TuitionPaymentSection`; proof upload kept as fallback.
+- `paymentApi` sends `classroomOfferingIds`.
+- Checkout return page detects classroom tuition via sessionStorage + order status fields and links back to the class.
+
+### Tests
+
+- `PaymentServiceImplClassroomTuitionTest`: **5 tests, 0 failures**.
+
+---
+
+## Kết quả test Task 5 (API) — 2026-07-12
+
+- **Nhánh:** `phongdx`
+- **Môi trường:** Backend `http://localhost:8080` (restart `mvnw spring-boot:run`), DB PostgreSQL Docker `postgres-englishlab`
+- **Tài khoản test:** `waitlist.learner.a@test.vn`, `waitlist.learner.b@test.vn` / `Password123!`
+
+| Bước | Kết quả |
+|---|---|
+| Restart backend (port 8080) | PASS |
+| Đăng ký A → TM confirm → `PENDING_TUITION_PAYMENT` | PASS |
+| Quote học phí lớp = 3.900.000 | PASS |
+| Reject coupon trên học phí lớp | PASS |
+| Block PayOS khi HV đã `ASSIGNED` | PASS |
+| Create PayOS link (`PENDING` + checkoutUrl) | PASS |
+| Block tạo đơn PayOS trùng khi còn PENDING | PASS |
+| Order status trả `classroomOfferingId` + `enrollmentId` | PASS |
+| Webhook PayOS signed → order `PAID` | PASS |
+| Ghi nhận học phí + lịch sử `PayOS #...` + auto `ASSIGNED` | PASS |
+| Webhook lần 2 idempotent (không double charge) | PASS |
+| Upload minh chứng fallback (learner B) | PASS |
+
+**Tổng:** 12/12 kịch bản API chính đạt.
+
+Sau test đã khôi phục lớp `#12` về `ACTIVE` / `2026-06-21`–`2026-08-16` và hủy enrollment test `#13`, `#14`.
 

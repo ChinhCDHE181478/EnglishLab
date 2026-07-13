@@ -565,16 +565,24 @@ export default function ClassroomPublicDetailPage() {
 
                     <div className="rounded-xl bg-blue-50/50 border border-blue-100/50 p-3 text-[10px] text-blue-800 flex items-start gap-2">
                       <Info className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-blue-600" />
-                      <p className="leading-4">Học phí được ghi nhận bởi điều phối đào tạo. Bạn có thể chuyển khoản và gửi minh chứng bên dưới để được xác nhận nhanh hơn.</p>
+                      <p className="leading-4">
+                        Ưu tiên thanh toán online qua PayOS để hệ thống tự ghi nhận học phí.
+                        Nếu gặp sự cố, bạn vẫn có thể chuyển khoản và gửi minh chứng bên dưới để Training Manager xác nhận.
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Tuition payment: history + proof upload */}
+                {/* Tuition payment: PayOS + proof fallback */}
                 {isRegistered && (
                   <TuitionPaymentSection
                     canSubmitProof={!hasClassAccess && registrationStatus !== 'ASSIGNED'}
                     classroomId={offering.id}
+                    tuitionRemaining={
+                      (registration?.tuitionRemaining
+                        ?? ((registration?.tuitionAmountDue ?? offering?.tuitionAmountDue ?? 0)
+                          - (registration?.tuitionAmountPaid ?? offering?.tuitionAmountPaid ?? 0)))
+                    }
                     onUpdated={() => loadRegistration(offering.id)}
                   />
                 )}

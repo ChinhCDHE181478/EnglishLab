@@ -664,6 +664,7 @@ export default function MyClassroomDetailPage() {
           <TuitionPaymentSection
             canSubmitProof={canSubmitProof}
             classroomId={id}
+            tuitionRemaining={tuitionRemaining}
             onUpdated={async () => {
               try {
                 const refreshed = await classroomApi.getMyClassroom(id);

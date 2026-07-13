@@ -850,7 +850,65 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     ) {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertTrainingManager(actor);
+        return applyTuitionPaymentInternal(
+                findEnrollment(enrollmentId),
+                request.getAmount(),
+                request.getPaymentKind(),
+                request.getNote(),
+                actor,
+                !Boolean.FALSE.equals(request.getAssignIfFullyPaid())
+        );
+    }
+
+    @Override
+    public ClassroomEnrollmentResponse applyPayosTuitionPayment(Long enrollmentId, BigDecimal amount, String note) {
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
+        String normalizedNote = note == null ? "" : note.trim();
+        if (!normalizedNote.isBlank()) {
+            boolean alreadyRecorded = tuitionPaymentRepository
+                    .findByEnrollmentIdOrderByCreatedAtDesc(enrollmentId)
+                    .stream()
+                    .anyMatch(payment -> normalizedNote.equals(payment.getNote()));
+            if (alreadyRecorded) {
+                return mapper.toEnrollmentResponse(enrollment);
+            }
+        }
+
+        BigDecimal balance = enrollment.tuitionBalance();
+        if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+            return mapper.toEnrollmentResponse(enrollment);
+        }
+
+        BigDecimal paymentAmount = amount == null ? BigDecimal.ZERO : amount;
+        if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Số tiền PayOS không hợp lệ.");
+        }
+        if (paymentAmount.compareTo(balance) > 0) {
+            paymentAmount = balance;
+        }
+
+        TuitionPaymentKind kind = paymentAmount.compareTo(balance) >= 0
+                ? TuitionPaymentKind.FULL
+                : TuitionPaymentKind.PARTIAL;
+
+        return applyTuitionPaymentInternal(
+                enrollment,
+                paymentAmount,
+                kind,
+                normalizedNote.isBlank() ? "Thanh toán PayOS" : normalizedNote,
+                enrollment.getStudent(),
+                true
+        );
+    }
+
+    private ClassroomEnrollmentResponse applyTuitionPaymentInternal(
+            ClassroomEnrollment enrollment,
+            BigDecimal amount,
+            TuitionPaymentKind paymentKind,
+            String note,
+            User recordedBy,
+            boolean assignIfFullyPaid
+    ) {
         ClassroomOffering offering = enrollment.getClassroomOffering();
         User learner = enrollment.getStudent();
 
@@ -862,13 +920,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Học viên đã được xếp lớp.");
         }
 
-        BigDecimal amount = request.getAmount() == null ? BigDecimal.ZERO : request.getAmount();
+        BigDecimal paymentAmount = amount == null ? BigDecimal.ZERO : amount;
         BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
-        enrollment.setTuitionAmountPaid(paid.add(amount));
+        enrollment.setTuitionAmountPaid(paid.add(paymentAmount));
 
-        if (request.getPaymentKind() == TuitionPaymentKind.DEPOSIT) {
+        if (paymentKind == TuitionPaymentKind.DEPOSIT) {
             BigDecimal deposit = enrollment.getTuitionDepositPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionDepositPaid();
-            enrollment.setTuitionDepositPaid(deposit.add(amount));
+            enrollment.setTuitionDepositPaid(deposit.add(paymentAmount));
         }
 
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
@@ -876,22 +934,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 enrollment.getTuitionAmountDue(),
                 enrollment.getTuitionAmountPaid(),
                 enrollment.getTuitionDepositPaid(),
-                request.getPaymentKind()
+                paymentKind
         ));
         enrollment.setTuitionRecordedAt(LocalDateTime.now());
-        enrollment.setTuitionRecordedBy(actor);
+        enrollment.setTuitionRecordedBy(recordedBy);
 
         tuitionPaymentRepository.save(ClassroomTuitionPayment.builder()
                 .enrollment(enrollment)
-                .amount(amount)
-                .paymentKind(request.getPaymentKind())
-                .note(request.getNote())
-                .recordedBy(actor)
+                .amount(paymentAmount)
+                .paymentKind(paymentKind)
+                .note(note)
+                .recordedBy(recordedBy)
                 .build());
 
-        if (!Boolean.FALSE.equals(request.getAssignIfFullyPaid())
+        if (assignIfFullyPaid
                 && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID) {
-            tryAssignEnrollment(enrollment, offering, learner, actor, null);
+            tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
         }
 
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);

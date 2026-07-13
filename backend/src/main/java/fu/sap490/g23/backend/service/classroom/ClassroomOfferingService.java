@@ -77,6 +77,12 @@ public interface ClassroomOfferingService {
 
     ClassroomEnrollmentResponse recordTuitionPayment(Long enrollmentId, RecordTuitionPaymentRequest request, String actorEmail);
 
+    /**
+     * Ghi nhận học phí tự động sau khi PayOS xác nhận thanh toán thành công.
+     * Idempotent theo {@code note} (thường chứa mã đơn PayOS).
+     */
+    ClassroomEnrollmentResponse applyPayosTuitionPayment(Long enrollmentId, java.math.BigDecimal amount, String note);
+
     ClassroomEnrollmentResponse assignToClass(Long enrollmentId, AssignToClassRequest request, String actorEmail);
 
     List<ClassroomEnrollmentResponse> listRegistrations(
