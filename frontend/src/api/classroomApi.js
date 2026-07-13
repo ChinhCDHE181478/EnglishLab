@@ -458,6 +458,14 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async resolveTuitionSettlement(enrollmentId, payload) {
+    const response = await axiosClient.post(
+      `/api/training-manager/classrooms/enrollments/${enrollmentId}/settlement/resolve`,
+      payload,
+    );
+    return unwrapData(response);
+  },
+
   async getTuitionHistory(enrollmentId) {
     const response = await axiosClient.get(`/api/training-manager/classrooms/enrollments/${enrollmentId}/tuition-history`);
     return asList(unwrapData(response));

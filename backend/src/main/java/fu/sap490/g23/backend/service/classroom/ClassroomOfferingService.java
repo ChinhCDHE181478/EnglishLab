@@ -77,6 +77,12 @@ public interface ClassroomOfferingService {
 
     ClassroomEnrollmentResponse recordTuitionPayment(Long enrollmentId, RecordTuitionPaymentRequest request, String actorEmail);
 
+    ClassroomEnrollmentResponse resolveTuitionSettlement(
+            Long enrollmentId,
+            ResolveTuitionSettlementRequest request,
+            String actorEmail
+    );
+
     /**
      * Ghi nhận học phí tự động sau khi PayOS xác nhận thanh toán thành công.
      * Idempotent theo {@code note} (thường chứa mã đơn PayOS).
@@ -88,7 +94,8 @@ public interface ClassroomOfferingService {
     List<ClassroomEnrollmentResponse> listRegistrations(
             ClassroomRegistrationStatus status,
             Long classroomOfferingId,
-            Boolean needsAction
+            Boolean needsAction,
+            Boolean settlementPending
     );
 
     List<ClassroomEnrollmentResponse> reorderWaitlist(

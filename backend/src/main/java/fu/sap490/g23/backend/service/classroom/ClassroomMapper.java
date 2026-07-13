@@ -291,6 +291,14 @@ public class ClassroomMapper {
                 .tuitionSettlementType(enrollment.getTuitionSettlementType())
                 .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(enrollment.getTuitionSettlementType()))
                 .tuitionSettlementNote(enrollment.getTuitionSettlementNote())
+                .tuitionSettlementStatus(enrollment.getTuitionSettlementStatus())
+                .tuitionSettlementStatusLabel(ClassroomRegistrationSupport.tuitionSettlementStatusLabel(
+                        enrollment.getTuitionSettlementStatus()))
+                .tuitionSettlementResolvedAt(enrollment.getTuitionSettlementResolvedAt())
+                .tuitionSettlementResolvedByName(enrollment.getTuitionSettlementResolvedBy() == null
+                        ? null
+                        : enrollment.getTuitionSettlementResolvedBy().getFullName())
+                .tuitionSettlementResolutionNote(enrollment.getTuitionSettlementResolutionNote())
                 .hasClassAccess(enrollment.hasClassAccess())
                 .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
                 .enrolledAt(enrollment.getEnrolledAt())

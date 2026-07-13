@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.controller.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.RefundPaymentOrderRequest;
+import fu.sap490.g23.backend.dto.request.payment.RefundCourseOrderRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sap490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sap490.g23.backend.service.payment.PaymentService;
@@ -35,7 +35,7 @@ public class ManagerPaymentController {
     @PostMapping("/orders/{orderCode}/refund")
     public ResponseEntity<PaymentOrderSummaryResponse> refundOrder(
             @PathVariable Long orderCode,
-            @Valid @RequestBody RefundPaymentOrderRequest request,
+            @Valid @RequestBody RefundCourseOrderRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(paymentService.refundCourseOrder(orderCode, request, authentication.getName()));

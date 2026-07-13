@@ -7,9 +7,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class RefundPaymentOrderRequest {
+public class RefundCourseOrderRequest {
 
-    @NotBlank(message = "Vui lòng nhập lý do hoàn tiền.")
-    @Size(max = 500)
+    @NotBlank(message = "Vui long nhap ly do hoan tien.")
+    @Size(max = 500, message = "Ly do hoan tien toi da 500 ky tu.")
     private String reason;
 }

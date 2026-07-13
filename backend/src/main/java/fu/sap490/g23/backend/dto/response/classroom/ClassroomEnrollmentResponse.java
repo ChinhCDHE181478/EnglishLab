@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.dto.response.classroom;
 
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +35,11 @@ public class ClassroomEnrollmentResponse {
     private TuitionSettlementType tuitionSettlementType;
     private String tuitionSettlementTypeLabel;
     private String tuitionSettlementNote;
+    private TuitionSettlementStatus tuitionSettlementStatus;
+    private String tuitionSettlementStatusLabel;
+    private LocalDateTime tuitionSettlementResolvedAt;
+    private String tuitionSettlementResolvedByName;
+    private String tuitionSettlementResolutionNote;
     private boolean hasClassAccess;
     private Long transferredFromEnrollmentId;
     private LocalDateTime enrolledAt;

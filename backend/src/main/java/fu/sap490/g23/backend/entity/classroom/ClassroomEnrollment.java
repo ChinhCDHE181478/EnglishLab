@@ -82,6 +82,21 @@ public class ClassroomEnrollment {
     @Column(name = "tuition_settlement_note", length = 700)
     private String tuitionSettlementNote;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tuition_settlement_status", length = 30)
+    @Builder.Default
+    private TuitionSettlementStatus tuitionSettlementStatus = TuitionSettlementStatus.NONE;
+
+    @Column(name = "tuition_settlement_resolved_at")
+    private LocalDateTime tuitionSettlementResolvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tuition_settlement_resolved_by_id")
+    private User tuitionSettlementResolvedBy;
+
+    @Column(name = "tuition_settlement_resolution_note", length = 700)
+    private String tuitionSettlementResolutionNote;
+
     @Column(name = "transferred_from_enrollment_id")
     private Long transferredFromEnrollmentId;
 
@@ -156,6 +171,9 @@ public class ClassroomEnrollment {
         }
         if (tuitionSettlementType == null) {
             tuitionSettlementType = TuitionSettlementType.NONE;
+        }
+        if (tuitionSettlementStatus == null) {
+            tuitionSettlementStatus = TuitionSettlementStatus.NONE;
         }
         if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
             waitlistPriority = null;

@@ -611,13 +611,24 @@ export const FilterBar = ({ onSearch, searchPlaceholder = 'Tìm kiếm...', filt
 // 10. TUITION STATUS CARD
 // ==========================================
 
-export const TuitionStatusCard = ({ due, paid, remaining, settlementType, settlementLabel, settlementNote }) => {
+export const TuitionStatusCard = ({
+  due,
+  paid,
+  remaining,
+  settlementType,
+  settlementLabel,
+  settlementNote,
+  settlementStatus,
+}) => {
   const formatPrice = (val) => {
     if (val == null) return '0 ₫';
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(val);
   };
 
-  const isFullyPaid = remaining <= 0;
+  const hasPendingSettlement = settlementType
+    && settlementType !== 'NONE'
+    && (!settlementStatus || settlementStatus === 'PENDING');
+  const isFullyPaid = remaining <= 0 && !hasPendingSettlement;
 
   return (
     <div className={`rounded-xl border p-6 shadow-sm ${
@@ -631,7 +642,9 @@ export const TuitionStatusCard = ({ due, paid, remaining, settlementType, settle
         <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${
           isFullyPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-[#730014]'
         }`}>
-          {isFullyPaid ? 'Đã hoàn thành' : 'Chưa hoàn thành'}
+          {hasPendingSettlement
+            ? (settlementType === 'NEED_REFUND' ? 'Cần hoàn tiền' : 'Cần xử lý học phí')
+            : (isFullyPaid ? 'Đã hoàn thành' : 'Chưa hoàn thành')}
         </span>
       </div>
 

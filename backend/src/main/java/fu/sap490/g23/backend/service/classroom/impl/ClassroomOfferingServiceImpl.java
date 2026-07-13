@@ -510,8 +510,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         enrollment.setTuitionAmountDue(tuitionDue);
         enrollment.setTuitionAmountPaid(tuitionDue);
         enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
-        enrollment.setTuitionSettlementType(TuitionSettlementType.NONE);
-        enrollment.setTuitionSettlementNote(null);
+        ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
         enrollment.setNote(request.getNote());
         enrollment.setPackageEnrollment(ensurePackageEnrollment(student, offering));
 
@@ -540,12 +539,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này."));
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        enrollment.setStatus(ClassroomEnrollmentStatus.CANCELLED);
+        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+        ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do xóa khỏi lớp");
         saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         notifyWaitlistIfSlotAvailable(enrollment.getClassroomOffering());
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public ClassroomEnrollmentResponse transferStudent(Long offeringId, TransferStudentRequest request) {
         ClassroomOffering source = findOffering(offeringId);
         ClassroomOffering target = findOffering(request.getTargetClassroomOfferingId());
@@ -568,12 +569,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 : sourceEnrollment.getTuitionAmountPaid();
         BigDecimal targetDue = resolveTuitionDue(target);
         TuitionSettlementType settlementType = ClassroomRegistrationSupport.computeSettlement(targetDue, carriedPaid);
-        String settlementNote = buildSettlementNote(settlementType, targetDue, carriedPaid);
+        String settlementNote = ClassroomRegistrationSupport.buildSettlementNote(settlementType, targetDue, carriedPaid);
 
         ClassroomRegistrationStatus sourcePreviousStatus = sourceEnrollment.getRegistrationStatus();
         sourceEnrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        sourceEnrollment.setStatus(ClassroomEnrollmentStatus.TRANSFERRED);
         sourceEnrollment.setNote(appendNote(sourceEnrollment.getNote(), "Đã chuyển sang lớp #" + target.getId()));
+        ClassroomRegistrationSupport.syncLegacyStatus(sourceEnrollment);
+        sourceEnrollment.setStatus(ClassroomEnrollmentStatus.TRANSFERRED);
         saveEnrollmentWithWaitlistOrder(sourceEnrollment, sourcePreviousStatus);
 
         if (enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
@@ -591,6 +593,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .tuitionDepositPaid(sourceEnrollment.getTuitionDepositPaid())
                 .tuitionSettlementType(settlementType)
                 .tuitionSettlementNote(settlementNote)
+                .tuitionSettlementStatus(settlementType == TuitionSettlementType.NONE
+                        ? TuitionSettlementStatus.NONE
+                        : TuitionSettlementStatus.PENDING)
                 .transferredFromEnrollmentId(sourceEnrollment.getId())
                 .note(appendNote(request.getNote(), settlementNote))
                 .build();
@@ -649,8 +654,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             enrollment.setTuitionAmountDue(tuitionDue);
             enrollment.setTuitionAmountPaid(BigDecimal.ZERO);
             enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
-            enrollment.setTuitionSettlementType(TuitionSettlementType.NONE);
-            enrollment.setTuitionSettlementNote(null);
+            ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
             enrollment.setNote(request == null ? null : request.getNote());
             enrollment.setPackageEnrollment(ensurePackageEnrollment(learner, offering));
             ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
@@ -666,6 +670,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .tuitionAmountPaid(BigDecimal.ZERO)
                     .tuitionDepositPaid(BigDecimal.ZERO)
                     .tuitionSettlementType(TuitionSettlementType.NONE)
+                    .tuitionSettlementStatus(TuitionSettlementStatus.NONE)
                     .note(request == null ? null : request.getNote())
                     .build();
             ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
@@ -704,6 +709,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
         enrollment.setHoldSpot(false);
+        ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do học viên hủy đăng ký");
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
@@ -829,6 +835,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.REJECTED);
         enrollment.setNote(appendNote(enrollment.getNote(), request == null ? null : request.getReason()));
+        ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do từ chối đăng ký");
         ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
         enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
 
@@ -858,6 +865,115 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 actor,
                 !Boolean.FALSE.equals(request.getAssignIfFullyPaid())
         );
+    }
+
+    @Override
+    public ClassroomEnrollmentResponse resolveTuitionSettlement(
+            Long enrollmentId,
+            ResolveTuitionSettlementRequest request,
+            String actorEmail
+    ) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTrainingManager(actor);
+        ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
+
+        if (enrollment.getTuitionSettlementType() != TuitionSettlementType.NEED_REFUND) {
+            throw new RuntimeException("Đăng ký này không có yêu cầu hoàn tiền học phí đang chờ xử lý.");
+        }
+        if (enrollment.getTuitionSettlementStatus() != TuitionSettlementStatus.PENDING) {
+            throw new RuntimeException("Settlement học phí này đã được xử lý trước đó.");
+        }
+
+        String action = request == null || request.getAction() == null ? "" : request.getAction().trim().toUpperCase(Locale.ROOT);
+        String note = request == null || request.getNote() == null ? "" : request.getNote().trim();
+
+        if ("APPROVE_REFUND".equals(action)) {
+            return approveTuitionRefund(enrollment, actor, note);
+        }
+        if ("REJECT_REFUND".equals(action)) {
+            if (note.isBlank()) {
+                throw new RuntimeException("Vui lòng nhập lý do từ chối hoàn tiền.");
+            }
+            return rejectTuitionRefund(enrollment, actor, note);
+        }
+        throw new RuntimeException("Thao tác settlement không hợp lệ. Dùng APPROVE_REFUND hoặc REJECT_REFUND.");
+    }
+
+    private ClassroomEnrollmentResponse approveTuitionRefund(
+            ClassroomEnrollment enrollment,
+            User actor,
+            String note
+    ) {
+        BigDecimal due = enrollment.getTuitionAmountDue() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountDue();
+        BigDecimal paid = enrollment.getTuitionAmountPaid() == null ? BigDecimal.ZERO : enrollment.getTuitionAmountPaid();
+        // Exit (cancel/reject/remove): hoàn toàn bộ đã thu. Còn trong lớp (vd. chuyển lớp overpay): chỉ hoàn phần thừa.
+        boolean exitedClass = enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.CANCELLED
+                || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.REJECTED;
+        BigDecimal refundAmount = exitedClass && paid.compareTo(BigDecimal.ZERO) > 0
+                ? paid
+                : paid.subtract(due);
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Không có số tiền cần hoàn cho đăng ký này.");
+        }
+
+        enrollment.setTuitionAmountPaid(paid.subtract(refundAmount));
+        String resolutionNote = note.isBlank()
+                ? "Đã duyệt hoàn tiền " + refundAmount.toPlainString() + " VND."
+                : note;
+
+        tuitionPaymentRepository.save(ClassroomTuitionPayment.builder()
+                .enrollment(enrollment)
+                .amount(refundAmount)
+                .paymentKind(TuitionPaymentKind.REFUND)
+                .note(resolutionNote)
+                .recordedBy(actor)
+                .build());
+
+        ClassroomRegistrationSupport.clearOpenSettlementAsResolved(enrollment, resolutionNote);
+        enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
+        enrollment.setTuitionSettlementResolvedBy(actor);
+
+        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+        enrollment = enrollmentRepository.save(enrollment);
+
+        notificationService.notifyUser(
+                enrollment.getStudent(),
+                "CLASSROOM_TUITION_REFUND_APPROVED",
+                "Đã duyệt hoàn học phí lớp",
+                "Yêu cầu hoàn học phí lớp " + enrollment.getClassroomOffering().getLearningPackage().getTitle()
+                        + " đã được duyệt: " + refundAmount.toPlainString() + " VND.",
+                Map.of(
+                        "enrollmentId", enrollment.getId(),
+                        "classroomId", enrollment.getClassroomOffering().getId(),
+                        "refundAmount", refundAmount
+                )
+        );
+        return mapper.toEnrollmentResponse(enrollment);
+    }
+
+    private ClassroomEnrollmentResponse rejectTuitionRefund(
+            ClassroomEnrollment enrollment,
+            User actor,
+            String note
+    ) {
+        enrollment.setTuitionSettlementStatus(TuitionSettlementStatus.REJECTED);
+        enrollment.setTuitionSettlementResolvedAt(LocalDateTime.now());
+        enrollment.setTuitionSettlementResolvedBy(actor);
+        enrollment.setTuitionSettlementResolutionNote(note);
+        enrollment = enrollmentRepository.save(enrollment);
+
+        notificationService.notifyUser(
+                enrollment.getStudent(),
+                "CLASSROOM_TUITION_REFUND_REJECTED",
+                "Từ chối hoàn học phí lớp",
+                "Yêu cầu hoàn học phí lớp " + enrollment.getClassroomOffering().getLearningPackage().getTitle()
+                        + " đã bị từ chối. Lý do: " + note,
+                Map.of(
+                        "enrollmentId", enrollment.getId(),
+                        "classroomId", enrollment.getClassroomOffering().getId()
+                )
+        );
+        return mapper.toEnrollmentResponse(enrollment);
     }
 
     @Override
@@ -947,6 +1063,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .recordedBy(recordedBy)
                 .build());
 
+        ClassroomRegistrationSupport.applyComputedSettlement(enrollment);
+
         if (assignIfFullyPaid
                 && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.FULLY_PAID) {
             tryAssignEnrollment(enrollment, offering, learner, recordedBy, null);
@@ -1011,8 +1129,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public List<ClassroomEnrollmentResponse> listRegistrations(
             ClassroomRegistrationStatus status,
             Long classroomOfferingId,
-            Boolean needsAction
+            Boolean needsAction,
+            Boolean settlementPending
     ) {
+        if (Boolean.TRUE.equals(settlementPending)) {
+            List<ClassroomEnrollment> pendingSettlements = classroomOfferingId == null
+                    ? enrollmentRepository.findByTuitionSettlementStatus(TuitionSettlementStatus.PENDING)
+                    : enrollmentRepository.findByClassroomOfferingIdAndTuitionSettlementStatus(
+                            classroomOfferingId,
+                            TuitionSettlementStatus.PENDING
+                    );
+            return pendingSettlements.stream()
+                    .sorted(registrationQueueComparator())
+                    .map(mapper::toEnrollmentResponse)
+                    .toList();
+        }
+
         Set<ClassroomRegistrationStatus> statuses = ClassroomRegistrationSupport.resolveRegistrationFilter(status, needsAction);
         List<ClassroomEnrollment> enrollments = classroomOfferingId == null
                 ? enrollmentRepository.findByRegistrationStatusIn(statuses)
@@ -1720,19 +1852,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .build();
             conflictService.assertNoBlockingConflict(request);
         }
-    }
-
-    private String buildSettlementNote(TuitionSettlementType type, BigDecimal due, BigDecimal paid) {
-        if (type == null || type == TuitionSettlementType.NONE) {
-            return null;
-        }
-        BigDecimal diff = paid.subtract(due).abs();
-        return switch (type) {
-            case NEED_ADDITIONAL_PAYMENT -> "Cần thanh toán thêm " + diff.toPlainString() + " VND.";
-            case HAS_BALANCE -> "Có số dư " + diff.toPlainString() + " VND.";
-            case NEED_REFUND -> "Cần xử lý hoàn tiền " + diff.toPlainString() + " VND.";
-            case NONE -> null;
-        };
     }
 
     private String appendNote(String existing, String addition) {

@@ -1002,3 +1002,92 @@ Seed thêm: `9006006002` PENDING, `9006006003` PAID+coupon `T6REFUND10`, `900600
 - Unit: `PaymentServiceImplRefundReceiptTest` + `PaymentServiceImplClassroomTuitionTest` (10/10).
 - Live API E2E: **13/13** (round 1) + **32/32** (round 2 edge cases).
 
+---
+
+## Task 7 — Xử lý NEED_REFUND / settlement học phí lớp
+
+- **Date:** 2026-07-13
+- **Branch:** `phongdx`
+- **Commit hash:** Not committed yet (base HEAD: `75303d6`)
+
+### Summary
+
+Hoàn thiện workflow **Training Manager** duyệt/từ chối hoàn học phí lớp khi enrollment ở trạng thái `NEED_REFUND`. Hệ thống cập nhật số tiền đã thu, ghi audit `ClassroomTuitionPayment` loại `REFUND`, và lưu người/thời điểm/ghi chú xử lý. Tiền PayOS/ngân hàng vẫn xử lý ngoài app (giống Task 6).
+
+### Đã có sẵn (tái sử dụng)
+
+- `TuitionSettlementType` + `computeSettlement` khi **chuyển lớp** overpay
+- Hiển thị `TuitionStatusCard` trên panel đăng ký TM
+
+### Thay đổi chính
+
+**Backend**
+
+- Enum `TuitionSettlementStatus` (`NONE|PENDING|RESOLVED|REJECTED`)
+- Cột audit trên `classroom_enrollments` + migration `ClassroomTuitionSettlementSchemaMigration`
+- `TuitionPaymentKind.REFUND` (+ CHECK constraint DB)
+- Helper gán/clear settlement trong `ClassroomRegistrationSupport`
+- API `POST /api/training-manager/classrooms/enrollments/{id}/settlement/resolve` (`APPROVE_REFUND` | `REJECT_REFUND`)
+- List `GET .../registrations?settlementPending=true`
+- Producer: hủy đăng ký / xóa HV / từ chối đăng ký khi đã thu tiền → gắn `NEED_REFUND` + `PENDING`
+- `recordTuitionPayment` / PayOS ghi nhận → recompute settlement (xử lý `NEED_ADDITIONAL_PAYMENT` khi đủ tiền)
+
+**Frontend**
+
+- Tab **Cần hoàn tiền** + panel Duyệt/Từ chối trong `TrainingManagerRegistrationPanel`
+- `TuitionStatusCard` không báo “Đã hoàn thành” khi còn settlement pending
+- Lịch sử học phí hiển thị dòng hoàn (`−` / `REFUND`)
+
+### Changed files
+
+- `TuitionSettlementStatus.java`, `TuitionPaymentKind.java`, `ClassroomEnrollment.java`
+- `ClassroomTuitionSettlementSchemaMigration.java`
+- `ResolveTuitionSettlementRequest.java`, `ClassroomEnrollmentResponse.java`
+- `ClassroomRegistrationSupport.java`, `ClassroomOfferingService(.java|Impl.java)`, `ClassroomMapper.java`
+- `ClassroomEnrollmentRepository.java`, `TrainingManagerClassroomController.java`
+- `TrainingManagerRegistrationPanel.jsx`, `ClassroomUi.jsx`, `classroomApi.js`, `classroomHelpers.js`
+- `ClassroomRegistrationSupportSettlementTest.java`, `ClassroomOfferingServiceImplSettlementTest.java`
+- `docs/CHANGELOG_IMPLEMENTATION.md`
+
+### API
+
+| Method | Path | Mô tả |
+|--------|------|--------|
+| POST | `/api/training-manager/classrooms/enrollments/{id}/settlement/resolve` | Duyệt/từ chối hoàn học phí |
+| GET | `/api/training-manager/classrooms/registrations?settlementPending=true` | Hàng đợi settlement PENDING |
+
+### Database
+
+- `classroom_enrollments`: `tuition_settlement_status`, `tuition_settlement_resolved_at`, `tuition_settlement_resolved_by_id`, `tuition_settlement_resolution_note`
+- `classroom_tuition_payments.payment_kind` cho phép `REFUND`
+
+### Web test checklist
+
+1. [x] Chuyển lớp overpay → enrollment đích `NEED_REFUND` + tab **Cần hoàn tiền** hiện hồ sơ.
+2. [x] TM **Duyệt hoàn tiền** (còn trong lớp) → `paid` giảm về `due`, lịch sử có dòng REFUND, status `RESOLVED`.
+3. [x] TM **Từ chối hoàn** (có lý do) → giữ số tiền, status `REJECTED`, không ghi REFUND.
+4. [x] Hủy đăng ký / xóa HV / từ chối đăng ký khi đã đóng học phí → gắn `NEED_REFUND`; duyệt hoàn **toàn bộ** số đã thu (`paid → 0`).
+5. [x] Double resolve / thiếu lý do từ chối / action invalid / resolve khi `NONE` → 400; learner/unauth → 403.
+
+### Tests
+
+- Unit: `ClassroomRegistrationSupportSettlementTest` + `ClassroomOfferingServiceImplSettlementTest` — **PASS** (gồm case CANCELLED overpay → hoàn full).
+- API E2E (2026-07-13, backend restart sau fix hoàn full khi exit): **21/21 PASS**
+  - Auth: learner/unauth 403 trên list settlement
+  - `settlementPending=true` hiện hồ sơ `NEED_REFUND`+`PENDING`
+  - APPROVE overpay (ASSIGNED): paid 15000→10000, audit REFUND 5000
+  - APPROVE sau `removeStudent` (CANCELLED, paid>due): paid 12000→0, audit REFUND 12000
+  - REJECT_REFUND: giữ paid, không có dòng REFUND
+  - Learner cancel / rejectRegistration có paid → `NEED_REFUND` → APPROVE paid→0
+  - Transfer overpay (offering 12→13): paid 3490000 / due 10000 → APPROVE paid→10000, audit REFUND 3480000
+  - Double-resolve / blank reject note / invalid action / resolve `NONE` → 400
+
+### Bugfix khi E2E
+
+- `approveTuitionRefund`: khi enrollment đã **CANCELLED/REJECTED**, luôn hoàn toàn bộ `paid` (không chỉ `paid - due`). Trước đó case xóa HV với paid>due chỉ hoàn phần thừa.
+
+### Ngoài phạm vi
+
+- PayOS payout/refund gateway cho học phí lớp
+- Hoàn tiền khóa học online (Task 6)
+

@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.service.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.RefundPaymentOrderRequest;
+import fu.sap490.g23.backend.dto.request.payment.RefundCourseOrderRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.payment.DiscountCode;
@@ -91,7 +91,7 @@ class PaymentServiceImplRefundReceiptTest {
         when(userRepository.findByEmail("manager@example.com")).thenReturn(Optional.of(manager));
         when(paymentOrderRepository.findByOrderCode(1001L)).thenReturn(Optional.of(courseOrder));
 
-        RefundPaymentOrderRequest request = new RefundPaymentOrderRequest();
+        RefundCourseOrderRequest request = new RefundCourseOrderRequest();
         request.setReason("Học viên yêu cầu hoàn");
 
         PaymentOrderSummaryResponse response = paymentService.refundCourseOrder(1001L, request, "manager@example.com");
@@ -113,7 +113,7 @@ class PaymentServiceImplRefundReceiptTest {
         when(userRepository.findByEmail("manager@example.com")).thenReturn(Optional.of(manager));
         when(paymentOrderRepository.findByOrderCode(1001L)).thenReturn(Optional.of(courseOrder));
 
-        RefundPaymentOrderRequest request = new RefundPaymentOrderRequest();
+        RefundCourseOrderRequest request = new RefundCourseOrderRequest();
         request.setReason("Test");
 
         RuntimeException ex = assertThrows(
@@ -129,7 +129,7 @@ class PaymentServiceImplRefundReceiptTest {
         when(userRepository.findByEmail("manager@example.com")).thenReturn(Optional.of(manager));
         when(paymentOrderRepository.findByOrderCode(1001L)).thenReturn(Optional.of(courseOrder));
 
-        RefundPaymentOrderRequest request = new RefundPaymentOrderRequest();
+        RefundCourseOrderRequest request = new RefundCourseOrderRequest();
         request.setReason("Lần 2");
 
         RuntimeException ex = assertThrows(

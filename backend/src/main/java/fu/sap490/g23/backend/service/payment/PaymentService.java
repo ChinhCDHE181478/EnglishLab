@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.service.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.RefundPaymentOrderRequest;
+import fu.sap490.g23.backend.dto.request.payment.RefundCourseOrderRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
@@ -16,7 +16,7 @@ public interface PaymentService {
     PaymentOrderStatusResponse getOrderStatus(Long orderCode, String studentEmail);
     List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail);
     List<PaymentOrderSummaryResponse> listStaffOrders(PaymentOrderStatus status);
-    PaymentOrderSummaryResponse refundCourseOrder(Long orderCode, RefundPaymentOrderRequest request, String actorEmail);
+    PaymentOrderSummaryResponse refundCourseOrder(Long orderCode, RefundCourseOrderRequest request, String actorEmail);
     byte[] downloadCourseReceipt(Long orderCode, String studentEmail);
     RevenueAnalyticsResponse getRevenueAnalytics();
     void handlePayosWebhook(Map<String, Object> payload);

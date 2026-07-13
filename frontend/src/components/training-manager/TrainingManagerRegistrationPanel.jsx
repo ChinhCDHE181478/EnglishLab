@@ -39,6 +39,7 @@ import {
 
 const globalStatusTabs = [
   { id: 'NEEDS_ACTION', label: 'Cần xử lý' },
+  { id: 'SETTLEMENT_PENDING', label: 'Cần hoàn tiền' },
   { id: 'PENDING_CONFIRMATION', label: 'Chờ xác nhận' },
   { id: 'PENDING_TUITION_PAYMENT', label: 'Chờ học phí' },
   { id: 'DEPOSIT_PAID', label: 'Đã đặt cọc' },
@@ -51,6 +52,7 @@ const globalStatusTabs = [
 
 const queueOnlyTabs = [
   { id: 'NEEDS_ACTION', label: 'Cần xử lý' },
+  { id: 'SETTLEMENT_PENDING', label: 'Cần hoàn tiền' },
   { id: 'WAITLIST', label: 'Danh sách chờ' },
   { id: 'ASSIGNED', label: 'Đã xếp lớp' },
 ];
@@ -78,6 +80,7 @@ export default function TrainingManagerRegistrationPanel({
   const [tuitionForm, setTuitionForm] = useState({ amount: '', paymentKind: 'PARTIAL', note: '' });
   const [transferClassroomId, setTransferClassroomId] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [settlementNote, setSettlementNote] = useState('');
   const [tuitionHistory, setTuitionHistory] = useState([]);
   const [conflictResult, setConflictResult] = useState(null);
   const [checkingConflict, setCheckingConflict] = useState(false);
@@ -99,6 +102,8 @@ export default function TrainingManagerRegistrationPanel({
       }
       if (activeTab === 'NEEDS_ACTION') {
         params.needsAction = true;
+      } else if (activeTab === 'SETTLEMENT_PENDING') {
+        params.settlementPending = true;
       } else if (activeTab !== 'ALL') {
         params.status = activeTab;
       }
@@ -197,6 +202,20 @@ export default function TrainingManagerRegistrationPanel({
   const handleTransfer = () => runAction(() => classroomApi.transferClassEnrollment(selected.id, {
     targetClassroomOfferingId: Number(transferClassroomId),
   }));
+  const handleApproveSettlement = () => runAction(async () => {
+    await classroomApi.resolveTuitionSettlement(selected.id, {
+      action: 'APPROVE_REFUND',
+      note: settlementNote || undefined,
+    });
+    setSettlementNote('');
+  });
+  const handleRejectSettlement = () => runAction(async () => {
+    await classroomApi.resolveTuitionSettlement(selected.id, {
+      action: 'REJECT_REFUND',
+      note: settlementNote,
+    });
+    setSettlementNote('');
+  });
 
   const handleMoveWaitlist = async (index, direction) => {
     const targetIndex = index + direction;
@@ -415,6 +434,7 @@ export default function TrainingManagerRegistrationPanel({
               checkingConflict={checkingConflict}
               classrooms={classrooms}
               conflictResult={conflictResult}
+              onApproveSettlement={handleApproveSettlement}
               onAssign={handleAssign}
               onConflictCheck={handleConflictCheck}
               onConfirm={handleConfirm}
@@ -423,6 +443,7 @@ export default function TrainingManagerRegistrationPanel({
               onRecordTuition={handleRecordTuition}
               onReject={handleReject}
               onRejectProof={handleRejectProof}
+              onRejectSettlement={handleRejectSettlement}
               onTransfer={handleTransfer}
               processingProofId={processingProofId}
               proofRejectReasons={proofRejectReasons}
@@ -430,8 +451,10 @@ export default function TrainingManagerRegistrationPanel({
               selected={selected}
               selectedProofs={selectedProofs}
               setRejectReason={setRejectReason}
+              setSettlementNote={setSettlementNote}
               setTransferClassroomId={setTransferClassroomId}
               setTuitionForm={setTuitionForm}
+              settlementNote={settlementNote}
               transferClassroomId={transferClassroomId}
               tuitionForm={tuitionForm}
               tuitionHistory={tuitionHistory}
@@ -530,6 +553,8 @@ function RegistrationDetail({
   setTuitionForm,
   rejectReason,
   setRejectReason,
+  settlementNote,
+  setSettlementNote,
   transferClassroomId,
   setTransferClassroomId,
   tuitionHistory,
@@ -548,7 +573,12 @@ function RegistrationDetail({
   onRecordTuition,
   onTransfer,
   onConflictCheck,
+  onApproveSettlement,
+  onRejectSettlement,
 }) {
+  const canResolveSettlement = selected.tuitionSettlementType === 'NEED_REFUND'
+    && (selected.tuitionSettlementStatus === 'PENDING' || !selected.tuitionSettlementStatus);
+
   return (
     <div className="space-y-6">
       <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
@@ -609,9 +639,52 @@ function RegistrationDetail({
           remaining={selected.tuitionRemaining}
           settlementLabel={selected.tuitionSettlementTypeLabel}
           settlementNote={selected.tuitionSettlementNote}
+          settlementStatus={selected.tuitionSettlementStatus}
           settlementType={selected.tuitionSettlementType}
         />
       </section>
+
+      {canResolveSettlement ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-6 shadow-sm space-y-4">
+          <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-[#730014]" />
+            Xử lý hoàn học phí (NEED_REFUND)
+          </h3>
+          <p className="text-sm text-[#584140]">
+            {selected.tuitionSettlementNote
+              || 'Đăng ký này đang chờ Training Manager duyệt hoàn hoặc từ chối hoàn học phí trên hệ thống.'}
+          </p>
+          {selected.tuitionSettlementStatusLabel ? (
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-800">
+              Trạng thái: {selected.tuitionSettlementStatusLabel}
+            </p>
+          ) : null}
+          <input
+            className="w-full rounded-2xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014]"
+            onChange={(event) => setSettlementNote(event.target.value)}
+            placeholder="Ghi chú duyệt / lý do từ chối hoàn tiền..."
+            value={settlementNote}
+          />
+          <div className="flex flex-wrap gap-3">
+            <button
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800"
+              onClick={onApproveSettlement}
+              type="button"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Duyệt hoàn tiền
+            </button>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/30 px-5 py-3 text-xs font-extrabold text-rose-700 hover:bg-rose-50"
+              onClick={onRejectSettlement}
+              type="button"
+            >
+              <XCircle className="h-4 w-4" />
+              Từ chối hoàn
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-6">
         <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
@@ -722,7 +795,9 @@ function RegistrationDetail({
         </h3>
         {tuitionHistory.length ? tuitionHistory.map((payment) => (
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4" key={payment.id}>
-            <p className="font-extrabold text-emerald-700">+ {formatClassroomPrice(payment.amount)}</p>
+            <p className={`font-extrabold ${payment.paymentKind === 'REFUND' ? 'text-rose-700' : 'text-emerald-700'}`}>
+              {payment.paymentKind === 'REFUND' ? '−' : '+'} {formatClassroomPrice(payment.amount)}
+            </p>
             <p className="text-xs text-[#8b706e]">
               {formatTuitionPaymentKind(payment.paymentKind, payment.paymentKindLabel)}
               {payment.note ? ` · ${payment.note}` : ''}

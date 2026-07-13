@@ -3,7 +3,7 @@ package fu.sap490.g23.backend.service.payment.impl;
 import fu.sap490.g23.backend.service.payment.*;
 
 
-import fu.sap490.g23.backend.dto.request.payment.RefundPaymentOrderRequest;
+import fu.sap490.g23.backend.dto.request.payment.RefundCourseOrderRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
@@ -651,14 +651,6 @@ public class PaymentServiceImpl implements PaymentService {
         return salePrice;
     }
 
-    private BigDecimal resolveOriginalPrice(OnlineCourse course) {
-        return resolveOriginalPrice(course.getLearningPackage());
-    }
-
-    private BigDecimal resolveSystemPrice(OnlineCourse course) {
-        return resolveSystemPrice(course.getLearningPackage());
-    }
-
     private long toVnd(BigDecimal value) {
         if (value == null) {
             return 0L;
@@ -745,7 +737,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentOrderSummaryResponse refundCourseOrder(
             Long orderCode,
-            RefundPaymentOrderRequest request,
+            RefundCourseOrderRequest request,
             String actorEmail
     ) {
         User actor = userRepository.findByEmail(actorEmail)
