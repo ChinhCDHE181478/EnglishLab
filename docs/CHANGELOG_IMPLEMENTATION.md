@@ -920,3 +920,85 @@ Connected classroom tuition to the existing PayOS checkout pipeline while keepin
 
 Sau test đã khôi phục lớp `#12` về `ACTIVE` / `2026-06-21`–`2026-08-16` và hủy enrollment test `#13`, `#14`.
 
+---
+
+## Task 6 — Hoàn tiền & biên lai đơn khóa học (1A + 2A)
+
+- **Date:** 2026-07-13
+- **Branch:** `phongdx`
+- **Commit hash:** Not committed yet
+
+### Summary
+
+Manager/CM đánh dấu hoàn tiền đơn khóa học online trên hệ thống (hủy quyền học + hoàn coupon; tiền PayOS xử lý ngoài app). Học viên tải biên lai PDF tự generate từ dữ liệu đơn.
+
+### Changed files
+
+- `PaymentOrderStatus.java` (+ `REFUNDED`)
+- `PaymentOrder.java` + `PaymentOrderRefundSchemaMigration.java`
+- `PaymentReceiptPdfService.java` (OpenPDF)
+- `PaymentService` / `PaymentServiceImpl` (refund, receipt, staff list)
+- `OnlineCourseService.revokePaidCourseAccess`
+- `StudentPaymentController` receipt endpoint
+- `ManagerPaymentController` (`/api/manager|content-manager/payments`)
+- `TransactionHistoryPage.jsx`, `ContentManagerAnalyticsPage.jsx`, `paymentApi.js`
+- `PaymentServiceImplRefundReceiptTest.java`
+- `docs/CHANGELOG_IMPLEMENTATION.md`
+
+### Scope notes
+
+- Chỉ đơn **COURSE** (`enrollmentId == null`).
+- Full refund only.
+- Không gọi PayOS payout/refund gateway.
+
+### Web test checklist
+
+1. [x] HV tải biên lai PDF đơn khóa học PAID/REFUNDED (`GET /api/student/payments/orders/{orderCode}/receipt` → `%PDF`, `application/pdf`).
+2. [x] Manager hoàn tiền đơn khóa học (`POST /api/manager/payments/orders/{orderCode}/refund`) → `REFUNDED` + revoke enrollment.
+3. [x] Đơn `REFUNDED`; `package_enrollments.status = CANCELLED`. Coupon restore đã cover bằng unit test (DB không có discount_codes để E2E).
+4. [x] Reject: đơn học phí lớp (receipt + refund), double refund, HV gọi API manager (403), HV khác tải biên lai (400).
+
+### Bugfix khi E2E
+
+- DB check `payment_orders_status_check` chưa có `REFUNDED` → refund bị Postgres reject.
+- Đã bổ sung drop/recreate constraint trong `PaymentOrderRefundSchemaMigration` (và apply trực tiếp trên DB local).
+
+### API E2E (2026-07-13, backend `:8080`)
+
+Seed: `payment_orders.order_code=9006006001` (COURSE, PAID, student `0386852628z@gmail.com`), enrollment package 13 ACTIVE → sau refund CANCELLED.
+
+| Step | Result |
+|------|--------|
+| List orders: `orderType=COURSE`, `hasReceipt`, `refundable` | PASS |
+| Owner download receipt PDF | PASS |
+| Other student download receipt | PASS (400) |
+| Classroom owner download receipt | PASS (400 học phí lớp) |
+| Manager list `?status=PAID` | PASS |
+| Refund classroom order | PASS (400) |
+| Refund course order → REFUNDED 10000 | PASS |
+| Enrollment CANCELLED | PASS |
+| Double refund | PASS (400) |
+| Receipt after REFUNDED | PASS |
+| Learner list shows REFUNDED / `refundable=false` | PASS |
+| Staff `?status=REFUNDED` | PASS |
+| Learner → manager refund | PASS (403) |
+
+### Extra E2E cases (2026-07-13, round 2) — **32/32 PASS**
+
+Seed thêm: `9006006002` PENDING, `9006006003` PAID+coupon `T6REFUND10`, `9006006004` CANCELLED, `9006006005` PAID (reason len=500).
+
+| Nhóm | Cases |
+|------|--------|
+| Auth/role | TM 403 list/refund; unauth 403; learner 403 refund; Manager dùng `/content-manager/payments` |
+| Receipt | Reject PENDING/CANCELLED/nonexistent; OK sau coupon-refund |
+| Flags | PENDING/CANCELLED: `hasReceipt=false`, `refundable=false`; PAID+coupon đúng mã/giảm giá |
+| Validation | Blank / whitespace / missing reason; reason >500 reject; reason=500 OK |
+| Refund status | Reject PENDING/CANCELLED/already REFUNDED/nonexistent |
+| Coupon+revoke | `used_count` 1→0; enrollment CANCELLED; `refunded_by_id=30`; content API 400; my-enrollments=0 |
+| Analytics | `paidOrders` khớp DB PAID (loại REFUNDED); staff list all có REFUNDED; invalid status filter 400 |
+
+### Tests
+
+- Unit: `PaymentServiceImplRefundReceiptTest` + `PaymentServiceImplClassroomTuitionTest` (10/10).
+- Live API E2E: **13/13** (round 1) + **32/32** (round 2 edge cases).
+

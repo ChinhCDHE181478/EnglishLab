@@ -111,6 +111,20 @@ public class PaymentOrder {
     @Column(name = "last_webhook_payload", columnDefinition = "text")
     private String lastWebhookPayload;
 
+    @Column(name = "refunded_amount_vnd")
+    @Builder.Default
+    private Long refundedAmount = 0L;
+
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
+
+    @Column(name = "refund_reason", length = 500)
+    private String refundReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refunded_by_id")
+    private User refundedBy;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

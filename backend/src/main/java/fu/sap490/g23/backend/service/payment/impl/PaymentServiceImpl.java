@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.payment.impl;
 import fu.sap490.g23.backend.service.payment.*;
 
 
+import fu.sap490.g23.backend.dto.request.payment.RefundPaymentOrderRequest;
 import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
@@ -28,6 +29,8 @@ import fu.sap490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
+import fu.sap490.g23.backend.service.payment.PaymentReceiptPdfService;
+import fu.sap490.g23.backend.service.payment.PayosProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -65,6 +68,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final UserRepository userRepository;
     private final OnlineCourseService onlineCourseService;
     private final ClassroomOfferingService classroomOfferingService;
+    private final PaymentReceiptPdfService paymentReceiptPdfService;
 
     @Override
     @Transactional(readOnly = true)
@@ -551,6 +555,7 @@ public class PaymentServiceImpl implements PaymentService {
             case PAID -> classroomTuition
                     ? "Thanh toán thành công. Học phí lớp đã được ghi nhận vào hồ sơ đăng ký của bạn."
                     : "Thanh toán thành công. Khóa học đã được cập nhật vào tài khoản của bạn.";
+            case REFUNDED -> "Đơn hàng đã được hoàn tiền trên hệ thống EnglishLab.";
             case PENDING, PROCESSING -> "Đơn thanh toán đang chờ PayOS xác nhận. Vui lòng tải lại sau vài giây.";
             case CANCELLED -> "Đơn thanh toán đã bị hủy.";
             case EXPIRED -> "Link thanh toán đã hết hạn.";
@@ -727,12 +732,95 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PaymentOrderSummaryResponse> listStaffOrders(PaymentOrderStatus status) {
+        List<PaymentOrder> orders = status == null
+                ? paymentOrderRepository.findAll()
+                : paymentOrderRepository.findByStatusIn(List.of(status));
+        return orders.stream()
+                .sorted(Comparator.comparing(PaymentOrder::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::toOrderSummary)
+                .toList();
+    }
+
+    @Override
+    public PaymentOrderSummaryResponse refundCourseOrder(
+            Long orderCode,
+            RefundPaymentOrderRequest request,
+            String actorEmail
+    ) {
+        User actor = userRepository.findByEmail(actorEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản thao tác."));
+        PaymentOrder order = paymentOrderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn thanh toán."));
+        assertCourseOrder(order);
+        if (order.getStatus() == PaymentOrderStatus.REFUNDED) {
+            throw new RuntimeException("Đơn hàng này đã được hoàn tiền.");
+        }
+        if (order.getStatus() != PaymentOrderStatus.PAID) {
+            throw new RuntimeException("Chỉ hoàn tiền được các đơn đã thanh toán thành công.");
+        }
+
+        String reason = request == null || request.getReason() == null ? "" : request.getReason().trim();
+        if (reason.isBlank()) {
+            throw new RuntimeException("Vui lòng nhập lý do hoàn tiền.");
+        }
+
+        order.setStatus(PaymentOrderStatus.REFUNDED);
+        order.setRefundedAmount(safeLong(order.getAmount()));
+        order.setRefundedAt(LocalDateTime.now());
+        order.setRefundReason(reason);
+        order.setRefundedBy(actor);
+        paymentOrderRepository.save(order);
+
+        String studentEmail = order.getStudent().getEmail();
+        for (Long courseId : parseCourseIds(order.getCourseIdsCsv())) {
+            onlineCourseService.revokePaidCourseAccess(courseId, studentEmail);
+        }
+        restoreCouponUsage(order);
+        return toOrderSummary(order);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] downloadCourseReceipt(Long orderCode, String studentEmail) {
+        PaymentOrder order = paymentOrderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn thanh toán."));
+        if (!Objects.equals(order.getStudent().getEmail(), studentEmail)) {
+            throw new RuntimeException("Bạn không có quyền tải biên lai đơn này.");
+        }
+        assertCourseOrder(order);
+        if (order.getStatus() != PaymentOrderStatus.PAID && order.getStatus() != PaymentOrderStatus.REFUNDED) {
+            throw new RuntimeException("Chỉ tải biên lai được khi đơn đã thanh toán hoặc đã hoàn tiền.");
+        }
+        return paymentReceiptPdfService.buildCourseReceipt(order);
+    }
+
+    private void assertCourseOrder(PaymentOrder order) {
+        if (order.getEnrollmentId() != null) {
+            throw new RuntimeException("Đơn học phí lớp không hỗ trợ hoàn tiền/biên lai khóa học trong luồng này.");
+        }
+        if (order.getCourseIdsCsv() == null || order.getCourseIdsCsv().isBlank()) {
+            throw new RuntimeException("Đơn hàng không chứa khóa học online hợp lệ.");
+        }
+    }
+
+    private void restoreCouponUsage(PaymentOrder order) {
+        if (order.getDiscountCode() == null || !order.isCouponReservationReleased()) {
+            return;
+        }
+        DiscountCode discountCode = order.getDiscountCode();
+        discountCode.setUsedCount(Math.max(0, safeCount(discountCode.getUsedCount()) - 1));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public RevenueAnalyticsResponse getRevenueAnalytics() {
         List<PaymentOrder> orders = paymentOrderRepository.findAll();
         long paid = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PAID).count();
         long failed = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.FAILED
                 || order.getStatus() == PaymentOrderStatus.CANCELLED
-                || order.getStatus() == PaymentOrderStatus.EXPIRED).count();
+                || order.getStatus() == PaymentOrderStatus.EXPIRED
+                || order.getStatus() == PaymentOrderStatus.REFUNDED).count();
         long pending = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PENDING
                 || order.getStatus() == PaymentOrderStatus.PROCESSING).count();
         long totalRevenue = orders.stream()
@@ -776,6 +864,11 @@ public class PaymentServiceImpl implements PaymentService {
         List<String> titles = order.getCourseTitles() == null || order.getCourseTitles().isBlank()
                 ? List.of()
                 : List.of(order.getCourseTitles().split("\\|"));
+        boolean courseOrder = order.getEnrollmentId() == null
+                && order.getCourseIdsCsv() != null
+                && !order.getCourseIdsCsv().isBlank();
+        boolean classroomTuition = order.getEnrollmentId() != null;
+        User student = order.getStudent();
         return PaymentOrderSummaryResponse.builder()
                 .orderCode(order.getOrderCode())
                 .status(order.getStatus().name())
@@ -789,6 +882,15 @@ public class PaymentServiceImpl implements PaymentService {
                 .courseTitles(titles.stream().map(String::trim).filter(title -> !title.isBlank()).toList())
                 .createdAt(order.getCreatedAt())
                 .paidAt(order.getPaidAt())
+                .orderType(classroomTuition ? "CLASSROOM_TUITION" : "COURSE")
+                .refundable(courseOrder && order.getStatus() == PaymentOrderStatus.PAID)
+                .hasReceipt(courseOrder && (order.getStatus() == PaymentOrderStatus.PAID
+                        || order.getStatus() == PaymentOrderStatus.REFUNDED))
+                .refundedAmount(safeLong(order.getRefundedAmount()))
+                .refundedAt(order.getRefundedAt())
+                .refundReason(order.getRefundReason())
+                .studentEmail(student == null ? null : student.getEmail())
+                .studentName(student == null ? null : student.getFullName())
                 .build();
     }
 

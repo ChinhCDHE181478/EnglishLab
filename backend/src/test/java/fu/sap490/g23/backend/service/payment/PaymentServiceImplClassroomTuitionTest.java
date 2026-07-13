@@ -47,6 +47,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Mock private UserRepository userRepository;
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
+    @Mock private PaymentReceiptPdfService paymentReceiptPdfService;
 
     private PaymentServiceImpl paymentService;
 
@@ -63,7 +64,8 @@ class PaymentServiceImplClassroomTuitionTest {
                 classroomEnrollmentRepository,
                 userRepository,
                 onlineCourseService,
-                classroomOfferingService
+                classroomOfferingService,
+                paymentReceiptPdfService
         );
 
         student = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();

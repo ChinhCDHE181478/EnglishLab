@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Download } from 'lucide-react';
 import paymentApi from '../api/paymentApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
@@ -8,6 +9,7 @@ import { hasAccessToken } from '../utils/auth';
 const statusLabel = (status) => {
   switch (status) {
     case 'PAID': return { text: 'Đã thanh toán', className: 'bg-[#eef8f1] text-[#1f6b3b]' };
+    case 'REFUNDED': return { text: 'Đã hoàn tiền', className: 'bg-[#eef2ff] text-[#3730a3]' };
     case 'PENDING':
     case 'PROCESSING': return { text: 'Đang xử lý', className: 'bg-[#fff8e8] text-[#8a5b00]' };
     case 'FAILED':
@@ -17,12 +19,17 @@ const statusLabel = (status) => {
   }
 };
 
+const orderTypeLabel = (orderType) => (
+  orderType === 'CLASSROOM_TUITION' ? 'Học phí lớp' : 'Khóa học online'
+);
+
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
 
 const TransactionHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [orders, setOrders] = useState([]);
+  const [downloadingCode, setDownloadingCode] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -52,6 +59,26 @@ const TransactionHistoryPage = () => {
       active = false;
     };
   }, []);
+
+  const handleDownloadReceipt = async (orderCode) => {
+    setDownloadingCode(orderCode);
+    setError('');
+    try {
+      const blob = await paymentApi.downloadReceipt(orderCode);
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `englishlab-receipt-${orderCode}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không tải được biên lai PDF.');
+    } finally {
+      setDownloadingCode(null);
+    }
+  };
 
   return (
     <LearnerPageShell
@@ -94,7 +121,9 @@ const TransactionHistoryPage = () => {
               <article key={order.orderCode} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">Mã đơn #{order.orderCode}</p>
+                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+                      {orderTypeLabel(order.orderType)} · Mã đơn #{order.orderCode}
+                    </p>
                     <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
                       {(order.courseTitles || []).join(' · ') || order.description || 'Thanh toán khóa học'}
                     </h2>
@@ -102,10 +131,26 @@ const TransactionHistoryPage = () => {
                       Tạo lúc {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '—'}
                       {order.paidAt ? ` · Thanh toán lúc ${new Date(order.paidAt).toLocaleString('vi-VN')}` : ''}
                     </p>
+                    {order.status === 'REFUNDED' && order.refundReason ? (
+                      <p className="mt-2 text-sm text-[#3730a3]">Lý do hoàn tiền: {order.refundReason}</p>
+                    ) : null}
                   </div>
-                  <span className={`self-start rounded-full px-3 py-2 text-xs font-extrabold ${badge.className}`}>
-                    {badge.text}
-                  </span>
+                  <div className="flex flex-col items-start gap-3 md:items-end">
+                    <span className={`self-start rounded-full px-3 py-2 text-xs font-extrabold ${badge.className}`}>
+                      {badge.text}
+                    </span>
+                    {order.hasReceipt ? (
+                      <button
+                        className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/50 px-4 py-2.5 text-xs font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8] disabled:opacity-60"
+                        disabled={downloadingCode === order.orderCode}
+                        onClick={() => handleDownloadReceipt(order.orderCode)}
+                        type="button"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {downloadingCode === order.orderCode ? 'Đang tải...' : 'Tải biên lai PDF'}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-4">

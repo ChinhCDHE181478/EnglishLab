@@ -31,6 +31,25 @@ export const paymentApi = {
     return unwrapData(response) ?? [];
   },
 
+  async downloadReceipt(orderCode) {
+    const response = await axiosClient.get(`/api/student/payments/orders/${orderCode}/receipt`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async listStaffOrders(status = 'PAID') {
+    const response = await axiosClient.get('/api/content-manager/payments/orders', {
+      params: status ? { status } : undefined,
+    });
+    return unwrapData(response) ?? [];
+  },
+
+  async refundCourseOrder(orderCode, reason) {
+    const response = await axiosClient.post(`/api/content-manager/payments/orders/${orderCode}/refund`, { reason });
+    return unwrapData(response);
+  },
+
   async getRevenueAnalytics() {
     const response = await axiosClient.get('/api/content-manager/revenue/analytics');
     return unwrapData(response);

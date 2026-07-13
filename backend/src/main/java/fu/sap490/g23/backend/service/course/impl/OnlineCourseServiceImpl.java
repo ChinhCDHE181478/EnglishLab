@@ -438,6 +438,22 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return activateEnrollment(findPublishedCourseForEnrollment(courseId), student);
     }
 
+    @Override
+    public void revokePaidCourseAccess(Long courseId, String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        OnlineCourse course = findCourse(courseId);
+        LearningPackage learningPackage = course.getLearningPackage();
+        if (learningPackage == null) {
+            return;
+        }
+        enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)
+                .ifPresent(enrollment -> {
+                    enrollment.setStatus(EnrollmentStatus.CANCELLED);
+                    enrollmentRepository.save(enrollment);
+                });
+    }
+
     private OnlineCourseResponse activateEnrollment(OnlineCourse course, User student) {
         LearningPackage learningPackage = learningPackageRepository
                 .findByIdAndDeletedFalseAndStatusForUpdate(course.getLearningPackage().getId(), PackageStatus.PUBLISHED)
