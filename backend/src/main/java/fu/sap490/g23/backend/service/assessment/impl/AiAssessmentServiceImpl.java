@@ -75,7 +75,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         String prompt = buildStandaloneWritingPrompt(request, exam);
         try {
             AiEvaluationResult result = aiEvaluationClient.evaluate(prompt);
-            return toWritingFeedbackResponse(result, request.getEssayText(), exam);
+            return toWritingFeedbackResponse(result, false);
         } catch (Exception ignored) {
             return buildWritingFallback(request.getEssayText(), exam);
         }
@@ -94,7 +94,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 """.formatted(exam, safe(request.getPrompt()), safe(request.getTargetBand()), request.getEssayText());
     }
 
-    private WritingFeedbackResponse toWritingFeedbackResponse(AiEvaluationResult result, String essayText, String exam) {
+    private WritingFeedbackResponse toWritingFeedbackResponse(AiEvaluationResult result, boolean fallback) {
         try {
             JsonNode root = objectMapper.readTree(result.getFeedbackJson());
             List<String> strengths = readTextArray(root, "strengths");
@@ -114,10 +114,10 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                     .improvements(improvements)
                     .criteria(criteria)
                     .correctedHighlights(readTextArray(root, "correctedHighlights"))
-                    .fallback(false)
+                    .fallback(fallback)
                     .build();
         } catch (Exception exception) {
-            return buildWritingFallback(essayText, exam);
+            return buildWritingFallback("", "IELTS");
         }
     }
 
