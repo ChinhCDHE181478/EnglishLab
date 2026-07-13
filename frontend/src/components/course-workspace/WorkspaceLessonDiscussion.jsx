@@ -24,7 +24,7 @@ const formatDate = (value) =>
     ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
     : '';
 
-const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onDiscussionCreated, addNotification }) => {
+const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = [], canPersist = false, onDiscussionCreated, addNotification }) => {
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);
@@ -46,24 +46,29 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onD
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const loadDiscussions = useCallback(async () => {
-    if (!courseId || !lessonId) return;
+    if (!courseId || (!lessonId && !lessonIds.length)) return;
     setLoading(true);
     setMessage('');
     try {
-      const result = await courseApi.getLessonDiscussions(courseId, lessonId, {
-        filter,
-        page,
-        size: PAGE_SIZE,
-      });
-      setThreads(result.content || []);
-      setTotalElements(result.totalElements || 0);
-      setTotalPages(result.totalPages || 0);
+      if (lessonId) {
+        const result = await courseApi.getLessonDiscussions(courseId, lessonId, { filter, page, size: PAGE_SIZE });
+        setThreads(result.content || []);
+        setTotalElements(result.totalElements || 0);
+        setTotalPages(result.totalPages || 0);
+      } else {
+        const results = await Promise.all(lessonIds.map((id) => courseApi.getLessonDiscussions(courseId, id, { filter, page: 0, size: 100 })));
+        const allThreads = results.flatMap((result) => result.content || [])
+          .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
+        setThreads(allThreads.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE));
+        setTotalElements(allThreads.length);
+        setTotalPages(Math.ceil(allThreads.length / PAGE_SIZE));
+      }
     } catch (error) {
       setMessage(getErrorMessage(error, 'Không thể tải hỏi đáp cho bài học này.'));
     } finally {
       setLoading(false);
     }
-  }, [courseId, lessonId, filter, page]);
+  }, [courseId, lessonId, lessonIds, filter, page]);
 
   // Reset khi đổi bài học
   useEffect(() => {
@@ -73,7 +78,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onD
     setContent('');
     setFilter('ALL');
     setPage(0);
-  }, [courseId, lessonId]);
+  }, [courseId, lessonId, lessonIds]);
 
   // Load khi courseId/lessonId/filter/page thay đổi
   useEffect(() => {
@@ -120,7 +125,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onD
 
   const handleCreateThread = async (event) => {
     event.preventDefault();
-    if (!requireLogin()) return;
+    if (!lessonId || !requireLogin()) return;
     if (!title.trim() || content.trim().length < 20) {
       setMessage('Vui lòng nhập tiêu đề và nội dung câu hỏi tối thiểu 20 ký tự.');
       return;
@@ -266,7 +271,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onD
       </p>
 
       {/* Create question form */}
-      <form
+      {lessonId ? <form
         className="space-y-2 rounded-2xl border border-[#ead9db] bg-[#fffdfc] p-3"
         onSubmit={handleCreateThread}
       >
@@ -292,7 +297,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, canPersist = false, onD
           {actionKey === 'create' ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
           Gửi câu hỏi
         </button>
-      </form>
+      </form> : <p className="rounded-2xl border border-dashed border-[#ead9db] bg-white px-4 py-3 text-xs text-[#6a5352]">Chọn một bài học cụ thể để gửi câu hỏi mới.</p>}
 
       {message ? (
         <p className="rounded-xl bg-[#fff0f1] px-3 py-2 text-xs font-semibold text-[#730014]">{message}</p>

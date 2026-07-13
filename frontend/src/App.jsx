@@ -16,6 +16,7 @@ import FlashcardPracticePage from './pages/FlashcardPracticePage';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
 import LearningPathPage from './pages/LearningPathPage';
+import LearningPathReferencePage from './pages/LearningPathReferencePage';
 import NotificationsPage from './pages/NotificationsPage';
 import PlacementTestPage from './pages/PlacementTestPage';
 import Register from './pages/Register';
@@ -82,6 +83,7 @@ function AppRoutes() {
       <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
       <Route path="/opening-schedule/:slugOrId" element={<ClassroomPublicDetailPage />} />
       <Route path="/courses" element={<Courses />} />
+      <Route path="/learning-paths/:code" element={<LearningPathReferencePage />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
       <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
       <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />

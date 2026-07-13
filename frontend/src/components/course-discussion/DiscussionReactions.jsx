@@ -73,7 +73,7 @@ export const ReactionButton = ({ counts = {}, myReaction, onReact, reactingKey, 
       {/* Bridge to keep hover open */}
       <div className="pointer-events-none absolute bottom-full left-0 z-10 h-3 w-full opacity-0 group-hover:pointer-events-auto group-focus-within:pointer-events-auto" />
       {/* Reaction picker bar */}
-      <div className="pointer-events-none absolute bottom-full left-0 z-20 flex translate-y-1 scale-95 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100">
+      <div className="pointer-events-none absolute bottom-full right-0 z-[70] flex translate-y-1 scale-95 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100">
         {REACTIONS.map((reaction) => (
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-1 hover:scale-125 focus:-translate-y-1 focus:scale-125 focus:outline-none"
