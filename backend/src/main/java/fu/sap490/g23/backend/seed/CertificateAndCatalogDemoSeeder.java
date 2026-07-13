@@ -6,15 +6,25 @@ import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sap490.g23.backend.entity.course.CourseCategory;
+import fu.sap490.g23.backend.entity.course.CourseModule;
+import fu.sap490.g23.backend.entity.course.LearningPackage;
+import fu.sap490.g23.backend.entity.course.PackageType;
+import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
+import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.admin.AuditLogRepository;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +43,7 @@ import java.time.LocalDateTime;
 public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
     public static final String CERTIFICATE_LEARNER_EMAIL = "certificate.learner@englishlab.vn";
+    private static final String LONG_CONTENT_MANAGER_EMAIL = "longnthe182112@fpt.edu.vn";
     private static final String CATALOG_DEMO_SLUG = "abc";
     private static final String PRIMARY_PATH_CODE = "IELTS_BAND_55_TO_70";
     private static final String PRIMARY_PATH_NAME = "IELTS 5.5 to 7.0 Self-Paced Path";
@@ -42,6 +53,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final LearningPackageRepository learningPackageRepository;
+    private final PackageTypeRepository packageTypeRepository;
+    private final CourseCategoryRepository courseCategoryRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
@@ -56,6 +69,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
 
         normalizePrimaryPathOrder("ielts-master-vocabulary-band-7-plus", 1);
         normalizePrimaryPathOrder("e2-ielts-practice-tests", 2);
+        seedFoundationCatalogCourses();
+        assignCatalogToLongContentManager();
         seedAuditLogs();
         learningPackageRepository.findBySlugAndDeletedFalse(CATALOG_DEMO_SLUG)
                 .flatMap(onlineCourseRepository::findByLearningPackage)
@@ -85,6 +100,107 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     course.setLearningPathOrder(order);
                     onlineCourseRepository.save(course);
                 });
+    }
+
+    private void assignCatalogToLongContentManager() {
+        userRepository.findByEmail(LONG_CONTENT_MANAGER_EMAIL).ifPresent(manager ->
+                onlineCourseRepository.findAll().forEach(course -> {
+                    if (course.getLearningPackage() != null) {
+                        course.getLearningPackage().setCreatedBy(manager);
+                    }
+                })
+        );
+    }
+
+    private void seedFoundationCatalogCourses() {
+        User manager = userRepository.findByEmail(LONG_CONTENT_MANAGER_EMAIL).orElse(null);
+        if (manager == null) return;
+
+        PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.ONLINE_COURSE).orElse(null);
+        CourseCategory category = courseCategoryRepository.findByCode(CourseCategoryCode.IELTS.name()).orElse(null);
+        if (packageType == null || category == null) return;
+
+        upsertFoundationCourse(
+                manager, packageType, category,
+                "ielts-foundation-listening", "IELTS Foundation Listening", 2,
+                "Build listening confidence with short IELTS-style practice and guided review.",
+                "https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg"
+        );
+        upsertFoundationCourse(
+                manager, packageType, category,
+                "ielts-foundation-speaking", "IELTS Foundation Speaking", 3,
+                "Practice clear answers, useful vocabulary, and confident speaking routines.",
+                "https://i.ytimg.com/vi/9dSNvPayFDE/hqdefault.jpg"
+        );
+    }
+
+    private void upsertFoundationCourse(
+            User manager,
+            PackageType packageType,
+            CourseCategory category,
+            String slug,
+            String title,
+            int pathOrder,
+            String description,
+            String thumbnailUrl
+    ) {
+        LearningPackage learningPackage = learningPackageRepository.findBySlugAndDeletedFalse(slug)
+                .orElse(null);
+        if (learningPackage == null) {
+            learningPackage = LearningPackage.builder().slug(slug).packageType(packageType).build();
+        }
+        learningPackage.setPackageType(packageType);
+        learningPackage.setCreatedBy(manager);
+        learningPackage.setTitle(title);
+        learningPackage.setShortDescription(description);
+        learningPackage.setDescription(description);
+        learningPackage.setTargetScore("IELTS Band 5.5");
+        learningPackage.setDuration("4 weeks");
+        learningPackage.setStudyMode("Self-paced online");
+        learningPackage.setPrice(java.math.BigDecimal.ZERO);
+        learningPackage.setThumbnailUrl(thumbnailUrl);
+        learningPackage.setStatus(PackageStatus.PUBLISHED);
+        learningPackage.setDisplayOrder(20 + pathOrder);
+        learningPackage.setFeatured(true);
+        learningPackage.setDeleted(false);
+        learningPackage = learningPackageRepository.save(learningPackage);
+
+        OnlineCourse course = onlineCourseRepository.findByLearningPackage(learningPackage)
+                .orElse(null);
+        if (course == null) {
+            course = OnlineCourse.builder().learningPackage(learningPackage).build();
+        }
+        course.setLearningPackage(learningPackage);
+        course.setCategory(category);
+        course.setLevel(CourseLevel.BEGINNER);
+        course.setRecommendedCurrentBandMin(3.0);
+        course.setRecommendedCurrentBandMax(4.5);
+        course.setTargetBand(5.5);
+        course.setLearningPathCode("IELTS_FOUNDATION_REVIEW");
+        course.setLearningPathName("Lộ trình IELTS Foundation");
+        course.setLearningPathOrder(pathOrder);
+        course.setTargetOutcome(description);
+        course.setTotalLessons(1);
+        course.setTotalHours(4);
+
+        if (course.getModules().isEmpty()) {
+            CourseModule module = CourseModule.builder()
+                    .title("Foundation study plan")
+                    .description("A guided starting module for this learning path.")
+                    .displayOrder(1)
+                    .build();
+            module.addLesson(Lesson.builder()
+                    .title("Welcome to " + title)
+                    .description("Start your foundation study plan.")
+                    .contentType("TEXT")
+                    .contentText("Follow the study guide and complete the practice activities.")
+                    .durationMinutes(30)
+                    .displayOrder(1)
+                    .preview(true)
+                    .build());
+            course.addModule(module);
+        }
+        onlineCourseRepository.save(course);
     }
 
     private void prepareCatalogAndCertificateDemo(OnlineCourse course) {
@@ -122,6 +238,20 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         enrollmentRepository.save(enrollment);
 
         course.getModules().forEach(module -> module.getLessons().forEach(lesson -> completeLesson(learner, enrollment, lesson)));
+        enrollForDiscussionDemo(learner, "ielts-master-vocabulary-band-7-plus");
+    }
+
+    private void enrollForDiscussionDemo(User learner, String courseSlug) {
+        learningPackageRepository.findBySlugAndDeletedFalse(courseSlug)
+                .flatMap(onlineCourseRepository::findByLearningPackage)
+                .ifPresent(course -> enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
+                        .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()
+                                .student(learner)
+                                .learningPackage(course.getLearningPackage())
+                                .status(EnrollmentStatus.ACTIVE)
+                                .progressPercent(10)
+                                .registeredAt(LocalDateTime.now().minusDays(3))
+                                .build())));
     }
 
     private void completeLesson(User learner, PackageEnrollment enrollment, Lesson lesson) {

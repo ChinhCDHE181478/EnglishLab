@@ -725,11 +725,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .computeIfAbsent(course.getLearningPathCode().trim(), ignored -> new ArrayList<>())
                 .add(course));
 
-        List<LearnerLearningPathResponse.PathOverview> paths = groupedCourses.entrySet().stream()
+        List<LearnerLearningPathResponse.PathOverview> allPaths = groupedCourses.entrySet().stream()
                 .map(entry -> buildLearningPathOverview(entry.getKey(), entry.getValue(), enrollmentsByPackageId))
                 .sorted(Comparator.comparing(LearnerLearningPathResponse.PathOverview::getCode)
                         .thenComparing(LearnerLearningPathResponse.PathOverview::getName))
                 .toList();
+        List<LearnerLearningPathResponse.PathOverview> paths = allPaths.stream()
+                .filter(path -> path.getCourses().stream().anyMatch(course -> !"NOT_ENROLLED".equals(course.getEnrollmentStatus())))
+                .findFirst()
+                .map(List::of)
+                .orElseGet(() -> allPaths.isEmpty() ? List.of() : List.of(allPaths.getFirst()));
 
         return LearnerLearningPathResponse.builder()
                 .currentBand(student.getCurrentBand())
