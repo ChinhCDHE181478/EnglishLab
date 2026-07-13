@@ -1,1093 +1,861 @@
-# EnglishLab Implementation Changelog
+# EnglishLab — Nhật ký triển khai (Changelog)
 
-This document records implementation evidence for completed features. New entries must be appended; existing entries must not be overwritten.
+**Mục đích:** Bằng chứng triển khai cho đồ án tốt nghiệp.  
+**Nhánh:** `phongdx`  
+**Ngôn ngữ:** Tiếng Việt (định dạng chuẩn hóa)  
+**Quy tắc:** Sau mỗi task hoàn thành, luôn **nối thêm** một mục mới với **đúng** cấu trúc mục 1–11. Không bịa tính năng; chỉ ghi những gì có trong code.
+
+### Tài khoản demo (dùng chung)
+
+| Vai trò | Email | Mật khẩu |
+|---------|-------|----------|
+| Giáo viên | `classroom.teacher1@englishlab.vn` | `Password123!` |
+| Học viên | `0386852628z@gmail.com` | `Password123!` |
+| Training Manager | `training.manager@englishlab.vn` | `Password123!` |
+| Manager | `classroom.manager@englishlab.vn` | `Password123!` |
+| Content Manager | `content.manager@englishlab.vn` | `Password123!` (khi chạy seed classroom demo) |
+| Học viên waitlist | `waitlist.learner.a@test.vn`, `waitlist.learner.b@test.vn` | `Password123!` |
+
+### Môi trường
+
+- Backend: `http://localhost:8080`
+- Frontend: `http://localhost:5173` (hoặc cổng Vite hiện tại)
 
 ---
 
-## Task 1 — UI yêu cầu buổi học bù (Makeup Session Request)
+## Task 1: UI yêu cầu buổi học bù (Makeup Session)
 
-- **Date:** 2026-07-12
-- **Branch:** `phongdx`
-- **Commit hash:** Not committed yet (base HEAD: `be2136c`)
+- **Ngày:** 2026-07-12
+- **Commit:** `1142848` — `feat(classroom): Task 1 — yêu cầu buổi học bù (makeup session)`
 
-### Summary
+### 1. Tóm tắt
 
-Completed the teacher-facing makeup-session request flow by extending the existing classroom change-request architecture. Teachers can select the source session, choose a valid makeup date, time slot, and room, then submit the request for Training Manager approval. The existing generic approval flow creates a new session with `MAKEUP` status.
+Hoàn thiện luồng giáo viên gửi yêu cầu tạo buổi học bù trên hệ thống change-request hiện có. Giáo viên chọn buổi gốc (kể cả đã hoàn thành/hủy để lấy ngữ cảnh), đề xuất ngày/giờ/phòng, kiểm tra xung đột, rồi gửi Training Manager duyệt. Khi duyệt, hệ thống tạo **buổi mới** trạng thái `MAKEUP` (buổi gốc chỉ mang tính ngữ cảnh).
 
-### Changed files
+### 2. Phạm vi thay đổi
+
+- Backend
+- Frontend
+- API (tái sử dụng API change-request; không thêm path mới)
+- UI/UX
+- Validation
+
+### 3. Tệp đã thay đổi
 
 - `frontend/src/components/teacher/TeacherChangeRequestForm.jsx`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomChangeRequestServiceImpl.java`
-- `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomChangeRequestServiceImplTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Backend changes
-
-- Added explicit validation for `CREATE_MAKEUP_SESSION`.
-- Required the source session, makeup date, start time, and end time.
-- Allowed completed or cancelled source sessions to provide context without producing a source-session lock conflict.
-- Preserved conflict checks for the proposed teacher, room, and enrolled learners.
-- Reused the existing Training Manager approval path and `ClassroomOfferingService.createSession`.
-
-### Frontend changes
-
-- Added `CREATE_MAKEUP_SESSION` to `TeacherChangeRequestForm`.
-- Reused the existing reschedule date, time-slot, room-availability, and conflict-check UI.
-- Allowed all source sessions to be selected for makeup requests, including completed or cancelled sessions.
-- Added makeup-specific labels and reset behavior when switching request types.
-- Submitted the existing `CreateChangeRequestRequest` payload without introducing duplicate API logic.
-
-### Database changes
-
-- None.
-- Existing `classroom_change_requests` and `classroom_sessions` structures are reused.
-
-### Testing checklist
-
-- [x] Frontend ESLint passes.
-- [x] Frontend production build passes.
-- [x] Backend compilation passes.
-- [x] Makeup request accepts a completed source session while checking only the proposed schedule.
-- [x] Makeup request rejects missing schedule data.
-- [x] Backend tests pass: 2 tests, 0 failures, 0 errors.
-- [x] IDE diagnostics report no errors in changed files.
-- [ ] Manual browser verification with Teacher and Training Manager accounts.
-
-### Important notes
-
-- No new endpoint was introduced.
-- The feature reuses the current create/check-conflict/approve/reject change-request APIs.
-- The source session is contextual only; approval creates a separate session with `ClassroomSessionStatus.MAKEUP`.
-
----
-
-## Task 2 — Giáo viên chỉnh sửa gradebook thủ công (Manual Gradebook Editing)
-
-- **Date:** 2026-07-12
-- **Branch:** `phongdx`
-- **Commit hash:** Not committed yet (base HEAD: `be2136c`)
-
-### Summary
-
-Completed manual gradebook editing on `TeacherClassroomPage` by reusing the existing `updateGradebookEntry` API. Teachers can edit homework, quiz, attendance, participation, and final-result scores, add a comment, and save one learner entry at a time without reloading the full page.
-
-### Changed files
-
-- `frontend/src/components/teacher/TeacherGradebookSection.jsx`
+  - Thêm loại `CREATE_MAKEUP_SESSION` (“Tạo buổi học bù”), nhãn makeup, chọn buổi gốc kể cả completed/cancelled.
 - `frontend/src/pages/teacher/TeacherClassroomPage.jsx`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/UpdateGradebookRequest.java`
-- `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomGradebookServiceImplTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Backend changes
-
-- Reused `ClassroomGradebookServiceImpl.updateEntry` and the existing teacher gradebook endpoint.
-- Added Jakarta Validation constraints for all editable numeric fields.
-- Restricted homework, quiz, participation, and final-result scores to `0–10`.
-- Restricted attendance percentage to `0–100`.
-- Restricted numeric precision to two decimal places.
-- Limited teacher comments to 2000 characters.
-- Added a service test covering manual score updates and the `PENDING` to `GRADED` transition.
-
-### Frontend changes
-
-- Extracted gradebook UI into `TeacherGradebookSection` to keep `TeacherClassroomPage` maintainable.
-- Added an inline edit panel for each learner.
-- Added inputs for homework, quiz, attendance, participation, final result, and teacher comment.
-- Added client-side range and comment-length validation.
-- Reused `classroomApi.updateGradebookEntry`.
-- Replaced only the updated learner row in local state after a successful save.
-- Preserved the existing gradebook publication workflow and visual language.
-
-### Database changes
-
-- None.
-- Existing `classroom_gradebook_entries` columns are reused.
-
-### Testing checklist
-
-- [x] Frontend ESLint passes.
-- [x] Frontend production build passes.
-- [x] Backend test compilation passes.
-- [x] Manual scores are persisted through `ClassroomGradebookServiceImpl.updateEntry`.
-- [x] A pending gradebook entry becomes `GRADED` after manual editing.
-- [x] Task 1 and Task 2 classroom tests pass together: 3 tests, 0 failures, 0 errors.
-- [x] IDE diagnostics report no errors in changed files.
-- [ ] Manual browser verification with a Teacher account.
-- [ ] Verify learner visibility after publishing the edited gradebook.
-
-### Important notes
-
-- No new endpoint was introduced.
-- Existing endpoint: `PUT /api/teacher/classrooms/{id}/gradebook`.
-- Editing an already published entry preserves its current `PUBLISHED` status, so the corrected value remains visible to the learner.
-- The quiz score remains editable as a separate gradebook component.
-
----
-
-## Phụ lục tiếng Việt cho Task 1 và Task 2
-
-Phụ lục này được thêm mới theo yêu cầu ghi changelog bằng tiếng Việt. Nội dung cũ phía trên được giữ nguyên để bảo toàn lịch sử.
-
-### Task 1 — UI yêu cầu buổi học bù
-
-- Hoàn thiện luồng để giáo viên chọn buổi học gốc, ngày học bù, khung giờ và phòng học rồi gửi Training Manager duyệt.
-- Tái sử dụng kiến trúc change request và API kiểm tra xung đột hiện có.
-- Cho phép dùng buổi đã hoàn thành hoặc đã hủy làm ngữ cảnh cho yêu cầu học bù.
-- Khi được duyệt, hệ thống tạo một buổi học mới có trạng thái `MAKEUP`.
-- Không thay đổi cấu trúc cơ sở dữ liệu.
-- Đã kiểm tra ESLint, frontend build, backend compile và 2 backend tests.
-
-### Task 2 — Giáo viên chỉnh sửa gradebook thủ công
-
-- Tách giao diện bảng điểm thành `TeacherGradebookSection`.
-- Cho phép sửa điểm homework, quiz, chuyên cần, tham gia, kết quả cuối cùng và nhận xét.
-- Bổ sung validation ở cả frontend và DTO backend.
-- Tái sử dụng endpoint `PUT /api/teacher/classrooms/{id}/gradebook`.
-- Không thay đổi cấu trúc cơ sở dữ liệu.
-- Đã kiểm tra ESLint, frontend build và 3 backend tests của Task 1–2.
-
----
-
-## Bổ sung Task 2 — Thu hồi công bố bảng điểm
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit
-
-### Tóm tắt
-
-Đã bổ sung khả năng thu hồi bảng điểm đã công bố để giáo viên tạm ẩn kết quả khỏi học viên trong lúc kiểm tra hoặc chỉnh sửa. Cả thao tác công bố và thu hồi đều yêu cầu xác nhận trước khi gửi request.
-
-### Tệp đã thay đổi
-
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomGradebookService.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomGradebookServiceImpl.java`
-- `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TeacherClassroomController.java`
-- `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomGradebookServiceImplTest.java`
+  - Gắn form yêu cầu trong tab gửi yêu cầu của lớp.
+- `frontend/src/pages/training-manager/TrainingManagerRequestsPage.jsx`
+  - TM xem / duyệt / từ chối yêu cầu chờ.
 - `frontend/src/api/classroomApi.js`
-- `frontend/src/pages/teacher/TeacherClassroomPage.jsx`
-- `frontend/src/components/teacher/TeacherGradebookSection.jsx`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Thay đổi chức năng
-
-- Thêm nút `Thu hồi công bố` nằm cạnh nút `Công bố bảng điểm`.
-- Thêm hộp xác nhận trước cả hai thao tác.
-- Nút công bố bị vô hiệu hóa khi toàn bộ bảng điểm đã ở trạng thái `PUBLISHED`.
-- Nút thu hồi bị vô hiệu hóa khi chưa có bảng điểm nào được công bố.
-- Khi thu hồi, chỉ các entry đang `PUBLISHED` được chuyển về `GRADED`; entry `PENDING` hoặc trạng thái khác được giữ nguyên.
-- Sau khi thu hồi, API bảng điểm học viên không trả kết quả cho đến khi giáo viên công bố lại.
-
-### API
-
-- Thêm `POST /api/teacher/classrooms/{id}/gradebook/unpublish`.
-- Giữ nguyên `POST /api/teacher/classrooms/{id}/gradebook/publish`.
-
-### Cơ sở dữ liệu
-
-- Không thay đổi schema.
-- Tái sử dụng trạng thái `GRADED` và `PUBLISHED` hiện có.
-
-### Kiểm thử
-
-- [x] Frontend ESLint chạy thành công.
-- [x] Frontend production build chạy thành công.
-- [x] Backend test: 2 tests, 0 failures, 0 errors.
-- [x] IDE diagnostics không có lỗi trong các tệp đã thay đổi.
-- [ ] Kiểm tra thủ công hộp xác nhận công bố trên trình duyệt.
-- [ ] Kiểm tra thủ công hộp xác nhận thu hồi và quyền xem của học viên.
-
-### Bổ sung UI xác nhận đồng bộ
-
-- Thay hộp thoại mặc định `window.confirm` bằng `ConfirmModal` dùng chung của hệ thống.
-- Hộp xác nhận công bố sử dụng màu thương hiệu và nội dung giải thích phạm vi hiển thị cho học viên.
-- Hộp xác nhận thu hồi sử dụng trạng thái cảnh báo nguy hiểm và giải thích rằng học viên sẽ tạm thời không xem được kết quả.
-- Hỗ trợ đóng bằng nút Hủy, click backdrop hoặc phím Escape.
-- Frontend ESLint và production build chạy thành công sau thay đổi.
-
-### Sửa cách hiển thị riêng điểm Homework và Quiz
-
-- Loại bỏ công thức trung bình `homeworkScore` và `quizScore` khiến điểm `2` và `1` bị hiển thị thành `1.5`.
-- Cột `Bài tập` hiện chỉ hiển thị đúng giá trị `homeworkScore`.
-- Bổ sung cột `Quiz` riêng trên bảng điểm giáo viên.
-- Form chỉnh sửa giữ hai trường `Bài tập` và `Quiz` độc lập.
-- Trang lớp của học viên hiển thị Homework và Quiz thành hai thẻ điểm riêng.
-- Tổng quan lớp của giáo viên chỉ dùng `homeworkScore` cho chỉ số Bài tập.
-- Frontend ESLint, production build và IDE diagnostics đều đạt.
-
-### Sửa lỗi duyệt yêu cầu học bù (Task 1)
-
-- **Ngày:** 2026-07-12
-- Không còn báo xung đột `SESSION_LOCKED` giả khi buổi gốc đã hoàn thành/khóa.
-- Khi TM chọn ghi đè xung đột, tạo buổi `MAKEUP` không bị chặn lần hai bởi `createSession`.
-- Kiểm tra trùng lịch học bù dùng phòng/giáo viên mặc định giống lúc tạo buổi thật.
-- 4 unit tests change-request đều đạt.
-
----
-
-## Task 4 — Ưu tiên và vị trí danh sách chờ lớp học
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit
-
-### Tóm tắt
-
-Đã bổ sung hàng đợi có thứ tự ổn định cho đăng ký lớp khi lớp đã đủ chỗ. Học viên mới được thêm vào cuối danh sách chờ, Training Manager có thể thay đổi thứ tự, và học viên xem được vị trí hiện tại theo dạng `#N / tổng số`.
-
-### Tệp đã thay đổi
-
-- `backend/src/main/java/fu/sap490/g23/backend/entity/classroom/ClassroomEnrollment.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/ReorderWaitlistRequest.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/response/classroom/ClassroomEnrollmentResponse.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/response/classroom/ClassroomOfferingResponse.java`
-- `backend/src/main/java/fu/sap490/g23/backend/repository/classroom/ClassroomEnrollmentRepository.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingService.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomMapper.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
-- `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TrainingManagerClassroomController.java`
-- `backend/src/main/java/fu/sap490/g23/backend/migration/ClassroomWaitlistSchemaMigration.java`
-- `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingServiceImplWaitlistTest.java`
-- `frontend/src/api/classroomApi.js`
-- `frontend/src/components/training-manager/TrainingManagerRegistrationPanel.jsx`
-- `frontend/src/pages/classroom/ClassroomPublicDetailPage.jsx`
-- `frontend/src/pages/classroom/MyClassroomsPage.jsx`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Thay đổi backend
-
-- Thêm trường `waitlistPriority` vào đăng ký lớp.
-- Khi lớp đầy, đăng ký mới được nối vào cuối hàng đợi theo thứ tự `1..N`.
-- Khi học viên hủy, bị loại khỏi hàng chờ hoặc được xếp lớp, các vị trí còn lại tự động được đánh lại liên tục.
-- Dùng khóa pessimistic trên lớp khi cấp thứ tự hoặc thay đổi toàn bộ hàng đợi để tránh hai thao tác đồng thời tạo cùng vị trí.
-- API reorder kiểm tra payload phải chứa đúng và đủ toàn bộ enrollment đang ở trạng thái `WAITLIST`; từ chối ID trùng, thiếu hoặc thuộc lớp khác.
-- Response đăng ký bổ sung `waitlistPriority`, `waitlistPosition`, `waitlistSize`.
-- Response lớp của học viên bổ sung `waitlistPosition`; giữ `waitlistCount` làm tổng số người chờ.
-- Giữ quy trình Training Manager xếp lớp thủ công, không tự động chuyển học viên đầu hàng đợi vào lớp.
-
-### Thay đổi frontend
-
-- Thêm tab `Danh sách chờ` trong màn hình điều phối của từng lớp.
-- Hiển thị vị trí của từng học viên và nút lên/xuống để thay đổi thứ tự.
-- Trang chi tiết lớp công khai hiển thị `Vị trí #N / M` cho học viên đang chờ.
-- Trang `Lớp học của tôi` hiển thị vị trí hàng chờ ngay trên thẻ lớp.
-
-### API
-
-- Thêm `PUT /api/training-manager/classrooms/{id}/waitlist/order`.
-- Request:
-  - `enrollmentIds`: danh sách ID enrollment theo thứ tự mới, từ vị trí đầu đến cuối.
-- Các API đăng ký và xem lớp hiện có tự trả thêm thông tin vị trí hàng chờ, không đổi đường dẫn.
-
-### Cơ sở dữ liệu
-
-- Thêm cột nullable `classroom_enrollments.waitlist_priority INTEGER`.
-- Backfill dữ liệu `WAITLIST` hiện có theo ưu tiên cũ nếu có, sau đó theo `enrolled_at` và `id`.
-- Xóa priority khỏi enrollment không còn ở trạng thái `WAITLIST`.
-- Thêm index `idx_classroom_enrollment_waitlist_order` trên lớp, trạng thái và priority.
-- Migration có tính idempotent và chạy an toàn khi bảng đã tồn tại.
-
-### Kiểm thử
-
-- [x] Backend compile thành công.
-- [x] 5 unit tests waitlist: nối cuối hàng đợi, reorder, payload không đầy đủ, phân quyền và đánh lại vị trí khi hủy.
-- [x] Tổng cộng 9 backend tests của Task 1, Task 2 và Task 4 đều đạt.
-- [x] Frontend ESLint chạy thành công.
-- [x] Frontend production build chạy thành công.
-- [x] IDE diagnostics không có lỗi mới trong các tệp đã thay đổi.
-- [x] Backend DevTools restart ổn định với PostgreSQL và migration mới đã được nạp.
-- [ ] Kiểm tra thủ công hai tài khoản học viên đăng ký khi lớp đầy và Training Manager đổi thứ tự.
-
----
-
-## Feature: Sửa tài khoản demo Training Manager
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
-
-### Tóm tắt
-
-Sửa lỗi đăng nhập tài khoản Training Manager demo. Trước đó mật khẩu mặc định không dùng được vì tài khoản chỉ được tạo khi bật seed classroom demo, và seeder không reset mật khẩu nếu tài khoản đã tồn tại.
-
-### Tệp đã thay đổi
-
-- `backend/src/main/java/fu/sap490/g23/backend/seed/DemoTrainingManagerAccountRepairSeeder.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Thay đổi backend
-
-- Thêm seeder sửa tài khoản demo mỗi lần backend khởi động.
-- Đảm bảo tồn tại và đặt lại mật khẩu cho:
-  - `training.manager@englishlab.vn` (`TRAINING_MANAGER`)
-  - `classroom.manager@englishlab.vn` (`MANAGER`)
-- Mật khẩu demo: `Password123!`
-- Gán đúng role và đánh dấu email đã xác thực.
-
-### Thay đổi frontend
-
-- Không đổi.
-
-### Cơ sở dữ liệu
-
-- Không đổi schema.
-- Cập nhật/tạo bản ghi user demo trong bảng `users` và `user_roles`.
-
-### Kiểm thử
-
-- [x] Đăng nhập `training.manager@englishlab.vn` / `Password123!` thành công.
-- [x] Đăng nhập `classroom.manager@englishlab.vn` / `Password123!` thành công.
-- [x] Response login trả đúng role `TRAINING_MANAGER`.
-
-### Ghi chú
-
-- Chỉ phục vụ môi trường demo/local.
-- Không ảnh hưởng tài khoản học viên/giáo viên đang dùng được.
-
----
-
-## Feature: Sửa lỗi duyệt yêu cầu buổi học bù
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
-
-### Tóm tắt
-
-Sửa lỗi Training Manager không duyệt được yêu cầu `CREATE_MAKEUP_SESSION` khi buổi học gốc đã hoàn thành hoặc đã khóa. Hệ thống trước đó báo xung đột giả `SESSION_LOCKED`, và khi ghi đè xung đột vẫn bị `createSession` chặn lần hai.
-
-### Tệp đã thay đổi
-
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingService.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
+  - Dùng helper create / check-conflict / approve / reject có sẵn.
 - `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomChangeRequestServiceImpl.java`
+  - Validate riêng makeup; duyệt tạo buổi `MAKEUP`; tránh `SESSION_LOCKED` giả trên buổi gốc đã hoàn thành.
+- `backend/src/main/java/fu/sap490/g23/backend/entity/classroom/enums/ClassroomChangeRequestType.java`
+  - Enum `CREATE_MAKEUP_SESSION`.
 - `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomChangeRequestServiceImplTest.java`
+  - Unit test create/approve makeup.
 - `docs/CHANGELOG_IMPLEMENTATION.md`
+  - Ghi nhận bằng chứng triển khai.
 
-### Thay đổi backend
+### 4. Thay đổi Backend
 
-- Không ép `checkSessionLocked=true` với yêu cầu học bù khi duyệt hoặc kiểm tra trùng lịch.
-- Buổi gốc chỉ dùng làm ngữ cảnh; chỉ lịch đề xuất được kiểm tra xung đột.
-- Thêm overload `createSession(..., enforceConflictCheck)` để TM ghi đè xung đột thì tạo buổi `MAKEUP` không bị chặn lần hai.
-- Đồng bộ kiểm tra xung đột học bù với phòng/giáo viên mặc định giống lúc tạo buổi thật.
+- Controller: tái sử dụng endpoint change-request của `TeacherClassroomController` và `TrainingManagerController`.
+- Service: `ClassroomChangeRequestServiceImpl` kiểm tra buổi gốc, ngày, giờ bắt đầu/kết thúc; kiểm tra xung đột GV/phòng/HV cho **slot đề xuất**; khi duyệt gọi `ClassroomOfferingService.createSession` với `ClassroomSessionStatus.MAKEUP`.
+- Validation: thiếu lịch bị từ chối; buổi gốc completed/cancelled được phép làm ngữ cảnh.
+- Nghiệp vụ: TM có thể ghi đè xung đột khi duyệt (`overrideConflict`).
 
-### Thay đổi frontend
+### 5. Thay đổi Frontend
 
-- Không đổi API payload.
-- Vẫn dùng nút `Duyệt và áp dụng` / `Duyệt và ghi đè xung đột` hiện có.
+- Form `TeacherChangeRequestForm` trên chi tiết lớp GV; hàng đợi TM tại `TrainingManagerRequestsPage`.
+- Tái sử dụng UI chọn ngày/khung giờ/phòng và panel xung đột như đổi lịch; đổi nhãn theo loại yêu cầu.
+- Điều hướng: lớp GV → tab yêu cầu; TM → `/training-manager/requests`.
 
-### Cơ sở dữ liệu
-
-- Không đổi.
-
-### Kiểm thử
-
-- [x] Conflict-check yêu cầu học bù không còn báo `SESSION_LOCKED` giả.
-- [x] Duyệt ghi đè xung đột tạo buổi học bù thành công.
-- [x] 4 unit tests change-request đều đạt.
-- [ ] Kiểm tra thủ công thêm một yêu cầu học bù mới trên trình duyệt.
-
-### Ghi chú
-
-- Khi ghi đè xung đột vẫn bắt buộc nhập ghi chú phản hồi.
-- Không tạo endpoint mới.
-
----
-
-## Feature: Tách nhãn điều hướng yêu cầu của giáo viên
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
-
-### Tóm tắt
-
-Loại bỏ trùng lặp và nhập nhằng nhãn `Yêu cầu thay đổi`. Phân rõ hai hành động: theo dõi tiến độ duyệt và gửi yêu cầu mới. Đồng thời bỏ các mục điều hướng trùng trong dropdown avatar của staff.
-
-### Tệp đã thay đổi
-
-- `frontend/src/components/ai-learning/Header.jsx`
-- `frontend/src/pages/teacher/TeacherClassroomPage.jsx`
-- `frontend/src/pages/teacher/TeacherRequestsPage.jsx`
-- `frontend/src/pages/teacher/TeacherDashboardPage.jsx`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Thay đổi backend
-
-- Không đổi.
-
-### Thay đổi frontend
-
-- Header giáo viên: `Yêu cầu thay đổi` → `Theo dõi yêu cầu`.
-- Trang danh sách yêu cầu và card dashboard dùng cùng nhãn `Theo dõi yêu cầu`.
-- Tab trong chi tiết lớp: `Yêu cầu thay đổi` → `Gửi yêu cầu`.
-- Dropdown avatar của Teacher / Training Manager / Manager / Admin / Content Manager chỉ còn thông tin tài khoản và `Đăng xuất`.
-
-### Cơ sở dữ liệu
-
-- Không đổi.
-
-### Kiểm thử
-
-- [x] Không còn hai mục trùng nhau trong dropdown avatar giáo viên.
-- [x] Nhãn header và tab lớp đã phân biệt rõ mục đích.
-- [ ] Kiểm tra thủ công trên desktop sau khi refresh frontend.
-
-### Ghi chú
-
-- Không đổi route: vẫn là `/teacher/requests` và tab `change-requests` trong lớp.
-- Học viên giữ nguyên các mục hồ sơ trong dropdown vì khác với thanh điều hướng marketing.
-
----
-
-## Nhật ký triển khai đầy đủ các task đã hoàn thành (tiếng Việt)
-
-Phần này tổng hợp lại Task 1, Task 2, Task 4 theo đúng mẫu log triển khai. Nội dung phía trên được giữ nguyên để bảo toàn lịch sử. Task 3 đã bỏ qua theo yêu cầu nhóm.
-
----
-
-## Feature: Task 1 — UI yêu cầu buổi học bù
-
-- **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
-
-### Tóm tắt
-
-Hoàn thiện luồng giáo viên gửi yêu cầu tạo buổi học bù. Giáo viên chọn buổi gốc, ngày học bù, khung giờ và phòng học; Training Manager duyệt. Khi duyệt thành công hệ thống tạo buổi mới trạng thái `MAKEUP`.
-
-### Tệp đã thay đổi
-
-- `frontend/src/components/teacher/TeacherChangeRequestForm.jsx`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomChangeRequestServiceImpl.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingService.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
-- `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomChangeRequestServiceImplTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
-
-### Thay đổi backend
-
-- Bổ sung validation cho `CREATE_MAKEUP_SESSION`.
-- Bắt buộc buổi gốc, ngày học bù, giờ bắt đầu và giờ kết thúc.
-- Cho phép buổi gốc đã hoàn thành hoặc đã hủy làm ngữ cảnh, không báo `SESSION_LOCKED` giả.
-- Chỉ kiểm tra xung đột trên lịch đề xuất.
-- Khi TM ghi đè xung đột, tạo buổi `MAKEUP` không bị `createSession` chặn lần hai.
-- Tái sử dụng luồng duyệt change request hiện có.
-
-### Thay đổi frontend
-
-- Thêm loại yêu cầu `CREATE_MAKEUP_SESSION` vào form giáo viên.
-- Tái dụng UI chọn ngày, khung giờ, phòng và kiểm tra xung đột.
-- Cho phép chọn mọi buổi gốc, kể cả đã hoàn thành hoặc đã hủy.
-- Tách nhãn: header dùng `Theo dõi yêu cầu`, tab lớp dùng `Gửi yêu cầu`.
-
-### Cơ sở dữ liệu
+### 6. Thay đổi Database
 
 - Không đổi schema.
 - Tái sử dụng `classroom_change_requests` và `classroom_sessions`.
 
-### Kiểm thử
+### 7. Thay đổi API
 
-- [x] ESLint frontend đạt.
-- [x] Build frontend đạt.
-- [x] Compile backend đạt.
-- [x] Unit test chấp nhận buổi gốc đã hoàn thành.
-- [x] Unit test từ chối thiếu lịch học bù.
-- [x] Unit test duyệt học bù không ép `SESSION_LOCKED`.
-- [x] Duyệt ghi đè xung đột tạo buổi học bù thành công.
-- [ ] Kiểm tra thủ công thêm trên trình duyệt với tài khoản Teacher và Training Manager.
+- `POST /api/teacher/classrooms/requests/check-conflict`
+  - Mục đích: Xem trước xung đột lịch cho slot học bù.
+  - Request: payload change-request (`requestType`, offering, session, `newValuesJson`, lý do).
+  - Response: danh sách xung đột / tóm tắt khả dụng.
+  - Phân quyền: Giáo viên (và staff trên `/api/teacher/**`).
 
-### Ghi chú
+- `POST /api/teacher/classrooms/requests`
+  - Mục đích: Gửi yêu cầu học bù (hoặc loại khác).
+  - Request: `CreateChangeRequestRequest`.
+  - Response: yêu cầu đã tạo.
+  - Phân quyền: Giáo viên.
 
-- Không tạo endpoint mới.
-- Buổi gốc chỉ là ngữ cảnh; buổi học bù được tạo riêng với status `MAKEUP`.
-- Task 3 đã bỏ qua theo yêu cầu nhóm.
+- `GET /api/teacher/classrooms/requests/mine`
+  - Mục đích: Lịch sử yêu cầu của GV.
+  - Phân quyền: Giáo viên.
+
+- `GET /api/training-manager/requests/pending`
+  - Mục đích: Hàng đợi chờ duyệt.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+- `POST /api/training-manager/requests/{requestId}/conflict-check`
+  - Mục đích: Kiểm tra lại xung đột trước khi duyệt.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+- `POST /api/training-manager/requests/{requestId}/approve`
+  - Mục đích: Duyệt và áp dụng (makeup → tạo buổi `MAKEUP`).
+  - Request: `ReviewChangeRequestRequest` (có thể có `overrideConflict`, ghi chú).
+  - Phân quyền: Training Manager / Manager / Admin.
+
+- `POST /api/training-manager/requests/{requestId}/reject`
+  - Mục đích: Từ chối kèm ghi chú.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+### 8. Thay đổi UI/UX
+
+- **Trang:** `/teacher/classrooms/{id}` — vai trò Giáo viên.
+- **Thao tác:** Chọn “Tạo buổi học bù”, buổi gốc, ngày/giờ/phòng, lý do, check xung đột, gửi.
+- **Trang:** `/training-manager/requests` — TM duyệt / từ chối / ghi đè xung đột.
+- **Thành công:** Yêu cầu chờ → đã duyệt; buổi mới `MAKEUP` xuất hiện trong lịch buổi học.
+- **Lỗi:** Thiếu lịch hoặc xung đột chưa xử lý sẽ chặn gửi/duyệt.
+
+### 9. Các bước test trên web
+
+1. Chạy backend (`:8080`) và frontend (`:5173`).
+2. Đăng nhập GV `classroom.teacher1@englishlab.vn` / `Password123!`.
+3. Vào `/teacher/classrooms/{id}` → tab gửi yêu cầu.
+4. Chọn **Tạo buổi học bù**, chọn buổi gốc (có thể đã hoàn thành), điền ngày/giờ/phòng, lý do.
+5. Kiểm tra xung đột rồi gửi.
+6. Xác nhận yêu cầu hiện ở trạng thái chờ duyệt.
+7. Đăng nhập TM `training.manager@englishlab.vn` / `Password123!`.
+8. Vào `/training-manager/requests` → conflict-check → **Duyệt**.
+9. Quay lại lớp GV → tab buổi học → thấy buổi `MAKEUP` mới.
+10. Case lỗi: gửi makeup thiếu ngày/giờ → báo validation.
+
+### 10. Kết quả mong đợi
+
+GV gửi được yêu cầu học bù; TM duyệt được; hệ thống tạo buổi makeup riêng mà không cần API mới. Buổi gốc đã hoàn thành không bị chặn sai bởi `SESSION_LOCKED`.
+
+### 11. Ghi chú / Rủi ro
+
+- Không thêm REST path mới; phụ thuộc pipeline change-request + tạo buổi hiện có.
+- Đã sửa: `SESSION_LOCKED` giả; hỗ trợ ghi đè xung đột khi tạo makeup.
+- Nên kiểm tra lại trên trình duyệt sau mỗi lần reset môi trường.
 
 ---
 
-## Feature: Task 2 — Giáo viên chỉnh sửa gradebook thủ công
+## Task 2: Chỉnh sửa bảng điểm thủ công và công bố / thu hồi
 
 - **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
+- **Commit:** `98ddd65` — `feat(classroom): Task 2 — chỉnh sửa bảng điểm thủ công và công bố/thu hồi`
 
-### Tóm tắt
+### 1. Tóm tắt
 
-Cho phép giáo viên chỉnh sửa bảng điểm thủ công trên trang lớp: điểm bài tập, quiz, chuyên cần, tham gia, kết quả cuối và nhận xét. Bổ sung công bố/thu hồi công bố kèm hộp xác nhận. Hiển thị riêng điểm Homework và Quiz, không còn lấy trung bình.
+Cho phép giáo viên sửa điểm thủ công (bài tập, quiz, chuyên cần, tham gia, kết quả cuối, nhận xét), rồi công bố hoặc thu hồi để học viên xem. Điểm Homework và Quiz **tách riêng** (không trung bình). Học viên chỉ xem khi entry ở trạng thái `PUBLISHED`.
 
-### Tệp đã thay đổi
+### 2. Phạm vi thay đổi
+
+- Backend
+- Frontend
+- API
+- UI/UX
+- Validation
+
+### 3. Tệp đã thay đổi
 
 - `frontend/src/components/teacher/TeacherGradebookSection.jsx`
+  - Form sửa từng HV, lưu, công bố/thu hồi với `ConfirmModal`, cột Homework/Quiz riêng.
 - `frontend/src/pages/teacher/TeacherClassroomPage.jsx`
+  - Gắn tab bảng điểm và handler.
 - `frontend/src/pages/classroom/MyClassroomDetailPage.jsx`
+  - HV xem Homework/Quiz thành hai thẻ điểm riêng.
 - `frontend/src/api/classroomApi.js`
+  - `updateGradebookEntry`, `publishGradebook`, `unpublishGradebook`, `getMyGradebook`.
 - `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/UpdateGradebookRequest.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomGradebookService.java`
+  - Validation khoảng điểm và độ dài nhận xét.
 - `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomGradebookServiceImpl.java`
+  - `updateEntry`, `publishGradebook`, `unpublishGradebook`, quy tắc hiển thị cho HV.
 - `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TeacherClassroomController.java`
+  - Endpoint GET/PUT/publish/unpublish gradebook.
 - `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomGradebookServiceImplTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
+  - Test cập nhật điểm và thu hồi công bố.
 
-### Thay đổi backend
+### 4. Thay đổi Backend
 
-- Tái sử dụng `updateEntry` và endpoint gradebook hiện có.
-- Thêm validation DTO: điểm `0–10`, chuyên cần `0–100`, tối đa 2 chữ số thập phân, nhận xét tối đa 2000 ký tự.
-- Thêm `POST /api/teacher/classrooms/{id}/gradebook/unpublish`.
-- Thu hồi chỉ chuyển entry `PUBLISHED` về `GRADED`.
+- Controller: gradebook GV; HV `GET .../gradebook/me`.
+- Service: sửa điểm đưa `PENDING` → `GRADED`; publish → `PUBLISHED`; unpublish chỉ đổi entry `PUBLISHED` → `GRADED`.
+- Validation: homework/quiz/tham gia/cuối `0–10`; chuyên cần `0–100`; tối đa 2 chữ số thập phân; nhận xét ≤ 2000 ký tự.
+- Nghiệp vụ: sửa entry đã publish vẫn giữ `PUBLISHED` để HV thấy điểm đã chỉnh đến khi thu hồi.
 
-### Thay đổi frontend
+### 5. Thay đổi Frontend
 
-- Tách UI thành `TeacherGradebookSection`.
-- Chỉnh sửa inline theo từng học viên, validate phía client.
-- Thêm nút `Công bố bảng điểm` và `Thu hồi công bố` với `ConfirmModal`.
-- Hiển thị riêng cột/thẻ `Bài tập` và `Quiz`, không trung bình hai điểm.
+- Tách `TeacherGradebookSection` để dễ bảo trì.
+- Panel sửa từng HV; nút công bố/thu hồi kèm modal xác nhận (Esc/backdrop để hủy).
+- Validate phía client trước khi gọi API.
+- Sau lưu chỉ cập nhật hàng HV tương ứng (không reload cả trang).
 
-### Cơ sở dữ liệu
+### 6. Thay đổi Database
 
 - Không đổi schema.
 - Tái sử dụng `classroom_gradebook_entries` và trạng thái `PENDING` / `GRADED` / `PUBLISHED`.
 
-### Kiểm thử
+### 7. Thay đổi API
 
-- [x] ESLint frontend đạt.
-- [x] Build frontend đạt.
-- [x] Unit test cập nhật điểm thủ công và chuyển `PENDING` → `GRADED`.
-- [x] Unit test thu hồi công bố `PUBLISHED` → `GRADED`.
-- [x] Regression Task 1 + Task 2 đạt.
-- [ ] Kiểm tra thủ công công bố/thu hồi trên trình duyệt.
-- [ ] Kiểm tra học viên không còn thấy điểm sau khi thu hồi.
+- `GET /api/teacher/classrooms/{id}/gradebook`
+  - Mục đích: Tải bảng điểm lớp cho GV.
+  - Phân quyền: Giáo viên / staff.
 
-### Ghi chú
+- `PUT /api/teacher/classrooms/{id}/gradebook`
+  - Mục đích: Cập nhật một entry HV.
+  - Request: `UpdateGradebookRequest`.
+  - Response: entry/bảng điểm đã cập nhật.
+  - Phân quyền: Giáo viên / staff.
 
-- Endpoint cập nhật điểm: `PUT /api/teacher/classrooms/{id}/gradebook`.
-- Endpoint công bố: `POST /api/teacher/classrooms/{id}/gradebook/publish`.
-- Endpoint thu hồi: `POST /api/teacher/classrooms/{id}/gradebook/unpublish`.
-- Sửa entry đã `PUBLISHED` vẫn giữ trạng thái `PUBLISHED` để học viên thấy điểm đã chỉnh.
+- `POST /api/teacher/classrooms/{id}/gradebook/publish`
+  - Mục đích: Công bố bảng điểm cho HV.
+  - Phân quyền: Giáo viên / staff.
+
+- `POST /api/teacher/classrooms/{id}/gradebook/unpublish`
+  - Mục đích: Thu hồi công bố (ẩn khỏi HV).
+  - Phân quyền: Giáo viên / staff.
+
+- `GET /api/student/classrooms/{id}/gradebook/me`
+  - Mục đích: HV xem điểm của mình (chỉ khi đã publish).
+  - Phân quyền: Học viên.
+
+### 8. Thay đổi UI/UX
+
+- **Trang:** `/teacher/classrooms/{id}` → **Bảng điểm** (GV).
+- **Thao tác:** Chỉnh sửa / Lưu; Công bố; Thu hồi công bố.
+- **Trạng thái nút:** Công bố disabled nếu đã publish hết; Thu hồi disabled nếu chưa có entry publish.
+- **HV:** `/my-classrooms/{id}` — thẻ Homework và Quiz riêng khi đã publish.
+- **Lỗi:** Điểm ngoài khoảng bị chặn; HV không xem được khi chưa publish.
+
+### 9. Các bước test trên web
+
+1. Chạy backend và frontend.
+2. Đăng nhập GV → `/teacher/classrooms/{id}` → **Bảng điểm**.
+3. Sửa một HV: Homework `2`, Quiz `1` riêng → Lưu.
+4. Kiểm tra bảng hiện `2` và `1` (không thành `1.5`).
+5. **Công bố bảng điểm** → xác nhận modal.
+6. Đăng nhập HV → `/my-classrooms/{id}` → thấy điểm đã publish.
+7. GV **Thu hồi công bố** → xác nhận.
+8. HV reload → không còn xem được bảng điểm đã publish.
+9. Case lỗi: nhập điểm `11` → validation từ chối.
+
+### 10. Kết quả mong đợi
+
+GV sửa/công bố/thu hồi được bảng điểm. Homework và Quiz luôn là hai trường độc lập end-to-end.
+
+### 11. Ghi chú / Rủi ro
+
+- Quiz vẫn là thành phần riêng (Task 3 gộp quiz đã bỏ qua).
+- Modal xác nhận thay `window.confirm` cho đồng bộ thương hiệu.
 
 ---
 
-## Feature: Task 4 — Ưu tiên và vị trí danh sách chờ lớp học
+## Task 3: Gộp Quiz vào Bài tập (Đã bỏ qua)
+
+- **Ngày:** N/A (nhóm quyết định bỏ qua)
+- **Commit:** Không có
+
+### 1. Tóm tắt
+
+Task 3 (gộp Quiz vào Homework, `MULTIPLE_CHOICE` chấm tự động, deprecate quiz riêng) **không được triển khai** theo quyết định nhóm. Homework và Quiz vẫn tách trong entity, API và UI.
+
+### 2. Phạm vi thay đổi
+
+- Không có
+
+### 3. Tệp đã thay đổi
+
+- Không có tệp triển khai cho Task 3.
+
+### 4. Thay đổi Backend
+
+- Không có thay đổi backend.
+
+### 5. Thay đổi Frontend
+
+- Không có thay đổi frontend.
+
+### 6. Thay đổi Database
+
+- Không có thay đổi database.
+
+### 7. Thay đổi API
+
+- Không có thay đổi API.
+
+### 8. Thay đổi UI/UX
+
+- Không có. UI Homework/Quiz riêng vẫn giữ như hiện tại.
+
+### 9. Các bước test trên web
+
+1. Không áp dụng — tính năng không giao.
+2. Chỉ regression: bảng điểm GV vẫn có cột Homework và Quiz riêng (hành vi Task 2).
+
+### 10. Kết quả mong đợi
+
+Không có gộp Quiz→Homework. Module quiz và cột điểm quiz vẫn tồn tại.
+
+### 11. Ghi chú / Rủi ro
+
+- Ghi rõ “đã bỏ qua” để reviewer không kỳ vọng deliverable Task 3.
+- Nếu làm sau cần chốt enum/migration `MULTIPLE_CHOICE` vs `SKILL_PRACTICE`.
+
+---
+
+## Task 4: Ưu tiên và vị trí danh sách chờ lớp học
 
 - **Ngày:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (base HEAD: `be2136c`)
+- **Commit:** `7d05f86` — `feat(classroom): Task 4 — ưu tiên và sắp xếp danh sách chờ`
 
-### Tóm tắt
+### 1. Tóm tắt
 
-Bổ sung hàng đợi có thứ tự ổn định khi lớp đủ chỗ. Học viên mới vào cuối hàng chờ, Training Manager có thể sắp xếp lại, học viên xem được vị trí `#N / tổng số`.
+Bổ sung hàng đợi có thứ tự khi lớp đầy chỗ. Đăng ký waitlist mới nhận `waitlist_priority` nối đuôi. TM sắp xếp lại hàng đợi; HV xem vị trí dạng `#N / tổng số`.
 
-### Tệp đã thay đổi
+### 2. Phạm vi thay đổi
+
+- Backend
+- Frontend
+- Database
+- API
+- UI/UX
+
+### 3. Tệp đã thay đổi
 
 - `backend/src/main/java/fu/sap490/g23/backend/entity/classroom/ClassroomEnrollment.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/ReorderWaitlistRequest.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/response/classroom/ClassroomEnrollmentResponse.java`
-- `backend/src/main/java/fu/sap490/g23/backend/dto/response/classroom/ClassroomOfferingResponse.java`
-- `backend/src/main/java/fu/sap490/g23/backend/repository/classroom/ClassroomEnrollmentRepository.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingService.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomMapper.java`
-- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
-- `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TrainingManagerClassroomController.java`
+  - Trường `waitlistPriority`.
 - `backend/src/main/java/fu/sap490/g23/backend/migration/ClassroomWaitlistSchemaMigration.java`
+  - Thêm cột, backfill, index.
+- `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/ReorderWaitlistRequest.java`
+  - Danh sách `enrollmentIds` theo thứ tự.
+- `backend/src/main/java/fu/sap490/g23/backend/dto/response/classroom/ClassroomEnrollmentResponse.java`
+  - `waitlistPriority`, `waitlistPosition`, `waitlistSize`.
+- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
+  - Gán priority, `reorderWaitlist`, compact khi rời waitlist.
+- `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TrainingManagerClassroomController.java`
+  - `PUT /{id}/waitlist/order`.
 - `backend/src/test/java/fu/sap490/g23/backend/service/classroom/ClassroomOfferingServiceImplWaitlistTest.java`
-- `frontend/src/api/classroomApi.js`
+  - Unit test waitlist.
 - `frontend/src/components/training-manager/TrainingManagerRegistrationPanel.jsx`
-- `frontend/src/pages/classroom/ClassroomPublicDetailPage.jsx`
-- `frontend/src/pages/classroom/MyClassroomsPage.jsx`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
+  - Tab **Danh sách chờ**, nút lên/xuống.
+- `frontend/src/pages/classroom/ClassroomPublicDetailPage.jsx` / UI lớp của tôi
+  - Badge vị trí cho HV.
+- `frontend/src/api/classroomApi.js`
+  - `reorderClassWaitlist`.
 
-### Thay đổi backend
+### 4. Thay đổi Backend
 
-- Thêm `waitlistPriority` cho enrollment.
-- Đăng ký mới khi lớp đầy được nối cuối hàng chờ `1..N`.
-- Tự đánh lại vị trí khi hủy, từ chối hoặc rời hàng chờ.
-- Khóa pessimistic khi cấp/sắp xếp priority.
-- Thêm `PUT /api/training-manager/classrooms/{id}/waitlist/order`.
-- Response bổ sung `waitlistPriority`, `waitlistPosition`, `waitlistSize`.
-- Giữ xếp lớp thủ công, không auto-promote đầu hàng chờ.
+- Entity/repository: lưu và truy vấn thứ tự waitlist.
+- Service: FIFO append; reorder phải khớp đúng tập ID hiện tại; đánh số lại `1..N`; xóa priority khi rời `WAITLIST`.
+- Bảo mật: reorder kiểm tra quyền Training Manager ở service.
 
-### Thay đổi frontend
+### 5. Thay đổi Frontend
 
-- Tab `Danh sách chờ` cho Training Manager, có nút lên/xuống.
-- Học viên xem `Vị trí #N / M` ở chi tiết lớp và `Lớp học của tôi`.
+- Panel đăng ký TM: tab waitlist, badge vị trí, nút reorder.
+- UI HV: hiện `#N / tổng` khi đang chờ.
+- API client gửi danh sách ID đã sắp xếp.
 
-### Cơ sở dữ liệu
+### 6. Thay đổi Database
 
-- Thêm cột `classroom_enrollments.waitlist_priority INTEGER`.
-- Backfill FIFO cho dữ liệu `WAITLIST` hiện có.
-- Thêm index `idx_classroom_enrollment_waitlist_order`.
-- Migration idempotent.
+- `classroom_enrollments.waitlist_priority` (INTEGER, nullable).
+- Index `idx_classroom_enrollment_waitlist_order` trên `(classroom_offering_id, registration_status, waitlist_priority)`.
+- Migration khởi động backfill dữ liệu waitlist cũ.
 
-### Kiểm thử
+### 7. Thay đổi API
 
-- [x] Compile backend đạt.
-- [x] 5 unit tests waitlist đạt.
-- [x] Regression Task 1 + Task 2 + Task 4: 9 tests đạt.
-- [x] ESLint và build frontend đạt.
-- [x] Backend restart ổn định với migration mới.
-- [ ] Kiểm tra thủ công 2 học viên đăng ký lớp đầy và TM đổi thứ tự.
+- `PUT /api/training-manager/classrooms/{id}/waitlist/order`
+  - Mục đích: Đổi thứ tự danh sách chờ.
+  - Request: `{ "enrollmentIds": [id1, id2, ...] }` (đủ bộ, đúng tập).
+  - Response: danh sách enrollment / view đăng ký đã cập nhật.
+  - Phân quyền: Training Manager / Manager / Admin.
 
-### Ghi chú
+- Liên quan (có sẵn): list đăng ký `WAITLIST`; API đăng ký HV đưa vào waitlist khi lớp đầy.
 
-- Task 3 đã bỏ qua theo yêu cầu nhóm.
-- Tài khoản demo Training Manager: `training.manager@englishlab.vn` / `Password123!`.
+### 8. Thay đổi UI/UX
 
----
+- **TM:** `/training-manager/classrooms/{id}` → **Danh sách chờ** — lên/xuống.
+- **HV:** lịch khai giảng / chi tiết lớp / lớp của tôi — hiện vị trí chờ.
+- **Thành công:** vị trí cập nhật sau khi TM reorder.
+- **Lỗi:** reorder thiếu/thừa ID → backend từ chối.
 
-## Quy trình test trên web (Task 1, 2, 4)
+### 9. Các bước test trên web
 
-- **Ngày ghi:** 2026-07-12
-- **Nhánh:** `phongdx`
-- **Môi trường:** Frontend `http://localhost:5173` (hoặc cổng Vite hiện tại), Backend `http://localhost:8080`
+1. Chạy backend/frontend.
+2. Dùng lớp giảm `maxCapacity` (hoặc lớp đầy) để đăng ký mới vào `WAITLIST`.
+3. HV A đăng ký → thấy `#1`.
+4. HV B đăng ký → thấy `#2`.
+5. TM vào đăng ký lớp → **Danh sách chờ** → đưa B lên trên A.
+6. HV reload → vị trí đổi chỗ.
+7. Case lỗi: gọi reorder với tập ID sai → 400.
 
-### Tài khoản demo dùng để test
+### 10. Kết quả mong đợi
 
-| Vai trò | Email | Mật khẩu |
-|---|---|---|
-| Giáo viên | `classroom.teacher1@englishlab.vn` | `Password123!` |
-| Học viên | `0386852628z@gmail.com` | `Password123!` |
-| Training Manager | `training.manager@englishlab.vn` | `Password123!` |
+Thứ tự waitlist ổn định, TM chỉnh được, HV thấy `#N / tổng`. Rời waitlist sẽ compact lại priority còn lại.
 
-Ghi chú: nếu cần học viên thứ 2 cho waitlist, dùng `classroom.learner2@englishlab.vn` / `Password123!` (khi seed classroom demo đã tạo).
+### 11. Ghi chú / Rủi ro
 
----
-
-### Task 1 — Yêu cầu buổi học bù
-
-#### Mục tiêu
-Giáo viên gửi yêu cầu học bù; Training Manager duyệt; hệ thống tạo buổi mới `MAKEUP`.
-
-#### Vị trí trên web
-- Giáo viên gửi: `/teacher/classrooms/{id}` → tab **Gửi yêu cầu**
-- Giáo viên theo dõi: `/teacher/requests` (menu **Theo dõi yêu cầu**)
-- Training Manager duyệt: `/training-manager/requests`
-
-#### Các bước test
-
-1. Đăng nhập Giáo viên.
-2. Vào **Giảng dạy** → chọn lớp đang học (ví dụ TOEIC 650).
-3. Chọn tab **Gửi yêu cầu**.
-4. Chọn loại **Tạo buổi học bù**.
-5. Chọn buổi học gốc (có thể chọn buổi đã hoàn thành).
-6. Chọn ngày học bù, khung giờ, phòng (nếu có), nhập lý do → gửi.
-7. Vào **Theo dõi yêu cầu** (`/teacher/requests`) → thấy yêu cầu trạng thái **Chờ duyệt**.
-8. Đăng xuất → đăng nhập Training Manager.
-9. Vào `/training-manager/requests`.
-10. Chọn yêu cầu học bù vừa gửi.
-11. Bấm **Kiểm tra lại trùng lịch**.
-12. Nếu không có xung đột thật → **Duyệt và áp dụng**.
-13. Nếu có xung đột thật → nhập ghi chú → **Duyệt và ghi đè xung đột**.
-14. Đăng nhập lại Giáo viên → mở lớp → tab **Buổi học** → kiểm tra có buổi mới trạng thái học bù / `MAKEUP`.
-
-#### Kết quả mong đợi
-- [ ] Gửi yêu cầu thành công, hiện ở danh sách theo dõi.
-- [ ] Buổi gốc đã hoàn thành/khóa **không** bị báo xung đột giả `SESSION_LOCKED`.
-- [ ] Sau duyệt, buổi học bù xuất hiện trong lịch lớp.
-- [ ] Giáo viên thấy trạng thái yêu cầu đã áp dụng/duyệt.
-
-#### Lỗi cần tránh nhầm
-- Hai nhãn khác nhau: **Theo dõi yêu cầu** (xem tiến độ) ≠ **Gửi yêu cầu** (tạo mới).
+- Phụ thuộc sức chứa và trạng thái đăng ký.
+- Demo có thể cần giảm tạm `maxCapacity` để tái hiện waitlist nhanh.
 
 ---
 
-### Task 2 — Chỉnh sửa / công bố / thu hồi bảng điểm
+## Task 5: Thanh toán học phí lớp qua PayOS và minh chứng (Plan B)
 
-#### Mục tiêu
-Giáo viên sửa điểm thủ công, công bố cho học viên xem, thu hồi khi cần.
+- **Ngày:** 2026-07-13
+- **Commit:** `04416b1` — `feat(classroom): Task 5 — thanh toán học phí lớp qua PayOS`
 
-#### Vị trí trên web
-- Giáo viên: `/teacher/classrooms/{id}` → tab **Bảng điểm**
-- Học viên xem điểm: `/my-classrooms/{id}` → phần bảng điểm / kết quả
+### 1. Tóm tắt
 
-#### Các bước test — chỉnh sửa điểm
+Nối học phí lớp vào pipeline quote/checkout PayOS sẵn có, giữ upload minh chứng chuyển khoản làm phương án B. HV thanh toán số còn lại của **một** lớp; khi PAID, webhook/đồng bộ trạng thái ghi nhận học phí qua `applyPayosTuitionPayment` (idempotent theo note `PayOS #orderCode`).
 
-1. Đăng nhập Giáo viên → mở lớp → tab **Bảng điểm**.
-2. Chọn một học viên → **Chỉnh sửa**.
-3. Nhập điểm **Bài tập** = `2`, **Quiz** = `1` (độc lập, không trung bình).
-4. Có thể sửa chuyên cần, tham gia, kết quả cuối, nhận xét.
-5. **Lưu thay đổi**.
-6. Kiểm tra bảng: cột Bài tập = `2`, cột Quiz = `1` (không thành `1.5`).
+### 2. Phạm vi thay đổi
 
-#### Các bước test — công bố
+- Backend
+- Frontend
+- Database
+- API
+- UI/UX
+- Validation / quy tắc nghiệp vụ
 
-1. Bấm **Công bố bảng điểm**.
-2. Hộp xác nhận hiện ra → xác nhận.
-3. Đăng nhập Học viên → `/my-classrooms` → mở đúng lớp.
-4. Kiểm tra thấy điểm Bài tập và Quiz riêng (hai thẻ/chỉ số).
+### 3. Tệp đã thay đổi
 
-#### Các bước test — thu hồi
-
-1. Đăng nhập lại Giáo viên → tab **Bảng điểm**.
-2. Bấm **Thu hồi công bố** → xác nhận trong hộp thoại.
-3. Đăng nhập Học viên → mở lại lớp → **không còn thấy** bảng điểm đã công bố.
-4. Giáo viên công bố lại → học viên thấy điểm trở lại.
-
-#### Kết quả mong đợi
-- [ ] Sửa điểm lưu thành công, không reload cả trang lỗi.
-- [ ] Homework và Quiz hiển thị riêng.
-- [ ] Công bố cần xác nhận; học viên xem được điểm.
-- [ ] Thu hồi cần xác nhận; học viên tạm không xem được điểm.
-- [ ] Nút công bố/thu hồi disable đúng trạng thái (đã công bố hết / chưa có gì công bố).
-
----
-
-### Task 4 — Danh sách chờ: ưu tiên và vị trí
-
-#### Mục tiêu
-Khi lớp đầy, học viên vào hàng chờ có thứ tự; TM đổi thứ tự; học viên xem `#N / tổng số`.
-
-#### Vị trí trên web
-- Học viên đăng ký: trang chi tiết lớp công khai (ví dụ `/classrooms/{slug-or-id}` hoặc link từ lịch khai giảng).
-- Học viên xem vị trí: chi tiết lớp đã đăng ký / `/my-classrooms`.
-- Training Manager sắp xếp: `/training-manager/classrooms/{id}` → khu vực đăng ký → tab **Danh sách chờ**  
-  hoặc `/training-manager/registrations` lọc `WAITLIST`.
-
-#### Chuẩn bị
-- Chọn lớp `UPCOMING` còn mở đăng ký và **đã đủ sĩ số** (hoặc tạm giảm `maxCapacity` trong DB/admin nếu cần).
-- Có ít nhất 2 tài khoản học viên.
-
-#### Các bước test
-
-1. Đăng nhập Học viên A → mở lớp đầy → bấm **Đăng ký vào danh sách chờ**.
-2. Kiểm tra UI hiện **Vị trí #1 / …** (hoặc vị trí cuối hàng chờ hiện tại).
-3. Đăng xuất → đăng nhập Học viên B → đăng ký cùng lớp.
-4. Học viên B thấy vị trí sau A (ví dụ `#2`).
-5. Vào `/my-classrooms` tab **Chờ xếp lớp** → thẻ lớp hiện `Danh sách chờ #N`.
-6. Đăng nhập Training Manager → mở lớp đó → tab đăng ký **Danh sách chờ**.
-7. Dùng nút **lên/xuống** để đổi thứ tự B lên trước A.
-8. Refresh trang học viên A và B → vị trí `#N / M` đã đổi theo.
-9. (Tuỳ chọn) Học viên hủy đăng ký chờ → các vị trí còn lại tự đánh lại `1..N`.
-
-#### Kết quả mong đợi
-- [ ] Đăng ký lớp đầy vào `WAITLIST`, không báo lỗi “hết chỗ” cứng.
-- [ ] Học viên thấy vị trí và tổng số người chờ.
-- [ ] TM đổi thứ tự thành công, UI cập nhật ngay.
-- [ ] Sau hủy/rời hàng chờ, thứ tự còn lại liên tục không bị lỗ trống.
-
----
-
-### Task 3 — Gộp Quiz vào Bài tập
-
-- **Trạng thái:** Đã bỏ qua theo yêu cầu nhóm.
-- **Không test** trên web trong phạm vi log này.
-
----
-
-### Task 5 — Thanh toán học phí lớp online (PayOS)
-
-- **Trạng thái:** Đã triển khai (2026-07-12).
-- **Backend:** Mở `classroomOfferingIds` trong quote/create PayOS; lưu `enrollment_id` trên `payment_orders`; webhook/PAID gọi `applyPayosTuitionPayment` (idempotent theo note `PayOS #orderCode`); giữ upload minh chứng + TM duyệt làm phương án B.
-- **Frontend:** Nút PayOS trên `TuitionPaymentSection`; chứng từ thủ công vẫn còn; trang `/checkout` nhận return PayOS học phí và dẫn về lớp.
-- **Ràng buộc:** Không gộp khóa online + học phí lớp trong cùng đơn; mỗi đơn chỉ 1 lớp; không áp mã giảm giá cho học phí lớp; chặn thanh toán khi đăng ký còn `PENDING_CONFIRMATION`.
-
-#### Vị trí trên web
-1. Học viên → lớp của tôi / chi tiết lớp công khai (đã đăng ký) → khu vực **Thanh toán học phí**
-2. Return PayOS → `/checkout?...` → nút **Quay lại lớp học**
-
-#### Các bước test
-1. [ ] TM xác nhận đăng ký học viên → status `PENDING_TUITION_PAYMENT`, còn học phí > 0.
-2. [ ] HV bấm **Thanh toán ... qua PayOS** → chuyển sang PayOS.
-3. [ ] Thanh toán thành công → `/checkout` báo ghi nhận học phí → quay lại lớp → lịch sử có dòng `PayOS #...`, số còn lại giảm/về 0.
-4. [ ] (Fallback) Gửi minh chứng chuyển khoản → TM xác nhận/từ chối vẫn hoạt động như cũ.
-5. [ ] Thử tạo đơn PayOS thứ 2 khi đơn trước còn PENDING → bị chặn.
-
-#### Kết quả mong đợi
-- [ ] PayOS ghi nhận học phí không cần TM bấm tay.
-- [ ] Upload proof vẫn dùng được khi không PayOS.
-- [ ] Checkout khóa học online không bị ảnh hưởng.
-
----
-
-### Checklist nhanh trước khi demo
-
-1. Backend chạy tại `:8080`, frontend chạy tại Vite.
-2. Đăng nhập được 3 role demo ở bảng trên.
-3. Task 1: gửi học bù → TM duyệt → có buổi mới.
-4. Task 2: sửa điểm → công bố → học viên xem → thu hồi → học viên mất điểm.
-5. Task 4: 2 học viên vào waitlist → TM đổi thứ tự → vị trí cập nhật.
-6. Task 5: HV PayOS học phí → về checkout thành công → lịch sử có PayOS; fallback minh chứng vẫn gửi được.
-
----
-
-## Kết quả test Task 4 (API + unit) — 2026-07-12
-
-- **Nhánh:** `phongdx`
-- **Môi trường:** Backend `http://localhost:8080`, DB PostgreSQL Docker `postgres-englishlab`
-
-### Unit tests
-
-- Lệnh: `mvnw -Dtest=ClassroomOfferingServiceImplWaitlistTest test`
-- Kết quả: **5 tests, 0 failures, 0 errors**
-
-### API end-to-end
-
-Chuẩn bị tạm thời: lớp `#12` đặt `UPCOMING`, `maxCapacity=1` (đã có 1 học viên `ASSIGNED`), tạo 2 tài khoản:
-- `waitlist.learner.a@test.vn` / `Password123!`
-- `waitlist.learner.b@test.vn` / `Password123!`
-
-| Bước | Kết quả |
-|---|---|
-| TM / Learner A / Learner B đăng nhập | PASS |
-| Lớp đầy (`maxCapacity=1`, `enrolledCount=1`) | PASS |
-| A đăng ký → `WAITLIST` vị trí `#1 / 1` | PASS |
-| B đăng ký → `WAITLIST` vị trí `#2 / 2` | PASS |
-| TM list waitlist theo thứ tự A rồi B | PASS |
-| TM reorder `PUT .../waitlist/order` thành B rồi A | PASS |
-| A thấy `#2 / 2`, B thấy `#1 / 2` | PASS |
-| A hủy đăng ký → B được compact còn `#1 / 1` | PASS |
-
-**Tổng API checks đạt:** 21/21 kịch bản nghiệp vụ chính.
-
-Sau test đã khôi phục lớp `#12` về `ACTIVE`, `maxCapacity=16`, `startDate=2026-06-21` và hủy các enrollment waitlist tạm.
-
-### Gợi ý test UI thủ công còn lại
-
-1. Đăng nhập TM → `/training-manager/classrooms/12` → tab đăng ký **Danh sách chờ** (cần tạo lại dữ liệu waitlist nếu muốn xem UI).
-2. Hoặc giảm tạm `maxCapacity` rồi đăng ký bằng 2 tài khoản `waitlist.learner.*@test.vn`.
-3. Kiểm tra nút lên/xuống và badge `Vị trí #N` trên trang chi tiết lớp.
-
----
-
-## Task 5 — Thanh toán học phí lớp online (PayOS) + proof fallback
-
-- **Date:** 2026-07-12
-- **Branch:** `phongdx`
-- **Commit hash:** Not committed yet
-
-### Summary
-
-Connected classroom tuition to the existing PayOS checkout pipeline while keeping manual bank-transfer proof upload as Plan B. Students pay the remaining tuition balance online; webhook/status sync records tuition via `applyPayosTuitionPayment` without requiring Training Manager manual entry.
-
-### Changed files
-
-- `backend/.../PaymentServiceImpl.java`
-- `backend/.../PaymentOrder.java` (+ `enrollmentId`)
-- `backend/.../PaymentOrderRepository.java`
-- `backend/.../PaymentOrderStatusResponse.java`
-- `backend/.../ClassroomOfferingService.java` / `ClassroomOfferingServiceImpl.java`
-- `backend/.../migration/PaymentOrderEnrollmentSchemaMigration.java`
-- `backend/.../PaymentServiceImplClassroomTuitionTest.java`
-- `frontend/src/api/paymentApi.js`
+- `backend/src/main/java/fu/sap490/g23/backend/service/payment/impl/PaymentServiceImpl.java`
+  - Nhận `classroomOfferingIds`; quy tắc quote/create học phí; áp dụng sau PAID.
+- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
+  - `applyPayosTuitionPayment` ghi nhận idempotent.
+- `backend/src/main/java/fu/sap490/g23/backend/entity/payment/PaymentOrder.java`
+  - Liên kết `enrollmentId`.
+- `backend/src/main/java/fu/sap490/g23/backend/migration/PaymentOrderEnrollmentSchemaMigration.java`
+  - Thêm `payment_orders.enrollment_id` (+ index pending).
+- `backend/src/test/java/fu/sap490/g23/backend/service/payment/PaymentServiceImplClassroomTuitionTest.java`
+  - Unit test học phí lớp.
 - `frontend/src/components/classroom/TuitionPaymentSection.jsx`
+  - Nút PayOS + form minh chứng.
+- `frontend/src/api/paymentApi.js`
+  - Gửi `classroomOfferingIds` khi quote/link.
 - `frontend/src/pages/CheckoutPage.jsx`
-- `frontend/src/pages/classroom/MyClassroomDetailPage.jsx`
-- `frontend/src/pages/classroom/ClassroomPublicDetailPage.jsx`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
+  - Return PayOS học phí → nút quay lại lớp.
+- `frontend/src/pages/classroom/MyClassroomDetailPage.jsx` / `ClassroomPublicDetailPage.jsx`
+  - Host khu vực thanh toán học phí.
 
-### Backend changes
+### 4. Thay đổi Backend
 
-- Allowed quote/create PayOS for a single `classroomOfferingId` (mutually exclusive with course cart).
-- Amount = enrollment tuition remaining balance; coupons not applied to classroom tuition.
-- Persisted `classroomOfferingIdsCsv` + `enrollmentId` on `PaymentOrder`.
-- On PAID: call `applyPayosTuitionPayment` (idempotent by note `PayOS #orderCode`), optionally auto-assign when fully paid.
-- Blocked duplicate PENDING/PROCESSING PayOS orders for the same enrollment.
-- Blocked PayOS while registration is still `PENDING_CONFIRMATION`.
+- Payment: số tiền = học phí còn lại; mỗi đơn 1 lớp; không áp mã giảm giá; chặn khi còn `PENDING_CONFIRMATION` hoặc đã có đơn pending trùng enrollment.
+- Classroom: ghi nhận thanh toán; có thể xếp lớp khi đóng đủ (theo quy tắc hiện có).
+- Webhook PayOS đánh PAID rồi áp dụng học phí.
 
-### Frontend changes
+### 5. Thay đổi Frontend
 
-- PayOS primary action on `TuitionPaymentSection`; proof upload kept as fallback.
-- `paymentApi` sends `classroomOfferingIds`.
-- Checkout return page detects classroom tuition via sessionStorage + order status fields and links back to the class.
+- Khu vực học phí: PayOS chính, upload minh chứng phụ.
+- Checkout nhận diện đơn học phí lớp và dẫn về lớp.
+- API client truyền `classroomOfferingIds`.
 
-### Tests
+### 6. Thay đổi Database
 
-- `PaymentServiceImplClassroomTuitionTest`: **5 tests, 0 failures**.
+- `payment_orders.enrollment_id` (BIGINT, nullable).
+- Index đơn pending theo enrollment.
+- Tái sử dụng `classroom_offering_ids_csv`.
 
----
+### 7. Thay đổi API
 
-## Kết quả test Task 5 (API) — 2026-07-12
+- `POST /api/student/payments/quote`
+  - Mục đích: Báo giá (có thể gồm học phí lớp).
+  - Request: `courseIds`, `classroomOfferingIds`, `couponCode`.
+  - Phân quyền: Học viên.
 
-- **Nhánh:** `phongdx`
-- **Môi trường:** Backend `http://localhost:8080` (restart `mvnw spring-boot:run`), DB PostgreSQL Docker `postgres-englishlab`
-- **Tài khoản test:** `waitlist.learner.a@test.vn`, `waitlist.learner.b@test.vn` / `Password123!`
+- `POST /api/student/payments/payos/link`
+  - Mục đích: Tạo link PayOS.
+  - Phân quyền: Học viên.
 
-| Bước | Kết quả |
-|---|---|
-| Restart backend (port 8080) | PASS |
-| Đăng ký A → TM confirm → `PENDING_TUITION_PAYMENT` | PASS |
-| Quote học phí lớp = 3.900.000 | PASS |
-| Reject coupon trên học phí lớp | PASS |
-| Block PayOS khi HV đã `ASSIGNED` | PASS |
-| Create PayOS link (`PENDING` + checkoutUrl) | PASS |
-| Block tạo đơn PayOS trùng khi còn PENDING | PASS |
-| Order status trả `classroomOfferingId` + `enrollmentId` | PASS |
-| Webhook PayOS signed → order `PAID` | PASS |
-| Ghi nhận học phí + lịch sử `PayOS #...` + auto `ASSIGNED` | PASS |
-| Webhook lần 2 idempotent (không double charge) | PASS |
-| Upload minh chứng fallback (learner B) | PASS |
+- `GET /api/student/payments/orders/{orderCode}`
+  - Mục đích: Đồng bộ trạng thái sau return.
+  - Phân quyền: Học viên (chủ đơn).
 
-**Tổng:** 12/12 kịch bản API chính đạt.
+- `POST /api/payos/webhook`
+  - Mục đích: Callback nhà cung cấp → PAID.
+  - Phân quyền: Public webhook.
 
-Sau test đã khôi phục lớp `#12` về `ACTIVE` / `2026-06-21`–`2026-08-16` và hủy enrollment test `#13`, `#14`.
+- Plan B (giữ nguyên):
+  - `POST /api/student/classrooms/{id}/tuition-proofs`
+  - `POST /api/training-manager/classrooms/tuition-proofs/{proofId}/confirm`
+  - `POST /api/training-manager/classrooms/tuition-proofs/{proofId}/reject`
 
----
+### 8. Thay đổi UI/UX
 
-## Task 6 — Hoàn tiền & biên lai đơn khóa học (1A + 2A)
+- **HV:** `/my-classrooms/{id}` hoặc chi tiết lớp công khai — **Thanh toán học phí** (PayOS + minh chứng).
+- **Return:** `/checkout` → **Quay lại lớp học**.
+- **TM:** duyệt/từ chối minh chứng.
+- **Lỗi:** còn chờ xác nhận đăng ký; không gộp khóa + lớp; không áp coupon học phí lớp.
 
-- **Date:** 2026-07-13
-- **Branch:** `phongdx`
-- **Commit hash:** Not committed yet
+### 9. Các bước test trên web
 
-### Summary
+1. Chạy backend/frontend; cấu hình PayOS sandbox hợp lệ.
+2. TM xác nhận đăng ký để trạng thái có thể thanh toán (còn học phí > 0).
+3. HV vào khu vực học phí → **PayOS**.
+4. Thanh toán sandbox → về `/checkout` → quay lại lớp.
+5. Kiểm tra lịch sử có `PayOS #...` và số còn lại cập nhật.
+6. Plan B: upload minh chứng → TM xác nhận → học phí được ghi.
+7. Case lỗi: gắn coupon học phí lớp / gộp khóa+lớp → bị từ chối.
 
-Manager/CM đánh dấu hoàn tiền đơn khóa học online trên hệ thống (hủy quyền học + hoàn coupon; tiền PayOS xử lý ngoài app). Học viên tải biên lai PDF tự generate từ dữ liệu đơn.
+### 10. Kết quả mong đợi
 
-### Changed files
+HV đóng học phí lớp online được; webhook/status tự ghi nhận. Upload minh chứng vẫn dùng được làm phương án B.
 
-- `PaymentOrderStatus.java` (+ `REFUNDED`)
-- `PaymentOrder.java` + `PaymentOrderRefundSchemaMigration.java`
-- `PaymentReceiptPdfService.java` (OpenPDF)
-- `PaymentService` / `PaymentServiceImpl` (refund, receipt, staff list)
-- `OnlineCourseService.revokePaidCourseAccess`
-- `StudentPaymentController` receipt endpoint
-- `ManagerPaymentController` (`/api/manager|content-manager/payments`)
-- `TransactionHistoryPage.jsx`, `ContentManagerAnalyticsPage.jsx`, `paymentApi.js`
-- `PaymentServiceImplRefundReceiptTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
+### 11. Ghi chú / Rủi ro
 
-### Scope notes
-
-- Chỉ đơn **COURSE** (`enrollmentId == null`).
-- Full refund only.
-- Không gọi PayOS payout/refund gateway.
-
-### Web test checklist
-
-1. [x] HV tải biên lai PDF đơn khóa học PAID/REFUNDED (`GET /api/student/payments/orders/{orderCode}/receipt` → `%PDF`, `application/pdf`).
-2. [x] Manager hoàn tiền đơn khóa học (`POST /api/manager/payments/orders/{orderCode}/refund`) → `REFUNDED` + revoke enrollment.
-3. [x] Đơn `REFUNDED`; `package_enrollments.status = CANCELLED`. Coupon restore đã cover bằng unit test (DB không có discount_codes để E2E).
-4. [x] Reject: đơn học phí lớp (receipt + refund), double refund, HV gọi API manager (403), HV khác tải biên lai (400).
-
-### Bugfix khi E2E
-
-- DB check `payment_orders_status_check` chưa có `REFUNDED` → refund bị Postgres reject.
-- Đã bổ sung drop/recreate constraint trong `PaymentOrderRefundSchemaMigration` (và apply trực tiếp trên DB local).
-
-### API E2E (2026-07-13, backend `:8080`)
-
-Seed: `payment_orders.order_code=9006006001` (COURSE, PAID, student `0386852628z@gmail.com`), enrollment package 13 ACTIVE → sau refund CANCELLED.
-
-| Step | Result |
-|------|--------|
-| List orders: `orderType=COURSE`, `hasReceipt`, `refundable` | PASS |
-| Owner download receipt PDF | PASS |
-| Other student download receipt | PASS (400) |
-| Classroom owner download receipt | PASS (400 học phí lớp) |
-| Manager list `?status=PAID` | PASS |
-| Refund classroom order | PASS (400) |
-| Refund course order → REFUNDED 10000 | PASS |
-| Enrollment CANCELLED | PASS |
-| Double refund | PASS (400) |
-| Receipt after REFUNDED | PASS |
-| Learner list shows REFUNDED / `refundable=false` | PASS |
-| Staff `?status=REFUNDED` | PASS |
-| Learner → manager refund | PASS (403) |
-
-### Extra E2E cases (2026-07-13, round 2) — **32/32 PASS**
-
-Seed thêm: `9006006002` PENDING, `9006006003` PAID+coupon `T6REFUND10`, `9006006004` CANCELLED, `9006006005` PAID (reason len=500).
-
-| Nhóm | Cases |
-|------|--------|
-| Auth/role | TM 403 list/refund; unauth 403; learner 403 refund; Manager dùng `/content-manager/payments` |
-| Receipt | Reject PENDING/CANCELLED/nonexistent; OK sau coupon-refund |
-| Flags | PENDING/CANCELLED: `hasReceipt=false`, `refundable=false`; PAID+coupon đúng mã/giảm giá |
-| Validation | Blank / whitespace / missing reason; reason >500 reject; reason=500 OK |
-| Refund status | Reject PENDING/CANCELLED/already REFUNDED/nonexistent |
-| Coupon+revoke | `used_count` 1→0; enrollment CANCELLED; `refunded_by_id=30`; content API 400; my-enrollments=0 |
-| Analytics | `paidOrders` khớp DB PAID (loại REFUNDED); staff list all có REFUNDED; invalid status filter 400 |
-
-### Tests
-
-- Unit: `PaymentServiceImplRefundReceiptTest` + `PaymentServiceImplClassroomTuitionTest` (10/10).
-- Live API E2E: **13/13** (round 1) + **32/32** (round 2 edge cases).
+- Cần enrollment đang ở trạng thái có thể đóng học phí.
+- Lớp demo `#12` có thể `ACTIVE`/đóng đăng ký — dùng lớp `UPCOMING` hoặc chỉnh tạm dữ liệu.
+- Không có PayOS payout/refund học phí lớp trong task này.
 
 ---
 
-## Task 7 — Xử lý NEED_REFUND / settlement học phí lớp
+## Task 6: Hoàn tiền đơn khóa học và biên lai PDF
 
-- **Date:** 2026-07-13
-- **Branch:** `phongdx`
-- **Commit hash:** Not committed yet (base HEAD: `75303d6`)
+- **Ngày:** 2026-07-13
+- **Commit:** `75303d6` — `feat(payment): Task 6 — hoàn tiền và biên lai đơn khóa học`
 
-### Summary
+### 1. Tóm tắt
 
-Hoàn thiện workflow **Training Manager** duyệt/từ chối hoàn học phí lớp khi enrollment ở trạng thái `NEED_REFUND`. Hệ thống cập nhật số tiền đã thu, ghi audit `ClassroomTuitionPayment` loại `REFUND`, và lưu người/thời điểm/ghi chú xử lý. Tiền PayOS/ngân hàng vẫn xử lý ngoài app (giống Task 6).
+Thêm thao tác staff đánh dấu đơn **khóa học** `REFUNDED` và HV tải biên lai PDF (OpenPDF). Hoàn tiền trong hệ thống: hủy quyền học, hoàn lượt coupon. **Không** gọi PayOS payout. Đơn học phí lớp bị loại trừ.
 
-### Đã có sẵn (tái sử dụng)
+### 2. Phạm vi thay đổi
 
-- `TuitionSettlementType` + `computeSettlement` khi **chuyển lớp** overpay
-- Hiển thị `TuitionStatusCard` trên panel đăng ký TM
+- Backend
+- Frontend
+- Database
+- API
+- UI/UX
+- Bảo mật / validation
 
-### Thay đổi chính
+### 3. Tệp đã thay đổi
 
-**Backend**
+- `backend/src/main/java/fu/sap490/g23/backend/service/payment/impl/PaymentServiceImpl.java`
+  - `refundCourseOrder`, `downloadCourseReceipt`, `assertCourseOrder`.
+- `backend/src/main/java/fu/sap490/g23/backend/service/payment/PaymentReceiptPdfService.java`
+  - Sinh PDF biên lai.
+- `backend/src/main/java/fu/sap490/g23/backend/controller/payment/ManagerPaymentController.java`
+  - List + refund cho staff.
+- `backend/src/main/java/fu/sap490/g23/backend/controller/payment/StudentPaymentController.java`
+  - Endpoint tải biên lai.
+- `backend/src/main/java/fu/sap490/g23/backend/dto/request/payment/RefundCourseOrderRequest.java`
+  - `reason` bắt buộc (max 500).
+- `backend/src/main/java/fu/sap490/g23/backend/migration/PaymentOrderRefundSchemaMigration.java`
+  - Cột audit hoàn tiền; CHECK status có `REFUNDED`.
+- `backend/src/main/java/fu/sap490/g23/backend/service/course/impl/OnlineCourseServiceImpl.java`
+  - `revokePaidCourseAccess` khi hoàn.
+- `backend/src/test/java/fu/sap490/g23/backend/service/payment/PaymentServiceImplRefundReceiptTest.java`
+  - Unit test hoàn tiền/biên lai.
+- `frontend/src/pages/TransactionHistoryPage.jsx`
+  - HV tải PDF.
+- `frontend/src/pages/content-manager/ContentManagerAnalyticsPage.jsx`
+  - UI staff hoàn đơn khóa học.
+- `frontend/src/api/paymentApi.js`
+  - `downloadReceipt`, `refundCourseOrder`, list đơn staff.
 
-- Enum `TuitionSettlementStatus` (`NONE|PENDING|RESOLVED|REJECTED`)
-- Cột audit trên `classroom_enrollments` + migration `ClassroomTuitionSettlementSchemaMigration`
-- `TuitionPaymentKind.REFUND` (+ CHECK constraint DB)
-- Helper gán/clear settlement trong `ClassroomRegistrationSupport`
-- API `POST /api/training-manager/classrooms/enrollments/{id}/settlement/resolve` (`APPROVE_REFUND` | `REJECT_REFUND`)
-- List `GET .../registrations?settlementPending=true`
-- Producer: hủy đăng ký / xóa HV / từ chối đăng ký khi đã thu tiền → gắn `NEED_REFUND` + `PENDING`
-- `recordTuitionPayment` / PayOS ghi nhận → recompute settlement (xử lý `NEED_ADDITIONAL_PAYMENT` khi đủ tiền)
+### 4. Thay đổi Backend
 
-**Frontend**
+- Chỉ hoàn toàn phần (`refundedAmount = order.amount`).
+- Chỉ đơn khóa học (`enrollmentId == null` và có course IDs).
+- Đặt `REFUNDED`, lưu lý do/người/thời điểm/số tiền.
+- Thu hồi quyền khóa; hoàn coupon nếu có.
+- PDF cho đơn PAID/REFUNDED thuộc về HV.
 
-- Tab **Cần hoàn tiền** + panel Duyệt/Từ chối trong `TrainingManagerRegistrationPanel`
-- `TuitionStatusCard` không báo “Đã hoàn thành” khi còn settlement pending
-- Lịch sử học phí hiển thị dòng hoàn (`−` / `REFUND`)
+### 5. Thay đổi Frontend
 
-### Changed files
+- Lịch sử giao dịch: nút tải biên lai.
+- Analytics CM: staff hoàn đơn PAID kèm lý do.
+- Helper tải blob PDF và gọi refund.
 
-- `TuitionSettlementStatus.java`, `TuitionPaymentKind.java`, `ClassroomEnrollment.java`
-- `ClassroomTuitionSettlementSchemaMigration.java`
-- `ResolveTuitionSettlementRequest.java`, `ClassroomEnrollmentResponse.java`
-- `ClassroomRegistrationSupport.java`, `ClassroomOfferingService(.java|Impl.java)`, `ClassroomMapper.java`
-- `ClassroomEnrollmentRepository.java`, `TrainingManagerClassroomController.java`
-- `TrainingManagerRegistrationPanel.jsx`, `ClassroomUi.jsx`, `classroomApi.js`, `classroomHelpers.js`
-- `ClassroomRegistrationSupportSettlementTest.java`, `ClassroomOfferingServiceImplSettlementTest.java`
-- `docs/CHANGELOG_IMPLEMENTATION.md`
+### 6. Thay đổi Database
 
-### API
+- `payment_orders`: `refunded_amount_vnd`, `refunded_at`, `refund_reason`, `refunded_by_id`.
+- CHECK status cho phép `REFUNDED`.
 
-| Method | Path | Mô tả |
-|--------|------|--------|
-| POST | `/api/training-manager/classrooms/enrollments/{id}/settlement/resolve` | Duyệt/từ chối hoàn học phí |
-| GET | `/api/training-manager/classrooms/registrations?settlementPending=true` | Hàng đợi settlement PENDING |
+### 7. Thay đổi API
 
-### Database
+- `GET /api/student/payments/orders/{orderCode}/receipt`
+  - Mục đích: Tải PDF biên lai.
+  - Response: `application/pdf`.
+  - Phân quyền: Học viên (chủ đơn).
 
-- `classroom_enrollments`: `tuition_settlement_status`, `tuition_settlement_resolved_at`, `tuition_settlement_resolved_by_id`, `tuition_settlement_resolution_note`
-- `classroom_tuition_payments.payment_kind` cho phép `REFUND`
+- `POST /api/manager/payments/orders/{orderCode}/refund`
+  - Mục đích: Đánh dấu hoàn đơn khóa học.
+  - Request: `{ "reason": "..." }`.
+  - Phân quyền: Manager / Admin.
 
-### Web test checklist
+- `POST /api/content-manager/payments/orders/{orderCode}/refund`
+  - Mục đích: Hoàn tiền từ cổng CM.
+  - Phân quyền: Content Manager / Manager / Admin.
 
-1. [x] Chuyển lớp overpay → enrollment đích `NEED_REFUND` + tab **Cần hoàn tiền** hiện hồ sơ.
-2. [x] TM **Duyệt hoàn tiền** (còn trong lớp) → `paid` giảm về `due`, lịch sử có dòng REFUND, status `RESOLVED`.
-3. [x] TM **Từ chối hoàn** (có lý do) → giữ số tiền, status `REJECTED`, không ghi REFUND.
-4. [x] Hủy đăng ký / xóa HV / từ chối đăng ký khi đã đóng học phí → gắn `NEED_REFUND`; duyệt hoàn **toàn bộ** số đã thu (`paid → 0`).
-5. [x] Double resolve / thiếu lý do từ chối / action invalid / resolve khi `NONE` → 400; learner/unauth → 403.
+- `GET /api/manager/payments/orders` / `GET /api/content-manager/payments/orders`
+  - Mục đích: List đơn cho UI hoàn tiền.
+  - Phân quyền: theo role tương ứng.
 
-### Tests
+### 8. Thay đổi UI/UX
 
-- Unit: `ClassroomRegistrationSupportSettlementTest` + `ClassroomOfferingServiceImplSettlementTest` — **PASS** (gồm case CANCELLED overpay → hoàn full).
-- API E2E (2026-07-13, backend restart sau fix hoàn full khi exit): **21/21 PASS**
-  - Auth: learner/unauth 403 trên list settlement
-  - `settlementPending=true` hiện hồ sơ `NEED_REFUND`+`PENDING`
-  - APPROVE overpay (ASSIGNED): paid 15000→10000, audit REFUND 5000
-  - APPROVE sau `removeStudent` (CANCELLED, paid>due): paid 12000→0, audit REFUND 12000
-  - REJECT_REFUND: giữ paid, không có dòng REFUND
-  - Learner cancel / rejectRegistration có paid → `NEED_REFUND` → APPROVE paid→0
-  - Transfer overpay (offering 12→13): paid 3490000 / due 10000 → APPROVE paid→10000, audit REFUND 3480000
-  - Double-resolve / blank reject note / invalid action / resolve `NONE` → 400
+- **HV:** `/transaction-history` — tải biên lai.
+- **Staff:** `/content-manager/analytics` — hoàn đơn + lý do.
+- **Lỗi:** đơn học phí lớp không hoàn/biên lai tại đây; thiếu lý do bị từ chối; HV không gọi API refund staff.
 
-### Bugfix khi E2E
+### 9. Các bước test trên web
 
-- `approveTuitionRefund`: khi enrollment đã **CANCELLED/REJECTED**, luôn hoàn toàn bộ `paid` (không chỉ `paid - due`). Trước đó case xóa HV với paid>due chỉ hoàn phần thừa.
+1. Chạy backend/frontend.
+2. HV có đơn khóa **PAID** → `/transaction-history` → tải PDF → kiểm tra mã đơn/số tiền/trạng thái.
+3. Manager `classroom.manager@englishlab.vn` → `/content-manager/analytics` → hoàn đơn đó kèm lý do.
+4. Đơn thành `REFUNDED`; HV mất quyền khóa; coupon được hoàn nếu dùng.
+5. Case lỗi: hoàn đơn học phí lớp → 400.
+6. Case lỗi: HV gọi API refund → 403.
+7. Sau hoàn, HV vẫn có thể tải biên lai (nếu code cho phép với `REFUNDED`).
 
-### Ngoài phạm vi
+### 10. Kết quả mong đợi
 
-- PayOS payout/refund gateway cho học phí lớp
-- Hoàn tiền khóa học online (Task 6)
+Đơn khóa học hoàn được trong hệ thống (quyền + coupon); HV tải được PDF. Không có hoàn tiền tự động qua PayOS.
 
+### 11. Ghi chú / Rủi ro
+
+- Training Manager không có quyền API refund payment staff (theo SecurityConfig).
+- DTO request: `RefundCourseOrderRequest` (phạm vi đơn khóa học).
+
+---
+
+## Task 7: Workflow NEED_REFUND / settlement học phí lớp
+
+- **Ngày:** 2026-07-13
+- **Commit:** `b13533b` — `feat(classroom): Task 7 — duyệt/từ chối NEED_REFUND học phí lớp`
+
+### 1. Tóm tắt
+
+Hoàn thiện workflow TM xử lý settlement `NEED_REFUND`. TM duyệt hoặc từ chối; duyệt ghi audit `ClassroomTuitionPayment` loại `REFUND` và điều chỉnh `tuition_amount_paid`. Nguồn phát sinh: chuyển lớp overpay, hủy/xóa/từ chối khi đã thu tiền. Chi trả ngân hàng/PayOS ngoài hệ thống.
+
+### 2. Phạm vi thay đổi
+
+- Backend
+- Frontend
+- Database
+- API
+- UI/UX
+- Validation
+
+### 3. Tệp đã thay đổi
+
+- `backend/src/main/java/fu/sap490/g23/backend/entity/classroom/enums/TuitionSettlementStatus.java`
+  - `NONE | PENDING | RESOLVED | REJECTED`.
+- `backend/src/main/java/fu/sap490/g23/backend/entity/classroom/enums/TuitionPaymentKind.java`
+  - Thêm `REFUND`.
+- `backend/src/main/java/fu/sap490/g23/backend/migration/ClassroomTuitionSettlementSchemaMigration.java`
+  - Cột audit settlement; CHECK `payment_kind` có `REFUND`.
+- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/ClassroomRegistrationSupport.java`
+  - Helper settlement (`markNeedRefundForExit`, compute/apply).
+- `backend/src/main/java/fu/sap490/g23/backend/service/classroom/impl/ClassroomOfferingServiceImpl.java`
+  - `resolveTuitionSettlement`; producer; hoàn full khi exit vs chỉ phần thừa khi còn trong lớp.
+- `backend/src/main/java/fu/sap490/g23/backend/controller/classroom/TrainingManagerClassroomController.java`
+  - Endpoint resolve; list `settlementPending`.
+- `backend/src/main/java/fu/sap490/g23/backend/dto/request/classroom/ResolveTuitionSettlementRequest.java`
+  - `action`, `note`.
+- Tests: `ClassroomOfferingServiceImplSettlementTest.java`, `ClassroomRegistrationSupportSettlementTest.java`.
+- `frontend/src/components/training-manager/TrainingManagerRegistrationPanel.jsx`
+  - Tab **Cần hoàn tiền** + duyệt/từ chối.
+- `frontend/src/components/classroom/ClassroomUi.jsx` / `classroomHelpers.js`
+  - Nhãn settlement; không báo “đã hoàn thành” khi còn pending.
+- `frontend/src/api/classroomApi.js`
+  - `resolveTuitionSettlement`.
+
+### 4. Thay đổi Backend
+
+- Duyệt (`APPROVE_REFUND`):
+  - Đã thoát lớp (`CANCELLED`/`REJECTED`): hoàn hết `paid` → `paid = 0`.
+  - Còn trong lớp (vd. chuyển lớp overpay): chỉ hoàn `paid - due`.
+- Từ chối (`REJECT_REFUND`): bắt buộc có note; giữ paid; `REJECTED`; không ghi REFUND.
+- Double-resolve / action sai → 400.
+- List `settlementPending=true` trả các case `PENDING`.
+
+### 5. Thay đổi Frontend
+
+- Tab hàng đợi cần hoàn tiền trên panel đăng ký TM.
+- Duyệt / từ chối (từ chối cần lý do).
+- Lịch sử học phí hiện dòng REFUND dạng giảm.
+- Thẻ trạng thái không coi là xong khi còn settlement pending.
+
+### 6. Thay đổi Database
+
+- `classroom_enrollments`: `tuition_settlement_status`, `tuition_settlement_resolved_at`, `tuition_settlement_resolved_by_id`, `tuition_settlement_resolution_note` (+ type/note sẵn có).
+- `classroom_tuition_payments.payment_kind` cho phép `REFUND`.
+- Index truy vấn settlement pending.
+
+### 7. Thay đổi API
+
+- `POST /api/training-manager/classrooms/enrollments/{id}/settlement/resolve`
+  - Mục đích: Duyệt/từ chối NEED_REFUND.
+  - Request: `{ "action": "APPROVE_REFUND" | "REJECT_REFUND", "note": "..." }`.
+  - Response: `ClassroomEnrollmentResponse` đã cập nhật.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+- `GET /api/training-manager/classrooms/registrations?settlementPending=true`
+  - Mục đích: Hàng đợi settlement.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+- `GET /api/training-manager/classrooms/enrollments/{id}/tuition-history`
+  - Mục đích: Kiểm tra dòng REFUND audit.
+  - Phân quyền: Training Manager / Manager / Admin.
+
+### 8. Thay đổi UI/UX
+
+- **Trang:** Panel đăng ký TM — tab **Cần hoàn tiền**.
+- **Thao tác:** Duyệt hoàn tiền; Từ chối (có lý do).
+- **Thành công:** `RESOLVED`/`REJECTED`; lịch sử có REFUND khi duyệt.
+- **Lỗi:** thiếu lý do từ chối; resolve hai lần; HV bị cấm.
+
+### 9. Các bước test trên web
+
+1. Chạy backend/frontend.
+2. Tạo case NEED_REFUND (vd. chuyển lớp overpay; hoặc hủy/xóa HV đã đóng tiền).
+3. Đăng nhập TM → đăng ký → **Cần hoàn tiền**.
+4. Duyệt hoàn → kiểm tra `paid` và lịch sử REFUND.
+5. Case khác → từ chối có lý do → `paid` giữ nguyên, không có REFUND.
+6. Case lỗi: resolve lần 2 → lỗi; HV không gọi được API TM.
+
+### 10. Kết quả mong đợi
+
+TM xử lý hết hàng đợi NEED_REFUND có audit trong app. Tiền mặt/PayOS vẫn xử lý ngoài hệ thống.
+
+### 11. Ghi chú / Rủi ro
+
+- Khác Task 6 (hoàn đơn khóa học PayOS).
+- Đã E2E sau restart backend (overpay, hoàn full khi exit, transfer, auth).
+
+---
+
+## Task 8: Cài đặt CM và quản lý gói / Bundle
+
+- **Ngày:** 2026-07-13
+- **Commit:** Chưa commit (code trên working tree sau `b13533b`)
+
+### 1. Tóm tắt
+
+Thêm khu vực Content Manager quản lý **gói/bundle** và trang **Cài đặt** nhẹ. CM tạo/sửa/xóa mềm gói `BUNDLE`, ghép sản phẩm con (`ONLINE_COURSE` / `CLASSROOM`), chạy vòng đời xuất bản. Settings chỉ xem loại gói (read-only). Chưa có checkout/enrollment bundle.
+
+### 2. Phạm vi thay đổi
+
+- Backend
+- Frontend
+- Database
+- API
+- UI/UX
+- Validation
+
+### 3. Tệp đã thay đổi
+
+- `backend/src/main/java/fu/sap490/g23/backend/entity/course/PackageBundleItem.java`
+  - Entity join composition bundle.
+- `backend/src/main/java/fu/sap490/g23/backend/repository/course/PackageBundleItemRepository.java`
+  - Lưu/truy vấn item bundle.
+- `backend/src/main/java/fu/sap490/g23/backend/migration/PackageBundleSchemaMigration.java`
+  - Tạo `package_bundle_items`; đảm bảo type `BUNDLE`; mở CHECK status `PENDING_REVIEW`/`REJECTED`.
+- `backend/src/main/java/fu/sap490/g23/backend/service/course/LearningPackageManagementService.java`
+- `backend/src/main/java/fu/sap490/g23/backend/service/course/impl/LearningPackageManagementServiceImpl.java`
+  - Chỉ mutate `BUNDLE`; validate composition; lifecycle.
+- `backend/src/main/java/fu/sap490/g23/backend/controller/course/ContentManagerPackageController.java`
+  - `/api/content-manager/packages/**`.
+- DTO: `LearningPackageRequest`, `UpdatePackageBundleItemsRequest`, `LearningPackageResponse`, `LearningPackageSummaryResponse`, `PackageTypeResponse`.
+- `backend/src/test/java/fu/sap490/g23/backend/service/course/LearningPackageManagementServiceImplTest.java`
+- `frontend/src/api/packageApi.js`
+- `frontend/src/pages/content-manager/ContentManagerPackagesPage.jsx`
+- `frontend/src/pages/content-manager/ContentManagerSettingsPage.jsx`
+- `frontend/src/pages/content-manager/ContentManagerRoutes.jsx`
+- `frontend/src/components/content-manager/contentManagerConfig.js`
+  - Nav **Gói học / Bundle** và **Cài đặt**.
+
+### 4. Thay đổi Backend
+
+- Chỉ tạo/sửa/xóa/publish/submit/archive loại `BUNDLE`.
+- Con chỉ `ONLINE_COURSE` hoặc `CLASSROOM`; không self-ref; không bundle lồng bundle.
+- Publish/gửi duyệt cần ≥ 1 con.
+- Soft-delete: `deleted=true` + archive.
+- Endpoint loại gói chỉ đọc.
+
+### 5. Thay đổi Frontend
+
+- `/content-manager/packages`: list/lọc, tạo/sửa bundle, ghép con, vòng đời.
+- `/content-manager/settings`: bảng loại gói + nút sang packages.
+- Gói không phải BUNDLE khi hiện trong list → chỉ xem.
+
+### 6. Thay đổi Database
+
+- Bảng mới `package_bundle_items` (`bundle_package_id`, `child_package_id`, `display_order`, unique cặp).
+- Đảm bảo có `package_types.code = BUNDLE`.
+- `packages_status_check` cho phép `DRAFT`, `PENDING_REVIEW`, `REJECTED`, `PUBLISHED`, `ARCHIVED`.
+
+### 7. Thay đổi API
+
+Tất cả dưới `/api/content-manager/packages` — Phân quyền: Content Manager / Manager / Admin.
+
+- `GET /api/content-manager/packages/types` — danh mục loại gói (read-only).
+- `GET /api/content-manager/packages/candidates` — ứng viên con.
+- `GET /api/content-manager/packages` — list/lọc (`keyword`, `packageTypeCode`, `status`).
+- `GET /api/content-manager/packages/{id}` — chi tiết + children.
+- `POST /api/content-manager/packages` — tạo BUNDLE.
+- `PUT /api/content-manager/packages/{id}` — cập nhật metadata BUNDLE.
+- `PUT /api/content-manager/packages/{id}/bundle-items` — thay composition.
+- `PATCH /api/content-manager/packages/{id}/submit-review` — `PENDING_REVIEW`.
+- `PATCH /api/content-manager/packages/{id}/publish` — xuất bản.
+- `PATCH /api/content-manager/packages/{id}/archive` — lưu trữ.
+- `DELETE /api/content-manager/packages/{id}` — xóa mềm.
+
+### 8. Thay đổi UI/UX
+
+- **Cài đặt:** `/content-manager/settings` — CM/Manager — bảng type + link packages.
+- **Gói:** `/content-manager/packages` — tạo bundle, chọn con, sắp xếp, publish.
+- **Trống:** thông báo khi chưa có candidate.
+- **Lỗi:** publish không có con; self-ref; sửa CLASSROOM qua API này bị chặn.
+
+### 9. Các bước test trên web
+
+1. Chạy backend/frontend (restart backend để migration chạy).
+2. Đăng nhập Manager `classroom.manager@englishlab.vn` / `Password123!` (hoặc CM nếu đã seed).
+3. `/content-manager/settings` → thấy type có `BUNDLE`.
+4. `/content-manager/packages` → **Tạo bundle**.
+5. Thêm ≥ 1 con CLASSROOM/ONLINE_COURSE → Lưu.
+6. **Gửi duyệt** → `PENDING_REVIEW`.
+7. **Xuất bản** → `PUBLISHED`.
+8. Sửa composition/metadata → Lưu.
+9. Lưu trữ / xóa mềm bundle test → khỏi list active.
+10. Case lỗi: publish bundle trống; cố sửa CLASSROOM tại màn này → bị chặn/chỉ xem.
+
+### 10. Kết quả mong đợi
+
+CM quản lý được gói BUNDLE và composition; xem loại gói ở settings. Chưa bán/đăng ký bundle trên storefront.
+
+### 11. Ghi chú / Rủi ro
+
+- Ngoài phạm vi: mua PayOS bundle, fan-out enrollment, CRUD `PackageType`, `package_availability`.
+- DB demo có thể chỉ có candidate CLASSROOM nếu chưa seed khóa online.
+- Commit Task 8 riêng khi sẵn sàng; cập nhật hash commit vào mục này.
+
+---
+
+## Phụ lục: Mẫu cho task tiếp theo
+
+Sau mỗi task hoàn thành, nối thêm:
+
+```markdown
+## Task N: [Tên task]
+
+### 1. Tóm tắt
+### 2. Phạm vi thay đổi
+### 3. Tệp đã thay đổi
+### 4. Thay đổi Backend
+### 5. Thay đổi Frontend
+### 6. Thay đổi Database
+### 7. Thay đổi API
+### 8. Thay đổi UI/UX
+### 9. Các bước test trên web
+### 10. Kết quả mong đợi
+### 11. Ghi chú / Rủi ro
+```
+
+Không được bỏ các mục 3–7, 9, 10.
