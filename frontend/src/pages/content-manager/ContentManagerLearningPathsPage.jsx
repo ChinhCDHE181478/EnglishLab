@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Check, GripVertical, RefreshCw, Route, Settings2, X } from 'lucide-react';
+import { Check, GripVertical, RefreshCw, Route, Settings2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { ContentManagerLoadingState, Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -17,8 +17,7 @@ export default function ContentManagerLearningPathsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showColumns, setShowColumns] = useState(false);
-  const [visibleColumns, setVisibleColumns] = useState({ outcome: true, next: true });
+  const [showStepColumn, setShowStepColumn] = useState(true);
   const [draggedCourse, setDraggedCourse] = useState(null);
   const [creatingPath, setCreatingPath] = useState(false);
 
@@ -95,7 +94,6 @@ export default function ContentManagerLearningPathsPage() {
       learningPathCode: course.learningPathCode || '',
       learningPathName: course.learningPathName || '',
       learningPathOrder: String(course.learningPathOrder ?? 0),
-      recommendedNextCourseSlug: course.recommendedNextCourseSlug || '',
     });
     setError('');
     setSuccess('');
@@ -109,7 +107,7 @@ export default function ContentManagerLearningPathsPage() {
     }
     setCreatingPath(true);
     openEditor(availableCourse);
-    setForm({ learningPathCode: '', learningPathName: '', learningPathOrder: '1', recommendedNextCourseSlug: '' });
+    setForm({ learningPathCode: '', learningPathName: '', learningPathOrder: '1' });
   };
 
   const deletePath = async (group) => {
@@ -121,7 +119,6 @@ export default function ContentManagerLearningPathsPage() {
         learningPathCode: null,
         learningPathName: null,
         learningPathOrder: null,
-        recommendedNextCourseSlug: null,
       }))));
       await loadCourses();
       setSuccess('Đã gỡ các khóa học khỏi lộ trình.');
@@ -134,19 +131,19 @@ export default function ContentManagerLearningPathsPage() {
 
   const handleDrop = async (targetCourse) => {
     if (!draggedCourse || draggedCourse.id === targetCourse.id || draggedCourse.learningPathCode !== targetCourse.learningPathCode) return;
-    const pathCourses = courses.filter((course) => course.learningPathCode === targetCourse.learningPathCode)
-      .sort((left, right) => Number(left.learningPathOrder || 0) - Number(right.learningPathOrder || 0));
-    const from = pathCourses.findIndex((course) => course.id === draggedCourse.id);
-    const to = pathCourses.findIndex((course) => course.id === targetCourse.id);
-    pathCourses.splice(to, 0, pathCourses.splice(from, 1)[0]);
-    const updatedCourses = pathCourses.map((course, index) => ({ ...course, learningPathOrder: index + 1 }));
+    const draggedOrder = Number(draggedCourse.learningPathOrder || 0);
+    const targetOrder = Number(targetCourse.learningPathOrder || 0);
+    const updatedCourses = [
+      { ...draggedCourse, learningPathOrder: targetOrder },
+      { ...targetCourse, learningPathOrder: draggedOrder },
+    ];
     setCourses((current) => current.map((course) => updatedCourses.find((item) => item.id === course.id) || course));
     setDraggedCourse(null);
     try {
       await Promise.all(updatedCourses.map((course) => courseApi.updateOnlineCourse(course.id, buildManagedCoursePayload(course, {
         learningPathOrder: course.learningPathOrder,
       }))));
-      setSuccess('Đã cập nhật thứ tự các khóa học trong lộ trình.');
+      setSuccess('Đã hoán đổi thứ tự hai khóa học trong lộ trình.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể lưu thứ tự mới. Vui lòng làm mới và thử lại.');
       await loadCourses();
@@ -174,7 +171,6 @@ export default function ContentManagerLearningPathsPage() {
           learningPathCode: code || null,
           learningPathName: name || null,
           learningPathOrder: code ? (course.id === editingCourse.id ? Number(form.learningPathOrder || 1) : course.learningPathOrder) : null,
-          recommendedNextCourseSlug: course.id === editingCourse.id ? form.recommendedNextCourseSlug.trim() || null : course.recommendedNextCourseSlug,
         }),
       )));
       setCourses((current) => current.map((course) => updatedCourses.find((item) => item.id === course.id) || course));
@@ -205,7 +201,7 @@ export default function ContentManagerLearningPathsPage() {
         </div>
         <div className="flex items-center gap-2">
         <button className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white" onClick={openCreatePath} type="button">+ Tạo lộ trình</button>
-        <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={() => setShowColumns((current) => !current)} type="button"><Settings2 className="h-4 w-4" />Cột hiển thị</button>
+        <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={() => setShowStepColumn((current) => !current)} type="button"><Settings2 className="h-4 w-4" />{showStepColumn ? 'Ẩn cột bước' : 'Hiện cột bước'}</button>
         <button
           className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]"
           onClick={loadCourses}
@@ -216,10 +212,6 @@ export default function ContentManagerLearningPathsPage() {
         </button>
         </div>
       </div>
-
-      {showColumns ? <div className="flex flex-wrap gap-4 rounded-2xl border border-[#ead9db] bg-[#fffdfc] px-5 py-3 text-sm font-semibold text-[#584140]">
-        {Object.entries({ outcome: 'Mục tiêu đầu ra', next: 'Khóa học tiếp theo' }).map(([key, label]) => <label className="inline-flex items-center gap-2" key={key}><input checked={visibleColumns[key]} onChange={() => setVisibleColumns((current) => ({ ...current, [key]: !current[key] }))} type="checkbox" />{label}</label>)}
-      </div> : null}
 
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
@@ -239,7 +231,6 @@ export default function ContentManagerLearningPathsPage() {
             <TextField label="Mã lộ trình" onChange={(event) => setForm((current) => ({ ...current, learningPathCode: event.target.value }))} value={form.learningPathCode} />
             <TextField label="Tên lộ trình" onChange={(event) => setForm((current) => ({ ...current, learningPathName: event.target.value }))} value={form.learningPathName} />
             <TextField label="Thứ tự trong lộ trình" onChange={(event) => setForm((current) => ({ ...current, learningPathOrder: event.target.value }))} value={form.learningPathOrder} />
-            <TextField label="Slug khóa học tiếp theo" onChange={(event) => setForm((current) => ({ ...current, recommendedNextCourseSlug: event.target.value }))} value={form.recommendedNextCourseSlug} />
           </div>
           <div className="mt-5 flex justify-end gap-3">
             <button className="rounded-2xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014]" onClick={() => { setEditingCourse(null); setCreatingPath(false); }} type="button">Hủy</button>
@@ -260,7 +251,7 @@ export default function ContentManagerLearningPathsPage() {
               </span>
               <div>
                 <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{group.name}</h2>
-                <p className="mt-1 text-sm text-[#584140]">{group.courses.length} khóa học</p>
+                <p className="mt-1 text-sm text-[#584140]">{group.courses.length} khóa học · Kéo cả hàng để hoán đổi thứ tự hai bước.</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -273,23 +264,14 @@ export default function ContentManagerLearningPathsPage() {
           </div>
           <div className="divide-y divide-[#f0e3e4]">
             {group.courses.map((course, index) => (
-              <div draggable={group.code !== 'UNASSIGNED'} key={course.id} onDragEnd={() => setDraggedCourse(null)} onDragOver={(event) => event.preventDefault()} onDragStart={() => setDraggedCourse(course)} onDrop={() => handleDrop(course)} className="grid cursor-grab gap-4 px-6 py-5 active:cursor-grabbing lg:grid-cols-[80px_1fr_220px_auto] lg:items-center">
-                <div className="text-sm font-bold text-[#730014]">
+              <div draggable={group.code !== 'UNASSIGNED'} key={course.id} onDragEnd={() => setDraggedCourse(null)} onDragOver={(event) => event.preventDefault()} onDragStart={() => setDraggedCourse(course)} onDrop={() => handleDrop(course)} className={`grid cursor-grab gap-4 px-6 py-5 active:cursor-grabbing ${showStepColumn ? 'lg:grid-cols-[80px_1fr]' : 'lg:grid-cols-1'} lg:items-center`}>
+                {showStepColumn ? <div className="text-sm font-bold text-[#730014]">
                   <span className="inline-flex items-center gap-1"><GripVertical className="h-4 w-4 text-[#b99593]" />{group.code === 'UNASSIGNED' ? '—' : `Bước ${course.learningPathOrder || index + 1}`}</span>
-                </div>
+                </div> : null}
                 <div>
                   <p className="font-bold text-[#1a1c1c]">{course.title}</p>
-                  {visibleColumns.outcome ? <p className="mt-1 text-sm text-[#584140]">{course.targetOutcome || course.shortDescription || 'Chưa có mô tả đầu ra.'}</p> : null}
+                  <p className="mt-1 text-sm text-[#584140]">{course.targetOutcome || course.shortDescription || 'Chưa có mô tả đầu ra.'}</p>
                 </div>
-                <div className={`flex items-center gap-2 text-sm text-[#584140] ${visibleColumns.next ? '' : 'invisible'}`}>
-                  {course.recommendedNextCourseSlug ? (
-                    <>
-                      <ArrowRight className="h-4 w-4 text-[#730014]" />
-                      <span className="truncate">{course.recommendedNextCourseSlug}</span>
-                    </>
-                  ) : 'Chưa đặt khóa học tiếp theo'}
-                </div>
-                <div className="text-right text-xs font-semibold text-[#8b706e]">Kéo hàng để đổi thứ tự</div>
               </div>
             ))}
           </div>
