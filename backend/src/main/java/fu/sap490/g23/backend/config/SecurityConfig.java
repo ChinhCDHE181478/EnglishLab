@@ -51,7 +51,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/payos/webhook").permitAll()
                         .requestMatchers("/api/lark/events").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/ai/writing-feedback/demo").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-offerings", "/api/classroom-offerings/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-homework/attachments/**").permitAll()

@@ -1,9 +1,6 @@
 package fu.sap490.g23.backend.controller.assessment;
 
 import fu.sap490.g23.backend.dto.request.assessment.AssessmentSubmissionRequest;
-import fu.sap490.g23.backend.dto.request.assessment.WritingFeedbackRequest;
-import fu.sap490.g23.backend.dto.response.assessment.WritingFeedbackResponse;
-import jakarta.validation.Valid;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentAudioUploadResponse;
 import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
@@ -28,11 +25,6 @@ public class StudentAssessmentController {
 
     private final AiAssessmentService aiAssessmentService;
     private final AssessmentAudioStorageService assessmentAudioStorageService;
-
-    @PostMapping("/ai/writing-feedback")
-    public ResponseEntity<WritingFeedbackResponse> writingFeedback(@Valid @RequestBody WritingFeedbackRequest request) {
-        return ResponseEntity.ok(aiAssessmentService.evaluateWritingFeedback(request));
-    }
 
     @GetMapping({"/online-courses/{courseId}/assessments", "/courses/{courseId}/assessments"})
     public ResponseEntity<List<CourseAssessmentResponse>> getCourseAssessments(@PathVariable Long courseId, Authentication authentication) {
