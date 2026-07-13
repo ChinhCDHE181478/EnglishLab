@@ -4,33 +4,9 @@ import { motion } from 'framer-motion';
 import AIFeedback from './AIFeedback';
 import EssayDraft from './EssayDraft';
 import SkillTabs from './SkillTabs';
-import { Link } from 'react-router-dom';
-import { courseApi } from '../../api/courseApi';
 
 const AILearningSection = () => {
   const [activeTab, setActiveTab] = useState('writing');
-  const [essayText, setEssayText] = useState('');
-  const [feedback, setFeedback] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleWritingFeedback = async () => {
-    const text = essayText.trim();
-    if (text.length < 80) {
-      setError('Bài viết cần có ít nhất 80 ký tự để AI có đủ dữ liệu phân tích.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const result = await courseApi.getWritingFeedback({ essayText: text, targetExam: 'IELTS' });
-      setFeedback(result);
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Chưa thể nhận phản hồi lúc này. Vui lòng thử lại.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Animation variants
   const fadeUp = {
@@ -68,15 +44,9 @@ const AILearningSection = () => {
         viewport={{ once: true }}
         variants={fadeUp}
       >
-        <EssayDraft activeTab={activeTab} essayText={essayText} onEssayChange={setEssayText} onSubmit={handleWritingFeedback} loading={loading} error={error} />
-        <AIFeedback activeTab={activeTab} feedback={feedback} loading={loading} />
+        <EssayDraft activeTab={activeTab} />
+        <AIFeedback activeTab={activeTab} />
       </motion.div>
-
-      <div className="mt-6 text-center">
-        <Link className="inline-flex rounded-full border border-[#8a0018] px-6 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#730014] hover:text-white" to="/ai/writing-feedback">
-          Mở công cụ phản hồi Writing đầy đủ
-        </Link>
-      </div>
 
       <motion.div 
         className="mx-auto mt-10 flex max-w-3xl flex-wrap items-center justify-center gap-3 text-sm text-[#584140]"

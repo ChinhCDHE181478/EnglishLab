@@ -8,7 +8,7 @@ const contentVariants = {
   exit: { opacity: 0, x: 20, transition: { duration: 0.3 } }
 };
 
-const EssayDraft = ({ activeTab, essayText, onEssayChange, onSubmit, loading, error }) => {
+const EssayDraft = ({ activeTab }) => {
   return (
     <div className="flex h-[400px] flex-col rounded-xl bg-gray-50/50 p-6">
       <h3 className="mb-4 font-bold text-[#1a1c1c] text-lg border-b border-gray-200 pb-3">
@@ -18,21 +18,9 @@ const EssayDraft = ({ activeTab, essayText, onEssayChange, onSubmit, loading, er
       <div className="relative flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
         <AnimatePresence mode="wait">
           {activeTab === 'writing' && (
-            <motion.div key="writing" variants={contentVariants} initial="hidden" animate="visible" exit="exit" className="flex h-full flex-col gap-3">
-              <textarea
-                className="min-h-0 flex-1 resize-none rounded-xl border border-[#dfbfbd] bg-white p-4 text-sm leading-6 text-gray-700 outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/10"
-                maxLength={3000}
-                onChange={(event) => onEssayChange(event.target.value)}
-                placeholder="Dán hoặc nhập bài Writing của bạn tại đây (80–3000 ký tự)..."
-                value={essayText}
-              />
-              <div className="flex items-center justify-between gap-3 text-xs text-gray-500">
-                <span>{essayText.length}/3000 ký tự</span>
-                <button className="rounded-full bg-[#730014] px-5 py-2.5 font-bold text-white transition hover:bg-[#4b0009] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading} onClick={onSubmit} type="button">
-                  {loading ? 'Đang phân tích...' : 'Nhận phản hồi AI'}
-                </button>
-              </div>
-              {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+            <motion.div key="writing" variants={contentVariants} initial="hidden" animate="visible" exit="exit" className="text-gray-600 leading-relaxed space-y-4">
+              <p>The chart illustrates the percentage of the population living in urban areas in three different countries from 1990 to 2020.</p>
+              <p>Overall, there was an <span className="bg-red-100 text-red-700 px-1 rounded line-through">upward trend</span> <span className="bg-green-100 text-green-700 px-1 rounded">increase</span> in the proportion of urban residents in all three nations over the period...</p>
             </motion.div>
           )}
 
