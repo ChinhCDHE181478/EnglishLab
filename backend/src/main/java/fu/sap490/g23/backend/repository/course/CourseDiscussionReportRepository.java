@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,10 @@ public interface CourseDiscussionReportRepository extends JpaRepository<CourseDi
 
     @EntityGraph(attributePaths = {"reporter", "reviewedBy"})
     List<CourseDiscussionReport> findByStatusOrderByCreatedAtDesc(CourseDiscussionReportStatus status);
+
+    @EntityGraph(attributePaths = {"reporter", "reviewedBy"})
+    List<CourseDiscussionReport> findByStatusAndReasonCategoryOrderByCreatedAtDesc(
+            CourseDiscussionReportStatus status,
+            CourseDiscussionReportReasonCategory reasonCategory
+    );
 }

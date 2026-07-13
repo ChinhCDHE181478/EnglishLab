@@ -57,6 +57,11 @@ public class CourseDiscussionReport {
     private String reason;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "reason_category", nullable = false, length = 30)
+    @Builder.Default
+    private CourseDiscussionReportReasonCategory reasonCategory = CourseDiscussionReportReasonCategory.OTHER;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
     private CourseDiscussionReportStatus status = CourseDiscussionReportStatus.PENDING;

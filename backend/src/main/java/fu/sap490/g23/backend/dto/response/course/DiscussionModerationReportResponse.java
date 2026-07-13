@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.dto.response.course;
 
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,6 +15,7 @@ public class DiscussionModerationReportResponse {
     private Long reportId;
     private CourseDiscussionReportTarget targetType;
     private Long targetId;
+    private CourseDiscussionReportReasonCategory reasonCategory;
     private String reason;
     private String reporterName;
     private String reporterEmail;

@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.course.CourseDiscussionReply;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -34,9 +35,12 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
 
     @Override
     @Transactional(readOnly = true)
-    public List<DiscussionModerationReportResponse> getReports(CourseDiscussionReportStatus status) {
+    public List<DiscussionModerationReportResponse> getReports(CourseDiscussionReportStatus status, CourseDiscussionReportReasonCategory category) {
         CourseDiscussionReportStatus resolvedStatus = status == null ? CourseDiscussionReportStatus.PENDING : status;
-        return reportRepository.findByStatusOrderByCreatedAtDesc(resolvedStatus).stream()
+        List<CourseDiscussionReport> reports = category == null
+                ? reportRepository.findByStatusOrderByCreatedAtDesc(resolvedStatus)
+                : reportRepository.findByStatusAndReasonCategoryOrderByCreatedAtDesc(resolvedStatus, category);
+        return reports.stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -111,6 +115,7 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
                 .reportId(report.getId())
                 .targetType(report.getTargetType())
                 .targetId(report.getTargetId())
+                .reasonCategory(report.getReasonCategory())
                 .reason(report.getReason())
                 .reporterName(displayName(report.getReporter()))
                 .reporterEmail(report.getReporter().getEmail())
