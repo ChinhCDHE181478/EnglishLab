@@ -440,6 +440,7 @@ const WorkspaceRightRail = ({
               <Pagination
                 alwaysVisible
                 className="pt-1"
+                compact
                 onChange={setNotesPage}
                 page={notesPage}
                 pageSize={5}
