@@ -2,11 +2,12 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import {
   addCourseToWishlist,
   commerceEventName,
-  fetchCart,
+  readCart,
   removeCourseFromCart,
   syncLocalCartToServer,
 } from '../utils/commerceStore';
@@ -15,18 +16,29 @@ import { formatCoursePrice } from '../components/course/courseFormatters';
 const CartPage = () => {
   const { addNotification } = useLearnerExperience();
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = async () => {
-      await syncLocalCartToServer();
-      setCartItems(await fetchCart());
+    let active = true;
+    const loadCart = async () => {
+      setLoading(true);
+      try {
+        const nextItems = await syncLocalCartToServer();
+        if (active) setCartItems(nextItems);
+      } finally {
+        if (active) setLoading(false);
+      }
     };
-    sync();
-    window.addEventListener('storage', sync);
-    window.addEventListener(commerceEventName, sync);
+    const syncFromStore = () => {
+      setCartItems(readCart());
+    };
+    loadCart();
+    window.addEventListener('storage', syncFromStore);
+    window.addEventListener(commerceEventName, syncFromStore);
     return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener(commerceEventName, sync);
+      active = false;
+      window.removeEventListener('storage', syncFromStore);
+      window.removeEventListener(commerceEventName, syncFromStore);
     };
   }, []);
 
@@ -67,7 +79,9 @@ const CartPage = () => {
       title="Giỏ hàng"
       description="Xem lại các khóa học bạn đã chọn trước khi chuyển sang bước thanh toán."
     >
-      {!cartItems.length ? (
+      {loading ? (
+        <BrandLoadingState className="rounded-[32px]" message="Đang tải giỏ hàng..." />
+      ) : !cartItems.length ? (
         <section className="flex min-h-[480px] flex-1 flex-col justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-[0_18px_45px_rgba(75,0,9,0.04)] md:min-h-[540px]">
           <h2 className="font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">Bạn chưa thêm khóa học nào vào giỏ hàng.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-8 text-[#584140]">

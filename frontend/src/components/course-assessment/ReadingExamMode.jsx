@@ -304,8 +304,8 @@ export default function ReadingExamMode({
                   onChange={() => updateAnswer(question.number, option.value)}
                   type="radio"
                 />
-                <span className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-[#fff7f7]'}`}>
-                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${checked ? 'border-[#8a0018] bg-[#8a0018]' : 'border-[#d7b6bd] bg-white'}`}>
+                <span className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#4b0009] bg-[#fbf3f4] shadow-[0_10px_20px_rgba(75,0,9,0.08)]' : 'border-[#ecd7db] bg-[#fff7f7]'}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${checked ? 'border-[#4b0009] bg-[#4b0009]' : 'border-[#d7b6bd] bg-white'}`}>
                     <span className={`h-2 w-2 rounded-full bg-white transition ${checked ? 'opacity-100' : 'opacity-0'}`} />
                   </span>
                   <span><b>{option.value}.</b> {option.label}</span>
@@ -357,8 +357,8 @@ export default function ReadingExamMode({
                   onChange={() => toggleLetter(groupKey, option.value, group.maxSelections || 5)}
                   type="checkbox"
                 />
-                <span className={`flex gap-3 rounded-2xl border p-4 text-sm leading-6 text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-white'}`}>
-                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border text-xs font-black transition ${checked ? 'border-[#8a0018] bg-[#8a0018] text-white' : 'border-[#d7b6bd] bg-white text-white'}`}>
+                <span className={`flex gap-3 rounded-2xl border p-4 text-sm leading-6 text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#4b0009] bg-[#fbf3f4] shadow-[0_10px_20px_rgba(75,0,9,0.08)]' : 'border-[#ecd7db] bg-white'}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border text-xs font-black transition ${checked ? 'border-[#4b0009] bg-[#4b0009] text-white' : 'border-[#d7b6bd] bg-white text-white'}`}>
                     <span className={`transition ${checked ? 'opacity-100' : 'opacity-0'}`}>✓</span>
                   </span>
                   <span><b>{option.value}.</b> {option.label}</span>
@@ -379,6 +379,11 @@ export default function ReadingExamMode({
           <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
           <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
         </div>
+        {group.passage ? (
+          <article className="whitespace-pre-wrap rounded-2xl border border-[#ecd7db] bg-[#fffafb] p-5 text-sm leading-7 text-[#40292a]">
+            {group.passage}
+          </article>
+        ) : null}
         {(group.questions || []).map((question) => renderQuestion(group, question))}
       </section>
     );
@@ -428,7 +433,7 @@ export default function ReadingExamMode({
         <section className="min-h-0 overflow-y-auto border-r border-[#ead8d5] bg-[radial-gradient(circle_at_top,_rgba(138,0,24,0.07),_transparent_48%),linear-gradient(180deg,#fffafa,#fcf7f5)] px-6 py-8">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8a0018]">Part {activePart?.partNumber}</p>
           <h1 className="mt-2 font-['Manrope'] text-4xl font-black text-[#341c1d]">{activePart?.title}</h1>
-          <p className="mt-3 text-sm italic text-[#6a4a46]">You should spend about 20 minutes on {activePart?.questionRange}.</p>
+          <p className="mt-3 text-sm italic text-[#6a4a46]">{activePart?.questionRange}</p>
           <article className="mt-7 rounded-[30px] bg-white p-6 shadow-[0_20px_60px_rgba(86,35,37,0.10)]">
             <h2 className="text-center font-['Manrope'] text-3xl font-black text-[#341c1d]">{activePart?.passage?.title}</h2>
             <div className="mt-6 space-y-5 text-[15px] leading-8 text-[#1e3025]">

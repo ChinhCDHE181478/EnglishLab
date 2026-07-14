@@ -2,11 +2,13 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import {
   addCourseToCart,
   commerceEventName,
   fetchWishlist,
+  readWishlist,
   removeCourseFromWishlist,
 } from '../utils/commerceStore';
 import { formatCoursePrice } from '../components/course/courseFormatters';
@@ -14,15 +16,29 @@ import { formatCoursePrice } from '../components/course/courseFormatters';
 const WishlistPage = () => {
   const { addNotification } = useLearnerExperience();
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const sync = async () => setWishlistItems(await fetchWishlist());
-    sync();
-    window.addEventListener('storage', sync);
-    window.addEventListener(commerceEventName, sync);
+    let active = true;
+    const loadWishlist = async () => {
+      setLoading(true);
+      try {
+        const nextItems = await fetchWishlist();
+        if (active) setWishlistItems(nextItems);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    const syncFromStore = () => {
+      setWishlistItems(readWishlist());
+    };
+    loadWishlist();
+    window.addEventListener('storage', syncFromStore);
+    window.addEventListener(commerceEventName, syncFromStore);
     return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener(commerceEventName, sync);
+      active = false;
+      window.removeEventListener('storage', syncFromStore);
+      window.removeEventListener(commerceEventName, syncFromStore);
     };
   }, []);
 
@@ -66,7 +82,9 @@ const WishlistPage = () => {
       title="Danh sách yêu thích"
       description="Lưu lại những khóa học bạn quan tâm để xem tiếp vào thời điểm phù hợp."
     >
-      {!wishlistItems.length ? (
+      {loading ? (
+        <BrandLoadingState className="rounded-[32px]" message="Đang tải danh sách yêu thích..." />
+      ) : !wishlistItems.length ? (
         <section className="flex min-h-[480px] flex-1 flex-col justify-center rounded-[32px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center shadow-[0_18px_45px_rgba(75,0,9,0.04)] md:min-h-[540px]">
           <h2 className="font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">Bạn chưa lưu khóa học nào vào danh sách yêu thích.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-8 text-[#584140]">

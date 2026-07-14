@@ -13,8 +13,10 @@ import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
+import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
+import fu.sap490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.mail.ClassroomHomeworkMailService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
+    private final CurriculumUnitRepository curriculumUnitRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final UserRepository userRepository;
@@ -97,16 +100,21 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             session = sessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         }
+        CurriculumUnit curriculumUnit = resolveCurriculumUnit(offering, request.getCurriculumUnitId());
 
         ClassroomHomework homework = ClassroomHomework.builder()
                 .classroomOffering(offering)
                 .session(session)
+                .curriculumUnit(curriculumUnit)
                 .title(request.getTitle().trim())
                 .instruction(request.getInstruction())
                 .deadline(request.getDeadline())
                 .maxScore(request.getMaxScore() == null ? BigDecimal.TEN : request.getMaxScore())
                 .allowResubmission(Boolean.TRUE.equals(request.getAllowResubmission()))
                 .attachmentUrl(request.getAttachmentUrl())
+                .activityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType())
+                .activityConfigJson(request.getActivityConfigJson())
+                .aiReviewEnabled(Boolean.TRUE.equals(request.getAiReviewEnabled()))
                 .status(request.getStatus() == null ? HomeworkStatus.DRAFT : request.getStatus())
                 .createdBy(creator)
                 .build();
@@ -139,7 +147,13 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (request.getSessionId() != null) {
             homework.setSession(sessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học.")));
+        } else {
+            homework.setSession(null);
         }
+        homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassroomOffering(), request.getCurriculumUnitId()));
+        homework.setActivityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType());
+        homework.setActivityConfigJson(request.getActivityConfigJson());
+        homework.setAiReviewEnabled(Boolean.TRUE.equals(request.getAiReviewEnabled()));
         applyGradingConfig(homework, request);
         ClassroomHomework saved = homeworkRepository.save(homework);
         if (!wasOpen && saved.getStatus() == HomeworkStatus.OPEN) {
@@ -189,7 +203,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         submission.setGradedBy(null);
 
         ClassroomHomeworkSubmission saved = submissionRepository.save(submission);
-        if (homeworkAiGradingService.tryAutoGrade(saved)) {
+        if (homework.isAiReviewEnabled() && homeworkAiGradingService.tryAutoGrade(saved)) {
             saved = submissionRepository.save(saved);
             syncHomeworkScoreToGradebook(homework, learner.getId(), null);
         }
@@ -277,6 +291,20 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập."));
     }
 
+    private CurriculumUnit resolveCurriculumUnit(ClassroomOffering offering, Long unitId) {
+        if (unitId == null) {
+            return null;
+        }
+        CurriculumUnit unit = curriculumUnitRepository.findById(unitId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy unit trong giáo trình."));
+        if (offering.getCurriculumProgram() == null
+                || unit.getProgram() == null
+                || !unit.getProgram().getId().equals(offering.getCurriculumProgram().getId())) {
+            throw new RuntimeException("Unit được chọn không thuộc giáo trình của lớp học này.");
+        }
+        return unit;
+    }
+
     private boolean isLearnerInClass(User user, Long offeringId) {
         return enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
                 user.getId(), offeringId, HAS_LEARNING_ACCESS
@@ -302,6 +330,10 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             homework.setSkill(null);
             homework.setRubric(null);
             return;
+        }
+
+        if (request.getSkill() != AssessmentSkill.SPEAKING && request.getSkill() != AssessmentSkill.WRITING) {
+            throw new RuntimeException("AI chỉ hỗ trợ đánh giá bài Speaking hoặc Writing. Reading và Listening dùng đáp án/rubric sẵn để giáo viên review.");
         }
 
         if (request.getSkill() == null) {

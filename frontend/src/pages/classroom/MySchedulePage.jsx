@@ -16,9 +16,7 @@ import {
   Lock,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import Header from '../../components/ai-learning/Header';
-import CourseFooter from '../../components/course/CourseFooter';
-import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
+import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import {
   ClassroomErrorState,
   ClassroomLoadingState,
@@ -227,24 +225,16 @@ export default function MySchedulePage() {
   const todayColIndex = useMemo(() => weekDays.findIndex((d) => toDateStr(d) === todayStr), [weekDays, todayStr]);
 
   return (
-    <div className={PAGE_SHELL_CLASS}>
-      <CourseGlobalStyles />
+    <LearnerPageShell
+      title="Thời khóa biểu"
+      description="Xem lịch học hàng tuần, thời gian lên lớp, phòng học và thông tin lớp học trực tuyến."
+    >
       <style>{`
         .cal-grid-row { display: grid; grid-template-columns: 72px repeat(7, 1fr); min-height: 140px; }
         .cal-grid-head { display: grid; grid-template-columns: 72px repeat(7, 1fr); }
       `}</style>
-      <div className={PAGE_HEADER_CLASS}>
-        <Header />
-      </div>
-
-      <div className={PAGE_BODY_CLASS}>
-      <motion.div
-        className="flex flex-1 flex-col min-h-0"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.32, ease: 'easeOut' }}
-      >
-        <div className={PAGE_SCHEDULE_CLASS}>
+      
+      <div className="flex flex-1 min-h-0 flex-col lg:flex-row items-start gap-5">
 
           {!isAuthenticated ? (
             <div className="flex flex-1 items-center justify-center py-32">
@@ -448,12 +438,7 @@ export default function MySchedulePage() {
               </aside>
             </>
           )}
-        </div>
-      </motion.div>
       </div>
-
-      {/* ── FOOTER ── */}
-      <CourseFooter />
 
       {/* ── Detail Drawer ── */}
       <DetailDrawer
@@ -475,7 +460,7 @@ export default function MySchedulePage() {
           />
         )}
       </DetailDrawer>
-    </div>
+    </LearnerPageShell>
   );
 }
 
@@ -588,7 +573,7 @@ function SessionListRow({ session, onClick, onLark }) {
         {session.recordingUrl && (
           <a className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-extrabold text-[#584140] hover:bg-gray-50"
             href={session.recordingUrl} rel="noreferrer" target="_blank">
-            <Play className="h-3 w-3" /> Ghi âm
+            <Play className="h-3 w-3" /> Bản ghi
           </a>
         )}
         <button
@@ -794,7 +779,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       {session.recordingUrl && (
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50/10 p-5 space-y-3">
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-emerald-700">
-            <Play className="h-3.5 w-3.5" /> Video ghi âm
+            <Play className="h-3.5 w-3.5" /> Bản ghi buổi học
           </h4>
           <a
             className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-emerald-800 active:scale-95"

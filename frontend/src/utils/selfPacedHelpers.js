@@ -5,6 +5,53 @@ const toNumber = (value) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const DEV_MODULE_TEST_SCORE = 6.5;
+const DEV_SCORE_OVERRIDE_SKILLS = new Set(['WRITING', 'SPEAKING']);
+
+const shouldApplyDevScoreOverride = (submission, assessment) => {
+  if (!import.meta.env.DEV || !submission || !assessment) return false;
+  const skill = String(assessment.skill || '').toUpperCase();
+  const type = String(assessment.type || '').toUpperCase();
+  const score = toNumber(submission.aiScore);
+  return type === 'MODULE_TEST'
+    && DEV_SCORE_OVERRIDE_SKILLS.has(skill)
+    && score != null
+    && score < DEV_MODULE_TEST_SCORE;
+};
+
+const patchFeedbackScore = (feedbackJson) => {
+  if (!feedbackJson) return feedbackJson;
+  try {
+    const feedback = typeof feedbackJson === 'string' ? JSON.parse(feedbackJson) : feedbackJson;
+    const nextFeedback = {
+      ...feedback,
+      estimatedScore: DEV_MODULE_TEST_SCORE,
+      estimatedBand: DEV_MODULE_TEST_SCORE.toFixed(1),
+    };
+    if (Array.isArray(nextFeedback.criteria)) {
+      nextFeedback.criteria = nextFeedback.criteria.map((criterion) => ({
+        ...criterion,
+        score: toNumber(criterion?.score) != null && toNumber(criterion.score) < DEV_MODULE_TEST_SCORE
+          ? DEV_MODULE_TEST_SCORE
+          : criterion.score,
+      }));
+    }
+    return JSON.stringify(nextFeedback);
+  } catch {
+    return feedbackJson;
+  }
+};
+
+export const applyDevAssessmentScoreOverride = (submission, assessment) => {
+  if (!shouldApplyDevScoreOverride(submission, assessment)) return submission;
+  return {
+    ...submission,
+    aiScore: DEV_MODULE_TEST_SCORE,
+    aiFeedbackJson: patchFeedbackScore(submission.aiFeedbackJson),
+    status: 'PASSED',
+  };
+};
+
 export const formatBandValue = (value) => {
   const parsed = clampBand(value) ?? toNumber(value);
   if (parsed == null) return '';
@@ -98,7 +145,10 @@ const formatThresholdValue = (value) => {
 
 export const formatPassingThresholdLabel = (assessment, course = null) => {
   if (assessment?.passingThresholdLabel) {
-    return assessment.passingThresholdLabel;
+    const matches = String(assessment.passingThresholdLabel).match(/\d+(?:[.,]\d+)?/g);
+    const rawValue = matches?.length ? matches[matches.length - 1].replace(',', '.') : '';
+    const formatted = formatThresholdValue(rawValue);
+    return formatted ? `Ngưỡng đạt: ${formatted}` : assessment.passingThresholdLabel;
   }
 
   const threshold = resolveAssessmentPassingThreshold(assessment, course);
@@ -107,23 +157,16 @@ export const formatPassingThresholdLabel = (assessment, course = null) => {
   }
 
   const formatted = formatThresholdValue(threshold);
-  const skill = String(assessment?.skill || '').toUpperCase();
-  const usesBandScale = !['LISTENING', 'READING'].includes(skill);
-  if (String(assessment?.type || '').toUpperCase() === 'MODULE_TEST' && usesBandScale && course?.targetBand != null) {
-    return `Ngưỡng đạt (band mục tiêu khóa - 0.5): ${formatted}`;
-  }
-  if (toNumber(assessment?.passingScore) != null) {
-    return `Ngưỡng đạt (cấu hình CMS): ${formatted}`;
-  }
-  return null;
+  return `Ngưỡng đạt: ${formatted}`;
 };
 
 export const isAssessmentPassed = (assessment, course = null) => {
-  const latestStatus = String(assessment?.latestSubmission?.status || '');
+  const latestSubmission = applyDevAssessmentScoreOverride(assessment?.latestSubmission, assessment);
+  const latestStatus = String(latestSubmission?.status || '');
   if (latestStatus === 'PASSED') return true;
   if (latestStatus === 'NEEDS_IMPROVEMENT') return false;
 
-  const score = toNumber(assessment?.latestSubmission?.aiScore);
+  const score = toNumber(latestSubmission?.aiScore);
   const threshold = resolveAssessmentPassingThreshold(assessment, course);
   if (score != null && threshold != null) {
     return score >= threshold;
@@ -163,7 +206,9 @@ export const calculateCompletionStatus = ({ course, enrollment, assessments = []
   const requiredAssessments = (assessments || []).filter((item) => item?.active !== false);
   const submittedAssessments = requiredAssessments.filter(isAssessmentSubmitted);
   const passedAssessments = requiredAssessments.filter((item) => isAssessmentPassed(item, course));
-  const failedAssessments = requiredAssessments.filter((item) => String(item?.latestSubmission?.status || '') === 'NEEDS_IMPROVEMENT');
+  const failedAssessments = requiredAssessments.filter((item) => (
+    String(applyDevAssessmentScoreOverride(item?.latestSubmission, item)?.status || '') === 'NEEDS_IMPROVEMENT'
+  ));
   const assessmentPercent = requiredAssessments.length ? Math.round((passedAssessments.length / requiredAssessments.length) * 100) : 100;
 
   let statusLabel = resolveCompletionStatusLabel({

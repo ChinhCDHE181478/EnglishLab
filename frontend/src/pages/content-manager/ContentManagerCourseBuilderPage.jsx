@@ -1309,7 +1309,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
       ) : null}
 
       <label className="mt-4 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-white px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
-        <input checked={Boolean(assessment.active)} className="h-4 w-4 accent-[#730014]" onChange={(event) => onFieldChange('active', event.target.checked)} type="checkbox" />
+        <input checked={Boolean(assessment.active)} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onFieldChange('active', event.target.checked)} type="checkbox" />
         Đang kích hoạt
       </label>
     </div>
@@ -1370,7 +1370,7 @@ function LessonEditorModal({
               )}
               <TextField label="Liên kết tài liệu" onChange={onChangeLesson('materialUrl')} value={activeLesson.materialUrl || ''} />
               <label className="flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
-                <input checked={Boolean(activeLesson.preview)} className="h-4 w-4 accent-[#730014]" onChange={onChangeLesson('preview')} type="checkbox" />
+                <input checked={Boolean(activeLesson.preview)} className="h-4 w-4 accent-[#4b0009]" onChange={onChangeLesson('preview')} type="checkbox" />
                 Cho phép xem trước
               </label>
             </div>

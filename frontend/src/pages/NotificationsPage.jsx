@@ -45,20 +45,22 @@ export default function NotificationsPage() {
     setLoading(true);
     setError('');
 
-    classroomApi.getStudentNotifications()
-      .then((items) => {
+    const loadNotifications = async () => {
+      try {
+        const items = await classroomApi.getStudentNotifications();
         if (!active) return;
         setApiNotifications(items.map(mapApiNotification));
-        return classroomApi.markAllNotificationsRead();
-      })
-      .catch((err) => {
+        await classroomApi.markAllNotificationsRead();
+      } catch (err) {
         if (!active) return;
         setApiNotifications([]);
         setError(getClassroomErrorMessage(err, 'Không thể tải thông báo từ máy chủ.'));
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    loadNotifications();
 
     return () => {
       active = false;

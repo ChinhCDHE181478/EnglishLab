@@ -125,7 +125,7 @@ const WorkspaceSidebar = ({
                       const isCompleted = completedLessonIds.has(lessonId);
                       const isLocked = lockedLessonIds.has(String(lessonId));
                       const statusText = isLocked
-                        ? lessonIndex === 0 && !moduleUnlocked
+                        ? !moduleUnlocked
                           ? 'Hoàn thành và đạt yêu cầu ở bài đánh giá cuối mô-đun trước để mở.'
                           : 'Hoàn thành bài học trước để mở.'
                         : `${lesson.videoUrl ? 'Video' : lesson.materialUrl ? 'Tài liệu' : 'Bài học'} • ${lesson.durationMinutes || 0} phút`;

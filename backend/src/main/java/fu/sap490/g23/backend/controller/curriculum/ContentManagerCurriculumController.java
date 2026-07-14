@@ -68,6 +68,19 @@ public class ContentManagerCurriculumController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/curriculum-programs/{id}/clone")
+    public ResponseEntity<CurriculumProgramResponse> cloneProgram(@PathVariable Long id) {
+        return ResponseEntity.ok(curriculumProgramService.cloneProgram(id));
+    }
+
+    @PostMapping("/curriculum-programs/{id}/submit-review")
+    public ResponseEntity<CurriculumProgramResponse> submitProgramForReview(
+            @PathVariable Long id,
+            org.springframework.security.core.Authentication authentication
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.submitForReview(id, authentication.getName()));
+    }
+
     @PostMapping("/curriculum-programs/{programId}/units")
     public ResponseEntity<CurriculumUnitResponse> createUnit(
             @PathVariable Long programId,

@@ -293,6 +293,28 @@ function resolveMeta(pathname) {
     return contentManagerPageMeta['/content-manager/flashcards'];
   }
 
+  if (/^\/content-manager\/offline-programs\/[^/]+\/edit$/.test(pathname)) {
+    return {
+      ...contentManagerPageMeta['/content-manager/offline-programs'],
+      title: 'Sửa chương trình offline',
+    };
+  }
+
+  if (/^\/content-manager\/virtual-programs\/[^/]+\/edit$/.test(pathname)) {
+    return {
+      ...contentManagerPageMeta['/content-manager/virtual-programs'],
+      title: 'Sửa chương trình virtual',
+    };
+  }
+
+  if (pathname.startsWith('/content-manager/offline-programs/')) {
+    return contentManagerPageMeta['/content-manager/offline-programs'];
+  }
+
+  if (pathname.startsWith('/content-manager/virtual-programs/')) {
+    return contentManagerPageMeta['/content-manager/virtual-programs'];
+  }
+
   return contentManagerPageMeta['/content-manager/dashboard'];
 }
 
@@ -449,7 +471,7 @@ export function StatusBadge({ label }) {
 
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone[translatedLabel] ?? 'bg-[#fff2f3] text-[#730014]'}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold leading-none ${tone[translatedLabel] ?? 'bg-[#fff2f3] text-[#730014]'}`}
     >
       {translatedLabel}
     </span>

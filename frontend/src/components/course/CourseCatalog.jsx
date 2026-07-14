@@ -1,5 +1,6 @@
 import CourseFilters from './CourseFilters';
 import CatalogCourseCard from './CatalogCourseCard';
+import BrandLoadingState from '../ui/BrandLoadingState';
 
 const CourseCatalog = ({
   courses,
@@ -31,7 +32,7 @@ const CourseCatalog = ({
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-8 text-center text-[#584140]">Đang tải khóa học...</div>
+        <BrandLoadingState compact message="Đang tải khóa học..." />
       ) : courses.length === 0 ? (
         <div className="rounded-2xl border border-[#dfbfbd]/30 bg-white p-8 text-center text-[#584140]">
           Không tìm thấy khóa học phù hợp. Hãy thử bỏ bớt bộ lọc để xem thêm khóa học.

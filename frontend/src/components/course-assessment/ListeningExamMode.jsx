@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Square, Volume2 } from 'lucide-react';
 import BrandedSelect from '../ui/BrandedSelect';
 import ExamDeviceCheck from './ExamDeviceCheck';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
@@ -64,6 +65,7 @@ export default function ListeningExamMode({
   const [violations, setViolations] = useState([]);
   const [audioStatus, setAudioStatus] = useState(() => (config?.audioUrl ? 'loading' : 'idle'));
   const [sampleStatus, setSampleStatus] = useState('idle');
+  const [speakingKey, setSpeakingKey] = useState('');
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
   const audioRef = useRef(null);
@@ -200,7 +202,27 @@ export default function ListeningExamMode({
     if (sampleTimeoutRef.current) {
       window.clearTimeout(sampleTimeoutRef.current);
     }
+    window.speechSynthesis?.cancel();
   }, []);
+
+  const playSpeech = (key, script) => {
+    if (!script || !window.speechSynthesis) return;
+    if (speakingKey === key) {
+      window.speechSynthesis.cancel();
+      setSpeakingKey('');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(script);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.92;
+    const englishVoice = window.speechSynthesis.getVoices().find((voice) => /^en[-_]/i.test(voice.lang));
+    if (englishVoice) utterance.voice = englishVoice;
+    utterance.onend = () => setSpeakingKey('');
+    utterance.onerror = () => setSpeakingKey('');
+    setSpeakingKey(key);
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     const pushExamState = () => {
@@ -411,6 +433,20 @@ export default function ListeningExamMode({
     setActivePartKey(part.key);
   };
 
+  const playMainAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio || !config?.audioUrl || audioEndedRef.current) return;
+    audio.playbackRate = 1;
+    audio.defaultPlaybackRate = 1;
+    try {
+      await audio.play();
+      audioStartedRef.current = true;
+      setAudioStatus('playing');
+    } catch {
+      setAudioStatus('blocked');
+    }
+  };
+
   const renderQuestion = (group, question) => {
     if (group.type === 'select') {
       return (
@@ -428,9 +464,33 @@ export default function ListeningExamMode({
     }
 
     if (group.type === 'single_choice') {
+      const speechKey = `question-${question.number}`;
       return (
         <div key={question.number} className="rounded-2xl border border-[#ecd7db] bg-white p-4">
-          <p className="text-sm font-extrabold text-[#4b0009]">{question.number}. {question.prompt}</p>
+          {question.imageUrl ? (
+            <img
+              alt={`Photograph for question ${question.number}`}
+              className="mx-auto mb-4 max-h-[440px] w-full rounded-xl object-contain"
+              src={question.imageUrl}
+            />
+          ) : null}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-extrabold text-[#4b0009]">
+              {group.hidePrompt ? `Question ${question.number}` : `${question.number}. ${question.prompt}`}
+            </p>
+            {question.audioScript ? (
+              <button
+                aria-label={speakingKey === speechKey ? `Dừng câu ${question.number}` : `Nghe câu ${question.number}`}
+                className="inline-flex items-center gap-2 rounded-full border border-[#dfbfbd] bg-[#fffafb] px-4 py-2 text-xs font-extrabold text-[#8a0018] transition hover:bg-[#fff0f1]"
+                onClick={() => playSpeech(speechKey, question.audioScript)}
+                title={speakingKey === speechKey ? 'Dừng phát' : 'Phát câu hỏi'}
+                type="button"
+              >
+                {speakingKey === speechKey ? <Square className="h-3.5 w-3.5" /> : <Volume2 className="h-4 w-4" />}
+                {speakingKey === speechKey ? 'Dừng' : 'Nghe'}
+              </button>
+            ) : null}
+          </div>
           <div className="mt-3 grid gap-2">
             {(question.options || []).map((option) => (
               <label key={option.value} className="block cursor-pointer">
@@ -446,11 +506,14 @@ export default function ListeningExamMode({
                         onChange={() => updateAnswer(question.number, option.value)}
                         type="radio"
                       />
-                      <span className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-[#fff7f7]'}`}>
-                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${checked ? 'border-[#8a0018] bg-[#8a0018]' : 'border-[#d7b6bd] bg-white'}`}>
+                      <span className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#4b0009] bg-[#fbf3f4] shadow-[0_10px_20px_rgba(75,0,9,0.08)]' : 'border-[#ecd7db] bg-[#fff7f7]'}`}>
+                        <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${checked ? 'border-[#4b0009] bg-[#4b0009]' : 'border-[#d7b6bd] bg-white'}`}>
                           <span className={`h-2 w-2 rounded-full bg-white transition ${checked ? 'opacity-100' : 'opacity-0'}`} />
                         </span>
-                        <span><b>{option.value}.</b> {option.label}</span>
+                        <span>
+                          <b>{option.value}</b>
+                          {group.hideOptionText ? null : <>. {option.label}</>}
+                        </span>
                       </span>
                     </>
                     </>
@@ -500,8 +563,8 @@ export default function ListeningExamMode({
                   onChange={() => toggleLetter(groupKey, option.value, group.maxSelections || 5)}
                   type="checkbox"
                 />
-                <span className={`flex gap-3 rounded-2xl border p-4 text-sm leading-6 text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#8a0018] bg-[#fff0f1] shadow-[0_10px_20px_rgba(138,0,24,0.08)]' : 'border-[#ecd7db] bg-white'}`}>
-                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border text-xs font-black transition ${checked ? 'border-[#8a0018] bg-[#8a0018] text-white' : 'border-[#d7b6bd] bg-white text-white'}`}>
+                <span className={`flex gap-3 rounded-2xl border p-4 text-sm leading-6 text-[#40292a] transition hover:border-[#d9b2ba] ${checked ? 'border-[#4b0009] bg-[#fbf3f4] shadow-[0_10px_20px_rgba(75,0,9,0.08)]' : 'border-[#ecd7db] bg-white'}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[7px] border text-xs font-black transition ${checked ? 'border-[#4b0009] bg-[#4b0009] text-white' : 'border-[#d7b6bd] bg-white text-white'}`}>
                     <span className={`transition ${checked ? 'opacity-100' : 'opacity-0'}`}>✓</span>
                   </span>
                   <span><b>{option.value}.</b> {option.label}</span>
@@ -518,10 +581,24 @@ export default function ListeningExamMode({
 
     return (
       <section key={group.title} className="space-y-3">
-        <div>
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
-          <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
-          {renderRichText(group.descriptionHtml, 'mt-2 text-sm leading-6 text-[#584140]')}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
+            <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
+            {renderRichText(group.descriptionHtml, 'mt-2 text-sm leading-6 text-[#584140]')}
+          </div>
+          {group.audioScript ? (
+            <button
+              aria-label={speakingKey === `group-${group.title}` ? 'Dừng đoạn nghe' : 'Phát đoạn nghe'}
+              className="inline-flex items-center gap-2 rounded-full border border-[#dfbfbd] bg-[#fffafb] px-4 py-2 text-xs font-extrabold text-[#8a0018] transition hover:bg-[#fff0f1]"
+              onClick={() => playSpeech(`group-${group.title}`, group.audioScript)}
+              title={speakingKey === `group-${group.title}` ? 'Dừng phát' : 'Phát đoạn nghe'}
+              type="button"
+            >
+              {speakingKey === `group-${group.title}` ? <Square className="h-3.5 w-3.5" /> : <Volume2 className="h-4 w-4" />}
+              {speakingKey === `group-${group.title}` ? 'Dừng' : 'Nghe đoạn'}
+            </button>
+          ) : null}
         </div>
         {(group.questions || []).map((question) => renderQuestion(group, question))}
       </section>
@@ -557,14 +634,19 @@ export default function ListeningExamMode({
                 preload="auto"
                 src={config.audioUrl}
               />
-              <div className="rounded-full border border-[#ead8d5] bg-[#fff8f8] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#8a0018]">
-                {audioStatus === 'playing' && 'Bản nghe đang tự phát'}
-                {audioStatus === 'ready' && 'Bản nghe sẵn sàng'}
+              <button
+                className="rounded-full border border-[#ead8d5] bg-[#fff8f8] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#8a0018] transition hover:border-[#8a0018]/35 hover:bg-[#fff0f1]"
+                disabled={audioStatus === 'ended'}
+                onClick={playMainAudio}
+                type="button"
+              >
+                {audioStatus === 'playing' && 'Bản nghe đang phát'}
+                {audioStatus === 'ready' && 'Phát bản nghe'}
                 {audioStatus === 'loading' && 'Đang tải bản nghe'}
-                {audioStatus === 'blocked' && 'Bản nghe đang chờ tự phát'}
-                {audioStatus === 'paused' && 'Bản nghe tiếp tục phát'}
+                {audioStatus === 'blocked' && 'Bấm để phát bản nghe'}
+                {audioStatus === 'paused' && 'Tiếp tục bản nghe'}
                 {audioStatus === 'ended' && 'Bản nghe đã phát xong'}
-              </div>
+              </button>
             </>
           ) : null}
           <span className="rounded-full bg-[#8a0018] px-4 py-2 text-xs font-bold text-white">
@@ -609,10 +691,6 @@ export default function ListeningExamMode({
                 <span>•</span>
                 <span>{config?.durationMinutes || assessment?.timeLimitMinutes || 40} phút</span>
               </div>
-            </div>
-            <div className="rounded-[24px] border border-[#ead8d5] bg-[#fff8f8] px-5 py-4 text-right">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#9a6e67]">Nguồn âm thanh</p>
-              <p className="mt-2 font-semibold text-[#4b0009]">{config?.audioLabel || 'Bản nghe'}</p>
             </div>
           </div>
 

@@ -21,4 +21,6 @@ public interface LarkMeetingService {
     void inviteInternalAttendee(ClassroomSession session, String email);
 
     void deleteMeeting(ClassroomSession session);
+
+    LarkRecordingInfo getRecording(ClassroomSession session);
 }

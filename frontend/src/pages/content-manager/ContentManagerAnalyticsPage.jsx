@@ -16,10 +16,18 @@ export default function ContentManagerAnalyticsPage() {
     setLoading(true);
     setError('');
     try {
+      const loadRevenueAnalytics = async () => {
+        try {
+          return await paymentApi.getRevenueAnalytics();
+        } catch {
+          return null;
+        }
+      };
+
       const [statsData, coursePage, revenueData] = await Promise.all([
         courseApi.getManagedCourseStats(),
         courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
-        paymentApi.getRevenueAnalytics().catch(() => null),
+        loadRevenueAnalytics(),
       ]);
       setStats(statsData);
       setRevenue(revenueData);

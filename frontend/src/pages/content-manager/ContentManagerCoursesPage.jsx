@@ -30,9 +30,17 @@ export default function ContentManagerCoursesPage() {
     setLoading(true);
     setError('');
     try {
+      const loadCategories = async () => {
+        try {
+          return await courseApi.getManagedCourseCategories();
+        } catch {
+          return [];
+        }
+      };
+
       const [coursePage, categoryItems] = await Promise.all([
         courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
-        courseApi.getManagedCourseCategories().catch(() => []),
+        loadCategories(),
       ]);
       if (!activeRef.current) return;
       setCourses(coursePage.content || []);
@@ -144,7 +152,7 @@ export default function ContentManagerCoursesPage() {
       <Panel className="overflow-hidden rounded-xl border-[#e9d7d6]/80 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-[1040px] w-full text-left">
-            <thead className="bg-[#eef4ff] text-[11px] uppercase tracking-[0.12em] text-[#6c7a8d]">
+            <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
               <tr>
                 {['Tên khóa học', 'Danh mục', 'Trình độ', 'Bài học', 'Giờ học', 'Học phí', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
                   <th key={heading} className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-right' : ''} ${heading === 'Bài học' ? 'text-center' : ''}`}>{heading}</th>

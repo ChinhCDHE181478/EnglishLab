@@ -28,7 +28,7 @@ class AssessmentPassingThresholdResolverTest {
                 .build();
 
         assertEquals(new BigDecimal("6.0"), resolver.resolve(assessment));
-        assertEquals("Ngưỡng đạt (band mục tiêu khóa − 0.5): 6", resolver.buildDisplayLabel(assessment));
+        assertEquals("Ngưỡng đạt: 6", resolver.buildDisplayLabel(assessment));
     }
 
     @Test
@@ -42,7 +42,7 @@ class AssessmentPassingThresholdResolverTest {
                 .build();
 
         assertEquals(new BigDecimal("6.0"), resolver.resolve(assessment));
-        assertEquals("Ngưỡng đạt (band mục tiêu khóa − 0.5): 6", resolver.buildDisplayLabel(assessment));
+        assertEquals("Ngưỡng đạt: 6", resolver.buildDisplayLabel(assessment));
     }
 
     @Test

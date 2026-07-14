@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { getStoredUser, hasAccessToken } from '../utils/auth';
+import { hasAccessToken } from '../utils/auth';
 import courseApi from '../api/courseApi';
+import { useAuth } from './AuthContext';
 import {
   createAssessmentQueueItem,
   createLearnerNotification,
@@ -49,6 +50,7 @@ const ToastViewport = ({ toasts, onDismiss }) => (
 );
 
 export const LearnerExperienceProvider = ({ children }) => {
+  const { user } = useAuth();
   const [lessonNotes, setLessonNotes] = useState(() => readLessonNotes());
   const [lessonFlags, setLessonFlags] = useState(() => readLessonFlags());
   const [recentLessons, setRecentLessons] = useState(() => readRecentLessons());
@@ -56,7 +58,6 @@ export const LearnerExperienceProvider = ({ children }) => {
   const [assessmentQueue, setAssessmentQueue] = useState(() => readAssessmentQueue());
   const [notifications, setNotifications] = useState(() => readNotifications());
   const [courseAssessmentSnapshots, setCourseAssessmentSnapshots] = useState({});
-  const [user, setUser] = useState(() => getStoredUser());
   const [toasts, setToasts] = useState([]);
   const [studyToolsSyncing, setStudyToolsSyncing] = useState(false);
   const [studyToolsSyncError, setStudyToolsSyncError] = useState('');
@@ -80,16 +81,10 @@ export const LearnerExperienceProvider = ({ children }) => {
       if (!event.key || event.key === learnerStorageKeys.notifications) setNotifications(readNotifications());
     };
 
-    const syncUser = () => setUser(getStoredUser());
-
     window.addEventListener('storage', syncStorage);
-    window.addEventListener('focus', syncUser);
-    window.addEventListener('englishlab:user-updated', syncUser);
 
     return () => {
       window.removeEventListener('storage', syncStorage);
-      window.removeEventListener('focus', syncUser);
-      window.removeEventListener('englishlab:user-updated', syncUser);
     };
   }, []);
 

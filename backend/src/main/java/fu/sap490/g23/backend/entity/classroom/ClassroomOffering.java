@@ -38,6 +38,10 @@ public class ClassroomOffering {
     private ClassroomDeliveryMode deliveryMode;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "training_program_id")
+    private TrainingProgram trainingProgram;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curriculum_program_id")
     private CurriculumProgram curriculumProgram;
 

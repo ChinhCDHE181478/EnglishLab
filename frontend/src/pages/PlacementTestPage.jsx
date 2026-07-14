@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, Headphones, Mic, PenLine } from 'lucide-react';
+import { BookOpen, CheckCircle2, CircleDot, Headphones, Hourglass, Mic, PenLine, Play } from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
@@ -10,6 +10,8 @@ import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
 import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
 import ExamDeviceCheck from '../components/course-assessment/ExamDeviceCheck';
 import CourseFooter from '../components/course/CourseFooter';
+import BrandedSelect from '../components/ui/BrandedSelect';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { formatBandValue } from '../utils/selfPacedHelpers';
 
 const SKILLS = [
@@ -18,6 +20,8 @@ const SKILLS = [
   { key: 'writing', label: 'Writing', icon: PenLine },
   { key: 'speaking', label: 'Speaking', icon: Mic },
 ];
+
+const TOEIC_SKILLS = SKILLS.slice(0, 2);
 
 const DRAFT_KEY = 'englishlab.placement-test.current.draft';
 
@@ -170,6 +174,380 @@ const toSpeakingExamConfig = (config = {}) => {
     parts: activeVariant?.parts || config.parts || [],
   };
 };
+
+const TOEIC_PART_START = {
+  listening: { 1: 1, 2: 7, 3: 32, 4: 71 },
+  reading: { 5: 101, 6: 131, 7: 147 },
+};
+
+const normalizeToeicOption = (option, index) => {
+  if (typeof option === 'object' && option !== null) {
+    const value = String(option.value || option.key || String.fromCharCode(65 + index)).trim();
+    return { value, label: option.label || option.text || value };
+  }
+  const text = String(option || '').trim();
+  const match = text.match(/^([A-D])[\).:\s-]*(.*)$/i);
+  if (match) {
+    return { value: match[1].toUpperCase(), label: match[2] || match[1].toUpperCase() };
+  }
+  const value = String.fromCharCode(65 + index);
+  return { value, label: text || value };
+};
+
+const normalizeToeicQuestion = (question = {}, fallbackNumber) => {
+  const options = Array.isArray(question.options) && question.options.length
+    ? question.options.map(normalizeToeicOption)
+    : ['A', 'B', 'C', 'D'].map(normalizeToeicOption);
+  return {
+    ...question,
+    number: Number(question.number || question.id || fallbackNumber),
+    prompt: question.prompt || question.question || question.text || `Câu ${fallbackNumber}`,
+    options,
+  };
+};
+
+const normalizeToeicGroup = (group = {}, partKey = '', fallbackQuestions = [], fallbackStart = 1) => ({
+  ...group,
+  title: group.title || 'Questions',
+  instructions: group.instructions || group.description || '',
+  type: group.type || 'single_choice',
+  questions: (Array.isArray(group.questions) && group.questions.length ? group.questions : fallbackQuestions)
+    .map((question, index) => normalizeToeicQuestion(question, question.number || fallbackStart + index)),
+});
+
+const buildToeicPlaceholderQuestions = (part = {}, sectionKey = '') => {
+  const count = Number(part.questionCount || 0);
+  if (!count) return [];
+  const start = TOEIC_PART_START[sectionKey]?.[Number(part.part)] || Number(part.startQuestion || 1);
+  return Array.from({ length: count }, (_, index) => normalizeToeicQuestion({}, start + index));
+};
+
+const normalizeToeicPart = (part = {}, index = 0, sectionKey = '') => {
+  const partNumber = Number(part.partNumber || part.part || index + 1);
+  const placeholderQuestions = buildToeicPlaceholderQuestions({ ...part, part: partNumber }, sectionKey);
+  const fallbackStart = TOEIC_PART_START[sectionKey]?.[partNumber] || Number(part.startQuestion || 1);
+  const questionGroups = Array.isArray(part.questionGroups) && part.questionGroups.length
+    ? part.questionGroups.map((group) => normalizeToeicGroup(group, `part_${partNumber}`, [], fallbackStart))
+    : [normalizeToeicGroup({
+      title: part.groupTitle || part.title || `Part ${partNumber}`,
+      instructions: part.instructions,
+      type: part.type || 'single_choice',
+      questions: Array.isArray(part.questions) && part.questions.length ? part.questions : placeholderQuestions,
+    }, `part_${partNumber}`, placeholderQuestions, fallbackStart)];
+
+  const questionNumbers = questionGroups.flatMap((group) => (
+    group.questionNumbers || (group.questions || []).map((question) => question.number)
+  ));
+
+  return {
+    ...part,
+    key: part.key || `toeic_${sectionKey}_part_${partNumber}`,
+    partNumber,
+    title: part.title || `Part ${partNumber}`,
+    questionRange: questionNumbers.length ? `Questions ${questionNumbers[0]}-${questionNumbers[questionNumbers.length - 1]}` : '',
+    passage: part.passage || {
+      title: part.title || `Part ${partNumber}`,
+      paragraphs: part.description || part.instructions ? [{ text: part.description || part.instructions }] : [],
+    },
+    questionGroups,
+  };
+};
+
+const toToeicExamSection = (toeicConfig = {}, sectionKey = '') => {
+  const section = toeicConfig?.[sectionKey] || {};
+  const title = section.title || (sectionKey === 'listening' ? 'TOEIC Listening' : 'TOEIC Reading');
+  const parts = Array.isArray(section.parts) ? section.parts : [];
+  const firstPartAudioUrl = parts.find((part) => part.audioUrl)?.audioUrl || '';
+  return {
+    ...section,
+    key: section.key || `toeic_${sectionKey}`,
+    title,
+    durationMinutes: Number(section.durationMinutes || (sectionKey === 'listening' ? 45 : 75)),
+    audioUrl: section.audioUrl || firstPartAudioUrl || toeicConfig.audioUrl || '',
+    audioLabel: section.audioLabel || 'TOEIC audio',
+    parts: parts.map((part, index) => normalizeToeicPart(part, index, sectionKey)),
+  };
+};
+
+function DeviceCheck({ onComplete, requireMic = true }) {
+  const [inputs, setInputs] = useState([]);
+  const [outputs, setOutputs] = useState([]);
+  const [inputId, setInputId] = useState('');
+  const [outputId, setOutputId] = useState('');
+  const [soundPassed, setSoundPassed] = useState(false);
+  const [micState, setMicState] = useState('idle');
+  const [micLevel, setMicLevel] = useState(0);
+  const [micCountdown, setMicCountdown] = useState(5);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const audioRef = useRef(null);
+  const micStreamRef = useRef(null);
+  const micRecorderRef = useRef(null);
+  const micContextRef = useRef(null);
+  const micAnalyserRef = useRef(null);
+  const micFrameRef = useRef(null);
+  const micTimeoutRef = useRef(null);
+  const micIntervalRef = useRef(null);
+  const micChunksRef = useRef([]);
+
+  const stopMicTest = () => {
+    if (micFrameRef.current) window.cancelAnimationFrame(micFrameRef.current);
+    if (micTimeoutRef.current) window.clearTimeout(micTimeoutRef.current);
+    if (micIntervalRef.current) window.clearInterval(micIntervalRef.current);
+    micFrameRef.current = null;
+    micTimeoutRef.current = null;
+    micIntervalRef.current = null;
+    if (micRecorderRef.current?.state === 'recording') micRecorderRef.current.stop();
+    micStreamRef.current?.getTracks?.().forEach((track) => track.stop());
+    micStreamRef.current = null;
+    micRecorderRef.current = null;
+    micAnalyserRef.current = null;
+    if (micContextRef.current && micContextRef.current.state !== 'closed') {
+      micContextRef.current.close().catch(() => {});
+    }
+    micContextRef.current = null;
+    setMicLevel(0);
+  };
+
+  useEffect(() => {
+    const loadDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices?.();
+        if (!devices) return;
+        const microphones = devices.filter((device) => device.kind === 'audioinput');
+        const speakers = devices.filter((device) => device.kind === 'audiooutput');
+        setInputs(microphones);
+        setOutputs(speakers);
+        setInputId(microphones[0]?.deviceId || '');
+        setOutputId(speakers[0]?.deviceId || '');
+      } catch {
+        // Device enumeration is optional; the test can still run with browser defaults.
+      }
+    };
+
+    loadDevices();
+  }, []);
+
+  useEffect(() => () => {
+    stopMicTest();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  }, [previewUrl]);
+
+  const playTone = async () => {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) return;
+
+    const context = new AudioContextCtor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const destination = context.createMediaStreamDestination();
+
+    oscillator.connect(gain).connect(destination);
+    oscillator.frequency.value = 523.25;
+    gain.gain.value = 0.15;
+    audioRef.current.srcObject = destination.stream;
+
+    if (outputId && audioRef.current.setSinkId) {
+      await audioRef.current.setSinkId(outputId).catch(() => {});
+    }
+
+    await audioRef.current.play();
+    oscillator.start();
+    oscillator.stop(context.currentTime + 1.2);
+    window.setTimeout(() => context.close(), 1600);
+    setSoundPassed(true);
+  };
+
+  const testMic = async () => {
+    stopMicTest();
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl('');
+    }
+    setMicState('testing');
+    setMicCountdown(5);
+    setMicLevel(0);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: inputId ? { deviceId: { exact: inputId } } : true,
+      });
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor || typeof MediaRecorder === 'undefined') {
+        stream.getTracks().forEach((track) => track.stop());
+        setMicState('unsupported');
+        return;
+      }
+      const context = new AudioContextCtor();
+      if (context.state === 'suspended') await context.resume();
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      context.createMediaStreamSource(stream).connect(analyser);
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        setInputs(devices.filter((device) => device.kind === 'audioinput'));
+        setOutputs(devices.filter((device) => device.kind === 'audiooutput'));
+      } catch {
+        // Keep the current device list if the browser blocks enumeration.
+      }
+      const recorder = new MediaRecorder(stream);
+      micStreamRef.current = stream;
+      micRecorderRef.current = recorder;
+      micContextRef.current = context;
+      micAnalyserRef.current = analyser;
+      micChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) micChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(micChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        micChunksRef.current = [];
+        setPreviewUrl((current) => {
+          if (current) URL.revokeObjectURL(current);
+          return blob.size ? URL.createObjectURL(blob) : '';
+        });
+        setMicState(blob.size ? 'passed' : 'failed');
+      };
+
+      const data = new Uint8Array(analyser.fftSize);
+      const updateLevel = () => {
+        if (!micAnalyserRef.current) return;
+        micAnalyserRef.current.getByteTimeDomainData(data);
+        const rms = Math.sqrt(data.reduce((sum, value) => {
+          const normalized = (value - 128) / 128;
+          return sum + (normalized * normalized);
+        }, 0) / Math.max(data.length, 1));
+        setMicLevel(Math.min(100, Math.round(rms * 260)));
+        micFrameRef.current = window.requestAnimationFrame(updateLevel);
+      };
+
+      recorder.start();
+      micFrameRef.current = window.requestAnimationFrame(updateLevel);
+      micIntervalRef.current = window.setInterval(() => {
+        setMicCountdown((current) => (current > 1 ? current - 1 : 0));
+      }, 1000);
+      micTimeoutRef.current = window.setTimeout(() => {
+        stopMicTest();
+      }, 5000);
+    } catch {
+      setMicState('failed');
+      stopMicTest();
+    }
+  };
+
+  const ready = soundPassed && (!requireMic || micState === 'passed');
+
+  return (
+    <div className="mx-auto max-w-5xl rounded-[32px] border border-[#dfbfbd]/35 bg-white p-6 shadow-[0_24px_70px_rgba(75,0,9,0.10)] md:p-9">
+      <audio ref={audioRef} className="hidden" />
+      <h1 className="text-center font-['Manrope'] text-2xl font-extrabold text-[#21446d]">Kiểm tra thiết bị</h1>
+
+      <div className="mt-8 space-y-9">
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
+            <Headphones aria-hidden="true" size={23} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">1.</span>Kiểm tra tai nghe</h2>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy thử phát âm thanh mẫu để chắc rằng tai nghe hoặc loa của bạn nghe rõ trước khi bắt đầu bài thi.</p>
+            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
+              <button aria-label="Phát âm thanh kiểm tra" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]" onClick={playTone} type="button">
+                <Play aria-hidden="true" className="ml-0.5" fill="currentColor" size={20} />
+              </button>
+              <div className="min-w-[180px] flex-1">
+                <div className="h-2 rounded-full bg-[#f3d7dd]">
+                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: soundPassed ? '100%' : '0%' }} />
+                </div>
+              </div>
+              <span className="text-sm font-semibold text-[#7a6766]">{soundPassed ? '00:08' : '00:00'}</span>
+              <BrandedSelect
+                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
+                onChange={(event) => {
+                  setOutputId(event.target.value);
+                  setSoundPassed(false);
+                }}
+                options={outputs.length
+                  ? outputs.map((device, index) => ({ label: device.label || `Loa hoặc tai nghe ${index + 1}`, value: device.deviceId }))
+                  : [{ label: 'Thiết bị phát mặc định', value: '' }]}
+                value={outputId}
+              />
+            </div>
+          </div>
+        </section>
+
+        {requireMic ? (
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
+            <Mic aria-hidden="true" size={23} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">2.</span>Kiểm tra microphone</h2>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Hãy bấm kiểm tra micro và đọc to câu sau để xem tiếng thu vào có ổn định hay không.</p>
+            <p className="mt-5 text-center text-base font-semibold leading-8 text-[#8c716f]">Hãy đọc to:<br />“I love English. My English is great and I practice it every day!”</p>
+            <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">
+              <button className={`flex h-14 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-extrabold ${micState === 'testing' ? 'bg-[#fff0f1] text-[#8a0018]' : 'bg-[linear-gradient(135deg,#8a0018,#650012)] text-white shadow-[0_10px_24px_rgba(75,0,9,0.24)]'}`} disabled={micState === 'testing'} onClick={testMic} type="button">
+                {micState === 'testing' ? <CircleDot aria-hidden="true" size={19} /> : <Mic aria-hidden="true" size={19} />}
+                {micState === 'testing' ? `Đang ghi thử ${micCountdown}s` : 'Bắt đầu kiểm tra'}
+              </button>
+              <div className="min-w-[180px] flex-1">
+                <div className="h-2 rounded-full bg-[#f3d7dd]">
+                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#8a0018,#b4233f)] transition-all" style={{ width: `${micLevel}%` }} />
+                </div>
+              </div>
+              <span className="min-w-8 text-sm font-semibold text-[#7a6766]">{micLevel}%</span>
+              <BrandedSelect
+                buttonClassName="min-w-[260px] border-[#dfbfbd]/50 py-3 text-sm font-medium text-[#584140] shadow-none"
+                onChange={(event) => {
+                  setInputId(event.target.value);
+                  setMicState('idle');
+                  setPreviewUrl((current) => {
+                    if (current) URL.revokeObjectURL(current);
+                    return '';
+                  });
+                }}
+                options={inputs.length
+                  ? inputs.map((device, index) => ({ label: device.label || `Micro ${index + 1}`, value: device.deviceId }))
+                  : [{ label: 'Micro mặc định', value: '' }]}
+                value={inputId}
+              />
+            </div>
+            {previewUrl ? <div className="mt-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fff7f7] p-4"><p className="text-sm font-bold text-[#4b0009]">Bản ghi thử 5 giây đã sẵn sàng. Hãy nghe lại để kiểm tra chất lượng âm thanh.</p><audio className="mt-3 w-full" controls src={previewUrl} /></div> : null}
+            <p className={`mt-3 text-sm leading-7 ${['failed', 'unsupported'].includes(micState) ? 'font-semibold text-red-700' : 'text-[#7a6766]'}`}>
+              {micState === 'idle' && 'Bấm Bắt đầu kiểm tra để cấp quyền micro và ghi thử trong 5 giây.'}
+              {micState === 'testing' && 'Micro đang được ghi thử. Hãy đọc câu mẫu thật rõ để kiểm tra chất lượng thu âm.'}
+              {micState === 'passed' && 'Micro đã ghi thử xong. Nếu bản nghe lại rõ, thiết bị của bạn đã sẵn sàng.'}
+              {micState === 'failed' && 'Không truy cập được micro. Hãy cấp quyền cho trình duyệt rồi thử lại.'}
+              {micState === 'unsupported' && 'Trình duyệt hiện không hỗ trợ kiểm tra micro. Hãy thử bằng Chrome hoặc Edge.'}
+            </p>
+          </div>
+        </section>
+        ) : null}
+
+        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+          <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${ready ? 'border-[#8a0018]/25 bg-[#fff0f1] text-[#8a0018]' : 'border-[#f2d6dc] text-[#d9a4af]'}`}>
+            {ready ? <CheckCircle2 aria-hidden="true" size={23} /> : <Hourglass aria-hidden="true" size={23} />}
+          </div>
+          <div>
+            <h2 className={`text-2xl font-extrabold ${ready ? 'text-[#21446d]' : 'text-[#9aa8b8]'}`}><span className="mr-2 opacity-60">{requireMic ? '3.' : '2.'}</span>Sẵn sàng vào phòng thi</h2>
+            <p className={`mt-3 text-sm leading-7 ${ready ? 'text-[#584140]' : 'text-[#a89b9d]'}`}>{ready ? (requireMic ? 'Tai nghe và micro đã sẵn sàng. Bạn có thể bắt đầu bài đánh giá đầu vào.' : 'Tai nghe đã sẵn sàng. Bạn có thể bắt đầu bài TOEIC Listening & Reading.') : (requireMic ? 'Hoàn thành hai bước kiểm tra phía trên để bắt đầu bài thi.' : 'Hoàn thành bước kiểm tra tai nghe để bắt đầu bài thi.')}</p>
+          </div>
+        </section>
+      </div>
+
+      <button
+        className="mt-8 ml-auto block rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-7 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(75,0,9,0.20)] disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={!ready}
+        onClick={() => onComplete({ completed: true, soundPassed, microphonePassed: !requireMic || micState === 'passed', inputDeviceId: inputId, outputDeviceId: outputId, checkedAt: new Date().toISOString() })}
+        type="button"
+      >
+        Bắt đầu bài đánh giá đầu vào
+      </button>
+    </div>
+  );
+}
 
 function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChange, onAudioReady }) {
   const [recording, setRecording] = useState(false);
@@ -545,7 +923,8 @@ export default function PlacementTestPage() {
   const [test, setTest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [stage, setStage] = useState('intro');
+  const [stage, setStage] = useState('select');
+  const [selectedExamType, setSelectedExamType] = useState('IELTS');
   const [skillIndex, setSkillIndex] = useState(0);
   const [draft, setDraft] = useState(readDraft);
   const [deviceCheck, setDeviceCheck] = useState(null);
@@ -554,15 +933,22 @@ export default function PlacementTestPage() {
   const [result, setResult] = useState(null);
   const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
-  const activeSkill = SKILLS[skillIndex];
-  const activeConfig = test?.sections?.[activeSkill?.key];
+  const activeSkills = selectedExamType === 'TOEIC' ? TOEIC_SKILLS : SKILLS;
+  const activeSkill = activeSkills[skillIndex];
+  const activeConfig = selectedExamType === 'TOEIC'
+    ? toToeicExamSection(test?.sections?.toeic, activeSkill?.key)
+    : test?.sections?.[activeSkill?.key];
   const attemptCount = Number(test?.attemptCount || 0);
   const maxAttempts = Number(test?.maxAttempts || 3);
   const canRetake = Boolean(test?.canRetake) && attemptCount < maxAttempts;
+  const resultExamType = result?.examType || selectedExamType || 'IELTS';
+  const isToeicResult = resultExamType === 'TOEIC';
+  const resultSkills = isToeicResult ? TOEIC_SKILLS : SKILLS;
 
   useEffect(() => {
-    placementTestApi.getCurrent()
-      .then((response) => {
+    const loadCurrentTest = async () => {
+      try {
+        const response = await placementTestApi.getCurrent();
         const sections = response?.sections;
         const missingSkills = SKILLS.filter((skill) => !sections?.[skill.key]);
 
@@ -574,11 +960,17 @@ export default function PlacementTestPage() {
 
         if (searchParams.get('view') === 'result' && response.latestAttempt) {
           setResult(response.latestAttempt);
+          setSelectedExamType(response.latestAttempt.examType || 'IELTS');
           setStage('result');
         }
-      })
-      .catch((error) => setLoadError(error?.response?.data?.message || error?.message || 'Không tải được đề thi thử.'))
-      .finally(() => setLoading(false));
+      } catch (error) {
+        setLoadError(error?.response?.data?.message || error?.message || 'Không tải được đề thi thử.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCurrentTest();
   }, []);
 
   useEffect(() => {
@@ -608,14 +1000,22 @@ export default function PlacementTestPage() {
     || Boolean(draft.speakingAudioUrl || draft.speakingTranscript.trim())
   ), [draft]);
 
-  const goToNextSkill = () => {
+  const goToNextSkill = async (draftOverride = null) => {
     setSubmitError('');
-    setSkillIndex((current) => current + 1);
+    if (skillIndex >= activeSkills.length - 1) {
+      await submitAll({
+        skipSpeakingValidation: selectedExamType === 'TOEIC',
+        draftOverride,
+      });
+      return;
+    }
+    setSkillIndex((current) => Math.min(current + 1, activeSkills.length - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const submitAll = async ({ skipSpeakingValidation = false } = {}) => {
-    if (!skipSpeakingValidation && !draft.speakingAudioUrl && !draft.speakingTranscript.trim()) {
+  const submitAll = async ({ skipSpeakingValidation = false, draftOverride = null } = {}) => {
+    const submissionDraft = draftOverride || draft;
+    if (selectedExamType !== 'TOEIC' && !skipSpeakingValidation && !submissionDraft.speakingAudioUrl && !submissionDraft.speakingTranscript.trim()) {
       setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
       return;
     }
@@ -626,11 +1026,12 @@ export default function PlacementTestPage() {
     try {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
-        listeningAnswers: draft.listeningAnswers,
-        readingAnswers: draft.readingAnswers,
-        writingAnswers: draft.writingAnswers,
-        speakingTranscript: draft.speakingTranscript,
-        speakingAudioUrl: draft.speakingAudioUrl,
+        examType: selectedExamType,
+        listeningAnswers: submissionDraft.listeningAnswers,
+        readingAnswers: submissionDraft.readingAnswers,
+        writingAnswers: selectedExamType === 'TOEIC' ? {} : submissionDraft.writingAnswers,
+        speakingTranscript: selectedExamType === 'TOEIC' ? '' : submissionDraft.speakingTranscript,
+        speakingAudioUrl: selectedExamType === 'TOEIC' ? '' : submissionDraft.speakingAudioUrl,
         deviceCheck,
       });
 
@@ -675,6 +1076,7 @@ export default function PlacementTestPage() {
     try {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
+        examType: selectedExamType,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,
         writingAnswers: draft.writingAnswers,
@@ -709,15 +1111,16 @@ export default function PlacementTestPage() {
     setSubmitError('');
 
     try {
-      const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.listening, payload);
-      setDraft((current) => ({ ...current, listeningAnswers: nextAnswers }));
+      const nextAnswers = toPlacementObjectiveAnswers(activeConfig, payload);
+      const nextDraft = { ...draft, listeningAnswers: nextAnswers };
+      setDraft(nextDraft);
       const parsed = parseObjectivePayload(payload);
       const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
       if (missingCount > 0) {
         setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
         return;
       }
-      goToNextSkill();
+      await goToNextSkill(nextDraft);
     } finally {
       setSubmitting(false);
     }
@@ -728,15 +1131,16 @@ export default function PlacementTestPage() {
     setSubmitError('');
 
     try {
-      const nextAnswers = toPlacementObjectiveAnswers(test?.sections?.reading, payload);
-      setDraft((current) => ({ ...current, readingAnswers: nextAnswers }));
+      const nextAnswers = toPlacementObjectiveAnswers(activeConfig, payload);
+      const nextDraft = { ...draft, readingAnswers: nextAnswers };
+      setDraft(nextDraft);
       const parsed = parseObjectivePayload(payload);
       const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
       if (missingCount > 0) {
         setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
         return;
       }
-      goToNextSkill();
+      await goToNextSkill(nextDraft);
     } finally {
       setSubmitting(false);
     }
@@ -755,7 +1159,7 @@ export default function PlacementTestPage() {
         setPendingSkillAdvance({ missingCount: incompleteTasks, unitLabel: 'task' });
         return;
       }
-      goToNextSkill();
+      await goToNextSkill();
     } finally {
       setSubmitting(false);
     }
@@ -768,12 +1172,21 @@ export default function PlacementTestPage() {
       onCancel={() => setPendingSkillAdvance(null)}
       onConfirm={() => {
         setPendingSkillAdvance(null);
-        goToNextSkill();
+        void goToNextSkill();
       }}
-      targetLabel={SKILLS[skillIndex + 1]?.label || 'phần tiếp theo'}
+      targetLabel={activeSkills[skillIndex + 1]?.label || 'nộp bài'}
       unitLabel={pendingSkillAdvance.unitLabel}
     />
   ) : null;
+
+  const startExamType = (examType) => {
+    setSelectedExamType(examType);
+    setSkillIndex(0);
+    setSubmitError('');
+    setPendingSkillAdvance(null);
+    setStage('intro');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const startRetake = () => {
     if (!canRetake) return;
@@ -784,13 +1197,18 @@ export default function PlacementTestPage() {
     setSubmitError('');
     setSkillIndex(0);
     setDeviceCheck(null);
-    setStage('device');
+    setSelectedExamType('IELTS');
+    setStage('select');
     setSearchParams({}, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f8f4f1] font-bold text-[#8a0018]">Đang tải bài đánh giá đầu vào...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f4f1] px-4">
+        <BrandLoadingState className="w-full max-w-3xl rounded-[28px]" message="Đang tải bài đánh giá đầu vào..." />
+      </div>
+    );
   }
 
   if (loadError) {
@@ -802,17 +1220,123 @@ export default function PlacementTestPage() {
     );
   }
 
+  if (stage === 'select') {
+    return (
+      <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
+        <Header />
+        <main className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10">
+          <div className="w-full rounded-[36px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl lg:p-11">
+            <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="max-w-3xl">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Placement Test</p>
+                <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Chọn dạng bài đánh giá đầu vào</h1>
+                <p className="mt-5 leading-8 text-[#584140]">Bạn có thể làm bài theo format IELTS đầy đủ 4 kỹ năng hoặc TOEIC Listening & Reading. Kết quả được dùng để gợi ý lộ trình học phù hợp.</p>
+              </div>
+              <button
+                className="rounded-2xl border border-[#8a0018]/25 px-5 py-3 text-sm font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
+                onClick={() => navigate('/mock-tests')}
+                type="button"
+              >
+                Vào Mock Test
+              </button>
+            </div>
+
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+              <button
+                className="group rounded-[28px] border border-[#ead7d5] bg-[#fffaf9] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#8a0018]/45 hover:shadow-[0_20px_45px_rgba(86,35,37,0.12)]"
+                disabled={!canRetake}
+                onClick={() => startExamType('IELTS')}
+                type="button"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
+                  <PenLine aria-hidden="true" size={22} />
+                </div>
+                <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#341c1d]">IELTS Placement</h2>
+                <p className="mt-3 text-sm leading-7 text-[#584140]">Làm lần lượt Listening, Reading, Writing và Speaking theo giao diện thi hiện tại.</p>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  {SKILLS.map((skill) => {
+                    const Icon = skill.icon;
+                    return (
+                      <span className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#4b0009]" key={skill.key}>
+                        <Icon aria-hidden="true" size={17} />
+                        {skill.label}
+                      </span>
+                    );
+                  })}
+                </div>
+                <span className="mt-6 inline-flex rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
+                  {canRetake ? 'Chọn IELTS' : 'Đã dùng hết lượt làm'}
+                </span>
+              </button>
+
+              <button
+                className="group rounded-[28px] border border-[#ead7d5] bg-[#f7fbff] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#21446d]/45 hover:shadow-[0_20px_45px_rgba(33,68,109,0.12)]"
+                disabled={!canRetake}
+                onClick={() => startExamType('TOEIC')}
+                type="button"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#21446d]">
+                  <Headphones aria-hidden="true" size={22} />
+                </div>
+                <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#21446d]">TOEIC Placement</h2>
+                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC mới (ETS 2026 Test 10). Hệ thống chấm khách quan theo answer key.</p>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  {TOEIC_SKILLS.map((skill) => {
+                    const Icon = skill.icon;
+                    return (
+                      <span className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-black text-[#21446d]" key={skill.key}>
+                        <Icon aria-hidden="true" size={17} />
+                        {skill.label}
+                      </span>
+                    );
+                  })}
+                </div>
+                <span className="mt-6 inline-flex rounded-2xl bg-[#21446d] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
+                  {canRetake ? 'Chọn TOEIC' : 'Đã dùng hết lượt làm'}
+                </span>
+              </button>
+            </div>
+
+            {test.latestAttempt ? (
+              <button
+                className="mt-6 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-4 text-left text-sm font-semibold text-[#341c1d] transition hover:border-[#8a0018]/40 hover:bg-[#fff3f4]"
+                onClick={() => {
+                  setResult(test.latestAttempt);
+                  setSelectedExamType(test.latestAttempt.examType || 'IELTS');
+                  setStage('result');
+                  setSearchParams({ view: 'result' }, { replace: true });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                type="button"
+              >
+                <span>
+                  Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
+                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
+                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                </span>
+                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
+              </button>
+            ) : null}
+          </div>
+        </main>
+        <CourseFooter />
+      </div>
+    );
+  }
+
   if (stage === 'device') {
     return (
       <main className="min-h-screen bg-[#f8f4f1] px-4 py-10">
         <ExamDeviceCheck
-          description="Kiểm tra tai nghe và microphone trước khi bắt đầu bài đánh giá đầu vào. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi."
+          description={selectedExamType === 'TOEIC'
+            ? 'Kiểm tra tai nghe trước khi bắt đầu bài TOEIC. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
+            : 'Kiểm tra tai nghe và microphone trước khi bắt đầu bài đánh giá đầu vào. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'}
           onComplete={(value) => {
             setDeviceCheck(value);
             setStage('exam');
           }}
           requireFullscreen={false}
-          requireMic
+          requireMic={selectedExamType !== 'TOEIC'}
           title="Kiểm tra thiết bị trước khi làm bài"
         />
       </main>
@@ -826,22 +1350,36 @@ export default function PlacementTestPage() {
         <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-12">
           <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
-            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Band tổng quan: {result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}</h1>
+            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">
+              {isToeicResult
+                ? `TOEIC tổng: ${result.overallScore != null ? Math.round(Number(result.overallScore)) : 'Đang chấm'}`
+                : `Band tổng quan: ${result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}`}
+            </h1>
 
-            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {SKILLS.map((skill) => (
+            <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${isToeicResult ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
+              {resultSkills.map((skill) => (
                 <div className="rounded-2xl bg-[#fff0f1] p-5" key={skill.key}>
                   <p className="text-sm font-bold text-[#7a4a4e]">{skill.label}</p>
-                  <p className="mt-2 text-3xl font-black text-[#8a0018]">{result[`${skill.key}Score`] != null ? formatBandValue(result[`${skill.key}Score`]) : '—'}</p>
+                  <p className="mt-2 text-3xl font-black text-[#8a0018]">
+                    {result[`${skill.key}Score`] != null
+                      ? (isToeicResult ? Math.round(Number(result[`${skill.key}Score`])) : formatBandValue(result[`${skill.key}Score`]))
+                      : '—'}
+                  </p>
                 </div>
               ))}
             </div>
 
             <p className="mt-6 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-5 text-sm leading-7 text-[#584140]">
-              Listening: {result.correctListening}/40 câu đúng · Reading: {result.correctReading}/40 câu đúng.
-              {result.status === 'OBJECTIVE_EVALUATED'
-                ? ' Writing và Speaking chưa có điểm do dịch vụ AI tạm thời không sẵn sàng. Bản nháp vẫn được giữ để bạn nộp lại.'
-                : ' Kết quả đã được lưu vào hồ sơ đánh giá đầu vào.'}
+              {isToeicResult
+                ? `Listening: ${result.correctListening ?? 0} câu đúng · Reading: ${result.correctReading ?? 0} câu đúng. Kết quả TOEIC đã được lưu theo bài Listening & Reading.`
+                : (
+                  <>
+                    Listening: {result.correctListening}/40 câu đúng · Reading: {result.correctReading}/40 câu đúng.
+                    {result.status === 'OBJECTIVE_EVALUATED'
+                      ? ' Writing và Speaking chưa có điểm do dịch vụ AI tạm thời không sẵn sàng. Bản nháp vẫn được giữ để bạn nộp lại.'
+                      : ' Kết quả đã được lưu vào hồ sơ đánh giá đầu vào.'}
+                  </>
+                )}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -849,13 +1387,13 @@ export default function PlacementTestPage() {
                 className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
                 onClick={() => {
                   setResult(null);
-                  setStage('intro');
+                  setStage('select');
                   setSearchParams({}, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 type="button"
               >
-                Quay lại trang đánh giá
+                Quay lại chọn đề
               </button>
               {canRetake ? (
                 <button className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]" onClick={startRetake} type="button">
@@ -979,15 +1517,21 @@ export default function PlacementTestPage() {
         <div className="grid w-full gap-8 rounded-[36px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl lg:grid-cols-[1.1fr_0.9fr] lg:p-11">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Đánh giá đầu vào</p>
-            <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Một bài thi thử hoàn chỉnh cho cả 4 kỹ năng</h1>
-            <p className="mt-5 max-w-2xl leading-8 text-[#584140]">Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.</p>
+            <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">
+              {selectedExamType === 'TOEIC' ? 'Placement TOEIC Listening & Reading' : 'Placement IELTS đủ 4 kỹ năng'}
+            </h1>
+            <p className="mt-5 max-w-2xl leading-8 text-[#584140]">
+              {selectedExamType === 'TOEIC'
+                ? 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm Listening và Reading theo format TOEIC. Kết quả được dùng để đề xuất lộ trình học phù hợp.'
+                : 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.'}
+            </p>
 
             <div className="mt-5 rounded-2xl border border-[#e9c9c2] bg-[#fff8f6] p-4 text-sm font-semibold leading-7 text-[#7a3430]">
               Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              {SKILLS.map((skill) => {
+              {activeSkills.map((skill) => {
                 const Icon = skill.icon;
                 return (
                   <div className="flex items-center gap-3 rounded-2xl bg-[#fff0f1] p-4" key={skill.key}>
@@ -1003,6 +1547,7 @@ export default function PlacementTestPage() {
                 className="mt-5 flex w-full items-center justify-between gap-4 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-4 text-left text-sm font-semibold text-[#341c1d] transition hover:border-[#8a0018]/40 hover:bg-[#fff3f4]"
                 onClick={() => {
                   setResult(test.latestAttempt);
+                  setSelectedExamType(test.latestAttempt.examType || 'IELTS');
                   setStage('result');
                   setSearchParams({ view: 'result' }, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1010,7 +1555,9 @@ export default function PlacementTestPage() {
                 type="button"
               >
                 <span>
-                  Lần gần nhất: band {test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                  Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
+                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
+                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
                 <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
@@ -1020,8 +1567,8 @@ export default function PlacementTestPage() {
           <aside className="rounded-[28px] bg-[linear-gradient(145deg,#4b0009,#8a0018)] p-7 text-white">
             <h2 className="font-['Manrope'] text-2xl font-black">Trước khi bắt đầu</h2>
             <ul className="mt-5 space-y-4 text-sm leading-7 text-white/85">
-              <li>• Chuẩn bị khoảng 2 giờ 50 phút.</li>
-              <li>• Dùng Chrome hoặc Edge và cấp quyền microphone.</li>
+              <li>• Chuẩn bị khoảng {selectedExamType === 'TOEIC' ? '2 giờ' : '2 giờ 50 phút'}.</li>
+              <li>• Dùng Chrome hoặc Edge{selectedExamType === 'TOEIC' ? '.' : ' và cấp quyền microphone.'}</li>
               <li>• Không tải lại trang; bản nháp được lưu tự động trên thiết bị.</li>
               <li>• Nếu mất mạng lúc nộp, hãy thử lại — bài làm không bị xóa.</li>
               <li>• Bạn có tối đa {maxAttempts} lượt làm; hiện đã dùng {attemptCount}/{maxAttempts} lượt.</li>
@@ -1029,6 +1576,14 @@ export default function PlacementTestPage() {
 
             <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
               {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount + 1}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
+            </button>
+
+            <button
+              className="mt-3 w-full rounded-2xl border border-white/40 px-6 py-3 text-sm font-black text-white transition hover:bg-white/10"
+              onClick={() => setStage('select')}
+              type="button"
+            >
+              Đổi dạng bài
             </button>
 
             {hasDraftProgress ? (

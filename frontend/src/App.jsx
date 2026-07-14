@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 import { LearnerExperienceProvider } from './context/LearnerExperienceContext';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -18,6 +19,7 @@ import MyCoursesPage from './pages/MyCoursesPage';
 import LearningPathPage from './pages/LearningPathPage';
 import LearningPathReferencePage from './pages/LearningPathReferencePage';
 import LearningPathCatalogPage from './pages/LearningPathCatalogPage';
+import MockTestsPage from './pages/MockTestsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PlacementTestPage from './pages/PlacementTestPage';
 import Register from './pages/Register';
@@ -30,7 +32,6 @@ import ClassroomsCatalogPage from './pages/classroom/ClassroomsCatalogPage';
 import ClassroomPublicDetailPage from './pages/classroom/ClassroomPublicDetailPage';
 import MyClassroomsPage from './pages/classroom/MyClassroomsPage';
 import MyClassroomDetailPage from './pages/classroom/MyClassroomDetailPage';
-import MyClassroomQuizzesPage from './pages/classroom/MyClassroomQuizzesPage';
 import MySchedulePage from './pages/classroom/MySchedulePage';
 import MyHomeworkPage from './pages/classroom/MyHomeworkPage';
 import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage';
@@ -46,6 +47,7 @@ import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/
 import TrainingManagerInfrastructurePage from './pages/training-manager/TrainingManagerInfrastructurePage';
 import TrainingManagerAttendanceDisputesPage from './pages/training-manager/TrainingManagerAttendanceDisputesPage';
 import TrainingManagerRecordingsPage from './pages/training-manager/TrainingManagerRecordingsPage';
+import TrainingManagerCurriculumApprovalPage from './pages/training-manager/TrainingManagerCurriculumApprovalPage';
 import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
 import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
@@ -107,7 +109,8 @@ function AppRoutes() {
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />
         <Route path="/my-homework" element={<MyHomeworkPage />} />
-        <Route path="/my-quizzes" element={<MyClassroomQuizzesPage />} />
+        <Route path="/my-quizzes" element={<Navigate to="/my-homework?type=online-quiz" replace />} />
+        <Route path="/mock-tests" element={<MockTestsPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
       </Route>
 
@@ -136,6 +139,7 @@ function AppRoutes() {
           <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
           <Route path="/training-manager/infrastructure" element={<TrainingManagerInfrastructurePage />} />
           <Route path="/training-manager/recordings" element={<TrainingManagerRecordingsPage />} />
+          <Route path="/training-manager/curriculum-approvals" element={<TrainingManagerCurriculumApprovalPage />} />
           <Route path="/training-manager/attendance-disputes" element={<TrainingManagerAttendanceDisputesPage />} />
           <Route path="/training-manager/classroom-registrations" element={<Navigate to="/training-manager/registrations" replace />} />
         </Route>
@@ -169,9 +173,11 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <LearnerExperienceProvider>
-        <AppRoutes />
-      </LearnerExperienceProvider>
+      <AuthProvider>
+        <LearnerExperienceProvider>
+          <AppRoutes />
+        </LearnerExperienceProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

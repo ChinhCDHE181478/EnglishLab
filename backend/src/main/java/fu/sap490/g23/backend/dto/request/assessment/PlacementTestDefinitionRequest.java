@@ -12,6 +12,8 @@ public class PlacementTestDefinitionRequest {
 
     private String description;
 
+    private String examType;
+
     @Min(1)
     @Max(10)
     private Integer maxAttempts;
@@ -29,4 +31,6 @@ public class PlacementTestDefinitionRequest {
 
     @NotBlank
     private String speakingConfigJson;
+
+    private String toeicConfigJson;
 }

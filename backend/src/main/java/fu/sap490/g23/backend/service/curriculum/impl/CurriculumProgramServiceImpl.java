@@ -19,6 +19,7 @@ import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumAssessmentRef;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumExerciseRef;
@@ -38,7 +39,11 @@ import fu.sap490.g23.backend.repository.curriculum.CurriculumMaterialRefReposito
 import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
+import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +51,11 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
@@ -69,6 +77,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final ClassroomAccessHelper accessHelper;
+    private final ClassroomNotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -108,6 +118,10 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
                 .displayOrder(defaultInt(request.getDisplayOrder()))
                 .build();
+        applyVirtualConfig(program, request);
+        if ("PUBLISHED".equals(program.getStatus())) {
+            throw new RuntimeException("Giáo trình mới tạo chưa có unit/buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
+        }
         return toProgramResponse(programRepository.save(program), true);
     }
 
@@ -130,16 +144,190 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
         program.setInteractionActivities(trimOrNull(request.getInteractionActivities()));
         program.setTotalSessions(defaultInt(request.getTotalSessions()));
-        program.setStatus(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT));
+        String previousStatus = program.getStatus();
+        String nextStatus = defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT);
+        if ("PUBLISHED".equals(nextStatus) && !"PUBLISHED".equals(previousStatus)) {
+            validateReadyForPublish(program);
+        }
+        program.setStatus(nextStatus);
         program.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        applyVirtualConfig(program, request);
         return toProgramResponse(programRepository.save(program), true);
     }
 
     @Override
     public void archiveProgram(Long id) {
         CurriculumProgram program = findProgram(id);
+        long activeClassrooms = countActiveClassrooms(program);
+        if (activeClassrooms > 0) {
+            throw new RuntimeException(
+                    "Không thể lưu trữ: giáo trình đang được " + activeClassrooms
+                            + " lớp sắp khai giảng hoặc đang diễn ra sử dụng.");
+        }
         program.setStatus("ARCHIVED");
         programRepository.save(program);
+    }
+
+    @Override
+    public CurriculumProgramResponse cloneProgram(Long id) {
+        CurriculumProgram source = findProgram(id);
+        CurriculumProgram clone = CurriculumProgram.builder()
+                .title(source.getTitle() + " (Bản sao)")
+                .code(uniqueProgramCode(source.getCode()))
+                .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
+                .deliveryMode(source.getDeliveryMode())
+                .examCategory(source.getExamCategory())
+                .targetBand(source.getTargetBand())
+                .targetScore(source.getTargetScore())
+                .entryLevel(source.getEntryLevel())
+                .outcomes(source.getOutcomes())
+                .teacherGuide(source.getTeacherGuide())
+                .interactionActivities(source.getInteractionActivities())
+                .totalSessions(source.getTotalSessions())
+                .status("DRAFT")
+                .displayOrder(source.getDisplayOrder())
+                .virtualPlatform(source.getVirtualPlatform())
+                .recordingAllowed(source.getRecordingAllowed())
+                .recordingAvailableDays(source.getRecordingAvailableDays())
+                .materialsDownloadable(source.getMaterialsDownloadable())
+                .sessionOpenBeforeMinutes(source.getSessionOpenBeforeMinutes())
+                .sessionCloseAfterMinutes(source.getSessionCloseAfterMinutes())
+                .deviceCheckRequired(source.getDeviceCheckRequired())
+                .micRequired(source.getMicRequired())
+                .speakerRequired(source.getSpeakerRequired())
+                .cameraRequired(source.getCameraRequired())
+                .autoAttendanceEnabled(source.getAutoAttendanceEnabled())
+                .minAttendanceMinutes(source.getMinAttendanceMinutes())
+                .build();
+
+        for (CurriculumUnit unit : source.getUnits()) {
+            CurriculumUnit unitClone = CurriculumUnit.builder()
+                    .displayOrder(unit.getDisplayOrder())
+                    .title(unit.getTitle())
+                    .description(unit.getDescription())
+                    .sessionPlan(unit.getSessionPlan())
+                    .build();
+            clone.addUnit(unitClone);
+            unit.getMaterialRefs().forEach(ref -> unitClone.getMaterialRefs().add(CurriculumMaterialRef.builder()
+                    .unit(unitClone)
+                    .material(ref.getMaterial())
+                    .displayOrder(ref.getDisplayOrder())
+                    .note(ref.getNote())
+                    .build()));
+            unit.getExerciseRefs().forEach(ref -> unitClone.getExerciseRefs().add(CurriculumExerciseRef.builder()
+                    .unit(unitClone)
+                    .exercise(ref.getExercise())
+                    .displayOrder(ref.getDisplayOrder())
+                    .note(ref.getNote())
+                    .build()));
+            unit.getAssessmentRefs().forEach(ref -> unitClone.getAssessmentRefs().add(CurriculumAssessmentRef.builder()
+                    .unit(unitClone)
+                    .assessment(ref.getAssessment())
+                    .displayOrder(ref.getDisplayOrder())
+                    .note(ref.getNote())
+                    .build()));
+            unit.getFlashcardRefs().forEach(ref -> unitClone.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
+                    .unit(unitClone)
+                    .flashcardSet(ref.getFlashcardSet())
+                    .displayOrder(ref.getDisplayOrder())
+                    .note(ref.getNote())
+                    .build()));
+        }
+        return toProgramResponse(programRepository.save(clone), true);
+    }
+
+    @Override
+    public CurriculumProgramResponse submitForReview(Long id, String actorEmail) {
+        CurriculumProgram program = findProgram(id);
+        if ("PUBLISHED".equals(program.getStatus())) {
+            throw new RuntimeException("Giáo trình đã được xuất bản, không cần gửi duyệt.");
+        }
+        if ("PENDING_REVIEW".equals(program.getStatus())) {
+            throw new RuntimeException("Giáo trình đang chờ duyệt.");
+        }
+        validateReadyForPublish(program);
+        User actor = accessHelper.requireUser(actorEmail);
+        program.setStatus("PENDING_REVIEW");
+        program.setReviewNote(null);
+        program.setSubmittedBy(actor);
+        program.setSubmittedAt(LocalDateTime.now());
+        program = programRepository.save(program);
+
+        notificationService.notifyTrainingManagers(
+                "CURRICULUM_REVIEW_REQUESTED",
+                "Giáo trình chờ duyệt",
+                actor.getFullName() + " vừa gửi duyệt giáo trình \"" + program.getTitle() + "\" (" + program.getCode() + ").",
+                Map.of("curriculumProgramId", program.getId())
+        );
+        return toProgramResponse(program, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CurriculumProgramResponse> listPendingReview() {
+        return programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
+                .filter(program -> "PENDING_REVIEW".equals(program.getStatus()))
+                .sorted(Comparator.comparing(
+                        CurriculumProgram::getSubmittedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(program -> toProgramResponse(program, true))
+                .toList();
+    }
+
+    @Override
+    public CurriculumProgramResponse approveProgram(Long id, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTrainingManager(actor);
+        CurriculumProgram program = findProgram(id);
+        if (!"PENDING_REVIEW".equals(program.getStatus())) {
+            throw new RuntimeException("Giáo trình không ở trạng thái chờ duyệt.");
+        }
+        validateReadyForPublish(program);
+        program.setStatus("PUBLISHED");
+        program.setReviewNote(null);
+        program.setReviewedBy(actor);
+        program.setReviewedAt(LocalDateTime.now());
+        program = programRepository.save(program);
+
+        if (program.getSubmittedBy() != null) {
+            notificationService.notifyUser(
+                    program.getSubmittedBy(),
+                    "CURRICULUM_APPROVED",
+                    "Giáo trình được duyệt",
+                    "Giáo trình \"" + program.getTitle() + "\" đã được duyệt và xuất bản.",
+                    Map.of("curriculumProgramId", program.getId())
+            );
+        }
+        return toProgramResponse(program, true);
+    }
+
+    @Override
+    public CurriculumProgramResponse rejectProgram(Long id, String reason, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTrainingManager(actor);
+        if (!StringUtils.hasText(reason)) {
+            throw new RuntimeException("Vui lòng nhập lý do từ chối giáo trình.");
+        }
+        CurriculumProgram program = findProgram(id);
+        if (!"PENDING_REVIEW".equals(program.getStatus())) {
+            throw new RuntimeException("Giáo trình không ở trạng thái chờ duyệt.");
+        }
+        program.setStatus("REJECTED");
+        program.setReviewNote(reason.trim());
+        program.setReviewedBy(actor);
+        program.setReviewedAt(LocalDateTime.now());
+        program = programRepository.save(program);
+
+        if (program.getSubmittedBy() != null) {
+            notificationService.notifyUser(
+                    program.getSubmittedBy(),
+                    "CURRICULUM_REJECTED",
+                    "Giáo trình bị từ chối",
+                    "Giáo trình \"" + program.getTitle() + "\" bị từ chối: " + reason.trim(),
+                    Map.of("curriculumProgramId", program.getId())
+            );
+        }
+        return toProgramResponse(program, true);
     }
 
     @Override
@@ -263,6 +451,28 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Transactional(readOnly = true)
     public AssessmentBankItemResponse getAssessmentBankItem(Long id) {
         return toAssessmentResponse(findAssessment(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssessmentBankItemResponse> listPublishedMockTests() {
+        return assessmentBankRepository
+                .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+                        AssessmentType.MOCK_TEST,
+                        "PUBLISHED"
+                )
+                .stream()
+                .map(this::toAssessmentResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssessmentBankItemResponse getPublishedMockTest(Long id) {
+        AssessmentBankItem item = assessmentBankRepository
+                .findByIdAndTypeAndStatusAndActiveTrue(id, AssessmentType.MOCK_TEST, "PUBLISHED")
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi thử đã xuất bản."));
+        return toAssessmentResponse(item);
     }
 
     @Override
@@ -407,12 +617,121 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .teacherGuide(program.getTeacherGuide())
                 .interactionActivities(program.getInteractionActivities())
                 .totalSessions(program.getTotalSessions())
+                .totalUnits(program.getUnits().size())
                 .status(program.getStatus())
+                .statusLabel(programStatusLabel(program.getStatus()))
+                .reviewNote(program.getReviewNote())
+                .submittedByName(program.getSubmittedBy() == null ? null : program.getSubmittedBy().getFullName())
+                .submittedAt(program.getSubmittedAt())
+                .reviewedByName(program.getReviewedBy() == null ? null : program.getReviewedBy().getFullName())
+                .reviewedAt(program.getReviewedAt())
                 .displayOrder(program.getDisplayOrder())
+                .classroomUsageCount(program.getClassroomOfferings().size())
+                .activeClassroomCount((int) countActiveClassrooms(program))
+                .virtualPlatform(program.getVirtualPlatform())
+                .recordingAllowed(program.getRecordingAllowed())
+                .recordingAvailableDays(program.getRecordingAvailableDays())
+                .materialsDownloadable(program.getMaterialsDownloadable())
+                .sessionOpenBeforeMinutes(program.getSessionOpenBeforeMinutes())
+                .sessionCloseAfterMinutes(program.getSessionCloseAfterMinutes())
+                .deviceCheckRequired(program.getDeviceCheckRequired())
+                .micRequired(program.getMicRequired())
+                .speakerRequired(program.getSpeakerRequired())
+                .cameraRequired(program.getCameraRequired())
+                .autoAttendanceEnabled(program.getAutoAttendanceEnabled())
+                .minAttendanceMinutes(program.getMinAttendanceMinutes())
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
                 .units(includeUnits ? program.getUnits().stream().map(this::toUnitResponse).toList() : null)
+                .usingClassrooms(includeUnits ? toClassroomUsages(program) : null)
                 .build();
+    }
+
+    private List<CurriculumProgramResponse.ClassroomUsage> toClassroomUsages(CurriculumProgram program) {
+        return program.getClassroomOfferings().stream()
+                .sorted(Comparator.comparing(
+                        ClassroomOffering::getStartDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(offering -> CurriculumProgramResponse.ClassroomUsage.builder()
+                        .id(offering.getId())
+                        .title(offering.getLearningPackage() == null ? null : offering.getLearningPackage().getTitle())
+                        .status(offering.getStatus() == null ? null : offering.getStatus().name())
+                        .statusLabel(offeringStatusLabel(offering.getStatus()))
+                        .startDate(offering.getStartDate())
+                        .build())
+                .toList();
+    }
+
+    private void applyVirtualConfig(CurriculumProgram program, CurriculumProgramRequest request) {
+        if (program.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+            return;
+        }
+        program.setVirtualPlatform(trimUpperOrNull(request.getVirtualPlatform()));
+        program.setRecordingAllowed(request.getRecordingAllowed());
+        program.setRecordingAvailableDays(request.getRecordingAvailableDays());
+        program.setMaterialsDownloadable(request.getMaterialsDownloadable());
+        program.setSessionOpenBeforeMinutes(request.getSessionOpenBeforeMinutes());
+        program.setSessionCloseAfterMinutes(request.getSessionCloseAfterMinutes());
+        program.setDeviceCheckRequired(request.getDeviceCheckRequired());
+        program.setMicRequired(request.getMicRequired());
+        program.setSpeakerRequired(request.getSpeakerRequired());
+        program.setCameraRequired(request.getCameraRequired());
+        program.setAutoAttendanceEnabled(request.getAutoAttendanceEnabled());
+        program.setMinAttendanceMinutes(request.getMinAttendanceMinutes());
+    }
+
+    private void validateReadyForPublish(CurriculumProgram program) {
+        if (program.getUnits() == null || program.getUnits().isEmpty()) {
+            throw new RuntimeException("Giáo trình chưa có unit/buổi học nào. Hãy thêm nội dung trước khi xuất bản.");
+        }
+        if (program.getTotalSessions() == null || program.getTotalSessions() <= 0) {
+            throw new RuntimeException("Giáo trình chưa khai báo số buổi học. Hãy cập nhật trước khi xuất bản.");
+        }
+    }
+
+    private String programStatusLabel(String status) {
+        if (!StringUtils.hasText(status)) {
+            return null;
+        }
+        return switch (status) {
+            case "DRAFT" -> "Bản nháp";
+            case "PENDING_REVIEW" -> "Chờ duyệt";
+            case "PUBLISHED" -> "Đã xuất bản";
+            case "REJECTED" -> "Bị từ chối";
+            case "ARCHIVED" -> "Đã lưu trữ";
+            default -> status;
+        };
+    }
+
+    private String offeringStatusLabel(ClassroomOfferingStatus status) {
+        if (status == null) {
+            return null;
+        }
+        return switch (status) {
+            case DRAFT -> "Bản nháp";
+            case UPCOMING -> "Sắp khai giảng";
+            case ACTIVE -> "Đang diễn ra";
+            case COMPLETED -> "Đã kết thúc";
+            case CANCELLED -> "Đã hủy";
+            case CLOSED -> "Đã đóng";
+        };
+    }
+
+    private long countActiveClassrooms(CurriculumProgram program) {
+        return program.getClassroomOfferings().stream()
+                .filter(offering -> offering.getStatus() == ClassroomOfferingStatus.UPCOMING
+                        || offering.getStatus() == ClassroomOfferingStatus.ACTIVE)
+                .count();
+    }
+
+    private String uniqueProgramCode(String sourceCode) {
+        String base = sourceCode + "-COPY";
+        String code = base;
+        int index = 2;
+        while (programRepository.existsByCodeIgnoreCase(code)) {
+            code = base + "-" + index++;
+        }
+        return code;
     }
 
     private CurriculumUnitResponse toUnitResponse(CurriculumUnit unit) {
@@ -489,6 +808,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .status(set.getStatus())
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
+                .contentJson(set.getCardsJson())
                 .build();
     }
 

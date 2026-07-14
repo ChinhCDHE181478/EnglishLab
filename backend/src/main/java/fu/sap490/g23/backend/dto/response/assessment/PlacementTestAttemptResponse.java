@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class PlacementTestAttemptResponse {
     private Long id;
     private String testCode;
+    private String examType;
     private BigDecimal listeningScore;
     private BigDecimal readingScore;
     private BigDecimal writingScore;

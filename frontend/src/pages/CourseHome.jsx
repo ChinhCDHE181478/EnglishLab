@@ -7,6 +7,7 @@ import CourseFooter from '../components/course/CourseFooter';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
 import CourseHomeLessonDiscussion from '../components/course-home/CourseHomeLessonDiscussion';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
@@ -81,14 +82,35 @@ const CourseHome = () => {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
+    const hasCourse = course && (course.slug === slugOrId || String(course.id) === String(slugOrId));
+    if (!hasCourse) {
+      setLoading(true);
+    }
     setError('');
 
-    Promise.all([
-      courseApi.getOnlineCourse(slugOrId),
-      hasAccessToken() ? courseApi.getMyOnlineCourses().catch(() => []) : Promise.resolve([]),
-    ])
-      .then(async ([courseResponse, enrollments]) => {
+    const loadEnrollments = async () => {
+      if (!hasAccessToken()) return [];
+      try {
+        return await courseApi.getMyOnlineCourses();
+      } catch {
+        return [];
+      }
+    };
+
+    const loadOptionalCourseData = async (loader, fallback) => {
+      try {
+        return await loader();
+      } catch {
+        return fallback;
+      }
+    };
+
+    const loadCourseHome = async () => {
+      try {
+        const [courseResponse, enrollments] = await Promise.all([
+          courseApi.getOnlineCourse(slugOrId),
+          loadEnrollments(),
+        ]);
         if (!active) return;
         const normalizedCourse = normalizeCourse(courseResponse);
         const normalizedEnrollments = enrollments.map(normalizeEnrollment);
@@ -112,10 +134,10 @@ const CourseHome = () => {
         setOpenModuleId(normalizedCourse.modules?.[0]?.id ?? normalizedCourse.modules?.[0]?.title ?? null);
         if (hasAccessToken()) {
           const [assessmentItems, completionResponse, certificateResponse, ratingResponse] = await Promise.all([
-            courseApi.getCourseAssessments(normalizedCourse.id).catch(() => []),
-            matchedEnrollment ? courseApi.getCourseCompletion(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
-            matchedEnrollment ? courseApi.getCourseCertificate(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
-            matchedEnrollment ? courseApi.getMyCourseRating(normalizedCourse.id).catch(() => null) : Promise.resolve(null),
+            loadOptionalCourseData(() => courseApi.getCourseAssessments(normalizedCourse.id), []),
+            matchedEnrollment ? loadOptionalCourseData(() => courseApi.getCourseCompletion(normalizedCourse.id), null) : null,
+            matchedEnrollment ? loadOptionalCourseData(() => courseApi.getCourseCertificate(normalizedCourse.id), null) : null,
+            matchedEnrollment ? loadOptionalCourseData(() => courseApi.getMyCourseRating(normalizedCourse.id), null) : null,
           ]);
           if (active) setAssessments(Array.isArray(assessmentItems) ? assessmentItems : []);
           if (active) setCompletion(completionResponse);
@@ -136,18 +158,19 @@ const CourseHome = () => {
           setCertificate(null);
           setRatingInfo(null);
         }
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setCourse(null);
         setCompletion(null);
         setCertificate(null);
         setRatingInfo(null);
         setError('Không mở được trang tổng quan khóa học. Vui lòng thử lại.');
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    loadCourseHome();
 
     return () => {
       active = false;
@@ -608,7 +631,7 @@ const CourseHome = () => {
       <Header />
       {loading ? (
         <main className="mx-auto flex min-h-[calc(100dvh-80px)] w-full max-w-[1320px] flex-1 items-center px-4 py-10 md:px-10">
-          <div className="w-full border border-[#e5e7eb] p-10 text-center text-[#6b7280]">Đang tải trang khóa học...</div>
+          <BrandLoadingState className="w-full" message="Đang tải trang khóa học..." />
         </main>
       ) : error || !course ? (
         <main className="mx-auto flex min-h-[calc(100dvh-80px)] w-full max-w-[1320px] flex-1 items-center px-4 py-10 md:px-10">

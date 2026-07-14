@@ -7,6 +7,7 @@ const normalizeOptions = (options = []) => options.map((option) => {
   }
   return {
     label: String(option?.label ?? option?.value ?? ''),
+    buttonLabel: option?.buttonLabel ? String(option.buttonLabel) : '',
     value: String(option?.value ?? option?.label ?? ''),
     description: option?.description ? String(option.description) : '',
   };
@@ -26,7 +27,7 @@ export default function BrandedSelect({
   const [open, setOpen] = useState(false);
   const normalized = useMemo(() => normalizeOptions(options), [options]);
   const selected = normalized.find((option) => String(option.value) === String(value));
-  const label = selected?.label || placeholder;
+  const label = selected?.buttonLabel || selected?.label || placeholder;
 
   return (
     <div className="relative">

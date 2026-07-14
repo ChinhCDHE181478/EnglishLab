@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -73,6 +74,19 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     public void syncMeeting(ClassroomSession session) {
         validateConfiguration();
 
+        String reservedMeetingUrl = "";
+        if (properties.isAutoRecord()) {
+            JsonNode reserve = syncReserve(session);
+            session.setLarkReserveId(textAt(reserve, "id"));
+            session.setLarkMeetingNo(textAt(reserve, "meeting_no"));
+            reservedMeetingUrl = textAt(reserve, "url");
+            if (session.getLarkReserveId() == null || session.getLarkReserveId().isBlank() || reservedMeetingUrl.isBlank()) {
+                throw new RuntimeException("Lark không trả về reserve_id hoặc đường dẫn cho cuộc họp tự động ghi hình.");
+            }
+            session.setLarkMeetingUrl(reservedMeetingUrl);
+            session.setRecordingSyncStatus(RecordingSyncStatus.SCHEDULED);
+        }
+
         String calendarId = firstNonBlank(session.getLarkCalendarId(), ensureCalendarId());
         JsonNode event;
         if (session.getLarkEventId() == null || session.getLarkEventId().isBlank()) {
@@ -89,8 +103,8 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
             throw new RuntimeException("Lark không trả về mã sự kiện cho buổi học.");
         }
 
-        String meetingUrl = textAt(event, "vchat", "meeting_url");
-        if (meetingUrl.isBlank()) {
+        String meetingUrl = firstNonBlank(reservedMeetingUrl, textAt(event, "vchat", "meeting_url"));
+        if (meetingUrl.isBlank() && !properties.isAutoRecord()) {
             JsonNode refreshedEvent = getEvent(calendarId, eventId);
             meetingUrl = textAt(refreshedEvent, "vchat", "meeting_url");
         }
@@ -106,7 +120,9 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         }
 
         session.setLarkMeetingUrl(meetingUrl);
-        session.setLarkMeetingNo(extractMeetingNo(meetingUrl));
+        if (session.getLarkMeetingNo() == null || session.getLarkMeetingNo().isBlank()) {
+            session.setLarkMeetingNo(extractMeetingNo(meetingUrl));
+        }
         session.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
         session.setLarkSyncStatus("SYNCED");
         session.setLarkSyncError(null);
@@ -114,20 +130,42 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
 
     @Override
     public void deleteMeeting(ClassroomSession session) {
-        if (!properties.isEnabled()
-                || session.getLarkCalendarId() == null
-                || session.getLarkEventId() == null) {
+        if (!properties.isEnabled()) {
             return;
         }
+        if (session.getLarkCalendarId() != null && session.getLarkEventId() != null) {
+            send(
+                    "DELETE",
+                    "/calendar/v4/calendars/%s/events/%s?need_notification=false".formatted(
+                            encodePath(session.getLarkCalendarId()),
+                            encodePath(session.getLarkEventId())
+                    ),
+                    null
+            );
+        }
+        if (session.getLarkReserveId() != null && !session.getLarkReserveId().isBlank()) {
+            send("DELETE", "/vc/v1/reserves/%s".formatted(encodePath(session.getLarkReserveId())), null);
+        }
+    }
 
-        send(
-                "DELETE",
-                "/calendar/v4/calendars/%s/events/%s?need_notification=false".formatted(
-                        encodePath(session.getLarkCalendarId()),
-                        encodePath(session.getLarkEventId())
-                ),
+    @Override
+    public LarkRecordingInfo getRecording(ClassroomSession session) {
+        validateConfiguration();
+        if (session.getLarkMeetingId() == null || session.getLarkMeetingId().isBlank()) {
+            throw new RuntimeException("Buổi học chưa có meeting_id thật từ Lark.");
+        }
+        JsonNode root = send(
+                "GET",
+                "/vc/v1/meetings/%s/recording".formatted(encodePath(session.getLarkMeetingId())),
                 null
         );
+        JsonNode recording = root.path("data").path("recording");
+        String url = textAt(recording, "url");
+        if (url.isBlank()) {
+            throw new RuntimeException("Lark chưa trả về đường dẫn recording.");
+        }
+        long duration = recording.path("duration").asLong(0L);
+        return new LarkRecordingInfo(url, duration > 0 ? duration : null);
     }
 
     @Override
@@ -182,9 +220,13 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     private String resolveInternalUserId(String email) {
+        return resolveInternalId(email, "user_id");
+    }
+
+    private String resolveInternalId(String email, String userIdType) {
         JsonNode root = send(
                 "POST",
-                "/contact/v3/users/batch_get_id?user_id_type=user_id",
+                "/contact/v3/users/batch_get_id?user_id_type=" + encodePath(userIdType),
                 Map.of("emails", java.util.List.of(email))
         );
         JsonNode users = root.path("data").path("user_list");
@@ -201,6 +243,82 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
                 buildEventBody(session)
         );
         return root.path("data").path("event");
+    }
+
+    private JsonNode syncReserve(ClassroomSession session) {
+        String teacherOpenId = resolveTeacherOpenId(session);
+        String ownerOpenId = firstNonBlank(teacherOpenId, properties.getDefaultOwnerOpenId());
+        if (ownerOpenId == null || ownerOpenId.isBlank()) {
+            throw new RuntimeException(
+                    "Không tìm thấy giáo viên trong tenant Lark và chưa có LARK_DEFAULT_OWNER_OPEN_ID dự phòng."
+            );
+        }
+
+        ZoneId zoneId = ZoneId.of(properties.getTimezone());
+        long endTimestamp = session.getEndDateTime().plusHours(2).atZone(zoneId).toEpochSecond();
+        long latestAllowed = Instant.now().plus(Duration.ofDays(30)).getEpochSecond();
+        if (endTimestamp > latestAllowed) {
+            throw new RuntimeException("Lark chỉ cho đặt trước tối đa 30 ngày. Hãy đồng bộ lại buổi học khi còn dưới 30 ngày.");
+        }
+        if (endTimestamp <= Instant.now().getEpochSecond()) {
+            throw new RuntimeException("Không thể tạo lịch Lark tự động ghi hình cho buổi học đã kết thúc.");
+        }
+
+        Map<String, Object> meetingSettings = new LinkedHashMap<>();
+        meetingSettings.put("topic", session.getClassroomOffering().getLearningPackage().getTitle());
+        meetingSettings.put("meeting_initial_type", 1);
+        meetingSettings.put("auto_record", true);
+        meetingSettings.put("assign_host_list", java.util.List.of(Map.of(
+                "user_type", 1,
+                "id", ownerOpenId
+        )));
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("end_time", String.valueOf(endTimestamp));
+        body.put("meeting_settings", meetingSettings);
+
+        JsonNode root;
+        if (session.getLarkReserveId() == null || session.getLarkReserveId().isBlank()) {
+            body.put("owner_id", ownerOpenId);
+            root = send("POST", "/vc/v1/reserves/apply?user_id_type=open_id", body);
+        } else {
+            root = send(
+                    "PUT",
+                    "/vc/v1/reserves/%s?user_id_type=open_id".formatted(encodePath(session.getLarkReserveId())),
+                    body
+            );
+        }
+        return root.path("data").path("reserve");
+    }
+
+    private String resolveTeacherOpenId(ClassroomSession session) {
+        if (session.getTeacher() == null) {
+            return null;
+        }
+        if (session.getTeacher().getLarkOpenId() != null
+                && !session.getTeacher().getLarkOpenId().isBlank()) {
+            return session.getTeacher().getLarkOpenId();
+        }
+        String email = session.getTeacher().getEmail();
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        try {
+            String openId = resolveInternalId(email.trim(), "open_id");
+            if (!openId.isBlank()) {
+                session.getTeacher().setLarkOpenId(openId);
+            }
+            return openId;
+        } catch (RuntimeException ex) {
+            if (properties.getDefaultOwnerOpenId() != null
+                    && !properties.getDefaultOwnerOpenId().isBlank()) {
+                return null;
+            }
+            throw new RuntimeException(
+                    "Không tra được Lark Open ID cho giáo viên " + email + ": " + ex.getMessage(),
+                    ex
+            );
+        }
     }
 
     private JsonNode updateEvent(String calendarId, String eventId, ClassroomSession session) {
@@ -243,19 +361,25 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("summary", session.getClassroomOffering().getLearningPackage().getTitle());
-        body.put("description", buildDescription(session));
+        String description = buildDescription(session);
+        if (properties.isAutoRecord() && session.getLarkMeetingUrl() != null) {
+            description += "\nPhòng học Lark: " + session.getLarkMeetingUrl();
+        }
+        body.put("description", description);
         body.put("start_time", startTime);
         body.put("end_time", endTime);
         body.put("visibility", "default");
         body.put("free_busy_status", "busy");
-        body.put("vchat", Map.of(
-                "vc_type", "vc",
-                "meeting_settings", Map.of(
-                        "join_meeting_permission", "anyone_can_join",
-                        "open_lobby", false,
-                        "allow_attendees_start", true
-                )
-        ));
+        if (!properties.isAutoRecord()) {
+            body.put("vchat", Map.of(
+                    "vc_type", "vc",
+                    "meeting_settings", Map.of(
+                            "join_meeting_permission", "anyone_can_join",
+                            "open_lobby", false,
+                            "allow_attendees_start", true
+                    )
+            ));
+        }
         return body;
     }
 
@@ -324,6 +448,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
             switch (method) {
                 case "GET" -> builder.GET();
                 case "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+                case "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(jsonBody));
                 case "PATCH" -> builder.method("PATCH", HttpRequest.BodyPublishers.ofString(jsonBody));
                 case "DELETE" -> builder.DELETE();
                 default -> throw new IllegalArgumentException("Phương thức Lark API không được hỗ trợ: " + method);

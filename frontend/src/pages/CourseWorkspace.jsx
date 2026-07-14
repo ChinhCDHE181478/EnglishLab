@@ -9,11 +9,12 @@ import WorkspaceLessonPanel from '../components/course-workspace/WorkspaceLesson
 import WorkspaceOverview from '../components/course-workspace/WorkspaceOverview';
 import WorkspaceRightRail from '../components/course-workspace/WorkspaceRightRail';
 import WorkspaceSidebar from '../components/course-workspace/WorkspaceSidebar';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
-import { isAssessmentPassed, formatPassingThresholdLabel } from '../utils/selfPacedHelpers';
+import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -140,9 +141,7 @@ const CourseWorkspace = () => {
 
       return moduleLessonItems.map((item, lessonIndex) => {
         const previousLessonId = lessonIndex > 0 ? moduleLessonItems[lessonIndex - 1]?.id : null;
-        const isLocked = lessonIndex === 0
-          ? !moduleUnlocked
-          : !completedLessonIds.has(previousLessonId);
+        const isLocked = !moduleUnlocked || (lessonIndex > 0 && !completedLessonIds.has(previousLessonId));
 
         return {
           ...item,
@@ -200,15 +199,9 @@ const CourseWorkspace = () => {
           return;
         }
         if (previousState && !previousState.moduleAssessmentsPassed) {
-          const previousModuleAssessments = assessmentsByModule.get(String(previousModule.id)) || [];
-          const thresholdLabel = previousModuleAssessments
-            .map((assessment) => formatPassingThresholdLabel(assessment, course))
-            .find(Boolean);
           reasonMap.set(
             String(module.id),
-            thresholdLabel
-              ? `Bài test cuối mô-đun trước chưa đạt yêu cầu (${thresholdLabel}). Hãy làm lại bài test để mở mô-đun tiếp theo.`
-              : 'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
+            'Bài đánh giá cuối mô-đun trước chưa đạt yêu cầu. Hãy làm lại bài và đạt điểm yêu cầu để mở khóa.',
           );
           return;
         }
@@ -226,7 +219,7 @@ const CourseWorkspace = () => {
     });
 
     return reasonMap;
-  }, [assessmentsByModule, completedLessonIds, course, moduleProgress]);
+  }, [completedLessonIds, course, moduleProgress]);
 
   const workspaceItems = useMemo(() => {
     if (!course?.modules?.length) return lessonItems.map((item) => ({ ...item, type: 'lesson' }));
@@ -354,7 +347,7 @@ const CourseWorkspace = () => {
     }
 
     const currentItem = workspaceItems.find((item) => String(item.id) === String(activeLessonId));
-    if (currentItem?.isLocked && String(activeLessonId) !== String(storedLessonId)) {
+    if (currentItem?.isLocked) {
       const fallbackLesson = workspaceItems.find((item) => item.type === 'lesson' && !item.isLocked);
       if (fallbackLesson) rememberActiveLesson(fallbackLesson.id);
     }
@@ -380,13 +373,16 @@ const CourseWorkspace = () => {
     }
 
     setVocabularyCount(parsedVocabularyTerms.length);
-    courseApi.getVocabularyTerms(course.id)
-      .then((terms) => {
+    const loadVocabularyCount = async () => {
+      try {
+        const terms = await courseApi.getVocabularyTerms(course.id);
         if (active) setVocabularyCount(Array.isArray(terms) ? terms.length : 0);
-      })
-      .catch(() => {
+      } catch {
         if (active) setVocabularyCount(parsedVocabularyTerms.length);
-      });
+      }
+    };
+
+    loadVocabularyCount();
 
     return () => {
       active = false;
@@ -627,7 +623,7 @@ const CourseWorkspace = () => {
         <CourseGlobalStyles />
         <Header />
         <main className="mx-auto max-w-[1320px] px-4 py-10 md:px-10">
-          <div className="rounded-3xl border border-[#dfbfbd]/30 bg-white p-10 text-center text-[#584140]">Đang mở không gian học...</div>
+          <BrandLoadingState className="rounded-3xl" message="Đang mở không gian học..." />
         </main>
       </div>
     );
@@ -725,7 +721,6 @@ const CourseWorkspace = () => {
               <AiAssessmentPanel
                 assessments={activeWorkspaceItem.assessments}
                 moduleTitle={activeWorkspaceItem.module?.title}
-                courseTargetBand={course?.targetBand}
                 isLocked={activeWorkspaceItem.isLocked}
                 lockReason={activeWorkspaceItem.lockReason}
                 onMoveStep={handleMoveLesson}

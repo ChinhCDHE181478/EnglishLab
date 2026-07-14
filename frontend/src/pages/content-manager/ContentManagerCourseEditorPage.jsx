@@ -77,13 +77,16 @@ export default function ContentManagerCourseEditorPage() {
 
   useEffect(() => {
     let active = true;
-    courseApi.getManagedCourseCategories()
-      .then((items) => {
+    const loadCategories = async () => {
+      try {
+        const items = await courseApi.getManagedCourseCategories();
         if (active) setCategories(items);
-      })
-      .catch(() => {
+      } catch {
         if (active) setCategories([]);
-      });
+      }
+    };
+
+    loadCategories();
     return () => {
       active = false;
     };
@@ -94,19 +97,21 @@ export default function ContentManagerCourseEditorPage() {
 
     let active = true;
 
-    courseApi.getManagedOnlineCourse(slugOrId)
-      .then((course) => {
+    const loadCourse = async () => {
+      try {
+        const course = await courseApi.getManagedOnlineCourse(slugOrId);
         if (!active) return;
         setCourseId(course.id);
         setCourseSlug(course.slug || '');
         setForm(mapCourseToForm(course));
-      })
-      .catch(() => {
+      } catch {
         if (active) setError('Không tải được chi tiết khóa học.');
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    };
+
+    loadCourse();
 
     return () => {
       active = false;

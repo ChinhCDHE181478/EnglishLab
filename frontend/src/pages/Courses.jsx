@@ -3,18 +3,17 @@ import { Link } from 'react-router-dom';
 import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
-import Header from '../components/ai-learning/Header';
 import {
   CategoryTabs,
   CourseCatalog,
-  CourseFooter,
-  CourseGlobalStyles,
   CourseHero,
   CurrentCourse,
   PopularCourses,
 } from '../components/course';
 import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
 import LearningPathCatalog from '../components/course/LearningPathCatalog';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
+import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 
@@ -51,7 +50,7 @@ const Courses = () => {
       return undefined;
     }
 
-    const loadUser = async () => {
+    const loadCurrentUser = async () => {
       try {
         const response = await getCurrentUser();
         if (!active) return;
@@ -63,7 +62,8 @@ const Courses = () => {
         setUser(getStoredUser());
       }
     };
-    loadUser();
+
+    loadCurrentUser();
 
     return () => {
       active = false;
@@ -80,6 +80,7 @@ const Courses = () => {
         if (active) setCategories([]);
       }
     };
+
     loadCategories();
     return () => {
       active = false;
@@ -204,56 +205,62 @@ const Courses = () => {
   };
 
   return (
-    <div id="top" className="course-page min-h-screen overflow-x-hidden bg-[#f9f9f9] text-[#1a1c1c]">
-      <CourseGlobalStyles />
-      <Header />
-      <main className="mx-auto max-w-[1320px] px-4 pb-[80px] pt-6 md:px-10">
-        <CourseHero user={user} registeredCount={myEnrollments.length} />
-        <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
-        <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
-        {error ? (
-          <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
-            {error}
-          </div>
-        ) : null}
-        {isAuthenticated ? (
-          <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead9db] bg-[linear-gradient(135deg,_#fffdfc,_#fff0f1)] px-6 py-6 shadow-sm transition-all duration-200 hover:border-[#dfbfbd] hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#8a0018] shadow-sm border border-[#f0e3e4]">
-                <Route className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
-                <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
-              </div>
+    <LearnerPageShell
+      title="Thư viện khóa học"
+      description="Tìm kiếm và khám phá các khóa học IELTS, TOEIC và tiếng Anh giao tiếp trực tuyến chất lượng cao từ EnglishLab."
+    >
+      {loading ? (
+        <BrandLoadingState message="Đang tải danh sách khóa học..." />
+      ) : (
+        <>
+          <CourseHero user={user} registeredCount={myEnrollments.length} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
+          <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
+          {error ? (
+            <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
+              {error}
             </div>
-            <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] active:scale-95 shadow-sm" to="/learning-path">Mở lộ trình học</Link>
-          </div>
-        ) : null}
-        <RecommendedCoursesSection
-          courses={recommendedCourses}
-          currentBand={user?.currentBand ?? null}
-          loading={isAuthenticated ? recommendationLoading : loading}
-          error={isAuthenticated ? recommendationError : error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
-          profileBased={isAuthenticated}
-          onRetry={isAuthenticated ? loadRecommendations : loadCourses}
-        />
-        <LearningPathCatalog courses={allCourses} />
-        <PopularCourses courses={featuredCourses} />
-        <CourseCatalog
-          courses={visibleCourses}
-          keyword={keyword}
-          filters={filters}
-          onKeywordChange={setKeyword}
-          onFilterChange={handleFilterChange}
-          onClear={handleClearFilters}
-          loading={loading}
-          currentBand={user?.currentBand ?? null}
-          categories={categories}
-        />
-      </main>
-      <CourseFooter />
-    </div>
+          ) : null}
+          {isAuthenticated ? (
+            <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead9db] bg-[linear-gradient(135deg,_#fffdfc,_#fff0f1)] px-6 py-6 shadow-sm transition-all duration-200 hover:border-[#dfbfbd] hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f0e3e4] bg-white text-[#8a0018] shadow-sm">
+                  <Route className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
+                  <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
+                </div>
+              </div>
+              <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95" to="/learning-path">
+                Mở lộ trình học
+              </Link>
+            </div>
+          ) : null}
+          <RecommendedCoursesSection
+            courses={recommendedCourses}
+            currentBand={user?.currentBand ?? null}
+            loading={isAuthenticated ? recommendationLoading : loading}
+            error={isAuthenticated ? recommendationError : error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
+            profileBased={isAuthenticated}
+            onRetry={isAuthenticated ? loadRecommendations : loadCourses}
+          />
+          <LearningPathCatalog courses={allCourses} />
+          <PopularCourses courses={featuredCourses} />
+          <CourseCatalog
+            courses={visibleCourses}
+            keyword={keyword}
+            filters={filters}
+            onKeywordChange={setKeyword}
+            onFilterChange={handleFilterChange}
+            onClear={handleClearFilters}
+            loading={loading}
+            currentBand={user?.currentBand ?? null}
+            categories={categories}
+          />
+        </>
+      )}
+    </LearnerPageShell>
   );
 };
 

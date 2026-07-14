@@ -36,10 +36,10 @@ export function ManagerTable({ columns, children, minWidth = '1040px' }) {
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left" style={{ minWidth }}>
         <thead>
-          <tr className="border-b border-[#dcc0bf]/30 bg-[#eff4ff]">
+          <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
             {columns.map((column) => (
               <th
-                className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#564241] ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
+                className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
                 key={column.key || column.label}
               >
                 {column.label}
