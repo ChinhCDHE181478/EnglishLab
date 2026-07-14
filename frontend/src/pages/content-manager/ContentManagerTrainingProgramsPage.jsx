@@ -389,6 +389,33 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     }
   };
 
+  const publishProgram = async (program) => {
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const detail = await classroomApi.getContentManagerProgram(program.id);
+      const draft = toForm(detail);
+      const saved = await classroomApi.updateContentManagerProgram(program.id, {
+        ...draft,
+        status: 'PUBLISHED',
+        deliveryMode: config.deliveryMode,
+        curriculumProgramId: Number(draft.curriculumProgramId),
+        materialIds: draft.materialIds.map((id) => Number(id)),
+        defaultCapacity: Number(draft.defaultCapacity || 1),
+        price: draft.price === '' ? 0 : Number(draft.price),
+        salePrice: draft.salePrice === '' ? null : Number(draft.salePrice),
+        displayOrder: Number(draft.displayOrder || 0),
+      });
+      setPrograms((current) => current.map((item) => (String(item.id) === String(saved.id) ? saved : item)));
+      setSuccess('Đã xuất bản chương trình. Training Manager có thể dùng chương trình này để mở lớp.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không thể xuất bản chương trình.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const publishedCount = programs.filter((p) => p.status === 'PUBLISHED').length;
   const activeUsageCount = programs.filter((p) => (p.activeClassroomCount ?? 0) > 0).length;
 
@@ -454,6 +481,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         onClone={cloneProgram}
         onEdit={openEdit}
         onPageChange={setPage}
+        onPublish={publishProgram}
         page={page}
         pageSize={8}
         programs={pageItems}
@@ -507,11 +535,14 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                 <BrandedSelect
                   value={form.curriculumProgramId}
                   onChange={(event) => updateForm({ curriculumProgramId: event.target.value })}
-                  options={curriculums.map((item) => ({
-                    label: item.title,
-                    value: String(item.id),
-                    description: [item.code, item.examCategory, item.totalUnits ? `${item.totalUnits} unit` : null].filter(Boolean).join(' · '),
-                  }))}
+                  options={curriculums
+                    .filter((item) => item.deliveryMode === config.deliveryMode)
+                    .filter((item) => form.status !== 'PUBLISHED' || item.status === 'PUBLISHED')
+                    .map((item) => ({
+                      label: item.title,
+                      value: String(item.id),
+                      description: [item.code, item.examCategory, item.status, item.totalUnits ? `${item.totalUnits} unit` : null].filter(Boolean).join(' · '),
+                    }))}
                   placeholder={curriculums.length ? 'Chọn giáo trình' : 'Kho giáo trình đang trống'}
                 />
               </div>
@@ -582,7 +613,9 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                 <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-[#4b0009]">{form.materialIds.length} tài liệu</span>
               </div>
               <div className="grid max-h-56 gap-2 overflow-y-auto pr-1">
-                {materials.length ? materials.map((item) => {
+                {materials.some((item) => item.status === 'PUBLISHED') ? materials
+                  .filter((item) => item.status === 'PUBLISHED')
+                  .map((item) => {
                   const value = String(item.id);
                   const checked = form.materialIds.includes(value);
                   return (
@@ -604,7 +637,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                     </label>
                   );
                 }) : (
-                  <p className="rounded-lg border border-dashed border-[#dcc0bf]/50 bg-white px-3 py-6 text-center text-sm font-semibold text-[#584140]">Kho học liệu đang trống.</p>
+                  <p className="rounded-lg border border-dashed border-[#dcc0bf]/50 bg-white px-3 py-6 text-center text-sm font-semibold text-[#584140]">Kho chưa có học liệu đã xuất bản.</p>
                 )}
               </div>
             </section>

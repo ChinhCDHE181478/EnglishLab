@@ -40,9 +40,10 @@ public class ManagerClassroomController {
     @PutMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> updateOffering(
             @PathVariable Long id,
-            @Valid @RequestBody CreateClassroomOfferingRequest request
+            @Valid @RequestBody CreateClassroomOfferingRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request));
+        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/publish")

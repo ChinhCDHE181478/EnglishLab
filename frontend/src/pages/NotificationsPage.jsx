@@ -3,6 +3,7 @@ import { Bell, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import classroomApi from '../api/classroomApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import Pagination, { usePagination } from '../components/ui/Pagination';
 import { ClassroomLoadingState } from '../components/classroom/ClassroomUi';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { getClassroomErrorMessage } from '../utils/classroomErrorMessages';
@@ -73,6 +74,12 @@ export default function NotificationsPage() {
     return contextNotifications;
   }, [apiNotifications, contextNotifications, error, isAuthenticated, loading]);
 
+  const { page, setPage, totalPages, pageItems: paginatedNotifications, totalItems } = usePagination(
+    notifications,
+    8,
+    'notifications'
+  );
+
   return (
     <LearnerPageShell
       title="Thông báo"
@@ -96,9 +103,9 @@ export default function NotificationsPage() {
         </section>
       ) : null}
       {!loading && !error && notifications.length > 0 ? (
-        <section className="rounded-[32px] border border-[#dfbfbd]/30 bg-white p-4 shadow-sm md:p-6">
+        <section className="rounded-[32px] border border-[#dfbfbd]/30 bg-white p-4 shadow-sm md:p-6 space-y-6">
           <div className="space-y-3">
-            {notifications.map((notification) => {
+            {paginatedNotifications.map((notification) => {
               const content = (
                 <article
                   className={`flex gap-4 rounded-[24px] border px-4 py-4 transition hover:bg-[#fff8f7] ${
@@ -134,6 +141,17 @@ export default function NotificationsPage() {
               );
             })}
           </div>
+
+          {notifications.length > 8 && (
+            <div className="flex justify-end">
+              <Pagination
+                page={page}
+                onChange={setPage}
+                totalItems={totalItems}
+                pageSize={8}
+              />
+            </div>
+          )}
         </section>
       ) : null}
     </LearnerPageShell>

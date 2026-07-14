@@ -20,6 +20,9 @@ public class ClassroomMaterialResponse {
     private Long centerMaterialId;
     private Long sessionId;
     private String sessionTitle;
+    private Long curriculumUnitId;
+    private String curriculumUnitTitle;
+    private Boolean mandatory;
     private String uploadedByName;
     private String reviewStatus;
     private String reviewNote;

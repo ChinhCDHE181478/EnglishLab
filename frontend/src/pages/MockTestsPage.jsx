@@ -9,6 +9,7 @@ import CourseFooter from '../components/course/CourseFooter';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import mockTestApi from '../api/mockTestApi';
+import Pagination, { usePagination } from '../components/ui/Pagination';
 import placementTestApi from '../api/placementTestApi';
 
 const skillOptions = [
@@ -73,6 +74,12 @@ export default function MockTestsPage() {
       return matchesSkill && matchesKeyword;
     });
   }, [tests, keyword, skill]);
+
+  const { page, setPage, totalPages, pageItems: paginatedTests, totalItems } = usePagination(
+    filteredTests,
+    6,
+    `mock-tests-${skill}-${keyword}`
+  );
 
   const startTest = async (item) => {
     setError('');
@@ -231,31 +238,44 @@ export default function MockTestsPage() {
           {loading ? (
             <BrandLoadingState className="mt-8" message="Đang tải ngân hàng đề thi thử..." />
           ) : filteredTests.length ? (
-            <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredTests.map((item) => {
-                const meta = skillMeta[item.skill] || skillMeta.MIXED;
-                const Icon = meta.icon;
-                return (
-                  <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#ead7d5] bg-[#fffdfc] p-5 transition hover:border-[#8a0018]/35 hover:shadow-md" key={item.id}>
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
-                    </div>
-                    <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#341c1d]">{item.title}</h2>
-                    <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[#584140]">{item.description || item.instructions || 'Đề thi thử đã sẵn sàng.'}</p>
-                    <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[#8b706e]">
-                      <span>{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : 'Không giới hạn thời gian'}</span>
-                      <span>·</span>
-                      <span>{item.maxScore ? `${item.maxScore} điểm` : 'Thi thử'}</span>
-                    </div>
-                    <button className="mt-5 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white transition hover:bg-[#650012]" onClick={() => startTest(item)} type="button">
-                      Vào thi thử
-                    </button>
-                  </article>
-                );
-              })}
+            <div className="space-y-6">
+              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {paginatedTests.map((item) => {
+                  const meta = skillMeta[item.skill] || skillMeta.MIXED;
+                  const Icon = meta.icon;
+                  return (
+                    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#ead7d5] bg-[#fffdfc] p-5 transition hover:border-[#8a0018]/35 hover:shadow-md" key={item.id}>
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
+                      </div>
+                      <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#341c1d]">{item.title}</h2>
+                      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[#584140]">{item.description || item.instructions || 'Đề thi thử đã sẵn sàng.'}</p>
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[#8b706e]">
+                        <span>{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : 'Không giới hạn thời gian'}</span>
+                        <span>·</span>
+                        <span>{item.maxScore ? `${item.maxScore} điểm` : 'Thi thử'}</span>
+                      </div>
+                      <button className="mt-5 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white transition hover:bg-[#650012]" onClick={() => startTest(item)} type="button">
+                        Vào thi thử
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {filteredTests.length > 6 && (
+                <div className="flex justify-end">
+                  <Pagination
+                    page={page}
+                    onChange={setPage}
+                    totalItems={totalItems}
+                    pageSize={6}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-8 rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fffafb] p-10 text-center text-sm font-bold text-[#584140]">

@@ -3,6 +3,17 @@ const resolveDate = (value) => {
   const raw = String(value).trim();
   if (!raw) return null;
 
+  // Check for date-only YYYY-MM-DD format first to parse as local time
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const parts = raw.split('-');
+    const parsed = new Date(
+      parseInt(parts[0], 10),
+      parseInt(parts[1], 10) - 1,
+      parseInt(parts[2], 10)
+    );
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
   let parsed = new Date(raw);
   if (!Number.isNaN(parsed.getTime())) return parsed;
 
@@ -67,6 +78,18 @@ export const formatDeliveryMode = (mode, label) => {
   if (mode === 'VIRTUAL') return 'Trực tuyến';
   if (mode === 'OFFLINE') return 'Tại trung tâm';
   return 'Đang cập nhật';
+};
+
+export const formatAssessmentType = (type) => {
+  const labels = {
+    MODULE_TEST: 'Kiểm tra cuối mô-đun',
+    LESSON_PRACTICE: 'Luyện tập theo bài',
+    MOCK_TEST: 'Thi thử',
+    WRITING_TASK: 'Bài viết',
+    SPEAKING_TASK: 'Bài nói',
+    QUIZ: 'Kiểm tra tiến độ',
+  };
+  return labels[String(type || '').toUpperCase()] || type || '';
 };
 
 export const formatOfflineLocation = (item, fallback = 'Cơ sở Hà Nội') =>

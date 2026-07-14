@@ -34,6 +34,9 @@ public class ClassroomHomeworkResponse {
     private AssessmentSkill skill;
     private Long rubricId;
     private String rubricName;
+    private Long assessmentBankItemId;
+    private String assessmentBankItemTitle;
+    private String assessmentType;
     private AssessmentRubricResponse rubric;
     private boolean overdue;
     private ClassroomHomeworkSubmissionResponse mySubmission;

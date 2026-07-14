@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.entity.classroom;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -31,6 +32,10 @@ public class ClassroomMaterial {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
     private ClassroomSession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curriculum_unit_id")
+    private CurriculumUnit curriculumUnit;
 
     @Column(nullable = false, length = 220)
     private String title;

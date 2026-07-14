@@ -436,6 +436,25 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     }
   };
 
+  const publishItem = async (item) => {
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = await curriculumApi.updateAssessmentBankItem(item.id, buildPayload({
+        ...toForm(item, pageConfig),
+        status: 'PUBLISHED',
+      }));
+      setItems((current) => current.map((row) => (String(row.id) === String(saved.id) ? saved : row)));
+      if (String(editingId) === String(saved.id)) setForm(lockFormToPage(toForm(saved, pageConfig)));
+      setSuccess(`Đã xuất bản ${pageConfig.successNoun}.`);
+    } catch (err) {
+      setError(err?.response?.data?.message || `Không xuất bản được ${pageConfig.successNoun}.`);
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const canUseBuilder = supportedBuilderSkills.has(String(form.skill || '').toUpperCase());
   const lockedForm = lockFormToPage(form);
 
@@ -570,7 +589,17 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                       <RefreshCw className="h-3.5 w-3.5" />
                       Khôi phục
                     </button>
-                  ) : (
+                  ) : item.status === 'DRAFT' ? (
+                    <button
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800 disabled:opacity-45"
+                      disabled={working}
+                      onClick={() => publishItem(item)}
+                      type="button"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Xuất bản
+                    </button>
+                  ) : item.status === 'PUBLISHED' ? (
                     <button
                       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
                       disabled={working}
@@ -580,7 +609,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                       <Archive className="h-3.5 w-3.5" />
                       Lưu trữ
                     </button>
-                  )}
+                  ) : null}
                 </div>
               </td>
             </tr>

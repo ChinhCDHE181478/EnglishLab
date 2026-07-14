@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -18,6 +19,7 @@ const sortOptions = [
 ];
 
 export default function ContentManagerCoursesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
@@ -25,6 +27,19 @@ export default function ContentManagerCoursesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [workingId, setWorkingId] = useState(null);
+
+  const isCreateOpen = searchParams.get('new') === '1';
+  const editingSlug = searchParams.get('edit');
+
+  const handleCloseModal = () => {
+    setSearchParams((prev) => {
+      prev.delete('new');
+      prev.delete('edit');
+      return prev;
+    });
+  };
 
   const loadCourses = async (activeRef = { current: true }) => {
     setLoading(true);
@@ -103,6 +118,25 @@ export default function ContentManagerCoursesPage() {
 
   const updateFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }));
 
+  const changeCourseStatus = async (course, action) => {
+    const publishing = action === 'PUBLISH';
+    if (!publishing && !window.confirm(`Lưu trữ khóa học "${course.title}"?`)) return;
+    setWorkingId(course.id);
+    setError('');
+    setSuccess('');
+    try {
+      const updated = publishing
+        ? await courseApi.publishOnlineCourse(course.id)
+        : await courseApi.archiveOnlineCourse(course.id);
+      setCourses((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setSuccess(publishing ? 'Đã xuất bản khóa học.' : 'Đã lưu trữ khóa học.');
+    } catch (err) {
+      setError(err?.response?.data?.message || (publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
+    } finally {
+      setWorkingId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {error ? (
@@ -118,6 +152,7 @@ export default function ContentManagerCoursesPage() {
           </button>
         </div>
       ) : null}
+      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{success}</div> : null}
 
       <Panel className="rounded-xl border-[#e9d7d6]/80 bg-white p-4 shadow-sm">
         <div className="grid gap-3 xl:grid-cols-[minmax(320px,1fr)_170px_160px_160px_160px_44px]">
@@ -190,12 +225,26 @@ export default function ContentManagerCoursesPage() {
                     <td className="px-5 py-5 text-sm text-[#69778a]">{formatDate(course.updatedAt)}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Link className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/edit`}>
+                        <button
+                          className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                          onClick={() => setSearchParams((prev) => { prev.set('edit', course.slug); return prev; })}
+                          type="button"
+                        >
                           Chỉnh sửa
-                        </Link>
+                        </button>
                         <Link className="rounded-lg bg-[#4b0009] px-4 py-2 text-xs font-bold leading-4 text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/builder`}>
                           Biên soạn
                         </Link>
+                        {course.status === 'DRAFT' || course.status === 'REJECTED' ? (
+                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
+                          </button>
+                        ) : null}
+                        {course.status === 'PUBLISHED' ? (
+                          <button aria-label={`Lưu trữ ${course.title}`} className="inline-flex items-center justify-center rounded-lg border border-rose-200 p-2 text-rose-700 disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'ARCHIVE')} title="Lưu trữ" type="button">
+                            <Archive className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -239,6 +288,54 @@ export default function ContentManagerCoursesPage() {
           </div>
         </div>
       </Panel>
+
+      {isCreateOpen && (
+        <EditorModal onClose={handleCloseModal}>
+          <ContentManagerCourseEditorPage
+            onClose={handleCloseModal}
+            onSave={() => {
+              loadCourses();
+              handleCloseModal();
+            }}
+          />
+        </EditorModal>
+      )}
+
+      {editingSlug && (
+        <EditorModal onClose={handleCloseModal}>
+          <ContentManagerCourseEditorPage
+            slugOrId={editingSlug}
+            onClose={handleCloseModal}
+            onSave={() => {
+              loadCourses();
+            }}
+          />
+        </EditorModal>
+      )}
+    </div>
+  );
+}
+
+function EditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[1200px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
     </div>
   );
 }

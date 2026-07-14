@@ -161,10 +161,10 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
             {canSubmitReview ? (
               <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={handleSubmitReview} type="button">
                 <Send className="h-4 w-4" />
-                Gửi duyệt
+                Gửi duyệt để xuất bản
               </button>
             ) : null}
-            {program.status !== 'ARCHIVED' ? (
+            {program.status === 'PUBLISHED' ? (
               <button className={DANGER_BUTTON_CLASS} disabled={working} onClick={handleArchive} type="button">
                 <Archive className="h-4 w-4" />
                 Lưu trữ

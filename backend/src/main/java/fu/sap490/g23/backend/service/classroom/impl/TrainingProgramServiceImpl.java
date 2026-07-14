@@ -52,6 +52,14 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<TrainingProgramResponse> listPublishedPrograms(ClassroomDeliveryMode deliveryMode) {
+        return listPrograms(deliveryMode).stream()
+                .filter(program -> program.getStatus() == PackageStatus.PUBLISHED)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TrainingProgramResponse getProgram(Long id) {
         return toResponse(findProgram(id), true);
     }
@@ -69,12 +77,18 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .build();
         apply(program, request);
         replaceMaterials(program, request.getMaterialIds());
+        validatePublishable(program);
         return toResponse(programRepository.save(program), true);
     }
 
     @Override
     public TrainingProgramResponse updateProgram(Long id, TrainingProgramRequest request) {
         TrainingProgram program = findProgram(id);
+        Long originalCurriculumId = program.getCurriculumProgram() == null ? null : program.getCurriculumProgram().getId();
+        List<Long> originalMaterialIds = program.getMaterials().stream()
+                .map(ref -> ref.getMaterial().getId())
+                .toList();
+        PackageStatus originalStatus = program.getStatus();
         program.setTitle(request.getTitle().trim());
         program.setCode(uniqueCodeForUpdate(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryMode())), program.getId()));
         program.setSlug(uniqueSlugForUpdate(defaultText(request.getSlug(), slugify(request.getTitle())), program.getId()));
@@ -83,6 +97,18 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setStatus(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus());
         apply(program, request);
         replaceMaterials(program, request.getMaterialIds());
+        List<Long> updatedMaterialIds = program.getMaterials().stream()
+                .map(ref -> ref.getMaterial().getId())
+                .toList();
+        if (countActiveClassrooms(program) > 0
+                && (!java.util.Objects.equals(originalCurriculumId, program.getCurriculumProgram().getId())
+                || !originalMaterialIds.equals(updatedMaterialIds)
+                || originalStatus != program.getStatus())) {
+            throw new IllegalArgumentException(
+                    "Không thể đổi giáo trình, học liệu hoặc trạng thái của chương trình đang được lớp hoạt động sử dụng."
+            );
+        }
+        validatePublishable(program);
         return toResponse(programRepository.save(program), true);
     }
 
@@ -165,6 +191,22 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                     .material(material)
                     .displayOrder(index++)
                     .build());
+        }
+    }
+
+    private void validatePublishable(TrainingProgram program) {
+        if (program.getStatus() != PackageStatus.PUBLISHED) {
+            return;
+        }
+        if (program.getCurriculumProgram() == null
+                || !"PUBLISHED".equalsIgnoreCase(program.getCurriculumProgram().getStatus())) {
+            throw new IllegalArgumentException("Chỉ có thể xuất bản chương trình khi giáo trình gốc đã được duyệt.");
+        }
+        boolean hasUnpublishedMaterial = program.getMaterials().stream()
+                .map(TrainingProgramMaterial::getMaterial)
+                .anyMatch(material -> !"PUBLISHED".equalsIgnoreCase(material.getStatus()));
+        if (hasUnpublishedMaterial) {
+            throw new IllegalArgumentException("Chương trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
         }
     }
 

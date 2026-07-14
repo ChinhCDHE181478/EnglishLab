@@ -12,6 +12,7 @@ import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.TuitionProofService;
+import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
@@ -32,6 +33,7 @@ public class TrainingManagerClassroomController {
     private final ClassroomOfferingService classroomOfferingService;
     private final CurriculumProgramService curriculumProgramService;
     private final TuitionProofService tuitionProofService;
+    private final TrainingProgramService trainingProgramService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
 
@@ -73,6 +75,13 @@ public class TrainingManagerClassroomController {
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
         return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
+    }
+
+    @GetMapping("/training-programs")
+    public ResponseEntity<List<TrainingProgramResponse>> listPublishedTrainingPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(deliveryMode));
     }
 
     @GetMapping("/curriculum-programs/pending-review")
@@ -117,9 +126,10 @@ public class TrainingManagerClassroomController {
     @PutMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> updateOffering(
             @PathVariable Long id,
-            @Valid @RequestBody CreateClassroomOfferingRequest request
+            @Valid @RequestBody CreateClassroomOfferingRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request));
+        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/publish")

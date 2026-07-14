@@ -394,6 +394,10 @@ public class ClassroomMapper {
                 .skill(homework.getSkill())
                 .rubricId(homework.getRubric() == null ? null : homework.getRubric().getId())
                 .rubricName(homework.getRubric() == null ? null : homework.getRubric().getName())
+                .assessmentBankItemId(homework.getAssessmentBankItem() == null ? null : homework.getAssessmentBankItem().getId())
+                .assessmentBankItemTitle(homework.getAssessmentBankItem() == null ? null : homework.getAssessmentBankItem().getTitle())
+                .assessmentType(homework.getAssessmentBankItem() == null || homework.getAssessmentBankItem().getType() == null
+                        ? null : homework.getAssessmentBankItem().getType().name())
                 .rubric(homeworkGradingCatalogService.mapRubric(homework.getRubric()))
                 .overdue(overdue)
                 .mySubmission(mySubmission)
@@ -448,6 +452,9 @@ public class ClassroomMapper {
                 .centerMaterialId(material.getCenterMaterialId())
                 .sessionId(material.getSession() == null ? null : material.getSession().getId())
                 .sessionTitle(material.getSession() == null ? null : material.getSession().getSessionContent())
+                .curriculumUnitId(material.getCurriculumUnit() == null ? null : material.getCurriculumUnit().getId())
+                .curriculumUnitTitle(material.getCurriculumUnit() == null ? null : material.getCurriculumUnit().getTitle())
+                .mandatory(isMandatoryMaterial(material.getSourceType()))
                 .uploadedByName(material.getUploadedBy() == null ? null : material.getUploadedBy().getFullName())
                 .reviewStatus(material.getReviewStatus() == null ? null : material.getReviewStatus().name())
                 .reviewNote(material.getReviewNote())
@@ -594,9 +601,15 @@ public class ClassroomMapper {
                 .subtitle(material.getMaterialType())
                 .skill(material.getSkill())
                 .status(material.getStatus())
+                .fileUrl(material.getFileUrl())
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
                 .build();
+    }
+
+    private boolean isMandatoryMaterial(String sourceType) {
+        return "PROGRAM_LIBRARY".equalsIgnoreCase(sourceType)
+                || "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType);
     }
 
     private CurriculumReferenceResponse toCurriculumExerciseRef(CurriculumExerciseRef ref) {
@@ -611,6 +624,7 @@ public class ClassroomMapper {
                 .status(exercise.isActive() ? "ACTIVE" : "INACTIVE")
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
+                .contentJson(exercise.getPrompt())
                 .build();
     }
 

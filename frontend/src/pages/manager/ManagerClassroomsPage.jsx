@@ -34,7 +34,7 @@ const initialClassroomForm = {
   deliveryMode: 'OFFLINE',
   classroomStatus: 'DRAFT',
   packageStatus: 'DRAFT',
-  curriculumProgramId: '',
+  trainingProgramId: '',
   entryLevel: 'IELTS Foundation',
   targetScore: '',
   targetOutcome: '',
@@ -64,7 +64,7 @@ export default function ManagerClassroomsPage() {
   const [actionStatus, setActionStatus] = useState('success');
   const [teachers, setTeachers] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [curriculumPrograms, setCurriculumPrograms] = useState([]);
+  const [trainingPrograms, setTrainingPrograms] = useState([]);
   const [classroomForm, setClassroomForm] = useState(initialClassroomForm);
   const [creatingClassroom, setCreatingClassroom] = useState(false);
 
@@ -93,12 +93,11 @@ export default function ManagerClassroomsPage() {
     [rooms],
   );
 
-  const curriculumOptions = useMemo(
+  const trainingProgramOptions = useMemo(
     () => [
-      { label: 'Chưa chọn giáo trình', value: '' },
-      ...curriculumPrograms
+      { label: 'Chọn chương trình đã xuất bản', value: '' },
+      ...trainingPrograms
         .filter((program) => program.deliveryMode === classroomForm.deliveryMode)
-        .filter((program) => String(program.status || '').toUpperCase() !== 'ARCHIVED')
         .map((program) => ({
           label: program.title,
           value: String(program.id),
@@ -111,23 +110,23 @@ export default function ManagerClassroomsPage() {
           ].filter(Boolean).join(' · '),
         })),
     ],
-    [classroomForm.deliveryMode, curriculumPrograms],
+    [classroomForm.deliveryMode, trainingPrograms],
   );
 
   const loadClassrooms = async () => {
     setLoading(true);
     setError('');
     try {
-      const [data, teacherData, roomData, curriculumData] = await Promise.all([
+      const [data, teacherData, roomData, programData] = await Promise.all([
         classroomApi.getManagerClassrooms(),
         classroomApi.getTrainingManagerTeachers(),
         classroomApi.getTrainingManagerRooms(),
-        classroomApi.getTrainingManagerCurriculumPrograms(),
+        classroomApi.getTrainingManagerPrograms(),
       ]);
       setClassrooms(data);
       setTeachers(teacherData);
       setRooms(roomData);
-      setCurriculumPrograms(curriculumData);
+      setTrainingPrograms(programData);
     } catch (err) {
       setClassrooms([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải danh sách lớp.'));
@@ -150,7 +149,20 @@ export default function ManagerClassroomsPage() {
       const next = { ...current, [field]: value };
       if (field === 'deliveryMode') {
         next.studyMode = value === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm';
-        next.curriculumProgramId = '';
+        next.trainingProgramId = '';
+      }
+      if (field === 'trainingProgramId') {
+        const selectedProgram = trainingPrograms.find((program) => String(program.id) === String(value));
+        if (selectedProgram) {
+          next.entryLevel = selectedProgram.entryLevel || '';
+          next.targetScore = selectedProgram.targetScore || '';
+          next.targetOutcome = selectedProgram.targetOutcome || '';
+          next.maxCapacity = String(selectedProgram.defaultCapacity || 30);
+          next.price = selectedProgram.price == null ? '' : String(selectedProgram.price);
+          next.salePrice = selectedProgram.salePrice == null ? '' : String(selectedProgram.salePrice);
+          next.duration = selectedProgram.duration || '';
+          next.studyMode = selectedProgram.studyMode || (next.deliveryMode === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm');
+        }
       }
       return next;
     });
@@ -159,7 +171,8 @@ export default function ManagerClassroomsPage() {
   const buildClassroomPayload = () => ({
     ...classroomForm,
     maxCapacity: Number(classroomForm.maxCapacity || 0),
-    curriculumProgramId: classroomForm.curriculumProgramId ? Number(classroomForm.curriculumProgramId) : null,
+    trainingProgramId: classroomForm.trainingProgramId ? Number(classroomForm.trainingProgramId) : null,
+    curriculumProgramId: null,
     primaryTeacherId: classroomForm.primaryTeacherId ? Number(classroomForm.primaryTeacherId) : null,
     defaultRoomId: classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
     price: classroomForm.price ? Number(classroomForm.price) : 0,
@@ -170,6 +183,10 @@ export default function ManagerClassroomsPage() {
 
   const handleCreateClassroom = async (event) => {
     event.preventDefault();
+    if (!classroomForm.trainingProgramId) {
+      showMessage('Vui lòng chọn chương trình đào tạo đã xuất bản trước khi mở lớp.', 'error');
+      return;
+    }
     setCreatingClassroom(true);
     setActionMessage('');
     try {
@@ -262,13 +279,14 @@ export default function ManagerClassroomsPage() {
             </Field>
           </div>
 
-          <Field label="Giáo trình">
+          <Field label="Chương trình đào tạo">
             <BrandedSelect
               menuClassName="w-[min(520px,calc(100vw-2rem))]"
-              onChange={(event) => updateClassroomForm('curriculumProgramId', event.target.value)}
-              options={curriculumOptions}
-              value={classroomForm.curriculumProgramId}
-              placeholder="Chọn giáo trình theo target/band"
+              onChange={(event) => updateClassroomForm('trainingProgramId', event.target.value)}
+              options={trainingProgramOptions}
+              value={classroomForm.trainingProgramId}
+              placeholder="Chọn chương trình đã được Content Manager xuất bản"
+              required
             />
           </Field>
 

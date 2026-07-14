@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Archive,
   BookOpen,
+  CheckCircle2,
   FilePlus2,
   FileStack,
   Globe,
@@ -38,7 +39,7 @@ const emptyForm = {
   toeicScoreMax: '',
   skill: 'Vocabulary',
   tags: '',
-  status: 'PUBLISHED',
+  status: 'DRAFT',
 };
 
 const materialTypeOptions = ['PDF', 'DOC', 'SLIDE', 'AUDIO', 'VIDEO', 'LINK', 'WORKSHEET'];
@@ -84,7 +85,7 @@ const toRequestPayload = (form) => ({
   toeicScoreMax: form.toeicScoreMax === '' ? null : Number(form.toeicScoreMax),
   skill: form.skill || null,
   tags: form.tags.trim() || null,
-  status: form.status || 'PUBLISHED',
+  status: form.status || 'DRAFT',
 });
 
 export default function ContentManagerMaterialsPage() {
@@ -194,7 +195,7 @@ export default function ContentManagerMaterialsPage() {
       toeicScoreMax: item.toeicScoreMax ?? '',
       skill: item.skill || 'Vocabulary',
       tags: item.tags || '',
-      status: item.status || 'PUBLISHED',
+      status: item.status || 'DRAFT',
     });
     setMessage('');
   };
@@ -275,6 +276,23 @@ export default function ContentManagerMaterialsPage() {
       await loadItems();
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, 'Không thể xóa học liệu trung tâm.'));
+    }
+  };
+
+  const changeMaterialStatus = async (item, status) => {
+    if (status === 'ARCHIVED' && !window.confirm(`Lưu trữ học liệu "${item.title}"?`)) return;
+    setMessage('');
+    try {
+      const saved = await classroomApi.updateContentManagerMaterialLibraryItem(item.id, toPayload({
+        ...emptyForm,
+        ...item,
+        status,
+      }));
+      setItems((current) => current.map((row) => (String(row.id) === String(saved.id) ? saved : row)));
+      if (String(editingId) === String(saved.id)) openEdit(saved);
+      setMessage(status === 'PUBLISHED' ? 'Đã xuất bản học liệu.' : 'Đã lưu trữ học liệu.');
+    } catch (err) {
+      setMessage(getClassroomErrorMessage(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));
     }
   };
 
@@ -534,7 +552,17 @@ export default function ContentManagerMaterialsPage() {
                             <PencilLine className="h-3.5 w-3.5" />
                             Sửa
                           </button>
-                          <button className="inline-flex items-center rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50" onClick={() => handleDelete(item)} type="button">
+                          {item.status === 'DRAFT' ? (
+                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
+                            </button>
+                          ) : null}
+                          {item.status === 'PUBLISHED' ? (
+                            <button aria-label={`Lưu trữ ${item.title}`} className="inline-flex items-center rounded-lg border border-rose-200 px-2 py-1.5 text-rose-700 transition hover:bg-rose-50" onClick={() => changeMaterialStatus(item, 'ARCHIVED')} title="Lưu trữ" type="button">
+                              <Archive className="h-3.5 w-3.5" />
+                            </button>
+                          ) : null}
+                          <button aria-label={`Xóa ${item.title}`} className="inline-flex items-center rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50" onClick={() => handleDelete(item)} title="Xóa" type="button">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>

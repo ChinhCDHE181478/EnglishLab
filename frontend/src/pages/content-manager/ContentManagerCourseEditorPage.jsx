@@ -61,8 +61,9 @@ const mapCourseToForm = (course = {}) => ({
   modules: course.modules ?? [],
 });
 
-export default function ContentManagerCourseEditorPage() {
-  const { slugOrId } = useParams();
+export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId, onClose, onSave }) {
+  const { slugOrId: paramSlugOrId } = useParams();
+  const slugOrId = propSlugOrId !== undefined ? propSlugOrId : paramSlugOrId;
   const navigate = useNavigate();
   const editMode = Boolean(slugOrId);
   const [courseId, setCourseId] = useState(null);
@@ -178,8 +179,11 @@ export default function ContentManagerCourseEditorPage() {
       setForm(mapCourseToForm(response));
       setSuccess(targetStatus === 'PUBLISHED' ? 'Khóa học đã được lưu và chuyển sang trạng thái đã xuất bản.' : 'Khóa học đã được lưu thành công.');
 
-      if (!editMode) {
+      if (!editMode && !onClose) {
         navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
+      }
+      if (onSave) {
+        onSave(response);
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được khóa học.');
@@ -196,17 +200,27 @@ export default function ContentManagerCourseEditorPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/courses">
-          <ArrowLeft className="h-4 w-4" />
-          Quay lại danh sách khóa học
-        </Link>
+        {onClose ? (
+          <button
+            className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3] active:scale-95"
+            onClick={onClose}
+            type="button"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Đóng
+          </button>
+        ) : (
+          <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/courses">
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại danh sách khóa học
+          </Link>
+        )}
         {editMode && form.title ? (
           <Link className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${slugOrId}/builder`}>
             Mở khu vực biên soạn
           </Link>
         ) : null}
       </div>
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.55fr]">
       <div className="space-y-6">
         {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
         {success ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700">{success}</div> : null}
@@ -238,45 +252,70 @@ export default function ContentManagerCourseEditorPage() {
             <TextField label="Mô tả đầy đủ" onChange={handleChange('description')} rows={5} textarea value={form.description} />
             <TextField label="Đầu ra / kết quả hoàn thành khóa học" onChange={handleChange('targetOutcome')} rows={3} textarea value={form.targetOutcome} />
           </div>
+          
+          <div className="mt-5 border-t border-[#f4eeee] pt-4">
+            <label className="flex items-center gap-3 text-sm text-[#1a1c1c] cursor-pointer">
+              <input
+                className="h-4.5 w-4.5 rounded border-gray-300 text-[#4b0009] focus:ring-[#730014]"
+                checked={form.featured}
+                onChange={handleChange('featured')}
+                type="checkbox"
+              />
+              <span className="font-semibold text-slate-700">Đánh dấu là khóa học nổi bật</span>
+            </label>
+          </div>
         </Panel>
-      </div>
 
-      <div className="space-y-6">
-        {editMode ? (
-          <Panel className="p-6">
+        {editMode && flashcardOverview.setCount > 0 ? (
+          <Panel className="p-5 flex items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Brain className="h-5 w-5" /></span>
               <div>
-                <h2 className="font-['Manrope'] text-lg font-extrabold text-[#4b0009]">Thẻ ghi nhớ trong khóa học</h2>
-                <p className="mt-1 text-sm leading-6 text-[#584140]">{flashcardOverview.setCount} bộ thẻ · {flashcardOverview.cardCount} thẻ, được gắn từ kho flashcard.</p>
+                <h3 className="font-['Manrope'] text-sm font-extrabold text-[#4b0009]">Thẻ ghi nhớ trong khóa học</h3>
+                <p className="mt-0.5 text-xs leading-relaxed text-[#584140]">{flashcardOverview.setCount} bộ thẻ · {flashcardOverview.cardCount} thẻ, được gắn từ kho flashcard.</p>
               </div>
             </div>
-            {courseSlug ? <Link className="mt-4 inline-flex rounded-xl border border-[#dfbfbd] px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/flashcards">Mở ngân hàng flashcard</Link> : null}
+            {courseSlug ? <Link className="rounded-xl border border-[#dfbfbd] px-4 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/flashcards">Mở ngân hàng flashcard</Link> : null}
           </Panel>
         ) : null}
+
         <Panel className="p-6">
-          <div className="rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fcfbfb] p-5 text-sm text-[#584140]">
-            Hãy thiết lập band đầu vào, band mục tiêu và đầu ra của khóa học tại đây. Sau đó dùng khu vực biên soạn để quản lý mô-đun, bài học và bài kiểm tra cuối mô-đun.
-          </div>
-          {hasNoStructure ? (
-            <div className="mt-4 rounded-2xl border border-[#f0d8db] bg-[#fff7f7] p-4 text-sm text-[#730014]">
-              Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs text-[#8b706e] leading-relaxed max-w-xl">
+              {hasNoStructure && (
+                <p className="text-[#730014] font-semibold">
+                  ⚠️ Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
+                </p>
+              )}
+              {!hasNoStructure && (
+                <p>
+                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra của khóa học. Nhấn Lưu thay đổi hoặc Xuất bản để áp dụng.
+                </p>
+              )}
             </div>
-          ) : null}
-          <label className="mt-4 flex items-center gap-3 text-sm text-[#1a1c1c]">
-            <input checked={form.featured} onChange={handleChange('featured')} type="checkbox" />
-            Đánh dấu là khóa học nổi bật
-          </label>
-          <div className="mt-6 grid gap-3">
-            <button className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white" disabled={saving} onClick={() => handleSubmit()} type="button">
-              {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
-            </button>
-            <button className="rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009]" disabled={saving} onClick={() => handleSubmit('PUBLISHED')} type="button">
-              {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
-            </button>
+            
+            <div className="flex items-center gap-3">
+              <button
+                className="rounded-2xl border border-[#4b0009] bg-white px-6 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                disabled={saving}
+                onClick={() => handleSubmit()}
+                type="button"
+              >
+                {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </button>
+              {form.status !== 'PUBLISHED' && form.status !== 'ARCHIVED' ? (
+                <button
+                  className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 active:scale-95"
+                  disabled={saving}
+                  onClick={() => handleSubmit('PUBLISHED')}
+                  type="button"
+                >
+                  {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
+                </button>
+              ) : null}
+            </div>
           </div>
         </Panel>
-      </div>
       </div>
     </div>
   );

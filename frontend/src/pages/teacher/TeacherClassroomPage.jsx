@@ -37,6 +37,7 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
+  formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
   isGradebookPassed,
@@ -768,8 +769,8 @@ function CurriculumUnitCard({ unit }) {
       {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <CurriculumRefList title="Học liệu" refs={unit.materials} />
-        <CurriculumRefList title="Bài tập" refs={unit.exercises} />
-        <CurriculumRefList title="Đề" refs={unit.assessments} />
+        <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
+        <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
         <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
       </div>
     </article>
@@ -785,7 +786,16 @@ function CurriculumRefList({ title, refs = [] }) {
           {refs.map((ref) => (
             <div key={`${ref.type}-${ref.id}`} className="rounded-lg bg-white px-3 py-2 text-xs">
               <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
-              <p className="mt-0.5 text-[#8b706e]">{[ref.skill, ref.subtitle, ref.status].filter(Boolean).join(' · ')}</p>
+              <p className="mt-0.5 text-[#8b706e]">{[
+                ref.skill,
+                ref.type === 'ASSESSMENT' ? formatAssessmentType(ref.subtitle) : ref.subtitle,
+                ref.status,
+              ].filter(Boolean).join(' · ')}</p>
+              {ref.fileUrl ? (
+                <a className="mt-2 inline-flex font-extrabold text-[#730014] hover:underline" href={ref.fileUrl} rel="noreferrer" target="_blank">
+                  Mở học liệu
+                </a>
+              ) : null}
             </div>
           ))}
         </div>
