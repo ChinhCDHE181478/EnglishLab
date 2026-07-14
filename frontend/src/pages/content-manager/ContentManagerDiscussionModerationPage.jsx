@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, EyeOff, Flag, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
 import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -61,6 +62,12 @@ export default function ContentManagerDiscussionModerationPage() {
   useEffect(() => {
     loadReports();
   }, [loadReports]);
+
+  const { page, setPage, totalPages, pageItems: paginatedReports, totalItems } = usePagination(
+    reports,
+    10,
+    `moderation-${status}-${category}`
+  );
 
   const handleAction = async (report, action) => {
     const isHide = action === 'hide';
@@ -148,84 +155,101 @@ export default function ContentManagerDiscussionModerationPage() {
           <ManagerEmptyState>Không có báo cáo nào ở trạng thái / loại này.</ManagerEmptyState>
         ) : null}
         {!loading && reports.length > 0 ? (
-          <ManagerTable columns={COLUMNS} minWidth="1320px">
-            {reports.map((report) => (
-              <tr className="align-top transition hover:bg-[#eff4ff]/35" key={report.reportId}>
-                <td className="max-w-[360px] px-6 py-5">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Flag className="h-4 w-4 shrink-0 text-rose-600" />
-                    <span className="text-xs font-bold uppercase tracking-wide text-rose-700">
-                      {report.reportCount} lượt báo cáo
-                    </span>
-                  </div>
-                  <p className="line-clamp-4 text-sm leading-6 text-[#0b1c30]">{report.contentPreview}</p>
-                  <p className="mt-2 text-xs text-[#756361]">
-                    Tác giả: <span className="font-semibold">{report.targetAuthor}</span>
-                  </p>
-                  <TargetStatus status={report.currentTargetStatus} />
-                </td>
-                <td className="px-6 py-5">
-                  <ManagerStatusBadge tone={report.targetType === 'THREAD' ? 'info' : 'neutral'}>
-                    {report.targetType === 'THREAD' ? 'Chủ đề' : 'Trả lời'}
-                  </ManagerStatusBadge>
-                </td>
-                <td className="max-w-[230px] px-6 py-5 text-sm">
-                  <p className="font-bold text-[#0b1c30]">{report.courseTitle}</p>
-                  {report.lessonTitle ? (
-                    <p className="mt-1 text-xs leading-5 text-[#756361]">Bài học: {report.lessonTitle}</p>
-                  ) : (
-                    <p className="mt-1 text-xs text-[#756361]">Thảo luận cấp khóa học</p>
-                  )}
-                </td>
-                <td className="px-6 py-5 text-sm">
-                  <p className="font-semibold text-[#0b1c30]">{report.reporterName}</p>
-                  <p className="mt-1 text-xs text-[#756361]">{report.reporterEmail}</p>
-                </td>
-                <td className="max-w-[220px] px-6 py-5 text-sm leading-6 text-[#564241]">
-                  {/* Show reasonCategory as badge if present */}
-                  {report.reasonCategory && (
-                    <span className="mb-1.5 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-100">
-                      {CATEGORY_LABELS[report.reasonCategory] || report.reasonCategory}
-                    </span>
-                  )}
-                  <br />
-                  {report.reason || (report.reasonCategory !== 'OTHER' ? '' : 'Không cung cấp lý do')}
-                </td>
-                <td className="whitespace-nowrap px-6 py-5 text-sm text-[#564241]">
-                  {formatDate(report.createdAt)}
-                </td>
-                <td className="px-6 py-5 text-right">
-                  {report.status === 'PENDING' ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#4b0009] disabled:opacity-50"
-                        disabled={processingId === report.reportId}
-                        onClick={() => handleAction(report, 'hide')}
-                        type="button"
-                      >
-                        <EyeOff className="h-4 w-4" />
-                        Ẩn nội dung
-                      </button>
-                      <button
-                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#dcc0bf] px-3.5 py-2 text-xs font-bold text-[#564241] transition hover:bg-slate-50 disabled:opacity-50"
-                        disabled={processingId === report.reportId}
-                        onClick={() => handleAction(report, 'dismiss')}
-                        type="button"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Bỏ qua báo cáo
-                      </button>
+          <>
+            <ManagerTable columns={COLUMNS} minWidth="1320px">
+              {paginatedReports.map((report) => (
+                <tr className="align-top transition hover:bg-[#eff4ff]/35" key={report.reportId}>
+                  <td className="max-w-[360px] px-6 py-5">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Flag className="h-4 w-4 shrink-0 text-rose-600" />
+                      <span className="text-xs font-bold uppercase tracking-wide text-rose-700">
+                        {report.reportCount} lượt báo cáo
+                      </span>
                     </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#756361]">
-                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      {report.reviewedBy ? `Bởi ${report.reviewedBy}` : 'Đã xử lý'}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </ManagerTable>
+                    <p className="line-clamp-4 text-sm leading-6 text-[#0b1c30]">{report.contentPreview}</p>
+                    <p className="mt-2 text-xs text-[#756361]">
+                      Tác giả: <span className="font-semibold">{report.targetAuthor}</span>
+                    </p>
+                    <TargetStatus status={report.currentTargetStatus} />
+                  </td>
+                  <td className="px-6 py-5">
+                    <ManagerStatusBadge tone={report.targetType === 'THREAD' ? 'info' : 'neutral'}>
+                      {report.targetType === 'THREAD' ? 'Chủ đề' : 'Trả lời'}
+                    </ManagerStatusBadge>
+                  </td>
+                  <td className="max-w-[230px] px-6 py-5 text-sm">
+                    <p className="font-bold text-[#0b1c30]">{report.courseTitle}</p>
+                    {report.lessonTitle ? (
+                      <p className="mt-1 text-xs leading-5 text-[#756361]">Bài học: {report.lessonTitle}</p>
+                    ) : (
+                      <p className="mt-1 text-xs text-[#756361]">Thảo luận cấp khóa học</p>
+                    )}
+                  </td>
+                  <td className="px-6 py-5 text-sm">
+                    <p className="font-semibold text-[#0b1c30]">{report.reporterName}</p>
+                    <p className="mt-1 text-xs text-[#756361]">{report.reporterEmail}</p>
+                  </td>
+                  <td className="max-w-[220px] px-6 py-5 text-sm leading-6 text-[#564241]">
+                    {/* Show reasonCategory as badge if present */}
+                    {report.reasonCategory && (
+                      <span className="mb-1.5 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-100">
+                        {CATEGORY_LABELS[report.reasonCategory] || report.reasonCategory}
+                      </span>
+                    )}
+                    <br />
+                    {report.reason || (report.reasonCategory !== 'OTHER' ? '' : 'Không cung cấp lý do')}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-5 text-sm text-[#564241]">
+                    {formatDate(report.createdAt)}
+                  </td>
+                  <td className="px-6 py-5 text-right">
+                    {report.status === 'PENDING' ? (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#4b0009] disabled:opacity-50"
+                          disabled={processingId === report.reportId}
+                          onClick={() => handleAction(report, 'hide')}
+                          type="button"
+                        >
+                          <EyeOff className="h-4 w-4" />
+                          Ẩn nội dung
+                        </button>
+                        <button
+                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-[#dcc0bf] px-3.5 py-2 text-xs font-bold text-[#564241] transition hover:bg-slate-50 disabled:opacity-50"
+                          disabled={processingId === report.reportId}
+                          onClick={() => handleAction(report, 'dismiss')}
+                          type="button"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Bỏ qua báo cáo
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#756361]">
+                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                        {report.reviewedBy ? `Bởi ${report.reviewedBy}` : 'Đã xử lý'}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </ManagerTable>
+
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#eff4ff]/30 px-6 py-4">
+                <span className="text-sm font-semibold text-[#564241]">
+                  Trang {page} / {totalPages} · <span className="font-bold text-[#0b1c30]">{totalItems}</span> báo cáo
+                </span>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onChange={setPage}
+                  totalItems={totalItems}
+                  pageSize={10}
+                />
+              </div>
+            )}
+          </>
         ) : null}
       </section>
     </div>

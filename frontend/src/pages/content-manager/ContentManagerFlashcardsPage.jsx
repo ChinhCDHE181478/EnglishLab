@@ -583,127 +583,129 @@ export default function ContentManagerFlashcardsPage() {
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      {editorOpen ? (
-        <section className={`${PANEL_CLASS} scroll-mt-24 space-y-5`} ref={editorRef}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">
-                {editingId ? 'Chỉnh sửa bộ flashcard' : 'Tạo bộ flashcard'}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                Nhập từng thẻ bằng form rõ ràng; hệ thống sẽ tự lưu thành dữ liệu dùng chung cho khóa học và giáo trình.
-              </p>
-            </div>
-            <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
-              <X className="h-4 w-4" /> Đóng
-            </button>
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,420px)_1fr]">
-            <div className="space-y-4 rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên bộ thẻ</span>
-                <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className={FIELD_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
-              </label>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Nhóm thi</span>
-                  <BrandedSelect value={form.examCategory} onChange={(event) => setForm({ ...form, examCategory: event.target.value })} options={examOptions} />
-                </div>
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
-                  <BrandedSelect value={form.skill} onChange={(event) => setForm({ ...form, skill: event.target.value })} options={skillOptions} />
-                </div>
+      {editorOpen && (
+        <FlashcardEditorModal onClose={closeEditor}>
+          <section className="space-y-5" ref={editorRef}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">
+                  {editingId ? 'Chỉnh sửa bộ flashcard' : 'Tạo bộ flashcard'}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Nhập từng thẻ bằng form rõ ràng; hệ thống sẽ tự lưu thành dữ liệu dùng chung cho khóa học và giáo trình.
+                </p>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
-                  <BrandedSelect value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={statusOptions} />
+              <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
+                <X className="h-4 w-4" /> Đóng
+              </button>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,420px)_1fr]">
+              <div className="space-y-4 rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên bộ thẻ</span>
+                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
+                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
+                </label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Nhóm thi</span>
+                    <BrandedSelect value={form.examCategory} onChange={(event) => setForm({ ...form, examCategory: event.target.value })} options={examOptions} />
+                  </div>
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
+                    <BrandedSelect value={form.skill} onChange={(event) => setForm({ ...form, skill: event.target.value })} options={skillOptions} />
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
+                    <BrandedSelect value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={statusOptions} />
+                  </div>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.displayOrder}
+                      onChange={(event) => setForm({ ...form, displayOrder: event.target.value })}
+                      className={FIELD_CLASS}
+                    />
+                  </label>
                 </div>
                 <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.displayOrder}
-                    onChange={(event) => setForm({ ...form, displayOrder: event.target.value })}
-                    className={FIELD_CLASS}
-                  />
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tags</span>
+                  <input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} className={FIELD_CLASS} placeholder="family, relationships, IELTS" />
                 </label>
-              </div>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tags</span>
-                <input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} className={FIELD_CLASS} placeholder="family, relationships, IELTS" />
-              </label>
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                <button type="button" disabled={working} onClick={saveSet} className={PRIMARY_BUTTON_CLASS}>
-                  <Save className="h-4 w-4" /> Lưu bộ thẻ
-                </button>
-                <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
-                  <Plus className="h-4 w-4" /> Tạo bộ khác
-                </button>
-                <button type="button" onClick={openImport} className={SECONDARY_BUTTON_CLASS}>
-                  <FileUp className="h-4 w-4" /> Nhập thẻ
-                </button>
-                <button type="button" onClick={() => setTransferMode('EXPORT')} className={SECONDARY_BUTTON_CLASS}>
-                  <Download className="h-4 w-4" /> Xuất thẻ
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Danh sách thẻ</h4>
-                  <p className="text-sm text-slate-600">Mỗi thẻ nên có thuật ngữ, định nghĩa, ví dụ và lỗi thường gặp.</p>
+                <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                  <button type="button" disabled={working} onClick={saveSet} className={PRIMARY_BUTTON_CLASS}>
+                    <Save className="h-4 w-4" /> Lưu bộ thẻ
+                  </button>
+                  <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
+                    <Plus className="h-4 w-4" /> Tạo bộ khác
+                  </button>
+                  <button type="button" onClick={openImport} className={SECONDARY_BUTTON_CLASS}>
+                    <FileUp className="h-4 w-4" /> Nhập thẻ
+                  </button>
+                  <button type="button" onClick={() => setTransferMode('EXPORT')} className={SECONDARY_BUTTON_CLASS}>
+                    <Download className="h-4 w-4" /> Xuất thẻ
+                  </button>
                 </div>
-                <button type="button" onClick={addCard} className={SECONDARY_BUTTON_CLASS}>
-                  <Plus className="h-4 w-4" /> Thêm thẻ
-                </button>
               </div>
 
-              <div className="space-y-3">
-                {cards.map((card, index) => (
-                  <article key={index} className="rounded-[22px] border border-[#ead8d6] bg-white/85 p-4">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <h5 className="font-['Manrope'] text-base font-extrabold text-slate-900">Thẻ {index + 1}</h5>
-                      <button type="button" onClick={() => removeCard(index)} className={DANGER_BUTTON_CLASS}>
-                        <Trash2 className="h-3.5 w-3.5" /> Xóa thẻ
-                      </button>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thuật ngữ</span>
-                        <input value={card.front} onChange={(event) => updateCard(index, 'front', event.target.value)} className={FIELD_CLASS} />
-                      </label>
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Định nghĩa</span>
-                        <input value={card.back} onChange={(event) => updateCard(index, 'back', event.target.value)} className={FIELD_CLASS} />
-                      </label>
-                    </div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ví dụ</span>
-                        <textarea value={card.example} onChange={(event) => updateCard(index, 'example', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-                      </label>
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Lỗi thường gặp</span>
-                        <textarea value={card.commonMistake} onChange={(event) => updateCard(index, 'commonMistake', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-                      </label>
-                    </div>
-                  </article>
-                ))}
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Danh sách thẻ</h4>
+                    <p className="text-sm text-slate-600">Mỗi thẻ nên có thuật ngữ, định nghĩa, ví dụ và lỗi thường gặp.</p>
+                  </div>
+                  <button type="button" onClick={addCard} className={SECONDARY_BUTTON_CLASS}>
+                    <Plus className="h-4 w-4" /> Thêm thẻ
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {cards.map((card, index) => (
+                    <article key={index} className="rounded-[22px] border border-[#ead8d6] bg-white/85 p-4">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <h5 className="font-['Manrope'] text-base font-extrabold text-slate-900">Thẻ {index + 1}</h5>
+                        <button type="button" onClick={() => removeCard(index)} className={DANGER_BUTTON_CLASS}>
+                          <Trash2 className="h-3.5 w-3.5" /> Xóa thẻ
+                        </button>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="block">
+                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thuật ngữ</span>
+                          <input value={card.front} onChange={(event) => updateCard(index, 'front', event.target.value)} className={FIELD_CLASS} />
+                        </label>
+                        <label className="block">
+                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Định nghĩa</span>
+                          <input value={card.back} onChange={(event) => updateCard(index, 'back', event.target.value)} className={FIELD_CLASS} />
+                        </label>
+                      </div>
+                      <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <label className="block">
+                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ví dụ</span>
+                          <textarea value={card.example} onChange={(event) => updateCard(index, 'example', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                        </label>
+                        <label className="block">
+                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Lỗi thường gặp</span>
+                          <textarea value={card.commonMistake} onChange={(event) => updateCard(index, 'commonMistake', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                        </label>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      ) : (
-        <>
-          <div className="grid gap-6 md:grid-cols-4">
+          </section>
+        </FlashcardEditorModal>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-4">
             {stats.map((item) => {
               const Icon = item.icon;
               return (
@@ -837,8 +839,6 @@ export default function ContentManagerFlashcardsPage() {
           </div>
         )}
           </section>
-        </>
-      )}
 
       {transferMode === 'IMPORT' ? (
         <ImportDialog
@@ -1217,5 +1217,29 @@ function TransferSelect({ label, value, onChange, options }) {
         value={value}
       />
     </label>
+  );
+}
+
+function FlashcardEditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[1000px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>
   );
 }

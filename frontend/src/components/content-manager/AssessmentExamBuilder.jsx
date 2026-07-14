@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FileJson, Plus, Trash2, X } from 'lucide-react';
 import BrandedSelect from '../ui/BrandedSelect';
 
@@ -301,6 +301,15 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
   const [rawImport, setRawImport] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   const questionCount = useMemo(
     () => (config.parts || []).reduce((sum, part) =>
       sum + (part.questionGroups || []).reduce((groupSum, group) =>
@@ -576,8 +585,14 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
       </div>
 
       {open ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#1a0004]/50 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden p-4">
+          <button
+            aria-label="Đóng modal"
+            className="absolute -inset-10 bg-[#1a0004]/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            type="button"
+          />
+          <div className="relative z-10 flex max-h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] bg-white shadow-2xl">
             <header className="flex items-start justify-between gap-4 border-b border-[#eadcdc] px-6 py-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{builderLabels.modalEyebrow}</p>

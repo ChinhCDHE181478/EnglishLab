@@ -674,6 +674,7 @@ export default function MyHomeworkPage() {
                   <div className="mt-6 flex justify-end">
                     <Pagination
                       page={page}
+                      totalPages={totalPages}
                       onChange={setPage}
                       totalItems={totalItems}
                       pageSize={6}

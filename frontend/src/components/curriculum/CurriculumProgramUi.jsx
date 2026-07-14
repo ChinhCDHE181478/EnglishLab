@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BrandedSelect from '../ui/BrandedSelect';
+import Pagination from '../ui/Pagination';
 import { Panel } from '../content-manager/ContentManagerUi';
 
 export function ProgramPageHero({ mode, title, subtitle, stats = [], actions }) {
@@ -265,14 +266,13 @@ export function ProgramTable({
           {' · '}
           <span className="font-bold text-[#0b1c30]">{totalItems}</span> chương trình
         </p>
-        <div className="flex items-center gap-2">
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white text-[#564241] transition hover:bg-[#eff4ff] disabled:opacity-35" disabled={page <= 1} onClick={() => onPageChange(page - 1)} type="button">
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white text-[#564241] transition hover:bg-[#eff4ff] disabled:opacity-35" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} type="button">
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={onPageChange}
+          totalItems={totalItems}
+          pageSize={pageSize}
+        />
       </div>
     </Panel>
   );

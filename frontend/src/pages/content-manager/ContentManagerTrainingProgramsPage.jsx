@@ -673,10 +673,23 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
 }
 
 function ProgramEditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#1a0004]/45 px-3 py-4 backdrop-blur-sm sm:px-6" role="dialog" aria-modal="true">
-      <button aria-label="Đóng modal" className="fixed inset-0 cursor-default" onClick={onClose} type="button" />
-      <div className="relative z-10 w-full max-w-[760px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[760px] pointer-events-auto overflow-y-auto max-h-[90vh]">
         {children}
       </div>
     </div>

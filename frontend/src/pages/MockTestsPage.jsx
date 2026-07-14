@@ -270,6 +270,7 @@ export default function MockTestsPage() {
                 <div className="flex justify-end">
                   <Pagination
                     page={page}
+                    totalPages={totalPages}
                     onChange={setPage}
                     totalItems={totalItems}
                     pageSize={6}

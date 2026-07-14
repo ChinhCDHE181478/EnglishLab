@@ -146,6 +146,7 @@ export default function NotificationsPage() {
             <div className="flex justify-end">
               <Pagination
                 page={page}
+                totalPages={totalPages}
                 onChange={setPage}
                 totalItems={totalItems}
                 pageSize={8}
