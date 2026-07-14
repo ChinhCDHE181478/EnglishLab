@@ -4,4 +4,5 @@ import fu.sap490.g23.backend.entity.classroom.TrainingProgramMaterial;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TrainingProgramMaterialRepository extends JpaRepository<TrainingProgramMaterial, Long> {
+    boolean existsByMaterialId(Long materialId);
 }

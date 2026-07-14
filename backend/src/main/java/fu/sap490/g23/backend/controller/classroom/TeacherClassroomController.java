@@ -35,7 +35,6 @@ public class TeacherClassroomController {
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
-    private final CenterMaterialLibraryService centerMaterialLibraryService;
 
     @GetMapping("/assigned")
     public ResponseEntity<List<ClassroomOfferingResponse>> getAssignedClasses(Authentication authentication) {
@@ -204,8 +203,11 @@ public class TeacherClassroomController {
     }
 
     @GetMapping("/{id}/materials")
-    public ResponseEntity<List<ClassroomMaterialResponse>> getMaterials(@PathVariable Long id) {
-        return ResponseEntity.ok(contentService.getMaterials(id));
+    public ResponseEntity<List<ClassroomMaterialResponse>> getMaterials(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(contentService.getTeacherMaterials(id, authentication.getName()));
     }
 
     @PostMapping("/{id}/materials")
@@ -217,29 +219,13 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(contentService.createMaterial(id, request, authentication.getName()));
     }
 
-    @PostMapping("/{id}/materials/from-library")
-    public ResponseEntity<ClassroomMaterialResponse> attachCenterMaterial(
-            @PathVariable Long id,
-            @Valid @RequestBody AttachCenterMaterialRequest request,
+    @DeleteMapping("/materials/{materialId}")
+    public ResponseEntity<Void> deleteMaterial(
+            @PathVariable Long materialId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(contentService.attachCenterMaterial(
-                id,
-                request.getCenterMaterialId(),
-                request.getSessionId(),
-                authentication.getName()
-        ));
-    }
-
-    @DeleteMapping("/materials/{materialId}")
-    public ResponseEntity<Void> deleteMaterial(@PathVariable Long materialId) {
-        contentService.deleteMaterial(materialId);
+        contentService.deleteMaterial(materialId, authentication.getName());
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/material-library")
-    public ResponseEntity<List<CenterMaterialLibraryItemResponse>> getPublishedMaterialLibrary() {
-        return ResponseEntity.ok(centerMaterialLibraryService.listPublishedForTeacher());
     }
 
     @GetMapping("/{id}/announcements")

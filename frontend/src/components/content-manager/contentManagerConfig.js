@@ -16,7 +16,6 @@ import {
   Mic2,
   NotebookPen,
   Route,
-  School,
   SlidersHorizontal,
   Dumbbell,
   Video,
@@ -28,7 +27,6 @@ export const contentManagerNav = [
     items: [
       { label: 'Tổng quan', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Khóa học online', href: '/content-manager/courses', icon: BookOpen },
-      { label: 'Lớp học tại trung tâm', href: '/content-manager/classrooms', icon: School },
       { label: 'Chương trình offline', href: '/content-manager/offline-programs', icon: Building2 },
       { label: 'Chương trình virtual', href: '/content-manager/virtual-programs', icon: Video },
       { label: 'Biên soạn giáo trình', href: '/content-manager/syllabus-builder', icon: BookMarked },
@@ -71,11 +69,6 @@ export const contentManagerPageMeta = {
     title: 'Quản lý khóa học Online',
     subtitle: '',
     searchPlaceholder: 'Tìm theo tên khóa học hoặc slug...',
-  },
-  '/content-manager/classrooms': {
-    title: 'Quản lý nội dung lớp học',
-    subtitle: 'Theo dõi nội dung vận hành lớp học và kiểm tra lớp đang dùng giáo trình nào.',
-    searchPlaceholder: 'Tìm lớp học, thông báo hoặc mục giáo trình...',
   },
   '/content-manager/offline-programs': {
     title: 'Chương trình offline',

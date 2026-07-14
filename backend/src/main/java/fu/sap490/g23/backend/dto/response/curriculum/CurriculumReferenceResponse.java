@@ -13,6 +13,7 @@ public class CurriculumReferenceResponse {
     private String subtitle;
     private String skill;
     private String status;
+    private String fileUrl;
     private Integer displayOrder;
     private String note;
     /** Nội dung có cấu trúc của tài nguyên, hiện dùng cho cardsJson của bộ flashcard. */

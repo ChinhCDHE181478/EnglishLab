@@ -80,10 +80,21 @@ const getDayIndex = (dateStr) => {
 const formatMonthYear = (date) =>
   new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' }).format(date);
 
-const formatFullDate = (dateStr) =>
-  new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
-  }).format(new Date(dateStr));
+const formatFullDate = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const d = new Date(
+      parseInt(parts[0], 10),
+      parseInt(parts[1], 10) - 1,
+      parseInt(parts[2], 10)
+    );
+    return new Intl.DateTimeFormat('vi-VN', {
+      weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+    }).format(d);
+  }
+  return dateStr;
+};
 
 // ─── Session visual style ─────────────────────────────────────────────────────
 /**

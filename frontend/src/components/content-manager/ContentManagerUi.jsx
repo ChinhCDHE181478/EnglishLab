@@ -242,7 +242,7 @@ export function ContentManagerLayout({ children }) {
                 {location.pathname === '/content-manager/courses' ? (
                   <Link
                     className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
-                    to="/content-manager/courses/new"
+                    to="/content-manager/courses?new=1"
                   >
                     <Plus className="h-4 w-4" />
                     Tạo khóa học mới
@@ -334,7 +334,6 @@ function resolveCrumbHref(crumbs, index) {
 
   if (current === 'dashboard') return '/content-manager/dashboard';
   if (current === 'courses') return '/content-manager/courses';
-  if (current === 'classrooms') return '/content-manager/classrooms';
   if (current === 'materials') return '/content-manager/materials';
   if (current === 'flashcards') return '/content-manager/flashcards';
   if (current === 'discount-codes') return '/content-manager/discount-codes';

@@ -448,6 +448,9 @@ public class ClassroomMapper {
                 .centerMaterialId(material.getCenterMaterialId())
                 .sessionId(material.getSession() == null ? null : material.getSession().getId())
                 .sessionTitle(material.getSession() == null ? null : material.getSession().getSessionContent())
+                .curriculumUnitId(material.getCurriculumUnit() == null ? null : material.getCurriculumUnit().getId())
+                .curriculumUnitTitle(material.getCurriculumUnit() == null ? null : material.getCurriculumUnit().getTitle())
+                .mandatory(isMandatoryMaterial(material.getSourceType()))
                 .uploadedByName(material.getUploadedBy() == null ? null : material.getUploadedBy().getFullName())
                 .reviewStatus(material.getReviewStatus() == null ? null : material.getReviewStatus().name())
                 .reviewNote(material.getReviewNote())
@@ -594,9 +597,15 @@ public class ClassroomMapper {
                 .subtitle(material.getMaterialType())
                 .skill(material.getSkill())
                 .status(material.getStatus())
+                .fileUrl(material.getFileUrl())
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
                 .build();
+    }
+
+    private boolean isMandatoryMaterial(String sourceType) {
+        return "PROGRAM_LIBRARY".equalsIgnoreCase(sourceType)
+                || "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType);
     }
 
     private CurriculumReferenceResponse toCurriculumExerciseRef(CurriculumExerciseRef ref) {

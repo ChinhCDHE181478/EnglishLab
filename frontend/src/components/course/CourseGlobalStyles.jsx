@@ -1,7 +1,7 @@
-const CourseGlobalStyles = () => (
-  <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+import { memo } from 'react';
 
+const CourseGlobalStyles = memo(() => (
+  <style>{`
     .course-page {
       background: #f9f9f9;
       color: #1a1c1c;
@@ -57,6 +57,6 @@ const CourseGlobalStyles = () => (
       pointer-events: none;
     }
   `}</style>
-);
+));
 
 export default CourseGlobalStyles;

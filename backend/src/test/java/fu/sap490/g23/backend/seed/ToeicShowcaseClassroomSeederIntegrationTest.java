@@ -67,6 +67,12 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                 });
         assertThat(learnerResponse.getCurriculumProgram().getUnits().get(4).getAssessments())
                 .hasSizeGreaterThanOrEqualTo(1);
+        assertThat(learnerResponse.getCurriculumProgram().getUnits().get(4).getAssessments())
+                .anySatisfy(assessment -> {
+                    assertThat(assessment.getTitle()).isEqualTo("TOEIC 650 Unit 5 Progress Check - Incomplete Sentences");
+                    assertThat(assessment.getSubtitle()).isEqualTo("QUIZ");
+                })
+                .noneSatisfy(assessment -> assertThat(assessment.getSubtitle()).isEqualTo("MODULE_TEST"));
         assertThat(learnerResponse.getCurriculumProgram().getUnits().getFirst().getFlashcards().getFirst().getContentJson())
                 .isNotEqualTo(learnerResponse.getCurriculumProgram().getUnits().get(1).getFlashcards().getFirst().getContentJson());
         assertThat(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(
@@ -82,7 +88,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                 "Unit 2 Worksheet - Nộp file",
                 "Unit 3 Flashcard Review",
                 "Unit 4 Short Talks - Listening Summary",
-                "Unit 5 Module Test - Incomplete Sentences",
+                "Unit 5 Progress Check - Incomplete Sentences",
                 "Unit 6 Text Completion - System Practice",
                 "Unit 7 Error Log - Reading",
                 "Unit 8 Full Test Strategy - Nộp kế hoạch"
@@ -90,11 +96,11 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
         assertThat(classroomHomework).extracting(item -> item.getCurriculumUnit().getDisplayOrder())
                 .contains(1, 2, 3, 4, 5, 6, 7, 8);
         assertThat(classroomHomework.stream()
-                .filter(item -> "Unit 5 Module Test - Incomplete Sentences".equals(item.getTitle()))
+                .filter(item -> "Unit 5 Progress Check - Incomplete Sentences".equals(item.getTitle()))
                 .findFirst()).get()
                 .satisfies(item -> {
                     assertThat(item.getActivityConfigJson()).contains("\"parts\"");
-                    assertThat(item.getInstruction()).contains("Module Test");
+                    assertThat(item.getInstruction()).contains("kiểm tra tiến độ bắt buộc");
                     assertThat(item.getCurriculumUnit().getDisplayOrder()).isEqualTo(5);
                 });
         assertThat(enrollmentRepository.findByStudentIdAndClassroomOfferingId(

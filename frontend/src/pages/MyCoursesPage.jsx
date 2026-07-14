@@ -9,6 +9,7 @@ import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { formatBandValue } from '../utils/selfPacedHelpers';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import Pagination, { usePagination } from '../components/ui/Pagination';
 
 const tabs = [
   { id: 'all', label: 'Tất cả' },
@@ -141,6 +142,12 @@ const MyCoursesPage = () => {
     return true;
   }), [activeTab, courseItems]);
 
+  const { page, setPage, totalPages, pageItems: paginatedCourses, totalItems } = usePagination(
+    filteredCourses,
+    5,
+    `my-courses-${activeTab}`
+  );
+
   const openCertificate = async (courseId) => {
     try {
       const certificate = await courseApi.getCourseCertificate(courseId);
@@ -215,7 +222,7 @@ const MyCoursesPage = () => {
                 animate="show"
                 className="grid gap-5"
               >
-                {filteredCourses.map(({ course, enrollment, completion }) => (
+                {paginatedCourses.map(({ course, enrollment, completion }) => (
                   <motion.article
                     key={course.id}
                     variants={itemVariants}
@@ -281,6 +288,17 @@ const MyCoursesPage = () => {
                     </div>
                   </motion.article>
                 ))}
+
+                {filteredCourses.length > 5 && (
+                  <div className="mt-4 flex justify-end">
+                    <Pagination
+                      page={page}
+                      onChange={setPage}
+                      totalItems={totalItems}
+                      pageSize={5}
+                    />
+                  </div>
+                )}
               </motion.section>
             ) : (
               <motion.section

@@ -10,26 +10,26 @@ import fu.sap490.g23.backend.dto.response.classroom.ClassroomAnnouncementRespons
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
 import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sap490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -48,22 +48,33 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
-    private final CenterMaterialLibraryItemRepository centerMaterialLibraryItemRepository;
+    private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomMapper mapper;
+    private final ClassroomMaterialSyncService classroomMaterialSyncService;
 
     @Override
-    @Transactional(readOnly = true)
     public List<ClassroomMaterialResponse> getMaterials(Long offeringId) {
+        ClassroomOffering offering = findOffering(offeringId);
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
         return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(mapper::toMaterialResponse)
                 .toList();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    public List<ClassroomMaterialResponse> getTeacherMaterials(Long offeringId, String teacherEmail) {
+        User teacher = accessHelper.requireUser(teacherEmail);
+        ClassroomOffering offering = findOffering(offeringId);
+        assertOfferingContentAccess(teacher, offering);
+        return getMaterials(offeringId);
+    }
+
+    @Override
     public List<ClassroomMaterialResponse> getLearnerMaterials(Long offeringId, String learnerEmail) {
         assertLearnerPortalAccess(offeringId, learnerEmail);
+        ClassroomOffering offering = findOffering(offeringId);
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
         return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
                 .filter(material -> material.getReviewStatus() == null
                         || material.getReviewStatus() == fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
@@ -74,9 +85,8 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     public ClassroomMaterialResponse createMaterial(Long offeringId, CreateMaterialRequest request, String uploaderEmail) {
         User uploader = accessHelper.requireUser(uploaderEmail);
-        assertContentAccess(uploader);
-
         ClassroomOffering offering = findOffering(offeringId);
+        assertOfferingContentAccess(uploader, offering);
         ClassroomSession session = resolveSession(offeringId, request.getSessionId());
         if (!StringUtils.hasText(request.getFileUrl())) {
             throw new IllegalArgumentException("Vui lòng cung cấp tệp hoặc liên kết tài liệu.");
@@ -92,67 +102,22 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .materialType(normalize(request.getMaterialType()))
                 .provider(normalize(request.getProvider()))
                 .visibility(normalizeDefault(request.getVisibility(), "LEARNERS_IN_CLASS"))
-                .sourceType(normalizeDefaultUpper(request.getSourceType(), "CLASSROOM_UPLOAD"))
-                .centerMaterialId(request.getCenterMaterialId())
+                .sourceType("CLASSROOM_UPLOAD")
+                .centerMaterialId(null)
                 .uploadedBy(uploader)
-                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.DRAFT)
+                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .build();
 
-        return mapper.toMaterialResponse(materialRepository.save(material));
-    }
-
-    @Override
-    public ClassroomMaterialResponse attachCenterMaterial(Long offeringId, Long centerMaterialId, Long sessionId, String uploaderEmail) {
-        User uploader = accessHelper.requireUser(uploaderEmail);
-        assertContentAccess(uploader);
-
-        ClassroomOffering offering = findOffering(offeringId);
-        ClassroomSession session = resolveSession(offeringId, sessionId);
-        CenterMaterialLibraryItem libraryItem = centerMaterialLibraryItemRepository.findById(centerMaterialId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trung tâm."));
-
-        if (!"PUBLISHED".equalsIgnoreCase(libraryItem.getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể gắn học liệu trung tâm đang ở trạng thái đã xuất bản.");
-        }
-        if (!StringUtils.hasText(libraryItem.getFileUrl())) {
-            throw new IllegalArgumentException("Học liệu trung tâm này chưa có tệp hoặc liên kết hợp lệ.");
-        }
-
-        boolean exists = session == null
-                ? materialRepository.existsByClassroomOfferingIdAndCenterMaterialIdAndSessionIsNull(offeringId, centerMaterialId)
-                : materialRepository.existsByClassroomOfferingIdAndCenterMaterialIdAndSessionId(
-                        offeringId,
-                        centerMaterialId,
-                        session.getId()
-                );
-        if (exists) {
-            throw new IllegalArgumentException("Học liệu này đã được gắn vào lớp ở vị trí hiện tại.");
-        }
-
-        ClassroomMaterial material = ClassroomMaterial.builder()
-                .classroomOffering(offering)
-                .session(session)
-                .title(libraryItem.getTitle())
-                .fileUrl(libraryItem.getFileUrl())
-                .fileType(libraryItem.getFileType())
-                .description(libraryItem.getDescription())
-                .materialType(libraryItem.getMaterialType())
-                .provider(libraryItem.getProvider())
-                .visibility("LEARNERS_IN_CLASS")
-                .sourceType("CENTER_LIBRARY")
-                .centerMaterialId(libraryItem.getId())
-                .uploadedBy(uploader)
-                .build();
         return mapper.toMaterialResponse(materialRepository.save(material));
     }
 
     @Override
     public ClassroomMaterialResponse updateMaterial(Long materialId, CreateMaterialRequest request, String editorEmail) {
         User editor = accessHelper.requireUser(editorEmail);
-        assertContentAccess(editor);
-
         ClassroomMaterial material = materialRepository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu."));
+        assertOfferingContentAccess(editor, material.getClassroomOffering());
+        assertSupplementaryMaterial(material);
         Long offeringId = material.getClassroomOffering().getId();
         ClassroomSession session = resolveSession(offeringId, request.getSessionId());
         if (!StringUtils.hasText(request.getFileUrl())) {
@@ -167,17 +132,21 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         material.setMaterialType(normalize(request.getMaterialType()));
         material.setProvider(normalize(request.getProvider()));
         material.setVisibility(normalizeDefault(request.getVisibility(), "LEARNERS_IN_CLASS"));
-        material.setSourceType(normalizeDefaultUpper(request.getSourceType(), material.getSourceType()));
-        material.setCenterMaterialId(request.getCenterMaterialId());
+        material.setSourceType("CLASSROOM_UPLOAD");
+        material.setCenterMaterialId(null);
         material.setUploadedBy(editor);
 
         return mapper.toMaterialResponse(materialRepository.save(material));
     }
 
     @Override
-    public void deleteMaterial(Long materialId) {
-        materialRepository.delete(materialRepository.findById(materialId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu.")));
+    public void deleteMaterial(Long materialId, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        ClassroomMaterial material = materialRepository.findById(materialId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu."));
+        assertOfferingContentAccess(actor, material.getClassroomOffering());
+        assertSupplementaryMaterial(material);
+        materialRepository.delete(material);
     }
 
     @Override
@@ -202,9 +171,8 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
             String creatorEmail
     ) {
         User creator = accessHelper.requireUser(creatorEmail);
-        assertContentAccess(creator);
-
         ClassroomOffering offering = findOffering(offeringId);
+        assertOfferingContentAccess(creator, offering);
         ClassroomAnnouncement announcement = ClassroomAnnouncement.builder()
                 .classroomOffering(offering)
                 .title(request.getTitle().trim())
@@ -297,9 +265,29 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 
-    private void assertContentAccess(User user) {
-        if (!accessHelper.canManageClassroom(user) && !accessHelper.canTeach(user)) {
-            throw new RuntimeException("Bạn không có quyền truy cập nội dung này.");
+    private void assertOfferingContentAccess(User user, ClassroomOffering offering) {
+        if (accessHelper.canManageTrainingOperations(user)) {
+            return;
+        }
+        accessHelper.assertTeacher(user);
+        LocalDate today = LocalDate.now();
+        boolean assigned = teacherAssignmentRepository
+                .findByClassroomOfferingIdAndTeacherId(offering.getId(), user.getId())
+                .filter(assignment -> assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                .filter(assignment -> assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today))
+                .isPresent();
+        if (!assigned) {
+            throw new RuntimeException("Bạn không được phân công giảng dạy lớp học này.");
+        }
+    }
+
+    private void assertSupplementaryMaterial(ClassroomMaterial material) {
+        String sourceType = material.getSourceType();
+        if ("PROGRAM_LIBRARY".equalsIgnoreCase(sourceType)
+                || "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType)) {
+            throw new IllegalArgumentException(
+                    "Học liệu bắt buộc thuộc chương trình. Hãy cập nhật chương trình thay vì sửa hoặc xóa trực tiếp trong lớp."
+            );
         }
     }
 
@@ -334,7 +322,4 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
-    private String normalizeDefaultUpper(String value, String fallback) {
-        return StringUtils.hasText(value) ? value.trim().toUpperCase(Locale.ROOT) : fallback;
-    }
 }

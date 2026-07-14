@@ -39,6 +39,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -66,7 +67,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final PackageEnrollmentRepository packageEnrollmentRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
     private final TrainingProgramRepository trainingProgramRepository;
-    private final ClassroomMaterialRepository materialRepository;
+    private final ClassroomMaterialSyncService classroomMaterialSyncService;
     private final ClassroomRoomRepository roomRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
@@ -225,17 +226,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (offering.getPrimaryTeacher() != null) {
             offering = offeringRepository.save(offering);
             assignTeacherInternal(offering, offering.getPrimaryTeacher(), ClassroomTeacherRole.PRIMARY, "Giáo viên chính khi tạo lớp");
-            attachTrainingProgramMaterials(offering, creator);
+            classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, creator);
             return mapper.toOfferingResponse(offering, true, null, null, true);
         }
 
         ClassroomOffering saved = offeringRepository.save(offering);
-        attachTrainingProgramMaterials(saved, creator);
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, creator);
         return mapper.toOfferingResponse(saved, true, null, null, true);
     }
 
     @Override
-    public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request) {
+    public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertTrainingManager(actor);
         ClassroomOffering offering = findOffering(id);
         LearningPackage learningPackage = offering.getLearningPackage();
         CurriculumProgram curriculumProgram = resolveCurriculumProgram(
@@ -245,6 +248,23 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId(), request.getDeliveryMode());
         if (trainingProgram != null) {
             curriculumProgram = trainingProgram.getCurriculumProgram();
+        }
+
+        if (Set.of(ClassroomOfferingStatus.ACTIVE, ClassroomOfferingStatus.COMPLETED, ClassroomOfferingStatus.CLOSED)
+                .contains(offering.getStatus())) {
+            Long currentTrainingProgramId = offering.getTrainingProgram() == null
+                    ? null : offering.getTrainingProgram().getId();
+            Long nextTrainingProgramId = trainingProgram == null ? null : trainingProgram.getId();
+            Long currentCurriculumId = offering.getCurriculumProgram() == null
+                    ? null : offering.getCurriculumProgram().getId();
+            Long nextCurriculumId = curriculumProgram == null ? null : curriculumProgram.getId();
+            if (!Objects.equals(currentTrainingProgramId, nextTrainingProgramId)
+                    || !Objects.equals(currentCurriculumId, nextCurriculumId)
+                    || offering.getDeliveryMode() != request.getDeliveryMode()) {
+                throw new IllegalArgumentException(
+                        "Không thể đổi chương trình hoặc hình thức đào tạo khi lớp đã bắt đầu hoặc đã kết thúc."
+                );
+            }
         }
 
 
@@ -296,7 +316,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         ClassroomOffering saved = offeringRepository.save(offering);
-        attachTrainingProgramMaterials(saved, null);
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, null);
         return mapper.toOfferingResponse(saved, true, null, null, true);
     }
 
@@ -1626,6 +1646,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if ("ARCHIVED".equalsIgnoreCase(program.getStatus())) {
             throw new RuntimeException("Giáo trình đã lưu trữ, không thể gắn vào lớp.");
         }
+        if (!"PUBLISHED".equalsIgnoreCase(program.getStatus())) {
+            throw new RuntimeException("Chỉ có thể mở lớp từ giáo trình đã được duyệt.");
+        }
         return program;
     }
 
@@ -1641,33 +1664,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (program.getStatus() == PackageStatus.ARCHIVED) {
             throw new RuntimeException("Chương trình học đã lưu trữ, không thể gắn vào lớp.");
         }
+        if (program.getStatus() != PackageStatus.PUBLISHED) {
+            throw new RuntimeException("Chỉ có thể mở lớp từ chương trình học đã xuất bản.");
+        }
         return program;
-    }
-
-    private void attachTrainingProgramMaterials(ClassroomOffering offering, User actor) {
-        TrainingProgram trainingProgram = offering.getTrainingProgram();
-        if (trainingProgram == null || trainingProgram.getMaterials().isEmpty()) {
-            return;
-        }
-        for (TrainingProgramMaterial programMaterial : trainingProgram.getMaterials()) {
-            CenterMaterialLibraryItem material = programMaterial.getMaterial();
-            if (materialRepository.existsByClassroomOfferingIdAndCenterMaterialIdAndSessionIsNull(offering.getId(), material.getId())) {
-                continue;
-            }
-            materialRepository.save(ClassroomMaterial.builder()
-                    .classroomOffering(offering)
-                    .title(material.getTitle())
-                    .fileUrl(material.getFileUrl())
-                    .fileType(material.getFileType())
-                    .description(material.getDescription())
-                    .materialType(material.getMaterialType())
-                    .provider(material.getProvider())
-                    .visibility("CLASS")
-                    .sourceType("PROGRAM_LIBRARY")
-                    .centerMaterialId(material.getId())
-                    .uploadedBy(actor)
-                    .build());
-        }
     }
 
     private String defaultText(String value, String fallback) {

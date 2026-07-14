@@ -1,14 +1,12 @@
 package fu.sap490.g23.backend.seed;
 
 import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
-import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.PackageType;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
@@ -16,11 +14,9 @@ import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sap490.g23.backend.entity.curriculum.*;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumUnitRepository;
@@ -54,11 +50,12 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private static final String PACKAGE_SLUG = "toeic-650-showcase-class-0386852628z";
     private static final String CLASS_TITLE = "TOEIC 650 Complete - Lớp thực hành đầy đủ";
     private static final String MATERIAL_BASE_URL = "http://localhost:8080/demo/toeic/";
-    private static final String MODULE_TEST_TITLE = "TOEIC Part 5 Mini Module Test - Workplace English";
-    private static final String MODULE_TEST_ANSWER_KEY = """
+    private static final String LEGACY_MODULE_TEST_TITLE = "TOEIC Part 5 Mini Module Test - Workplace English";
+    private static final String UNIT_PROGRESS_CHECK_TITLE = "TOEIC 650 Unit 5 Progress Check - Incomplete Sentences";
+    private static final String UNIT_PROGRESS_CHECK_ANSWER_KEY = """
             {"1":"B","2":"C","3":"A","4":"D","5":"B","6":"A","7":"C","8":"D","9":"B","10":"A"}
             """;
-    private static final String MODULE_TEST_UI_CONFIG = """
+    private static final String UNIT_PROGRESS_CHECK_UI_CONFIG = """
             {
               "durationMinutes": 15,
               "parts": [{
@@ -107,8 +104,6 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final CurriculumUnitRepository curriculumUnitRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
     private final ExerciseBankItemRepository exerciseRepository;
-    private final CourseAssessmentRepository courseAssessmentRepository;
-    private final OnlineCourseRepository onlineCourseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final TrainingProgramRepository trainingProgramRepository;
@@ -154,10 +149,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         List<ClassroomSession> sessions = ensureSessions(offering, teacher, units);
         ensureSyllabus(offering, units, sessions);
         ensureClassroomMaterials(offering, units, teacher);
-        CourseAssessment moduleTestSource = ensureModuleTestSource();
-        AssessmentBankItem moduleTestBankItem = ensureAssessmentBankItem(moduleTestSource);
-        ensureCurriculumAssessment(units.get(4), moduleTestBankItem);
-        ensureHomework(offering, units, sessions, teacher, moduleTestSource);
+        AssessmentBankItem unitProgressCheck = ensureUnitProgressCheckBankItem();
+        ensureCurriculumAssessment(units.get(4), unitProgressCheck);
+        ensureHomework(offering, units, sessions, teacher, unitProgressCheck);
         ensureAnnouncement(offering, teacher);
         ensureGradebook(offering, learner, teacher);
     }
@@ -366,79 +360,51 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         };
     }
 
-    private CourseAssessment ensureModuleTestSource() {
-        return courseAssessmentRepository.findAll().stream()
-                .filter(CourseAssessment::isActive)
-                .filter(item -> item.getType() == AssessmentType.MODULE_TEST)
-                .filter(item -> item.getSkill() == AssessmentSkill.READING)
-                .filter(item -> StringUtils.hasText(item.getUiConfigJson()) && item.getUiConfigJson().contains("\"parts\""))
-                .findFirst()
-                .orElseGet(this::createModuleTestSource);
-    }
-
-    private CourseAssessment createModuleTestSource() {
-        CourseModule module = onlineCourseRepository.findAll().stream()
-                .flatMap(course -> course.getModules().stream())
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Không có module khóa học để tạo bài Module Test mẫu."));
-        return courseAssessmentRepository.save(CourseAssessment.builder()
-                .onlineCourse(module.getOnlineCourse())
-                .module(module)
-                .title(MODULE_TEST_TITLE)
-                .description("Bài Reading Part 5 gồm 10 câu dùng làm nguồn cho lớp TOEIC mẫu.")
-                .type(AssessmentType.MODULE_TEST)
-                .skill(AssessmentSkill.READING)
-                .aiEvaluationMode(AiEvaluationMode.NONE)
-                .instructions("Hoàn thành 10 câu Incomplete Sentences trong 15 phút.")
-                .objectiveAnswerKey(MODULE_TEST_ANSWER_KEY)
-                .uiConfigJson(MODULE_TEST_UI_CONFIG)
-                .passingScore(BigDecimal.valueOf(7))
-                .maxScore(BigDecimal.TEN)
-                .timeLimitMinutes(15)
-                .displayOrder(99)
-                .active(true)
-                .build());
-    }
-
-    private AssessmentBankItem ensureAssessmentBankItem(CourseAssessment source) {
+    private AssessmentBankItem ensureUnitProgressCheckBankItem() {
         AssessmentBankItem item = assessmentBankItemRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
-                .filter(existing -> source.getTitle().equalsIgnoreCase(existing.getTitle()))
+                .filter(existing -> UNIT_PROGRESS_CHECK_TITLE.equalsIgnoreCase(existing.getTitle()))
                 .findFirst()
-                .orElseGet(AssessmentBankItem::new);
-        item.setTitle(source.getTitle());
-        item.setDescription(source.getDescription());
-        item.setType(source.getType());
-        item.setSkill(source.getSkill());
-        item.setAiEvaluationMode(source.getAiEvaluationMode());
-        item.setRubric(source.getRubric());
-        item.setInstructions(source.getInstructions());
-        item.setObjectiveAnswerKey(source.getObjectiveAnswerKey());
-        item.setUiConfigJson(source.getUiConfigJson());
-        item.setPassingScore(source.getPassingScore());
-        item.setMaxScore(source.getMaxScore());
-        item.setTimeLimitMinutes(source.getTimeLimitMinutes());
+                .orElseGet(() -> assessmentBankItemRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
+                        .filter(existing -> LEGACY_MODULE_TEST_TITLE.equalsIgnoreCase(existing.getTitle()))
+                        .findFirst()
+                        .orElseGet(AssessmentBankItem::new));
+        item.setTitle(UNIT_PROGRESS_CHECK_TITLE);
+        item.setDescription("Bài kiểm tra tiến độ Reading Part 5 bắt buộc của Unit 5 dành cho lớp học có giáo viên.");
+        item.setType(AssessmentType.QUIZ);
+        item.setSkill(AssessmentSkill.READING);
+        item.setAiEvaluationMode(AiEvaluationMode.NONE);
+        item.setRubric(null);
+        item.setInstructions("Hoàn thành 10 câu Incomplete Sentences trong 15 phút.");
+        item.setObjectiveAnswerKey(UNIT_PROGRESS_CHECK_ANSWER_KEY);
+        item.setUiConfigJson(UNIT_PROGRESS_CHECK_UI_CONFIG);
+        item.setPassingScore(BigDecimal.valueOf(7));
+        item.setMaxScore(BigDecimal.TEN);
+        item.setTimeLimitMinutes(15);
         item.setStatus("PUBLISHED");
         item.setDisplayOrder(1);
         item.setActive(true);
-        AssessmentBankItem saved = assessmentBankItemRepository.save(item);
-        if (source.getAssessmentBankItem() == null || !source.getAssessmentBankItem().getId().equals(saved.getId())) {
-            source.setAssessmentBankItem(saved);
-            courseAssessmentRepository.save(source);
-        }
-        return saved;
+        return assessmentBankItemRepository.save(item);
     }
 
     private void ensureCurriculumAssessment(CurriculumUnit unit, AssessmentBankItem assessment) {
-        boolean attached = unit.getAssessmentRefs().stream()
-                .anyMatch(ref -> ref.getAssessment().getId().equals(assessment.getId()));
-        if (attached) {
+        CurriculumAssessmentRef attached = unit.getAssessmentRefs().stream()
+                .filter(ref -> ref.getAssessment().getId().equals(assessment.getId())
+                        || LEGACY_MODULE_TEST_TITLE.equalsIgnoreCase(ref.getAssessment().getTitle())
+                        || UNIT_PROGRESS_CHECK_TITLE.equalsIgnoreCase(ref.getAssessment().getTitle()))
+                .findFirst()
+                .orElse(null);
+        if (attached != null) {
+            attached.setAssessment(assessment);
+            attached.setDisplayOrder(1);
+            attached.setNote("Bài kiểm tra tiến độ Reading bắt buộc của Unit 5");
+            curriculumUnitRepository.save(unit);
             return;
         }
         unit.getAssessmentRefs().add(CurriculumAssessmentRef.builder()
                 .unit(unit)
                 .assessment(assessment)
                 .displayOrder(1)
-                .note("Module Test Reading dùng làm bài kiểm tra Unit 5")
+                .note("Bài kiểm tra tiến độ Reading bắt buộc của Unit 5")
                 .build());
         curriculumUnitRepository.save(unit);
     }
@@ -651,7 +617,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
             List<CurriculumUnit> units,
             List<ClassroomSession> sessions,
             User teacher,
-            CourseAssessment moduleTestSource
+            AssessmentBankItem unitProgressCheck
     ) {
         ensureHomeworkItem(offering, "Unit 1 Quiz - Photographs", ClassroomHomework.builder()
                 .classroomOffering(offering)
@@ -724,7 +690,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .createdBy(teacher)
                 .build());
 
-        ensureModuleTestHomework(offering, units.get(4), sessions.get(4), teacher, moduleTestSource);
+        ensureUnitProgressCheckHomework(offering, units.get(4), sessions.get(4), teacher, unitProgressCheck);
 
         ensureHomeworkItem(offering, "Unit 6 Text Completion - System Practice", ClassroomHomework.builder()
                 .classroomOffering(offering)
@@ -784,16 +750,17 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
     }
 
-    private void ensureModuleTestHomework(
+    private void ensureUnitProgressCheckHomework(
             ClassroomOffering offering,
             CurriculumUnit unit,
             ClassroomSession session,
             User teacher,
-            CourseAssessment source
+            AssessmentBankItem assessment
     ) {
-        String title = "Unit 5 Module Test - Incomplete Sentences";
+        String legacyTitle = "Unit 5 Module Test - Incomplete Sentences";
+        String title = "Unit 5 Progress Check - Incomplete Sentences";
         ClassroomHomework homework = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
-                .filter(item -> title.equalsIgnoreCase(item.getTitle()))
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()) || legacyTitle.equalsIgnoreCase(item.getTitle()))
                 .findFirst()
                 .orElseGet(ClassroomHomework::new);
         boolean isNew = homework.getId() == null;
@@ -801,15 +768,14 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         homework.setSession(session);
         homework.setCurriculumUnit(unit);
         homework.setTitle(title);
-        homework.setInstruction("Bài được lấy từ Module Test \"" + source.getTitle()
-                + "\". Hoàn thành trực tiếp trên website theo giao diện kiểm tra Reading.");
+        homework.setInstruction("Bài kiểm tra tiến độ bắt buộc của Unit 5. Hoàn thành trực tiếp trên website theo giao diện Reading.");
         if (isNew || homework.getDeadline() == null) {
             homework.setDeadline(LocalDateTime.now().plusDays(7));
         }
-        homework.setMaxScore(source.getMaxScore() == null ? BigDecimal.TEN : source.getMaxScore());
+        homework.setMaxScore(assessment.getMaxScore() == null ? BigDecimal.TEN : assessment.getMaxScore());
         homework.setAllowResubmission(true);
         homework.setActivityType(HomeworkActivityType.SKILL_PRACTICE);
-        homework.setActivityConfigJson(source.getUiConfigJson());
+        homework.setActivityConfigJson(assessment.getUiConfigJson());
         homework.setGradingMode(HomeworkGradingMode.TEACHER);
         homework.setSkill(AssessmentSkill.READING);
         homework.setStatus(HomeworkStatus.OPEN);

@@ -296,16 +296,6 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async getTeacherMaterialLibrary() {
-    const response = await axiosClient.get('/api/teacher/classrooms/material-library');
-    return asList(unwrapData(response));
-  },
-
-  async attachTeacherLibraryMaterial(classroomId, payload) {
-    const response = await axiosClient.post(`/api/teacher/classrooms/${classroomId}/materials/from-library`, payload);
-    return unwrapData(response);
-  },
-
   async getTeacherAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
@@ -383,6 +373,13 @@ export const classroomApi = {
 
   async getTrainingManagerCurriculumPrograms(deliveryMode) {
     const response = await axiosClient.get('/api/training-manager/classrooms/curriculum-programs', {
+      params: deliveryMode ? { deliveryMode } : undefined,
+    });
+    return asList(unwrapData(response));
+  },
+
+  async getTrainingManagerPrograms(deliveryMode) {
+    const response = await axiosClient.get('/api/training-manager/classrooms/training-programs', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));
@@ -523,129 +520,30 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async getContentManagerClassrooms() {
-    const response = await axiosClient.get('/api/content-manager/classrooms');
-    return asList(unwrapData(response));
-  },
-
-  async getContentManagerClassroom(id) {
-    const response = await axiosClient.get(`/api/content-manager/classrooms/${id}`);
-    return unwrapData(response);
-  },
-
-  async createContentManagerClassroom(payload) {
-    const response = await axiosClient.post('/api/content-manager/classrooms', payload);
-    return unwrapData(response);
-  },
-
-  async updateContentManagerClassroom(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async getContentManagerClassroomTeachers() {
-    const response = await axiosClient.get('/api/content-manager/classrooms/teachers');
-    return asList(unwrapData(response));
-  },
-
-  async getContentManagerClassroomRooms() {
-    const response = await axiosClient.get('/api/content-manager/classrooms/rooms');
-    return asList(unwrapData(response));
-  },
-
-  async getContentManagerClassroomCurriculumPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/content-manager/classrooms/curriculum-programs', {
-      params: deliveryMode ? { deliveryMode } : undefined,
-    });
-    return asList(unwrapData(response));
-  },
-
-  async getContentManagerMaterials(classroomId) {
-    const response = await axiosClient.get(`/api/content-manager/classrooms/${classroomId}/materials`);
-    return asList(unwrapData(response));
-  },
-
-  async createContentManagerMaterial(classroomId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/${classroomId}/materials`, payload);
-    return unwrapData(response);
-  },
-
-  async updateContentManagerMaterial(materialId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/materials/${materialId}`, payload);
-    return unwrapData(response);
-  },
-
-  async uploadContentManagerMaterial(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await axiosClient.post('/api/content-manager/classrooms/materials/upload', formData);
-    return unwrapData(response);
-  },
-
-  async deleteContentManagerMaterial(materialId) {
-    const response = await axiosClient.delete(`/api/content-manager/classrooms/materials/${materialId}`);
-    return unwrapData(response);
-  },
-
   async getContentManagerMaterialLibrary() {
-    const response = await axiosClient.get('/api/content-manager/classrooms/library');
+    const response = await axiosClient.get('/api/content-manager/material-library');
     return asList(unwrapData(response));
   },
 
   async createContentManagerMaterialLibraryItem(payload) {
-    const response = await axiosClient.post('/api/content-manager/classrooms/library', payload);
+    const response = await axiosClient.post('/api/content-manager/material-library', payload);
     return unwrapData(response);
   },
 
   async updateContentManagerMaterialLibraryItem(materialId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/library/${materialId}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/material-library/${materialId}`, payload);
     return unwrapData(response);
   },
 
   async deleteContentManagerMaterialLibraryItem(materialId) {
-    const response = await axiosClient.delete(`/api/content-manager/classrooms/library/${materialId}`);
+    const response = await axiosClient.delete(`/api/content-manager/material-library/${materialId}`);
     return unwrapData(response);
   },
 
   async uploadContentManagerMaterialLibraryFile(file) {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await axiosClient.post('/api/content-manager/classrooms/library/upload', formData);
-    return unwrapData(response);
-  },
-
-  async getContentManagerAnnouncements(classroomId) {
-    const response = await axiosClient.get(`/api/content-manager/classrooms/${classroomId}/announcements`);
-    return asList(unwrapData(response));
-  },
-
-  async createContentManagerAnnouncement(classroomId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/${classroomId}/announcements`, payload);
-    return unwrapData(response);
-  },
-
-  async deleteContentManagerAnnouncement(announcementId) {
-    const response = await axiosClient.delete(`/api/content-manager/classrooms/announcements/${announcementId}`);
-    return unwrapData(response);
-  },
-
-  async getContentManagerSyllabus(classroomId) {
-    const response = await axiosClient.get(`/api/content-manager/classrooms/${classroomId}/syllabus`);
-    return asList(unwrapData(response));
-  },
-
-  async createContentManagerSyllabusItem(classroomId, payload) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/${classroomId}/syllabus`, payload);
-    return unwrapData(response);
-  },
-
-  async updateContentManagerSyllabusItem(itemId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/syllabus/${itemId}`, payload);
-    return unwrapData(response);
-  },
-
-  async deleteContentManagerSyllabusItem(itemId) {
-    const response = await axiosClient.delete(`/api/content-manager/classrooms/syllabus/${itemId}`);
+    const response = await axiosClient.post('/api/content-manager/material-library/upload', formData);
     return unwrapData(response);
   },
 
@@ -787,49 +685,34 @@ export const classroomApi = {
   },
 
   async getContentManagerPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/content-manager/classrooms/training-programs', {
+    const response = await axiosClient.get('/api/content-manager/training-programs', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async getContentManagerProgram(id) {
-    const response = await axiosClient.get(`/api/content-manager/classrooms/training-programs/${id}`);
+    const response = await axiosClient.get(`/api/content-manager/training-programs/${id}`);
     return unwrapData(response);
   },
 
   async createContentManagerProgram(payload) {
-    const response = await axiosClient.post('/api/content-manager/classrooms/training-programs', payload);
+    const response = await axiosClient.post('/api/content-manager/training-programs', payload);
     return unwrapData(response);
   },
 
   async updateContentManagerProgram(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/training-programs/${id}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/training-programs/${id}`, payload);
     return unwrapData(response);
   },
 
   async cloneContentManagerProgram(id) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/training-programs/${id}/clone`);
+    const response = await axiosClient.post(`/api/content-manager/training-programs/${id}/clone`);
     return unwrapData(response);
   },
 
   async archiveContentManagerProgram(id) {
-    const response = await axiosClient.delete(`/api/content-manager/classrooms/training-programs/${id}`);
-    return unwrapData(response);
-  },
-
-  async updateContentManagerProgramProfile(classroomId, payload) {
-    const response = await axiosClient.put(`/api/content-manager/classrooms/${classroomId}/program-profile`, payload);
-    return unwrapData(response);
-  },
-
-  async submitContentManagerMaterialReview(materialId) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/materials/${materialId}/submit-review`);
-    return unwrapData(response);
-  },
-
-  async submitContentManagerSyllabusReview(itemId) {
-    const response = await axiosClient.post(`/api/content-manager/classrooms/syllabus/${itemId}/submit-review`);
+    const response = await axiosClient.delete(`/api/content-manager/training-programs/${id}`);
     return unwrapData(response);
   },
 

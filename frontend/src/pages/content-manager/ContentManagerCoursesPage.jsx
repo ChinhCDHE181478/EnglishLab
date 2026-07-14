@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -18,6 +19,7 @@ const sortOptions = [
 ];
 
 export default function ContentManagerCoursesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
@@ -25,6 +27,17 @@ export default function ContentManagerCoursesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const isCreateOpen = searchParams.get('new') === '1';
+  const editingSlug = searchParams.get('edit');
+
+  const handleCloseModal = () => {
+    setSearchParams((prev) => {
+      prev.delete('new');
+      prev.delete('edit');
+      return prev;
+    });
+  };
 
   const loadCourses = async (activeRef = { current: true }) => {
     setLoading(true);
@@ -190,9 +203,13 @@ export default function ContentManagerCoursesPage() {
                     <td className="px-5 py-5 text-sm text-[#69778a]">{formatDate(course.updatedAt)}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <Link className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/edit`}>
+                        <button
+                          className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                          onClick={() => setSearchParams((prev) => { prev.set('edit', course.slug); return prev; })}
+                          type="button"
+                        >
                           Chỉnh sửa
-                        </Link>
+                        </button>
                         <Link className="rounded-lg bg-[#4b0009] px-4 py-2 text-xs font-bold leading-4 text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/builder`}>
                           Biên soạn
                         </Link>
@@ -239,6 +256,54 @@ export default function ContentManagerCoursesPage() {
           </div>
         </div>
       </Panel>
+
+      {isCreateOpen && (
+        <EditorModal onClose={handleCloseModal}>
+          <ContentManagerCourseEditorPage
+            onClose={handleCloseModal}
+            onSave={() => {
+              loadCourses();
+              handleCloseModal();
+            }}
+          />
+        </EditorModal>
+      )}
+
+      {editingSlug && (
+        <EditorModal onClose={handleCloseModal}>
+          <ContentManagerCourseEditorPage
+            slugOrId={editingSlug}
+            onClose={handleCloseModal}
+            onSave={() => {
+              loadCourses();
+            }}
+          />
+        </EditorModal>
+      )}
+    </div>
+  );
+}
+
+function EditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[1200px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
     </div>
   );
 }

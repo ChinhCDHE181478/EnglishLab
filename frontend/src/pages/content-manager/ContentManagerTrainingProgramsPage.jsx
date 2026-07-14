@@ -507,11 +507,14 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                 <BrandedSelect
                   value={form.curriculumProgramId}
                   onChange={(event) => updateForm({ curriculumProgramId: event.target.value })}
-                  options={curriculums.map((item) => ({
-                    label: item.title,
-                    value: String(item.id),
-                    description: [item.code, item.examCategory, item.totalUnits ? `${item.totalUnits} unit` : null].filter(Boolean).join(' · '),
-                  }))}
+                  options={curriculums
+                    .filter((item) => item.deliveryMode === config.deliveryMode)
+                    .filter((item) => form.status !== 'PUBLISHED' || item.status === 'PUBLISHED')
+                    .map((item) => ({
+                      label: item.title,
+                      value: String(item.id),
+                      description: [item.code, item.examCategory, item.status, item.totalUnits ? `${item.totalUnits} unit` : null].filter(Boolean).join(' · '),
+                    }))}
                   placeholder={curriculums.length ? 'Chọn giáo trình' : 'Kho giáo trình đang trống'}
                 />
               </div>
@@ -582,7 +585,9 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                 <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-[#4b0009]">{form.materialIds.length} tài liệu</span>
               </div>
               <div className="grid max-h-56 gap-2 overflow-y-auto pr-1">
-                {materials.length ? materials.map((item) => {
+                {materials.some((item) => item.status === 'PUBLISHED') ? materials
+                  .filter((item) => item.status === 'PUBLISHED')
+                  .map((item) => {
                   const value = String(item.id);
                   const checked = form.materialIds.includes(value);
                   return (
@@ -604,7 +609,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                     </label>
                   );
                 }) : (
-                  <p className="rounded-lg border border-dashed border-[#dcc0bf]/50 bg-white px-3 py-6 text-center text-sm font-semibold text-[#584140]">Kho học liệu đang trống.</p>
+                  <p className="rounded-lg border border-dashed border-[#dcc0bf]/50 bg-white px-3 py-6 text-center text-sm font-semibold text-[#584140]">Kho chưa có học liệu đã xuất bản.</p>
                 )}
               </div>
             </section>

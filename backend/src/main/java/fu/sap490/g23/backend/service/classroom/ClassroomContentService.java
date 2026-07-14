@@ -12,15 +12,15 @@ public interface ClassroomContentService {
 
     List<ClassroomMaterialResponse> getMaterials(Long offeringId);
 
+    List<ClassroomMaterialResponse> getTeacherMaterials(Long offeringId, String teacherEmail);
+
     List<ClassroomMaterialResponse> getLearnerMaterials(Long offeringId, String learnerEmail);
 
     ClassroomMaterialResponse createMaterial(Long offeringId, CreateMaterialRequest request, String uploaderEmail);
 
-    ClassroomMaterialResponse attachCenterMaterial(Long offeringId, Long centerMaterialId, Long sessionId, String uploaderEmail);
-
     ClassroomMaterialResponse updateMaterial(Long materialId, CreateMaterialRequest request, String editorEmail);
 
-    void deleteMaterial(Long materialId);
+    void deleteMaterial(Long materialId, String actorEmail);
 
     List<ClassroomAnnouncementResponse> getAnnouncements(Long offeringId);
 

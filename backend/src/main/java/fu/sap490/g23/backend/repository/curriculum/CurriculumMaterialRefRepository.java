@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CurriculumMaterialRefRepository extends JpaRepository<CurriculumMaterialRef, Long> {
     boolean existsByUnitIdAndMaterialId(Long unitId, Long materialId);
+    boolean existsByMaterialId(Long materialId);
 }
