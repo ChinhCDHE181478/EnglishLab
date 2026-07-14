@@ -125,6 +125,16 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getClassroomPractice(id) {
+    const response = await axiosClient.get(`/api/student/classrooms/${id}/practice`);
+    return asList(unwrapData(response));
+  },
+
+  async completeClassroomPractice(id, exerciseId, payload) {
+    const response = await axiosClient.post(`/api/student/classrooms/${id}/practice/${exerciseId}/complete`, payload);
+    return unwrapData(response);
+  },
+
   async getMyHomework() {
     const response = await axiosClient.get('/api/student/classrooms/my-homework');
     return asList(unwrapData(response));
@@ -244,6 +254,11 @@ export const classroomApi = {
       params: skill ? { skill } : {},
     });
     return asList(unwrapData(response));
+  },
+
+  async getHomeworkAiAssessmentOptions() {
+    const response = await axiosClient.get('/api/teacher/classrooms/homework/ai-assessment-options');
+    return response.data;
   },
 
   async updateHomework(homeworkId, payload) {

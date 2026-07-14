@@ -394,6 +394,10 @@ public class ClassroomMapper {
                 .skill(homework.getSkill())
                 .rubricId(homework.getRubric() == null ? null : homework.getRubric().getId())
                 .rubricName(homework.getRubric() == null ? null : homework.getRubric().getName())
+                .assessmentBankItemId(homework.getAssessmentBankItem() == null ? null : homework.getAssessmentBankItem().getId())
+                .assessmentBankItemTitle(homework.getAssessmentBankItem() == null ? null : homework.getAssessmentBankItem().getTitle())
+                .assessmentType(homework.getAssessmentBankItem() == null || homework.getAssessmentBankItem().getType() == null
+                        ? null : homework.getAssessmentBankItem().getType().name())
                 .rubric(homeworkGradingCatalogService.mapRubric(homework.getRubric()))
                 .overdue(overdue)
                 .mySubmission(mySubmission)
@@ -620,6 +624,7 @@ public class ClassroomMapper {
                 .status(exercise.isActive() ? "ACTIVE" : "INACTIVE")
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
+                .contentJson(exercise.getPrompt())
                 .build();
     }
 

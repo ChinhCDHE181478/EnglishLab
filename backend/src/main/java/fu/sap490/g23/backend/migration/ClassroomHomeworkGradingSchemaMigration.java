@@ -38,6 +38,9 @@ public class ClassroomHomeworkGradingSchemaMigration {
                         ALTER TABLE classroom_homework
                             ADD COLUMN IF NOT EXISTS ai_review_enabled BOOLEAN NOT NULL DEFAULT FALSE;
 
+                        ALTER TABLE classroom_homework
+                            ADD COLUMN IF NOT EXISTS assessment_bank_item_id BIGINT;
+
                         IF to_regclass('public.assessment_rubrics') IS NOT NULL
                            AND NOT EXISTS (
                                 SELECT 1
@@ -58,6 +61,17 @@ public class ClassroomHomeworkGradingSchemaMigration {
                             ALTER TABLE classroom_homework
                                 ADD CONSTRAINT fk_classroom_homework_curriculum_unit
                                 FOREIGN KEY (curriculum_unit_id) REFERENCES curriculum_units(id);
+                        END IF;
+
+                        IF to_regclass('public.assessment_bank_items') IS NOT NULL
+                           AND NOT EXISTS (
+                                SELECT 1
+                                FROM pg_constraint
+                                WHERE conname = 'fk_classroom_homework_assessment_bank_item'
+                           ) THEN
+                            ALTER TABLE classroom_homework
+                                ADD CONSTRAINT fk_classroom_homework_assessment_bank_item
+                                FOREIGN KEY (assessment_bank_item_id) REFERENCES assessment_bank_items(id);
                         END IF;
                     END IF;
                 END $$;

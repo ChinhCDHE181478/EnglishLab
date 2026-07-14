@@ -19,11 +19,6 @@ const examOptions = [
   { label: 'General English', value: 'GENERAL' },
 ];
 
-const statusOptions = [
-  { label: 'Nháp', value: 'DRAFT' },
-  { label: 'Lưu trữ', value: 'ARCHIVED' },
-];
-
 const platformOptions = [
   { label: 'Lark', value: 'LARK' },
   { label: 'Zoom', value: 'ZOOM' },
@@ -167,11 +162,9 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
           <TextInput label="Target TOEIC" type="number" value={form.targetScore} onChange={(value) => updateForm({ targetScore: value })} />
           <div>
             <FieldLabel>Trạng thái</FieldLabel>
-            {['PUBLISHED', 'PENDING_REVIEW'].includes(form.status) ? (
-              <div className="rounded-lg border border-[#dcc0bf]/40 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#584140]">{form.status}</div>
-            ) : (
-              <BrandedSelect value={form.status} onChange={(event) => updateForm({ status: event.target.value })} options={statusOptions} />
-            )}
+            <div className="rounded-lg border border-[#dcc0bf]/40 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#584140]">
+              {formatProgramStatus(form.status)}
+            </div>
           </div>
           <TextInput label="Thứ tự hiển thị" type="number" value={form.displayOrder} onChange={(value) => updateForm({ displayOrder: value })} />
           <TextArea label="Chuẩn đầu ra" value={form.outcomes} onChange={(value) => updateForm({ outcomes: value })} />
@@ -213,6 +206,17 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
       </Panel>
     </div>
   );
+}
+
+function formatProgramStatus(status) {
+  const labels = {
+    DRAFT: 'Bản nháp — dùng nút “Gửi duyệt” ở trang chi tiết để xuất bản',
+    PENDING_REVIEW: 'Đang chờ duyệt',
+    PUBLISHED: 'Đã xuất bản',
+    REJECTED: 'Bị từ chối — chỉnh sửa rồi gửi duyệt lại',
+    ARCHIVED: 'Đã lưu trữ',
+  };
+  return labels[String(status || '').toUpperCase()] || status || 'Bản nháp';
 }
 
 function FieldLabel({ children }) {

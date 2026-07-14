@@ -29,8 +29,6 @@ import {
   getHomeworkActivityTypeLabel,
   getHomeworkSkillLabel,
   HOMEWORK_ACTIVITY_TYPES,
-  HOMEWORK_GRADING_MODES,
-  HOMEWORK_SKILLS,
   isAiGradedHomework,
 } from '../../utils/homeworkGradingConfig';
 
@@ -49,6 +47,7 @@ const emptyForm = {
   gradingMode: 'TEACHER',
   skill: 'SPEAKING',
   rubricId: '',
+  assessmentBankItemId: '',
 };
 
 const createEmptyQuestion = () => ({
@@ -107,20 +106,8 @@ export default function TeacherHomeworkSection({
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [gradingForms, setGradingForms] = useState({});
   const [gradingId, setGradingId] = useState(null);
-  const [rubrics, setRubrics] = useState([]);
-  const [rubricsLoading, setRubricsLoading] = useState(false);
-
-  const gradingModeOptions = useMemo(
-    () => HOMEWORK_GRADING_MODES.map((item) => ({ label: item.label, value: item.value })),
-    [],
-  );
-
-  const aiSkillOptions = useMemo(
-    () => HOMEWORK_SKILLS
-      .filter((item) => item.aiSupported)
-      .map((item) => ({ label: item.label, value: item.value })),
-    [],
-  );
+  const [aiAssessmentOptions, setAiAssessmentOptions] = useState([]);
+  const [aiAssessmentOptionsLoading, setAiAssessmentOptionsLoading] = useState(false);
 
   const activityTypeOptions = useMemo(
     () => HOMEWORK_ACTIVITY_TYPES.map((item) => ({ label: item.label, value: item.value })),
@@ -138,21 +125,19 @@ export default function TeacherHomeworkSection({
     [curriculumUnits],
   );
 
-  const rubricOptions = useMemo(
-    () => rubrics.map((rubric) => ({
-      label: rubric.name,
-      value: String(rubric.id),
+  const aiAssessmentSelectOptions = useMemo(
+    () => aiAssessmentOptions.map((item) => ({
+      label: `${item.title} · ${item.skill === 'WRITING' ? 'Writing' : 'Speaking'}`,
+      value: String(item.id),
     })),
-    [rubrics],
+    [aiAssessmentOptions],
   );
 
-  const selectedRubric = useMemo(
-    () => rubrics.find((rubric) => String(rubric.id) === String(form.rubricId)) || null,
-    [rubrics, form.rubricId],
+  const selectedAiAssessment = useMemo(
+    () => aiAssessmentOptions.find((item) => String(item.id) === String(form.assessmentBankItemId)) || null,
+    [aiAssessmentOptions, form.assessmentBankItemId],
   );
-
-  const selectedGradingMode = HOMEWORK_GRADING_MODES.find((item) => item.value === form.gradingMode);
-  const selectedSkillMeta = HOMEWORK_SKILLS.find((item) => item.value === form.skill);
+  const canEnableAi = Boolean(selectedAiAssessment?.rubricId);
 
   const sessionOptions = useMemo(
     () => [
@@ -166,39 +151,30 @@ export default function TeacherHomeworkSection({
   );
 
   useEffect(() => {
-    if (!formOpen || form.gradingMode !== 'AI' || !form.skill) {
-      setRubrics([]);
+    if (!formOpen) {
       return undefined;
     }
 
     let active = true;
-    setRubricsLoading(true);
-    const loadRubrics = async () => {
+    setAiAssessmentOptionsLoading(true);
+    const loadAiAssessmentOptions = async () => {
       try {
-        const data = await classroomApi.getHomeworkRubrics(form.skill);
+        const data = await classroomApi.getHomeworkAiAssessmentOptions();
         if (!active) return;
-        setRubrics(data);
+        setAiAssessmentOptions(data);
       } catch {
-        if (active) setRubrics([]);
+        if (active) setAiAssessmentOptions([]);
       } finally {
-        if (active) setRubricsLoading(false);
+        if (active) setAiAssessmentOptionsLoading(false);
       }
     };
 
-    loadRubrics();
+    loadAiAssessmentOptions();
 
     return () => {
       active = false;
     };
-  }, [formOpen, form.gradingMode, form.skill]);
-
-  useEffect(() => {
-    if (form.gradingMode !== 'AI' || !rubrics.length) return;
-    const hasCurrent = rubrics.some((rubric) => String(rubric.id) === String(form.rubricId));
-    if (!hasCurrent) {
-      setForm((current) => ({ ...current, rubricId: String(rubrics[0].id) }));
-    }
-  }, [form.gradingMode, form.rubricId, rubrics]);
+  }, [formOpen]);
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -241,6 +217,7 @@ export default function TeacherHomeworkSection({
       gradingMode: item.gradingMode || 'TEACHER',
       skill: item.skill || 'SPEAKING',
       rubricId: item.rubricId ? String(item.rubricId) : '',
+      assessmentBankItemId: item.assessmentBankItemId ? String(item.assessmentBankItemId) : '',
     });
     setAttachmentFile(null);
     const parsedQuestions = parseQuestionBuilderConfig(item.activityConfigJson);
@@ -259,11 +236,12 @@ export default function TeacherHomeworkSection({
     curriculumUnitId: form.curriculumUnitId ? Number(form.curriculumUnitId) : null,
     activityType: form.activityType,
     activityConfigJson: activityConfigJson?.trim() || '',
-    aiReviewEnabled: Boolean(form.aiReviewEnabled && form.gradingMode === 'AI'),
+    aiReviewEnabled: Boolean(form.aiReviewEnabled),
     attachmentUrl,
-    gradingMode: form.gradingMode,
-    skill: form.gradingMode === 'AI' ? form.skill : null,
-    rubricId: form.gradingMode === 'AI' && form.rubricId ? Number(form.rubricId) : null,
+    gradingMode: form.aiReviewEnabled ? 'AI' : 'TEACHER',
+    skill: selectedAiAssessment?.skill || null,
+    rubricId: selectedAiAssessment?.rubricId || null,
+    assessmentBankItemId: form.assessmentBankItemId ? Number(form.assessmentBankItemId) : null,
   });
 
   const handleSaveHomework = async () => {
@@ -271,12 +249,8 @@ export default function TeacherHomeworkSection({
       onMessage?.('Vui lòng nhập tiêu đề bài tập.');
       return;
     }
-    if (form.gradingMode === 'AI' && !form.rubricId) {
-      onMessage?.('Vui lòng chọn bộ tiêu chí chấm AI.');
-      return;
-    }
-    if (form.gradingMode === 'AI' && !['SPEAKING', 'WRITING'].includes(form.skill)) {
-      onMessage?.('AI chỉ hỗ trợ đánh giá Speaking hoặc Writing. Reading/Listening nên dùng answer key và giáo viên review.');
+    if (form.aiReviewEnabled && !canEnableAi) {
+      onMessage?.('Muốn dùng AI, vui lòng chọn một MODULE_TEST Writing hoặc Speaking của hệ thống.');
       return;
     }
     if (form.activityType === 'FILE_RESPONSE' && !attachmentFile && !editingHomework?.attachmentUrl) {
@@ -372,6 +346,7 @@ export default function TeacherHomeworkSection({
         activityType: item.activityType || 'TEXT_RESPONSE',
         activityConfigJson: item.activityConfigJson || '',
         aiReviewEnabled: Boolean(item.aiReviewEnabled),
+        assessmentBankItemId: item.assessmentBankItemId || null,
       });
       const refreshed = await classroomApi.getTeacherHomework(classroomId);
       onHomeworkChange?.(refreshed);
@@ -671,87 +646,62 @@ export default function TeacherHomeworkSection({
             ) : null}
 
             <label className="block space-y-2 md:col-span-2">
-              <span className="text-xs font-bold text-[#8b706e]">Cách chấm bài</span>
-              <BrandedSelect
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  gradingMode: event.target.value,
-                  rubricId: '',
-                }))}
-                options={gradingModeOptions}
-                value={form.gradingMode}
-              />
-              {selectedGradingMode?.description ? (
-                <p className="text-xs leading-5 text-[#8b706e]">{selectedGradingMode.description}</p>
-              ) : null}
-            </label>
-
-            <label className="flex items-center gap-3 md:col-span-2 rounded-xl border border-[#e5e7eb] px-4 py-3">
-              <input
-                checked={form.aiReviewEnabled && form.gradingMode === 'AI'}
-                className="h-4 w-4 accent-[#4b0009]"
-                disabled={form.gradingMode !== 'AI'}
-                onChange={(event) => setForm((current) => ({ ...current, aiReviewEnabled: event.target.checked }))}
-                type="checkbox"
-              />
-              <span className="text-sm text-[#584140]">
-                Cho phép AI đánh giá nháp cho Speaking/Writing để giáo viên review lại
-              </span>
-            </label>
-
-            {form.gradingMode === 'AI' ? (
-              <>
-                <label className="block space-y-2">
-                  <span className="text-xs font-bold text-[#8b706e]">Kỹ năng bài tập *</span>
-                  <BrandedSelect
-                    onChange={(event) => setForm((current) => ({
+              <span className="text-xs font-bold text-[#8b706e]">Đề MODULE_TEST của hệ thống (không bắt buộc)</span>
+              {aiAssessmentOptionsLoading ? (
+                <p className="text-xs text-[#8b706e]">Đang tải đề Writing/Speaking...</p>
+              ) : (
+                <BrandedSelect
+                  onChange={(event) => {
+                    const assessment = aiAssessmentOptions.find((item) => String(item.id) === event.target.value);
+                    setForm((current) => ({
                       ...current,
-                      skill: event.target.value,
-                      rubricId: '',
-                    }))}
-                    options={aiSkillOptions}
-                    value={form.skill}
-                  />
-                  {selectedSkillMeta?.description ? (
-                    <p className="text-xs leading-5 text-[#8b706e]">{selectedSkillMeta.description}</p>
-                  ) : null}
-                </label>
+                      assessmentBankItemId: event.target.value,
+                      aiReviewEnabled: event.target.value ? current.aiReviewEnabled : false,
+                      skill: assessment?.skill || '',
+                      rubricId: assessment?.rubricId ? String(assessment.rubricId) : '',
+                      activityType: assessment ? 'TEXT_RESPONSE' : current.activityType,
+                      instruction: assessment?.instructions || current.instruction,
+                      maxScore: assessment?.maxScore ? String(assessment.maxScore) : current.maxScore,
+                    }));
+                  }}
+                  options={aiAssessmentSelectOptions}
+                  placeholder="Không dùng đề hệ thống"
+                  value={form.assessmentBankItemId}
+                />
+              )}
+              <p className="text-xs leading-5 text-[#8b706e]">
+                Chọn đề nếu muốn giao MODULE_TEST có sẵn. Giáo viên vẫn là người chịu trách nhiệm điểm cuối cùng.
+              </p>
+            </label>
 
-                <label className="block space-y-2">
-                  <span className="text-xs font-bold text-[#8b706e]">Bộ tiêu chí chấm AI *</span>
-                  {rubricsLoading ? (
-                    <p className="text-xs text-[#8b706e]">Đang tải rubric...</p>
-                  ) : (
-                    <BrandedSelect
-                      onChange={(event) => setForm((current) => ({ ...current, rubricId: event.target.value }))}
-                      options={rubricOptions}
-                      placeholder="Chọn rubric"
-                      value={form.rubricId}
-                    />
-                  )}
-                </label>
-
-                {selectedRubric ? (
-                  <div className="md:col-span-2 rounded-2xl border border-[#dfbfbd]/30 bg-[#fffafb] p-4 space-y-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-[#730014]">Tiêu chí chấm</p>
-                      <p className="mt-1 text-sm font-extrabold text-[#2b2828]">{selectedRubric.name}</p>
-                      <p className="mt-1 text-xs leading-5 text-[#8b706e]">{selectedRubric.description}</p>
-                      <p className="mt-1 text-[11px] font-semibold text-[#8b706e]">Thang điểm: {selectedRubric.scoringScale}</p>
-                    </div>
-                    <ul className="space-y-2">
-                      {(selectedRubric.criteria || []).map((criterion) => (
-                        <li className="rounded-xl border border-white bg-white px-3 py-2 text-xs text-[#584140]" key={criterion.id || criterion.name}>
-                          <span className="font-extrabold text-[#2b2828]">{criterion.name}</span>
-                          {criterion.weight != null ? ` · ${criterion.weight}%` : ''}
-                          {criterion.description ? ` — ${criterion.description}` : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
+            <div className={`md:col-span-2 rounded-2xl border p-4 ${canEnableAi ? 'border-[#dfbfbd] bg-[#fffafb]' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-extrabold text-[#2b2828]">Sử dụng AI hỗ trợ chấm điểm</p>
+                  <p className="mt-1 text-xs leading-5 text-[#8b706e]">
+                    Chỉ bật được với MODULE_TEST Writing/Speaking của hệ thống. Giáo viên có thể xem lại và sửa điểm AI.
+                  </p>
+                </div>
+                <button
+                  aria-checked={form.aiReviewEnabled}
+                  aria-label="Sử dụng AI hỗ trợ chấm điểm"
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition ${form.aiReviewEnabled ? 'bg-[#730014]' : 'bg-gray-300'} ${canEnableAi ? '' : 'cursor-not-allowed opacity-50'}`}
+                  disabled={!canEnableAi}
+                  onClick={() => setForm((current) => ({ ...current, aiReviewEnabled: !current.aiReviewEnabled }))}
+                  role="switch"
+                  type="button"
+                >
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${form.aiReviewEnabled ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+              {selectedAiAssessment ? (
+                <div className="mt-3 rounded-xl border border-white bg-white px-3 py-2 text-xs text-[#584140]">
+                  <span className="font-extrabold text-[#730014]">{selectedAiAssessment.skill === 'WRITING' ? 'Writing' : 'Speaking'}</span>
+                  {' · '}{selectedAiAssessment.title}
+                  {selectedAiAssessment.rubricName ? ` · Rubric: ${selectedAiAssessment.rubricName}` : ' · Chưa có rubric'}
+                </div>
+              ) : null}
+            </div>
 
             <label className="flex items-center gap-3 md:col-span-2 rounded-xl border border-[#e5e7eb] px-4 py-3">
               <input

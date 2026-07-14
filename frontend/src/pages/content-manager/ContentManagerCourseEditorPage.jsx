@@ -303,14 +303,16 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
               >
                 {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
-              <button
-                className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95"
-                disabled={saving}
-                onClick={() => handleSubmit('PUBLISHED')}
-                type="button"
-              >
-                {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
-              </button>
+              {form.status !== 'PUBLISHED' && form.status !== 'ARCHIVED' ? (
+                <button
+                  className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 active:scale-95"
+                  disabled={saving}
+                  onClick={() => handleSubmit('PUBLISHED')}
+                  type="button"
+                >
+                  {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
+                </button>
+              ) : null}
             </div>
           </div>
         </Panel>

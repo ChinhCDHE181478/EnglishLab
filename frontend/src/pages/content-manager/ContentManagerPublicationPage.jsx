@@ -129,7 +129,7 @@ export default function ContentManagerPublicationPage() {
                       {(course.status === 'DRAFT' || course.status === 'REJECTED') ? (
                         <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeStatus(course, 'SUBMIT_REVIEW')} type="button">
                           <CheckCircle2 className="h-4 w-4" />
-                          Gửi duyệt
+                          Gửi duyệt để xuất bản
                         </button>
                       ) : null}
                       {course.status === 'PENDING_REVIEW' ? (

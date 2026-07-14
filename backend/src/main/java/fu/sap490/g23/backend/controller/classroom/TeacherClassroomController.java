@@ -148,6 +148,13 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(homeworkGradingCatalogService.listAllHomeworkRubrics());
     }
 
+    @GetMapping("/homework/ai-assessment-options")
+    public ResponseEntity<List<HomeworkAiAssessmentOptionResponse>> listHomeworkAiAssessmentOptions(
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(homeworkService.listAiAssessmentOptions(authentication.getName()));
+    }
+
     @PutMapping("/homework/{homeworkId}")
     public ResponseEntity<ClassroomHomeworkResponse> updateHomework(
             @PathVariable Long homeworkId,

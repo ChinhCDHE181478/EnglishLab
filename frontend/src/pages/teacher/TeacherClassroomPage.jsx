@@ -746,7 +746,7 @@ function CurriculumUnitCard({ unit }) {
       {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <CurriculumRefList title="Học liệu" refs={unit.materials} />
-        <CurriculumRefList title="Bài tập" refs={unit.exercises} />
+        <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
         <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
         <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
       </div>

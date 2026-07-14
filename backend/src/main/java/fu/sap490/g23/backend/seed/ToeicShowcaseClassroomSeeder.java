@@ -260,21 +260,22 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
 
     private ExerciseBankItem ensureExercise(UnitSeed seed, int unitNumber, User teacher) {
         String title = "TOEIC 650 Unit " + unitNumber + " Practice";
-        return exerciseRepository.findAllByOrderByUpdatedAtDesc().stream()
+        ExerciseBankItem exercise = exerciseRepository.findAllByOrderByUpdatedAtDesc().stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()))
                 .findFirst()
-                .orElseGet(() -> exerciseRepository.save(ExerciseBankItem.builder()
+                .orElseGet(() -> ExerciseBankItem.builder()
                         .title(title)
                         .skill(unitNumber <= 4 ? "LISTENING" : "READING")
                         .level("TOEIC 350-650")
-                        .exerciseType("HOMEWORK")
                         .prompt("Hoàn thành bài luyện " + seed.title() + " và ghi lại lý do cho mỗi câu sai.")
                         .answerKey("Đáp án và giải thích được review trong buổi học kế tiếp.")
                         .explanation("Phân loại lỗi theo từ vựng, ngữ pháp, chi tiết, suy luận hoặc quản lý thời gian.")
                         .tags(seed.tags())
                         .active(true)
                         .createdBy(teacher)
-                        .build()));
+                        .build());
+        exercise.setExerciseType("PRACTICE");
+        return exerciseRepository.save(exercise);
     }
 
     private FlashcardSet ensureFlashcards(UnitSeed seed, int unitNumber) {

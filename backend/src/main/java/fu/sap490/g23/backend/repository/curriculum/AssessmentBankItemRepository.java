@@ -14,4 +14,9 @@ public interface AssessmentBankItemRepository extends JpaRepository<AssessmentBa
     List<AssessmentBankItem> findByTypeOrderByUpdatedAtDescIdDesc(AssessmentType type);
     List<AssessmentBankItem> findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(AssessmentType type, String status);
     Optional<AssessmentBankItem> findByIdAndTypeAndStatusAndActiveTrue(Long id, AssessmentType type, String status);
+    List<AssessmentBankItem> findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+            AssessmentType type,
+            String status,
+            List<AssessmentSkill> skills
+    );
 }

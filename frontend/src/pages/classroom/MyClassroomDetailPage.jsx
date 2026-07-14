@@ -93,6 +93,7 @@ const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
   { id: 'curriculum', label: 'Giáo trình' },
   { id: 'flashcards', label: 'Flashcard' },
+  { id: 'practice', label: 'Luyện tập' },
   { id: 'schedule', label: 'Lịch học' },
   { id: 'payment', label: 'Học phí' },
   { id: 'homework', label: 'Bài tập' },
@@ -353,12 +354,16 @@ export default function MyClassroomDetailPage() {
       return (
         <LearnerCurriculumPanel
           curriculum={classroom?.curriculumProgram}
-          homeworkList={homework}
-          onSelectHomework={setSelectedHomeworkForSubmission}
+          onOpenPractice={() => setActiveTab('practice')}
+          onOpenFlashcards={() => setActiveTab('flashcards')}
           expandedUnits={expandedUnits}
           setExpandedUnits={setExpandedUnits}
         />
       );
+    }
+
+    if (activeTab === 'practice') {
+      return <ClassroomPracticePanel classroomId={id} curriculum={classroom?.curriculumProgram} />;
     }
 
     if (activeTab === 'flashcards') {
@@ -1541,11 +1546,148 @@ function GradeIndicatorCard({ label, score, suffix = '', customScore, color }) {
   );
 }
 
+function ClassroomPracticePanel({ classroomId, curriculum }) {
+  const [selectedPractice, setSelectedPractice] = useState(null);
+  const [practices, setPractices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [responseText, setResponseText] = useState('');
+  const [savingExerciseId, setSavingExerciseId] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadPractice = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const data = await classroomApi.getClassroomPractice(classroomId);
+        if (active) setPractices(data || []);
+      } catch (err) {
+        if (active) setError(getClassroomErrorMessage(err, 'Không thể tải nội dung luyện tập.'));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadPractice();
+    return () => {
+      active = false;
+    };
+  }, [classroomId]);
+
+  const practiceUnits = useMemo(() => {
+    const grouped = new Map();
+    practices.forEach((practice) => {
+      if (!grouped.has(practice.unitId)) {
+        grouped.set(practice.unitId, {
+          id: practice.unitId,
+          displayOrder: practice.unitDisplayOrder,
+          title: practice.unitTitle,
+          exercises: [],
+        });
+      }
+      grouped.get(practice.unitId).exercises.push(practice);
+    });
+    return [...grouped.values()].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }, [practices]);
+
+  const openPractice = (exercise) => {
+    setSelectedPractice(exercise);
+    setResponseText(exercise.responseText || '');
+    setError('');
+  };
+
+  const completePractice = async (exercise) => {
+    setSavingExerciseId(exercise.exerciseId);
+    setError('');
+    try {
+      const updated = await classroomApi.completeClassroomPractice(classroomId, exercise.exerciseId, { responseText });
+      setPractices((current) => current.map((item) => (
+        item.exerciseId === updated.exerciseId ? updated : item
+      )));
+      setSelectedPractice(updated);
+      setResponseText(updated.responseText || '');
+    } catch (err) {
+      setError(getClassroomErrorMessage(err, 'Không thể lưu kết quả luyện tập.'));
+    } finally {
+      setSavingExerciseId(null);
+    }
+  };
+
+  if (!curriculum) {
+    return <ClassroomEmptyState description="Lớp học chưa được liên kết với giáo trình." title="Chưa có nội dung luyện tập" />;
+  }
+  if (loading) {
+    return <ClassroomLoadingState label="Đang tải nội dung luyện tập..." />;
+  }
+  if (error && !practices.length) {
+    return <ClassroomErrorState message={error} />;
+  }
+  if (!practiceUnits.length) {
+    return <ClassroomEmptyState description="Giáo trình hiện chưa có bài luyện tập được xuất bản." title="Chưa có bài luyện tập" />;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-[#dfbfbd]/40 bg-white p-5">
+        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">Luyện tập theo giáo trình</p>
+        <h2 className="mt-2 text-xl font-black text-[#1a1c1c]">{curriculum.title}</h2>
+        <p className="mt-2 text-sm leading-6 text-[#6f5b59]">Đây là nội dung có sẵn của khóa đang học, không phải bài tập về nhà và không tính vào bảng điểm lớp.</p>
+      </div>
+
+      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div> : null}
+      {practiceUnits.map((unit) => (
+        <section className="rounded-2xl border border-gray-200 bg-white p-5" key={unit.id}>
+          <div className="mb-4">
+            <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">Unit {unit.displayOrder}</p>
+            <h3 className="mt-1 text-base font-black text-[#1a1c1c]">{unit.title}</h3>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {unit.exercises.map((exercise) => {
+              const isOpen = selectedPractice?.exerciseId === exercise.exerciseId;
+              return (
+                <article className={`rounded-xl border p-4 transition ${isOpen ? 'border-[#730014]/40 bg-[#fffafb]' : 'border-gray-100 bg-gray-50/60'}`} key={exercise.exerciseId}>
+                  <p className="text-sm font-extrabold text-[#262222]">{exercise.title}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider text-[#8b706e]">
+                    {exercise.skill ? <span>{exercise.skill}</span> : null}
+                    <span>Practice</span>
+                    {exercise.completed ? <span className="text-emerald-700">Đã hoàn thành</span> : null}
+                  </div>
+                  {isOpen ? (
+                    <div className="mt-4 space-y-3 border-t border-[#dfbfbd]/40 pt-4">
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-[#584140]">{exercise.instruction || exercise.note || 'Nội dung chi tiết đang được cập nhật.'}</p>
+                      {exercise.note && exercise.instruction ? <p className="text-xs italic text-[#8b706e]">{exercise.note}</p> : null}
+                      <label className="block space-y-2">
+                        <span className="text-xs font-extrabold text-[#584140]">Câu trả lời / ghi chú tự luyện</span>
+                        <textarea className="min-h-32 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#730014]" onChange={(event) => setResponseText(event.target.value)} placeholder="Nhập câu trả lời hoặc ghi lại phần cần xem lại..." value={responseText} />
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        <button className="rounded-lg bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white disabled:opacity-60" disabled={savingExerciseId === exercise.exerciseId} onClick={() => completePractice(exercise)} type="button">
+                          {savingExerciseId === exercise.exerciseId ? 'Đang lưu...' : exercise.completed ? 'Cập nhật lượt luyện' : 'Hoàn thành lượt luyện'}
+                        </button>
+                        <button className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-extrabold text-[#584140]" onClick={() => setSelectedPractice(null)} type="button">Thu gọn</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white" onClick={() => openPractice(exercise)} type="button">
+                      <Play className="h-3.5 w-3.5" />
+                      {exercise.completed ? 'Luyện tập lại' : 'Bắt đầu luyện tập'}
+                    </button>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // ─── Curriculum Panel Subcomponent ───────────────────────────────────────────
 function LearnerCurriculumPanel({
   curriculum,
-  homeworkList = [],
-  onSelectHomework,
+  onOpenPractice,
+  onOpenFlashcards,
   expandedUnits,
   setExpandedUnits,
 }) {
@@ -1706,32 +1848,26 @@ function LearnerCurriculumPanel({
                           refs={unit.materials}
                           type="materials"
                           unitId={unit.id}
-                          homeworkList={homeworkList}
-                          onSelectHomework={onSelectHomework}
                         />
                         <LearnerRefList
-                          title="Bài tập củng cố"
+                          title="Luyện tập trong giáo trình"
                           refs={unit.exercises}
                           type="exercises"
                           unitId={unit.id}
-                          homeworkList={homeworkList}
-                          onSelectHomework={onSelectHomework}
+                          onOpenPractice={onOpenPractice}
                         />
                         <LearnerRefList
                           title="Bài đánh giá theo Unit"
                           refs={unit.assessments}
                           type="assessments"
                           unitId={unit.id}
-                          homeworkList={homeworkList}
-                          onSelectHomework={onSelectHomework}
                         />
                         <LearnerRefList
                           title="Flashcards học từ"
                           refs={unit.flashcards}
                           type="flashcards"
                           unitId={unit.id}
-                          homeworkList={homeworkList}
-                          onSelectHomework={onSelectHomework}
+                          onOpenFlashcards={onOpenFlashcards}
                         />
                       </div>
                     </div>
@@ -1757,8 +1893,8 @@ function LearnerRefList({
   refs = [],
   type,
   unitId,
-  homeworkList = [],
-  onSelectHomework,
+  onOpenPractice,
+  onOpenFlashcards,
 }) {
   const visibleRefs = refs.filter((ref) => String(ref.status || '').toUpperCase() !== 'ARCHIVED');
   return (
@@ -1793,66 +1929,40 @@ function LearnerRefList({
               );
             }
 
-            // For exercises, assessments, or flashcards: find matching homework
-            const matchingHomework = homeworkList.find((h) => {
-              if (String(h.curriculumUnitId) !== String(unitId)) return false;
-              if (type === 'flashcards') {
-                return h.activityType === 'FLASHCARD_REVIEW';
-              }
-              if (type === 'assessments') {
-                return h.activityType === 'MOCK_EXAM' || h.activityType === 'TEST';
-              }
-              return h.activityType !== 'FLASHCARD_REVIEW' && h.activityType !== 'MOCK_EXAM' && h.activityType !== 'TEST';
-            });
-
-            if (matchingHomework) {
-              const isInteractive = usesInteractiveHomeworkWorkspace(matchingHomework);
-              if (isInteractive) {
-                return (
-                  <Link
-                    key={`${ref.type}-${ref.id}`}
-                    to={`/my-homework?open=${matchingHomework.id}`}
-                    className="group block rounded-xl bg-white border border-gray-100 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] hover:border-[#730014]/30 hover:bg-[#fff5f5]/5 transition duration-200 cursor-pointer"
-                  >
-                    <p className="font-extrabold text-xs text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors">{ref.title}</p>
-                    <div className="mt-1.5 flex items-center justify-between gap-1">
-                      <span className="inline-flex rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[8px] font-bold border border-emerald-100 uppercase tracking-wider">
-                        {matchingHomework.mySubmission ? (matchingHomework.mySubmission.score != null ? `Điểm: ${matchingHomework.mySubmission.score}` : 'Đã nộp') : 'Làm bài'}
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-slate-400 group-hover:text-[#730014] transition-colors" />
-                    </div>
-                  </Link>
-                );
-              }
+            if (type === 'exercises') {
               return (
                 <button
                   key={`${ref.type}-${ref.id}`}
                   type="button"
-                  onClick={() => onSelectHomework(matchingHomework)}
+                  onClick={onOpenPractice}
                   className="w-full text-left group block rounded-xl bg-white border border-gray-100 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] hover:border-[#730014]/30 hover:bg-[#fff5f5]/5 transition duration-200 cursor-pointer"
                 >
                   <p className="font-extrabold text-xs text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors">{ref.title}</p>
                   <div className="mt-1.5 flex items-center justify-between gap-1">
-                    <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-bold border uppercase tracking-wider ${
-                      matchingHomework.mySubmission
-                        ? (matchingHomework.mySubmission.score != null ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100')
-                        : 'bg-amber-50 text-amber-700 border-amber-100'
-                    }`}>
-                      {matchingHomework.mySubmission ? (matchingHomework.mySubmission.score != null ? `Điểm: ${matchingHomework.mySubmission.score}` : 'Đã nộp') : 'Nộp bài'}
+                    <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-blue-700">
+                      Luyện tập
                     </span>
-                    <Upload className="h-3 w-3 text-slate-400 group-hover:text-[#730014] transition-colors" />
+                    <Play className="h-3 w-3 text-slate-400 group-hover:text-[#730014] transition-colors" />
                   </div>
                 </button>
               );
             }
 
-            // Not assigned homework
+            if (type === 'flashcards') {
+              return (
+                <button key={`${ref.type}-${ref.id}`} type="button" onClick={onOpenFlashcards} className="w-full rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-left hover:border-[#730014]/30">
+                  <p className="text-xs font-extrabold text-[#1a1c1c]">{ref.title}</p>
+                  <span className="mt-1 inline-block text-[9px] font-bold text-[#730014]">Mở flashcard</span>
+                </button>
+              );
+            }
+
             return (
-              <div key={`${ref.type || 'resource'}-${ref.id}`} className="rounded-xl bg-white border border-gray-100/40 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] opacity-65">
-                <p className="font-bold text-xs text-slate-400 leading-snug">{ref.title}</p>
+              <div key={`${ref.type || 'resource'}-${ref.id}`} className="rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)]">
+                <p className="font-bold text-xs text-slate-600 leading-snug">{ref.title}</p>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="inline-flex rounded-full bg-gray-50 text-gray-400 px-1.5 py-0.5 text-[8px] font-bold border border-gray-100/80 uppercase tracking-wider">
-                    Chưa giao
+                  <span className="inline-flex rounded-full border border-gray-100 bg-gray-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-gray-500">
+                    Trong giáo trình
                   </span>
                 </div>
               </div>

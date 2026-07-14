@@ -389,6 +389,33 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     }
   };
 
+  const publishProgram = async (program) => {
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const detail = await classroomApi.getContentManagerProgram(program.id);
+      const draft = toForm(detail);
+      const saved = await classroomApi.updateContentManagerProgram(program.id, {
+        ...draft,
+        status: 'PUBLISHED',
+        deliveryMode: config.deliveryMode,
+        curriculumProgramId: Number(draft.curriculumProgramId),
+        materialIds: draft.materialIds.map((id) => Number(id)),
+        defaultCapacity: Number(draft.defaultCapacity || 1),
+        price: draft.price === '' ? 0 : Number(draft.price),
+        salePrice: draft.salePrice === '' ? null : Number(draft.salePrice),
+        displayOrder: Number(draft.displayOrder || 0),
+      });
+      setPrograms((current) => current.map((item) => (String(item.id) === String(saved.id) ? saved : item)));
+      setSuccess('Đã xuất bản chương trình. Training Manager có thể dùng chương trình này để mở lớp.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không thể xuất bản chương trình.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const publishedCount = programs.filter((p) => p.status === 'PUBLISHED').length;
   const activeUsageCount = programs.filter((p) => (p.activeClassroomCount ?? 0) > 0).length;
 
@@ -454,6 +481,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         onClone={cloneProgram}
         onEdit={openEdit}
         onPageChange={setPage}
+        onPublish={publishProgram}
         page={page}
         pageSize={8}
         programs={pageItems}
