@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +55,7 @@ class ClassroomChangeRequestServiceImplTest {
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
+    @Mock private ClassroomScheduleLockService scheduleLockService;
     @Mock private ClassroomOfferingService offeringService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
@@ -75,6 +77,7 @@ class ClassroomChangeRequestServiceImplTest {
                 userRepository,
                 mapper,
                 conflictService,
+                scheduleLockService,
                 offeringService,
                 accessHelper,
                 notificationService
@@ -174,7 +177,7 @@ class ClassroomChangeRequestServiceImplTest {
     void approveMakeupRequest_CreatesMakeupSessionWithoutSessionLockedGate() {
         ClassroomChangeRequest pending = pendingMakeupRequest();
         when(accessHelper.requireUser("tm@example.com")).thenReturn(trainingManager);
-        when(changeRequestRepository.findById(1L)).thenReturn(Optional.of(pending));
+        when(changeRequestRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(pending));
         when(changeRequestRepository.save(any(ClassroomChangeRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(mapper.changeRequestTypeLabel(ClassroomChangeRequestType.CREATE_MAKEUP_SESSION))
                 .thenReturn("Tạo buổi học bù");
@@ -189,8 +192,28 @@ class ClassroomChangeRequestServiceImplTest {
         ArgumentCaptor<ConflictCheckRequest> conflictCaptor = ArgumentCaptor.forClass(ConflictCheckRequest.class);
         verify(conflictService).assertNoBlockingConflict(conflictCaptor.capture());
         assertThat(conflictCaptor.getValue().getCheckSessionLocked()).isFalse();
-        verify(offeringService).createSession(eq(21L), any(CreateClassroomSessionRequest.class), eq(true));
+        var approvalOrder = inOrder(scheduleLockService, conflictService, offeringService);
+        approvalOrder.verify(scheduleLockService).lockDates(List.of(
+                LocalDate.of(2026, 7, 20),
+                LocalDate.of(2026, 7, 1)
+        ));
+        approvalOrder.verify(conflictService).assertNoBlockingConflict(any(ConflictCheckRequest.class));
+        approvalOrder.verify(offeringService).createSession(eq(21L), any(CreateClassroomSessionRequest.class), eq(true));
         assertThat(response.getStatus()).isEqualTo(ClassroomChangeRequestStatus.APPLIED);
+    }
+
+    @Test
+    void approveRequest_RejectsRequestThatWasAlreadyReviewedUnderRowLock() {
+        ClassroomChangeRequest reviewed = pendingMakeupRequest();
+        reviewed.setStatus(ClassroomChangeRequestStatus.APPLIED);
+        when(accessHelper.requireUser("tm@example.com")).thenReturn(trainingManager);
+        when(changeRequestRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(reviewed));
+
+        assertThatThrownBy(() -> service.approve(1L, new ReviewChangeRequestRequest(), "tm@example.com"))
+                .hasMessage("Yêu cầu không còn ở trạng thái chờ duyệt.");
+
+        verify(scheduleLockService, never()).lockDates(any());
+        verify(offeringService, never()).createSession(any(), any(), eq(true));
     }
 
     private ClassroomChangeRequest pendingMakeupRequest() {

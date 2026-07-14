@@ -22,7 +22,6 @@ import {
   BookOpen,
   FileText,
   Award,
-  DollarSign,
   Users,
   TrendingUp,
   ArrowRight,
@@ -619,6 +618,7 @@ export const TuitionStatusCard = ({
   settlementLabel,
   settlementNote,
   settlementStatus,
+  compact = false,
 }) => {
   const formatPrice = (val) => {
     if (val == null) return '0 ₫';
@@ -628,50 +628,66 @@ export const TuitionStatusCard = ({
   const hasPendingSettlement = settlementType
     && settlementType !== 'NONE'
     && (!settlementStatus || settlementStatus === 'PENDING');
-  const isFullyPaid = remaining <= 0 && !hasPendingSettlement;
+  const remainingAmount = Math.max(0, Number(remaining) || 0);
+  const isFullyPaid = remainingAmount <= 0 && !hasPendingSettlement;
+
+  const statusLabel = hasPendingSettlement
+    ? (settlementType === 'NEED_REFUND' ? 'Cần hoàn tiền' : 'Cần xử lý')
+    : (isFullyPaid ? 'Đã thanh toán đủ' : 'Còn phải đóng');
+
+  const metrics = [
+    { label: 'Học phí', value: formatPrice(due), tone: 'text-[#2b2828]' },
+    { label: 'Đã đóng', value: formatPrice(paid), tone: 'text-emerald-700' },
+    {
+      label: 'Còn lại',
+      value: formatPrice(remainingAmount),
+      tone: remainingAmount > 0 ? 'text-[#730014]' : 'text-[#8b706e]',
+    },
+  ];
 
   return (
-    <div className={`rounded-xl border p-6 shadow-sm ${
-      isFullyPaid ? 'border-emerald-100 bg-emerald-50/20' : 'border-rose-100 bg-rose-50/10'
-    }`}>
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-[#730014]" />
-          Trạng thái học phí
+    <div className={`rounded-2xl border ${
+      isFullyPaid
+        ? 'border-emerald-100 bg-gradient-to-br from-emerald-50/70 to-white'
+        : hasPendingSettlement
+          ? 'border-amber-100 bg-gradient-to-br from-amber-50/70 to-white'
+          : 'border-[#f0e2e1] bg-gradient-to-br from-[#fff8f8] to-white'
+    } ${compact ? 'p-3.5' : 'p-4'}`}
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h4 className="truncate font-['Manrope'] text-sm font-extrabold text-[#2b2828]">
+          Học phí
         </h4>
-        <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${
-          isFullyPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-[#730014]'
-        }`}>
-          {hasPendingSettlement
-            ? (settlementType === 'NEED_REFUND' ? 'Cần hoàn tiền' : 'Cần xử lý học phí')
-            : (isFullyPaid ? 'Đã hoàn thành' : 'Chưa hoàn thành')}
+        <span className={`flex-shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+          isFullyPaid
+            ? 'bg-emerald-100 text-emerald-800'
+            : hasPendingSettlement
+              ? 'bg-amber-100 text-amber-900'
+              : 'bg-[#fff1f3] text-[#730014]'
+        }`}
+        >
+          {statusLabel}
         </span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-white p-4 border border-gray-100">
-          <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Cần thanh toán</p>
-          <p className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{formatPrice(due)}</p>
-        </div>
-        <div className="rounded-2xl bg-white p-4 border border-gray-100">
-          <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Đã thanh toán</p>
-          <p className="mt-1 font-['Manrope'] text-xl font-extrabold text-emerald-700">{formatPrice(paid)}</p>
-        </div>
-        <div className="rounded-2xl bg-white p-4 border border-gray-100">
-          <p className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">Còn lại</p>
-          <p className={`mt-1 font-['Manrope'] text-xl font-extrabold ${remaining > 0 ? 'text-[#730014]' : 'text-gray-500'}`}>
-            {formatPrice(Math.max(0, remaining))}
-          </p>
-        </div>
+      <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-[#efe4e3] bg-[#efe4e3]">
+        {metrics.map((item) => (
+          <div key={item.label} className="bg-white/95 px-2.5 py-2.5 text-center sm:px-3">
+            <p className="text-[9px] font-bold uppercase tracking-wider text-[#8b706e]">{item.label}</p>
+            <p className={`mt-0.5 font-['Manrope'] text-xs font-extrabold sm:text-sm ${item.tone}`}>
+              {item.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       {settlementType && settlementType !== 'NONE' ? (
-        <div className="mt-4 rounded-2xl bg-white border border-[#dfbfbd]/30 p-4">
-          <p className="text-xs font-bold text-[#730014] uppercase tracking-wider flex items-center gap-1">
-            <Info className="h-3.5 w-3.5" />
-            Xử lý học phí dư/thiếu: {settlementLabel}
+        <div className="mt-3 rounded-xl border border-[#f0e2e1] bg-white/80 px-3 py-2">
+          <p className="text-[10px] font-bold text-[#730014] flex items-center gap-1">
+            <Info className="h-3 w-3" />
+            {settlementLabel || settlementType}
           </p>
-          {settlementNote ? <p className="mt-1 text-sm text-[#584140]">{settlementNote}</p> : null}
+          {settlementNote ? <p className="mt-0.5 text-[11px] leading-4 text-[#584140]">{settlementNote}</p> : null}
         </div>
       ) : null}
     </div>

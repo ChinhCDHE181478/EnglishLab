@@ -978,7 +978,7 @@ Học viên quản lý avatar bền vững và đổi mật khẩu thật end-to
 
 - **Ngày:** 2026-07-13
 - **Nhánh:** `phongdx`
-- **Commit:** Chưa commit (working tree sau `17c2c2f`)
+- **Commit:** `895f9e2`
 
 ### 1. Tóm tắt
 
@@ -1079,6 +1079,337 @@ Preference tồn tại sau refresh/login lại; mỗi kênh chỉ ảnh hưởng
 - Verification: frontend ESLint pass; frontend production build pass; Spring context pass; 6 focused backend tests pass.
 - Full backend regression: 102/103 pass. Lỗi duy nhất là test có sẵn `ToeicShowcaseClassroomSeederIntegrationTest` tại dòng 69 vì enrollment list rỗng, không thuộc luồng notification preference.
 - Maven wrapper PowerShell trên máy hiện tại gặp lỗi nội bộ; verification dùng Maven 3.9.15 đã cache, offline repository và timezone `Asia/Ho_Chi_Minh`.
+
+---
+
+## Task 12: Support ticket cho học viên và Manager/Admin
+
+- **Ngày:** 2026-07-13
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit (working tree sau `895f9e2`)
+
+### 1. Tóm tắt
+
+Xây dựng luồng support ticket end-to-end: học viên tạo và theo dõi yêu cầu hỗ trợ tại `/support`; Manager/Admin tiếp nhận hàng đợi tại `/manager/support-tickets`, nhận xử lý, đổi ưu tiên/trạng thái và trao đổi theo hội thoại. Phản hồi từ staff tạo AppNotification cho học viên qua cơ chế preference của Task 11.
+
+### 2. Phạm vi thay đổi
+
+- Trong phạm vi: ticket theo category/status/priority; lịch sử message; ownership; claim; learner đóng/mở lại; Manager/Admin xử lý; filter/search; AppNotification khi cập nhật.
+- Ngoài phạm vi: upload tệp đính kèm, SLA/escalation tự động, email support, phân công cho staff khác, xóa ticket và tích hợp hệ thống help desk bên ngoài.
+- Tái sử dụng: `User`, `AppNotificationService`, role hiện có, `LearnerPageShell`, `TrainingManagerLayout`, `BrandedSelect` và form styles.
+
+### 3. Tệp đã thay đổi
+
+- `entity/support/SupportTicket.java`, `SupportTicketMessage.java` và các enum.
+  - Why: cần lưu trạng thái nghiệp vụ và toàn bộ hội thoại.
+  - What: requester, assignee, resolver, subject, category, priority, status, audit timestamps và messages.
+- `repository/support/*`, `service/support/*`.
+  - Why: tách persistence, business rule và authorization khỏi controller.
+  - What: query queue có filter, entity graph tránh N+1, ownership/role/state transition, claim/reply/update và notification.
+- `controller/support/StudentSupportTicketController.java`, `ManagerSupportTicketController.java`.
+  - Why: learner và staff cần API scope riêng.
+  - What: CRUD nghiệp vụ theo `/api/student` và `/api/manager`.
+- `dto/request/support/*`, `dto/response/support/*`.
+  - Why: validation tại HTTP boundary và response không lộ entity.
+  - What: create/reply/status/update requests; ticket/message responses.
+- `SupportTicketSchemaMigration.java`.
+  - Why: schema additive theo convention dự án.
+  - What: hai bảng, foreign keys, indexes và CHECK constraints.
+- `SupportTicketServiceImplTest.java`.
+  - Why: bảo vệ ownership, lifecycle, assignment và notification.
+  - What: 6 test service.
+- `frontend/src/api/supportApi.js`, `utils/supportTicketLabels.js`.
+  - Why: gom API và nhãn nghiệp vụ dùng chung.
+  - What: learner/staff client methods, label/options/status styles/time formatter.
+- `SupportTicketsPage.jsx`, `ManagerSupportTicketsPage.jsx`.
+  - Why: cung cấp hai workspace đúng role.
+  - What: form tạo, danh sách/detail hội thoại, reply/close/reopen; queue filter/search/claim/update/reply.
+- `App.jsx`, `Header.jsx`, `TrainingManagerUi.jsx`.
+  - Why: route và điều hướng phải truy cập được đúng role.
+  - What: thêm `/support`, `/manager/support-tickets`; learner menu và Manager/Admin sidebar.
+
+### 4. Thay đổi Backend
+
+- Learner chỉ xem và thao tác ticket do chính mình tạo.
+- Manager/Admin có quyền xem toàn bộ queue, nhận xử lý và cập nhật ticket; Training Manager không có quyền support staff.
+- Ticket mới có `OPEN` và `NORMAL`; staff reply chuyển sang `WAITING_FOR_LEARNER`; learner reply chuyển về `IN_PROGRESS` nếu đã có assignee.
+- `RESOLVED`/`CLOSED` là terminal; phải mở lại trước khi phản hồi tiếp.
+- Staff đổi sang `IN_PROGRESS` khi chưa có assignee sẽ tự nhận ticket.
+- Staff reply hoặc đổi status tạo AppNotification cho requester; learner reply tạo notification cho assignee nếu có.
+- Queue và detail dùng entity graph cho requester/assignee/author để tránh N+1 query.
+
+### 5. Thay đổi Frontend
+
+- Learner `/support`: tạo ticket theo nhóm, xem lịch sử, phản hồi, đóng hoặc mở lại.
+- Manager/Admin `/manager/support-tickets`: lọc status/priority, tìm mã/chủ đề/học viên, nhận xử lý, đổi status/priority và phản hồi.
+- Hai màn hình dùng chung nhãn category/status/priority; có loading, empty, error, success và disabled state.
+- Sidebar support chỉ hiển thị cho `MANAGER`/`ADMIN`.
+
+### 6. Thay đổi Database
+
+- Bảng `support_tickets`: requester/assignee/resolver FK, subject, category, status, priority, resolved/audit timestamps.
+- Bảng `support_ticket_messages`: ticket FK cascade, author FK, body, created timestamp.
+- Index: requester + updated time; queue status/priority/updated time; message ticket/created time.
+- CHECK constraints giới hạn category, status và priority theo enum backend.
+- Migration additive/idempotent: `SupportTicketSchemaMigration`.
+
+### 7. Thay đổi API
+
+- Learner:
+  - `POST /api/student/support-tickets`
+  - `GET /api/student/support-tickets`
+  - `GET /api/student/support-tickets/{ticketId}`
+  - `POST /api/student/support-tickets/{ticketId}/replies`
+  - `PATCH /api/student/support-tickets/{ticketId}/status`
+- Manager/Admin:
+  - `GET /api/manager/support-tickets?status=&priority=`
+  - `GET /api/manager/support-tickets/{ticketId}`
+  - `POST /api/manager/support-tickets/{ticketId}/claim`
+  - `POST /api/manager/support-tickets/{ticketId}/replies`
+  - `PATCH /api/manager/support-tickets/{ticketId}`
+- Validation: subject 5–160 ký tự; message tạo 10–5000; reply tối đa 5000 và không blank; category bắt buộc; update staff phải có status hoặc priority.
+- Authorization: learner ownership tại service; queue chỉ `MANAGER`/`ADMIN` tại SecurityConfig path và service role check.
+
+### 8. Thay đổi UI/UX
+
+- Learner mở **Trung tâm hỗ trợ** từ avatar menu; form ticket có category và hướng dẫn mô tả rõ ràng.
+- Ticket list hiển thị mã, trạng thái, subject và thời gian cập nhật; hội thoại phân biệt learner/staff bằng hướng và màu bubble.
+- Terminal ticket ẩn reply form và hiển thị hành động mở lại.
+- Staff queue có bộ lọc/tìm kiếm, badge status/priority, assignee và action nhận xử lý.
+- Responsive: danh sách/detail chuyển từ hai cột sang một cột trên màn hình nhỏ.
+
+### 9. Các bước test trên web
+
+1. Restart backend để migration chạy; chạy frontend.
+2. Đăng nhập learner `0386852628z@gmail.com` / `Password123!`, mở `/support`.
+3. Tạo ticket với subject/category/message hợp lệ; kiểm tra ticket mới có `Mới gửi`, ưu tiên `Bình thường` và message đầu tiên.
+4. Refresh trang; xác nhận ticket và hội thoại còn nguyên.
+5. Đăng xuất, đăng nhập Manager `classroom.manager@englishlab.vn` / `Password123!`, mở `/manager/support-tickets`.
+6. Lọc/tìm ticket vừa tạo; nhấn **Nhận xử lý**, đổi ưu tiên và gửi phản hồi.
+7. Đăng nhập lại learner; kiểm tra notification mới và ticket chuyển `Chờ học viên`; phản hồi ticket.
+8. Manager kiểm tra ticket chuyển `Đang xử lý`, đánh dấu `Đã giải quyết`.
+9. Learner mở ticket đã giải quyết; reply bị ẩn, nhấn **Mở lại ticket** rồi phản hồi tiếp.
+10. Learner nhấn **Đóng ticket**; xác nhận terminal state.
+11. Negative: learner A gọi detail ticket learner B phải bị từ chối; Training Manager gọi `/api/manager/support-tickets` phải 403.
+12. Validation: subject dưới 5, message dưới 10, reply blank, enum sai và staff PATCH body rỗng phải bị từ chối.
+
+### 10. Kết quả mong đợi
+
+Học viên và đội ngũ Manager/Admin có một kênh hỗ trợ bền vững, phân quyền đúng và giữ đầy đủ lịch sử. Ticket có lifecycle/priority/assignee rõ ràng, tồn tại sau refresh, có notification khi staff cập nhật và không cho truy cập chéo dữ liệu learner.
+
+### 11. Ghi chú / Rủi ro
+
+- Chưa có attachment, email, SLA timer, bulk action hoặc assign cho staff khác.
+- Ticket không bị xóa; terminal ticket có thể mở lại để giữ audit trail.
+- AppNotification tôn trọng `inAppEnabled`; khi user tắt kênh này, ticket vẫn cập nhật nhưng không tạo notification.
+- Verification: frontend ESLint pass; production build pass; Spring context/migration pass; 6/6 focused backend tests pass.
+- Full backend regression: 108/109 pass. Lỗi duy nhất là test có sẵn `ToeicShowcaseClassroomSeederIntegrationTest` dòng 69 do enrollment list rỗng, không thuộc module support.
+- Live manual API smoke sau khi restart backend: ticket `#2` đi qua create `OPEN/NORMAL`, learner list/detail, Manager queue, claim `IN_PROGRESS`, priority `HIGH`, staff reply `WAITING_FOR_LEARNER`, AppNotification, learner reply, resolve, chặn reply terminal, learner reopen và close. Validation create trả `400`; truy cập chéo learner trả `400`; Training Manager và request thiếu JWT vào staff queue trả `403`.
+- Browser click-test chưa chạy được vì Browser runtime trên Windows không khởi tạo được (`CreateProcessWithLogonW failed`); đây là giới hạn công cụ, không phải lỗi frontend/backend. Cần mở lại Browser tích hợp để xác nhận trực quan hai route.
+- Maven cache trên Windows đôi lúc báo `AccessDeniedException` khi compiler đóng JAR; chạy lại sau khi class đã compile thành công cho kết quả test nêu trên.
+
+---
+
+## Task 1 (bổ sung): Chống tạo lịch học bù trùng khi duyệt đồng thời
+
+- **Ngày:** 2026-07-14
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit (working tree sau `895f9e2`)
+
+### 1. Tóm tắt
+
+Bổ sung cơ chế khóa transaction theo ngày học để loại bỏ race condition “kiểm tra trước, lưu sau”. Khi hai yêu cầu học bù cùng tác động một ngày được duyệt đồng thời, backend xử lý tuần tự trong transaction; request thứ hai kiểm tra lại trên dữ liệu mới nhất và bị chặn nếu trùng giáo viên, phòng hoặc học viên. Đồng thời khóa riêng bản ghi change request để một yêu cầu không thể bị duyệt hai lần.
+
+### 2. Phạm vi thay đổi
+
+- Trong phạm vi: duyệt change request, tạo buổi học, cập nhật lịch buổi học và chống duyệt lặp cùng request.
+- Ngoài phạm vi: thay đổi quy tắc Training Manager chủ động **Duyệt và ghi đè xung đột**; thao tác này vẫn là ngoại lệ có chủ đích và bắt buộc ghi chú.
+- Tái sử dụng: transaction hiện có, `ClassroomConflictService`, API và UI change-request hiện có.
+
+### 3. Tệp đã thay đổi
+
+- `service/classroom/ClassroomScheduleLockService.java`, `impl/ClassroomScheduleLockServiceImpl.java`
+  - Why: cần một khóa dùng chung cho mọi thao tác ghi lịch trong cùng ngày.
+  - What: PostgreSQL transaction advisory lock theo ngày; khóa nhiều ngày theo thứ tự cố định để tránh deadlock.
+- `repository/classroom/ClassroomChangeRequestRepository.java`
+  - Why: ngăn hai transaction cùng xử lý một request đang `PENDING`.
+  - What: thêm truy vấn `PESSIMISTIC_WRITE` theo ID.
+- `service/classroom/impl/ClassroomChangeRequestServiceImpl.java`
+  - Why: conflict check khi duyệt phải chạy sau khi transaction đã giữ khóa lịch.
+  - What: khóa ngày nguồn/ngày đề xuất, đọc request bằng row lock, sau đó mới kiểm tra và áp dụng.
+- `service/classroom/impl/ClassroomOfferingServiceImpl.java`
+  - Why: đường tạo/cập nhật session trực tiếp cũng có thể gặp cùng race condition.
+  - What: khóa ngày trước conflict check và save; cập nhật lịch khóa cả ngày cũ lẫn ngày mới.
+- `ClassroomChangeRequestServiceImplTest.java`
+  - Why: bảo vệ thứ tự khóa → kiểm tra → tạo session và chặn duyệt lặp.
+  - What: cập nhật mock row-lock, thêm assertion thứ tự xử lý và negative test request đã review.
+
+### 4. Thay đổi Backend
+
+- Mỗi ngày lịch được ánh xạ thành một PostgreSQL transaction advisory lock riêng; khóa tự giải phóng khi commit/rollback.
+- Hai thao tác trên cùng ngày phải chờ nhau; thao tác ở ngày khác vẫn chạy độc lập.
+- Sau khi chờ khóa, conflict check chạy lại trong transaction nên nhìn thấy session mà transaction trước vừa commit.
+- `approve` và `reject` khóa row change request trước khi kiểm tra trạng thái `PENDING`.
+
+### 5. Thay đổi Frontend
+
+Không thay đổi frontend. UI hiện có tiếp tục hiển thị lỗi conflict do backend trả về và cho phép tải lại hàng đợi.
+
+### 6. Thay đổi Database
+
+Không thay đổi bảng, cột hoặc migration. Dùng PostgreSQL transaction advisory lock, không lưu thêm dữ liệu khóa.
+
+### 7. Thay đổi API
+
+Không thêm hoặc đổi endpoint/request/response. Các endpoint approve và session hiện có được tăng cường tính nhất quán khi gọi đồng thời.
+
+### 8. Thay đổi UI/UX
+
+Không đổi bố cục. Trong trường hợp hai lượt duyệt cạnh tranh, một lượt thành công; lượt còn lại nhận thông báo xung đột thay vì âm thầm tạo lịch trùng.
+
+### 9. Các bước test trên web
+
+1. Restart backend và chạy frontend; chuẩn bị hai lớp có thể tạo yêu cầu học bù.
+2. Giáo viên A gửi yêu cầu học bù vào cùng ngày, giờ và phòng mục tiêu; giáo viên B gửi yêu cầu thứ hai trùng slot/phòng đó trước khi request A được duyệt.
+3. Đăng nhập Training Manager, mở hai cửa sổ/tab tại hàng đợi yêu cầu và chọn lần lượt hai request.
+4. Ở cả hai tab giữ chế độ duyệt thường, không chọn **Duyệt và ghi đè xung đột**; bấm **Duyệt** gần như đồng thời.
+5. Tải lại hàng đợi và lịch hai lớp; xác nhận chỉ một request `APPLIED`, request còn lại vẫn `PENDING` và chỉ có một session `MAKEUP` tại slot/phòng đó.
+6. Mở cùng một request `PENDING` ở hai tab và duyệt gần như đồng thời; xác nhận lần đầu thành công, lần sau báo request không còn chờ duyệt và không tạo session thứ hai.
+7. Negative hợp lệ: tạo hai request cùng ngày/giờ nhưng khác giáo viên, khác phòng và không có học viên trùng; duyệt cả hai, xác nhận cả hai thành công.
+8. Kiểm tra ngoại lệ có chủ đích: khi conflict được hiển thị, chỉ **Duyệt và ghi đè xung đột** kèm ghi chú mới cho phép áp dụng request thứ hai.
+
+### 10. Kết quả mong đợi
+
+Không thể phát sinh lịch học bù trùng do hai thao tác chạy đồng thời ngoài ý muốn. Kết quả luôn tương đương xử lý tuần tự: lượt đến sau nhìn thấy dữ liệu mới và tuân theo conflict rule hiện có.
+
+### 11. Ghi chú / Rủi ro
+
+- Cơ chế khóa phụ thuộc PostgreSQL, phù hợp database production hiện tại của dự án.
+- Advisory lock chỉ có hiệu lực khi mọi đường ghi lịch dùng service chung; các câu SQL ghi thẳng ngoài ứng dụng không được bảo vệ.
+- Training Manager vẫn có quyền ghi đè conflict có chủ đích khi nhập ghi chú; đây không còn là xung đột phát sinh ngoài ý muốn.
+- Verification tự động: `ClassroomChangeRequestServiceImplTest` đạt 5/5 test; Spring context pass; integration test thực thi advisory lock trực tiếp trên PostgreSQL pass.
+- Maven cache Windows đôi lúc báo lỗi truy cập JAR; chạy lại cùng lệnh cho kết quả pass.
+
+---
+
+## Task 5 (bổ sung): Thanh toán trước khi hoàn tất đăng ký lớp
+
+- **Ngày:** 2026-07-14
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit
+
+### 1. Tóm tắt
+
+Sửa thứ tự nghiệp vụ Task 5 thành **đăng ký tạm → thanh toán → tự động xếp lớp/cấp quyền học**. Training Manager không còn phải duyệt hồ sơ trước khi học viên thanh toán và không thể xếp lớp khi học phí chưa được thanh toán đủ. Lớp đã đủ chỗ đưa học viên vào danh sách chờ, chưa thu tiền.
+
+### 2. Phạm vi thay đổi
+
+- Backend, frontend, API behavior và UI/UX của đăng ký lớp/học phí.
+- Giữ nguyên endpoint, bảng dữ liệu và tích hợp PayOS hiện có.
+- Giữ tương thích hồ sơ cũ `PENDING_CONFIRMATION` để học viên vẫn có thể thanh toán.
+
+### 3. Tệp đã thay đổi
+
+- `ClassroomEnrollment.java`: trạng thái mặc định mới là `PENDING_TUITION_PAYMENT`.
+- `ClassroomOfferingServiceImpl.java`: tạo hồ sơ chờ thanh toán, không cấp package access trước; lớp miễn phí xếp ngay; chặn ghi học phí/xếp lớp sai trạng thái.
+- `PaymentServiceImpl.java`, `TuitionProofServiceImpl.java`: cho hồ sơ cũ thanh toán nhưng chặn `WAITLIST`.
+- `TrainingManagerOpsServiceImpl.java`: chỉ `FULLY_PAID` được tính sẵn sàng xếp lớp.
+- `ClassroomPublicDetailPage.jsx`, `MyClassroomDetailPage.jsx`: đăng ký xong mở PayOS; danh sách chờ không hiện thanh toán/minh chứng.
+- `TrainingManagerRegistrationPanel.jsx`, `TrainingManagerDashboardPage.jsx`: bỏ bước duyệt trước thanh toán; chỉ mời người trong waitlist thanh toán khi có chỗ; chỉ xếp lớp sau khi trả đủ.
+- `ClassroomOfferingServiceImplWaitlistTest.java`, `PaymentServiceImplClassroomTuitionTest.java`: regression test cho luồng mới.
+
+### 4. Thay đổi Backend
+
+- Lớp còn chỗ và có học phí: tạo hồ sơ `PENDING_TUITION_PAYMENT`, chưa tạo `PackageEnrollment`, chưa tạo gradebook và chưa có quyền học.
+- PayOS ghi nhận đủ học phí: chuyển `FULLY_PAID` rồi tự động thử xếp lớp; quyền học chỉ được tạo tại bước `ASSIGNED`.
+- Lớp miễn phí: xếp lớp ngay, không mở PayOS.
+- Lớp đầy: tạo `WAITLIST`; PayOS, upload minh chứng và ghi học phí thủ công đều bị chặn cho tới khi Training Manager mời thanh toán.
+- API xếp lớp thủ công chỉ chấp nhận `FULLY_PAID`.
+
+### 5. Thay đổi Frontend
+
+- Nút chính đổi thành **Đăng ký và thanh toán**; sau khi tạo hồ sơ, frontend mở link PayOS ngay.
+- Bỏ lựa chọn **Giữ chỗ trước** và thông điệp chờ Training Manager duyệt.
+- Học viên trong waitlist chỉ thấy vị trí chờ, không thấy khu vực thanh toán/minh chứng.
+- Training Manager không còn tab/action duyệt hồ sơ mới; action waitlist là **Mời thanh toán khi có chỗ**.
+
+### 6. Thay đổi Database
+
+Không thêm bảng/cột/migration. Enum và schema hiện có được tái sử dụng; thay đổi chỉ nằm ở trạng thái khởi tạo và validation nghiệp vụ.
+
+### 7. Thay đổi API
+
+Không đổi path/request/response. Thay đổi hành vi:
+
+- `POST /api/student/classrooms/{id}/register`: trả `PENDING_TUITION_PAYMENT`, `WAITLIST` hoặc `ASSIGNED` đối với lớp miễn phí.
+- `POST /api/student/payments/payos/link`: nhận hồ sơ chờ thanh toán/legacy; từ chối `WAITLIST`.
+- API upload minh chứng và ghi học phí thủ công: từ chối `WAITLIST`.
+- API assign enrollment: từ chối mọi trạng thái khác `FULLY_PAID` (trừ hồ sơ đã có quyền học được trả nguyên trạng).
+
+### 8. Thay đổi UI/UX
+
+Luồng học viên ngắn hơn và đúng thứ tự: chọn lớp, thanh toán, sau đó mới vào lớp. Trường hợp PayOS chưa mở được, hồ sơ vẫn ở trạng thái chờ thanh toán và học viên có thể thử lại trong khu vực học phí. Danh sách chờ không bị yêu cầu trả tiền khi chưa có chỗ.
+
+### 9. Các bước test trên web
+
+1. Restart backend/frontend; chọn một lớp `UPCOMING`, còn chỗ và có học phí.
+2. Đăng nhập học viên chưa đăng ký lớp, mở chi tiết lớp và nhấn **Đăng ký và thanh toán**.
+3. Xác nhận frontend chuyển sang PayOS; nếu quay lại/chưa trả, hồ sơ là **Chờ thanh toán học phí** và chưa truy cập được nội dung lớp.
+4. Hoàn tất PayOS hoặc dùng minh chứng/Training Manager ghi nhận đủ tiền; tải lại và xác nhận enrollment được xếp lớp, có quyền học.
+5. Training Manager thử xếp một hồ sơ `PENDING_TUITION_PAYMENT`: backend phải từ chối; nút xếp lớp không xuất hiện.
+6. Làm đầy một lớp rồi đăng ký bằng học viên khác: trạng thái phải là `WAITLIST`, có vị trí chờ và không có nút PayOS/form minh chứng.
+7. Training Manager nhấn **Mời thanh toán khi có chỗ** trong khi lớp vẫn đầy: học viên vẫn ở waitlist; sau khi có chỗ, action chuyển hồ sơ sang chờ thanh toán.
+8. Với lớp miễn phí còn chỗ, đăng ký và xác nhận được xếp lớp ngay, không chuyển PayOS.
+
+### 10. Kết quả mong đợi
+
+Không học viên nào được cấp quyền học hoặc được Training Manager xếp lớp trước khi thanh toán đủ, ngoại trừ lớp miễn phí. Không thu tiền người đang ở danh sách chờ. Bước duyệt đăng ký trước thanh toán được loại bỏ khỏi luồng mới.
+
+### 11. Ghi chú / Rủi ro
+
+- Hồ sơ `PENDING_CONFIRMATION` cũ vẫn thanh toán được để không làm kẹt dữ liệu đã tồn tại.
+- Nếu nhiều học viên thanh toán gần đồng thời cho suất cuối, bước assign khóa bản ghi lớp và kiểm tra lại sức chứa; giao dịch đến sau có thể cần xử lý vận hành/hoàn tiền nếu lớp vừa đầy. Cơ chế giữ suất PayOS có thời hạn chưa nằm trong Task 5 hiện tại.
+- Focused backend tests pass; frontend production build pass. Sau khi clean, full backend suite đạt 114/115; lỗi duy nhất có sẵn là `ToeicShowcaseClassroomSeederIntegrationTest` dòng 69 do enrollment list rỗng.
+
+---
+
+## Task 4 / 6 / 7: Hủy theo quyết định leader
+
+- **Ngày:** 2026-07-14
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit
+
+### 1. Tóm tắt
+
+Leader xác nhận **không cần** Task 4 (sắp xếp/vị trí waitlist), Task 6 (hoàn tiền đơn khóa + biên lai PDF), Task 7 (NEED_REFUND settlement). Đã gỡ giao diện và endpoint công khai tương ứng; giữ WAITLIST cơ bản phục vụ Task 5.
+
+### 2. Phạm vi thay đổi
+
+- Frontend surfaces + HTTP controllers cho Task 4/6/7.
+- Docs handoff/changelog.
+- Không drop cột DB lịch sử.
+
+### 3–8. Tệp / Backend / Frontend / DB / API / UI
+
+- Gỡ TM reorder waitlist, badge vị trí `#N`.
+- Gỡ tải biên lai PDF (HV) và hoàn tiền đơn khóa (CM analytics).
+- Gỡ tab/UI NEED_REFUND và `POST .../settlement/resolve`, `PUT .../waitlist/order`, receipt/refund payment endpoints.
+- WAITLIST + mời thanh toán Task 5 vẫn giữ.
+
+### 9. Các bước test trên web
+
+1. TM: không còn nút lên/xuống waitlist; không tab Cần hoàn tiền.
+2. HV: lịch sử giao dịch không còn nút biên lai PDF.
+3. CM analytics: không còn bảng hoàn tiền đơn khóa.
+4. Lớp đầy → đăng ký vẫn vào WAITLIST (Task 5).
+
+### 10. Kết quả mong đợi
+
+Sản phẩm không còn expose Task 4/6/7; Task 5 payment-first không bị phá.
+
+### 11. Ghi chú / Rủi ro
+
+Service/unit test backend cũ của Task 4/6/7 có thể còn trong repo nhưng không còn endpoint UI. Migration DB cũ không rollback.
 
 ---
 

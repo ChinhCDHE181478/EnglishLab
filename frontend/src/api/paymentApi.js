@@ -2,22 +2,20 @@ import axiosClient from './axiosClient';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
+const paymentBody = (courseIds = [], couponCode = '', classroomOfferingIds = []) => ({
+  courseIds,
+  classroomOfferingIds,
+  couponCode,
+});
+
 export const paymentApi = {
   async quotePayment(courseIds = [], couponCode = '', classroomOfferingIds = []) {
-    const response = await axiosClient.post('/api/student/payments/quote', {
-      courseIds,
-      classroomOfferingIds,
-      couponCode,
-    });
+    const response = await axiosClient.post('/api/student/payments/quote', paymentBody(courseIds, couponCode, classroomOfferingIds));
     return unwrapData(response);
   },
 
   async createPayosLink(courseIds = [], couponCode = '', classroomOfferingIds = []) {
-    const response = await axiosClient.post('/api/student/payments/payos/link', {
-      courseIds,
-      classroomOfferingIds,
-      couponCode,
-    });
+    const response = await axiosClient.post('/api/student/payments/payos/link', paymentBody(courseIds, couponCode, classroomOfferingIds));
     return unwrapData(response);
   },
 
@@ -29,25 +27,6 @@ export const paymentApi = {
   async listMyOrders() {
     const response = await axiosClient.get('/api/student/payments/orders');
     return unwrapData(response) ?? [];
-  },
-
-  async downloadReceipt(orderCode) {
-    const response = await axiosClient.get(`/api/student/payments/orders/${orderCode}/receipt`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  },
-
-  async listStaffOrders(status = 'PAID') {
-    const response = await axiosClient.get('/api/content-manager/payments/orders', {
-      params: status ? { status } : undefined,
-    });
-    return unwrapData(response) ?? [];
-  },
-
-  async refundCourseOrder(orderCode, reason) {
-    const response = await axiosClient.post(`/api/content-manager/payments/orders/${orderCode}/refund`, { reason });
-    return unwrapData(response);
   },
 
   async getRevenueAnalytics() {

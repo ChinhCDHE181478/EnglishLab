@@ -635,7 +635,9 @@ export default function MyClassroomDetailPage() {
     if (activeTab === 'payment') {
       const tuitionDue = classroom.tuitionAmountDue ?? 0;
       const tuitionRemaining = tuitionDue - (classroom.tuitionAmountPaid ?? 0);
-      const canSubmitProof = tuitionDue > 0 && (classroom.tuitionAmountPaid ?? 0) < tuitionDue;
+      const canSubmitProof = classroom.registrationStatus !== 'WAITLIST'
+        && tuitionDue > 0
+        && (classroom.tuitionAmountPaid ?? 0) < tuitionDue;
       return (
         <div className="space-y-6">
           {tuitionDue > 0 && (

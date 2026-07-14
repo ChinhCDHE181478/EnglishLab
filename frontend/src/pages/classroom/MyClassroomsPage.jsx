@@ -80,7 +80,7 @@ const getMinimalistStatusInfo = (classroom) => {
   const days = daysUntil(classroom.startDate);
   if (classroom.registrationStatus === 'WAITLIST') {
     return {
-      text: classroom.waitlistPosition ? `Danh sách chờ #${classroom.waitlistPosition}` : 'Danh sách chờ',
+      text: 'Danh sách chờ',
       dotColor: 'bg-blue-500',
       textColor: 'text-blue-700',
       badgeBg: 'bg-blue-50 border-blue-100',

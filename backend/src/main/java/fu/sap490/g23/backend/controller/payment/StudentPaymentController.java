@@ -8,8 +8,6 @@ import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sap490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,18 +58,6 @@ public class StudentPaymentController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(paymentService.getOrderStatus(orderCode, authentication.getName()));
-    }
-
-    @GetMapping("/orders/{orderCode}/receipt")
-    public ResponseEntity<byte[]> downloadReceipt(
-            @PathVariable Long orderCode,
-            Authentication authentication
-    ) {
-        byte[] pdf = paymentService.downloadCourseReceipt(orderCode, authentication.getName());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"englishlab-receipt-" + orderCode + ".pdf\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
     }
 
     @GetMapping("/orders")

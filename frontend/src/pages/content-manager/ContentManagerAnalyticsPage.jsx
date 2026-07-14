@@ -9,13 +9,8 @@ export default function ContentManagerAnalyticsPage() {
   const [stats, setStats] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [courses, setCourses] = useState([]);
-  const [paidOrders, setPaidOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [actionMessage, setActionMessage] = useState('');
-  const [refundTarget, setRefundTarget] = useState(null);
-  const [refundReason, setRefundReason] = useState('');
-  const [refunding, setRefunding] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -28,24 +23,15 @@ export default function ContentManagerAnalyticsPage() {
           return null;
         }
       };
-      const loadPaidOrders = async () => {
-        try {
-          return await paymentApi.listStaffOrders('PAID');
-        } catch {
-          return [];
-        }
-      };
 
-      const [statsData, coursePage, revenueData, ordersData] = await Promise.all([
+      const [statsData, coursePage, revenueData] = await Promise.all([
         courseApi.getManagedCourseStats(),
         courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
         loadRevenueAnalytics(),
-        loadPaidOrders(),
       ]);
       setStats(statsData);
       setRevenue(revenueData);
       setCourses(coursePage.content || []);
-      setPaidOrders(Array.isArray(ordersData) ? ordersData.filter((order) => order.refundable) : []);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được dữ liệu phân tích nội dung.');
     } finally {
@@ -75,23 +61,6 @@ export default function ContentManagerAnalyticsPage() {
     [courses],
   );
 
-  const handleConfirmRefund = async () => {
-    if (!refundTarget?.orderCode || !refundReason.trim()) return;
-    setRefunding(true);
-    setActionMessage('');
-    try {
-      await paymentApi.refundCourseOrder(refundTarget.orderCode, refundReason.trim());
-      setActionMessage(`Đã hoàn tiền đơn #${refundTarget.orderCode} trên hệ thống (tiền PayOS xử lý thủ công ngoài app).`);
-      setRefundTarget(null);
-      setRefundReason('');
-      await loadData();
-    } catch (err) {
-      setActionMessage(err?.response?.data?.message || 'Không hoàn tiền được đơn này.');
-    } finally {
-      setRefunding(false);
-    }
-  };
-
   if (loading && !stats) {
     return <ContentManagerLoadingState message="Đang tải dữ liệu phân tích nội dung..." />;
   }
@@ -119,12 +88,6 @@ export default function ContentManagerAnalyticsPage() {
         </div>
       ) : null}
 
-      {actionMessage ? (
-        <div className="rounded-2xl border border-[#dfbfbd]/40 bg-white px-5 py-4 text-sm font-semibold text-[#584140]">
-          {actionMessage}
-        </div>
-      ) : null}
-
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={BookOpen} label="Khóa học" value={stats?.totalCourses ?? 0} />
         <StatCard icon={Layers3} label="Bài học" value={stats?.totalLessons ?? 0} />
@@ -136,62 +99,10 @@ export default function ContentManagerAnalyticsPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard icon={BarChart3} label="Đơn đã thanh toán" value={revenue.paidOrders ?? 0} />
           <StatCard icon={BarChart3} label="Đơn đang chờ" value={revenue.pendingOrders ?? 0} />
-          <StatCard icon={BarChart3} label="Đơn thất bại/hoàn" value={revenue.failedOrders ?? 0} />
+          <StatCard icon={BarChart3} label="Đơn thất bại" value={revenue.failedOrders ?? 0} />
           <StatCard icon={BarChart3} label="Tổng giảm giá" value={`${Number(revenue.totalDiscountVnd || 0).toLocaleString('vi-VN')} đ`} />
         </section>
       ) : null}
-
-      <Panel className="overflow-hidden">
-        <div className="border-b border-[#f0e3e4] px-6 py-5">
-          <SectionTitle title="Hoàn tiền đơn khóa học (PayOS)" />
-          <p className="mt-2 text-sm text-[#584140]">
-            Đánh dấu hoàn trên hệ thống, hủy quyền học và hoàn coupon. Tiền PayOS xử lý thủ công ngoài app.
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left">
-            <thead className="bg-[#fbf3f4] text-xs uppercase tracking-[0.16em] text-[#8e7371]">
-              <tr>
-                {['Mã đơn', 'Học viên', 'Khóa học', 'Số tiền', 'Thanh toán', 'Thao tác'].map((heading) => (
-                  <th key={heading} className="px-5 py-4 font-semibold">{heading}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f0e3e4]">
-              {paidOrders.length ? paidOrders.map((order) => (
-                <tr key={order.orderCode}>
-                  <td className="px-5 py-4 font-semibold">#{order.orderCode}</td>
-                  <td className="px-5 py-4 text-sm">
-                    <div className="font-semibold text-[#2b2828]">{order.studentName || '—'}</div>
-                    <div className="text-[#8b706e]">{order.studentEmail || ''}</div>
-                  </td>
-                  <td className="px-5 py-4 text-sm">{(order.courseTitles || []).join(' · ') || order.description || '—'}</td>
-                  <td className="px-5 py-4 text-sm font-bold">{Number(order.amount || 0).toLocaleString('vi-VN')} đ</td>
-                  <td className="px-5 py-4 text-sm">{formatDateTime(order.paidAt)}</td>
-                  <td className="px-5 py-4">
-                    <button
-                      className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-extrabold text-rose-700 hover:bg-rose-100"
-                      onClick={() => {
-                        setRefundTarget(order);
-                        setRefundReason('');
-                      }}
-                      type="button"
-                    >
-                      Hoàn tiền
-                    </button>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td className="px-5 py-10 text-sm text-[#584140]" colSpan={6}>
-                    Không có đơn khóa học PAID nào có thể hoàn.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
 
       <section className="grid gap-6 xl:grid-cols-2">
         <Panel className="p-6">
@@ -250,42 +161,6 @@ export default function ContentManagerAnalyticsPage() {
         </div>
       </Panel>
 
-      {refundTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => !refunding && setRefundTarget(null)} />
-          <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl">
-            <h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Hoàn tiền đơn khóa học</h3>
-            <p className="mt-3 text-sm leading-6 text-[#584140]">
-              Hoàn đơn #{refundTarget.orderCode} của {refundTarget.studentEmail}. Hệ thống sẽ hủy quyền khóa học và hoàn coupon.
-              Tiền PayOS cần xử lý thủ công.
-            </p>
-            <textarea
-              className="mt-4 min-h-[96px] w-full rounded-2xl border border-[#dfbfbd]/60 px-4 py-3 text-sm outline-none focus:border-[#730014]"
-              onChange={(event) => setRefundReason(event.target.value)}
-              placeholder="Lý do hoàn tiền (bắt buộc)"
-              value={refundReason}
-            />
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-extrabold text-[#584140]"
-                disabled={refunding}
-                onClick={() => setRefundTarget(null)}
-                type="button"
-              >
-                Đóng
-              </button>
-              <button
-                className="rounded-2xl bg-[#93000a] px-5 py-3 text-sm font-extrabold text-white disabled:opacity-60"
-                disabled={refunding || !refundReason.trim()}
-                onClick={handleConfirmRefund}
-                type="button"
-              >
-                {refunding ? 'Đang hoàn...' : 'Xác nhận hoàn tiền'}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -323,9 +198,4 @@ function ChartRow({ color, label, max, value }) {
 function formatDate(value) {
   if (!value) return 'Chưa có';
   return new Date(value).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('vi-VN');
 }

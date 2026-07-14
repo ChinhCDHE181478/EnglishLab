@@ -448,8 +448,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
 
         ClassroomRegistrationStatus status = enrollment.getRegistrationStatus();
-        if (status == ClassroomRegistrationStatus.PENDING_CONFIRMATION) {
-            throw new RuntimeException("Đăng ký đang chờ Training Manager xác nhận. Vui lòng thanh toán sau khi được duyệt.");
+        if (status == ClassroomRegistrationStatus.WAITLIST) {
+            throw new RuntimeException("Bạn đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
         }
         if (status == ClassroomRegistrationStatus.ASSIGNED) {
             throw new RuntimeException("Bạn đã được xếp lớp. Không cần thanh toán thêm qua PayOS.");

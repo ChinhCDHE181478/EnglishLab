@@ -7,8 +7,6 @@ import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest
 import fu.sap490.g23.backend.dto.request.classroom.EnrollStudentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
-import fu.sap490.g23.backend.dto.request.classroom.ReorderWaitlistRequest;
-import fu.sap490.g23.backend.dto.request.classroom.ResolveTuitionSettlementRequest;
 import fu.sap490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.TransferStudentRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
@@ -247,19 +245,6 @@ public class TrainingManagerClassroomController {
         ));
     }
 
-    @PutMapping("/{id}/waitlist/order")
-    public ResponseEntity<List<ClassroomEnrollmentResponse>> reorderWaitlist(
-            @PathVariable Long id,
-            @Valid @RequestBody ReorderWaitlistRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.reorderWaitlist(
-                id,
-                request,
-                authentication.getName()
-        ));
-    }
-
     @GetMapping("/enrollments/{enrollmentId}")
     public ResponseEntity<ClassroomEnrollmentResponse> getEnrollment(@PathVariable Long enrollmentId) {
         return ResponseEntity.ok(classroomOfferingService.getRegistration(enrollmentId));
@@ -289,19 +274,6 @@ public class TrainingManagerClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomOfferingService.recordTuitionPayment(enrollmentId, request, authentication.getName()));
-    }
-
-    @PostMapping("/enrollments/{enrollmentId}/settlement/resolve")
-    public ResponseEntity<ClassroomEnrollmentResponse> resolveTuitionSettlement(
-            @PathVariable Long enrollmentId,
-            @Valid @RequestBody ResolveTuitionSettlementRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.resolveTuitionSettlement(
-                enrollmentId,
-                request,
-                authentication.getName()
-        ));
     }
 
     @GetMapping("/enrollments/{enrollmentId}/tuition-history")

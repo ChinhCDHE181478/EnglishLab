@@ -79,9 +79,10 @@ export const classroomApi = {
   async submitTuitionProof(classroomId, { file, amount, paymentKind, note }) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('amount', amount);
+    formData.append('amount', String(amount));
     if (paymentKind) formData.append('paymentKind', paymentKind);
     if (note) formData.append('note', note);
+    // FormData: axiosClient strips default application/json so browser sets multipart boundary.
     const response = await axiosClient.post(`/api/student/classrooms/${classroomId}/tuition-proofs`, formData);
     return unwrapData(response);
   },
@@ -458,14 +459,6 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async resolveTuitionSettlement(enrollmentId, payload) {
-    const response = await axiosClient.post(
-      `/api/training-manager/classrooms/enrollments/${enrollmentId}/settlement/resolve`,
-      payload,
-    );
-    return unwrapData(response);
-  },
-
   async getTuitionHistory(enrollmentId) {
     const response = await axiosClient.get(`/api/training-manager/classrooms/enrollments/${enrollmentId}/tuition-history`);
     return asList(unwrapData(response));
@@ -528,14 +521,6 @@ export const classroomApi = {
 
   async getTrainingManagerRegistrations(params = {}) {
     const response = await axiosClient.get('/api/training-manager/classrooms/registrations', { params });
-    return asList(unwrapData(response));
-  },
-
-  async reorderClassWaitlist(classroomId, enrollmentIds) {
-    const response = await axiosClient.put(
-      `/api/training-manager/classrooms/${classroomId}/waitlist/order`,
-      { enrollmentIds },
-    );
     return asList(unwrapData(response));
   },
 

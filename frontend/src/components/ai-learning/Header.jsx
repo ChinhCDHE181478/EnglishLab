@@ -70,6 +70,7 @@ const getProfileItemsByRole = (user) => {
     { label: 'Bài tập', to: '/my-homework' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },
+    { label: 'Trung tâm hỗ trợ', to: '/support' },
   ];
 };
 

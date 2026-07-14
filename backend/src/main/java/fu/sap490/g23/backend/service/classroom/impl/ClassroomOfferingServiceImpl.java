@@ -72,6 +72,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
     private final ClassroomConflictService conflictService;
+    private final ClassroomScheduleLockService scheduleLockService;
     private final LarkMeetingService larkMeetingService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
@@ -377,6 +378,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             boolean enforceConflictCheck
     ) {
+        scheduleLockService.lockDate(request.getSessionDate());
+
         ClassroomOffering offering = findOffering(offeringId);
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
         Long roomId = request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering);
@@ -409,6 +412,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomSessionResponse updateSession(Long sessionId, CreateClassroomSessionRequest request) {
         ClassroomSession session = findSession(sessionId);
+        scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
         if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
             throw new RuntimeException("Buổi học đã hoàn thành hoặc đã khóa nên không thể chỉnh sửa.");
         }
@@ -448,6 +452,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request) {
         ClassroomSession session = findSession(sessionId);
+        scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
         if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
             throw new RuntimeException("Buổi học đã hoàn thành hoặc đã khóa nên không thể chỉnh sửa.");
         }
@@ -638,34 +643,31 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         // Chặn ngay từ lúc đăng ký nếu học viên đang học lớp khác trùng lịch với các buổi của lớp này.
         assertLearnerScheduleForOffering(offering, learner.getId());
 
-        boolean holdSpot = request != null && Boolean.TRUE.equals(request.getHoldSpot());
         BigDecimal tuitionDue = resolveTuitionDue(offering);
         ClassroomRegistrationStatus initialStatus = isClassFull(offering)
                 ? ClassroomRegistrationStatus.WAITLIST
-                : ClassroomRegistrationStatus.PENDING_CONFIRMATION;
+                : ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
 
         var existingEnrollment = enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId);
         ClassroomEnrollment enrollment;
         if (existingEnrollment.isPresent()) {
             enrollment = existingEnrollment.get();
             ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
-            enrollment.setHoldSpot(holdSpot);
+            enrollment.setHoldSpot(false);
             enrollment.setRegistrationStatus(initialStatus);
             enrollment.setTuitionAmountDue(tuitionDue);
             enrollment.setTuitionAmountPaid(BigDecimal.ZERO);
             enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
             ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
             enrollment.setNote(request == null ? null : request.getNote());
-            enrollment.setPackageEnrollment(ensurePackageEnrollment(learner, offering));
             ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
             enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         } else {
             enrollment = ClassroomEnrollment.builder()
                     .student(learner)
                     .classroomOffering(offering)
-                    .packageEnrollment(ensurePackageEnrollment(learner, offering))
                     .registrationStatus(initialStatus)
-                    .holdSpot(holdSpot)
+                    .holdSpot(false)
                     .tuitionAmountDue(tuitionDue)
                     .tuitionAmountPaid(BigDecimal.ZERO)
                     .tuitionDepositPaid(BigDecimal.ZERO)
@@ -675,6 +677,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .build();
             ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
             enrollment = saveEnrollmentWithWaitlistOrder(enrollment, null);
+        }
+
+        if (initialStatus == ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT
+                && tuitionDue.compareTo(BigDecimal.ZERO) <= 0) {
+            ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
+            assignEnrollmentToClass(enrollment, offering, learner, null, "Lớp miễn phí");
+            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
+            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
         }
 
         String classTitle = offering.getLearningPackage().getTitle();
@@ -687,8 +697,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         notificationService.notifyUser(
                 learner,
                 "CLASSROOM_REGISTRATION_SUBMITTED",
-                "Đã gửi đăng ký lớp",
-                "Đăng ký lớp " + classTitle + " đang chờ Training Manager xác nhận.",
+                initialStatus == ClassroomRegistrationStatus.WAITLIST
+                        ? "Đã tham gia danh sách chờ"
+                        : enrollment.hasClassAccess()
+                                ? "Đăng ký lớp thành công"
+                                : "Hoàn tất thanh toán để đăng ký lớp",
+                initialStatus == ClassroomRegistrationStatus.WAITLIST
+                        ? "Lớp " + classTitle + " hiện đã đủ chỗ. Bạn đã được thêm vào danh sách chờ và chưa cần thanh toán."
+                        : enrollment.hasClassAccess()
+                                ? "Bạn đã được đăng ký vào lớp miễn phí " + classTitle + "."
+                                : "Hồ sơ tạm cho lớp " + classTitle + " đã được tạo. Vui lòng thanh toán học phí để hoàn tất đăng ký.",
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
         return mapper.toEnrollmentResponse(enrollment);
@@ -790,7 +808,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.PENDING_CONFIRMATION
                 && enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.WAITLIST) {
-            throw new RuntimeException("Đăng ký không ở trạng thái chờ xác nhận.");
+            throw new RuntimeException("Hồ sơ không ở trạng thái có thể chuyển sang chờ thanh toán.");
         }
 
         ClassroomRegistrationStatus nextStatus = isClassFull(offering)
@@ -806,10 +824,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         String classTitle = offering.getLearningPackage().getTitle();
         notificationService.notifyUser(
                 learner,
-                "CLASSROOM_REGISTRATION_CONFIRMED",
-                "Đăng ký lớp đã được xác nhận",
-                "Đăng ký lớp " + classTitle + " đã được xác nhận. "
-                        + ClassroomRegistrationSupport.registrationStatusLabel(nextStatus) + ".",
+                "CLASSROOM_PAYMENT_INVITED",
+                nextStatus == ClassroomRegistrationStatus.WAITLIST
+                        ? "Lớp hiện vẫn chưa có chỗ"
+                        : "Đã đến lượt thanh toán học phí",
+                nextStatus == ClassroomRegistrationStatus.WAITLIST
+                        ? "Lớp " + classTitle + " hiện vẫn đủ chỗ. Bạn tiếp tục ở trong danh sách chờ."
+                        : "Lớp " + classTitle + " đã có chỗ. Vui lòng thanh toán học phí để hoàn tất đăng ký.",
                 Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
         );
         return mapper.toEnrollmentResponse(enrollment);
@@ -1032,6 +1053,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 || enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.REJECTED) {
             throw new RuntimeException("Đăng ký đã bị hủy hoặc từ chối.");
         }
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
+            throw new RuntimeException("Học viên đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
+        }
         if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
             throw new RuntimeException("Học viên đã được xếp lớp.");
         }
@@ -1098,6 +1122,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         if (enrollment.hasClassAccess()) {
             return mapper.toEnrollmentResponse(enrollment);
+        }
+        if (enrollment.getRegistrationStatus() != ClassroomRegistrationStatus.FULLY_PAID) {
+            throw new RuntimeException("Chỉ có thể xếp lớp sau khi học phí đã được thanh toán đầy đủ.");
         }
 
         ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();

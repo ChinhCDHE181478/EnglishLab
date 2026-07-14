@@ -111,8 +111,24 @@ class PaymentServiceImplClassroomTuitionTest {
     }
 
     @Test
-    void resolvePayableBundle_rejectsPendingConfirmation() {
+    void quotePayment_allowsLegacyPendingConfirmation() {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.PENDING_CONFIRMATION);
+        when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
+        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+                .thenReturn(Optional.of(enrollment));
+
+        when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
+
+        PaymentQuoteResponse quote = paymentService.quotePayment(
+                List.of(), List.of(12L), null, "learner@example.com"
+        );
+
+        assertEquals(5_000_000L, quote.getTotalAmount());
+    }
+
+    @Test
+    void quotePayment_rejectsWaitlistedEnrollment() {
+        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
         when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
@@ -121,7 +137,8 @@ class PaymentServiceImplClassroomTuitionTest {
                 RuntimeException.class,
                 () -> paymentService.quotePayment(List.of(), List.of(12L), null, "learner@example.com")
         );
-        assertTrue(ex.getMessage().contains("xác nhận"));
+
+        assertTrue(ex.getMessage().contains("danh sách chờ"));
     }
 
     @Test

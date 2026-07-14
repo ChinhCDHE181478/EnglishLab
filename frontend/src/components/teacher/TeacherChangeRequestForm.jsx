@@ -66,17 +66,16 @@ export default function TeacherChangeRequestForm({
 
   const isVirtual = classroom?.deliveryMode === 'VIRTUAL';
   const requiresRoom = !isVirtual;
-  const isScheduleRequest = form.type === 'RESCHEDULE_SESSION'
-    || form.type === 'CREATE_MAKEUP_SESSION';
+  const isMakeup = form.type === 'CREATE_MAKEUP_SESSION';
+  const isScheduleRequest = form.type === 'RESCHEDULE_SESSION' || isMakeup;
 
   const eligibleSessions = useMemo(
     () => (sessions || []).filter((session) => session.status !== 'COMPLETED' && session.status !== 'CANCELLED'),
     [sessions],
   );
 
-  const selectableSessions = form.type === 'CREATE_MAKEUP_SESSION'
-    ? (sessions || [])
-    : eligibleSessions;
+  // Makeup may reference a completed/cancelled source session as context only.
+  const selectableSessions = isMakeup ? (sessions || []) : eligibleSessions;
 
   const selectedSession = useMemo(
     () => selectableSessions.find((session) => String(session.id) === form.sessionId) || null,
@@ -322,13 +321,13 @@ export default function TeacherChangeRequestForm({
 
         <div className="space-y-2">
           <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
-            {form.type === 'CREATE_MAKEUP_SESSION' ? 'Buổi học cần học bù *' : 'Buổi học áp dụng *'}
+            {isMakeup ? 'Buổi học cần học bù *' : 'Buổi học áp dụng *'}
           </label>
           <BrandedSelect
             onChange={(event) => setForm((current) => ({
               ...current,
               sessionId: event.target.value,
-              newDate: form.type === 'CREATE_MAKEUP_SESSION'
+              newDate: isMakeup
                 ? todayDateInputValue()
                 : selectableSessions.find((session) => String(session.id) === event.target.value)?.sessionDate || current.newDate,
               slotIndex: '',
@@ -346,7 +345,7 @@ export default function TeacherChangeRequestForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
-              {form.type === 'CREATE_MAKEUP_SESSION' ? 'Ngày học bù *' : 'Ngày học mới *'}
+              {isMakeup ? 'Ngày học bù *' : 'Ngày học mới *'}
             </label>
             <input
               className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
@@ -364,7 +363,7 @@ export default function TeacherChangeRequestForm({
 
           <div className="space-y-2">
             <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
-              {form.type === 'CREATE_MAKEUP_SESSION' ? 'Khung giờ học bù *' : 'Khung giờ mới *'}
+              {isMakeup ? 'Khung giờ học bù *' : 'Khung giờ mới *'}
             </label>
             {checkingSlots ? (
               <div className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs font-semibold text-[#8b706e]">

@@ -1,6 +1,8 @@
 package fu.sap490.g23.backend.service.classroom;
 
+import fu.sap490.g23.backend.dto.request.classroom.AssignToClassRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RegisterClassRequest;
+import fu.sap490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ReorderWaitlistRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sap490.g23.backend.entity.User;
@@ -8,8 +10,8 @@ import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
@@ -33,6 +35,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -156,8 +159,6 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 .startDate(LocalDate.now().plusDays(10))
                 .maxCapacity(1)
                 .build();
-        PackageEnrollment packageEnrollment = mock(PackageEnrollment.class);
-
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
         when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
         when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
@@ -171,9 +172,6 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 .thenReturn(1L);
         when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId))
                 .thenReturn(Optional.empty());
-        when(packageEnrollmentRepository.findByStudentAndLearningPackage(learner, learningPackage))
-                .thenReturn(Optional.of(packageEnrollment));
-        when(courseEnrollmentAccessPolicy.hasLearningAccess(packageEnrollment)).thenReturn(true);
         when(offeringRepository.findByIdForUpdate(offeringId)).thenReturn(Optional.of(offering));
         when(enrollmentRepository.findMaxWaitlistPriority(offeringId, ClassroomRegistrationStatus.WAITLIST))
                 .thenReturn(2);
@@ -199,6 +197,110 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
                         && enrollment.getWaitlistPriority() == 3
         ));
+        verifyNoInteractions(packageEnrollmentRepository);
+        verifyNoInteractions(gradebookEntryRepository);
+    }
+
+    @Test
+    void registerForClass_WhenSeatAvailable_WaitsForPaymentWithoutLearningAccess() {
+        long offeringId = 10L;
+        User learner = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(20L)
+                .status(PackageStatus.PUBLISHED)
+                .price(java.math.BigDecimal.valueOf(5_000_000L))
+                .build();
+        ClassroomOffering offering = ClassroomOffering.builder()
+                .id(offeringId)
+                .learningPackage(learningPackage)
+                .status(ClassroomOfferingStatus.UPCOMING)
+                .startDate(LocalDate.now().plusDays(10))
+                .maxCapacity(20)
+                .build();
+
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
+        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+                eq(learner.getId()), eq(offeringId), anyCollection()
+        )).thenReturn(false);
+        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId))
+                .thenReturn(List.of());
+        when(enrollmentRepository.countByOfferingAndRegistrationStatuses(eq(offeringId), anyCollection()))
+                .thenReturn(0L);
+        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId))
+                .thenReturn(Optional.empty());
+        when(enrollmentRepository.saveAndFlush(any(ClassroomEnrollment.class)))
+                .thenAnswer(invocation -> {
+                    ClassroomEnrollment saved = invocation.getArgument(0);
+                    saved.setId(31L);
+                    return saved;
+                });
+        when(mapper.toEnrollmentResponse(any(ClassroomEnrollment.class)))
+                .thenAnswer(invocation -> {
+                    ClassroomEnrollment saved = invocation.getArgument(0);
+                    return ClassroomEnrollmentResponse.builder()
+                            .id(saved.getId())
+                            .registrationStatus(saved.getRegistrationStatus())
+                            .hasClassAccess(saved.hasClassAccess())
+                            .build();
+                });
+
+        ClassroomEnrollmentResponse response =
+                service.registerForClass(offeringId, new RegisterClassRequest(), "learner@example.com");
+
+        assertEquals(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT, response.getRegistrationStatus());
+        assertEquals(false, response.isHasClassAccess());
+        verifyNoInteractions(packageEnrollmentRepository);
+        verifyNoInteractions(gradebookEntryRepository);
+    }
+
+    @Test
+    void assignToClass_RejectsEnrollmentBeforeFullPayment() {
+        User manager = User.builder().id(99L).email("manager@example.com").build();
+        User learner = User.builder().id(7L).email("learner@example.com").build();
+        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+                .id(31L)
+                .student(learner)
+                .classroomOffering(offering)
+                .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
+                .build();
+
+        when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
+        when(enrollmentRepository.findById(31L)).thenReturn(Optional.of(enrollment));
+
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> service.assignToClass(31L, new AssignToClassRequest(), "manager@example.com")
+        );
+
+        assertTrue(ex.getMessage().contains("thanh toán"));
+        verifyNoInteractions(packageEnrollmentRepository);
+        verifyNoInteractions(gradebookEntryRepository);
+    }
+
+    @Test
+    void recordTuitionPayment_RejectsWaitlistedEnrollment() {
+        User manager = User.builder().id(99L).email("manager@example.com").build();
+        ClassroomEnrollment enrollment = ClassroomEnrollment.builder()
+                .id(32L)
+                .classroomOffering(ClassroomOffering.builder().id(10L).build())
+                .registrationStatus(ClassroomRegistrationStatus.WAITLIST)
+                .build();
+        RecordTuitionPaymentRequest request = new RecordTuitionPaymentRequest();
+        request.setAmount(java.math.BigDecimal.valueOf(5_000_000L));
+        request.setPaymentKind(TuitionPaymentKind.FULL);
+
+        when(accessHelper.requireUser("manager@example.com")).thenReturn(manager);
+        when(enrollmentRepository.findById(32L)).thenReturn(Optional.of(enrollment));
+
+        RuntimeException ex = assertThrows(
+                RuntimeException.class,
+                () -> service.recordTuitionPayment(32L, request, "manager@example.com")
+        );
+
+        assertTrue(ex.getMessage().contains("danh sách chờ"));
+        verifyNoInteractions(tuitionPaymentRepository);
     }
 
     @Test

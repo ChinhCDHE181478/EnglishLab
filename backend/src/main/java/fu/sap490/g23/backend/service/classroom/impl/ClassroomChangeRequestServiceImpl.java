@@ -38,6 +38,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
     private final ClassroomConflictService conflictService;
+    private final ClassroomScheduleLockService scheduleLockService;
     private final ClassroomOfferingService offeringService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
@@ -135,11 +136,14 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
-        // CREATE_MAKEUP_SESSION dùng buổi gốc (có thể đã hoàn thành/khóa) làm ngữ cảnh,
-        // chỉ kiểm tra lịch đề xuất; không ép SESSION_LOCKED trên buổi nguồn.
-        if (changeRequest.getRequestType() != ClassroomChangeRequestType.CREATE_MAKEUP_SESSION) {
-            conflictRequest.setCheckSessionLocked(true);
-        }
+        configureSessionLockCheck(conflictRequest, changeRequest);
+
+        scheduleLockService.lockDates(java.util.Arrays.asList(
+                conflictRequest.getSessionDate(),
+                changeRequest.getTargetSession() == null
+                        ? conflictRequest.getSessionDate()
+                        : changeRequest.getTargetSession().getSessionDate()
+        ));
 
         boolean overrideConflict = request != null && Boolean.TRUE.equals(request.getOverrideConflict());
 
@@ -175,9 +179,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             throw new RuntimeException("Chỉ có thể kiểm tra trùng lịch cho yêu cầu đang chờ duyệt.");
         }
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
-        if (changeRequest.getRequestType() != ClassroomChangeRequestType.CREATE_MAKEUP_SESSION) {
-            conflictRequest.setCheckSessionLocked(true);
-        }
+        configureSessionLockCheck(conflictRequest, changeRequest);
         return conflictService.check(conflictRequest);
     }
 
@@ -207,12 +209,25 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     }
 
     private ClassroomChangeRequest findPendingRequest(Long requestId) {
-        ClassroomChangeRequest changeRequest = changeRequestRepository.findById(requestId)
+        ClassroomChangeRequest changeRequest = changeRequestRepository.findByIdForUpdate(requestId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu thay đổi."));
         if (changeRequest.getStatus() != ClassroomChangeRequestStatus.PENDING) {
             throw new RuntimeException("Yêu cầu không còn ở trạng thái chờ duyệt.");
         }
         return changeRequest;
+    }
+
+    /**
+     * Makeup uses a source session only as context; completed/locked sources must not block approval.
+     * Other change types still enforce session-lock conflict checks.
+     */
+    private void configureSessionLockCheck(
+            ConflictCheckRequest conflictRequest,
+            ClassroomChangeRequest changeRequest
+    ) {
+        if (changeRequest.getRequestType() != ClassroomChangeRequestType.CREATE_MAKEUP_SESSION) {
+            conflictRequest.setCheckSessionLocked(true);
+        }
     }
 
     private ClassroomSession resolveTargetSession(CreateChangeRequestRequest request) {

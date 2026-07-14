@@ -232,7 +232,7 @@ export default function TrainingManagerClassroomDetailPage() {
           <TrainingManagerRegistrationPanel
             classroomOfferingId={Number(id)}
             initialEnrollmentId={initialEnrollmentId}
-            initialTab="queue"
+            initialTab="WAITLIST"
           />
         </div>
       );

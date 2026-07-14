@@ -54,7 +54,7 @@ public class ClassroomEnrollment {
     @Enumerated(EnumType.STRING)
     @Column(name = "registration_status", nullable = false, length = 40)
     @Builder.Default
-    private ClassroomRegistrationStatus registrationStatus = ClassroomRegistrationStatus.PENDING_CONFIRMATION;
+    private ClassroomRegistrationStatus registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
 
     @Column(name = "hold_spot", nullable = false)
     @Builder.Default
@@ -160,7 +160,7 @@ public class ClassroomEnrollment {
                     || status == ClassroomEnrollmentStatus.TRANSFERRED) {
                 registrationStatus = ClassroomRegistrationStatus.CANCELLED;
             } else {
-                registrationStatus = ClassroomRegistrationStatus.PENDING_CONFIRMATION;
+                registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
             }
         }
         if (tuitionAmountPaid == null) {

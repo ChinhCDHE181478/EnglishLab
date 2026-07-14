@@ -19,9 +19,8 @@ export const updateCurrentUser = async (data) => axiosClient.put('/api/user/me',
 export const uploadCurrentUserAvatar = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return axiosClient.post('/api/user/me/avatar', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // FormData: axiosClient drops default application/json so the browser sets multipart boundary.
+  return axiosClient.post('/api/user/me/avatar', formData);
 };
 
 export const deleteCurrentUserAvatar = async () => axiosClient.delete('/api/user/me/avatar');

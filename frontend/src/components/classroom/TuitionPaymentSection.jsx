@@ -3,7 +3,6 @@ import {
   AlertCircle,
   CheckCircle2,
   CreditCard,
-  ExternalLink,
   History,
   Receipt,
   Upload,
@@ -11,6 +10,7 @@ import {
 import classroomApi from '../../api/classroomApi';
 import paymentApi from '../../api/paymentApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import TuitionProofMedia, { LocalFilePreview } from './TuitionProofMedia';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomPrice } from '../../utils/classroomHelpers';
 
@@ -207,11 +207,21 @@ export default function TuitionPaymentSection({
           <p className="text-[11px] text-[#8b706e] leading-4">
             Phương án dự phòng khi không dùng được PayOS. Training Manager sẽ xác nhận minh chứng thủ công.
           </p>
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dfc4c2]/60 bg-white px-4 py-8 text-center transition hover:border-[#730014]/40 hover:bg-[#fff7f7]">
-            <Upload className="mb-2 h-6 w-6 text-[#730014]" />
-            <span className="text-xs font-bold text-[#584140]">{form.file ? form.file.name : 'Chọn ảnh hoặc PDF minh chứng'}</span>
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dfc4c2]/60 bg-white px-4 py-6 text-center transition hover:border-[#730014]/40 hover:bg-[#fff7f7]">
+            {form.file ? (
+              <div className="w-full space-y-2">
+                <LocalFilePreview file={form.file} />
+                <span className="inline-block text-[11px] font-bold text-[#730014]">Chọn ảnh khác</span>
+              </div>
+            ) : (
+              <>
+                <Upload className="mb-2 h-6 w-6 text-[#730014]" />
+                <span className="text-xs font-bold text-[#584140]">Chọn ảnh hoặc PDF minh chứng</span>
+                <span className="mt-1 text-[10px] text-[#8b706e]">JPG, PNG hoặc PDF — tối đa 20MB</span>
+              </>
+            )}
             <input
-              accept=".jpg,.jpeg,.png,.pdf"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
               className="sr-only"
               onChange={(event) => setForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
               type="file"
@@ -274,15 +284,10 @@ export default function TuitionPaymentSection({
               <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
             ) : null}
             {proof.fileUrl ? (
-              <a
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
-                href={proof.fileUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Xem minh chứng
-              </a>
+              <TuitionProofMedia
+                alt={`Minh chứng ${formatClassroomPrice(proof.amount)}`}
+                url={proof.fileUrl}
+              />
             ) : null}
           </div>
         ))}
