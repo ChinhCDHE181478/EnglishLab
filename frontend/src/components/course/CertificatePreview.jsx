@@ -114,10 +114,17 @@ const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp 
             </div>
 
             <div className="max-w-xs text-right">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh tại:</p>
-              <p className="text-sm font-bold text-[#730014] underline">{verificationUrl}</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh trực tuyến:</p>
+              <a
+                href={verificationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-[#730014] hover:underline break-all block"
+              >
+                {typeof window !== 'undefined' ? `${window.location.host}/certificates/${certificate.verificationCode}` : `/certificates/${certificate.verificationCode}`}
+              </a>
               <p className="mt-2 text-[9px] leading-tight text-[#9b9b9b]">
-                Chứng nhận này được cấp bởi EnglishLab Academy. Mã xác thực: {certificate.verificationCode}
+                EnglishLab Academy · Mã tra cứu: <span className="font-mono font-bold text-slate-700">{certificate.verificationCode}</span>
               </p>
             </div>
           </footer>

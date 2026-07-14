@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WorkspaceLessonDiscussion from './WorkspaceLessonDiscussion';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
+import Pagination, { usePagination } from '../ui/Pagination';
 
 const formatTime = (seconds = 0) => {
   const value = Math.max(0, Number(seconds) || 0);
@@ -97,6 +98,13 @@ const WorkspaceRightRail = ({
     () => notes.filter((item) => String(item.lessonId) === String(lessonId)),
     [lessonId, notes],
   );
+  const {
+    page: notesPage,
+    setPage: setNotesPage,
+    totalPages: notesTotalPages,
+    pageItems: notePageItems,
+    totalItems: notesTotalItems,
+  } = usePagination(currentNotes, 5, lessonId);
 
   useEffect(() => {
     setSelectedText('');
@@ -345,7 +353,7 @@ const WorkspaceRightRail = ({
 
             {message ? <p className="text-sm font-semibold text-[#730014]">{message}</p> : null}
 
-            {currentNotes.length ? currentNotes.map((note) => {
+            {currentNotes.length ? notePageItems.map((note) => {
               const editing = editingNoteId === note.id;
               const displayText = note.content || note.selectedText || '';
               return (
@@ -427,6 +435,18 @@ const WorkspaceRightRail = ({
                 Bạn chưa có ghi chú nào cho bài học này.
               </div>
             )}
+
+            {currentNotes.length ? (
+              <Pagination
+                alwaysVisible
+                className="pt-1"
+                onChange={setNotesPage}
+                page={notesPage}
+                pageSize={5}
+                totalItems={notesTotalItems}
+                totalPages={notesTotalPages}
+              />
+            ) : null}
 
             {recentLessons.length ? (
               <div className="space-y-2">

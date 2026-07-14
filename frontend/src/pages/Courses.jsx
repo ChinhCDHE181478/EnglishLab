@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
@@ -216,12 +217,17 @@ const Courses = () => {
           </div>
         ) : null}
         {isAuthenticated ? (
-          <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead9db] bg-[#fffdfc] px-6 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
-              <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
+          <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead9db] bg-[linear-gradient(135deg,_#fffdfc,_#fff0f1)] px-6 py-6 shadow-sm transition-all duration-200 hover:border-[#dfbfbd] hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#8a0018] shadow-sm border border-[#f0e3e4]">
+                <Route className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
+                <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
+              </div>
             </div>
-            <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/learning-path">Mở lộ trình học</Link>
+            <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] active:scale-95 shadow-sm" to="/learning-path">Mở lộ trình học</Link>
           </div>
         ) : null}
         <RecommendedCoursesSection

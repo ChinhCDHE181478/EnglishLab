@@ -211,7 +211,8 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setRecommendedNextCourseSlug(null);
         onlineCourseRepository.save(course);
 
-        User learner = userRepository.findByEmail(CERTIFICATE_LEARNER_EMAIL).orElseGet(() -> {
+        User existing = userRepository.findByEmail(CERTIFICATE_LEARNER_EMAIL).orElse(null);
+        if (existing == null) {
             User created = User.builder()
                     .email(CERTIFICATE_LEARNER_EMAIL)
                     .fullName("Học viên Chứng nhận Demo")
@@ -224,8 +225,12 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     .studyGoal("Hoàn thành khóa học demo để kiểm tra chứng nhận.")
                     .build();
             userRoleService.assignRole(created, RoleEnum.LEARNER);
-            return userRepository.save(created);
-        });
+            existing = userRepository.save(created);
+        } else if (existing.getFullName() == null || existing.getFullName().isBlank() || existing.getFullName().equalsIgnoreCase("Học viên EnglishLab")) {
+            existing.setFullName("Học viên Chứng nhận Demo");
+            existing = userRepository.save(existing);
+        }
+        final User learner = existing;
 
         PackageEnrollment enrollment = enrollmentRepository.findByStudentAndLearningPackage(learner, course.getLearningPackage())
                 .orElseGet(() -> enrollmentRepository.save(PackageEnrollment.builder()

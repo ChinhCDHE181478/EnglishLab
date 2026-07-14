@@ -71,7 +71,12 @@ const CertificateVerifyPage = () => {
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-700" />
-                  <div><h1 className="font-['Manrope'] text-xl font-extrabold text-emerald-800">Chứng nhận hợp lệ</h1><p className="mt-1 text-sm text-emerald-700">Thông tin đã được xác thực trực tiếp từ hệ thống EnglishLab.</p></div>
+                  <div>
+                    <h1 className="font-['Manrope'] text-xl font-extrabold text-emerald-800">Chứng nhận hợp lệ</h1>
+                    <p className="mt-1 text-sm text-emerald-700 font-medium">
+                      Chứng nhận cấp cho học viên <strong className="font-bold text-emerald-950 underline decoration-[#b9ddc6] underline-offset-4">{certificate.learnerName || 'Học viên EnglishLab'}</strong> đã được xác thực trực tiếp từ hệ thống EnglishLab.
+                    </p>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white" onClick={() => window.print()} type="button"><Printer className="h-4 w-4" />In / Tải PDF</button>

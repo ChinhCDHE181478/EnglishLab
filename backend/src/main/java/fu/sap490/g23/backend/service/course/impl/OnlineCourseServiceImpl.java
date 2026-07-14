@@ -1843,9 +1843,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private String resolveLearnerName(User student) {
-        return student.getFullName() == null || student.getFullName().isBlank()
-                ? "Học viên EnglishLab"
-                : student.getFullName().trim();
+        if (student.getFullName() != null && !student.getFullName().isBlank() && !student.getFullName().trim().equalsIgnoreCase("Học viên EnglishLab")) {
+            return student.getFullName().trim();
+        }
+        if (student.getEmail() != null) {
+            String[] parts = student.getEmail().split("@");
+            if (parts.length > 0) {
+                return parts[0];
+            }
+        }
+        return "Học viên EnglishLab";
     }
 
     private String generateUniqueSlug(String title) {
