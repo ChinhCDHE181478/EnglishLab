@@ -15,6 +15,7 @@ const FILTERS = [
 ];
 
 const PAGE_SIZE = 10;
+const EMPTY_LESSON_IDS = Object.freeze([]);
 
 const getErrorMessage = (error, fallback) =>
   error?.response?.data?.message || error?.response?.data?.description || fallback;
@@ -24,7 +25,7 @@ const formatDate = (value) =>
     ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
     : '';
 
-const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = [], canPersist = false, onDiscussionCreated, addNotification }) => {
+const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSON_IDS, canPersist = false, onDiscussionCreated, addNotification }) => {
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);

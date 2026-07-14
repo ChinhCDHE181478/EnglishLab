@@ -296,6 +296,35 @@ export const courseApi = {
     return normalizePage(unwrapData(response));
   },
 
+  async getManagedLearningPaths(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/learning-paths', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async createManagedLearningPath(payload) {
+    const response = await axiosClient.post('/api/content-manager/learning-paths', payload);
+    return unwrapData(response);
+  },
+
+  async updateManagedLearningPath(pathId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/learning-paths/${pathId}`, payload);
+    return unwrapData(response);
+  },
+
+  async addManagedLearningPathCourses(pathId, courseIds) {
+    const response = await axiosClient.post(`/api/content-manager/learning-paths/${pathId}/courses`, { courseIds });
+    return unwrapData(response);
+  },
+
+  async reorderManagedLearningPathCourses(pathId, courseIds) {
+    const response = await axiosClient.put(`/api/content-manager/learning-paths/${pathId}/courses/order`, { courseIds });
+    return unwrapData(response);
+  },
+
+  async deleteManagedLearningPath(pathId) {
+    await axiosClient.delete(`/api/content-manager/learning-paths/${pathId}`);
+  },
+
   async getDiscussionModerationReports(status = 'PENDING', category = '') {
     const params = { status };
     if (category) params.category = category;

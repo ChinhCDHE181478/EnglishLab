@@ -98,6 +98,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final CourseLessonFlashcardRefRepository courseLessonFlashcardRefRepository;
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
@@ -1550,6 +1551,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void synchronizeLessonFlashcardRefs(Lesson lesson, List<Long> flashcardSetIds) {
+        courseLessonFlashcardRefRepository.deleteByLessonId(lesson.getId());
+        courseLessonFlashcardRefRepository.flush();
         lesson.getFlashcardRefs().clear();
         if (flashcardSetIds == null || flashcardSetIds.isEmpty()) {
             return;

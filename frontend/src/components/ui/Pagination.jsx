@@ -25,11 +25,8 @@ export function usePagination(items, pageSize = 10, resetKey) {
   return { page, setPage, totalPages, pageItems, totalItems: list.length };
 }
 
-export default function Pagination({ page, totalPages, onChange, totalItems, pageSize = 10, className = '' }) {
-  if (totalPages <= 1) return null;
-
-  const from = (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, totalItems ?? page * pageSize);
+export default function Pagination({ page, totalPages, onChange, totalItems, pageSize = 10, className = '', alwaysVisible = false }) {
+  if (totalPages <= 1 && !alwaysVisible) return null;
 
   return (
     <div className={`flex flex-wrap items-center justify-center gap-3 ${className}`}>
@@ -43,7 +40,6 @@ export default function Pagination({ page, totalPages, onChange, totalItems, pag
       </button>
       <span className="text-sm font-semibold text-slate-600">
         Trang {page} / {totalPages}
-        {typeof totalItems === 'number' ? ` · ${from}-${to} trong ${totalItems}` : ''}
       </span>
       <button
         type="button"
