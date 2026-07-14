@@ -55,6 +55,7 @@ public class OnlineCourseResponse {
     private Long reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String recommendationReason;
 
     @Builder.Default
     private List<String> focusSkills = new ArrayList<>();

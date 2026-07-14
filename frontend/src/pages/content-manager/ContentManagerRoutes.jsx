@@ -20,6 +20,7 @@ import ContentManagerTrainingProgramsPage from './ContentManagerTrainingPrograms
 import ContentManagerCurriculumProgramDetailPage from './ContentManagerCurriculumProgramDetailPage';
 import ContentManagerCurriculumProgramEditPage from './ContentManagerCurriculumProgramEditPage';
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
+import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -57,6 +58,7 @@ export default function ContentManagerRoutes() {
         <Route path="mock-exams" element={<ContentManagerAssessmentsHubPage pageKey="mockExams" />} />
         <Route path="publication" element={<ContentManagerPublicationPage />} />
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
+        <Route path="discussion-moderation" element={<ContentManagerDiscussionModerationPage />} />
         <Route path="settings" element={<Navigate replace to="../dashboard" />} />
         <Route path="categories" element={<ContentManagerCategoriesPage />} />
         <Route path="*" element={<Navigate replace to="dashboard" />} />

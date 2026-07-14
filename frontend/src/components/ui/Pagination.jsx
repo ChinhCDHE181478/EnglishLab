@@ -25,31 +25,27 @@ export function usePagination(items, pageSize = 10, resetKey) {
   return { page, setPage, totalPages, pageItems, totalItems: list.length };
 }
 
-export default function Pagination({ page, totalPages, onChange, totalItems, pageSize = 10, className = '' }) {
-  if (totalPages <= 1) return null;
-
-  const from = (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, totalItems ?? page * pageSize);
+export default function Pagination({ page, totalPages, onChange, totalItems, pageSize = 10, className = '', alwaysVisible = false, compact = false }) {
+  if (totalPages <= 1 && !alwaysVisible) return null;
 
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-3 ${className}`}>
+    <div className={`flex items-center justify-center ${compact ? 'gap-2 whitespace-nowrap' : 'flex-wrap gap-3'} ${className}`}>
       <button
         type="button"
         disabled={page <= 1}
         onClick={() => onChange(page - 1)}
-        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40"
+        className={`rounded-xl border border-slate-200 bg-white font-bold text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40 ${compact ? 'px-2.5 py-1.5 text-[11px]' : 'px-4 py-2 text-sm'}`}
       >
         Trang trước
       </button>
-      <span className="text-sm font-semibold text-slate-600">
+      <span className={compact ? 'text-[11px] font-semibold text-slate-600' : 'text-sm font-semibold text-slate-600'}>
         Trang {page} / {totalPages}
-        {typeof totalItems === 'number' ? ` · ${from}-${to} trong ${totalItems}` : ''}
       </span>
       <button
         type="button"
         disabled={page >= totalPages}
         onClick={() => onChange(page + 1)}
-        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40"
+        className={`rounded-xl border border-slate-200 bg-white font-bold text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40 ${compact ? 'px-2.5 py-1.5 text-[11px]' : 'px-4 py-2 text-sm'}`}
       >
         Trang sau
       </button>

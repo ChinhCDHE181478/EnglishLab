@@ -20,6 +20,7 @@ import {
   SlidersHorizontal,
   Dumbbell,
   Video,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const contentManagerNav = [
@@ -57,6 +58,7 @@ export const contentManagerNav = [
     items: [
       { label: 'Hàng chờ xuất bản', href: '/content-manager/publication', icon: FileCheck2 },
       { label: 'Phân tích nội dung', href: '/content-manager/analytics', icon: BarChart3 },
+      { label: 'Báo cáo hỏi đáp', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
     ],
   },
 ];
@@ -176,6 +178,11 @@ export const contentManagerPageMeta = {
     title: 'Phân tích nội dung',
     subtitle: 'Theo dõi khối lượng nội dung, tiến độ xuất bản và các chỉ số vận hành quan trọng.',
     searchPlaceholder: 'Tìm chỉ số hoặc nhóm nội dung...',
+  },
+  '/content-manager/discussion-moderation': {
+    title: 'Báo cáo hỏi đáp',
+    subtitle: 'Xem xét báo cáo của học viên, ẩn nội dung vi phạm hoặc bỏ qua báo cáo không phù hợp.',
+    searchPlaceholder: 'Tìm báo cáo thảo luận...',
   },
   '/content-manager/categories': {
     title: 'Danh mục khóa học',

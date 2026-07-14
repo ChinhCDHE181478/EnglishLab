@@ -7,6 +7,7 @@ import ListeningExamMode from './ListeningExamMode';
 import ReadingExamMode from './ReadingExamMode';
 import SpeakingExamMode from './SpeakingExamMode';
 import WritingExamMode from './WritingExamMode';
+import ExamDeviceCheck from './ExamDeviceCheck';
 
 const statusLabels = {
   PASSED: 'Hoàn thành',
@@ -757,6 +758,8 @@ export default function AiAssessmentPanel({
   const [examWarning, setExamWarning] = useState(null);
   const [examViolations, setExamViolations] = useState([]);
   const [examExitConfirmOpen, setExamExitConfirmOpen] = useState(false);
+  const [deviceCheckOpen, setDeviceCheckOpen] = useState(false);
+  const [deviceCheckMetadata, setDeviceCheckMetadata] = useState(null);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -956,7 +959,15 @@ export default function AiAssessmentPanel({
     setExamWarning(null);
     setExamViolations([]);
     setExamExitConfirmOpen(false);
+    setDeviceCheckOpen(false);
+    setDeviceCheckMetadata(null);
     examIntentionalExitRef.current = false;
+    setDeviceCheckOpen(true);
+  };
+
+  const handleDeviceCheckComplete = (metadata) => {
+    setDeviceCheckMetadata(metadata);
+    setDeviceCheckOpen(false);
     setExamModeOpen(true);
   };
 
@@ -964,6 +975,8 @@ export default function AiAssessmentPanel({
     if (submitting) return;
     examIntentionalExitRef.current = true;
     setExamExitConfirmOpen(false);
+    setDeviceCheckOpen(false);
+    setDeviceCheckMetadata(null);
     setExamWarning(null);
     restoreAssessmentAttemptState();
     if (document.fullscreenElement) {
@@ -1172,6 +1185,13 @@ export default function AiAssessmentPanel({
     setExamExitConfirmOpen(false);
     examIntentionalExitRef.current = false;
   }, [selected?.id]);
+
+  const buildProctoringMetadata = (violations = examViolations) => ({
+    fullscreenExitCount: violations.filter((item) => String(item?.reason || item).toLowerCase().includes('toàn màn hình')).length,
+    tabSwitchCount: violations.filter((item) => !String(item?.reason || item).toLowerCase().includes('toàn màn hình')).length,
+    microphoneChecked: Boolean(deviceCheckMetadata?.microphoneChecked),
+    deviceCheckPassed: Boolean(deviceCheckMetadata?.deviceCheckPassed),
+  });
 
   useEffect(() => {
     if (!selected?.id || typeof onDraftChange !== 'function') return;
@@ -1480,6 +1500,7 @@ export default function AiAssessmentPanel({
       if (selected.skill === 'SPEAKING' && audioUrl.trim()) {
         payload.submittedAudioUrl = audioUrl.trim();
       }
+      Object.assign(payload, buildProctoringMetadata());
       const response = await onSubmitAssessment(selected.id, payload);
       setResult(response);
       setCreatingNewAttempt(false);
@@ -1508,7 +1529,10 @@ export default function AiAssessmentPanel({
     setError('');
     setResult(null);
     try {
-      const response = await onSubmitAssessment(selected.id, payload);
+      const response = await onSubmitAssessment(selected.id, {
+        ...buildProctoringMetadata(),
+        ...payload,
+      });
       setResult(response);
       setCreatingNewAttempt(false);
       setExamModeOpen(false);
@@ -2042,7 +2066,7 @@ export default function AiAssessmentPanel({
                     <button
                       className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
                       disabled={isLocked || submitting}
-                      onClick={() => setExamModeOpen(true)}
+                      onClick={handleOpenExamMode}
                       type="button"
                     >
                       Vào phòng thi Reading
@@ -2078,7 +2102,7 @@ export default function AiAssessmentPanel({
                     <button
                       className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
                       disabled={isLocked || submitting}
-                      onClick={() => setExamModeOpen(true)}
+                      onClick={handleOpenExamMode}
                       type="button"
                     >
                       Vào phòng thi Listening
@@ -2114,7 +2138,7 @@ export default function AiAssessmentPanel({
                     <button
                       className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
                       disabled={isLocked || submitting}
-                      onClick={() => setExamModeOpen(true)}
+                      onClick={handleOpenExamMode}
                       type="button"
                     >
                       Vào phòng thi Writing
@@ -2163,7 +2187,7 @@ export default function AiAssessmentPanel({
                     <button
                       className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(138,0,24,0.22)] transition hover:brightness-105 disabled:opacity-60"
                       disabled={isLocked || submitting || !(activeSpeakingVariant?.parts || []).length}
-                      onClick={() => setExamModeOpen(true)}
+                      onClick={handleOpenExamMode}
                       type="button"
                     >
                       Vào phòng thi Speaking
@@ -3088,6 +3112,18 @@ export default function AiAssessmentPanel({
       ) : null}
       </div>
     </section>
+    {deviceCheckOpen && selected ? (
+      <div className="fixed inset-0 z-[130] overflow-y-auto bg-[#1c120f]/65 px-4 py-8">
+        <ExamDeviceCheck
+          description="Vui lòng bật toàn màn hình để đảm bảo tính nghiêm túc của bài đánh giá. Hệ thống sẽ ghi nhận khi bạn rời tab hoặc thoát toàn màn hình."
+          onCancel={() => setDeviceCheckOpen(false)}
+          onComplete={handleDeviceCheckComplete}
+          requireFullscreen
+          requireMic={selected.skill === 'SPEAKING'}
+          title="Kiểm tra thiết bị trước khi làm bài"
+        />
+      </div>
+    ) : null}
     {examModeOpen && isReadingExamMode ? (
       <ReadingExamMode
         assessment={selected}
@@ -3107,6 +3143,7 @@ export default function AiAssessmentPanel({
         isLocked={isSubmissionLocked}
         onClose={() => setExamModeOpen(false)}
         onSubmit={handleExamModeSubmit}
+        skipAudioCheck
         submitting={submitting}
       />
     ) : null}
@@ -3131,6 +3168,7 @@ export default function AiAssessmentPanel({
         }}
         onClose={() => setExamModeOpen(false)}
         onSubmit={handleExamModeSubmit}
+        skipDeviceCheck
         submitting={submitting}
         uploadAudio={typeof uploadSpeakingAudio === 'function'
           ? uploadSpeakingAudio

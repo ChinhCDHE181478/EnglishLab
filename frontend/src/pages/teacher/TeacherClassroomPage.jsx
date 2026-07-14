@@ -18,6 +18,7 @@ import {
   HelpCircle,
   ChevronRight,
   User,
+  Download,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -44,6 +45,7 @@ import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
+import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
@@ -154,6 +156,24 @@ export default function TeacherClassroomPage() {
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố bảng điểm.'));
     }
+  };
+
+  const handleExportGradebook = () => {
+    const rows = gradebook.map((entry) => [
+      entry.studentName || `Học viên #${entry.studentId}`,
+      entry.studentEmail || '',
+      entry.attendancePercent ?? '',
+      entry.homeworkScore ?? '',
+      entry.quizScore ?? '',
+      entry.participationScore ?? '',
+      entry.finalResult ?? '',
+      entry.status || '',
+    ]);
+    downloadCsv(
+      `${sanitizeCsvFilename(`bang-diem-${classroom?.title || id}`)}.csv`,
+      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm bài tập', 'Điểm quiz', 'Điểm phát biểu', 'Điểm/Kết quả cuối', 'Trạng thái'],
+      rows
+    );
   };
 
   // Build a beautiful student roster using gradebook entries
@@ -407,10 +427,10 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'homework') {
       return (
-        <TeacherHomeworkSection 
-          classroomId={id} 
+        <TeacherHomeworkSection
+          classroomId={id}
           curriculumUnits={classroom?.curriculumProgram?.units || []}
-          homework={homework} 
+          homework={homework}
           initialOpenCreate={searchParams.get('action') === 'create'}
           onGradebookChange={setGradebook}
           onHomeworkChange={setHomework}
@@ -433,14 +453,17 @@ export default function TeacherClassroomPage() {
               <h4 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Công bố bảng điểm chính thức</h4>
               <p className="text-xs text-[#584140] mt-1">Sau khi chấm điểm đầy đủ, hãy công bố bảng điểm để học viên có thể xem kết quả đánh giá.</p>
             </div>
-            <button
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
-              onClick={handlePublishGradebook}
-              type="button"
-            >
-              <Award className="h-4 w-4" />
-              Công bố bảng điểm
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-extrabold text-[#4b0009] transition hover:bg-slate-50 disabled:opacity-50" disabled={!gradebook.length} onClick={handleExportGradebook} type="button"><Download className="h-4 w-4" />Xuất CSV bảng điểm</button>
+              <button
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
+                onClick={handlePublishGradebook}
+                type="button"
+              >
+                <Award className="h-4 w-4" />
+                Công bố bảng điểm
+              </button>
+            </div>
           </div>
 
           {!gradebook.length ? (

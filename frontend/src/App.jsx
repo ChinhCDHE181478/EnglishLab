@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LearnerExperienceProvider } from './context/LearnerExperienceContext';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import CertificateVerifyPage from './pages/CertificateVerifyPage';
 import CompleteProfile from './pages/CompleteProfile';
 import CourseDetail from './pages/CourseDetail';
 import CourseHome from './pages/CourseHome';
@@ -12,8 +13,12 @@ import CourseWorkspace from './pages/CourseWorkspace';
 import Courses from './pages/Courses';
 import ForgotPassword from './pages/ForgotPassword';
 import Home from './pages/Home';
+import FlashcardPracticePage from './pages/FlashcardPracticePage';
 import Login from './pages/Login';
 import MyCoursesPage from './pages/MyCoursesPage';
+import LearningPathPage from './pages/LearningPathPage';
+import LearningPathReferencePage from './pages/LearningPathReferencePage';
+import LearningPathCatalogPage from './pages/LearningPathCatalogPage';
 import MockTestsPage from './pages/MockTestsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import PlacementTestPage from './pages/PlacementTestPage';
@@ -47,6 +52,7 @@ import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
 import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
+import AdminRoutes from './pages/admin/AdminRoutes';
 
 function CourseDetailRoute() {
   const { slugOrId } = useParams();
@@ -69,13 +75,19 @@ function AppRoutes() {
   return (
     <Routes location={location}>
       <Route path="/" element={<Home />} />
+      <Route path="/certificates/:code" element={<CertificateVerifyPage />} />
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
+      </Route>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['ADMIN']} />}>
+        <Route path="/admin/*" element={<AdminRoutes />} />
       </Route>
       {/* Public / student-facing marketing pages */}
       <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
       <Route path="/opening-schedule/:slugOrId" element={<ClassroomPublicDetailPage />} />
       <Route path="/courses" element={<Courses />} />
+      <Route path="/learning-paths" element={<LearningPathCatalogPage />} />
+      <Route path="/learning-paths/:code" element={<LearningPathReferencePage />} />
       <Route path="/courses/:slugOrId" element={<CourseDetailRoute />} />
       <Route path="/courses/:slugOrId/home" element={<CourseHomeRoute />} />
       <Route path="/courses/:slugOrId/learn" element={<CourseWorkspaceRoute />} />
@@ -91,6 +103,8 @@ function AppRoutes() {
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/my-courses" element={<MyCoursesPage />} />
+        <Route path="/learning-path" element={<LearningPathPage />} />
+        <Route path="/flashcards/practice" element={<FlashcardPracticePage />} />
         <Route path="/my-classrooms" element={<MyClassroomsPage />} />
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />

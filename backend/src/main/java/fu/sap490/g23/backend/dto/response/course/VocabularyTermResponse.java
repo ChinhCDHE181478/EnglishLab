@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class VocabularyTermResponse {
+    private Long courseId;
+    private String courseTitle;
     private String termKey;
     private String term;
     private String meaning;

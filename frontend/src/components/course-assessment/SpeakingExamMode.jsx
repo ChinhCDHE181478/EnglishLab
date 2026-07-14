@@ -117,6 +117,8 @@ export default function SpeakingExamMode({
     setError('');
     try {
       await onSubmit?.({
+        fullscreenExitCount: violations.filter((item) => String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
+        tabSwitchCount: violations.filter((item) => !String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
         submittedText: buildSubmissionText(),
         submittedAudioUrl: uploadedUrl,
       });

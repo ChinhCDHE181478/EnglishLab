@@ -13,10 +13,14 @@ const deviceOptions = (devices, fallback) => (
 
 export default function ExamDeviceCheck({
   includeMicrophone = false,
+  requireMic = false,
+  requireFullscreen = true,
   onCancel,
   onComplete,
-  title = 'Kiểm tra thiết bị',
+  title = 'Kiểm tra thiết bị trước khi làm bài',
+  description = 'Vui lòng bật toàn màn hình để đảm bảo tính nghiêm túc của bài đánh giá.',
 }) {
+  const microphoneRequired = includeMicrophone || requireMic;
   const [inputs, setInputs] = useState([]);
   const [outputs, setOutputs] = useState([]);
   const [inputId, setInputId] = useState('');
@@ -161,12 +165,37 @@ export default function ExamDeviceCheck({
     }
   };
 
-  const ready = soundState === 'passed' && (!includeMicrophone || micState === 'passed');
+  const ready = soundState === 'passed' && (!microphoneRequired || micState === 'passed');
+
+  const completeCheck = async () => {
+    setMessage('');
+    if (requireFullscreen && !document.fullscreenElement) {
+      try {
+        if (!document.documentElement?.requestFullscreen) throw new Error('unsupported');
+        await document.documentElement.requestFullscreen();
+      } catch {
+        setMessage('Không thể bật toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+        return;
+      }
+    }
+    onComplete?.({
+      completed: true,
+      soundPassed: true,
+      microphoneChecked: microphoneRequired ? micState === 'passed' : false,
+      microphonePassed: microphoneRequired ? micState === 'passed' : false,
+      deviceCheckPassed: true,
+      fullscreenConfirmed: requireFullscreen ? Boolean(document.fullscreenElement) : false,
+      inputDeviceId: inputId,
+      outputDeviceId: outputId,
+      checkedAt: new Date().toISOString(),
+    });
+  };
 
   return (
     <div className="mx-auto w-full max-w-5xl rounded-[30px] border border-[#dfbfbd]/35 bg-white p-6 shadow-[0_18px_55px_rgba(75,0,9,0.10)] md:p-8">
       <audio className="hidden" ref={audioRef} />
       <h1 className="text-center font-['Manrope'] text-2xl font-extrabold text-[#21446d]">{title}</h1>
+      {description ? <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-7 text-[#584140]">{description}</p> : null}
 
       <div className="mt-8 space-y-9">
         <section className="grid gap-5 md:grid-cols-[56px_1fr]">
@@ -199,7 +228,7 @@ export default function ExamDeviceCheck({
           </div>
         </section>
 
-        {includeMicrophone ? (
+        {microphoneRequired ? (
           <section className="grid gap-5 md:grid-cols-[56px_1fr]">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
               <Mic aria-hidden="true" size={23} />
@@ -241,7 +270,7 @@ export default function ExamDeviceCheck({
         <button
           className="rounded-2xl bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.20)] disabled:cursor-not-allowed disabled:opacity-40"
           disabled={!ready}
-          onClick={() => onComplete?.({ inputDeviceId: inputId, outputDeviceId: outputId })}
+          onClick={completeCheck}
           type="button"
         >
           Tiếp tục vào bài thi

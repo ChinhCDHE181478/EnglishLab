@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Flag, MessageCircle, Send, ThumbsUp, Loader2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, Flag, MessageCircle, Send, ThumbsUp, Loader2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
+import { ReportModal } from '../course-discussion/DiscussionReactions';
 
 const FILTERS = [
   { id: 'ALL', label: 'Tất cả' },
@@ -9,6 +10,8 @@ const FILTERS = [
   { id: 'RESOLVED', label: 'Đã giải quyết' },
   { id: 'HELPFUL', label: 'Hữu ích nhất' },
 ];
+
+const PAGE_SIZE = 10;
 
 const REACTIONS = [
   { id: 'LIKE', label: 'Thích', icon: '/reactions/like.png', activeClass: 'text-blue-600' },
@@ -129,7 +132,7 @@ const ReactionButton = ({ counts = {}, myReaction, onReact, reactingKey, targetK
   return (
     <div className="group relative inline-flex [overflow-anchor:none]">
       <div className="pointer-events-none absolute bottom-full left-0 z-10 h-3 w-full opacity-0 group-hover:pointer-events-auto group-focus-within:pointer-events-auto" />
-      <div className="pointer-events-none absolute bottom-full left-0 z-20 flex translate-y-1 scale-95 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100">
+      <div className="pointer-events-none absolute bottom-full right-0 z-[70] flex translate-y-1 scale-95 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100">
         {REACTIONS.map((reaction) => (
           <button
             className="flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-1 hover:scale-125 focus:-translate-y-1 focus:scale-125 focus:outline-none"
@@ -276,7 +279,9 @@ const CourseDiscussionSection = ({ courseId }) => {
   const loggedIn = hasAccessToken();
   const currentUser = getStoredUser();
   const [filter, setFilter] = useState('ALL');
+  const [page, setPage] = useState(0);
   const [threads, setThreads] = useState([]);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -291,6 +296,8 @@ const CourseDiscussionSection = ({ courseId }) => {
   const [reactionModalItems, setReactionModalItems] = useState([]);
   const [reactionModalLoading, setReactionModalLoading] = useState(false);
   const [reactionModalTab, setReactionModalTab] = useState('ALL');
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const discussionStats = useMemo(() => ({
     total: threads.length,
@@ -298,13 +305,18 @@ const CourseDiscussionSection = ({ courseId }) => {
     resolved: threads.filter((item) => item.resolved).length,
   }), [threads]);
 
-  const loadDiscussions = async (nextFilter = filter) => {
+  const loadDiscussions = async (nextFilter = filter, nextPage = page) => {
     if (!courseId) return;
     setLoading(true);
     setError('');
     try {
-      const items = await courseApi.getCourseDiscussions(courseId, nextFilter);
-      setThreads(items);
+      const result = await courseApi.getCourseDiscussions(courseId, {
+        filter: nextFilter,
+        page: nextPage,
+        size: PAGE_SIZE,
+      });
+      setThreads(result.content || []);
+      setTotalPages(result.totalPages || 0);
     } catch (err) {
         setError(normalizeUiMessage(resolveErrorMessage(err), 'Không thể tải thảo luận. Vui lòng thử lại.'));
     } finally {
@@ -313,8 +325,19 @@ const CourseDiscussionSection = ({ courseId }) => {
   };
 
   useEffect(() => {
-    loadDiscussions(filter);
-  }, [courseId, filter]);
+    loadDiscussions(filter, page);
+  }, [courseId, filter, page]);
+
+  const handleFilterChange = (nextFilter) => {
+    setFilter(nextFilter);
+    setPage(0);
+  };
+
+  const handlePageChange = (delta) => {
+    const nextPage = page + delta;
+    if (nextPage < 0 || nextPage >= totalPages) return;
+    setPage(nextPage);
+  };
 
   const updateThreadInState = (updatedThread) => {
     setThreads((current) => current
@@ -555,24 +578,31 @@ const CourseDiscussionSection = ({ courseId }) => {
     }
   };
 
-  const handleReport = async (type, id) => {
+  const openReportModal = (type, id) => {
     setMessage('');
     if (!loggedIn) {
       setMessage('Bạn cần đăng nhập để báo cáo nội dung.');
       return;
     }
-    setActionKey(`report:${type}:${id}`);
+    setReportTarget({ type, id });
+  };
+
+  const handleReportSubmit = async (reasonCategory, reason) => {
+    if (!reportTarget) return;
+    setReportSubmitting(true);
+    setMessage('');
     try {
-      if (type === 'reply') {
-        await courseApi.reportDiscussionReply(id, { reason: 'Nội dung không phù hợp với quy tắc cộng đồng.' });
+      if (reportTarget.type === 'reply') {
+        await courseApi.reportDiscussionReply(reportTarget.id, { reasonCategory, reason });
       } else {
-        await courseApi.reportDiscussionThread(id, { reason: 'Nội dung không phù hợp với quy tắc cộng đồng.' });
+        await courseApi.reportDiscussionThread(reportTarget.id, { reasonCategory, reason });
       }
       setMessage('Cảm ơn bạn đã báo cáo. Nội dung sẽ được xem xét.');
+      setReportTarget(null);
     } catch (err) {
       setMessage(normalizeUiMessage(resolveErrorMessage(err), 'Không thể gửi báo cáo. Vui lòng thử lại.'));
     } finally {
-      setActionKey('');
+      setReportSubmitting(false);
     }
   };
 
@@ -675,7 +705,7 @@ const CourseDiscussionSection = ({ courseId }) => {
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
             }`}
             key={item.id}
-            onClick={() => setFilter(item.id)}
+            onClick={() => handleFilterChange(item.id)}
             type="button"
           >
             {item.label}
@@ -727,7 +757,7 @@ const CourseDiscussionSection = ({ courseId }) => {
               <button
                 className="inline-flex h-7 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100"
                 disabled={Boolean(actionKey)}
-                onClick={() => handleReport('thread', thread.id)}
+                onClick={() => openReportModal('thread', thread.id)}
                 type="button"
               >
                 <Flag className="h-3 w-3" />
@@ -809,7 +839,7 @@ const CourseDiscussionSection = ({ courseId }) => {
                       <button
                         className="h-7 rounded-lg bg-white border border-slate-200/60 px-2.5 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 active:scale-[0.96]"
                         disabled={Boolean(actionKey)}
-                        onClick={() => handleReport('reply', reply.id)}
+                        onClick={() => openReportModal('reply', reply.id)}
                         type="button"
                       >
                         Báo cáo
@@ -846,6 +876,29 @@ const CourseDiscussionSection = ({ courseId }) => {
           </article>
         ))}
       </div>
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+            disabled={page === 0 || loading}
+            onClick={() => handlePageChange(-1)}
+            type="button"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Trước
+          </button>
+          <span className="text-sm font-semibold text-slate-500">Trang {page + 1} / {totalPages}</span>
+          <button
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+            disabled={page >= totalPages - 1 || loading}
+            onClick={() => handlePageChange(1)}
+            type="button"
+          >
+            Sau
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {reactionModal && (
         <ReactionModal
           counts={reactionModal.counts}
@@ -854,6 +907,13 @@ const CourseDiscussionSection = ({ courseId }) => {
           reactions={reactionModalItems}
           selectedType={reactionModalTab}
           setSelectedType={setReactionModalTab}
+        />
+      )}
+      {reportTarget && (
+        <ReportModal
+          onClose={() => setReportTarget(null)}
+          onSubmit={handleReportSubmit}
+          submitting={reportSubmitting}
         />
       )}
     </section>

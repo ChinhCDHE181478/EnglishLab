@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import WorkspaceLessonDiscussion from './WorkspaceLessonDiscussion';
+import { useLearnerExperience } from '../../context/LearnerExperienceContext';
+import Pagination, { usePagination } from '../ui/Pagination';
 
 const formatTime = (seconds = 0) => {
   const value = Math.max(0, Number(seconds) || 0);
@@ -51,22 +54,24 @@ const normalizeTranscriptSegments = (lesson) => {
 const getModeButtons = (hasVideo) => [
   ...(hasVideo ? [{ key: 'transcript', label: 'Bản chép lời', icon: 'subtitles' }] : []),
   { key: 'notes', label: 'Ghi chú', icon: 'edit_note' },
+  { key: 'discussion', label: 'Hỏi đáp', icon: 'forum' },
 ];
 
 const WorkspaceRightRail = ({
   activeLesson,
+  courseId,
   mode = null,
   notes = [],
-  reviewFlags = [],
   recentLessons = [],
   canPersist = false,
+  syncing = false,
+  syncError = '',
   onModeChange,
   onSeekTranscript,
   onSaveTranscriptNote,
   onSaveManualNote,
   onUpdateNote,
   onDeleteNote,
-  onToggleReviewFlag,
   onSelectRecentLesson,
 }) => {
   const transcriptContainerRef = useRef(null);
@@ -84,6 +89,7 @@ const WorkspaceRightRail = ({
   const lesson = activeLesson?.lesson || activeLesson;
   const hasVideo = Boolean(lesson?.videoUrl);
   const modeButtons = useMemo(() => (isAssessmentStep ? [] : getModeButtons(hasVideo)), [hasVideo, isAssessmentStep]);
+  const { addNotification } = useLearnerExperience();
   const panelMode = hasVideo || mode !== 'transcript' ? mode : null;
   const transcriptSegments = useMemo(() => (
     hasVideo ? normalizeTranscriptSegments(lesson) : []
@@ -92,7 +98,13 @@ const WorkspaceRightRail = ({
     () => notes.filter((item) => String(item.lessonId) === String(lessonId)),
     [lessonId, notes],
   );
-  const flagged = reviewFlags.some((item) => String(item.lessonId) === String(lessonId));
+  const {
+    page: notesPage,
+    setPage: setNotesPage,
+    totalPages: notesTotalPages,
+    pageItems: notePageItems,
+    totalItems: notesTotalItems,
+  } = usePagination(currentNotes, 5, lessonId);
 
   useEffect(() => {
     setSelectedText('');
@@ -237,7 +249,7 @@ const WorkspaceRightRail = ({
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#f0e3e4] px-5 py-5">
           <div>
             <h2 className="text-xl font-extrabold text-[#1f2430]">
-              {panelMode === 'transcript' ? 'Bản chép lời' : 'Ghi chú'}
+              {panelMode === 'transcript' ? 'Bản chép lời' : panelMode === 'notes' ? 'Ghi chú' : 'Hỏi đáp'}
             </h2>
             {panelMode === 'transcript' ? (
               <p className="mt-2 text-sm font-semibold text-[#3f4d63]">Ngôn ngữ: Tiếng Anh</p>
@@ -254,6 +266,8 @@ const WorkspaceRightRail = ({
         </div>
 
         <div ref={transcriptContainerRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
+        {syncing ? <p className="mt-4 text-xs font-semibold text-[#8c716f]">Đang đồng bộ ghi chú...</p> : null}
+        {syncError ? <p className="mt-4 rounded-lg bg-[#fff0f1] px-3 py-2 text-xs font-semibold text-[#730014]">{syncError}</p> : null}
         {panelMode === 'transcript' ? (
           <div className="mt-6">
             {message ? <p className="mb-4 text-sm font-semibold text-[#730014]">{message}</p> : null}
@@ -339,7 +353,7 @@ const WorkspaceRightRail = ({
 
             {message ? <p className="text-sm font-semibold text-[#730014]">{message}</p> : null}
 
-            {currentNotes.length ? currentNotes.map((note) => {
+            {currentNotes.length ? notePageItems.map((note) => {
               const editing = editingNoteId === note.id;
               const displayText = note.content || note.selectedText || '';
               return (
@@ -422,6 +436,19 @@ const WorkspaceRightRail = ({
               </div>
             )}
 
+            {currentNotes.length ? (
+              <Pagination
+                alwaysVisible
+                className="pt-1"
+                compact
+                onChange={setNotesPage}
+                page={notesPage}
+                pageSize={5}
+                totalItems={notesTotalItems}
+                totalPages={notesTotalPages}
+              />
+            ) : null}
+
             {recentLessons.length ? (
               <div className="space-y-2">
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8c716f]">Bài học gần đây</p>
@@ -437,6 +464,16 @@ const WorkspaceRightRail = ({
                 ))}
               </div>
             ) : null}
+          </div>
+        ) : null}
+        {panelMode === 'discussion' ? (
+          <div className="mt-6">
+          <WorkspaceLessonDiscussion
+            courseId={courseId}
+            lessonId={lessonId}
+            canPersist={canPersist}
+            addNotification={addNotification}
+          />
           </div>
         ) : null}
         </div>

@@ -48,6 +48,11 @@ public class StudentOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getMyEnrollments(authentication.getName()));
     }
 
+    @GetMapping("/recommendations")
+    public ResponseEntity<List<OnlineCourseResponse>> getRecommendations(Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.getRecommendedCourses(authentication.getName()));
+    }
+
     @GetMapping("/{courseId}/completion")
     public ResponseEntity<CourseCompletionResponse> getCourseCompletion(
             @PathVariable Long courseId,

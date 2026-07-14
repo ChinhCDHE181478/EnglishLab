@@ -232,6 +232,8 @@ export default function ReadingExamMode({
     });
 
     return {
+      fullscreenExitCount: violations.filter((item) => String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
+      tabSwitchCount: violations.filter((item) => !String(item.reason || '').toLowerCase().includes('toàn màn hình')).length,
       objectiveAnswersJson: JSON.stringify({
         mode: 'ielts_reading_exam',
         testKey: config?.key,
