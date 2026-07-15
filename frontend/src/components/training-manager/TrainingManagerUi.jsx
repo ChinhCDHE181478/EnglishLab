@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, BookOpen, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Settings2, Video } from 'lucide-react';
+import { AlertTriangle, BookOpen, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LifeBuoy, LogOut, Settings2, Video } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
@@ -19,6 +19,7 @@ const trainingManagerNav = [
       { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: FileCheck2 },
       { label: 'Duyệt nội dung lớp', href: '/manager/content-approvals', icon: FileCheck2 },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList },
+      { label: 'Support ticket', href: '/training-manager/support-tickets', icon: LifeBuoy, trainingManagerOnly: true },
     ],
   },
 ];
@@ -72,6 +73,12 @@ function resolvePageMeta(pathname) {
       subtitle: 'Rà soát nội dung đã gửi duyệt trước khi xuất bản cho học viên.',
     };
   }
+  if (pathname.startsWith('/training-manager/support-tickets') || pathname.startsWith('/manager/support-tickets')) {
+    return {
+      title: 'Support Ticket',
+      subtitle: 'Theo dõi và xử lý yêu cầu hỗ trợ từ học viên.',
+    };
+  }
   return {
     title: 'Mở lớp và lịch khai giảng',
     subtitle: 'Tạo cohort mới và mở trang quản lý từng lớp để vận hành.',
@@ -86,8 +93,19 @@ export default function TrainingManagerLayout() {
   const sidebarNavRef = useRef(null);
   const sidebarScrollTopRef = useRef(0);
   const meta = resolvePageMeta(location.pathname);
+  const role = String(currentUser?.role || '').toUpperCase();
+  const isManager = ['MANAGER', 'ADMIN'].includes(role);
+  const isTrainingManager = ['TRAINING_MANAGER', 'ADMIN'].includes(role);
+  const visibleTrainingManagerNav = trainingManagerNav.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (item.managerOnly && !isManager) return false;
+      if (item.trainingManagerOnly && !isTrainingManager) return false;
+      return true;
+    }),
+  }));
   const crumbs = location.pathname.replace('/training-manager/', '').split('/').filter(Boolean);
-  const mobileNavOptions = trainingManagerNav.flatMap((section) => section.items.map((item) => ({
+  const mobileNavOptions = visibleTrainingManagerNav.flatMap((section) => section.items.map((item) => ({
     label: item.label,
     value: item.href,
   })));
@@ -148,7 +166,7 @@ export default function TrainingManagerLayout() {
           ref={sidebarNavRef}
         >
           <nav className="space-y-7">
-            {trainingManagerNav.map((section) => (
+            {visibleTrainingManagerNav.map((section) => (
               <div key={section.title}>
                 <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
                   {section.title}

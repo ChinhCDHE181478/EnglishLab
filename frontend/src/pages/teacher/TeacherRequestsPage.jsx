@@ -118,7 +118,7 @@ export default function TeacherRequestsPage() {
       >
         {/* Page Hero with operational stats */}
         <PageHero
-          title="Yêu cầu thay đổi"
+          title="Theo dõi yêu cầu"
           subtitle="Theo dõi tiến trình phê duyệt các đề xuất thay đổi lịch, phòng học hoặc giáo viên thay thế từ điều phối đào tạo."
           stats={stats}
           action={

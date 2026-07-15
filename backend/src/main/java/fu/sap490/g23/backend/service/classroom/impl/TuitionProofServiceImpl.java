@@ -61,6 +61,9 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomEnrollment enrollment = requireActiveEnrollment(offeringId, learner.getId());
 
+        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST) {
+            throw new RuntimeException("Bạn đang ở trong danh sách chờ và chưa cần thanh toán học phí.");
+        }
         if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
             throw new RuntimeException("Bạn đã được xếp lớp, không cần nộp thêm minh chứng.");
         }

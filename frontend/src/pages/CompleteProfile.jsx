@@ -15,7 +15,15 @@ import {
   X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, updateCurrentUser } from '../api/authApi';
+import {
+  changeCurrentUserPassword,
+  deleteCurrentUserAvatar,
+  getCurrentUser,
+  getCurrentUserNotificationPreferences,
+  updateCurrentUser,
+  updateCurrentUserNotificationPreferences,
+  uploadCurrentUserAvatar,
+} from '../api/authApi';
 import Footer from '../components/ai-learning/Footer';
 import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
@@ -25,9 +33,12 @@ import { getStoredUser, hasAnyUserRole } from '../utils/auth';
 const targetOptions = ['IELTS', 'TOEIC'];
 const IELTS_TARGET_SCORES = Array.from({ length: 19 }, (_, index) => (index / 2).toFixed(1));
 const TOEIC_TARGET_SCORES = Array.from({ length: 197 }, (_, index) => String(10 + index * 5));
+const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,72}$/;
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
 
 const TABS = [
   { id: 'account', label: 'Tài khoản' },
+  { id: 'notifications', label: 'Thông báo' },
   { id: 'linked', label: 'Tài khoản liên kết' },
 ];
 
@@ -169,6 +180,8 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
 
   // Avatar state
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || null);
+  const [avatarMsg, setAvatarMsg] = useState({ type: '', text: '' });
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const fileRef = useRef();
 
   const handleChange = (e) => {
@@ -208,31 +221,75 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
     }
   };
 
-  const handlePwSubmit = (e) => {
+  const handlePwSubmit = async (e) => {
     e.preventDefault();
     if (!pwForm.current) { setPwMsg({ type: 'error', text: 'Nhập mật khẩu hiện tại.' }); return; }
-    if (pwForm.next.length < 8) { setPwMsg({ type: 'error', text: 'Mật khẩu mới tối thiểu 8 ký tự.' }); return; }
+    if (!PASSWORD_PATTERN.test(pwForm.next)) {
+      setPwMsg({ type: 'error', text: 'Mật khẩu mới phải dài 8–72 ký tự và có chữ hoa, chữ thường, số, ký tự đặc biệt.' });
+      return;
+    }
     if (pwForm.next !== pwForm.confirm) { setPwMsg({ type: 'error', text: 'Mật khẩu xác nhận không khớp.' }); return; }
     setPwLoading(true);
-    setTimeout(() => {
-      setPwLoading(false);
+    setPwMsg({ type: '', text: '' });
+    try {
+      await changeCurrentUserPassword({
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+        confirmPassword: pwForm.confirm,
+      });
       setPwMsg({ type: 'success', text: 'Mật khẩu đã được cập nhật thành công.' });
       setPwForm({ current: '', next: '', confirm: '' });
-    }, 800);
+    } catch (err) {
+      setPwMsg({ type: 'error', text: err.response?.data?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.' });
+    } finally {
+      setPwLoading(false);
+    }
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 1024 * 1024) {
-      alert('Ảnh tối đa 1 MB.');
+      setAvatarMsg({ type: 'error', text: 'Ảnh hồ sơ không được vượt quá 1 MB.' });
+      e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setAvatarUrl(ev.target.result);
-    };
-    reader.readAsDataURL(file);
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setAvatarMsg({ type: 'error', text: 'Chỉ hỗ trợ ảnh JPG, PNG hoặc GIF.' });
+      e.target.value = '';
+      return;
+    }
+    setAvatarLoading(true);
+    setAvatarMsg({ type: '', text: '' });
+    try {
+      const response = await uploadCurrentUserAvatar(file);
+      setAvatarUrl(response.data.avatarUrl || null);
+      updateUser(response.data);
+      onUserUpdate?.(response.data);
+      setAvatarMsg({ type: 'success', text: 'Ảnh hồ sơ đã được cập nhật.' });
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: err.response?.data?.message || 'Không thể tải ảnh lên. Vui lòng thử lại.' });
+    } finally {
+      setAvatarLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!window.confirm('Bạn có chắc muốn xóa ảnh hồ sơ hiện tại?')) return;
+    setAvatarLoading(true);
+    setAvatarMsg({ type: '', text: '' });
+    try {
+      const response = await deleteCurrentUserAvatar();
+      setAvatarUrl(null);
+      updateUser(response.data);
+      onUserUpdate?.(response.data);
+      setAvatarMsg({ type: 'success', text: 'Ảnh hồ sơ đã được xóa.' });
+    } catch (err) {
+      setAvatarMsg({ type: 'error', text: err.response?.data?.message || 'Không thể xóa ảnh hồ sơ. Vui lòng thử lại.' });
+    } finally {
+      setAvatarLoading(false);
+    }
   };
 
   const TogglePw = ({ field }) => (
@@ -308,35 +365,42 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
 
       {/* ── Ảnh hồ sơ ── */}
       <Section title="Ảnh hồ sơ" description="Kích thước tối đa 1 MB. Định dạng hỗ trợ: JPG, GIF hoặc PNG.">
-        <div className="flex items-center gap-5">
+        <div className="space-y-4">
+          <Notif type={avatarMsg.type} message={avatarMsg.text} onClose={() => setAvatarMsg({ type: '', text: '' })} />
+          <div className="flex items-center gap-5">
           <div className="relative">
             <UserAvatar name={formData.fullName || user?.fullName} avatarUrl={avatarUrl} size="lg" />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
+              disabled={avatarLoading}
+              aria-label="Tải ảnh hồ sơ lên"
               className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white border border-[#e5e7eb] shadow-sm hover:bg-gray-50"
             >
               <Camera className="h-3.5 w-3.5 text-[#6a5553]" />
             </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/gif" className="hidden" onChange={handleAvatarChange} />
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
+              disabled={avatarLoading}
               className="rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-[#1a1c1c] hover:bg-gray-50 transition"
             >
-              Tải ảnh lên
+              {avatarLoading ? 'Đang xử lý...' : 'Tải ảnh lên'}
             </button>
             {avatarUrl && (
               <button
                 type="button"
-                onClick={() => setAvatarUrl(null)}
+                onClick={handleAvatarDelete}
+                disabled={avatarLoading}
                 className="rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 transition"
               >
                 Xóa ảnh
               </button>
             )}
+          </div>
           </div>
         </div>
       </Section>
@@ -387,9 +451,9 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
             </Field>
           </div>
 
-          {pwForm.next && pwForm.next.length < 8 && (
+          {pwForm.next && !PASSWORD_PATTERN.test(pwForm.next) && (
             <p className="flex items-center gap-1.5 text-xs text-rose-600">
-              <X className="h-3.5 w-3.5" /> Trong khoảng từ 8 đến 72 ký tự
+              <X className="h-3.5 w-3.5" /> 8–72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt
             </p>
           )}
 
@@ -503,6 +567,127 @@ function LinkedTab() {
   );
 }
 
+function PreferenceToggle({ checked, description, disabled, label, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-5 py-4 first:pt-0 last:pb-0">
+      <div>
+        <p className="text-sm font-semibold text-[#1a1c1c]">{label}</p>
+        <p className="mt-1 text-sm leading-6 text-[#6a5553]">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#8a0018]/20 disabled:cursor-not-allowed disabled:opacity-60 ${
+          checked ? 'bg-[#8a0018]' : 'bg-gray-200'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function NotificationPreferencesTab() {
+  const [preferences, setPreferences] = useState({ emailEnabled: true, inAppEnabled: true });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    let active = true;
+    const loadPreferences = async () => {
+      setLoading(true);
+      setMessage({ type: '', text: '' });
+      try {
+        const response = await getCurrentUserNotificationPreferences();
+        if (active) setPreferences(response.data);
+      } catch (error) {
+        if (active) {
+          setMessage({
+            type: 'error',
+            text: error.response?.data?.message || 'Không thể tải tùy chọn thông báo.',
+          });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadPreferences();
+    return () => { active = false; };
+  }, []);
+
+  const updatePreference = (field, value) => {
+    setPreferences((current) => ({ ...current, [field]: value }));
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const response = await updateCurrentUserNotificationPreferences(preferences);
+      setPreferences(response.data);
+      setMessage({ type: 'success', text: 'Tùy chọn thông báo đã được cập nhật.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Không thể lưu tùy chọn thông báo.',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Section
+      title="Tùy chọn thông báo"
+      description="Chọn cách EnglishLab gửi các cập nhật học tập và hoạt động tài khoản cho bạn."
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Notif
+          type={message.type}
+          message={message.text}
+          onClose={() => setMessage({ type: '', text: '' })}
+        />
+
+        {loading ? (
+          <p className="text-sm text-[#6a5553]">Đang tải tùy chọn thông báo...</p>
+        ) : (
+          <div className="divide-y divide-[#f0f0f0]">
+            <PreferenceToggle
+              checked={preferences.inAppEnabled}
+              disabled={saving}
+              label="Thông báo trong ứng dụng"
+              description="Hiển thị thông báo về lớp học, bài tập, giáo trình và các hoạt động liên quan trong EnglishLab."
+              onChange={(value) => updatePreference('inAppEnabled', value)}
+            />
+            <PreferenceToggle
+              checked={preferences.emailEnabled}
+              disabled={saving}
+              label="Thông báo qua email"
+              description="Nhận email nghiệp vụ như giao bài tập hoặc đăng ký khóa học thành công. Email bảo mật tài khoản vẫn được gửi khi cần."
+              onChange={(value) => updatePreference('emailEnabled', value)}
+            />
+          </div>
+        )}
+
+        <div className="pt-1">
+          <SaveBtn loading={saving} label="Lưu tùy chọn" />
+        </div>
+      </form>
+    </Section>
+  );
+}
+
 const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 // ── Main page ───────────────────────────────────────────────────────────────
@@ -578,6 +763,7 @@ const CompleteProfile = () => {
           {activeTab === 'account' && (
             <AccountTab user={user} onUserUpdate={updateUser} onboarding={onboarding} />
           )}
+          {activeTab === 'notifications' && <NotificationPreferencesTab />}
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>
       </motion.main>

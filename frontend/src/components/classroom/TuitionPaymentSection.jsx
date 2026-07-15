@@ -2,13 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
+  CreditCard,
   History,
   Receipt,
   Upload,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
+import paymentApi from '../../api/paymentApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import TuitionProofMedia, { LocalFilePreview } from './TuitionProofMedia';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomPrice } from '../../utils/classroomHelpers';
 
@@ -18,20 +20,32 @@ const PROOF_KIND_OPTIONS = [
   { label: 'Thanh toán toàn bộ', value: 'FULL' },
 ];
 
+const CLASSROOM_TUITION_RETURN_KEY = 'englishlab.classroomTuitionReturn';
+
 const proofStatusStyle = (status) => {
   if (status === 'CONFIRMED') return 'bg-emerald-50 text-emerald-700 border-emerald-100';
   if (status === 'REJECTED') return 'bg-rose-50 text-rose-700 border-rose-100';
   return 'bg-amber-50 text-amber-700 border-amber-100';
 };
 
-export default function TuitionPaymentSection({ classroomId, canSubmitProof = true, onUpdated, compact = false }) {
+export default function TuitionPaymentSection({
+  classroomId,
+  tuitionRemaining = 0,
+  canSubmitProof = true,
+  onUpdated,
+  compact = false,
+}) {
   const [history, setHistory] = useState([]);
   const [proofs, setProofs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [payingPayos, setPayingPayos] = useState(false);
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [form, setForm] = useState({ file: null, amount: '', paymentKind: 'PARTIAL', note: '' });
+
+  const remaining = Number(tuitionRemaining) > 0 ? Number(tuitionRemaining) : 0;
+  const canPayOnline = canSubmitProof && remaining > 0;
 
   const loadData = useCallback(async () => {
     if (!classroomId) return;
@@ -54,6 +68,53 @@ export default function TuitionPaymentSection({ classroomId, canSubmitProof = tr
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePayosPayment = async () => {
+    setMessage('');
+    setSuccess(false);
+    if (!canPayOnline) {
+      setMessage('Hiện không thể thanh toán PayOS cho lớp này.');
+      return;
+    }
+    setPayingPayos(true);
+    try {
+      const result = await paymentApi.createPayosLink([], '', [Number(classroomId)]);
+      const paidDirectly = String(result?.status || '').toUpperCase() === 'PAID';
+      if (paidDirectly) {
+        setMessage(result?.message || 'Đã ghi nhận học phí thành công.');
+        setSuccess(true);
+        await loadData();
+        onUpdated?.();
+        return;
+      }
+
+      const checkoutUrl =
+        result?.checkoutUrl
+        || result?.paymentUrl
+        || result?.url
+        || result?.payUrl
+        || result?.data?.checkoutUrl
+        || result?.data?.paymentUrl;
+
+      if (!checkoutUrl) {
+        throw new Error('missing_checkout_url');
+      }
+
+      sessionStorage.setItem(
+        CLASSROOM_TUITION_RETURN_KEY,
+        JSON.stringify({
+          classroomId: Number(classroomId),
+          returnPath: `${window.location.pathname}${window.location.search}`,
+          orderCode: result?.orderCode || null,
+        }),
+      );
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      setMessage(getClassroomErrorMessage(err, 'Không thể tạo link thanh toán PayOS.'));
+      setSuccess(false);
+      setPayingPayos(false);
+    }
+  };
 
   const handleSubmitProof = async (event) => {
     event.preventDefault();
@@ -115,17 +176,52 @@ export default function TuitionPaymentSection({ classroomId, canSubmitProof = tr
         </div>
       ) : null}
 
+      {canPayOnline ? (
+        <div className="space-y-3 rounded-[20px] border border-[#ecdedd] bg-gradient-to-br from-[#fffafb] to-white p-5">
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014] flex items-center gap-1.5">
+            <CreditCard className="h-3.5 w-3.5" />
+            Thanh toán online (PayOS)
+          </p>
+          <p className="text-xs text-[#584140] leading-5">
+            Thanh toán số tiền còn lại{' '}
+            <strong className="text-[#2b2828]">{formatClassroomPrice(remaining)}</strong>
+            {' '}qua PayOS. Hệ thống sẽ tự ghi nhận học phí sau khi thanh toán thành công.
+          </p>
+          <button
+            className="w-full rounded-2xl bg-[#4b0009] py-3 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
+            disabled={payingPayos}
+            onClick={handlePayosPayment}
+            type="button"
+          >
+            {payingPayos ? 'Đang chuyển tới PayOS...' : `Thanh toán ${formatClassroomPrice(remaining)} qua PayOS`}
+          </button>
+        </div>
+      ) : null}
+
       {canSubmitProof ? (
         <form className="space-y-4 rounded-[20px] border border-[#ecdedd] bg-gradient-to-br from-[#fffafb] to-white p-5" onSubmit={handleSubmitProof}>
           <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014] flex items-center gap-1.5">
             <Upload className="h-3.5 w-3.5" />
-            Gửi minh chứng chuyển khoản
+            {canPayOnline ? 'Hoặc gửi minh chứng chuyển khoản' : 'Gửi minh chứng chuyển khoản'}
           </p>
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dfc4c2]/60 bg-white px-4 py-8 text-center transition hover:border-[#730014]/40 hover:bg-[#fff7f7]">
-            <Upload className="mb-2 h-6 w-6 text-[#730014]" />
-            <span className="text-xs font-bold text-[#584140]">{form.file ? form.file.name : 'Chọn ảnh hoặc PDF minh chứng'}</span>
+          <p className="text-[11px] text-[#8b706e] leading-4">
+            Phương án dự phòng khi không dùng được PayOS. Training Manager sẽ xác nhận minh chứng thủ công.
+          </p>
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dfc4c2]/60 bg-white px-4 py-6 text-center transition hover:border-[#730014]/40 hover:bg-[#fff7f7]">
+            {form.file ? (
+              <div className="w-full space-y-2">
+                <LocalFilePreview file={form.file} />
+                <span className="inline-block text-[11px] font-bold text-[#730014]">Chọn ảnh khác</span>
+              </div>
+            ) : (
+              <>
+                <Upload className="mb-2 h-6 w-6 text-[#730014]" />
+                <span className="text-xs font-bold text-[#584140]">Chọn ảnh hoặc PDF minh chứng</span>
+                <span className="mt-1 text-[10px] text-[#8b706e]">JPG, PNG hoặc PDF — tối đa 20MB</span>
+              </>
+            )}
             <input
-              accept=".jpg,.jpeg,.png,.pdf"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
               className="sr-only"
               onChange={(event) => setForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
               type="file"
@@ -154,7 +250,7 @@ export default function TuitionPaymentSection({ classroomId, canSubmitProof = tr
             value={form.note}
           />
           <button
-            className="w-full rounded-2xl bg-[#4b0009] py-3 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
+            className="w-full rounded-2xl border border-[#730014]/30 bg-white py-3 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff1f3] disabled:opacity-60"
             disabled={submitting}
             type="submit"
           >
@@ -188,15 +284,10 @@ export default function TuitionPaymentSection({ classroomId, canSubmitProof = tr
               <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
             ) : null}
             {proof.fileUrl ? (
-              <a
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
-                href={proof.fileUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Xem minh chứng
-              </a>
+              <TuitionProofMedia
+                alt={`Minh chứng ${formatClassroomPrice(proof.amount)}`}
+                url={proof.fileUrl}
+              />
             ) : null}
           </div>
         ))}

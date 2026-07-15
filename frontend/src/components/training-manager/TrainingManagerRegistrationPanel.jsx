@@ -7,8 +7,6 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardCheck,
-  DollarSign,
-  ExternalLink,
   HelpCircle,
   History,
   Receipt,
@@ -26,6 +24,7 @@ import {
   StatusBadge,
   TuitionStatusCard,
 } from '../../components/classroom/ClassroomUi';
+import TuitionProofMedia from '../../components/classroom/TuitionProofMedia';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
@@ -37,7 +36,6 @@ import {
 
 const globalStatusTabs = [
   { id: 'NEEDS_ACTION', label: 'Cần xử lý' },
-  { id: 'PENDING_CONFIRMATION', label: 'Chờ xác nhận' },
   { id: 'PENDING_TUITION_PAYMENT', label: 'Chờ học phí' },
   { id: 'DEPOSIT_PAID', label: 'Đã đặt cọc' },
   { id: 'PARTIALLY_PAID', label: 'Thanh toán một phần' },
@@ -49,6 +47,7 @@ const globalStatusTabs = [
 
 const queueOnlyTabs = [
   { id: 'NEEDS_ACTION', label: 'Cần xử lý' },
+  { id: 'WAITLIST', label: 'Danh sách chờ' },
   { id: 'ASSIGNED', label: 'Đã xếp lớp' },
 ];
 
@@ -145,6 +144,11 @@ export default function TrainingManagerRegistrationPanel({
     [registrations, selectedId],
   );
 
+  const pendingProofEnrollmentIds = useMemo(
+    () => new Set(pendingProofs.map((proof) => Number(proof.enrollmentId)).filter(Boolean)),
+    [pendingProofs],
+  );
+
   useEffect(() => {
     const loadHistory = async () => {
       if (!selected?.id) {
@@ -193,7 +197,6 @@ export default function TrainingManagerRegistrationPanel({
   const handleTransfer = () => runAction(() => classroomApi.transferClassEnrollment(selected.id, {
     targetClassroomOfferingId: Number(transferClassroomId),
   }));
-
   const refreshSelectedProofs = async () => {
     if (!selectedId) {
       return;
@@ -272,26 +275,13 @@ export default function TrainingManagerRegistrationPanel({
       ) : null}
 
       {pendingProofs.length ? (
-        <section className="rounded-xl border border-amber-200 bg-amber-50/40 p-5 space-y-3">
-          <h3 className="font-['Manrope'] text-base font-extrabold text-amber-900 flex items-center gap-2">
-            <Receipt className="h-4 w-4" />
-            Minh chứng thanh toán chờ xác nhận ({pendingProofs.length})
-          </h3>
-          <div className="space-y-2">
-            {pendingProofs.map((proof) => (
-              <TuitionProofRow
-                key={proof.id}
-                onConfirm={handleConfirmProof}
-                onReasonChange={(value) => setProofRejectReasons((current) => ({ ...current, [proof.id]: value }))}
-                onReject={handleRejectProof}
-                processing={processingProofId === proof.id}
-                proof={proof}
-                reason={proofRejectReasons[proof.id] || ''}
-                showStudent
-              />
-            ))}
-          </div>
-        </section>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 px-4 py-3 text-xs text-amber-900">
+          <span className="font-extrabold">
+            {pendingProofs.length} minh chứng chờ xác nhận.
+          </span>
+          {' '}
+          Chọn học viên tương ứng trong hàng đợi bên dưới để xem ảnh và duyệt.
+        </div>
       ) : null}
 
       <ClassroomTabBar activeTab={activeTab} onChange={setActiveTab} tabs={statusTabs} />
@@ -316,7 +306,7 @@ export default function TrainingManagerRegistrationPanel({
               {registrations.map((item) => {
                 const isSelected = String(item.id) === selectedId;
                 return (
-                  <button
+                  <div
                     key={item.id}
                     className={`w-full rounded-2xl p-4 text-left transition-all duration-200 border ${
                       isSelected
@@ -324,7 +314,13 @@ export default function TrainingManagerRegistrationPanel({
                         : 'bg-[#fffafb]/50 border-gray-100 text-[#584140] hover:bg-[#fff3f4] hover:border-[#dfbfbd]/30'
                     }`}
                     onClick={() => setSelectedId(String(item.id))}
-                    type="button"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        setSelectedId(String(item.id));
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                   >
                     <p className="font-extrabold text-sm">{item.studentName || item.studentEmail}</p>
                     {!classroomOfferingId ? (
@@ -332,15 +328,23 @@ export default function TrainingManagerRegistrationPanel({
                         {item.classroomTitle}
                       </p>
                     ) : null}
-                    <div className="mt-3 flex items-center justify-between">
+                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                         isSelected ? 'bg-white/20 text-white' : 'bg-[#fff1f3] text-[#730014]'
                       }`}
                       >
                         {formatRegistrationStatus(item.registrationStatus, item.registrationStatusLabel)}
                       </span>
+                      {pendingProofEnrollmentIds.has(Number(item.id)) ? (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          isSelected ? 'bg-amber-300/30 text-amber-50' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        }`}
+                        >
+                          Có minh chứng
+                        </span>
+                      ) : null}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -384,21 +388,16 @@ export default function TrainingManagerRegistrationPanel({
   );
 }
 
-function TuitionProofRow({ proof, reason, processing, showStudent = false, onConfirm, onReject, onReasonChange }) {
+function TuitionProofRow({ proof, reason, processing, onConfirm, onReject, onReasonChange }) {
   const isPending = proof.status === 'PENDING';
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+    <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
           <p className="text-sm font-extrabold text-[#2b2828]">
             {formatClassroomPrice(proof.amount)}
             <span className="ml-2 text-[11px] font-bold text-[#8b706e]">{proof.paymentKindLabel}</span>
           </p>
-          {showStudent ? (
-            <p className="text-[11px] text-[#8b706e]">
-              {proof.studentName || proof.studentEmail} · {proof.classroomTitle}
-            </p>
-          ) : null}
           {proof.note ? <p className="text-[11px] text-[#8b706e]">Ghi chú: {proof.note}</p> : null}
           {proof.status === 'REJECTED' && proof.reviewNote ? (
             <p className="text-[11px] text-rose-700">Lý do từ chối: {proof.reviewNote}</p>
@@ -416,15 +415,13 @@ function TuitionProofRow({ proof, reason, processing, showStudent = false, onCon
         </span>
       </div>
       {proof.fileUrl ? (
-        <a
-          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
-          href={proof.fileUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Xem minh chứng chuyển khoản
-        </a>
+        <div className="max-w-sm">
+          <TuitionProofMedia
+            alt={`Minh chứng ${formatClassroomPrice(proof.amount)}`}
+            imageClassName="max-h-56 w-full rounded-xl border border-[#ecdedd] object-contain bg-[#faf7f7]"
+            url={proof.fileUrl}
+          />
+        </div>
       ) : null}
       {isPending ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -527,13 +524,19 @@ function RegistrationDetail({
           </div>
         </div>
 
+        {selected.registrationStatus === 'WAITLIST' ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-amber-800">Danh sách chờ</p>
+            <p className="mt-1 text-sm font-bold text-amber-900">
+              Học viên đang chờ có chỗ trống. Khi có suất, dùng “Mời thanh toán khi có chỗ”.
+            </p>
+          </div>
+        ) : null}
+
         <TuitionStatusCard
           due={selected.tuitionAmountDue}
           paid={selected.tuitionAmountPaid}
           remaining={selected.tuitionRemaining}
-          settlementLabel={selected.tuitionSettlementTypeLabel}
-          settlementNote={selected.tuitionSettlementNote}
-          settlementType={selected.tuitionSettlementType}
         />
       </section>
 
@@ -544,11 +547,11 @@ function RegistrationDetail({
         </h3>
 
         <div className="flex flex-wrap gap-3">
-          {['PENDING_CONFIRMATION', 'WAITLIST'].includes(selected.registrationStatus) ? (
+          {selected.registrationStatus === 'WAITLIST' ? (
             <>
               <button className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-[#730014]" onClick={onConfirm} type="button">
                 <CheckCircle2 className="h-4 w-4" />
-                Xác nhận đăng ký
+                Mời thanh toán khi có chỗ
               </button>
               <button className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/30 px-5 py-3 text-xs font-extrabold text-rose-700 hover:bg-rose-50" onClick={onReject} type="button">
                 <XCircle className="h-4 w-4" />
@@ -557,7 +560,7 @@ function RegistrationDetail({
             </>
           ) : null}
 
-          {!selected.hasClassAccess ? (
+          {selected.registrationStatus === 'FULLY_PAID' && !selected.hasClassAccess ? (
             <button className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-5 py-3 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-800" onClick={onAssign} type="button">
               <ClipboardCheck className="h-4 w-4" />
               Xếp lớp chính thức
@@ -574,7 +577,7 @@ function RegistrationDetail({
           </button>
         </div>
 
-        {['PENDING_CONFIRMATION', 'WAITLIST'].includes(selected.registrationStatus) ? (
+        {selected.registrationStatus === 'WAITLIST' ? (
           <input
             className="w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014]"
             onChange={(event) => setRejectReason(event.target.value)}
@@ -586,10 +589,10 @@ function RegistrationDetail({
         {conflictResult ? <ConflictPanel conflictResult={conflictResult} /> : null}
       </section>
 
-      {!selected.hasClassAccess ? (
+      {!selected.hasClassAccess && selected.registrationStatus !== 'WAITLIST' ? (
         <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-4">
           <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[#730014]" />
+            <Receipt className="h-5 w-5 text-[#730014]" />
             Ghi nhận học phí
           </h3>
           <div className="grid gap-4 md:grid-cols-2">
@@ -618,12 +621,15 @@ function RegistrationDetail({
       ) : null}
 
       {selectedProofs.length ? (
-        <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm space-y-4">
+        <section className="rounded-xl border border-amber-200 bg-amber-50/20 p-6 shadow-sm space-y-4">
           <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828] flex items-center gap-2">
             <Receipt className="h-5 w-5 text-[#730014]" />
-            Minh chứng thanh toán của học viên
+            Minh chứng thanh toán của học viên này
           </h3>
-          <div className="space-y-2">
+          <p className="text-xs text-[#8b706e]">
+            Ảnh minh chứng chỉ hiển thị khi bạn chọn đúng học viên trong hàng đợi.
+          </p>
+          <div className="space-y-3">
             {selectedProofs.map((proof) => (
               <TuitionProofRow
                 key={proof.id}
@@ -646,7 +652,9 @@ function RegistrationDetail({
         </h3>
         {tuitionHistory.length ? tuitionHistory.map((payment) => (
           <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4" key={payment.id}>
-            <p className="font-extrabold text-emerald-700">+ {formatClassroomPrice(payment.amount)}</p>
+            <p className={`font-extrabold ${payment.paymentKind === 'REFUND' ? 'text-rose-700' : 'text-emerald-700'}`}>
+              {payment.paymentKind === 'REFUND' ? '−' : '+'} {formatClassroomPrice(payment.amount)}
+            </p>
             <p className="text-xs text-[#8b706e]">
               {formatTuitionPaymentKind(payment.paymentKind, payment.paymentKindLabel)}
               {payment.note ? ` · ${payment.note}` : ''}

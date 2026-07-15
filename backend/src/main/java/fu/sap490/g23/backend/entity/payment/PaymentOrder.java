@@ -59,6 +59,10 @@ public class PaymentOrder {
     @Column(name = "classroom_offering_ids_csv", length = 1000)
     private String classroomOfferingIdsCsv;
 
+    /** Enrollment học phí lớp gắn với đơn PayOS (null nếu đơn khóa học online). */
+    @Column(name = "enrollment_id")
+    private Long enrollmentId;
+
     @Column(name = "course_titles", columnDefinition = "text")
     private String courseTitles;
 
@@ -106,6 +110,20 @@ public class PaymentOrder {
 
     @Column(name = "last_webhook_payload", columnDefinition = "text")
     private String lastWebhookPayload;
+
+    @Column(name = "refunded_amount_vnd")
+    @Builder.Default
+    private Long refundedAmount = 0L;
+
+    @Column(name = "refunded_at")
+    private LocalDateTime refundedAt;
+
+    @Column(name = "refund_reason", length = 500)
+    private String refundReason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "refunded_by_id")
+    private User refundedBy;
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

@@ -41,6 +41,16 @@ public interface ClassroomOfferingService {
 
     ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request);
 
+    /**
+     * Tạo buổi học sau khi Training Manager đã duyệt yêu cầu thay đổi.
+     * Khi {@code enforceConflictCheck} = false, bỏ qua kiểm tra xung đột vì TM đã ghi đè.
+     */
+    ClassroomSessionResponse createSession(
+            Long offeringId,
+            CreateClassroomSessionRequest request,
+            boolean enforceConflictCheck
+    );
+
     ClassroomSessionResponse updateSession(Long sessionId, CreateClassroomSessionRequest request);
 
     void deleteSession(Long sessionId);
@@ -67,12 +77,31 @@ public interface ClassroomOfferingService {
 
     ClassroomEnrollmentResponse recordTuitionPayment(Long enrollmentId, RecordTuitionPaymentRequest request, String actorEmail);
 
+    ClassroomEnrollmentResponse resolveTuitionSettlement(
+            Long enrollmentId,
+            ResolveTuitionSettlementRequest request,
+            String actorEmail
+    );
+
+    /**
+     * Ghi nhận học phí tự động sau khi PayOS xác nhận thanh toán thành công.
+     * Idempotent theo {@code note} (thường chứa mã đơn PayOS).
+     */
+    ClassroomEnrollmentResponse applyPayosTuitionPayment(Long enrollmentId, java.math.BigDecimal amount, String note);
+
     ClassroomEnrollmentResponse assignToClass(Long enrollmentId, AssignToClassRequest request, String actorEmail);
 
     List<ClassroomEnrollmentResponse> listRegistrations(
             ClassroomRegistrationStatus status,
             Long classroomOfferingId,
-            Boolean needsAction
+            Boolean needsAction,
+            Boolean settlementPending
+    );
+
+    List<ClassroomEnrollmentResponse> reorderWaitlist(
+            Long classroomOfferingId,
+            ReorderWaitlistRequest request,
+            String actorEmail
     );
 
     ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request);

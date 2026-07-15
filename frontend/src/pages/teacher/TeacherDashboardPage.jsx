@@ -230,7 +230,7 @@ export default function TeacherDashboardPage() {
             </div>
             <div className="flex-1">
               <h4 className="flex items-center justify-between font-semibold text-sm text-[#1a1c1c]">
-                Yêu cầu thay đổi
+                Theo dõi yêu cầu
                 <ArrowRight className="h-4 w-4 text-[#9a8b8a] transition group-hover:translate-x-0.5 group-hover:text-[#8a0018]" />
               </h4>
               <p className="mt-1 text-xs text-[#8b706e] leading-5">Theo dõi trạng thái duyệt các đề xuất đổi lịch, phòng học, giáo viên.</p>

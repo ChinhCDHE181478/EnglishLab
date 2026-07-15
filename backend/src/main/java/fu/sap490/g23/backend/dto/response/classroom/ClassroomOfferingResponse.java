@@ -84,6 +84,7 @@ public class ClassroomOfferingResponse {
     private String tuitionSettlementTypeLabel;
     private String tuitionSettlementNote;
     private Integer waitlistCount;
+    private Integer waitlistPosition;
     /** Lịch học tóm tắt, ví dụ "T2, T4 · 18:00–20:00". */
     private String scheduleSummary;
     /** Các thứ trong tuần có buổi học (1 = Thứ 2 ... 7 = Chủ nhật). */

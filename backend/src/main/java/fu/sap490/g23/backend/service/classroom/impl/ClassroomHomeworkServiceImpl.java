@@ -28,9 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -55,6 +53,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomHomeworkMailService classroomHomeworkMailService;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomHomeworkAiGradingService homeworkAiGradingService;
+    private final ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
 
     @Override
     @Transactional(readOnly = true)
@@ -282,20 +281,15 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     private void syncHomeworkScoreToGradebook(ClassroomHomework homework, Long studentId, User grader) {
         Long offeringId = homework.getClassroomOffering().getId();
-        List<BigDecimal> gradedScores = new ArrayList<>();
-        for (ClassroomHomework item : homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId)) {
-            submissionRepository.findByHomeworkIdAndStudentId(item.getId(), studentId)
-                    .filter(submission -> submission.getStatus() == HomeworkSubmissionStatus.GRADED
-                            && submission.getScore() != null)
-                    .ifPresent(submission -> gradedScores.add(submission.getScore()));
-        }
-        if (gradedScores.isEmpty()) {
+        List<ClassroomHomework> homeworks = homeworkRepository
+                .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId);
+        BigDecimal average = homeworkScoreCalculator.calculateAverage(
+                homeworks,
+                submissionRepository.findAllForStudentGradebook(offeringId, studentId)
+        );
+        if (average == null) {
             return;
         }
-
-        BigDecimal average = gradedScores.stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(gradedScores.size()), 1, RoundingMode.HALF_UP);
 
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));

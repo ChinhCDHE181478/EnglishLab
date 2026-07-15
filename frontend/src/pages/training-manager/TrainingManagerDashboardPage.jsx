@@ -68,10 +68,10 @@ export default function TrainingManagerDashboardPage() {
           value={dashboard?.pendingChangeRequestCount ?? 0}
         />
         <SummaryCard
-          href="/training-manager/registrations?tab=PENDING_CONFIRMATION"
+          href="/training-manager/registrations?tab=PENDING_TUITION_PAYMENT"
           icon={Users}
-          label="Chờ xác nhận"
-          value={dashboard?.pendingConfirmationCount ?? 0}
+          label="Chờ thanh toán"
+          value={dashboard?.pendingTuitionCount ?? 0}
         />
         <SummaryCard
           href="/training-manager/registrations?tab=NEEDS_ACTION"

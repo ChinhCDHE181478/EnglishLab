@@ -157,6 +157,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
                 .targetScore(user.getTargetScore())
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
+                .avatarUrl(user.getAvatarUrl())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

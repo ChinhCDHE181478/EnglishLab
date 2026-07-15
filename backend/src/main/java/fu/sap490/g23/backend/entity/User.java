@@ -80,6 +80,9 @@ public class User implements UserDetails {
     @Column(name = "study_goal", length = 500)
     private String studyGoal;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(name = "profile_completed", nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean profileCompleted = false;

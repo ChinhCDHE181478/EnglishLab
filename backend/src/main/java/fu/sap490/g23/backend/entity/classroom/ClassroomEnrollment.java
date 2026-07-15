@@ -54,11 +54,14 @@ public class ClassroomEnrollment {
     @Enumerated(EnumType.STRING)
     @Column(name = "registration_status", nullable = false, length = 40)
     @Builder.Default
-    private ClassroomRegistrationStatus registrationStatus = ClassroomRegistrationStatus.PENDING_CONFIRMATION;
+    private ClassroomRegistrationStatus registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
 
     @Column(name = "hold_spot", nullable = false)
     @Builder.Default
     private boolean holdSpot = false;
+
+    @Column(name = "waitlist_priority")
+    private Integer waitlistPriority;
 
     @Column(name = "tuition_amount_due", precision = 12, scale = 2)
     private BigDecimal tuitionAmountDue;
@@ -78,6 +81,21 @@ public class ClassroomEnrollment {
 
     @Column(name = "tuition_settlement_note", length = 700)
     private String tuitionSettlementNote;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tuition_settlement_status", length = 30)
+    @Builder.Default
+    private TuitionSettlementStatus tuitionSettlementStatus = TuitionSettlementStatus.NONE;
+
+    @Column(name = "tuition_settlement_resolved_at")
+    private LocalDateTime tuitionSettlementResolvedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tuition_settlement_resolved_by_id")
+    private User tuitionSettlementResolvedBy;
+
+    @Column(name = "tuition_settlement_resolution_note", length = 700)
+    private String tuitionSettlementResolutionNote;
 
     @Column(name = "transferred_from_enrollment_id")
     private Long transferredFromEnrollmentId;
@@ -142,7 +160,7 @@ public class ClassroomEnrollment {
                     || status == ClassroomEnrollmentStatus.TRANSFERRED) {
                 registrationStatus = ClassroomRegistrationStatus.CANCELLED;
             } else {
-                registrationStatus = ClassroomRegistrationStatus.PENDING_CONFIRMATION;
+                registrationStatus = ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
             }
         }
         if (tuitionAmountPaid == null) {
@@ -153,6 +171,12 @@ public class ClassroomEnrollment {
         }
         if (tuitionSettlementType == null) {
             tuitionSettlementType = TuitionSettlementType.NONE;
+        }
+        if (tuitionSettlementStatus == null) {
+            tuitionSettlementStatus = TuitionSettlementStatus.NONE;
+        }
+        if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
+            waitlistPriority = null;
         }
         fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport.syncLegacyStatus(this);
     }
