@@ -31,6 +31,7 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 import ListeningExamMode from '../../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../../components/course-assessment/ReadingExamMode';
 import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMode';
@@ -262,6 +263,13 @@ export default function MyHomeworkPage() {
     };
   }, [homework]);
 
+  const homeworkTabOptions = useMemo(() => (
+    homeworkTabs.map((tab) => ({
+      label: `${tab.label} (${counts[tab.id] ?? counts.all})`,
+      value: tab.id,
+    }))
+  ), [counts]);
+
   const { page, setPage, totalPages, pageItems: paginatedHomeworkList, totalItems } = usePagination(
     filteredHomework,
     6,
@@ -428,44 +436,32 @@ export default function MyHomeworkPage() {
           </div>
 
           <div className="space-y-6">
-            {/* Filter and Search Layout */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-3">
-              <div className="flex flex-wrap gap-2.5">
-                {homeworkTabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      className={`relative rounded-xl px-5 py-3 text-xs font-extrabold tracking-wide transition-all duration-300 ${
-                        isActive
-                          ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
-                          : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
-                      }`}
-                      onClick={() => setActiveTab(tab.id)}
-                      type="button"
-                    >
-                      {tab.label}
-                      <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-gray-150 text-[#584140]'
-                      }`}>
-                        {counts[tab.id] ?? counts.all}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="relative w-full md:w-80">
+            {/* Filter and Search Layout in single premium bar */}
+            <section className="grid gap-3 rounded-[24px] border border-[#ead9db]/85 bg-white p-4 shadow-[0_8px_30px_rgba(75,0,9,0.015)] lg:grid-cols-[1fr_280px_auto]">
+              <label className="relative block">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c2acab]" />
                 <input
-                  type="text"
-                  className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-xs font-semibold text-[#1a1c1c] outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/5"
+                  className="w-full rounded-2xl border border-[#dfbfbd]/50 bg-[#fffdfd] py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[#730014] focus:bg-white focus:ring-4 focus:ring-[#730014]/5"
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tìm kiếm bài tập..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <Search className="absolute left-4 top-3.5 h-4.5 w-4.5 text-gray-400" />
-              </div>
-            </div>
+              </label>
+              <BrandedSelect
+                buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+                onChange={(event) => setActiveTab(event.target.value)}
+                options={homeworkTabOptions}
+                value={activeTab}
+              />
+              <button
+                aria-label="Tải lại"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-5 py-3 text-sm font-extrabold text-[#730014] shadow-sm transition hover:bg-[#fff2f3] active:scale-95"
+                onClick={loadHomework}
+                type="button"
+              >
+                <RefreshCw className="h-4 w-4" /> Tải lại
+              </button>
+            </section>
 
             {/* Notification alert */}
             {actionMessage && (
@@ -962,7 +958,7 @@ function GlassCounterCard({ label, value, dotColor, icon }) {
   );
 }
 
-function HomeworkModuleExam({ homework, onClose, onSubmit, submitting }) {
+export function HomeworkModuleExam({ homework, onClose, onSubmit, submitting }) {
   const skill = String(homework?.skill || 'READING').toUpperCase();
   const objectiveConfig = buildHomeworkObjectiveConfig(homework);
   const hasObjectiveQuestions = getActivityQuestions(parseActivityConfig(homework?.activityConfigJson)).length > 0;
@@ -1259,7 +1255,7 @@ function buildHomeworkSpeakingConfig(homework) {
   };
 }
 
-function parseObjectiveExamPayload(value) {
+export function parseObjectiveExamPayload(value) {
   try {
     const parsed = JSON.parse(String(value || '{}'));
     const responses = Object.fromEntries((parsed.responses || []).map((response) => [
@@ -1322,7 +1318,7 @@ function usesModuleExamWorkspace(homework) {
   return ['WRITING', 'SPEAKING'].includes(String(homework.skill || '').toUpperCase());
 }
 
-function FlashcardHomeworkWorkspace({ canComplete, curriculum, homework, onClose, onComplete, submitting }) {
+export function FlashcardHomeworkWorkspace({ canComplete, curriculum, homework, onClose, onComplete, submitting }) {
   const assignedUnit = (curriculum?.units || []).find(
     (unit) => String(unit.id) === String(homework.curriculumUnitId),
   );
@@ -1392,7 +1388,7 @@ function getHomeworkExamSummary(homework) {
   return { contentLabel, duration };
 }
 
-function HomeworkConfirmModal({ homework, onClose, onConfirm }) {
+export function HomeworkConfirmModal({ homework, onClose, onConfirm }) {
   if (!homework) return null;
   const summary = getHomeworkExamSummary(homework);
   return (

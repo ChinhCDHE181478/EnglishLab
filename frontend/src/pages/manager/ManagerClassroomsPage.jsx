@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Megaphone, Save } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, Plus, RefreshCw, Search, Users, X } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
@@ -20,6 +21,8 @@ const deliveryModeOptions = [
 const statusOptions = [
   { label: 'Bản nháp', value: 'DRAFT' },
   { label: 'Sắp khai giảng', value: 'UPCOMING' },
+  { label: 'Đang hoạt động', value: 'ACTIVE' },
+  { label: 'Đã kết thúc', value: 'COMPLETED' },
 ];
 
 const levelOptions = [
@@ -58,60 +61,19 @@ const initialClassroomForm = {
 export default function ManagerClassroomsPage() {
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [actionMessage, setActionMessage] = useState('');
-  const [actionStatus, setActionStatus] = useState('success');
   const [teachers, setTeachers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [trainingPrograms, setTrainingPrograms] = useState([]);
   const [classroomForm, setClassroomForm] = useState(initialClassroomForm);
-  const [creatingClassroom, setCreatingClassroom] = useState(false);
-
-  const publishedCount = useMemo(
-    () => classrooms.filter((item) => ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).length,
-    [classrooms],
-  );
-
-  const teacherOptions = useMemo(
-    () => [
-      { label: 'Chưa chọn giáo viên', value: '' },
-      ...teachers.map((item) => {
-        const [name, ...rest] = String(item.label || '').split(' - ');
-        return {
-          label: name || item.label,
-          description: rest.join(' - '),
-          value: String(item.id),
-        };
-      }),
-    ],
-    [teachers],
-  );
-
-  const roomOptions = useMemo(
-    () => [{ label: 'Chưa chọn phòng', value: '' }, ...rooms.map((item) => ({ label: item.label, value: String(item.id) }))],
-    [rooms],
-  );
-
-  const trainingProgramOptions = useMemo(
-    () => [
-      { label: 'Chọn chương trình đã xuất bản', value: '' },
-      ...trainingPrograms
-        .filter((program) => program.deliveryMode === classroomForm.deliveryMode)
-        .map((program) => ({
-          label: program.title,
-          value: String(program.id),
-          description: [
-            program.code,
-            program.examCategory,
-            program.targetBand ? `Band ${program.targetBand}` : null,
-            program.targetScore ? `Target ${program.targetScore}` : null,
-            program.entryLevel,
-          ].filter(Boolean).join(' · '),
-        })),
-    ],
-    [classroomForm.deliveryMode, trainingPrograms],
-  );
+  const [editingId, setEditingId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [programFilter, setProgramFilter] = useState('ALL');
 
   const loadClassrooms = async () => {
     setLoading(true);
@@ -139,10 +101,70 @@ export default function ManagerClassroomsPage() {
     loadClassrooms();
   }, []);
 
-  const showMessage = (message, status = 'success') => {
-    setActionStatus(status);
-    setActionMessage(message);
-  };
+  const teacherOptions = useMemo(() => [
+    { label: 'Chưa chọn giáo viên', value: '' },
+    ...teachers.map((item) => ({ label: item.label, value: String(item.id) })),
+  ], [teachers]);
+
+  const roomOptions = useMemo(() => [
+    { label: 'Chưa chọn phòng', value: '' },
+    ...rooms.map((item) => ({ label: item.label, value: String(item.id) })),
+  ], [rooms]);
+
+  const trainingProgramOptions = useMemo(() => [
+    { label: 'Chọn chương trình đã xuất bản', value: '' },
+    ...trainingPrograms
+      .filter((program) => program.deliveryMode === classroomForm.deliveryMode)
+      .map((program) => ({
+        label: program.title,
+        value: String(program.id),
+        description: [program.code, program.examCategory, program.entryLevel, program.targetScore ? `Đầu ra ${program.targetScore}` : null].filter(Boolean).join(' · '),
+      })),
+  ], [classroomForm.deliveryMode, trainingPrograms]);
+
+  const programFilterOptions = useMemo(() => {
+    const seen = new Set();
+    const opts = [{ label: 'Tất cả chương trình', value: 'ALL' }];
+    for (const item of classrooms) {
+      const id = item.trainingProgramId;
+      const title = item.trainingProgramTitle || item.curriculumProgramTitle;
+      if (id && title && !seen.has(id)) {
+        seen.add(id);
+        opts.push({ label: title, value: String(id) });
+      }
+    }
+    return opts;
+  }, [classrooms]);
+
+  const filteredClassrooms = useMemo(() => {
+    const search = keyword.trim().toLowerCase();
+    return classrooms.filter((item) => {
+      const matchesStatus = statusFilter === 'ALL' || item.classroomStatus === statusFilter;
+      const matchesProgram = programFilter === 'ALL' || String(item.trainingProgramId) === programFilter;
+      const matchesKeyword = !search || [
+        item.title,
+        item.slug,
+        item.trainingProgramTitle,
+        item.curriculumProgramTitle,
+        item.primaryTeacherName,
+        item.deliveryModeLabel,
+      ].filter(Boolean).some((value) => String(value).toLowerCase().includes(search));
+      return matchesStatus && matchesProgram && matchesKeyword;
+    });
+  }, [classrooms, keyword, statusFilter, programFilter]);
+
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    filteredClassrooms,
+    8,
+    `${keyword}|${statusFilter}|${programFilter}`,
+  );
+
+  const stats = useMemo(() => ({
+    total: classrooms.length,
+    active: classrooms.filter((item) => ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).length,
+    learners: classrooms.reduce((sum, item) => sum + Number(item.enrolledCount || 0), 0),
+    programs: new Set(classrooms.map((item) => item.trainingProgramId).filter(Boolean)).size,
+  }), [classrooms]);
 
   const updateClassroomForm = (field, value) => {
     setClassroomForm((current) => {
@@ -150,326 +172,221 @@ export default function ManagerClassroomsPage() {
       if (field === 'deliveryMode') {
         next.studyMode = value === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm';
         next.trainingProgramId = '';
+        next.defaultRoomId = '';
       }
       if (field === 'trainingProgramId') {
-        const selectedProgram = trainingPrograms.find((program) => String(program.id) === String(value));
-        if (selectedProgram) {
-          next.entryLevel = selectedProgram.entryLevel || '';
-          next.targetScore = selectedProgram.targetScore || '';
-          next.targetOutcome = selectedProgram.targetOutcome || '';
-          next.maxCapacity = String(selectedProgram.defaultCapacity || 30);
-          next.price = selectedProgram.price == null ? '' : String(selectedProgram.price);
-          next.salePrice = selectedProgram.salePrice == null ? '' : String(selectedProgram.salePrice);
-          next.duration = selectedProgram.duration || '';
-          next.studyMode = selectedProgram.studyMode || (next.deliveryMode === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm');
+        const program = trainingPrograms.find((item) => String(item.id) === String(value));
+        if (program) {
+          next.entryLevel = program.entryLevel || next.entryLevel;
+          next.targetScore = program.targetScore || '';
+          next.targetOutcome = program.targetOutcome || '';
+          next.price = program.price == null ? '' : String(program.price);
+          next.salePrice = program.salePrice == null ? '' : String(program.salePrice);
+          next.duration = program.duration || '';
+          next.studyMode = program.studyMode || next.studyMode;
         }
       }
       return next;
     });
   };
 
-  const buildClassroomPayload = () => ({
+  const openCreate = () => {
+    setEditingId(null);
+    setClassroomForm(initialClassroomForm);
+    setMessage('');
+    setEditorOpen(true);
+  };
+
+  const openEdit = async (item) => {
+    setWorking(true);
+    setMessage('');
+    try {
+      const detail = await classroomApi.getManagerClassroom(item.id);
+      setEditingId(item.id);
+      setClassroomForm(mapClassroomToForm(detail));
+      setEditorOpen(true);
+    } catch (err) {
+      setError(getClassroomErrorMessage(err, 'Không thể tải thông tin lớp để chỉnh sửa.'));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const buildPayload = () => ({
     ...classroomForm,
     maxCapacity: Number(classroomForm.maxCapacity || 0),
     trainingProgramId: classroomForm.trainingProgramId ? Number(classroomForm.trainingProgramId) : null,
     curriculumProgramId: null,
     primaryTeacherId: classroomForm.primaryTeacherId ? Number(classroomForm.primaryTeacherId) : null,
-    defaultRoomId: classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
+    defaultRoomId: classroomForm.deliveryMode === 'OFFLINE' && classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
     price: classroomForm.price ? Number(classroomForm.price) : 0,
     salePrice: classroomForm.salePrice ? Number(classroomForm.salePrice) : null,
     offlineAddress: classroomForm.deliveryMode === 'OFFLINE' ? classroomForm.offlineAddress : '',
     defaultLarkMeetingUrl: '',
   });
 
-  const handleCreateClassroom = async (event) => {
+  const saveClassroom = async (event) => {
     event.preventDefault();
     if (!classroomForm.trainingProgramId) {
-      showMessage('Vui lòng chọn chương trình đào tạo đã xuất bản trước khi mở lớp.', 'error');
+      setMessage('Vui lòng chọn chương trình đào tạo đã xuất bản trước khi mở lớp.');
       return;
     }
-    setCreatingClassroom(true);
-    setActionMessage('');
+    setWorking(true);
+    setMessage('');
     try {
-      const created = await classroomApi.createManagerClassroom(buildClassroomPayload());
-      showMessage('Đã tạo lớp mới. Chuyển sang trang quản lý lớp để thêm buổi học và xử lý đăng ký.');
+      const saved = editingId
+        ? await classroomApi.updateManagerClassroom(editingId, buildPayload())
+        : await classroomApi.createManagerClassroom(buildPayload());
+      setEditorOpen(false);
+      setEditingId(null);
       setClassroomForm(initialClassroomForm);
+      setMessage(editingId ? 'Đã cập nhật thông tin lớp.' : 'Đã tạo lớp khai giảng.');
       await loadClassrooms();
-      navigate(`/training-manager/classrooms/${created.id}?tab=schedule`);
+      if (!editingId) navigate(`/training-manager/classrooms/${saved.id}?tab=schedule`);
     } catch (err) {
-      showMessage(getClassroomErrorMessage(err, 'Không thể tạo lớp mới.'), 'error');
+      setMessage(getClassroomErrorMessage(err, 'Không thể lưu lớp học.'));
     } finally {
-      setCreatingClassroom(false);
+      setWorking(false);
     }
   };
 
   return (
-    <div className="space-y-5">
-      <section className="grid gap-3 md:grid-cols-2">
-        <MetricCard icon={CalendarDays} label="Tổng lớp đang quản lý" value={classrooms.length} />
-        <MetricCard icon={Megaphone} label="Đã lên lịch khai giảng" value={publishedCount} />
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-['Manrope'] text-2xl font-black text-slate-900">Danh sách lớp học</h2>
+          <p className="mt-1 text-sm text-slate-500">Mở lớp từ chương trình đã duyệt và theo dõi toàn bộ cohort tại một nơi.</p>
+        </div>
+        <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#730014]" onClick={openCreate} type="button">
+          <Plus className="h-4 w-4" /> Tạo lớp mới
+        </button>
+      </div>
+
+      {message ? <div className="rounded-xl border border-[#dfbfbd]/50 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014]">{message}</div> : null}
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard icon={GraduationCap} label="Tổng lớp" value={stats.total} />
+        <MetricCard icon={CheckCircle2} label="Đang vận hành" value={stats.active} />
+        <MetricCard icon={Users} label="Tổng học viên" value={stats.learners} />
+        <MetricCard icon={CalendarDays} label="Chương trình đang mở" value={stats.programs} />
       </section>
 
-      {actionMessage ? (
-        <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-          actionStatus === 'success'
-            ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
-            : 'border-rose-100 bg-rose-50 text-rose-800'
-        }`}
-        >
-          {actionMessage}
+      <section className="flex flex-wrap items-center gap-3 rounded-xl border border-[#dfbfbd]/40 bg-white p-4 shadow-sm">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input className={`${inputClass} pl-10`} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm lớp, chương trình hoặc giáo viên..." value={keyword} />
         </div>
+        <div className="w-full sm:w-56">
+          <BrandedSelect onChange={(event) => setProgramFilter(event.target.value)} options={programFilterOptions} value={programFilter} />
+        </div>
+        <div className="w-full sm:w-48">
+          <BrandedSelect onChange={(event) => setStatusFilter(event.target.value)} options={[{ label: 'Tất cả trạng thái', value: 'ALL' }, ...statusOptions]} value={statusFilter} />
+        </div>
+        <button aria-label="Làm mới danh sách lớp" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#dfbfbd]/50 text-[#730014]" onClick={loadClassrooms} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
+      </section>
+
+      {loading ? <ClassroomLoadingState message="Đang tải danh sách lớp..." /> : null}
+      {!loading && error ? <ClassroomErrorState message={error} onRetry={loadClassrooms} /> : null}
+      {!loading && !error && !filteredClassrooms.length ? <ClassroomEmptyState description="Chưa có lớp phù hợp với điều kiện tìm kiếm." title="Không có lớp học" /> : null}
+
+      {!loading && !error && filteredClassrooms.length ? (
+        <section className="overflow-hidden rounded-xl border border-[#dfbfbd]/40 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1080px] text-left text-sm">
+              <thead className="border-b border-[#dfbfbd]/30 bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
+                <tr><th className="px-5 py-4">Tên lớp</th><th className="px-5 py-4">Hình thức</th><th className="px-5 py-4 text-center">Sĩ số</th><th className="px-5 py-4">Chương trình</th><th className="px-5 py-4">Khai giảng</th><th className="px-5 py-4">Học phí</th><th className="px-5 py-4">Trạng thái</th><th className="px-5 py-4 text-right">Thao tác</th></tr>
+              </thead>
+              <tbody className="divide-y divide-[#dfbfbd]/20">
+                {pageItems.map((item) => (
+                  <tr className="transition hover:bg-[#fffafb]" key={item.id}>
+                    <td className="px-5 py-4"><p className="max-w-64 font-extrabold text-[#2b2828]">{item.title}</p><p className="mt-1 text-xs text-[#8b706e]">{item.slug || item.primaryTeacherName || 'Chưa phân công giáo viên'}</p></td>
+                    <td className="px-5 py-4">{formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}</td>
+                    <td className="px-5 py-4 text-center font-bold">{item.enrolledCount ?? 0}/{item.maxCapacity ?? '-'}</td>
+                    <td className="px-5 py-4 text-[#584140]">{item.trainingProgramTitle || item.curriculumProgramTitle || 'Chưa gắn'}</td>
+                    <td className="px-5 py-4">{formatClassroomDate(item.startDate)}</td>
+                    <td className="px-5 py-4 font-bold">{formatClassroomPrice(item.salePrice ?? item.price ?? 0)}</td>
+                    <td className="px-5 py-4"><span className="rounded-lg bg-[#fff0f1] px-3 py-1.5 text-xs font-extrabold text-[#730014]">{formatOfferingStatus(item.classroomStatus)}</span></td>
+                    <td className="px-5 py-4"><div className="flex justify-end gap-2"><button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014]" disabled={working} onClick={() => openEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button><button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white" onClick={() => navigate(`/training-manager/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-[#dfbfbd]/30 px-5 py-4">
+            <Pagination onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+          </div>
+        </section>
       ) : null}
 
-      <section className="grid gap-5 xl:grid-cols-[380px_1fr]">
-        <form className="space-y-4 rounded-xl border border-[#dfbfbd]/45 bg-white p-4 shadow-sm" onSubmit={handleCreateClassroom}>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff1f3] text-[#730014]">
-              <Plus className="h-4 w-4" />
-            </div>
-            <div>
-              <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Tạo lớp khai giảng</h2>
-              <p className="text-xs text-[#8b706e]">Dùng cho cả lớp offline và virtual.</p>
-            </div>
-          </div>
-
-          <Field label="Tên lớp">
-            <input
-              className={inputClass}
-              onChange={(event) => updateClassroomForm('title', event.target.value)}
-              placeholder="IELTS Foundation - Tối 2/4/6"
-              required
-              value={classroomForm.title}
-            />
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Hình thức">
-              <BrandedSelect
-                onChange={(event) => updateClassroomForm('deliveryMode', event.target.value)}
-                options={deliveryModeOptions}
-                value={classroomForm.deliveryMode}
-              />
-            </Field>
-            <Field label="Trạng thái ban đầu">
-              <BrandedSelect
-                onChange={(event) => updateClassroomForm('classroomStatus', event.target.value)}
-                options={statusOptions}
-                value={classroomForm.classroomStatus}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Level đầu vào">
-              <BrandedSelect
-                onChange={(event) => updateClassroomForm('entryLevel', event.target.value)}
-                options={levelOptions}
-                value={classroomForm.entryLevel}
-              />
-            </Field>
-            <Field label="Sĩ số tối đa">
-              <input
-                className={inputClass}
-                min="1"
-                onChange={(event) => updateClassroomForm('maxCapacity', event.target.value)}
-                required
-                type="number"
-                value={classroomForm.maxCapacity}
-              />
-            </Field>
-          </div>
-
-          <Field label="Chương trình đào tạo">
-            <BrandedSelect
-              menuClassName="w-[min(520px,calc(100vw-2rem))]"
-              onChange={(event) => updateClassroomForm('trainingProgramId', event.target.value)}
-              options={trainingProgramOptions}
-              value={classroomForm.trainingProgramId}
-              placeholder="Chọn chương trình đã được Content Manager xuất bản"
-              required
-            />
-          </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Ngày khai giảng">
-              <input
-                className={inputClass}
-                onChange={(event) => updateClassroomForm('startDate', event.target.value)}
-                required
-                type="date"
-                value={classroomForm.startDate}
-              />
-            </Field>
-            <Field label="Ngày kết thúc dự kiến">
-              <input
-                className={inputClass}
-                onChange={(event) => updateClassroomForm('endDate', event.target.value)}
-                type="date"
-                value={classroomForm.endDate}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Học phí">
-              <input
-                className={inputClass}
-                min="0"
-                onChange={(event) => updateClassroomForm('price', event.target.value)}
-                placeholder="6500000"
-                type="number"
-                value={classroomForm.price}
-              />
-            </Field>
-            <Field label="Ưu đãi">
-              <input
-                className={inputClass}
-                min="0"
-                onChange={(event) => updateClassroomForm('salePrice', event.target.value)}
-                placeholder="5900000"
-                type="number"
-                value={classroomForm.salePrice}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Giáo viên chính">
-              <BrandedSelect
-                onChange={(event) => updateClassroomForm('primaryTeacherId', event.target.value)}
-                options={teacherOptions}
-                value={classroomForm.primaryTeacherId}
-              />
-            </Field>
-            {classroomForm.deliveryMode === 'OFFLINE' ? (
-              <Field label="Phòng học">
-                <BrandedSelect
-                  menuClassName="w-[min(420px,calc(100vw-2rem))]"
-                  onChange={(event) => updateClassroomForm('defaultRoomId', event.target.value)}
-                  options={roomOptions}
-                  value={classroomForm.defaultRoomId}
-                />
-              </Field>
-            ) : (
-              <InfoNote
-                label="Link virtual"
-                text="Hệ thống sẽ tự tạo hoặc đồng bộ link Lark khi bạn thêm buổi học virtual."
-              />
-            )}
-          </div>
-
-          {classroomForm.deliveryMode === 'OFFLINE' ? (
-            <Field label="Địa điểm học">
-              <input
-                className={inputClass}
-                onChange={(event) => updateClassroomForm('offlineAddress', event.target.value)}
-                placeholder="Cơ sở Nguyễn Trãi, phòng 301"
-                value={classroomForm.offlineAddress}
-              />
-            </Field>
-          ) : null}
-
-          <Field label="Mô tả ngắn">
-            <textarea
-              className={`${inputClass} min-h-[84px]`}
-              onChange={(event) => updateClassroomForm('shortDescription', event.target.value)}
-              placeholder="Lớp dành cho học viên mới hoàn thành placement..."
-              value={classroomForm.shortDescription}
-            />
-          </Field>
-
-          <button
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={creatingClassroom}
-            type="submit"
-          >
-            <Save className="h-4 w-4" />
-            {creatingClassroom ? 'Đang tạo lớp...' : 'Tạo lớp khai giảng'}
-          </button>
-        </form>
-
-        <section className="min-w-0 space-y-5">
-          {loading ? <ClassroomLoadingState message="Đang tải danh sách lớp..." /> : null}
-          {!loading && error ? <ClassroomErrorState message={error} onRetry={loadClassrooms} /> : null}
-          {!loading && !error && !classrooms.length ? (
-            <ClassroomEmptyState description="Chưa có lớp học nào. Hãy tạo lớp đầu tiên ở form bên trái." title="Chưa có lớp" />
-          ) : null}
-
-          {!loading && !error && classrooms.length ? (
-            <div className="space-y-3">
-              <p className="text-sm text-[#8b706e]">
-                Chọn một lớp để mở trang quản lý: hàng đợi đăng ký, học viên, lịch học và công bố khai giảng.
-              </p>
-              {classrooms.map((item) => (
-                <button
-                  className="flex w-full items-center justify-between gap-4 rounded-xl border border-[#f0e4e2] bg-white px-4 py-4 text-left shadow-sm transition hover:border-[#dfbfbd] hover:bg-[#fffafb]"
-                  key={item.id}
-                  onClick={() => navigate(`/training-manager/classrooms/${item.id}`)}
-                  type="button"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-['Manrope'] text-base font-extrabold text-[#2b2828]">{item.title}</p>
-                    <p className="mt-1 text-xs text-[#8b706e]">
-                      {formatDeliveryMode(item.deliveryMode, item.deliveryModeLabel)}
-                      {' · '}
-                      {formatOfferingStatus(item.classroomStatus)}
-                      {' · '}
-                      Khai giảng {formatClassroomDate(item.startDate)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#584140]">
-                      Sĩ số {item.enrolledCount ?? 0}/{item.maxCapacity ?? '-'}
-                      {' · '}
-                      {formatClassroomPrice(item.salePrice ?? item.price ?? 0)}
-                    </p>
-                    <p className="mt-1 text-xs text-[#584140]">
-                      Giáo trình: {item.curriculumProgramTitle || 'Chưa chọn'}
-                    </p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 flex-shrink-0 text-[#730014]" />
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </section>
-      </section>
+      {editorOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <button aria-label="Đóng cửa sổ" className="absolute inset-0" onClick={() => setEditorOpen(false)} type="button" />
+          <form className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onSubmit={saveClassroom}>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{editingId ? 'Chỉnh sửa lớp học' : 'Tạo lớp khai giảng'}</h3><p className="mt-1 text-xs text-[#8b706e]">Chọn chương trình đã xuất bản, giáo viên và thông tin vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140]" onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-6"><ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} teacherOptions={teacherOptions} trainingProgramOptions={trainingProgramOptions} /></div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4"><button className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140]" onClick={() => setEditorOpen(false)} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : editingId ? 'Lưu thay đổi' : 'Tạo lớp'}</button></div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-const inputClass = 'w-full rounded-xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-3 py-2.5 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white';
-
-function Field({ children, label }) {
+function ClassroomFormFields({ form, onChange, roomOptions, teacherOptions, trainingProgramOptions }) {
   return (
-    <label className="block space-y-2">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</span>
-      {children}
-    </label>
+    <div className="grid gap-5 lg:grid-cols-2">
+      <Field label="Tên lớp"><input className={inputClass} onChange={(event) => onChange('title', event.target.value)} required value={form.title} /></Field>
+      <Field label="Chương trình đào tạo"><BrandedSelect onChange={(event) => onChange('trainingProgramId', event.target.value)} options={trainingProgramOptions} required value={form.trainingProgramId} /></Field>
+      <Field label="Hình thức"><BrandedSelect onChange={(event) => onChange('deliveryMode', event.target.value)} options={deliveryModeOptions} value={form.deliveryMode} /></Field>
+      <Field label="Trạng thái"><BrandedSelect onChange={(event) => onChange('classroomStatus', event.target.value)} options={statusOptions} value={form.classroomStatus} /></Field>
+      <Field label="Level đầu vào"><BrandedSelect onChange={(event) => onChange('entryLevel', event.target.value)} options={levelOptions} value={form.entryLevel} /></Field>
+      <Field label="Sĩ số tối đa"><input className={inputClass} min="1" onChange={(event) => onChange('maxCapacity', event.target.value)} required type="number" value={form.maxCapacity} /></Field>
+      <Field label="Ngày khai giảng"><input className={inputClass} onChange={(event) => onChange('startDate', event.target.value)} required type="date" value={form.startDate} /></Field>
+      <Field label="Ngày kết thúc dự kiến"><input className={inputClass} onChange={(event) => onChange('endDate', event.target.value)} type="date" value={form.endDate} /></Field>
+      <Field label="Giáo viên chính"><BrandedSelect onChange={(event) => onChange('primaryTeacherId', event.target.value)} options={teacherOptions} value={form.primaryTeacherId} /></Field>
+      {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('defaultRoomId', event.target.value)} options={roomOptions} value={form.defaultRoomId} /></Field> : <div />}
+      <Field label="Học phí"><input className={inputClass} min="0" onChange={(event) => onChange('price', event.target.value)} type="number" value={form.price} /></Field>
+      <Field label="Giá ưu đãi"><input className={inputClass} min="0" onChange={(event) => onChange('salePrice', event.target.value)} type="number" value={form.salePrice} /></Field>
+      {form.deliveryMode === 'OFFLINE' ? <Field label="Địa điểm học"><input className={inputClass} onChange={(event) => onChange('offlineAddress', event.target.value)} value={form.offlineAddress} /></Field> : null}
+      <Field label="Mô tả ngắn" wide><textarea className={`${inputClass} min-h-24`} onChange={(event) => onChange('shortDescription', event.target.value)} value={form.shortDescription} /></Field>
+    </div>
   );
 }
 
-function InfoNote({ label, text }) {
-  return (
-    <div className="space-y-2">
-      <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</span>
-      <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs leading-5 text-slate-600">
-        {text}
-      </p>
-    </div>
-  );
+function mapClassroomToForm(item) {
+  return {
+    ...initialClassroomForm,
+    title: item.title || '',
+    deliveryMode: item.deliveryMode || 'OFFLINE',
+    classroomStatus: item.classroomStatus || 'DRAFT',
+    packageStatus: item.packageStatus || 'DRAFT',
+    trainingProgramId: item.trainingProgramId ? String(item.trainingProgramId) : '',
+    entryLevel: item.entryLevel || 'IELTS Foundation',
+    targetScore: item.targetScore || '',
+    targetOutcome: item.targetOutcome || '',
+    maxCapacity: String(item.maxCapacity ?? 18),
+    startDate: item.startDate || '',
+    endDate: item.endDate || '',
+    price: item.price == null ? '' : String(item.price),
+    salePrice: item.salePrice == null ? '' : String(item.salePrice),
+    duration: item.duration || '',
+    studyMode: item.studyMode || '',
+    primaryTeacherId: item.primaryTeacherId ? String(item.primaryTeacherId) : '',
+    defaultRoomId: item.roomId ? String(item.roomId) : '',
+    offlineAddress: item.offlineAddress || '',
+    locationNote: item.locationNote || '',
+    shortDescription: item.shortDescription || '',
+    description: item.description || '',
+    syllabusSummary: item.syllabusSummary || '',
+  };
+}
+
+function Field({ children, label, wide = false }) {
+  return <label className={`block space-y-2 ${wide ? 'lg:col-span-2' : ''}`}><span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</span>{children}</label>;
 }
 
 function MetricCard({ icon: Icon, label, value }) {
-  return (
-    <article className="rounded-xl border border-[#dfbfbd]/35 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#fff1f3] text-[#730014]">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</p>
-          <p className="mt-0.5 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{value}</p>
-        </div>
-      </div>
-    </article>
-  );
+  return <article className="rounded-xl border border-[#dfbfbd]/35 bg-white p-4 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</p><p className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{value}</p></div><span className="rounded-xl bg-[#fff1f3] p-2.5 text-[#730014]"><Icon className="h-5 w-5" /></span></div></article>;
 }
+
+const inputClass = 'w-full rounded-xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-3 py-2.5 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white';

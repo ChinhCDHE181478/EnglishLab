@@ -9,7 +9,7 @@ import java.util.List;
 public interface ClassroomAttendanceDisputeService {
     AttendanceDisputeResponse create(Long attendanceId, CreateAttendanceDisputeRequest request, String studentEmail);
     List<AttendanceDisputeResponse> listForStudent(String studentEmail);
-    List<AttendanceDisputeResponse> listForClass(Long offeringId);
-    List<AttendanceDisputeResponse> listPending();
+    List<AttendanceDisputeResponse> listForClass(Long offeringId, String teacherEmail);
+    List<AttendanceDisputeResponse> listPending(String teacherEmail);
     AttendanceDisputeResponse review(Long disputeId, ReviewAttendanceDisputeRequest request, String reviewerEmail);
 }

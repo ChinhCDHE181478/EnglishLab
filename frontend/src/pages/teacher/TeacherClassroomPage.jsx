@@ -46,6 +46,7 @@ import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
+import TeacherAttendanceDisputesSection from '../../components/teacher/TeacherAttendanceDisputesSection';
 import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 
 const teacherTabs = [
@@ -56,6 +57,7 @@ const teacherTabs = [
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
+  { id: 'attendance-disputes', label: 'Khiếu nại điểm danh' },
   { id: 'change-requests', label: 'Yêu cầu thay đổi' },
 ];
 
@@ -444,6 +446,10 @@ export default function TeacherClassroomPage() {
           sessions={sessions}
         />
       );
+    }
+
+    if (activeTab === 'attendance-disputes') {
+      return <TeacherAttendanceDisputesSection classroomId={id} onMessage={setActionMessage} />;
     }
 
     if (activeTab === 'gradebook') {
