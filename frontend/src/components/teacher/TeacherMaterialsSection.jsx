@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  BookCopy,
   Download,
   FileText,
   Paperclip,
   Plus,
-  RefreshCw,
+  ShieldCheck,
   Trash2,
   Upload,
   X,
@@ -13,10 +12,9 @@ import {
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomDateTime, formatClassroomTime } from '../../utils/classroomHelpers';
-
-const PAGE_SIZE = 6;
 
 const uploadFormInitial = {
   title: '',
@@ -25,21 +23,15 @@ const uploadFormInitial = {
   sessionId: '',
 };
 
-const libraryFilterInitial = {
-  examCategory: 'ALL',
-  materialType: 'ALL',
-  skill: 'ALL',
-};
-
-const attachFormInitial = {
-  sessionId: '',
-};
-
 const inferFileType = (fileNameOrUrl) => {
-  const value = fileNameOrUrl || '';
-  const match = value.match(/\.([a-z0-9]+)(?:\?|$)/i);
+  const match = String(fileNameOrUrl || '').match(/\.([a-z0-9]+)(?:\?|$)/i);
   return match ? match[1].toUpperCase() : '';
 };
+
+const isMandatoryMaterial = (material) => (
+  material?.mandatory === true
+  || ['PROGRAM_LIBRARY', 'CURRICULUM_LIBRARY'].includes(String(material?.sourceType || '').toUpperCase())
+);
 
 const sessionOptionsFor = (sessions) => ([
   { label: 'Không gắn buổi học cụ thể', value: '' },
@@ -56,14 +48,6 @@ export default function TeacherMaterialsSection({
   onMaterialsChange,
   onMessage,
 }) {
-  const [activeMode, setActiveMode] = useState('library');
-  const [libraryItems, setLibraryItems] = useState([]);
-  const [libraryLoading, setLibraryLoading] = useState(false);
-  const [libraryLoaded, setLibraryLoaded] = useState(false);
-  const [libraryFilters, setLibraryFilters] = useState(libraryFilterInitial);
-  const [libraryPage, setLibraryPage] = useState(1);
-  const [attachForm, setAttachForm] = useState(attachFormInitial);
-  const [attachingId, setAttachingId] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [uploadForm, setUploadForm] = useState(uploadFormInitial);
   const [attachmentFile, setAttachmentFile] = useState(null);
@@ -71,47 +55,33 @@ export default function TeacherMaterialsSection({
   const [deletingId, setDeletingId] = useState(null);
 
   const sessionOptions = useMemo(() => sessionOptionsFor(sessions), [sessions]);
+  
+  const mandatoryMaterials = useMemo(
+    () => materials.filter(isMandatoryMaterial),
+    [materials],
+  );
+  
+  const supplementaryMaterials = useMemo(
+    () => materials.filter((material) => !isMandatoryMaterial(material)),
+    [materials],
+  );
 
-  const loadLibrary = async () => {
-    setLibraryLoading(true);
-    try {
-      const data = await classroomApi.getTeacherMaterialLibrary();
-      setLibraryItems(data);
-      setLibraryLoaded(true);
-    } catch (err) {
-      onMessage?.(getClassroomErrorMessage(err, 'Không thể tải kho học liệu trung tâm.'));
-    } finally {
-      setLibraryLoading(false);
-    }
+  const { page: mandPage, setPage: setMandPage, totalPages: mandTotalPages, pageItems: paginatedMandatory, totalItems: mandTotalItems } = usePagination(
+    mandatoryMaterials,
+    4,
+    `mandatory-${classroomId}`
+  );
+  
+  const { page: suppPage, setPage: setSuppPage, totalPages: suppTotalPages, pageItems: paginatedSupplementary, totalItems: suppTotalItems } = usePagination(
+    supplementaryMaterials,
+    4,
+    `supplementary-${classroomId}`
+  );
+
+  const refreshMaterials = async () => {
+    const refreshed = await classroomApi.getTeacherMaterials(classroomId);
+    onMaterialsChange?.(refreshed);
   };
-
-  useEffect(() => {
-    if (activeMode === 'library' && !libraryLoaded) {
-      loadLibrary();
-    }
-  }, [activeMode, libraryLoaded]);
-
-  useEffect(() => {
-    setLibraryPage(1);
-  }, [libraryFilters]);
-
-  const filteredLibrary = useMemo(() => libraryItems.filter((item) => (
-    (libraryFilters.examCategory === 'ALL' || (item.examCategory || 'GENERAL') === libraryFilters.examCategory)
-    && (libraryFilters.materialType === 'ALL' || (item.materialType || 'LINK') === libraryFilters.materialType)
-    && (libraryFilters.skill === 'ALL' || (item.skill || 'Mixed') === libraryFilters.skill)
-  )), [libraryFilters, libraryItems]);
-
-  const totalLibraryPages = Math.max(1, Math.ceil(filteredLibrary.length / PAGE_SIZE));
-  const libraryPageItems = useMemo(() => {
-    const start = (libraryPage - 1) * PAGE_SIZE;
-    return filteredLibrary.slice(start, start + PAGE_SIZE);
-  }, [filteredLibrary, libraryPage]);
-
-  useEffect(() => {
-    if (libraryPage > totalLibraryPages) {
-      setLibraryPage(totalLibraryPages);
-    }
-  }, [libraryPage, totalLibraryPages]);
 
   const openCreateForm = () => {
     setUploadForm(uploadFormInitial);
@@ -123,11 +93,6 @@ export default function TeacherMaterialsSection({
     setUploadForm(uploadFormInitial);
     setAttachmentFile(null);
     setFormOpen(false);
-  };
-
-  const refreshMaterials = async () => {
-    const refreshed = await classroomApi.getTeacherMaterials(classroomId);
-    onMaterialsChange?.(refreshed);
   };
 
   const handleSaveMaterial = async () => {
@@ -157,50 +122,33 @@ export default function TeacherMaterialsSection({
         fileType: fileType || null,
         description: uploadForm.description.trim() || null,
         materialType: fileType || 'LINK',
-        provider: 'Teacher upload',
+        provider: 'Giáo viên phụ trách',
         visibility: 'LEARNERS_IN_CLASS',
-        sourceType: 'CLASSROOM_UPLOAD',
         sessionId: uploadForm.sessionId ? Number(uploadForm.sessionId) : null,
       });
-
       await refreshMaterials();
-      onMessage?.('Đã thêm tài liệu riêng cho lớp.');
+      onMessage?.('Đã thêm tài liệu bổ trợ cho lớp.');
       resetForm();
     } catch (err) {
-      onMessage?.(getClassroomErrorMessage(err, 'Không thể đăng tài liệu cho lớp.'));
+      onMessage?.(getClassroomErrorMessage(err, 'Không thể đăng tài liệu bổ trợ cho lớp.'));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAttachLibraryItem = async (item) => {
-    setAttachingId(item.id);
-    onMessage?.('');
-    try {
-      await classroomApi.attachTeacherLibraryMaterial(classroomId, {
-        centerMaterialId: item.id,
-        sessionId: attachForm.sessionId ? Number(attachForm.sessionId) : null,
-      });
-      await refreshMaterials();
-      onMessage?.('Đã gắn học liệu trung tâm vào lớp.');
-    } catch (err) {
-      onMessage?.(getClassroomErrorMessage(err, 'Không thể gắn học liệu trung tâm vào lớp.'));
-    } finally {
-      setAttachingId(null);
-    }
-  };
-
   const handleDeleteMaterial = async (material) => {
-    if (!window.confirm(`Xóa tài liệu "${material.title}" khỏi lớp này?`)) {
+    if (isMandatoryMaterial(material)) {
+      onMessage?.('Học liệu bắt buộc phải được cập nhật từ chương trình, không thể xóa trực tiếp trong lớp.');
       return;
     }
+    if (!window.confirm(`Xóa tài liệu bổ trợ "${material.title}" khỏi lớp này?`)) return;
 
     setDeletingId(material.id);
     onMessage?.('');
     try {
       await classroomApi.deleteTeacherMaterial(material.id);
       await refreshMaterials();
-      onMessage?.('Đã xóa tài liệu khỏi lớp.');
+      onMessage?.('Đã xóa tài liệu bổ trợ khỏi lớp.');
     } catch (err) {
       onMessage?.(getClassroomErrorMessage(err, 'Không thể xóa tài liệu.'));
     } finally {
@@ -208,364 +156,279 @@ export default function TeacherMaterialsSection({
     }
   };
 
-  const materialStats = useMemo(() => ({
-    center: materials.filter((item) => item.sourceType === 'CENTER_LIBRARY').length,
-    custom: materials.filter((item) => item.sourceType !== 'CENTER_LIBRARY').length,
-  }), [materials]);
-
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-[#dfbfbd]/20 bg-[#fffafb] p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h4 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Tài liệu lớp học</h4>
-            <p className="mt-1 text-sm leading-6 text-[#584140]">
-              Chọn từ kho học liệu trung tâm để tái sử dụng, hoặc tải thêm tài liệu riêng cho lớp khi cần.
+      <section className="rounded-2xl border border-[#dfbfbd]/20 bg-[#fffafb] p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-[#730014]" />
+              <h4 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Tài liệu lớp học</h4>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[#584140]">
+              Học liệu bắt buộc được lấy tự động từ chương trình đã duyệt. Giáo viên chỉ bổ sung tài liệu riêng phát sinh trong quá trình giảng dạy.
             </p>
           </div>
+          <button
+            className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014] active:scale-95"
+            onClick={openCreateForm}
+            type="button"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm tài liệu bổ trợ
+          </button>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${
-                activeMode === 'library'
-                  ? 'bg-[#4b0009] text-white'
-                  : 'border border-[#dfbfbd]/70 bg-white text-[#730014] hover:bg-[#fff2f3]'
-              }`}
-              onClick={() => setActiveMode('library')}
-              type="button"
-            >
-              Chọn từ trung tâm
-            </button>
-            <button
-              className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${
-                activeMode === 'custom'
-                  ? 'bg-[#4b0009] text-white'
-                  : 'border border-[#dfbfbd]/70 bg-white text-[#730014] hover:bg-[#fff2f3]'
-              }`}
-              onClick={() => setActiveMode('custom')}
-              type="button"
-            >
-              Tải riêng cho lớp
-            </button>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <StatPill label="Bắt buộc từ chương trình" value={mandatoryMaterials.length} />
+          <StatPill label="Bổ trợ của giáo viên" value={supplementaryMaterials.length} />
+          <StatPill label="Tổng tài liệu" value={materials.length} />
+        </div>
+      </section>
+
+      {formOpen && (
+        <EditorModal onClose={resetForm}>
+          <SupplementaryMaterialForm
+            attachmentFile={attachmentFile}
+            form={uploadForm}
+            onAttachmentChange={(file) => {
+              setAttachmentFile(file);
+              if (file) setUploadForm((current) => ({ ...current, fileUrl: '' }));
+            }}
+            onCancel={resetForm}
+            onChange={(field, value) => setUploadForm((current) => ({ ...current, [field]: value }))}
+            onSave={handleSaveMaterial}
+            saving={saving}
+            sessionOptions={sessionOptions}
+          />
+        </EditorModal>
+      )}
+
+      <section className="space-y-4">
+        <div>
+          <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Học liệu bắt buộc của chương trình</h5>
+          <p className="mt-1 text-sm text-[#584140]">Nội dung này do Content Manager chuẩn hóa và tự động áp dụng cho lớp.</p>
+        </div>
+
+        {!mandatoryMaterials.length ? (
+          <ClassroomEmptyState
+            description="Chương trình của lớp chưa được cấu hình học liệu bắt buộc. Vui lòng liên hệ Content Manager; giáo viên không cần chọn lại từ kho trung tâm."
+            title="Chương trình chưa có học liệu"
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="divide-y divide-[#e9d7d6]/40 rounded-2xl border border-[#e9d7d6]/65 bg-white shadow-sm overflow-hidden">
+              {paginatedMandatory.map((material) => (
+                <MaterialRow
+                  key={material.id}
+                  material={material}
+                  mandatory
+                />
+              ))}
+            </div>
+            
+            {mandTotalPages > 1 && (
+              <div className="flex justify-end mt-2">
+                <Pagination
+                  page={mandPage}
+                  onChange={setMandPage}
+                  totalPages={mandTotalPages}
+                  totalItems={mandTotalItems}
+                  pageSize={4}
+                />
+              </div>
+            )}
           </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Tài liệu bổ trợ của giáo viên</h5>
+          <p className="mt-1 text-sm text-[#584140]">Worksheet, ghi chú hoặc liên kết chỉ phát sinh cho lớp học này.</p>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <StatPill label="Đã gắn từ trung tâm" value={materialStats.center} />
-          <StatPill label="Tài liệu riêng của lớp" value={materialStats.custom} />
-          <StatPill label="Tổng tài liệu đang có" value={materials.length} />
+        {!supplementaryMaterials.length ? (
+          <ClassroomEmptyState
+            actionLabel="Thêm tài liệu bổ trợ"
+            description="Lớp chưa có tài liệu bổ trợ. Học liệu bắt buộc phía trên vẫn được giữ nguyên."
+            onAction={openCreateForm}
+            title="Chưa có tài liệu bổ trợ"
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="divide-y divide-[#e9d7d6]/40 rounded-2xl border border-[#e9d7d6]/65 bg-white shadow-sm overflow-hidden">
+              {paginatedSupplementary.map((material) => (
+                <MaterialRow
+                  deleting={deletingId === material.id}
+                  key={material.id}
+                  material={material}
+                  onDelete={() => handleDeleteMaterial(material)}
+                />
+              ))}
+            </div>
+
+            {suppTotalPages > 1 && (
+              <div className="flex justify-end mt-2">
+                <Pagination
+                  page={suppPage}
+                  onChange={setSuppPage}
+                  totalPages={suppTotalPages}
+                  totalItems={suppTotalItems}
+                  pageSize={4}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function EditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SupplementaryMaterialForm({
+  attachmentFile,
+  form,
+  onAttachmentChange,
+  onCancel,
+  onChange,
+  onSave,
+  saving,
+  sessionOptions,
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 pb-3">
+        <div>
+          <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Tài liệu bổ trợ mới</h5>
+          <p className="mt-1 text-xs text-[#584140]">Tài liệu này chỉ áp dụng cho lớp hiện tại, không thay đổi chương trình gốc.</p>
         </div>
+        <button className="rounded-lg p-2 text-[#584140] hover:bg-gray-100" onClick={onCancel} type="button">
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      {activeMode === 'library' ? (
-        <div className="space-y-5 rounded-2xl border border-[#dfbfbd]/20 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Kho học liệu trung tâm</h5>
-              <p className="mt-1 text-sm text-[#584140]">
-                Học liệu ở đây do Content Manager chuẩn hóa theo band IELTS hoặc dải điểm TOEIC để dùng lại giữa nhiều lớp.
-              </p>
-            </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd]/70 bg-white px-4 py-2.5 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff2f3]"
-              onClick={loadLibrary}
-              type="button"
-            >
-              <RefreshCw className={`h-4 w-4 ${libraryLoading ? 'animate-spin' : ''}`} />
-              Làm mới kho
-            </button>
+      <div className="grid gap-4">
+        <TextInput label="Tiêu đề *" onChange={(value) => onChange('title', value)} placeholder="Ví dụ: Worksheet ôn tập buổi 3" value={form.title} />
+        <div className="space-y-2">
+          <span className="block text-xs font-extrabold uppercase tracking-[0.16em] text-[#584140]">Tệp đính kèm</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#dfbfbd] bg-[#fffafb] px-4 py-3 text-xs font-extrabold text-[#730014] hover:border-[#730014]">
+              <Paperclip className="h-4 w-4" />
+              Chọn tệp
+              <input
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(event) => onAttachmentChange(event.target.files?.[0] || null)}
+                type="file"
+              />
+            </label>
+            <span className="text-xs text-[#8a7a78]">{attachmentFile?.name || 'PDF, Word, PowerPoint, Excel hoặc ảnh; tối đa 20 MB'}</span>
           </div>
+        </div>
+        <TextInput disabled={Boolean(attachmentFile)} label="Hoặc dán liên kết" onChange={(value) => onChange('fileUrl', value)} placeholder="https://..." value={form.fileUrl} />
+        <TextArea label="Mô tả ngắn" onChange={(value) => onChange('description', value)} placeholder="Mục đích sử dụng của tài liệu." value={form.description} />
+        <FilterSelect label="Gắn với buổi học" onChange={(value) => onChange('sessionId', value)} options={sessionOptions} value={form.sessionId} />
+      </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <FilterSelect
-              label="Kỳ thi"
-              value={libraryFilters.examCategory}
-              options={[{ label: 'Tất cả', value: 'ALL' }, { label: 'IELTS', value: 'IELTS' }, { label: 'TOEIC', value: 'TOEIC' }, { label: 'Tổng quát', value: 'GENERAL' }]}
-              onChange={(value) => setLibraryFilters((current) => ({ ...current, examCategory: value }))}
-            />
-            <FilterSelect
-              label="Loại học liệu"
-              value={libraryFilters.materialType}
-              options={[{ label: 'Tất cả', value: 'ALL' }, ...buildDistinctOptions(libraryItems, 'materialType')]}
-              onChange={(value) => setLibraryFilters((current) => ({ ...current, materialType: value }))}
-            />
-            <FilterSelect
-              label="Kỹ năng"
-              value={libraryFilters.skill}
-              options={[{ label: 'Tất cả', value: 'ALL' }, ...buildDistinctOptions(libraryItems, 'skill')]}
-              onChange={(value) => setLibraryFilters((current) => ({ ...current, skill: value }))}
-            />
-            <FilterSelect
-              label="Gắn vào buổi học"
-              value={attachForm.sessionId}
-              options={sessionOptions}
-              onChange={(value) => setAttachForm({ sessionId: value })}
-            />
+      <div className="mt-5 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-3">
+        <button className="rounded-xl border border-gray-200 px-5 py-3 text-xs font-extrabold text-[#584140] hover:bg-gray-50 active:scale-95" onClick={onCancel} type="button">Hủy</button>
+        <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white hover:bg-[#730014] disabled:opacity-60 active:scale-95" disabled={saving} onClick={onSave} type="button">
+          <Upload className="h-4 w-4" />
+          {saving ? 'Đang lưu...' : 'Lưu tài liệu bổ trợ'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MaterialRow({ material, mandatory = false, deleting = false, onDelete }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 hover:bg-[#fffcfc] transition">
+      <div className="flex items-start gap-4 min-w-0 flex-1">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#fff2f3] text-[#730014]">
+          <FileText className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h6 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] truncate max-w-sm sm:max-w-md">{material.title}</h6>
+            {mandatory ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
+                <ShieldCheck className="h-3 w-3" /> Bắt buộc
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff2f3] px-2.5 py-0.5 text-[10px] font-bold text-[#730014] border border-[#f0d8db] shrink-0">
+                Bổ trợ
+              </span>
+            )}
+            {material.fileType && (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 uppercase shrink-0">
+                {material.fileType}
+              </span>
+            )}
           </div>
-
-          {!filteredLibrary.length ? (
-            <ClassroomEmptyState
-              title="Chưa có học liệu phù hợp"
-              description="Hãy nới bộ lọc hoặc nhờ Content Manager bổ sung học liệu trung tâm cho band và kỹ năng này."
-            />
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-2">
-                {libraryPageItems.map((item) => (
-                  <article key={item.id} className="rounded-2xl border border-gray-100 bg-[#fcfbfb] p-5 transition hover:border-[#dfbfbd]/40">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
-                            <BookCopy className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">{item.title}</h4>
-                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">
-                              {item.materialType || 'LINK'} • {item.skill || 'Mixed'}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-[#584140]">
-                          {item.description || 'Học liệu này đã sẵn sàng để gắn vào lớp.'}
-                        </p>
-                      </div>
-
-                      <button
-                        className="rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
-                        disabled={attachingId === item.id}
-                        onClick={() => handleAttachLibraryItem(item)}
-                        type="button"
-                      >
-                        {attachingId === item.id ? 'Đang gắn...' : 'Gắn vào lớp'}
-                      </button>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <InfoPill label="Mức phù hợp" value={formatTargetRange(item)} />
-                      <InfoPill label="Nguồn" value={item.provider || 'EnglishLab'} />
-                    </div>
-
-                    {item.fileUrl ? (
-                      <div className="mt-4 border-t border-gray-100 pt-4">
-                        <a
-                          className="inline-flex items-center gap-2 text-sm font-extrabold text-[#730014] hover:underline"
-                          href={item.fileUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          <Download className="h-4 w-4" />
-                          Xem học liệu gốc
-                        </a>
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[#8b706e]">
-                  Trang {libraryPage}/{totalLibraryPages}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2 text-sm font-bold text-[#584140] transition hover:bg-[#fff2f3] disabled:opacity-45"
-                    disabled={libraryPage === 1}
-                    onClick={() => setLibraryPage((page) => Math.max(1, page - 1))}
-                    type="button"
-                  >
-                    Trang trước
-                  </button>
-                  <button
-                    className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2 text-sm font-bold text-[#584140] transition hover:bg-[#fff2f3] disabled:opacity-45"
-                    disabled={libraryPage === totalLibraryPages}
-                    onClick={() => setLibraryPage((page) => Math.min(totalLibraryPages, page + 1))}
-                    type="button"
-                  >
-                    Trang sau
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-5 rounded-2xl border border-[#dfbfbd]/20 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Tài liệu riêng của lớp</h5>
-              <p className="mt-1 text-sm text-[#584140]">
-                Dùng cho worksheet, ghi chú phát sinh hoặc tài liệu chỉ áp dụng cho lớp này.
-              </p>
-            </div>
-            <button
-              className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014]"
-              onClick={openCreateForm}
-              type="button"
-            >
-              <Plus className="h-4 w-4" />
-              Thêm tài liệu riêng
-            </button>
+          <p className="mt-1 text-xs text-[#584140] line-clamp-2">{material.description || 'Tài liệu đã sẵn sàng cho học viên trong lớp.'}</p>
+          
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#8a7a78]">
+            <span className="flex items-center gap-1">
+              <span className="font-semibold text-[#8b706e]">Gắn với:</span>
+              <span>{material.curriculumUnitTitle || material.sessionTitle || 'Áp dụng chung cho lớp'}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="font-semibold text-[#8b706e]">Nguồn:</span>
+              <span>{material.provider || (mandatory ? 'EnglishLab' : 'Giáo viên phụ trách')}</span>
+            </span>
           </div>
-
-          {formOpen ? (
-            <div className="rounded-2xl border border-[#dfbfbd]/25 bg-[#fcfbfb] p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h6 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Biểu mẫu tài liệu mới</h6>
-                <button
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#584140] transition hover:bg-gray-100"
-                  onClick={resetForm}
-                  type="button"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <TextInput
-                  label="Tiêu đề *"
-                  value={uploadForm.title}
-                  onChange={(value) => setUploadForm((current) => ({ ...current, title: value }))}
-                  placeholder="Ví dụ: Worksheet luyện nghe tuần 3"
-                  className="md:col-span-2"
-                />
-
-                <div className="space-y-2 md:col-span-2">
-                  <label className="block text-xs font-extrabold uppercase tracking-[0.16em] text-[#584140]">Tệp đính kèm</label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#dfbfbd] bg-[#fffafb] px-4 py-3 text-xs font-extrabold text-[#730014] transition hover:border-[#730014]">
-                      <Paperclip className="h-4 w-4" />
-                      Chọn tệp
-                      <input
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                        className="hidden"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] || null;
-                          setAttachmentFile(file);
-                          if (file) {
-                            setUploadForm((current) => ({ ...current, fileUrl: '' }));
-                          }
-                        }}
-                        type="file"
-                      />
-                    </label>
-                    {attachmentFile ? (
-                      <span className="text-xs font-bold text-[#584140]">{attachmentFile.name}</span>
-                    ) : (
-                      <span className="text-xs text-[#8a7a78]">PDF, Word, PowerPoint, Excel, ảnh... tối đa 20 MB</span>
-                    )}
-                  </div>
-                </div>
-
-                <TextInput
-                  label="Hoặc dán liên kết"
-                  value={uploadForm.fileUrl}
-                  onChange={(value) => setUploadForm((current) => ({ ...current, fileUrl: value }))}
-                  placeholder="https://..."
-                  className="md:col-span-2"
-                  disabled={Boolean(attachmentFile)}
-                />
-
-                <TextArea
-                  label="Mô tả ngắn"
-                  value={uploadForm.description}
-                  onChange={(value) => setUploadForm((current) => ({ ...current, description: value }))}
-                  placeholder="Ghi chú nhanh để học viên biết tài liệu này dùng cho mục gì."
-                  className="md:col-span-2"
-                />
-
-                <FilterSelect
-                  label="Gắn với buổi học"
-                  value={uploadForm.sessionId}
-                  options={sessionOptions}
-                  onChange={(value) => setUploadForm((current) => ({ ...current, sessionId: value }))}
-                />
-              </div>
-
-              <div className="mt-5 flex flex-wrap justify-end gap-3">
-                <button
-                  className="rounded-xl border border-gray-200 px-5 py-3 text-xs font-extrabold text-[#584140] transition hover:bg-gray-50"
-                  onClick={resetForm}
-                  type="button"
-                >
-                  Hủy
-                </button>
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
-                  disabled={saving}
-                  onClick={handleSaveMaterial}
-                  type="button"
-                >
-                  <Upload className="h-4 w-4" />
-                  {saving ? 'Đang lưu...' : 'Lưu tài liệu riêng'}
-                </button>
-              </div>
-            </div>
-          ) : null}
         </div>
-      )}
-
-      {!materials.length ? (
-        <ClassroomEmptyState
-          actionLabel={activeMode === 'library' ? 'Mở kho trung tâm' : 'Tạo tài liệu đầu tiên'}
-          description="Lớp học này chưa có tài liệu nào. Bạn có thể chọn học liệu từ trung tâm hoặc thêm tài liệu riêng cho lớp."
-          onAction={activeMode === 'library' ? () => setActiveMode('library') : openCreateForm}
-          title="Chưa có tài liệu"
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {materials.map((material) => (
-            <article
-              key={material.id}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-[#dfbfbd]/30"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <button
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#8a7a78] transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                  disabled={deletingId === material.id}
-                  onClick={() => handleDeleteMaterial(material)}
-                  title="Xóa tài liệu"
-                  type="button"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">{material.title}</h4>
-                  <SourceBadge value={material.sourceType} />
-                </div>
-                <p className="text-sm leading-6 text-[#584140]">
-                  {material.description || 'Tài liệu này đã sẵn sàng cho học viên trong lớp.'}
-                </p>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                <InfoPill label="Buổi học gắn kèm" value={material.sessionTitle || 'Không gắn buổi cụ thể'} />
-                <InfoPill label="Nguồn" value={material.provider || (material.sourceType === 'CENTER_LIBRARY' ? 'EnglishLab' : 'Teacher upload')} />
-              </div>
-
-              {material.fileUrl ? (
-                <div className="mt-4 border-t border-gray-50 pt-4">
-                  <a
-                    className="inline-flex items-center gap-1.5 text-sm font-extrabold text-[#730014] hover:underline"
-                    href={material.fileUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    <Download className="h-4 w-4" />
-                    Mở tài liệu
-                  </a>
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      )}
+      </div>
+      
+      <div className="flex items-center justify-end gap-2 shrink-0 self-end sm:self-center">
+        {material.fileUrl && (
+          <a
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3.5 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3] active:scale-95"
+            href={material.fileUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <Download className="h-3.5 w-3.5" /> Mở tài liệu
+          </a>
+        )}
+        {!mandatory && (
+          <button
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-[#8a7a78] hover:bg-red-50 hover:text-red-600 transition disabled:opacity-50 active:scale-95"
+            disabled={deleting}
+            onClick={onDelete}
+            title="Xóa tài liệu bổ trợ"
+            type="button"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -574,7 +437,7 @@ function FilterSelect({ label, value, options, onChange }) {
   return (
     <div className="space-y-2">
       <label className="block text-xs font-extrabold uppercase tracking-[0.16em] text-[#584140]">{label}</label>
-      <BrandedSelect value={value} onChange={(event) => onChange(event.target.value)} options={options} />
+      <BrandedSelect onChange={(event) => onChange(event.target.value)} options={options} value={value} />
     </div>
   );
 }
@@ -583,13 +446,7 @@ function TextInput({ label, value, onChange, placeholder, className = '', disabl
   return (
     <label className={`block ${className}`}>
       <span className="mb-1.5 block text-xs font-extrabold text-[#584140]">{label}</span>
-      <input
-        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014] disabled:bg-gray-50"
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        value={value}
-      />
+      <input className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014] disabled:bg-gray-50" disabled={disabled} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} value={value} />
     </label>
   );
 }
@@ -598,12 +455,7 @@ function TextArea({ label, value, onChange, placeholder, className = '' }) {
   return (
     <label className={`block ${className}`}>
       <span className="mb-1.5 block text-xs font-extrabold text-[#584140]">{label}</span>
-      <textarea
-        className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014]"
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        value={value}
-      />
+      <textarea className="min-h-[120px] w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-[#2b2828] outline-none focus:border-[#730014]" onChange={(event) => onChange(event.target.value)} placeholder={placeholder} value={value} />
     </label>
   );
 }
@@ -615,44 +467,6 @@ function StatPill({ label, value }) {
       <p className="mt-2 text-lg font-extrabold text-[#2b2828]">{value}</p>
     </div>
   );
-}
-
-function InfoPill({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] px-4 py-3">
-      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-[#2b2828]">{value}</p>
-    </div>
-  );
-}
-
-function SourceBadge({ value }) {
-  const isCenter = value === 'CENTER_LIBRARY';
-  return (
-    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-      isCenter ? 'bg-emerald-100 text-emerald-700' : 'bg-[#fff2f3] text-[#730014]'
-    }`}>
-      {isCenter ? 'Từ trung tâm' : 'Riêng của lớp'}
-    </span>
-  );
-}
-
-function formatTargetRange(item) {
-  if ((item.examCategory || 'GENERAL') === 'TOEIC') {
-    if (item.toeicScoreMin != null || item.toeicScoreMax != null) {
-      return `${item.toeicScoreMin ?? '?'} - ${item.toeicScoreMax ?? '?'}`;
-    }
-    return 'TOEIC chung';
-  }
-  if (item.ieltsBandMin != null || item.ieltsBandMax != null) {
-    return `Band ${item.ieltsBandMin ?? '?'} - ${item.ieltsBandMax ?? '?'}`;
-  }
-  return item.examCategory || 'Tổng quát';
-}
-
-function buildDistinctOptions(items, key) {
-  const values = Array.from(new Set(items.map((item) => item[key]).filter(Boolean)));
-  return values.map((value) => ({ label: value, value }));
 }
 
 function formatSessionSummary(session) {

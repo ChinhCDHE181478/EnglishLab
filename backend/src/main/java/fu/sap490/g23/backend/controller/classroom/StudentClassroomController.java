@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.service.classroom.*;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,6 +27,7 @@ public class StudentClassroomController {
     private final ClassroomAttendanceService classroomAttendanceService;
     private final TuitionProofService tuitionProofService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
+    private final ClassroomPracticeService classroomPracticeService;
 
     @GetMapping({"/my-classrooms", "/my-classes"})
     public ResponseEntity<List<ClassroomOfferingResponse>> getMyClasses(Authentication authentication) {
@@ -141,6 +143,24 @@ public class StudentClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomHomeworkService.listForClass(id, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/practice")
+    public ResponseEntity<List<ClassroomPracticeResponse>> getPractice(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomPracticeService.listForLearner(id, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/practice/{exerciseId}/complete")
+    public ResponseEntity<ClassroomPracticeResponse> completePractice(
+            @PathVariable Long id,
+            @PathVariable Long exerciseId,
+            @Valid @RequestBody CompletePracticeRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomPracticeService.complete(id, exerciseId, request, authentication.getName()));
     }
 
     @PostMapping("/homework/{homeworkId}/submit")

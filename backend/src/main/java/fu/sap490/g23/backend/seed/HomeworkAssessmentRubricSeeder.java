@@ -3,12 +3,18 @@ package fu.sap490.g23.backend.seed;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Component
 @Order(59)
@@ -16,15 +22,58 @@ import org.springframework.transaction.annotation.Transactional;
 public class HomeworkAssessmentRubricSeeder implements CommandLineRunner {
 
     private final AssessmentRubricRepository rubricRepository;
+    private final AssessmentBankItemRepository assessmentBankItemRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        upsertIeltsWritingRubric();
-        upsertIeltsSpeakingRubric();
+        AssessmentRubric writingRubric = upsertIeltsWritingRubric();
+        AssessmentRubric speakingRubric = upsertIeltsSpeakingRubric();
         upsertIeltsVocabularyRubric();
         upsertIeltsListeningRubric();
         upsertIeltsReadingRubric();
+        upsertAiModuleTest(
+                "IELTS Writing Task 2 - Opinion Essay",
+                AssessmentSkill.WRITING,
+                writingRubric,
+                "Viết ít nhất 250 từ. Trình bày quan điểm rõ ràng, phát triển lập luận và đưa ví dụ phù hợp.",
+                "Some people think online learning can replace classroom learning. To what extent do you agree or disagree?",
+                1
+        );
+        upsertAiModuleTest(
+                "IELTS Speaking - Part 2 Long Turn",
+                AssessmentSkill.SPEAKING,
+                speakingRubric,
+                "Chuẩn bị trong 1 phút, sau đó trình bày khoảng 1-2 phút. Học viên có thể nộp transcript hoặc nội dung ghi âm theo giao diện hỗ trợ.",
+                "Describe a skill you learned that has been useful in your study or work. Explain how you learned it and why it is useful.",
+                2
+        );
+    }
+
+    private void upsertAiModuleTest(
+            String title,
+            AssessmentSkill skill,
+            AssessmentRubric rubric,
+            String instructions,
+            String prompt,
+            int displayOrder
+    ) {
+        AssessmentBankItem item = assessmentBankItemRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
+                .filter(candidate -> title.equalsIgnoreCase(candidate.getTitle()))
+                .findFirst()
+                .orElseGet(() -> AssessmentBankItem.builder().title(title).build());
+        item.setDescription("MODULE_TEST hệ thống dành cho bài tập về nhà; giáo viên có thể bật hoặc tắt hỗ trợ chấm điểm AI.");
+        item.setType(AssessmentType.MODULE_TEST);
+        item.setSkill(skill);
+        item.setAiEvaluationMode(AiEvaluationMode.RUBRIC_FEEDBACK);
+        item.setRubric(rubric);
+        item.setInstructions(instructions);
+        item.setUiConfigJson("{\"prompt\":\"" + prompt + "\",\"responseType\":\"TEXT\"}");
+        item.setMaxScore(BigDecimal.TEN);
+        item.setStatus("PUBLISHED");
+        item.setDisplayOrder(displayOrder);
+        item.setActive(true);
+        assessmentBankItemRepository.save(item);
     }
 
     private AssessmentRubric upsertIeltsWritingRubric() {

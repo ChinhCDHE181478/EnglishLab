@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import {
   BookOpen,
   Calendar,
@@ -153,6 +154,12 @@ export default function MyClassroomsPage() {
     return true;
   }), [activeTab, classrooms]);
 
+  const { page, setPage, totalPages, pageItems: paginatedClassrooms, totalItems } = usePagination(
+    filteredClassrooms,
+    6,
+    activeTab
+  );
+
   const counts = useMemo(() => ({
     all: classrooms.length,
     active: classrooms.filter(isActiveClass).length,
@@ -253,9 +260,9 @@ export default function MyClassroomsPage() {
           {/* Clean Minimalist Cards Grid */}
           <div className="space-y-6">
             <AnimatePresence mode="popLayout">
-              {filteredClassrooms.length > 0 ? (
+              {paginatedClassrooms.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredClassrooms.map((classroom, idx) => (
+                  {paginatedClassrooms.map((classroom, idx) => (
                     <motion.div
                       key={classroom.id}
                       layout
@@ -286,6 +293,18 @@ export default function MyClassroomsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center pt-4">
+                <Pagination
+                  page={page}
+                  onChange={setPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  pageSize={6}
+                />
+              </div>
+            )}
           </div>
 
         </div>

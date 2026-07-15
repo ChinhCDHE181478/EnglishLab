@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import paymentApi from '../api/paymentApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import Pagination, { usePagination } from '../components/ui/Pagination';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { hasAccessToken } from '../utils/auth';
 
@@ -57,6 +58,12 @@ const TransactionHistoryPage = () => {
     };
   }, []);
 
+  const { page, setPage, totalPages, pageItems: paginatedOrders, totalItems } = usePagination(
+    orders,
+    5,
+    'transaction-history'
+  );
+
   return (
     <LearnerPageShell
       title="Lịch sử giao dịch"
@@ -91,49 +98,60 @@ const TransactionHistoryPage = () => {
           </div>
         </section>
       ) : (
-        <section className="grid flex-1 gap-6">
-          {orders.map((order) => {
-            const badge = statusLabel(order.status);
-            return (
-              <article key={order.orderCode} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
-                      {orderTypeLabel(order.orderType)} · Mã đơn #{order.orderCode}
-                    </p>
-                    <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-                      {(order.courseTitles || []).join(' · ') || order.description || 'Thanh toán khóa học'}
-                    </h2>
-                    <p className="mt-2 text-sm leading-7 text-[#584140]">
-                      Tạo lúc {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '—'}
-                      {order.paidAt ? ` · Thanh toán lúc ${new Date(order.paidAt).toLocaleString('vi-VN')}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-start gap-3 md:items-end">
+        <div className="space-y-6 flex-1 flex flex-col justify-between">
+          <section className="grid gap-6">
+            {paginatedOrders.map((order) => {
+              const badge = statusLabel(order.status);
+              return (
+                <article key={order.orderCode} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+                        {orderTypeLabel(order.orderType)} · Mã đơn #{order.orderCode}
+                      </p>
+                      <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                        {(order.courseTitles || []).join(' · ') || order.description || 'Thanh toán khóa học'}
+                      </h2>
+                      <p className="mt-2 text-sm leading-7 text-[#584140]">
+                        Tạo lúc {order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : '—'}
+                        {order.paidAt ? ` · Thanh toán lúc ${new Date(order.paidAt).toLocaleString('vi-VN')}` : ''}
+                      </p>
+                    </div>
                     <span className={`self-start rounded-full px-3 py-2 text-xs font-extrabold ${badge.className}`}>
                       {badge.text}
                     </span>
                   </div>
-                </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-4">
-                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                    Số tiền: <strong className="text-[#2b2828]">{formatMoney(order.amount)}</strong>
+                  <div className="mt-4 grid gap-3 md:grid-cols-4">
+                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                      Số tiền: <strong className="text-[#2b2828]">{formatMoney(order.amount)}</strong>
+                    </div>
+                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                      Giá gốc: <strong className="text-[#2b2828]">{formatMoney(order.originalAmount)}</strong>
+                    </div>
+                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                      Giảm giá: <strong className="text-[#2b2828]">{formatMoney((order.systemDiscountAmount || 0) + (order.couponDiscountAmount || 0))}</strong>
+                    </div>
+                    <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
+                      Mã giảm: <strong className="text-[#2b2828]">{order.discountCodeText || 'Không có'}</strong>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                    Giá gốc: <strong className="text-[#2b2828]">{formatMoney(order.originalAmount)}</strong>
-                  </div>
-                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                    Giảm giá: <strong className="text-[#2b2828]">{formatMoney((order.systemDiscountAmount || 0) + (order.couponDiscountAmount || 0))}</strong>
-                  </div>
-                  <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                    Mã giảm: <strong className="text-[#2b2828]">{order.discountCodeText || 'Không có'}</strong>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                </article>
+              );
+            })}
+          </section>
+
+          {orders.length > 5 && (
+            <div className="flex justify-end">
+              <Pagination
+                page={page}
+                onChange={setPage}
+                totalItems={totalItems}
+                pageSize={5}
+              />
+            </div>
+          )}
+        </div>
       )}
     </LearnerPageShell>
   );

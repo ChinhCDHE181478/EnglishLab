@@ -32,6 +32,7 @@ import {
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const requestFilters = [
   { id: 'all', label: 'Tất cả' },
@@ -80,6 +81,12 @@ export default function TeacherRequestsPage() {
       return true;
     });
   }, [requests, activeFilter, searchQuery]);
+
+  const { page, setPage, totalPages, pageItems: paginatedRequests, totalItems } = usePagination(
+    filteredRequests,
+    4,
+    `${activeFilter}-${searchQuery}`,
+  );
 
   // Calculate stats for PageHero
   const stats = useMemo(() => {
@@ -153,55 +160,66 @@ export default function TeacherRequestsPage() {
           ) : null}
 
           {!loading && !error && filteredRequests.length ? (
-            <div className="grid gap-6 md:grid-cols-2">
-              {filteredRequests.map((request, idx) => (
-                <motion.article
-                  key={request.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(idx * 0.06, 0.36), ease: 'easeOut' }}
-                  className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-5 transition hover:border-[#d0c4c3] hover:shadow-sm space-y-5"
-                >
-                  {/* Card Header */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <span className="inline-flex rounded-full bg-[#fff1f3] px-3 py-1 text-xs font-extrabold text-[#730014]">
-                        {request.requestTypeLabel || request.requestType || 'Yêu cầu'}
-                      </span>
-                      <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">
-                        {request.classroomTitle || `Lớp học #${request.classroomOfferingId}`}
-                      </h3>
+            <div className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                {paginatedRequests.map((request, idx) => (
+                  <motion.article
+                    key={request.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(idx * 0.06, 0.36), ease: 'easeOut' }}
+                    className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white p-5 transition hover:border-[#d0c4c3] hover:shadow-sm space-y-5"
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <span className="inline-flex rounded-full bg-[#fff1f3] px-3 py-1 text-xs font-extrabold text-[#730014]">
+                          {request.requestTypeLabel || request.requestType || 'Yêu cầu'}
+                        </span>
+                        <h3 className="mt-3 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">
+                          {request.classroomTitle || `Lớp học #${request.classroomOfferingId}`}
+                        </h3>
+                      </div>
+                      <StatusBadge status={request.status} />
                     </div>
-                    <StatusBadge status={request.status} />
-                  </div>
 
-                  {/* Reason Block */}
-                  <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4 space-y-2">
-                    <p className="text-[10px] font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1">
-                      <MessageSquare className="h-3.5 w-3.5 text-[#730014]" />
-                      Lý do đề xuất thay đổi
-                    </p>
-                    <p className="text-sm text-[#584140] whitespace-pre-wrap">
-                      {request.reason || 'Không có mô tả chi tiết.'}
-                    </p>
-                  </div>
+                    {/* Reason Block */}
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4 space-y-2">
+                      <p className="text-[10px] font-bold text-[#8b706e] uppercase tracking-wider flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5 text-[#730014]" />
+                        Lý do đề xuất thay đổi
+                      </p>
+                      <p className="text-sm text-[#584140] whitespace-pre-wrap">
+                        {request.reason || 'Không có mô tả chi tiết.'}
+                      </p>
+                    </div>
 
-                  {/* Request Timeline */}
-                  <RequestStatusTimeline
-                    createdAt={request.createdAt}
-                    reviewNote={request.reviewNote}
-                    reviewedAt={request.reviewedAt || request.updatedAt}
-                    reviewerName={request.reviewerName}
-                    status={request.status}
-                  />
+                    {/* Request Timeline */}
+                    <RequestStatusTimeline
+                      createdAt={request.createdAt}
+                      reviewNote={request.reviewNote}
+                      reviewedAt={request.reviewedAt || request.updatedAt}
+                      reviewerName={request.reviewerName}
+                      status={request.status}
+                    />
 
-                  {/* Card Footer */}
-                  <div className="pt-4 border-t border-gray-50 flex items-center justify-between text-[10px] font-bold text-gray-400">
-                    <span>Yêu cầu ID: #{request.id}</span>
-                    <span>Gửi lúc: {formatClassroomDateTime(request.createdAt)}</span>
-                  </div>
-                </motion.article>
-              ))}
+                    {/* Card Footer */}
+                    <div className="pt-4 border-t border-gray-50 flex items-center justify-between text-[10px] font-bold text-gray-400">
+                      <span>Yêu cầu ID: #{request.id}</span>
+                      <span>Gửi lúc: {formatClassroomDateTime(request.createdAt)}</span>
+                    </div>
+                  </motion.article>
+                ))}
+              </div>
+              <div className="flex justify-center pt-4">
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onChange={setPage}
+                  totalItems={totalItems}
+                  pageSize={4}
+                />
+              </div>
             </div>
           ) : null}
         </div>

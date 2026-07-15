@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
+import java.util.Collection;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,5 +34,11 @@ public class UserRoleServiceImpl implements UserRoleService {
     public void replaceRoles(User user, RoleEnum role) {
         user.getRoles().clear();
         assignRole(user, role);
+    }
+
+    @Override
+    public void replaceRoles(User user, Collection<RoleEnum> roles) {
+        user.getRoles().clear();
+        roles.forEach(role -> assignRole(user, role));
     }
 }

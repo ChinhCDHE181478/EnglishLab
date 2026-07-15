@@ -30,6 +30,7 @@ import {
   DetailDrawer,
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ListeningExamMode from '../../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../../components/course-assessment/ReadingExamMode';
 import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMode';
@@ -261,6 +262,12 @@ export default function MyHomeworkPage() {
     };
   }, [homework]);
 
+  const { page, setPage, totalPages, pageItems: paginatedHomeworkList, totalItems } = usePagination(
+    filteredHomework,
+    6,
+    `my-homework-${activeTab}-${searchQuery}`
+  );
+
   const handleSubmit = async (item) => {
     const homeworkId = item.id;
     const file = submitFiles[homeworkId] || null;
@@ -484,14 +491,15 @@ export default function MyHomeworkPage() {
             {/* Premium Homework Card Grid */}
             <AnimatePresence mode="wait">
               {filteredHomework.length > 0 ? (
-                <motion.div
+                <>
+                  <motion.div
                   key={activeTab}
                   variants={containerVariants}
                   initial="hidden"
                   animate="show"
                   className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
-                  {filteredHomework.map((item) => {
+                  {paginatedHomeworkList.map((item) => {
                     const status = getHomeworkStatus(item);
                     const isGraded = status === 'GRADED';
                     const isOverdue = status === 'OVERDUE';
@@ -661,6 +669,18 @@ export default function MyHomeworkPage() {
                     );
                   })}
                 </motion.div>
+
+                {filteredHomework.length > 6 && (
+                  <div className="mt-6 flex justify-end">
+                    <Pagination
+                      page={page}
+                      onChange={setPage}
+                      totalItems={totalItems}
+                      pageSize={6}
+                    />
+                  </div>
+                )}
+                </>
               ) : (
                 <motion.div
                   key="empty"

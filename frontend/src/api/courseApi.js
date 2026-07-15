@@ -136,17 +136,81 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
-  async getCourseDiscussions(courseId, filter = 'ALL') {
+  async getCourseDiscussions(courseId, { filter = 'ALL', moduleId, page = 0, size = 10 } = {}) {
     const response = await axiosClient.get(`/api/online-courses/${courseId}/discussions`, {
-      params: { filter },
+      params: { filter, moduleId: moduleId || undefined, page, size },
       skipAuthRedirect: true,
     });
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : data?.content || data?.items || [];
+    return normalizePage(unwrapData(response));
   },
 
   async createCourseDiscussion(courseId, payload) {
     const response = await axiosClient.post(`/api/student/online-courses/${courseId}/discussions`, payload);
+    return unwrapData(response);
+  },
+
+  async getGlobalFlashcardPractice(params = {}) {
+    const response = await axiosClient.get('/api/student/flashcards/practice', { params });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getRecommendedCourses() {
+    const response = await axiosClient.get('/api/student/online-courses/recommendations');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async getMyLearningPath() {
+    const response = await axiosClient.get('/api/student/learning-path');
+    return unwrapData(response);
+  },
+
+  async getLearnerLessonNotes() {
+    const response = await axiosClient.get('/api/student/learning/notes');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async createLearnerLessonNote(courseId, lessonId, payload) {
+    const response = await axiosClient.post(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/notes`, payload);
+    return unwrapData(response);
+  },
+
+  async updateLearnerLessonNote(noteId, payload) {
+    const response = await axiosClient.put(`/api/student/learning/notes/${noteId}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteLearnerLessonNote(noteId) {
+    await axiosClient.delete(`/api/student/learning/notes/${noteId}`);
+  },
+
+  async getLearnerLessonReviewFlags() {
+    const response = await axiosClient.get('/api/student/learning/review-flags');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async addLearnerLessonReviewFlag(courseId, lessonId) {
+    const response = await axiosClient.post(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
+    return unwrapData(response);
+  },
+
+  async removeLearnerLessonReviewFlag(courseId, lessonId) {
+    await axiosClient.delete(`/api/student/learning/courses/${courseId}/lessons/${lessonId}/review-flag`);
+  },
+
+  async getLessonDiscussions(courseId, lessonId, { filter = 'ALL', page = 0, size = 10 } = {}) {
+    const response = await axiosClient.get(`/api/online-courses/${courseId}/lessons/${lessonId}/discussions`, {
+      params: { filter, page, size },
+      skipAuthRedirect: true,
+    });
+    return normalizePage(unwrapData(response));
+  },
+
+  async createLessonDiscussion(courseId, lessonId, payload) {
+    const response = await axiosClient.post(`/api/student/online-courses/${courseId}/lessons/${lessonId}/discussions`, payload);
     return unwrapData(response);
   },
 
@@ -193,13 +257,13 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
-  async reportDiscussionThread(threadId, payload = {}) {
-    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, payload);
+  async reportDiscussionThread(threadId, { reasonCategory, reason } = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/${threadId}/reports`, { reasonCategory, reason });
     return unwrapData(response);
   },
 
-  async reportDiscussionReply(replyId, payload = {}) {
-    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reports`, payload);
+  async reportDiscussionReply(replyId, { reasonCategory, reason } = {}) {
+    const response = await axiosClient.post(`/api/student/online-courses/discussions/replies/${replyId}/reports`, { reasonCategory, reason });
     return unwrapData(response);
   },
 
@@ -230,6 +294,53 @@ export const courseApi = {
   async getManagedOnlineCourses(params = {}) {
     const response = await axiosClient.get('/api/content-manager/online-courses', { params });
     return normalizePage(unwrapData(response));
+  },
+
+  async getManagedLearningPaths(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/learning-paths', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async createManagedLearningPath(payload) {
+    const response = await axiosClient.post('/api/content-manager/learning-paths', payload);
+    return unwrapData(response);
+  },
+
+  async updateManagedLearningPath(pathId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/learning-paths/${pathId}`, payload);
+    return unwrapData(response);
+  },
+
+  async addManagedLearningPathCourses(pathId, courseIds) {
+    const response = await axiosClient.post(`/api/content-manager/learning-paths/${pathId}/courses`, { courseIds });
+    return unwrapData(response);
+  },
+
+  async reorderManagedLearningPathCourses(pathId, courseIds) {
+    const response = await axiosClient.put(`/api/content-manager/learning-paths/${pathId}/courses/order`, { courseIds });
+    return unwrapData(response);
+  },
+
+  async deleteManagedLearningPath(pathId) {
+    await axiosClient.delete(`/api/content-manager/learning-paths/${pathId}`);
+  },
+
+  async getDiscussionModerationReports(status = 'PENDING', category = '') {
+    const params = { status };
+    if (category) params.category = category;
+    const response = await axiosClient.get('/api/content-manager/discussion-reports', { params });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.content || data?.items || [];
+  },
+
+  async hideReportedDiscussion(reportId, payload = {}) {
+    const response = await axiosClient.post(`/api/content-manager/discussion-reports/${reportId}/hide`, payload);
+    return unwrapData(response);
+  },
+
+  async dismissDiscussionReport(reportId, payload = {}) {
+    const response = await axiosClient.post(`/api/content-manager/discussion-reports/${reportId}/dismiss`, payload);
+    return unwrapData(response);
   },
 
   async getManagedOnlineCourse(slugOrId) {
@@ -314,6 +425,11 @@ export const courseApi = {
 
   async updateOnlineCourse(id, payload) {
     const response = await axiosClient.put(`/api/content-manager/online-courses/${id}`, payload);
+    return unwrapData(response);
+  },
+
+  async updateLearningPathOrder(courseIds) {
+    const response = await axiosClient.patch('/api/content-manager/online-courses/learning-path-order', { courseIds });
     return unwrapData(response);
   },
 

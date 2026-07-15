@@ -17,6 +17,7 @@ import fu.sap490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryRespo
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.dto.response.classroom.TuitionProofResponse;
+import fu.sap490.g23.backend.dto.response.classroom.TrainingProgramResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomRoom;
@@ -28,6 +29,7 @@ import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.TuitionProofService;
+import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +54,7 @@ public class TrainingManagerClassroomController {
     private final ClassroomOfferingService classroomOfferingService;
     private final CurriculumProgramService curriculumProgramService;
     private final TuitionProofService tuitionProofService;
+    private final TrainingProgramService trainingProgramService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
 
@@ -59,12 +62,14 @@ public class TrainingManagerClassroomController {
             ClassroomOfferingService classroomOfferingService,
             CurriculumProgramService curriculumProgramService,
             TuitionProofService tuitionProofService,
+            TrainingProgramService trainingProgramService,
             UserRepository userRepository,
             ClassroomRoomRepository roomRepository
     ) {
         this.classroomOfferingService = classroomOfferingService;
         this.curriculumProgramService = curriculumProgramService;
         this.tuitionProofService = tuitionProofService;
+        this.trainingProgramService = trainingProgramService;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
     }
@@ -109,6 +114,13 @@ public class TrainingManagerClassroomController {
         return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
     }
 
+    @GetMapping("/training-programs")
+    public ResponseEntity<List<TrainingProgramResponse>> listPublishedTrainingPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
+    ) {
+        return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(deliveryMode));
+    }
+
     @GetMapping("/curriculum-programs/pending-review")
     public ResponseEntity<List<CurriculumProgramResponse>> listPendingCurriculumPrograms() {
         return ResponseEntity.ok(curriculumProgramService.listPendingReview());
@@ -151,9 +163,10 @@ public class TrainingManagerClassroomController {
     @PutMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> updateOffering(
             @PathVariable Long id,
-            @Valid @RequestBody CreateClassroomOfferingRequest request
+            @Valid @RequestBody CreateClassroomOfferingRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request));
+        return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request, authentication.getName()));
     }
 
     @PostMapping("/{id}/publish")

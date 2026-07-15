@@ -112,7 +112,7 @@ export default function ContentManagerDashboardPage() {
         <Panel className="p-6">
           <SectionTitle title="Thao tác nhanh" />
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <QuickLink icon={Plus} label="Tạo khóa học online" to="/content-manager/courses/new" />
+            <QuickLink icon={Plus} label="Tạo khóa học online" to="/content-manager/courses?new=1" />
             <QuickLink icon={Upload} label="Tải học liệu lên" to="/content-manager/materials" />
             <QuickLink icon={Brain} label="Quản lý flashcard" to="/content-manager/flashcards" />
             <QuickLink icon={FileQuestion} label="Quản lý đề thi thử" to="/content-manager/mock-exams" />

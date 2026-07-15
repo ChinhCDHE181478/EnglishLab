@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
+import fu.sap490.g23.backend.dto.response.classroom.HomeworkAiAssessmentOptionResponse;
 import java.util.List;
 
 public interface ClassroomHomeworkService {
@@ -24,4 +25,6 @@ public interface ClassroomHomeworkService {
     ClassroomHomeworkSubmissionResponse grade(Long homeworkId, Long studentId, GradeHomeworkRequest request, String graderEmail);
 
     List<ClassroomHomeworkSubmissionResponse> listSubmissions(Long homeworkId, String teacherEmail);
+
+    List<HomeworkAiAssessmentOptionResponse> listAiAssessmentOptions(String teacherEmail);
 }

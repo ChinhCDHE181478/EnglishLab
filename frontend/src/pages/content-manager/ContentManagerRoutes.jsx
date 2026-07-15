@@ -5,7 +5,6 @@ import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 import ContentManagerCoursesPage from './ContentManagerCoursesPage';
 import ContentManagerDashboardPage from './ContentManagerDashboardPage';
 import ContentManagerDiscountCodesPage from './ContentManagerDiscountCodesPage';
-import ContentManagerClassroomsPage from './ContentManagerClassroomsPage';
 import ContentManagerFlashcardsPage from './ContentManagerFlashcardsPage';
 import ContentManagerAssessmentsHubPage from './ContentManagerAssessmentsHubPage';
 import ContentManagerMaterialsPage from './ContentManagerMaterialsPage';
@@ -22,6 +21,7 @@ import ContentManagerCurriculumProgramEditPage from './ContentManagerCurriculumP
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
 import ContentManagerPackagesPage from './ContentManagerPackagesPage';
 import ContentManagerSettingsPage from './ContentManagerSettingsPage';
+import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -31,7 +31,7 @@ export default function ContentManagerRoutes() {
         <Route path="dashboard" element={<ContentManagerDashboardPage />} />
         <Route path="courses" element={<ContentManagerCoursesPage />} />
         <Route path="courses/:slugOrId" element={<Navigate replace to="edit" />} />
-        <Route path="classrooms" element={<ContentManagerClassroomsPage />} />
+        <Route path="classrooms" element={<Navigate replace to="/content-manager/offline-programs" />} />
         <Route path="offline-programs" element={<ContentManagerTrainingProgramsPage mode="OFFLINE" />} />
         <Route path="offline-programs/:id/edit" element={<ContentManagerCurriculumProgramEditPage mode="OFFLINE" />} />
         <Route path="offline-programs/:id" element={<ContentManagerCurriculumProgramDetailPage mode="OFFLINE" />} />
@@ -61,6 +61,7 @@ export default function ContentManagerRoutes() {
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
         <Route path="packages" element={<ContentManagerPackagesPage />} />
         <Route path="settings" element={<ContentManagerSettingsPage />} />
+        <Route path="discussion-moderation" element={<ContentManagerDiscussionModerationPage />} />
         <Route path="categories" element={<ContentManagerCategoriesPage />} />
         <Route path="*" element={<Navigate replace to="dashboard" />} />
       </Routes>

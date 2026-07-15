@@ -562,6 +562,22 @@ export default function ContentManagerFlashcardsPage() {
     }
   };
 
+  const publishSet = async (set) => {
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = await curriculumApi.updateFlashcardSet(set.id, { ...toForm(set), status: 'PUBLISHED' });
+      setSets((current) => current.map((item) => (String(item.id) === String(saved.id) ? saved : item)));
+      if (String(editingId) === String(saved.id)) setForm(toForm(saved));
+      setSuccess('Đã xuất bản bộ flashcard.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không xuất bản được bộ flashcard.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
@@ -789,7 +805,17 @@ export default function ContentManagerFlashcardsPage() {
                               <RefreshCw className="h-3.5 w-3.5" />
                               Khôi phục
                             </button>
-                          ) : (
+                          ) : set.status === 'DRAFT' ? (
+                            <button
+                              type="button"
+                              onClick={() => publishSet(set)}
+                              disabled={working}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800 disabled:opacity-45"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Xuất bản
+                            </button>
+                          ) : set.status === 'PUBLISHED' ? (
                             <button
                               type="button"
                               onClick={() => archiveSet(set)}
@@ -799,7 +825,7 @@ export default function ContentManagerFlashcardsPage() {
                               <Archive className="h-3.5 w-3.5" />
                               Lưu trữ
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>

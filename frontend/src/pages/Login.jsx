@@ -39,6 +39,7 @@ const Login = () => {
   const [facebookLoading, setFacebookLoading] = useState(false);
 
   const resolvePostLoginPath = (user) => {
+    if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
     if (isContentManagerUser(user)) return '/content-manager/dashboard';
     if (hasAnyUserRole(user, ['TRAINING_MANAGER'])) return '/training-manager';
     if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';

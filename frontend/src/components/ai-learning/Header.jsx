@@ -65,6 +65,7 @@ const getProfileItemsByRole = (user) => {
   // Student
   return [
     { label: 'Khóa học của tôi', to: '/my-courses' },
+    { label: 'Luyện flashcard', to: '/flashcards/practice' },
     { label: 'Lớp của tôi', to: '/my-classrooms' },
     { label: 'Lịch học', to: '/my-schedule' },
     { label: 'Bài tập', to: '/my-homework' },

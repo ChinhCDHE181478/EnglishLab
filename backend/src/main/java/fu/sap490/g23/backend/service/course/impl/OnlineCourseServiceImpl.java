@@ -9,6 +9,7 @@ import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessme
 import fu.sap490.g23.backend.dto.request.course.LessonRequest;
 import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
@@ -23,11 +24,14 @@ import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sap490.g23.backend.service.assessment.IeltsBandScale;
 import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sap490.g23.backend.entity.course.*;
@@ -39,6 +43,7 @@ import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.repository.course.*;
 import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
@@ -65,6 +70,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.EnumMap;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -77,6 +85,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
     private static final Pattern VOCABULARY_HEADING = Pattern.compile("(?m)^###\\s+\\d+\\.\\s+(.+)$");
     private static final Pattern CERTIFICATE_CODE_PATTERN = Pattern.compile("^ELC-(\\d+)-(\\d+)-([A-F0-9]+)$");
+    private static final Pattern BAND_NUMBER_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)");
 
     private final OnlineCourseRepository onlineCourseRepository;
     private final LearningPackageRepository learningPackageRepository;
@@ -89,8 +98,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final CourseLessonFlashcardRefRepository courseLessonFlashcardRefRepository;
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
+    private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final BunnyStreamService bunnyStreamService;
@@ -490,6 +501,363 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
                 .map(mapper::toEnrollmentResponse)
                 .toList();
+    }
+
+    @Override
+    public List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request) {
+        List<Long> courseIds = request.getCourseIds();
+        if (courseIds.stream().distinct().count() != courseIds.size()) {
+            throw new IllegalArgumentException("Danh sách khóa học trong lộ trình bị trùng.");
+        }
+        List<OnlineCourse> courses = onlineCourseRepository.findAllById(courseIds);
+        if (courses.size() != courseIds.size()) {
+            throw new IllegalArgumentException("Không tìm thấy đầy đủ khóa học cần sắp xếp.");
+        }
+        String pathCode = courses.getFirst().getLearningPathCode();
+        if (pathCode == null || pathCode.isBlank() || courses.stream().anyMatch(course -> !pathCode.equals(course.getLearningPathCode()))) {
+            throw new IllegalArgumentException("Chỉ có thể sắp xếp các khóa học trong cùng một lộ trình.");
+        }
+        java.util.Map<Long, OnlineCourse> byId = courses.stream().collect(java.util.stream.Collectors.toMap(OnlineCourse::getId, course -> course));
+        List<OnlineCourseResponse> responses = new java.util.ArrayList<>();
+        for (int index = 0; index < courseIds.size(); index++) {
+            OnlineCourse course = byId.get(courseIds.get(index));
+            course.setLearningPathOrder(index + 1);
+            responses.add(mapper.toResponse(course));
+        }
+        onlineCourseRepository.saveAll(courses);
+        return responses;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OnlineCourseResponse> getRecommendedCourses(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        List<OnlineCourse> publishedCourses = onlineCourseRepository
+                .findAll(courseSpec(null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
+                .getContent();
+        Map<Long, PackageEnrollment> enrollmentsByPackage = enrollmentRepository
+                .findByStudentOrderByRegisteredAtDesc(student)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        enrollment -> enrollment.getLearningPackage().getId(),
+                        enrollment -> enrollment,
+                        (first, ignored) -> first
+                ));
+        PlacementTestAttempt latestAttempt = placementTestAttemptRepository
+                .findTopByStudentOrderBySubmittedAtDesc(student)
+                .orElse(null);
+        Set<AssessmentSkill> weakSkills = resolveWeakSkills(latestAttempt);
+        Double currentBand = student.getCurrentBand() != null
+                ? student.getCurrentBand()
+                : decimalToDouble(latestAttempt == null ? null : latestAttempt.getOverallScore());
+        Double targetBand = parseBand(student.getTargetScore());
+
+        return publishedCourses.stream()
+                .filter(course -> !isCompletedEnrollment(enrollmentsByPackage.get(course.getLearningPackage().getId())))
+                .map(course -> scoreRecommendation(
+                        course,
+                        enrollmentsByPackage.get(course.getLearningPackage().getId()),
+                        student.getTargetExam(),
+                        currentBand,
+                        targetBand,
+                        weakSkills
+                ))
+                .sorted(Comparator.comparingDouble(ScoredRecommendation::score).reversed()
+                        .thenComparing(item -> defaultInt(item.course().getLearningPathOrder()))
+                        .thenComparing(item -> item.course().getId()))
+                .limit(6)
+                .map(ScoredRecommendation::response)
+                .toList();
+    }
+
+    private ScoredRecommendation scoreRecommendation(
+            OnlineCourse course,
+            PackageEnrollment enrollment,
+            String targetExam,
+            Double currentBand,
+            Double targetBand,
+            Set<AssessmentSkill> weakSkills
+    ) {
+        OnlineCourseResponse response = mapper.toPublicResponse(course);
+        if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
+            response.setRegistered(true);
+            response.setEnrollmentId(enrollment.getId());
+            response.setProgressPercent(defaultInt(enrollment.getProgressPercent()));
+        }
+
+        double score = 0;
+        String searchableCourse = String.join(" ",
+                safe(course.getLearningPackage().getTitle()),
+                safe(course.getLearningPackage().getShortDescription()),
+                safe(response.getCategory()),
+                safe(response.getCategoryName()),
+                safe(course.getLearningPathCode()),
+                safe(course.getLearningPathName())
+        ).toUpperCase(Locale.ROOT);
+        String normalizedExam = safe(targetExam).toUpperCase(Locale.ROOT);
+        boolean examMatches = !normalizedExam.isBlank() && searchableCourse.contains(normalizedExam);
+        if (examMatches) score += 6;
+
+        Double minBand = course.getRecommendedCurrentBandMin();
+        Double maxBand = course.getRecommendedCurrentBandMax();
+        if (currentBand != null && minBand != null && maxBand != null) {
+            if (currentBand >= minBand && currentBand <= maxBand) {
+                score += 6;
+            } else {
+                double distance = currentBand < minBand ? minBand - currentBand : currentBand - maxBand;
+                score += Math.max(-2, 3 - distance * 2);
+            }
+        }
+        if (targetBand != null && course.getTargetBand() != null) {
+            score += Math.max(-1, 5 - Math.abs(targetBand - course.getTargetBand()) * 2);
+        }
+
+        Set<AssessmentSkill> matchedWeakSkills = response.getFocusSkills().stream()
+                .map(this::parseAssessmentSkill)
+                .filter(java.util.Objects::nonNull)
+                .filter(weakSkills::contains)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        score += matchedWeakSkills.size() * 8D;
+        if (course.getLearningPackage().isFeatured()) score += 1;
+
+        response.setRecommendationReason(buildRecommendationReason(
+                matchedWeakSkills,
+                examMatches,
+                targetExam,
+                currentBand,
+                targetBand
+        ));
+        return new ScoredRecommendation(course, response, score);
+    }
+
+    private Set<AssessmentSkill> resolveWeakSkills(PlacementTestAttempt attempt) {
+        if (attempt == null) return Set.of();
+        Map<AssessmentSkill, BigDecimal> scores = new EnumMap<>(AssessmentSkill.class);
+        putScore(scores, AssessmentSkill.LISTENING, attempt.getListeningScore());
+        putScore(scores, AssessmentSkill.READING, attempt.getReadingScore());
+        putScore(scores, AssessmentSkill.WRITING, attempt.getWritingScore());
+        putScore(scores, AssessmentSkill.SPEAKING, attempt.getSpeakingScore());
+
+        Set<AssessmentSkill> weakSkills = new LinkedHashSet<>();
+        scores.values().stream().min(BigDecimal::compareTo).ifPresent(minimum -> scores.forEach((skill, score) -> {
+            if (score.compareTo(minimum.add(BigDecimal.valueOf(0.5))) <= 0) weakSkills.add(skill);
+        }));
+
+        if (weakSkills.isEmpty()) {
+            String feedback = safe(attempt.getAiFeedbackJson()).toUpperCase(Locale.ROOT);
+            for (AssessmentSkill skill : List.of(
+                    AssessmentSkill.LISTENING,
+                    AssessmentSkill.READING,
+                    AssessmentSkill.WRITING,
+                    AssessmentSkill.SPEAKING
+            )) {
+                if (feedback.contains(skill.name())) weakSkills.add(skill);
+            }
+        }
+        return weakSkills;
+    }
+
+    private void putScore(Map<AssessmentSkill, BigDecimal> scores, AssessmentSkill skill, BigDecimal score) {
+        if (score != null) scores.put(skill, score);
+    }
+
+    private String buildRecommendationReason(
+            Set<AssessmentSkill> matchedWeakSkills,
+            boolean examMatches,
+            String targetExam,
+            Double currentBand,
+            Double targetBand
+    ) {
+        if (!matchedWeakSkills.isEmpty()) {
+            return "Ưu tiên vì bạn cần cải thiện kỹ năng " + skillLabel(matchedWeakSkills.iterator().next()) + ".";
+        }
+        if (currentBand != null && targetBand != null && targetBand > currentBand) {
+            return "Phù hợp để nâng band từ " + formatBand(currentBand) + " lên " + formatBand(targetBand) + ".";
+        }
+        if (examMatches) {
+            return "Phù hợp với mục tiêu " + safe(targetExam).toUpperCase(Locale.ROOT) + " của bạn.";
+        }
+        if (currentBand != null) {
+            return "Phù hợp với trình độ hiện tại band " + formatBand(currentBand) + ".";
+        }
+        return "Được đề xuất dựa trên hồ sơ học tập của bạn.";
+    }
+
+    private boolean isCompletedEnrollment(PackageEnrollment enrollment) {
+        return enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
+                || defaultInt(enrollment.getProgressPercent()) >= 100);
+    }
+
+    private AssessmentSkill parseAssessmentSkill(String value) {
+        try {
+            return AssessmentSkill.valueOf(safe(value).toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private String skillLabel(AssessmentSkill skill) {
+        String value = skill.name().toLowerCase(Locale.ROOT);
+        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
+    }
+
+    private Double parseBand(String value) {
+        var matcher = BAND_NUMBER_PATTERN.matcher(safe(value));
+        if (!matcher.find()) return null;
+        try {
+            return Double.parseDouble(matcher.group(1));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private Double decimalToDouble(BigDecimal value) {
+        return value == null ? null : value.doubleValue();
+    }
+
+    private String formatBand(Double value) {
+        return value == null ? "" : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+    }
+
+    private record ScoredRecommendation(OnlineCourse course, OnlineCourseResponse response, double score) {}
+
+    @Override
+    @Transactional(readOnly = true)
+    public LearnerLearningPathResponse getMyLearningPath(String studentEmail) {
+        User student = userRepository.findByEmail(studentEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        List<OnlineCourse> courses = onlineCourseRepository.findPublishedLearningPathCourses(PackageStatus.PUBLISHED);
+        Map<Long, PackageEnrollment> enrollmentsByPackageId = enrollmentRepository
+                .findByStudentOrderByRegisteredAtDesc(student)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        enrollment -> enrollment.getLearningPackage().getId(),
+                        enrollment -> enrollment,
+                        (first, ignored) -> first
+                ));
+
+        Map<String, List<OnlineCourse>> groupedCourses = new LinkedHashMap<>();
+        courses.forEach(course -> groupedCourses
+                .computeIfAbsent(course.getLearningPathCode().trim(), ignored -> new ArrayList<>())
+                .add(course));
+
+        List<LearnerLearningPathResponse.PathOverview> allPaths = groupedCourses.entrySet().stream()
+                .map(entry -> buildLearningPathOverview(entry.getKey(), entry.getValue(), enrollmentsByPackageId))
+                .sorted(Comparator.comparing(LearnerLearningPathResponse.PathOverview::getCode)
+                        .thenComparing(LearnerLearningPathResponse.PathOverview::getName))
+                .toList();
+        List<LearnerLearningPathResponse.PathOverview> paths = allPaths.stream()
+                .filter(path -> path.getCourses().stream().anyMatch(course -> !"NOT_ENROLLED".equals(course.getEnrollmentStatus())))
+                .findFirst()
+                .map(List::of)
+                .orElseGet(() -> allPaths.isEmpty() ? List.of() : List.of(allPaths.getFirst()));
+
+        return LearnerLearningPathResponse.builder()
+                .currentBand(student.getCurrentBand())
+                .targetExam(student.getTargetExam())
+                .targetScore(student.getTargetScore())
+                .paths(paths)
+                .build();
+    }
+
+    private LearnerLearningPathResponse.PathOverview buildLearningPathOverview(
+            String code,
+            List<OnlineCourse> pathCourses,
+            Map<Long, PackageEnrollment> enrollmentsByPackageId
+    ) {
+        List<OnlineCourse> sortedCourses = pathCourses.stream()
+                .sorted(Comparator.comparing((OnlineCourse course) -> defaultInt(course.getLearningPathOrder()))
+                        .thenComparing(OnlineCourse::getId))
+                .toList();
+
+        OnlineCourse enrolledCurrentCourse = sortedCourses.stream()
+                .filter(course -> {
+                    PackageEnrollment enrollment = activeLearningPathEnrollment(
+                            enrollmentsByPackageId.get(course.getLearningPackage().getId())
+                    );
+                    return enrollment != null
+                            && enrollment.getStatus() == EnrollmentStatus.ACTIVE
+                            && defaultInt(enrollment.getProgressPercent()) < 100;
+                })
+                .findFirst()
+                .orElse(null);
+
+        Long nextCourseId = null;
+        Long currentStepCourseId;
+        if (enrolledCurrentCourse != null) {
+            currentStepCourseId = enrolledCurrentCourse.getId();
+            int currentIndex = sortedCourses.indexOf(enrolledCurrentCourse);
+            for (int index = currentIndex + 1; index < sortedCourses.size(); index++) {
+                OnlineCourse candidate = sortedCourses.get(index);
+                PackageEnrollment enrollment = activeLearningPathEnrollment(
+                        enrollmentsByPackageId.get(candidate.getLearningPackage().getId())
+                );
+                if (enrollment == null) {
+                    nextCourseId = candidate.getId();
+                    break;
+                }
+            }
+        } else {
+            currentStepCourseId = null;
+            boolean previousCoursesCompleted = true;
+            for (OnlineCourse course : sortedCourses) {
+                PackageEnrollment enrollment = activeLearningPathEnrollment(
+                        enrollmentsByPackageId.get(course.getLearningPackage().getId())
+                );
+                boolean completed = isLearningPathCourseCompleted(enrollment);
+                if (previousCoursesCompleted && enrollment == null) {
+                    currentStepCourseId = course.getId();
+                    nextCourseId = course.getId();
+                    break;
+                }
+                previousCoursesCompleted = previousCoursesCompleted && completed;
+            }
+        }
+
+        List<LearnerLearningPathCourseResponse> courseResponses = new ArrayList<>();
+        boolean prerequisiteCompleted = true;
+        for (OnlineCourse course : sortedCourses) {
+            PackageEnrollment enrollment = activeLearningPathEnrollment(
+                    enrollmentsByPackageId.get(course.getLearningPackage().getId())
+            );
+            boolean completed = isLearningPathCourseCompleted(enrollment);
+            boolean accessible = enrollment != null || prerequisiteCompleted;
+            courseResponses.add(LearnerLearningPathCourseResponse.builder()
+                    .courseId(course.getId())
+                    .slug(course.getLearningPackage().getSlug())
+                    .title(course.getLearningPackage().getTitle())
+                    .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
+                    .learningPathOrder(course.getLearningPathOrder())
+                    .enrollmentStatus(enrollment == null ? "NOT_ENROLLED" : enrollment.getStatus().name())
+                    .progressPercent(enrollment == null ? 0 : defaultInt(enrollment.getProgressPercent()))
+                    .completed(completed)
+                    .lockedReason(accessible ? null : "Hoàn thành khóa học trước để mở bước này.")
+                    .build());
+            prerequisiteCompleted = prerequisiteCompleted && completed;
+        }
+
+        return LearnerLearningPathResponse.PathOverview.builder()
+                .code(code)
+                .name(sortedCourses.getFirst().getLearningPathName())
+                .totalCourses(sortedCourses.size())
+                .completedCourses((int) courseResponses.stream().filter(LearnerLearningPathCourseResponse::isCompleted).count())
+                .currentStepCourseId(currentStepCourseId)
+                .nextCourseId(nextCourseId)
+                .courses(courseResponses)
+                .build();
+    }
+
+    private boolean isLearningPathCourseCompleted(PackageEnrollment enrollment) {
+        return enrollment != null
+                && (enrollment.getStatus() == EnrollmentStatus.COMPLETED || defaultInt(enrollment.getProgressPercent()) >= 100);
+    }
+
+    private PackageEnrollment activeLearningPathEnrollment(PackageEnrollment enrollment) {
+        if (enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED) {
+            return null;
+        }
+        return enrollment;
     }
 
     @Override
@@ -1199,6 +1567,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void synchronizeLessonFlashcardRefs(Lesson lesson, List<Long> flashcardSetIds) {
+        courseLessonFlashcardRefRepository.deleteByLessonId(lesson.getId());
+        courseLessonFlashcardRefRepository.flush();
         lesson.getFlashcardRefs().clear();
         if (flashcardSetIds == null || flashcardSetIds.isEmpty()) {
             return;
@@ -1489,9 +1859,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private String resolveLearnerName(User student) {
-        return student.getFullName() == null || student.getFullName().isBlank()
-                ? "Học viên EnglishLab"
-                : student.getFullName().trim();
+        if (student.getFullName() != null && !student.getFullName().isBlank() && !student.getFullName().trim().equalsIgnoreCase("Học viên EnglishLab")) {
+            return student.getFullName().trim();
+        }
+        if (student.getEmail() != null) {
+            String[] parts = student.getEmail().split("@");
+            if (parts.length > 0) {
+                return parts[0];
+            }
+        }
+        return "Học viên EnglishLab";
     }
 
     private String generateUniqueSlug(String title) {
@@ -1514,6 +1891,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     private String clean(String keyword) {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private Integer defaultInt(Integer value) {

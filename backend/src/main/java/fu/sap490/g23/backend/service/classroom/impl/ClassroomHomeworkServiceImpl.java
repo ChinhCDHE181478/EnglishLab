@@ -8,15 +8,19 @@ import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
+import fu.sap490.g23.backend.dto.response.classroom.HomeworkAiAssessmentOptionResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.mail.ClassroomHomeworkMailService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +46,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final CurriculumUnitRepository curriculumUnitRepository;
+    private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final UserRepository userRepository;
@@ -89,6 +94,33 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<HomeworkAiAssessmentOptionResponse> listAiAssessmentOptions(String teacherEmail) {
+        User teacher = accessHelper.requireUser(teacherEmail);
+        accessHelper.assertTeacher(teacher);
+        return assessmentBankItemRepository
+                .findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
+                        AssessmentType.MODULE_TEST,
+                        "PUBLISHED",
+                        List.of(AssessmentSkill.WRITING, AssessmentSkill.SPEAKING)
+                ).stream()
+                .filter(item -> item.getRubric() != null && item.getRubric().isActive())
+                .map(item -> HomeworkAiAssessmentOptionResponse.builder()
+                        .id(item.getId())
+                        .title(item.getTitle())
+                        .description(item.getDescription())
+                        .skill(item.getSkill())
+                        .instructions(item.getInstructions())
+                        .uiConfigJson(item.getUiConfigJson())
+                        .maxScore(item.getMaxScore())
+                        .timeLimitMinutes(item.getTimeLimitMinutes())
+                        .rubricId(item.getRubric() == null ? null : item.getRubric().getId())
+                        .rubricName(item.getRubric() == null ? null : item.getRubric().getName())
+                        .build())
+                .toList();
+    }
+
+    @Override
     public ClassroomHomeworkResponse create(Long offeringId, CreateHomeworkRequest request, String creatorEmail) {
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertTeacher(creator);
@@ -114,7 +146,6 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .attachmentUrl(request.getAttachmentUrl())
                 .activityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType())
                 .activityConfigJson(request.getActivityConfigJson())
-                .aiReviewEnabled(Boolean.TRUE.equals(request.getAiReviewEnabled()))
                 .status(request.getStatus() == null ? HomeworkStatus.DRAFT : request.getStatus())
                 .createdBy(creator)
                 .build();
@@ -153,7 +184,6 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassroomOffering(), request.getCurriculumUnitId()));
         homework.setActivityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType());
         homework.setActivityConfigJson(request.getActivityConfigJson());
-        homework.setAiReviewEnabled(Boolean.TRUE.equals(request.getAiReviewEnabled()));
         applyGradingConfig(homework, request);
         ClassroomHomework saved = homeworkRepository.save(homework);
         if (!wasOpen && saved.getStatus() == HomeworkStatus.OPEN) {
@@ -321,34 +351,41 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     }
 
     private void applyGradingConfig(ClassroomHomework homework, CreateHomeworkRequest request) {
-        HomeworkGradingMode gradingMode = request.getGradingMode() == null
-                ? HomeworkGradingMode.TEACHER
-                : request.getGradingMode();
-        homework.setGradingMode(gradingMode);
-
-        if (gradingMode == HomeworkGradingMode.TEACHER) {
+        AssessmentBankItem assessment = null;
+        if (request.getAssessmentBankItemId() != null) {
+            assessment = assessmentBankItemRepository
+                    .findByIdAndTypeAndStatusAndActiveTrue(
+                            request.getAssessmentBankItemId(), AssessmentType.MODULE_TEST, "PUBLISHED")
+                    .orElseThrow(() -> new RuntimeException("Đề hệ thống không tồn tại hoặc chưa được xuất bản."));
+            homework.setAssessmentBankItem(assessment);
+            homework.setSkill(assessment.getSkill());
+            homework.setRubric(assessment.getRubric());
+            homework.setActivityConfigJson(assessment.getUiConfigJson());
+        } else {
+            homework.setAssessmentBankItem(null);
             homework.setSkill(null);
             homework.setRubric(null);
+        }
+
+        boolean aiEnabled = Boolean.TRUE.equals(request.getAiReviewEnabled());
+        homework.setAiReviewEnabled(aiEnabled);
+        homework.setGradingMode(aiEnabled ? HomeworkGradingMode.AI : HomeworkGradingMode.TEACHER);
+        if (!aiEnabled) {
             return;
         }
-
-        if (request.getSkill() != AssessmentSkill.SPEAKING && request.getSkill() != AssessmentSkill.WRITING) {
-            throw new RuntimeException("AI chỉ hỗ trợ đánh giá bài Speaking hoặc Writing. Reading và Listening dùng đáp án/rubric sẵn để giáo viên review.");
+        if (assessment == null) {
+            throw new RuntimeException("Chấm điểm AI chỉ dùng được khi chọn đề MODULE_TEST của hệ thống.");
         }
-
-        if (request.getSkill() == null) {
-            throw new RuntimeException("Vui lòng chọn kỹ năng/kỹ thuật bài tập khi bật chấm AI.");
+        if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
+            throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ MODULE_TEST Writing hoặc Speaking.");
         }
-        if (request.getRubricId() == null) {
-            throw new RuntimeException("Vui lòng chọn bộ tiêu chí chấm AI.");
+        if (assessment.getRubric() == null) {
+            throw new RuntimeException("MODULE_TEST đã chọn chưa có bộ tiêu chí chấm AI.");
         }
-
-        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(request.getRubricId());
-        if (rubric.getSkill() != request.getSkill()) {
-            throw new RuntimeException("Bộ tiêu chí không khớp với kỹ năng đã chọn.");
+        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(assessment.getRubric().getId());
+        if (rubric.getSkill() != assessment.getSkill()) {
+            throw new RuntimeException("Bộ tiêu chí của MODULE_TEST không khớp với kỹ năng bài thi.");
         }
-
-        homework.setSkill(request.getSkill());
         homework.setRubric(rubric);
     }
 }

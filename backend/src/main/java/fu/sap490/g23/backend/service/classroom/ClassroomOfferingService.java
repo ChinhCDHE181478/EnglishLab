@@ -29,7 +29,7 @@ public interface ClassroomOfferingService {
 
     ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail);
 
-    ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request);
+    ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail);
 
     ClassroomOfferingResponse publishOffering(Long id);
 

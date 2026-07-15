@@ -22,6 +22,7 @@ import {
   SlidersHorizontal,
   Dumbbell,
   Video,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const contentManagerNav = [
@@ -30,7 +31,6 @@ export const contentManagerNav = [
     items: [
       { label: 'Tổng quan', href: '/content-manager/dashboard', icon: LayoutDashboard },
       { label: 'Khóa học online', href: '/content-manager/courses', icon: BookOpen },
-      { label: 'Lớp học tại trung tâm', href: '/content-manager/classrooms', icon: School },
       { label: 'Chương trình offline', href: '/content-manager/offline-programs', icon: Building2 },
       { label: 'Chương trình virtual', href: '/content-manager/virtual-programs', icon: Video },
       { label: 'Biên soạn giáo trình', href: '/content-manager/syllabus-builder', icon: BookMarked },
@@ -61,6 +61,7 @@ export const contentManagerNav = [
       { label: 'Hàng chờ xuất bản', href: '/content-manager/publication', icon: FileCheck2 },
       { label: 'Phân tích nội dung', href: '/content-manager/analytics', icon: BarChart3 },
       { label: 'Cài đặt', href: '/content-manager/settings', icon: Settings2 },
+      { label: 'Báo cáo hỏi đáp', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
     ],
   },
 ];
@@ -75,11 +76,6 @@ export const contentManagerPageMeta = {
     title: 'Quản lý khóa học Online',
     subtitle: '',
     searchPlaceholder: 'Tìm theo tên khóa học hoặc slug...',
-  },
-  '/content-manager/classrooms': {
-    title: 'Quản lý nội dung lớp học',
-    subtitle: 'Theo dõi nội dung vận hành lớp học và kiểm tra lớp đang dùng giáo trình nào.',
-    searchPlaceholder: 'Tìm lớp học, thông báo hoặc mục giáo trình...',
   },
   '/content-manager/offline-programs': {
     title: 'Chương trình offline',
@@ -180,6 +176,11 @@ export const contentManagerPageMeta = {
     title: 'Phân tích nội dung',
     subtitle: 'Theo dõi khối lượng nội dung, tiến độ xuất bản và các chỉ số vận hành quan trọng.',
     searchPlaceholder: 'Tìm chỉ số hoặc nhóm nội dung...',
+  },
+  '/content-manager/discussion-moderation': {
+    title: 'Báo cáo hỏi đáp',
+    subtitle: 'Xem xét báo cáo của học viên, ẩn nội dung vi phạm hoặc bỏ qua báo cáo không phù hợp.',
+    searchPlaceholder: 'Tìm báo cáo thảo luận...',
   },
   '/content-manager/categories': {
     title: 'Danh mục khóa học',

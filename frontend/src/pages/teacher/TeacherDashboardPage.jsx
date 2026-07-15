@@ -32,6 +32,7 @@ import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomTime } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import TeacherHomeworkClassPickerModal from '../../components/teacher/TeacherHomeworkClassPickerModal';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const toLocalDateStr = (d) => {
   const y = d.getFullYear();
@@ -47,6 +48,8 @@ export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [homeworkPickerOpen, setHomeworkPickerOpen] = useState(false);
+
+  const { page, setPage, totalPages, pageItems: paginatedClassrooms, totalItems } = usePagination(classrooms, 4);
 
   const loadClassrooms = async () => {
     setLoading(true);
@@ -276,7 +279,7 @@ export default function TeacherDashboardPage() {
               Lớp học được phân công
             </h2>
             <p className="text-xs leading-5 text-[#8b706e]">
-              Mỗi lớp có nút <strong>Giao bài tập</strong> riêng nếu bạn muốn vào trực tiếp từ danh sách.
+              Muốn giao bài tập cho lớp nào, bạn cứ bấm nhanh nút <strong>Giao bài tập</strong> ở lớp đó là được nhé!
             </p>
           </div>
 
@@ -291,105 +294,116 @@ export default function TeacherDashboardPage() {
               />
             ) : null}
             {!loading && !error && classrooms.length ? (
-              <div className="grid gap-6 md:grid-cols-2">
-                {classrooms.map((classroom, idx) => {
-                  const isActive = ['ACTIVE', 'IN_PROGRESS'].includes(classroom.classroomStatus);
-                  const isVirtual = classroom.deliveryMode === 'VIRTUAL';
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  {paginatedClassrooms.map((classroom, idx) => {
+                    const isActive = ['ACTIVE', 'IN_PROGRESS'].includes(classroom.classroomStatus);
+                    const isVirtual = classroom.deliveryMode === 'VIRTUAL';
 
-                  return (
-                    <motion.article
-                      key={classroom.id}
-                      initial={{ opacity: 0, y: 18 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.32, delay: Math.min(idx * 0.08, 0.4), ease: 'easeOut' }}
-                      className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm transition-shadow hover:shadow-md"
-                    >
-                      {/* Card Header */}
-                      <div className="border-b border-[#f0f0f0] p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                    return (
+                      <motion.article
+                        key={classroom.id}
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.32, delay: Math.min(idx * 0.08, 0.4), ease: 'easeOut' }}
+                        className="flex flex-col overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm transition-shadow hover:shadow-md"
+                      >
+                        {/* Card Header */}
+                        <div className="border-b border-[#f0f0f0] p-5">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex flex-wrap gap-2">
+                              <ClassroomTypeBadge mode={classroom.deliveryMode} />
+                              <StatusBadge status={classroom.classroomStatus} />
+                            </div>
+                          </div>
+
+                          <h3 className="mt-4 font-['Manrope'] text-2xl font-extrabold text-[#2b2828] line-clamp-1">
+                            {classroom.title}
+                          </h3>
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="flex-1 p-6 space-y-4">
+                          <div className="grid gap-4 text-sm text-[#584140] sm:grid-cols-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
+                                <Users className="h-4 w-4" />
+                              </div>
+                              <span>
+                                Sĩ số: <strong className="text-[#2b2828]">{classroom.enrolledCount ?? 0} / {classroom.maxCapacity ?? '—'} học viên</strong>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
+                                <Calendar className="h-4 w-4" />
+                              </div>
+                              <span>
+                                Khai giảng: <strong className="text-[#2b2828]">{formatClassroomDate(classroom.startDate)}</strong>
+                              </span>
+                            </div>
+                          </div>
+
+                          {isVirtual && classroom.larkMeetingUrl && (
+                            <div className="rounded-2xl bg-purple-50/40 border border-purple-100 p-4 text-xs text-purple-800 flex items-center justify-between">
+                              <span className="font-bold flex items-center gap-1">
+                                <Video className="h-4 w-4 text-purple-700" /> Lark Meeting Link
+                              </span>
+                              <a
+                                className="font-extrabold text-purple-900 underline flex items-center gap-1"
+                                href={classroom.larkMeetingUrl}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Mở Lark <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+
+                          {!isVirtual && (
+                            <div className="rounded-2xl bg-rose-50/20 border border-rose-100/40 p-4 text-xs text-[#584140] flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-[#730014]" />
+                              <span>Địa điểm: <strong>{classroom.roomName || 'Chưa xếp phòng'}</strong> · {classroom.offlineAddress || 'Cơ sở Hà Nội'}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Card Footer */}
+                        <div className="border-t border-gray-50 bg-gray-50/30 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+                          <span className="text-xs font-bold text-[#8b706e]">
+                            ID Lớp: #{classroom.id}
+                          </span>
+
                           <div className="flex flex-wrap gap-2">
-                            <ClassroomTypeBadge mode={classroom.deliveryMode} />
-                            <StatusBadge status={classroom.classroomStatus} />
-                          </div>
-                        </div>
-
-                        <h3 className="mt-4 font-['Manrope'] text-2xl font-extrabold text-[#2b2828] line-clamp-1">
-                          {classroom.title}
-                        </h3>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="flex-1 p-6 space-y-4">
-                        <div className="grid gap-4 text-sm text-[#584140] sm:grid-cols-2">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
-                              <Users className="h-4 w-4" />
-                            </div>
-                            <span>
-                              Sĩ số: <strong className="text-[#2b2828]">{classroom.enrolledCount ?? 0} / {classroom.maxCapacity ?? '—'} học viên</strong>
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
-                              <Calendar className="h-4 w-4" />
-                            </div>
-                            <span>
-                              Khai giảng: <strong className="text-[#2b2828]">{formatClassroomDate(classroom.startDate)}</strong>
-                            </span>
-                          </div>
-                        </div>
-
-                        {isVirtual && classroom.larkMeetingUrl && (
-                          <div className="rounded-2xl bg-purple-50/40 border border-purple-100 p-4 text-xs text-purple-800 flex items-center justify-between">
-                            <span className="font-bold flex items-center gap-1">
-                              <Video className="h-4 w-4 text-purple-700" /> Lark Meeting Link
-                            </span>
-                            <a
-                              className="font-extrabold text-purple-900 underline flex items-center gap-1"
-                              href={classroom.larkMeetingUrl}
-                              rel="noreferrer"
-                              target="_blank"
+                            <Link
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/20 bg-white px-4 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff3f4] active:scale-95"
+                              to={`/teacher/classrooms/${classroom.id}?tab=homework&action=create`}
                             >
-                              Mở Lark <ExternalLink className="h-3 w-3" />
-                            </a>
+                              <FileText className="h-3.5 w-3.5" />
+                              Giao bài tập
+                            </Link>
+                            <Link
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] hover:shadow active:scale-95"
+                              to={`/teacher/classrooms/${classroom.id}`}
+                            >
+                              Quản lý lớp học
+                              <ChevronRight className="h-3.5 w-3.5" />
+                            </Link>
                           </div>
-                        )}
-
-                        {!isVirtual && (
-                          <div className="rounded-2xl bg-rose-50/20 border border-rose-100/40 p-4 text-xs text-[#584140] flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-[#730014]" />
-                            <span>Địa điểm: <strong>{classroom.roomName || 'Chưa xếp phòng'}</strong> · {classroom.offlineAddress || 'Cơ sở Hà Nội'}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Card Footer */}
-                      <div className="border-t border-gray-50 bg-gray-50/30 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-xs font-bold text-[#8b706e]">
-                          ID Lớp: #{classroom.id}
-                        </span>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/20 bg-white px-4 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fff3f4] active:scale-95"
-                            to={`/teacher/classrooms/${classroom.id}?tab=homework&action=create`}
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            Giao bài tập
-                          </Link>
-                          <Link
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] hover:shadow active:scale-95"
-                            to={`/teacher/classrooms/${classroom.id}`}
-                          >
-                            Quản lý lớp học
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Link>
                         </div>
-                      </div>
-                    </motion.article>
-                  );
-                })}
+                      </motion.article>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-center pt-4">
+                  <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onChange={setPage}
+                    totalItems={totalItems}
+                    pageSize={4}
+                  />
+                </div>
               </div>
             ) : null}
           </section>

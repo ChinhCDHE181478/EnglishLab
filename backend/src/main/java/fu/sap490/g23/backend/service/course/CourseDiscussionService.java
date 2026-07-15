@@ -9,12 +9,19 @@ import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReactionRespons
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionReplyResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseDiscussionThreadResponse;
 import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 public interface CourseDiscussionService {
-    List<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, String filter, String email);
+    Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, String filter, String email, Pageable pageable);
+
+    Page<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email, Pageable pageable);
 
     CourseDiscussionThreadResponse createThread(Long courseId, CourseDiscussionThreadRequest request, String email);
+
+    CourseDiscussionThreadResponse createLessonThread(Long courseId, Long lessonId, CourseDiscussionThreadRequest request, String email);
 
     CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email);
 

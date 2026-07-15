@@ -687,6 +687,13 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         if (program.getTotalSessions() == null || program.getTotalSessions() <= 0) {
             throw new RuntimeException("Giáo trình chưa khai báo số buổi học. Hãy cập nhật trước khi xuất bản.");
         }
+        boolean hasUnpublishedMaterial = program.getUnits().stream()
+                .flatMap(unit -> unit.getMaterialRefs().stream())
+                .map(CurriculumMaterialRef::getMaterial)
+                .anyMatch(material -> !"PUBLISHED".equalsIgnoreCase(material.getStatus()));
+        if (hasUnpublishedMaterial) {
+            throw new RuntimeException("Giáo trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
+        }
     }
 
     private String programStatusLabel(String status) {
@@ -761,6 +768,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .subtitle(material.getMaterialType())
                 .skill(material.getSkill())
                 .status(material.getStatus())
+                .fileUrl(material.getFileUrl())
                 .displayOrder(ref.getDisplayOrder())
                 .note(ref.getNote())
                 .build();

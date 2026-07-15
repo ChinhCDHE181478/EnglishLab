@@ -1,6 +1,7 @@
 import {
   Archive,
   Building2,
+  Check,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -153,6 +154,7 @@ export function ProgramTable({
   onEdit,
   onClone,
   onArchive,
+  onPublish,
   working,
   page,
   totalPages,
@@ -219,7 +221,18 @@ export function ProgramTable({
                       <button className="inline-flex items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white p-1.5 text-[#4b0009] hover:bg-[#eff4ff]" disabled={working} onClick={() => onClone(program)} type="button">
                         <Copy className="h-3.5 w-3.5" />
                       </button>
-                      {program.status !== 'ARCHIVED' ? (
+                      {program.status === 'DRAFT' || program.status === 'REJECTED' ? (
+                        <button
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-emerald-800 disabled:opacity-60"
+                          disabled={working}
+                          onClick={() => onPublish(program)}
+                          type="button"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Xuất bản
+                        </button>
+                      ) : null}
+                      {program.status === 'PUBLISHED' ? (
                         <button
                           aria-label={`Lưu trữ ${program.title}`}
                           className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-1.5 text-rose-700 hover:bg-rose-50 disabled:opacity-60"

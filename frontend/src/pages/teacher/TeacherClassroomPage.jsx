@@ -17,6 +17,7 @@ import {
   HelpCircle,
   ChevronRight,
   User,
+  Download,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -35,6 +36,7 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
+  formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
 } from '../../utils/classroomHelpers';
@@ -43,6 +45,7 @@ import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSect
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
 import TeacherGradebookSection from '../../components/teacher/TeacherGradebookSection';
+import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
@@ -156,6 +159,24 @@ export default function TeacherClassroomPage() {
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể thu hồi công bố bảng điểm.'));
     }
+  };
+
+  const handleExportGradebook = () => {
+    const rows = gradebook.map((entry) => [
+      entry.studentName || `Học viên #${entry.studentId}`,
+      entry.studentEmail || '',
+      entry.attendancePercent ?? '',
+      entry.homeworkScore ?? '',
+      entry.quizScore ?? '',
+      entry.participationScore ?? '',
+      entry.finalResult ?? '',
+      entry.status || '',
+    ]);
+    downloadCsv(
+      `${sanitizeCsvFilename(`bang-diem-${classroom?.title || id}`)}.csv`,
+      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm bài tập', 'Điểm quiz', 'Điểm phát biểu', 'Điểm/Kết quả cuối', 'Trạng thái'],
+      rows
+    );
   };
 
   // Build a beautiful student roster using gradebook entries
@@ -409,10 +430,10 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'homework') {
       return (
-        <TeacherHomeworkSection 
-          classroomId={id} 
+        <TeacherHomeworkSection
+          classroomId={id}
           curriculumUnits={classroom?.curriculumProgram?.units || []}
-          homework={homework} 
+          homework={homework}
           initialOpenCreate={searchParams.get('action') === 'create'}
           onGradebookChange={setGradebook}
           onHomeworkChange={setHomework}
@@ -429,14 +450,22 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'gradebook') {
       return (
-        <TeacherGradebookSection
-          classroomId={id}
-          gradebook={gradebook}
-          onGradebookChange={setGradebook}
-          onMessage={setActionMessage}
-          onPublish={handlePublishGradebook}
-          onUnpublish={handleUnpublishGradebook}
-        />
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            <button className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-extrabold text-[#4b0009] transition hover:bg-slate-50 disabled:opacity-50" disabled={!gradebook.length} onClick={handleExportGradebook} type="button">
+              <Download className="h-4 w-4" />
+              Xuất CSV bảng điểm
+            </button>
+          </div>
+          <TeacherGradebookSection
+            classroomId={id}
+            gradebook={gradebook}
+            onGradebookChange={setGradebook}
+            onMessage={setActionMessage}
+            onPublish={handlePublishGradebook}
+            onUnpublish={handleUnpublishGradebook}
+          />
+        </div>
       );
     }
 
@@ -697,8 +726,8 @@ function CurriculumUnitCard({ unit }) {
       {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <CurriculumRefList title="Học liệu" refs={unit.materials} />
-        <CurriculumRefList title="Bài tập" refs={unit.exercises} />
-        <CurriculumRefList title="Đề" refs={unit.assessments} />
+        <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
+        <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
         <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
       </div>
     </article>
@@ -714,7 +743,16 @@ function CurriculumRefList({ title, refs = [] }) {
           {refs.map((ref) => (
             <div key={`${ref.type}-${ref.id}`} className="rounded-lg bg-white px-3 py-2 text-xs">
               <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
-              <p className="mt-0.5 text-[#8b706e]">{[ref.skill, ref.subtitle, ref.status].filter(Boolean).join(' · ')}</p>
+              <p className="mt-0.5 text-[#8b706e]">{[
+                ref.skill,
+                ref.type === 'ASSESSMENT' ? formatAssessmentType(ref.subtitle) : ref.subtitle,
+                ref.status,
+              ].filter(Boolean).join(' · ')}</p>
+              {ref.fileUrl ? (
+                <a className="mt-2 inline-flex font-extrabold text-[#730014] hover:underline" href={ref.fileUrl} rel="noreferrer" target="_blank">
+                  Mở học liệu
+                </a>
+              ) : null}
             </div>
           ))}
         </div>

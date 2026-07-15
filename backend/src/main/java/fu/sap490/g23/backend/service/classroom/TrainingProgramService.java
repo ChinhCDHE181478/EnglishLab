@@ -9,6 +9,8 @@ import java.util.List;
 public interface TrainingProgramService {
     List<TrainingProgramResponse> listPrograms(ClassroomDeliveryMode deliveryMode);
 
+    List<TrainingProgramResponse> listPublishedPrograms(ClassroomDeliveryMode deliveryMode);
+
     TrainingProgramResponse getProgram(Long id);
 
     TrainingProgramResponse createProgram(TrainingProgramRequest request);

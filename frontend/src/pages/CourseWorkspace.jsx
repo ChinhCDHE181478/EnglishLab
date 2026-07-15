@@ -32,6 +32,8 @@ const CourseWorkspace = () => {
   const activeLessonStorageKey = `englishlab.activeLesson.${slugOrId}`;
   const {
     isAuthenticated,
+    studyToolsSyncing,
+    studyToolsSyncError,
     lessonNotes,
     lessonFlags,
     recentLessons,
@@ -757,11 +759,14 @@ const CourseWorkspace = () => {
             <div className="sticky top-[96px] hidden h-[calc(100dvh-112px)] min-w-0 self-start xl:block">
               <WorkspaceRightRail
                 activeLesson={activeWorkspaceItem}
+                courseId={course.id}
                 mode={rightPanelVisible ? rightPanelMode : null}
                 notes={courseNotes}
                 reviewFlags={courseReviewFlags}
                 recentLessons={courseRecentLessons}
                 canPersist={isAuthenticated}
+                syncing={studyToolsSyncing}
+                syncError={studyToolsSyncError}
                 onModeChange={(nextMode) => setRightPanelMode((current) => (current === nextMode ? null : nextMode))}
                 onSeekTranscript={handleSeekTranscript}
                 onSaveTranscriptNote={({ content, selectedText, transcriptStartSeconds }) => saveLessonNote({

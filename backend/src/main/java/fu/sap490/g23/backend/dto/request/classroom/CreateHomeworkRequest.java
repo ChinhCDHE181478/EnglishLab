@@ -41,4 +41,5 @@ public class CreateHomeworkRequest {
     private HomeworkGradingMode gradingMode;
     private AssessmentSkill skill;
     private Long rubricId;
+    private Long assessmentBankItemId;
 }

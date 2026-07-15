@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
 import {
@@ -9,11 +11,11 @@ import {
   PopularCourses,
 } from '../components/course';
 import RecommendedCoursesSection from '../components/course/RecommendedCoursesSection';
+import LearningPathCatalog from '../components/course/LearningPathCatalog';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
+import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
-import { recommendCoursesForLearner } from '../utils/selfPacedHelpers';
-import LearnerPageShell from '../components/learner/LearnerPageShell';
 
 const PAGE_SIZE = 100;
 const defaultFilters = {
@@ -22,14 +24,6 @@ const defaultFilters = {
   targetBand: '',
   skill: '',
   promotion: '',
-};
-
-const deriveLearnerTargetBand = (user) => {
-  if (!user || String(user.targetExam || '').toUpperCase() !== 'IELTS') {
-    return null;
-  }
-  const parsed = Number(user.targetScore);
-  return Number.isFinite(parsed) ? parsed : null;
 };
 
 const Courses = () => {
@@ -41,6 +35,9 @@ const Courses = () => {
   const [filters, setFilters] = useState(defaultFilters);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [backendRecommendations, setBackendRecommendations] = useState([]);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState('');
   const [user, setUser] = useState(() => (hasAccessToken() ? getStoredUser() : null));
 
   const isAuthenticated = Boolean(user && hasAccessToken());
@@ -89,6 +86,29 @@ const Courses = () => {
       active = false;
     };
   }, []);
+
+  const loadRecommendations = useCallback(async () => {
+    if (!hasAccessToken()) {
+      setBackendRecommendations([]);
+      setRecommendationError('');
+      return;
+    }
+    setRecommendationLoading(true);
+    setRecommendationError('');
+    try {
+      const items = await courseApi.getRecommendedCourses();
+      setBackendRecommendations(items.map(normalizeCourse));
+    } catch {
+      setBackendRecommendations([]);
+      setRecommendationError('Không thể tải gợi ý cá nhân hóa. Vui lòng thử lại.');
+    } finally {
+      setRecommendationLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations, user?.id]);
 
   const loadMyEnrollments = useCallback(async () => {
     if (!hasAccessToken()) {
@@ -164,15 +184,14 @@ const Courses = () => {
     return (featured.length ? featured : visibleCourses).slice(0, 4);
   }, [visibleCourses]);
 
-  const recommendedCourses = useMemo(
-    () => recommendCoursesForLearner({
-      courses: allCourses,
-      enrollments: myEnrollments,
-      currentBand: user?.currentBand ?? null,
-      targetBand: deriveLearnerTargetBand(user),
-    }),
-    [allCourses, myEnrollments, user],
-  );
+  const recommendedCourses = useMemo(() => (
+    isAuthenticated
+      ? backendRecommendations
+      : featuredCourses.slice(0, 3).map((course) => ({
+        ...course,
+        recommendationReason: 'Khóa học nổi bật để bạn tham khảo trước khi cập nhật hồ sơ học tập.',
+      }))
+  ), [backendRecommendations, featuredCourses, isAuthenticated]);
 
   const handleClearFilters = () => {
     setKeyword('');
@@ -202,13 +221,31 @@ const Courses = () => {
               {error}
             </div>
           ) : null}
+          {isAuthenticated ? (
+            <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead9db] bg-[linear-gradient(135deg,_#fffdfc,_#fff0f1)] px-6 py-6 shadow-sm transition-all duration-200 hover:border-[#dfbfbd] hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#f0e3e4] bg-white text-[#8a0018] shadow-sm">
+                  <Route className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
+                  <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
+                </div>
+              </div>
+              <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95" to="/learning-path">
+                Mở lộ trình học
+              </Link>
+            </div>
+          ) : null}
           <RecommendedCoursesSection
             courses={recommendedCourses}
             currentBand={user?.currentBand ?? null}
-            loading={loading}
-            error={error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
-            onRetry={loadCourses}
+            loading={isAuthenticated ? recommendationLoading : loading}
+            error={isAuthenticated ? recommendationError : error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
+            profileBased={isAuthenticated}
+            onRetry={isAuthenticated ? loadRecommendations : loadCourses}
           />
+          <LearningPathCatalog courses={allCourses} />
           <PopularCourses courses={featuredCourses} />
           <CourseCatalog
             courses={visibleCourses}

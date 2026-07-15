@@ -5,10 +5,13 @@ const formatDateLong = (value) => {
   return `${date.getDate().toString().padStart(2, '0')} tháng ${(date.getMonth() + 1).toString().padStart(2, '0')} năm ${date.getFullYear()}`;
 };
 
-const CertificatePreview = ({ certificate }) => {
+const CertificatePreview = ({ certificate, verificationUrl: verificationUrlProp = '' }) => {
   if (!certificate) return null;
 
-  const verificationUrl = `englishlab.edu.vn/xac-thuc/${certificate.verificationCode}`;
+  const verificationPath = verificationUrlProp || `/certificates/${encodeURIComponent(certificate.verificationCode || '')}`;
+  const verificationUrl = verificationPath.startsWith('http') || typeof window === 'undefined'
+    ? verificationPath
+    : `${window.location.origin}${verificationPath}`;
 
   return (
     <div className="mx-auto w-full max-w-[1122px]">
@@ -25,6 +28,11 @@ const CertificatePreview = ({ certificate }) => {
               box-shadow: none !important;
               margin: 0 !important;
             }
+            .certificate-print-page {
+              width: 297mm !important;
+              height: 210mm !important;
+              max-width: none !important;
+            }
             @page {
               size: A4 landscape;
               margin: 0;
@@ -33,7 +41,7 @@ const CertificatePreview = ({ certificate }) => {
         `}
       </style>
 
-      <div className="khung-chung-nhan relative mx-auto h-[794px] overflow-hidden bg-white shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
+      <div className="certificate-print-page khung-chung-nhan relative mx-auto h-[794px] overflow-hidden bg-white shadow-[0_18px_45px_rgba(0,0,0,0.12)]">
         <div className="absolute inset-0 bg-[radial-gradient(rgba(115,0,20,0.03)_1px,transparent_1px)] bg-[length:20px_20px] opacity-60" />
         <div className="pointer-events-none absolute left-5 top-5 h-[calc(100%-40px)] w-[calc(100%-40px)] border-4 border-double border-[#dadad9]" />
 
@@ -106,10 +114,17 @@ const CertificatePreview = ({ certificate }) => {
             </div>
 
             <div className="max-w-xs text-right">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh tại:</p>
-              <p className="text-sm font-bold text-[#730014] underline">{verificationUrl}</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9b9b9b]">Xác minh trực tuyến:</p>
+              <a
+                href={verificationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-[#730014] hover:underline break-all block"
+              >
+                {typeof window !== 'undefined' ? `${window.location.host}/certificates/${certificate.verificationCode}` : `/certificates/${certificate.verificationCode}`}
+              </a>
               <p className="mt-2 text-[9px] leading-tight text-[#9b9b9b]">
-                Chứng nhận này được cấp bởi EnglishLab Academy. Mã xác thực: {certificate.verificationCode}
+                EnglishLab Academy · Mã tra cứu: <span className="font-mono font-bold text-slate-700">{certificate.verificationCode}</span>
               </p>
             </div>
           </footer>

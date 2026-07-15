@@ -8,8 +8,6 @@ public interface CenterMaterialLibraryService {
 
     List<CenterMaterialLibraryItemResponse> listForContentManager();
 
-    List<CenterMaterialLibraryItemResponse> listPublishedForTeacher();
-
     CenterMaterialLibraryItemResponse create(CenterMaterialLibraryUpsertRequest request, String actorEmail);
 
     CenterMaterialLibraryItemResponse update(Long materialId, CenterMaterialLibraryUpsertRequest request, String actorEmail);

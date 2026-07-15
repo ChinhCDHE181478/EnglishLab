@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.course;
 
 import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
@@ -11,6 +12,7 @@ import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
@@ -31,6 +33,7 @@ public interface OnlineCourseService {
     CourseStatsResponse getStats();
     OnlineCourseResponse createCourse(OnlineCourseRequest request, String creatorEmail);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);
+    List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request);
     OnlineCourseResponse publishCourse(Long id);
     OnlineCourseResponse submitForReview(Long id);
     OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote);
@@ -45,6 +48,8 @@ public interface OnlineCourseService {
     void revokePaidCourseAccess(Long courseId, String studentEmail);
 
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
+    List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
+    LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);
     PackageEnrollmentResponse updateLessonProgress(Long courseId, Long lessonId, boolean completed, String studentEmail);

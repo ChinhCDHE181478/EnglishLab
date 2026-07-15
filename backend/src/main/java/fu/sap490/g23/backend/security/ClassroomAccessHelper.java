@@ -48,7 +48,7 @@ public class ClassroomAccessHelper {
     }
 
     public void assertManager(User user) {
-        if (!canManageClassroom(user) && !canApproveRequests(user)) {
+        if (!canManageTrainingOperations(user)) {
             throw new RuntimeException("Bạn không có quyền truy cập nội dung này.");
         }
     }

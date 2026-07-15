@@ -9,6 +9,7 @@ import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { formatBandValue } from '../utils/selfPacedHelpers';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
+import Pagination, { usePagination } from '../components/ui/Pagination';
 
 const tabs = [
   { id: 'all', label: 'Tất cả' },
@@ -38,7 +39,7 @@ const CertificateModal = ({ certificate, onClose }) => {
       >
         <div className="khong-in flex flex-wrap justify-end gap-3">
           <button className="rounded-xl bg-[#730014] px-5 py-3 text-xs font-extrabold text-white transition hover:bg-[#4b0009]" onClick={() => window.print()} type="button">
-            Tải xuống
+            In / Tải PDF
           </button>
           <button className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#730014] transition hover:bg-gray-50" onClick={handleCopy} type="button">
             Sao chép mã xác thực
@@ -141,6 +142,12 @@ const MyCoursesPage = () => {
     return true;
   }), [activeTab, courseItems]);
 
+  const { page, setPage, totalPages, pageItems: paginatedCourses, totalItems } = usePagination(
+    filteredCourses,
+    5,
+    `my-courses-${activeTab}`
+  );
+
   const openCertificate = async (courseId) => {
     try {
       const certificate = await courseApi.getCourseCertificate(courseId);
@@ -215,7 +222,7 @@ const MyCoursesPage = () => {
                 animate="show"
                 className="grid gap-5"
               >
-                {filteredCourses.map(({ course, enrollment, completion }) => (
+                {paginatedCourses.map(({ course, enrollment, completion }) => (
                   <motion.article
                     key={course.id}
                     variants={itemVariants}
@@ -241,7 +248,7 @@ const MyCoursesPage = () => {
                               {course.targetOutcome || 'Đang cập nhật mục tiêu đầu ra.'}
                             </p>
                           </div>
-                          
+
                           <span className="inline-flex rounded-full bg-[#fff0f1] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#730014] border border-[#dfbfbd]/35 shrink-0 self-start md:self-auto">
                             {completion?.statusReason || completion?.statusLabel || 'Đang cập nhật tiến độ học'}
                           </span>
@@ -265,7 +272,7 @@ const MyCoursesPage = () => {
                             <Play className="h-3.5 w-3.5" />
                             {Number(completion?.progressPercent ?? 0) > 0 ? 'Tiếp tục học' : 'Bắt đầu học'}
                           </RouterLink>
-                          
+
                           {completion?.eligibleForCertificate ? (
                             <button
                               className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/20 px-5 py-2.5 text-xs font-bold text-emerald-800 transition hover:bg-emerald-50 active:scale-95"
@@ -281,6 +288,17 @@ const MyCoursesPage = () => {
                     </div>
                   </motion.article>
                 ))}
+
+                {filteredCourses.length > 5 && (
+                  <div className="mt-4 flex justify-end">
+                    <Pagination
+                      page={page}
+                      onChange={setPage}
+                      totalItems={totalItems}
+                      pageSize={5}
+                    />
+                  </div>
+                )}
               </motion.section>
             ) : (
               <motion.section

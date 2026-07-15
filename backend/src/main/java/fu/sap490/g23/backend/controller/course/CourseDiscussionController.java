@@ -12,6 +12,10 @@ import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sap490.g23.backend.service.course.CourseDiscussionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -32,15 +36,33 @@ public class CourseDiscussionController {
     private final CourseDiscussionService discussionService;
 
     @GetMapping("/api/online-courses/{courseId}/discussions")
-    public ResponseEntity<List<CourseDiscussionThreadResponse>> getDiscussions(
+    public ResponseEntity<Page<CourseDiscussionThreadResponse>> getDiscussions(
             @PathVariable Long courseId,
             @RequestParam(defaultValue = "ALL") String filter,
+            @RequestParam(required = false) Long moduleId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             Authentication authentication
     ) {
         String email = authentication == null || authentication instanceof AnonymousAuthenticationToken
                 ? null
                 : authentication.getName();
-        return ResponseEntity.ok(discussionService.getCourseDiscussions(courseId, filter, email));
+        return ResponseEntity.ok(discussionService.getCourseDiscussions(courseId, moduleId, filter, email, discussionPageable(page, size)));
+    }
+
+    @GetMapping("/api/online-courses/{courseId}/lessons/{lessonId}/discussions")
+    public ResponseEntity<Page<CourseDiscussionThreadResponse>> getLessonDiscussions(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestParam(defaultValue = "ALL") String filter,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
+    ) {
+        String email = authentication == null || authentication instanceof AnonymousAuthenticationToken
+                ? null
+                : authentication.getName();
+        return ResponseEntity.ok(discussionService.getLessonDiscussions(courseId, lessonId, filter, email, discussionPageable(page, size)));
     }
 
     @PostMapping("/api/student/online-courses/{courseId}/discussions")
@@ -50,6 +72,16 @@ public class CourseDiscussionController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(discussionService.createThread(courseId, request, authentication.getName()));
+    }
+
+    @PostMapping("/api/student/online-courses/{courseId}/lessons/{lessonId}/discussions")
+    public ResponseEntity<CourseDiscussionThreadResponse> createLessonThread(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @Valid @RequestBody CourseDiscussionThreadRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(discussionService.createLessonThread(courseId, lessonId, request, authentication.getName()));
     }
 
     @PostMapping("/api/student/online-courses/discussions/{threadId}/replies")
@@ -126,5 +158,9 @@ public class CourseDiscussionController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(discussionService.reportContent(CourseDiscussionReportTarget.REPLY, replyId, request, authentication.getName()));
+    }
+
+    private Pageable discussionPageable(int page, int size) {
+        return PageRequest.of(Math.max(0, page), Math.min(50, Math.max(1, size)), Sort.by(Sort.Direction.DESC, "updatedAt"));
     }
 }

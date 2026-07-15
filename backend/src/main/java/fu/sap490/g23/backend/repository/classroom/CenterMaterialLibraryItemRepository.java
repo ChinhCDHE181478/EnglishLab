@@ -9,5 +9,4 @@ public interface CenterMaterialLibraryItemRepository extends JpaRepository<Cente
 
     List<CenterMaterialLibraryItem> findAllByOrderByUpdatedAtDescIdDesc();
 
-    List<CenterMaterialLibraryItem> findByStatusIgnoreCaseOrderByUpdatedAtDescIdDesc(String status);
 }

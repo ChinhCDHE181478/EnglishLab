@@ -23,6 +23,8 @@ public class CourseDiscussionThreadResponse {
     private boolean resolved;
     private String authorName;
     private Long authorId;
+    private Long lessonId;
+    private String lessonTitle;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CourseDiscussionReplyResponse> replies;
