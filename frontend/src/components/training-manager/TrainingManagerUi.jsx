@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, BookOpen, CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, FileCheck2, LayoutDashboard, LifeBuoy, LogOut, Settings2, Video } from 'lucide-react';
+import { CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, LogOut, Settings2, Video } from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
@@ -12,12 +12,8 @@ const trainingManagerNav = [
       { label: 'Lớp học', href: '/training-manager/classrooms', icon: CalendarDays },
       { label: 'Hàng đợi đăng ký', href: '/training-manager/registrations', icon: ClipboardList },
       { label: 'Duyệt yêu cầu', href: '/training-manager/requests', icon: CheckSquare },
-      { label: 'Khiếu nại điểm danh', href: '/training-manager/attendance-disputes', icon: AlertTriangle },
       { label: 'Hạ tầng lớp học', href: '/training-manager/infrastructure', icon: Settings2 },
       { label: 'Quản lý ghi hình', href: '/training-manager/recordings', icon: Video },
-      { label: 'Duyệt giáo trình', href: '/training-manager/curriculum-approvals', icon: BookOpen },
-      { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: FileCheck2 },
-      { label: 'Duyệt nội dung lớp', href: '/manager/content-approvals', icon: FileCheck2 },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList },
       { label: 'Support ticket', href: '/training-manager/support-tickets', icon: LifeBuoy, trainingManagerOnly: true },
     ],
@@ -53,18 +49,6 @@ function resolvePageMeta(pathname) {
     return {
       title: 'Hạ tầng lớp học',
       subtitle: 'Quản lý cơ sở, phòng học và mẫu lịch để mở lớp không bị trùng lịch hoặc thiếu dữ liệu vận hành.',
-    };
-  }
-  if (pathname.startsWith('/training-manager/attendance-disputes')) {
-    return {
-      title: 'Khiếu nại điểm danh',
-      subtitle: 'Duyệt khiếu nại từ học viên và cập nhật điểm danh có ghi chú xử lý rõ ràng.',
-    };
-  }
-  if (pathname.startsWith('/training-manager/curriculum-approvals')) {
-    return {
-      title: 'Duyệt giáo trình',
-      subtitle: 'Phê duyệt hoặc từ chối phiên bản giáo trình offline/virtual do Content Manager gửi duyệt.',
     };
   }
   if (pathname.startsWith('/manager/course-approvals')) {
@@ -148,7 +132,7 @@ export default function TrainingManagerLayout() {
         style={{ backgroundImage: 'radial-gradient(#4b0009 1px, transparent 1px)', backgroundSize: '24px 24px' }}
       />
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[270px] flex-col overflow-hidden border-r border-slate-200 bg-[#4b0009] text-white shadow-xl lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-[270px] flex-col overflow-hidden border-r border-slate-200 bg-[#4b0009] text-white shadow-xl lg:flex">
         <div className="shrink-0 border-b border-white/10 bg-[#4b0009] px-6 pb-5 pt-7">
           <p className="bg-gradient-to-r from-white to-pink-200 bg-clip-text font-['Manrope'] text-2xl font-black tracking-tight text-transparent">
             EnglishLab
@@ -204,8 +188,8 @@ export default function TrainingManagerLayout() {
         </div>
       </aside>
 
-      <div className="lg:ml-[270px]">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+      <div className="relative lg:ml-[270px] z-20">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -308,7 +292,6 @@ function formatCrumbLabel(value) {
     'classroom-registrations': 'Hàng đợi',
     requests: 'Yêu cầu',
     infrastructure: 'Hạ tầng',
-    'attendance-disputes': 'Khiếu nại điểm danh',
     'course-approvals': 'Duyệt khóa học',
   };
   if (/^\d+$/.test(value)) {

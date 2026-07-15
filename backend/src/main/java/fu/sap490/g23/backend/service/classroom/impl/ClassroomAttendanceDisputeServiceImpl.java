@@ -11,12 +11,15 @@ import fu.sap490.g23.backend.entity.classroom.enums.AttendanceDisputeStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
 import fu.sap490.g23.backend.repository.classroom.ClassroomAttendanceDisputeRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.classroom.ClassroomAttendanceDisputeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,6 +30,8 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
 
     private final ClassroomAttendanceDisputeRepository disputeRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
+    private final ClassroomOfferingRepository offeringRepository;
+    private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomAccessHelper accessHelper;
 
     @Override
@@ -63,7 +68,9 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
 
     @Override
     @Transactional(readOnly = true)
-    public List<AttendanceDisputeResponse> listForClass(Long offeringId) {
+    public List<AttendanceDisputeResponse> listForClass(Long offeringId, String teacherEmail) {
+        User teacher = accessHelper.requireUser(teacherEmail);
+        assertAssignedTeacher(teacher, offeringId);
         return disputeRepository.findByAttendanceSessionClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -71,8 +78,10 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
 
     @Override
     @Transactional(readOnly = true)
-    public List<AttendanceDisputeResponse> listPending() {
+    public List<AttendanceDisputeResponse> listPending(String teacherEmail) {
+        User teacher = accessHelper.requireUser(teacherEmail);
         return disputeRepository.findByStatusOrderByCreatedAtDesc(AttendanceDisputeStatus.PENDING).stream()
+                .filter(dispute -> canReview(teacher, dispute.getAttendance().getSession().getClassroomOffering().getId()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -82,6 +91,7 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
         User reviewer = accessHelper.requireUser(reviewerEmail);
         ClassroomAttendanceDispute dispute = disputeRepository.findById(disputeId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khiếu nại."));
+        assertAssignedTeacher(reviewer, dispute.getAttendance().getSession().getClassroomOffering().getId());
         if (dispute.getStatus() != AttendanceDisputeStatus.PENDING) {
             throw new RuntimeException("Khiếu nại này đã được xử lý.");
         }
@@ -112,6 +122,28 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
         }
 
         return toResponse(disputeRepository.save(dispute));
+    }
+
+    private void assertAssignedTeacher(User teacher, Long offeringId) {
+        accessHelper.assertTeacher(teacher);
+        if (!canReview(teacher, offeringId)) {
+            throw new RuntimeException("Bạn không được phân công phụ trách lớp học này.");
+        }
+    }
+
+    private boolean canReview(User teacher, Long offeringId) {
+        boolean primaryTeacher = offeringRepository.findById(offeringId)
+                .map(offering -> offering.getPrimaryTeacher() != null
+                        && offering.getPrimaryTeacher().getId().equals(teacher.getId()))
+                .orElse(false);
+        if (primaryTeacher) {
+            return true;
+        }
+        LocalDate today = LocalDate.now();
+        return teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offeringId, teacher.getId())
+                .filter(assignment -> assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                .filter(assignment -> assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today))
+                .isPresent();
     }
 
     private AttendanceDisputeResponse toResponse(ClassroomAttendanceDispute dispute) {

@@ -30,7 +30,7 @@ const inferFileType = (fileNameOrUrl) => {
 
 const isMandatoryMaterial = (material) => (
   material?.mandatory === true
-  || ['PROGRAM_LIBRARY', 'CURRICULUM_LIBRARY'].includes(String(material?.sourceType || '').toUpperCase())
+  || String(material?.sourceType || '').toUpperCase() === 'CURRICULUM_LIBRARY'
 );
 
 const sessionOptionsFor = (sessions) => ([
@@ -299,7 +299,7 @@ function EditorModal({ children, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
         onClick={onClose}
         type="button"
       />

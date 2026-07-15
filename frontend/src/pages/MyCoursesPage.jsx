@@ -293,6 +293,7 @@ const MyCoursesPage = () => {
                   <div className="mt-4 flex justify-end">
                     <Pagination
                       page={page}
+                      totalPages={totalPages}
                       onChange={setPage}
                       totalItems={totalItems}
                       pageSize={5}

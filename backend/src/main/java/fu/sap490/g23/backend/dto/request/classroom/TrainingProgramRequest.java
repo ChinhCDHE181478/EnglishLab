@@ -9,7 +9,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Data
 public class TrainingProgramRequest {
@@ -34,18 +33,6 @@ public class TrainingProgramRequest {
 
     private String description;
 
-    @Size(max = 120)
-    private String entryLevel;
-
-    @Size(max = 80)
-    private String targetScore;
-
-    @Size(max = 700)
-    private String targetOutcome;
-
-    @Min(1)
-    private Integer defaultCapacity;
-
     private BigDecimal price;
     private BigDecimal salePrice;
 
@@ -58,15 +45,10 @@ public class TrainingProgramRequest {
     @Size(max = 700)
     private String thumbnailUrl;
 
-    private String syllabusSummary;
-    private String programOutcomes;
-    private String teacherGuide;
-    private String interactionActivities;
     private PackageStatus status;
 
     @Min(0)
     private Integer displayOrder;
 
     private Boolean featured;
-    private List<Long> materialIds;
 }

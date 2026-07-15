@@ -283,10 +283,9 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
 
     private void assertSupplementaryMaterial(ClassroomMaterial material) {
         String sourceType = material.getSourceType();
-        if ("PROGRAM_LIBRARY".equalsIgnoreCase(sourceType)
-                || "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType)) {
+        if ("CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType)) {
             throw new IllegalArgumentException(
-                    "Học liệu bắt buộc thuộc chương trình. Hãy cập nhật chương trình thay vì sửa hoặc xóa trực tiếp trong lớp."
+                    "Học liệu bắt buộc thuộc giáo trình. Hãy cập nhật unit trong giáo trình thay vì sửa hoặc xóa trực tiếp trong lớp."
             );
         }
     }

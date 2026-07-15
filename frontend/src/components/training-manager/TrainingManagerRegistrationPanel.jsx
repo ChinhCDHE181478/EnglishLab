@@ -678,6 +678,7 @@ function RegistrationDetail({
                 .map((item) => ({ label: item.title, value: String(item.id) }))}
               placeholder="Chọn lớp đích..."
               value={transferClassroomId}
+              searchable={true}
             />
             <button className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-extrabold text-white hover:bg-[#730014]" onClick={onTransfer} type="button">
               Chuyển lớp

@@ -1,5 +1,8 @@
 package fu.sap490.g23.backend.service.assessment.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import fu.sap490.g23.backend.dto.request.assessment.UpsertExerciseBankItemRequest;
 import fu.sap490.g23.backend.dto.response.assessment.ExerciseBankItemResponse;
 import fu.sap490.g23.backend.entity.User;
@@ -21,6 +24,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
 
     private final ExerciseBankItemRepository repository;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
@@ -48,6 +52,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
 
     @Override
     public ExerciseBankItemResponse create(UpsertExerciseBankItemRequest request, String creatorEmail) {
+        validateSystemPractice(request);
         User creator = userRepository.findByEmail(creatorEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
         ExerciseBankItem item = ExerciseBankItem.builder()
@@ -69,6 +74,7 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
 
     @Override
     public ExerciseBankItemResponse update(Long id, UpsertExerciseBankItemRequest request) {
+        validateSystemPractice(request);
         ExerciseBankItem item = findItem(id);
         item.setTitle(request.getTitle().trim());
         item.setSkill(request.getSkill().trim().toUpperCase());
@@ -96,6 +102,42 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
     private ExerciseBankItem findItem(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
+    }
+
+    private void validateSystemPractice(UpsertExerciseBankItemRequest request) {
+        String exerciseType = StringUtils.hasText(request.getExerciseType())
+                ? request.getExerciseType().trim().toUpperCase()
+                : "HOMEWORK";
+        String skill = StringUtils.hasText(request.getSkill())
+                ? request.getSkill().trim().toUpperCase()
+                : "";
+        if (!"PRACTICE".equals(exerciseType)
+                || !("LISTENING".equals(skill) || "READING".equals(skill))) {
+            return;
+        }
+
+        JsonNode config;
+        try {
+            config = objectMapper.readTree(request.getPrompt());
+        } catch (Exception exception) {
+            throw new IllegalArgumentException(
+                    "Bài luyện tập Listening/Reading phải được biên soạn bằng trình làm bài trên hệ thống.");
+        }
+        JsonNode parts = config == null ? null : config.path("parts");
+        if (config == null || !config.isObject() || !parts.isArray() || parts.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Bài luyện tập Listening/Reading phải được biên soạn bằng trình làm bài trên hệ thống.");
+        }
+
+        JsonNode answerKey;
+        try {
+            answerKey = objectMapper.readTree(request.getAnswerKey());
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Bài luyện tập phải có đáp án chấm tự động.");
+        }
+        if (answerKey == null || !answerKey.isObject() || answerKey.isEmpty()) {
+            throw new IllegalArgumentException("Bài luyện tập phải có đáp án chấm tự động.");
+        }
     }
 
     private ExerciseBankItemResponse toResponse(ExerciseBankItem item) {

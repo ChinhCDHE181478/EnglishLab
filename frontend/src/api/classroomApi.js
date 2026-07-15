@@ -131,8 +131,23 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getMyPractice() {
+    const response = await axiosClient.get('/api/student/classrooms/my-practice');
+    return asList(unwrapData(response));
+  },
+
   async completeClassroomPractice(id, exerciseId, payload) {
     const response = await axiosClient.post(`/api/student/classrooms/${id}/practice/${exerciseId}/complete`, payload);
+    return unwrapData(response);
+  },
+
+  async getClassroomPracticeAttempts(id, exerciseId) {
+    const response = await axiosClient.get(`/api/student/classrooms/${id}/practice/${exerciseId}/attempts`);
+    return asList(unwrapData(response));
+  },
+
+  async submitClassroomPracticeAttempt(id, exerciseId, payload) {
+    const response = await axiosClient.post(`/api/student/classrooms/${id}/practice/${exerciseId}/attempts`, payload);
     return unwrapData(response);
   },
 
@@ -696,12 +711,12 @@ export const classroomApi = {
   },
 
   async listPendingAttendanceDisputes() {
-    const response = await axiosClient.get('/api/training-manager/attendance-disputes/pending');
+    const response = await axiosClient.get('/api/teacher/attendance-disputes/pending');
     return asList(unwrapData(response));
   },
 
   async reviewAttendanceDispute(disputeId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/attendance-disputes/${disputeId}/review`, payload);
+    const response = await axiosClient.post(`/api/teacher/attendance-disputes/${disputeId}/review`, payload);
     return unwrapData(response);
   },
 

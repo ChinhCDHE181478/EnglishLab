@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { looksLikeRichTextHtml, sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const getVideoEmbedUrl = (url) => {
   if (!url) return '';
@@ -33,6 +34,16 @@ const renderLine = (line, key) => {
 
 const LessonContent = ({ content }) => {
   if (!content) return null;
+
+  if (looksLikeRichTextHtml(content)) {
+    return (
+      <div
+        id="khu-vuc-noi-dung-bai-hoc"
+        className="mt-5 select-text rounded-[24px] border border-[#ead9db] bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030] selection:bg-[#fff0f1] selection:text-[#4b0009] [&_a]:font-semibold [&_a]:text-[#730014] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fff7f7] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-extrabold [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-4 [&_pre]:text-white [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6"
+        dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) }}
+      />
+    );
+  }
 
   return (
     <div

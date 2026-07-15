@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Archive,
   BookOpen,
@@ -376,7 +377,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       });
       setEditingId(saved.id);
       setForm(lockFormToPage(toForm(saved, pageConfig)));
-      setEditorOpen(true);
+      setEditorOpen(false);
       setSuccess(editingId ? `Đã cập nhật ${pageConfig.successNoun}.` : `Đã tạo ${pageConfig.successNoun}.`);
     } catch (err) {
       setError(err?.response?.data?.message || `Không lưu được ${pageConfig.successNoun}.`);
@@ -591,7 +592,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     </button>
                   ) : item.status === 'DRAFT' ? (
                     <button
-                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800 disabled:opacity-45"
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-45"
                       disabled={working}
                       onClick={() => publishItem(item)}
                       type="button"
@@ -625,100 +626,104 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      {editorOpen ? (
-        <section className={`${PANEL_CLASS} scroll-mt-24 space-y-5`} ref={editorRef}>
-          {isSkillLocked ? <SkillPracticeTabs activeSkill={pageConfig.skill} /> : null}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
-                {editingId ? pageConfig.editLabel : pageConfig.createLabel}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                {isSkillLocked
-                  ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
-                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
-              </p>
-            </div>
-            <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
-              <X className="h-4 w-4" /> Đóng
-            </button>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
-            <div className="space-y-4">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên {pageConfig.successNoun}</span>
-                <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                <textarea value={form.description} onChange={(event) => updateForm('description', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-              </label>
-              {isSkillLocked ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <LockedMeta label="Trang kỹ năng" value={pageConfig.title} />
-                  <LockedMeta label="Dạng nội dung" value={formatLabel(pageConfig.type)} />
-                </div>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
-                    <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={skillOptions} />
-                  </div>
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại đề</span>
-                    <BrandedSelect value={form.type} onChange={(event) => updateForm('type', event.target.value)} options={typeOptions} />
-                  </div>
-                </div>
-              )}
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Chấm tự động</span>
-                  <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
-                </div>
-                <div>
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
-                  <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
-                </div>
+      {editorOpen && (
+        <AssessmentHubModal onClose={closeEditor}>
+          <section className="space-y-5" ref={editorRef}>
+            {isSkillLocked ? <SkillPracticeTabs activeSkill={pageConfig.skill} /> : null}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
+                  {editingId ? pageConfig.editLabel : pageConfig.createLabel}
+                </h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  {isSkillLocked
+                    ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
+                    : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
+                </p>
               </div>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
-                <textarea value={form.instructions} onChange={(event) => updateForm('instructions', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-              </label>
-              <div className="grid gap-3 md:grid-cols-3">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm đạt</span>
-                  <input type="number" value={form.passingScore} onChange={(event) => updateForm('passingScore', event.target.value)} className={FIELD_CLASS} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm tối đa</span>
-                  <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng</span>
-                  <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
-                </label>
-              </div>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
-                <input type="number" value={form.displayOrder} onChange={(event) => updateForm('displayOrder', event.target.value)} className={FIELD_CLASS} />
-              </label>
-              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
-                  <Save className="h-4 w-4" /> Lưu {pageConfig.successNoun}
-                </button>
-                <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
-                  <Plus className="h-4 w-4" /> {pageConfig.createLabel}
-                </button>
-              </div>
+              <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
+                <X className="h-4 w-4" /> Đóng
+              </button>
             </div>
 
-            <div className="rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
-              {renderWorkspace()}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên {pageConfig.successNoun}</span>
+                  <input value={form.title} onChange={(event) => updateForm('title', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
+                  <textarea value={form.description} onChange={(event) => updateForm('description', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                </label>
+                {isSkillLocked ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <LockedMeta label="Trang kỹ năng" value={pageConfig.title} />
+                    <LockedMeta label="Dạng nội dung" value={formatLabel(pageConfig.type)} />
+                  </div>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
+                      <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={skillOptions} />
+                    </div>
+                    <div>
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Loại đề</span>
+                      <BrandedSelect value={form.type} onChange={(event) => updateForm('type', event.target.value)} options={typeOptions} />
+                    </div>
+                  </div>
+                )}
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Chấm tự động</span>
+                    <BrandedSelect value={form.aiEvaluationMode} onChange={(event) => updateForm('aiEvaluationMode', event.target.value)} options={aiOptions} />
+                  </div>
+                  <div>
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
+                    <BrandedSelect value={form.status} onChange={(event) => updateForm('status', event.target.value)} options={statusOptions} />
+                  </div>
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
+                  <textarea value={form.instructions} onChange={(event) => updateForm('instructions', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                </label>
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm đạt</span>
+                    <input type="number" value={form.passingScore} onChange={(event) => updateForm('passingScore', event.target.value)} className={FIELD_CLASS} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Điểm tối đa</span>
+                    <input type="number" value={form.maxScore} onChange={(event) => updateForm('maxScore', event.target.value)} className={FIELD_CLASS} />
+                  </label>
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thời lượng</span>
+                    <input type="number" value={form.timeLimitMinutes} onChange={(event) => updateForm('timeLimitMinutes', event.target.value)} className={FIELD_CLASS} />
+                  </label>
+                </div>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
+                  <input type="number" value={form.displayOrder} onChange={(event) => updateForm('displayOrder', event.target.value)} className={FIELD_CLASS} />
+                </label>
+                <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                  <button type="button" disabled={working} onClick={saveItem} className={PRIMARY_BUTTON_CLASS}>
+                    <Save className="h-4 w-4" /> Lưu {pageConfig.successNoun}
+                  </button>
+                  <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
+                    <Plus className="h-4 w-4" /> {pageConfig.createLabel}
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
+                {renderWorkspace()}
+              </div>
             </div>
-          </div>
-        </section>
-      ) : isSkillLocked ? (
+          </section>
+        </AssessmentHubModal>
+      )}
+
+      {isSkillLocked ? (
         <SkillPracticeShell
           activeSkill={pageConfig.skill}
           createLabel={pageConfig.createLabel}
@@ -732,12 +737,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         </SkillPracticeShell>
       ) : (
         <>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{pageConfig.title}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#564241]">{pageConfig.subtitle}</p>
-            </div>
-          </div>
           <ManagerStatsGrid stats={stats} />
           <ManagerFilterBar>{renderFilters()}</ManagerFilterBar>
           {renderTable()}
@@ -803,4 +802,57 @@ function AssessmentStatusBadge({ status }) {
       ? 'warning'
       : 'neutral';
   return <ManagerStatusBadge tone={tone}>{formatLabel(status)}</ManagerStatusBadge>;
+}
+
+function SkillPracticeTabs({ activeSkill }) {
+  const tabs = [
+    { skill: 'LISTENING', label: 'Nghe' },
+    { skill: 'READING', label: 'Đọc' },
+    { skill: 'WRITING', label: 'Viết' },
+    { skill: 'SPEAKING', label: 'Nói' },
+  ];
+  return (
+    <div className="flex border-b border-slate-100 pb-1">
+      {tabs.map((tab) => {
+        const isActive = tab.skill === activeSkill;
+        return (
+          <span
+            key={tab.skill}
+            className={`mr-4 pb-2 text-sm font-bold border-b-2 transition ${
+              isActive
+                ? 'border-[#4b0009] text-[#4b0009]'
+                : 'border-transparent text-slate-400'
+            }`}
+          >
+            Luyện {tab.label.toLowerCase()}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function AssessmentHubModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[1200px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
 }

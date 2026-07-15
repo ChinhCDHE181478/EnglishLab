@@ -161,6 +161,7 @@ export function CatalogFilterSidebar({
                 onChange={onFilterChange('teacher')}
                 options={[{ value: 'ALL', label: 'Mọi giảng viên' }, ...filterOptions.teachers.map((v) => ({ value: v, label: v }))]}
                 value={filters.teacher}
+                searchable={true}
               />
             </FilterGroup>
 

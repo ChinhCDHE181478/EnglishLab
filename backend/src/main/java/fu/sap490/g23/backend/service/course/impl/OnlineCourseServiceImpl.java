@@ -108,6 +108,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    private final FlashcardPracticeService flashcardPracticeService;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
     private final YouTubeTranscriptService youTubeTranscriptService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -930,10 +931,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourse course = findCourse(courseId);
         ensureEnrolled(student, course);
 
-        List<VocabularyProgress> progressItems = vocabularyProgressRepository.findByStudentAndCourse(student, course);
-        return extractVocabularyTerms(course).stream()
-                .map(term -> applyVocabularyProgress(term, progressItems))
-                .toList();
+        return flashcardPracticeService.getPracticeTerms(
+                FlashcardPracticeSource.ENROLLED,
+                courseId,
+                false,
+                studentEmail
+        );
     }
 
     @Override
@@ -943,7 +946,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         OnlineCourse course = findCourse(courseId);
         ensureEnrolled(student, course);
 
-        VocabularyTermResponse term = extractVocabularyTerms(course).stream()
+        VocabularyTermResponse term = flashcardPracticeService.getPracticeTerms(
+                        FlashcardPracticeSource.ENROLLED,
+                        courseId,
+                        false,
+                        studentEmail
+                ).stream()
                 .filter(item -> item.getTermKey().equals(termKey))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Vocabulary term not found"));

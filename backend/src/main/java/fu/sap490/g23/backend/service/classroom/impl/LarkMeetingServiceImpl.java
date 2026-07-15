@@ -67,7 +67,12 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
 
     @Override
     public boolean isDemoUrl(String meetingUrl) {
-        return meetingUrl != null && meetingUrl.contains("meet.larksuite.com/demo/");
+        if (meetingUrl == null || meetingUrl.isBlank()) {
+            return false;
+        }
+        String normalizedUrl = meetingUrl.trim().toLowerCase();
+        return normalizedUrl.contains("meet.larksuite.com/demo/")
+                || normalizedUrl.contains("meet.larksuite.com/s/englishlab-");
     }
 
     @Override

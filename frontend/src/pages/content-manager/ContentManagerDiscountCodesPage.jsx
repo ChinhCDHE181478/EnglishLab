@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import { formatCoursePrice } from '../../components/course/courseFormatters';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const emptyForm = {
   id: null,
@@ -34,8 +36,8 @@ export default function ContentManagerDiscountCodesPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const editing = Boolean(form.id);
 
@@ -43,12 +45,12 @@ export default function ContentManagerDiscountCodesPage() {
     () => [...items].sort((left, right) => Number(right.id || 0) - Number(left.id || 0)),
     [items],
   );
-  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
-  const visibleItems = sortedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const { page, setPage, totalPages, pageItems: visibleItems, totalItems } = usePagination(
+    sortedItems,
+    PAGE_SIZE,
+    `discount-codes-${includeInactive}`
+  );
 
   const loadDiscountCodes = async () => {
     setLoading(true);
@@ -72,6 +74,13 @@ export default function ContentManagerDiscountCodesPage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const openCreate = () => {
+    setForm(emptyForm);
+    setEditorOpen(true);
+    setMessage('');
+    setError('');
+  };
+
   const handleEdit = (item) => {
     setForm({
       id: item.id,
@@ -84,12 +93,14 @@ export default function ContentManagerDiscountCodesPage() {
       startsAt: toDateTimeLocal(item.startsAt),
       expiresAt: toDateTimeLocal(item.expiresAt),
     });
+    setEditorOpen(true);
     setMessage('');
     setError('');
   };
 
   const handleReset = () => {
     setForm(emptyForm);
+    setEditorOpen(false);
     setMessage('');
     setError('');
   };
@@ -127,6 +138,7 @@ export default function ContentManagerDiscountCodesPage() {
         setMessage('Đã tạo mã giảm giá.');
       }
       setForm(emptyForm);
+      setEditorOpen(false);
       await loadDiscountCodes();
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể lưu mã giảm giá.');
@@ -157,75 +169,76 @@ export default function ContentManagerDiscountCodesPage() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
-      <Panel className="p-6">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Biên tập mã giảm giá</p>
-            <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-              {editing ? 'Cập nhật mã' : 'Tạo mã mới'}
-            </h2>
-          </div>
-          {editing ? (
+    <div className="space-y-6">
+      {message ? <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
+
+      {editorOpen && (
+        <DiscountCodeModal onClose={handleReset}>
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Biên tập mã giảm giá</p>
+              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                {editing ? 'Cập nhật mã' : 'Tạo mã mới'}
+              </h2>
+            </div>
             <button className="rounded-2xl border border-[#dfbfbd]/65 p-3 text-[#730014] transition hover:bg-[#fff2f3]" onClick={handleReset} type="button">
               <X className="h-4 w-4" />
             </button>
-          ) : null}
-        </div>
+          </div>
 
-        {error ? <div className="mb-4 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm font-semibold text-[#93000a]">{error}</div> : null}
-        {message ? <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{message}</div> : null}
+          {error ? <div className="mb-4 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-4 py-3 text-sm font-semibold text-[#93000a]">{error}</div> : null}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <TextField label="Mã" onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} value={form.code} />
-          <TextField label="Tên hiển thị" onChange={handleChange('name')} value={form.name} />
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <TextField label="Mã" onChange={(event) => setForm((current) => ({ ...current, code: event.target.value.toUpperCase() }))} value={form.code} />
+            <TextField label="Tên hiển thị" onChange={handleChange('name')} value={form.name} />
 
-          <div>
-            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Loại giảm giá</span>
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] p-1">
-              {[
-                { label: 'Phần trăm', value: 'PERCENTAGE' },
-                { label: 'VND', value: 'FIXED_AMOUNT' },
-              ].map((option) => (
-                <button
-                  className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${
-                    form.type === option.value ? 'bg-[#4b0009] text-white' : 'text-[#730014] hover:bg-[#fff2f3]'
-                  }`}
-                  key={option.value}
-                  onClick={() => setForm((current) => ({ ...current, type: option.value }))}
-                  type="button"
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div>
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Loại giảm giá</span>
+              <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] p-1">
+                {[
+                  { label: 'Phần trăm', value: 'PERCENTAGE' },
+                  { label: 'VND', value: 'FIXED_AMOUNT' },
+                ].map((option) => (
+                  <button
+                    className={`rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${
+                      form.type === option.value ? 'bg-[#4b0009] text-white' : 'text-[#730014] hover:bg-[#fff2f3]'
+                    }`}
+                    key={option.value}
+                    onClick={() => setForm((current) => ({ ...current, type: option.value }))}
+                    type="button"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <TextField label={form.type === 'PERCENTAGE' ? 'Giá trị (%)' : 'Giá trị (VND)'} onChange={handleChange('value')} value={String(form.value)} />
-            <TextField label="Giới hạn sử dụng" onChange={handleChange('usageLimit')} value={String(form.usageLimit)} />
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField label={form.type === 'PERCENTAGE' ? 'Giá trị (%)' : 'Giá trị (VND)'} onChange={handleChange('value')} value={String(form.value)} />
+              <TextField label="Giới hạn sử dụng" onChange={handleChange('usageLimit')} value={String(form.usageLimit)} />
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <DateTimeField label="Bắt đầu từ" onChange={handleChange('startsAt')} value={form.startsAt} />
-            <DateTimeField label="Hết hạn lúc" onChange={handleChange('expiresAt')} value={form.expiresAt} />
-          </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <DateTimeField label="Bắt đầu từ" onChange={handleChange('startsAt')} value={form.startsAt} />
+              <DateTimeField label="Hết hạn lúc" onChange={handleChange('expiresAt')} value={form.expiresAt} />
+            </div>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
-            <input checked={form.active} onChange={handleChange('active')} type="checkbox" />
-            Đang kích hoạt
-          </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
+              <input checked={form.active} onChange={handleChange('active')} type="checkbox" />
+              Đang kích hoạt
+            </label>
 
-          <button
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={saving}
-            type="submit"
-          >
-            {editing ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Tạo mã'}
-          </button>
-        </form>
-      </Panel>
+            <button
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={saving}
+              type="submit"
+            >
+              {editing ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {saving ? 'Đang lưu...' : editing ? 'Lưu thay đổi' : 'Tạo mã'}
+            </button>
+          </form>
+        </DiscountCodeModal>
+      )}
 
       <Panel className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dfbfbd]/45 px-6 py-5">
@@ -245,6 +258,14 @@ export default function ContentManagerDiscountCodesPage() {
             <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" onClick={loadDiscountCodes} type="button">
               <RefreshCw className="h-4 w-4" />
               Làm mới
+            </button>
+            <button
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
+              onClick={openCreate}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              Thêm mã mới
             </button>
           </div>
         </div>
@@ -306,13 +327,20 @@ export default function ContentManagerDiscountCodesPage() {
             </table>
           </div>
         )}
-        {totalPages > 1 ? (
-          <div className="flex items-center justify-center gap-3 border-t border-[#dfbfbd]/45 px-6 py-4">
-            <button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">Trang trước</button>
-            <span className="text-sm font-semibold text-[#584140]">Trang {page} / {totalPages}</span>
-            <button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-sm font-bold text-[#730014] disabled:opacity-40" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">Trang sau</button>
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
+            <span className="text-sm font-semibold text-[#584140]">
+              Trang {page} / {totalPages} · <span className="font-bold text-[#730014]">{totalItems}</span> mã giảm giá
+            </span>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              totalItems={totalItems}
+              pageSize={PAGE_SIZE}
+            />
           </div>
-        ) : null}
+        )}
       </Panel>
     </div>
   );
@@ -346,5 +374,30 @@ function DateTimeField({ label, value, onChange }) {
         value={value}
       />
     </label>
+  );
+}
+
+function DiscountCodeModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[600px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>,
+    document.body
   );
 }

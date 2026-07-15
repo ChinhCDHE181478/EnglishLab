@@ -33,16 +33,19 @@ public class ClassroomAttendanceDisputeController {
     }
 
     @GetMapping("/api/teacher/classrooms/{offeringId}/attendance-disputes")
-    public ResponseEntity<List<AttendanceDisputeResponse>> listForClass(@PathVariable Long offeringId) {
-        return ResponseEntity.ok(disputeService.listForClass(offeringId));
+    public ResponseEntity<List<AttendanceDisputeResponse>> listForClass(
+            @PathVariable Long offeringId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(disputeService.listForClass(offeringId, authentication.getName()));
     }
 
-    @GetMapping("/api/training-manager/attendance-disputes/pending")
-    public ResponseEntity<List<AttendanceDisputeResponse>> listPending() {
-        return ResponseEntity.ok(disputeService.listPending());
+    @GetMapping("/api/teacher/attendance-disputes/pending")
+    public ResponseEntity<List<AttendanceDisputeResponse>> listPending(Authentication authentication) {
+        return ResponseEntity.ok(disputeService.listPending(authentication.getName()));
     }
 
-    @PostMapping("/api/training-manager/attendance-disputes/{disputeId}/review")
+    @PostMapping("/api/teacher/attendance-disputes/{disputeId}/review")
     public ResponseEntity<AttendanceDisputeResponse> review(
             @PathVariable Long disputeId,
             @Valid @RequestBody ReviewAttendanceDisputeRequest request,

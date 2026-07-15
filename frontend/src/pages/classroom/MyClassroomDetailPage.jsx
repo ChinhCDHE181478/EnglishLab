@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -10,6 +10,7 @@ import {
   User,
   Award,
   CheckCircle2,
+  Circle,
   XCircle,
   AlertCircle,
   FileText,
@@ -28,6 +29,7 @@ import {
   Send,
   Plus,
   Sparkles,
+  Search,
   X,
   Paperclip,
   ChevronDown,
@@ -38,6 +40,7 @@ import VirtualJoinButton from '../../components/classroom/VirtualJoinButton';
 import TuitionPaymentSection from '../../components/classroom/TuitionPaymentSection';
 import ClassroomFlashcardsPanel from '../../components/classroom/ClassroomFlashcardsPanel';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
@@ -66,6 +69,12 @@ import {
   getHomeworkSkillLabel,
   isAiGradedHomework,
 } from '../../utils/homeworkGradingConfig';
+import {
+  FlashcardHomeworkWorkspace,
+  HomeworkConfirmModal,
+  HomeworkModuleExam,
+  parseObjectiveExamPayload,
+} from './MyHomeworkPage';
 
 const getEffectiveSessionStatus = (session) => {
   if (!session) return 'SCHEDULED';
@@ -130,7 +139,14 @@ const usesInteractiveHomeworkWorkspace = (homework) => (
 export default function MyClassroomDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (tab) => {
+    setSearchParams((prev) => {
+      prev.set('tab', tab);
+      return prev;
+    }, { replace: true });
+  };
   const [classroom, setClassroom] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [homework, setHomework] = useState([]);
@@ -150,8 +166,48 @@ export default function MyClassroomDetailPage() {
   const [disputeForm, setDisputeForm] = useState({ attendanceId: null, reason: '' });
   const [submittingDispute, setSubmittingDispute] = useState(false);
   const [selectedHomeworkForSubmission, setSelectedHomeworkForSubmission] = useState(null);
+  const [confirmHomework, setConfirmHomework] = useState(null);
+  const [examHomework, setExamHomework] = useState(null);
+  const [examError, setExamError] = useState('');
+  const [flashcardHomework, setFlashcardHomework] = useState(null);
   const [showAllSyllabus, setShowAllSyllabus] = useState(false);
   const [expandedUnits, setExpandedUnits] = useState(new Set());
+
+  const [homeworkSearchQuery, setHomeworkSearchQuery] = useState('');
+  const [homeworkSelectedUnitId, setHomeworkSelectedUnitId] = useState('ALL');
+  const [homeworkSelectedSkill, setHomeworkSelectedSkill] = useState('ALL');
+
+  const homeworkUnitOptions = useMemo(() => {
+    const uniqueUnits = new Map();
+    homework.forEach((h) => {
+      if (h.unitId && !uniqueUnits.has(h.unitId)) {
+        uniqueUnits.set(h.unitId, {
+          label: `Unit ${h.unitDisplayOrder || 0}: ${h.unitTitle || h.unitName || ''}`,
+          value: String(h.unitId),
+        });
+      }
+    });
+    return [
+      { label: 'Tất cả các bài học (Unit)', value: 'ALL' },
+      ...Array.from(uniqueUnits.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [homework]);
+
+  const filteredHomework = useMemo(() => {
+    return homework.filter((h) => {
+      const matchesSearch = homeworkSearchQuery
+        ? (h.title || '').toLowerCase().includes(homeworkSearchQuery.toLowerCase()) ||
+          (h.unitTitle || h.unitName || '').toLowerCase().includes(homeworkSearchQuery.toLowerCase())
+        : true;
+      const matchesUnit = homeworkSelectedUnitId === 'ALL'
+        ? true
+        : String(h.unitId) === homeworkSelectedUnitId;
+      const matchesSkill = homeworkSelectedSkill === 'ALL'
+        ? true
+        : String(h.skill || '').toUpperCase().includes(homeworkSelectedSkill);
+      return matchesSearch && matchesUnit && matchesSkill;
+    });
+  }, [homework, homeworkSearchQuery, homeworkSelectedUnitId, homeworkSelectedSkill]);
 
   const { page: sessionsPage, setPage: setSessionsPage, totalPages: sessionsTotalPages, pageItems: paginatedSessions, totalItems: sessionsTotalItems } = usePagination(
     sessions,
@@ -160,9 +216,9 @@ export default function MyClassroomDetailPage() {
   );
 
   const { page: homeworkPage, setPage: setHomeworkPage, totalPages: homeworkTotalPages, pageItems: paginatedHomeworkList, totalItems: homeworkTotalItems } = usePagination(
-    homework,
+    filteredHomework,
     6,
-    `homework-${activeTab}`
+    `homework-${activeTab}-${homeworkSearchQuery}-${homeworkSelectedUnitId}-${homeworkSelectedSkill}`
   );
 
   const { page: attendancePage, setPage: setAttendancePage, totalPages: attendanceTotalPages, pageItems: paginatedAttendance, totalItems: attendanceTotalItems } = usePagination(
@@ -263,6 +319,69 @@ export default function MyClassroomDetailPage() {
     }
   };
 
+  const refreshHomework = async () => {
+    const refreshed = await classroomApi.getMyClassroomHomework(id);
+    setHomework(refreshed);
+  };
+
+  const openInteractiveHomework = (item) => {
+    if (item.activityType === 'FLASHCARD_REVIEW') {
+      setFlashcardHomework(item);
+      return;
+    }
+    if (usesModuleExamWorkspace(item) && (!item.mySubmission || canResubmitHomework(item))) {
+      setExamError('');
+      setConfirmHomework(item);
+      return;
+    }
+    setSelectedHomeworkForSubmission(item);
+  };
+
+  const handleExamSubmit = async (payload) => {
+    if (!examHomework) return;
+    setSubmittingId(examHomework.id);
+    setExamError('');
+    try {
+      const objective = parseObjectiveExamPayload(payload?.objectiveAnswersJson);
+      await classroomApi.submitHomework(examHomework.id, {
+        textAnswer: payload?.submittedText || JSON.stringify(objective, null, 2),
+        attachmentUrl: payload?.submittedAudioUrl || '',
+      });
+      setActionMessage('Đã nộp bài tập thành công.');
+      setExamHomework(null);
+      await refreshHomework();
+    } catch (err) {
+      setExamError(getClassroomErrorMessage(err, 'Không thể nộp bài tập. Bài làm vẫn đang được giữ.'));
+      throw err;
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
+  const handleCompleteFlashcardHomework = async () => {
+    if (!flashcardHomework || (flashcardHomework.mySubmission && !canResubmitHomework(flashcardHomework))) return;
+    setSubmittingId(flashcardHomework.id);
+    setActionMessage('');
+    try {
+      await classroomApi.submitHomework(flashcardHomework.id, {
+        textAnswer: JSON.stringify({
+          activity: 'FLASHCARD_REVIEW',
+          completed: true,
+          completedAt: new Date().toISOString(),
+          curriculumUnitId: flashcardHomework.curriculumUnitId,
+        }),
+        attachmentUrl: '',
+      });
+      setActionMessage('Đã ghi nhận hoàn thành ôn tập flashcard.');
+      setFlashcardHomework(null);
+      await refreshHomework();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể ghi nhận tiến độ ôn flashcard.'));
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
   const handleCreateAttendanceDispute = async (attendanceId) => {
     if (!disputeForm.reason.trim()) {
       setActionMessage('Vui lòng nhập lý do khiếu nại điểm danh.');
@@ -272,7 +391,7 @@ export default function MyClassroomDetailPage() {
     setActionMessage('');
     try {
       await classroomApi.createAttendanceDispute(attendanceId, disputeForm.reason.trim());
-      setActionMessage('Đã gửi khiếu nại điểm danh. Training Manager sẽ xử lý và phản hồi.');
+      setActionMessage('Đã gửi khiếu nại điểm danh. Giáo viên phụ trách sẽ xử lý và phản hồi.');
       setDisputeForm({ attendanceId: null, reason: '' });
       setAttendanceDisputes(await classroomApi.listMyAttendanceDisputes());
     } catch (err) {
@@ -842,15 +961,65 @@ export default function MyClassroomDetailPage() {
           />
         );
       }
+      const homeworkSkillOptions = [
+        { label: 'Tất cả kỹ năng', value: 'ALL' },
+        { label: 'Reading', value: 'READING' },
+        { label: 'Listening', value: 'LISTENING' },
+        { label: 'Writing', value: 'WRITING' },
+        { label: 'Speaking', value: 'SPEAKING' },
+      ];
+
       return (
         <div className="space-y-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2">
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Danh sách bài tập thực hành</h3>
           </div>
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            {paginatedHomeworkList.map((item) => {
+
+          {/* ── Search and Filter Bar (Image 1 style) ── */}
+          <section className="grid gap-3 rounded-[24px] border border-[#ead9db]/85 bg-white p-4 shadow-[0_8px_30px_rgba(75,0,9,0.015)] lg:grid-cols-[1fr_220px_200px]">
+            <div className="relative">
+              <input
+                className="w-full rounded-2xl border border-[#dfbfbd]/50 bg-[#fffdfd] py-3.5 pl-11 pr-4 text-sm outline-none transition focus:border-[#730014] focus:ring-4 focus:ring-[#730014]/5 placeholder:text-slate-400"
+                onChange={(e) => {
+                  setHomeworkSearchQuery(e.target.value);
+                  setHomeworkPage(1);
+                }}
+                placeholder="Tìm kiếm bài tập..."
+                type="text"
+                value={homeworkSearchQuery}
+              />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </div>
+
+            <BrandedSelect
+              buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+              onChange={(e) => {
+                setHomeworkSelectedUnitId(e.target.value);
+                setHomeworkPage(1);
+              }}
+              options={homeworkUnitOptions}
+              value={homeworkSelectedUnitId}
+            />
+
+            <BrandedSelect
+              buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+              onChange={(e) => {
+                setHomeworkSelectedSkill(e.target.value);
+                setHomeworkPage(1);
+              }}
+              options={homeworkSkillOptions}
+              value={homeworkSelectedSkill}
+            />
+          </section>
+
+          {filteredHomework.length === 0 ? (
+            <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white p-12 text-center font-semibold text-[#584140] shadow-sm">
+              Không tìm thấy bài tập nào khớp với bộ lọc của bạn.
+            </section>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {paginatedHomeworkList.map((item) => {
               const hasSubmission = !!item.mySubmission;
               const isGraded = hasSubmission && item.mySubmission.score != null;
               const isOverdue = item.overdue && !hasSubmission;
@@ -935,15 +1104,16 @@ export default function MyClassroomDetailPage() {
 
                     <div className="border-t border-gray-100 pt-3">
                       {usesInteractiveHomeworkWorkspace(item) ? (
-                        <Link
+                        <button
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014]"
-                          to={`/my-homework?open=${item.id}`}
+                          onClick={() => openInteractiveHomework(item)}
+                          type="button"
                         >
                           {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                           {item.activityType === 'FLASHCARD_REVIEW'
                             ? 'Học flashcard theo unit'
                             : hasSubmission && canSubmit ? 'Làm lại bài tập' : 'Bắt đầu làm bài'}
-                        </Link>
+                        </button>
                       ) : (
                         <button
                           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${
@@ -973,6 +1143,7 @@ export default function MyClassroomDetailPage() {
               );
             })}
           </div>
+          )}
 
           {homeworkTotalPages > 1 && (
             <div className="flex justify-center mt-6">
@@ -1490,6 +1661,46 @@ export default function MyClassroomDetailPage() {
             </EditorModal>
           )}
 
+          {flashcardHomework ? (
+            <FlashcardHomeworkWorkspace
+              canComplete={!flashcardHomework.mySubmission || canResubmitHomework(flashcardHomework)}
+              curriculum={classroom?.curriculumProgram}
+              homework={flashcardHomework}
+              onClose={() => setFlashcardHomework(null)}
+              onComplete={handleCompleteFlashcardHomework}
+              submitting={submittingId === flashcardHomework.id}
+            />
+          ) : null}
+
+          {examHomework ? (
+            <HomeworkModuleExam
+              homework={examHomework}
+              onClose={() => {
+                setExamError('');
+                setExamHomework(null);
+              }}
+              onSubmit={handleExamSubmit}
+              submitting={submittingId === examHomework.id}
+            />
+          ) : null}
+
+          {confirmHomework ? (
+            <HomeworkConfirmModal
+              homework={confirmHomework}
+              onClose={() => setConfirmHomework(null)}
+              onConfirm={() => {
+                setExamHomework(confirmHomework);
+                setConfirmHomework(null);
+              }}
+            />
+          ) : null}
+
+          {examError ? (
+            <div className="fixed bottom-5 left-1/2 z-[170] w-[min(92vw,680px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 shadow-xl">
+              {examError}
+            </div>
+          ) : null}
+
         </div>
       ) : null}
     </LearnerPageShell>
@@ -1548,6 +1759,11 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
   const [responseText, setResponseText] = useState('');
   const [savingExerciseId, setSavingExerciseId] = useState(null);
 
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUnitId, setSelectedUnitId] = useState('ALL');
+  const [selectedSkill, setSelectedSkill] = useState('ALL');
+
   useEffect(() => {
     let active = true;
     const loadPractice = async () => {
@@ -1567,22 +1783,6 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
       active = false;
     };
   }, [classroomId]);
-
-  const practiceUnits = useMemo(() => {
-    const grouped = new Map();
-    practices.forEach((practice) => {
-      if (!grouped.has(practice.unitId)) {
-        grouped.set(practice.unitId, {
-          id: practice.unitId,
-          displayOrder: practice.unitDisplayOrder,
-          title: practice.unitTitle,
-          exercises: [],
-        });
-      }
-      grouped.get(practice.unitId).exercises.push(practice);
-    });
-    return [...grouped.values()].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-  }, [practices]);
 
   const openPractice = (exercise) => {
     setSelectedPractice(exercise);
@@ -1607,6 +1807,99 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
     }
   };
 
+  // Unit Options
+  const unitOptions = useMemo(() => {
+    const uniqueUnits = new Map();
+    practices.forEach((p) => {
+      if (p.unitId && !uniqueUnits.has(p.unitId)) {
+        uniqueUnits.set(p.unitId, {
+          label: `Unit ${p.unitDisplayOrder || 0}: ${p.unitTitle}`,
+          value: String(p.unitId),
+        });
+      }
+    });
+    return [
+      { label: 'Tất cả các bài học (Unit)', value: 'ALL' },
+      ...Array.from(uniqueUnits.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    ];
+  }, [practices]);
+
+  // Skill Options
+  const skillOptions = [
+    { label: 'Tất cả kỹ năng', value: 'ALL' },
+    { label: 'Reading', value: 'READING' },
+    { label: 'Listening', value: 'LISTENING' },
+    { label: 'Writing', value: 'WRITING' },
+    { label: 'Speaking', value: 'SPEAKING' },
+  ];
+
+  // Filter practices
+  const filteredPractices = useMemo(() => {
+    return practices.filter((p) => {
+      const matchesSearch = searchQuery
+        ? (p.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.unitTitle || '').toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+      const matchesUnit = selectedUnitId === 'ALL'
+        ? true
+        : String(p.unitId) === selectedUnitId;
+      const matchesSkill = selectedSkill === 'ALL'
+        ? true
+        : String(p.skill || '').toUpperCase().includes(selectedSkill);
+      return matchesSearch && matchesUnit && matchesSkill;
+    });
+  }, [practices, searchQuery, selectedUnitId, selectedSkill]);
+
+  // Paginated practices
+  const {
+    page,
+    setPage,
+    totalPages,
+    pageItems: paginatedPractices,
+    totalItems,
+  } = usePagination(
+    filteredPractices,
+    6, // 6 items per page
+    `classroom-practice-${searchQuery}-${selectedUnitId}-${selectedSkill}`
+  );
+
+  const getSkillBadgeStyle = (skill) => {
+    const s = String(skill).toUpperCase();
+    if (s.includes('READING')) return 'bg-sky-50 text-sky-700 border border-sky-100';
+    if (s.includes('LISTENING')) return 'bg-teal-50 text-teal-700 border border-teal-100';
+    if (s.includes('WRITING')) return 'bg-rose-50 text-rose-700 border border-rose-100';
+    if (s.includes('SPEAKING')) return 'bg-violet-50 text-violet-700 border border-violet-100';
+    return 'bg-slate-50 text-slate-700 border border-slate-100';
+  };
+
+  const renderExerciseDescription = (text) => {
+    if (!text) return 'Nội dung chi tiết đang được cập nhật.';
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const data = JSON.parse(trimmed);
+        let questionCount = 0;
+        if (Array.isArray(data.parts)) {
+          data.parts.forEach((part) => {
+            if (Array.isArray(part.questionGroups)) {
+              part.questionGroups.forEach((group) => {
+                if (Array.isArray(group.questions)) {
+                  questionCount += group.questions.length;
+                }
+              });
+            }
+          });
+        }
+        const duration = data.durationMinutes ? `${data.durationMinutes} phút` : 'Không giới hạn';
+        const partsCount = Array.isArray(data.parts) ? data.parts.length : 0;
+        return `Thời gian: ${duration} · ${questionCount} câu hỏi · ${partsCount} phần làm bài`;
+      } catch {
+        // Fall back to raw text
+      }
+    }
+    return text;
+  };
+
   if (!curriculum) {
     return <ClassroomEmptyState description="Lớp học chưa được liên kết với giáo trình." title="Chưa có nội dung luyện tập" />;
   }
@@ -1616,63 +1909,139 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
   if (error && !practices.length) {
     return <ClassroomErrorState message={error} />;
   }
-  if (!practiceUnits.length) {
+  if (!practices.length) {
     return <ClassroomEmptyState description="Giáo trình hiện chưa có bài luyện tập được xuất bản." title="Chưa có bài luyện tập" />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-[#dfbfbd]/40 bg-white p-5">
-        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">Luyện tập theo giáo trình</p>
-        <h2 className="mt-2 text-xl font-black text-[#1a1c1c]">{curriculum.title}</h2>
-        <p className="mt-2 text-sm leading-6 text-[#6f5b59]">Đây là nội dung có sẵn của khóa đang học, không phải bài tập về nhà và không tính vào bảng điểm lớp.</p>
+      {/* ── Title Banner ── */}
+      <div className="rounded-[24px] border border-[#ead9db]/80 bg-gradient-to-r from-[#fffdfd] to-[#fffafb] p-6 shadow-[0_8px_30px_rgba(75,0,9,0.015)]">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Luyện tập tự do</p>
+        <h2 className="mt-2 font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">{curriculum.title}</h2>
+        <p className="mt-2 text-xs leading-relaxed text-[#6f5b59]">Nội dung thực hành bổ trợ theo tiến độ các bài học trên lớp. Kết quả tự luyện tập này không tính vào điểm số chính thức trên lớp của bạn.</p>
       </div>
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{error}</div> : null}
-      {practiceUnits.map((unit) => (
-        <section className="rounded-2xl border border-gray-200 bg-white p-5" key={unit.id}>
-          <div className="mb-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">Unit {unit.displayOrder}</p>
-            <h3 className="mt-1 text-base font-black text-[#1a1c1c]">{unit.title}</h3>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {unit.exercises.map((exercise) => {
-              const isOpen = selectedPractice?.exerciseId === exercise.exerciseId;
+      {/* ── Search and Filter Bar (Image 1 style) ── */}
+      <section className="grid gap-3 rounded-[24px] border border-[#ead9db]/85 bg-white p-4 shadow-[0_8px_30px_rgba(75,0,9,0.015)] lg:grid-cols-[1fr_220px_200px]">
+        <div className="relative">
+          <input
+            className="w-full rounded-2xl border border-[#dfbfbd]/50 bg-[#fffdfd] py-3.5 pl-11 pr-4 text-sm outline-none transition focus:border-[#730014] focus:ring-4 focus:ring-[#730014]/5 placeholder:text-slate-400"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Tìm kiếm bài luyện tập..."
+            type="text"
+            value={searchQuery}
+          />
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        </div>
+
+        <BrandedSelect
+          buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+          onChange={(e) => {
+            setSelectedUnitId(e.target.value);
+            setPage(1);
+          }}
+          options={unitOptions}
+          value={selectedUnitId}
+        />
+
+        <BrandedSelect
+          buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+          onChange={(e) => {
+            setSelectedSkill(e.target.value);
+            setPage(1);
+          }}
+          options={skillOptions}
+          value={selectedSkill}
+        />
+      </section>
+
+      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700">{error}</div> : null}
+
+      {filteredPractices.length === 0 ? (
+        <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white p-12 text-center font-semibold text-[#584140] shadow-sm">
+          Không tìm thấy bài luyện tập nào khớp với bộ lọc của bạn.
+        </section>
+      ) : (
+        <div className="space-y-6">
+          {/* Card Grid */}
+          <div className="grid gap-5 md:grid-cols-2">
+            {paginatedPractices.map((exercise) => {
               return (
-                <article className={`rounded-xl border p-4 transition ${isOpen ? 'border-[#730014]/40 bg-[#fffafb]' : 'border-gray-100 bg-gray-50/60'}`} key={exercise.exerciseId}>
-                  <p className="text-sm font-extrabold text-[#262222]">{exercise.title}</p>
-                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider text-[#8b706e]">
-                    {exercise.skill ? <span>{exercise.skill}</span> : null}
-                    <span>Practice</span>
-                    {exercise.completed ? <span className="text-emerald-700">Đã hoàn thành</span> : null}
-                  </div>
-                  {isOpen ? (
-                    <div className="mt-4 space-y-3 border-t border-[#dfbfbd]/40 pt-4">
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-[#584140]">{exercise.instruction || exercise.note || 'Nội dung chi tiết đang được cập nhật.'}</p>
-                      {exercise.note && exercise.instruction ? <p className="text-xs italic text-[#8b706e]">{exercise.note}</p> : null}
-                      <label className="block space-y-2">
-                        <span className="text-xs font-extrabold text-[#584140]">Câu trả lời / ghi chú tự luyện</span>
-                        <textarea className="min-h-32 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#730014]" onChange={(event) => setResponseText(event.target.value)} placeholder="Nhập câu trả lời hoặc ghi lại phần cần xem lại..." value={responseText} />
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        <button className="rounded-lg bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white disabled:opacity-60" disabled={savingExerciseId === exercise.exerciseId} onClick={() => completePractice(exercise)} type="button">
-                          {savingExerciseId === exercise.exerciseId ? 'Đang lưu...' : exercise.completed ? 'Cập nhật lượt luyện' : 'Hoàn thành lượt luyện'}
-                        </button>
-                        <button className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-extrabold text-[#584140]" onClick={() => setSelectedPractice(null)} type="button">Thu gọn</button>
-                      </div>
+                <article
+                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#dfbfbd]/50 hover:shadow-[0_12px_35px_rgba(75,0,9,0.035)]"
+                  key={exercise.exerciseId}
+                >
+                  {/* Eyebrow Unit Label */}
+                  <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e] mb-2">
+                    Unit {exercise.unitDisplayOrder || 0}: {exercise.unitTitle}
+                  </p>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest border ${
+                        exercise.completed
+                          ? 'border-emerald-100 bg-emerald-50/60 text-emerald-700'
+                          : 'border-amber-100 bg-amber-50/60 text-amber-700'
+                      }`}
+                    >
+                      {exercise.completed ? <CheckCircle2 className="h-2.5 w-2.5" /> : <Circle className="h-2.5 w-2.5" />}
+                      {exercise.completed ? 'Đã luyện tập' : 'Chưa luyện tập'}
+                    </span>
+
+                    <div className="flex gap-1.5">
+                      {exercise.skill ? (
+                        <span className={`rounded-lg px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest ${getSkillBadgeStyle(exercise.skill)}`}>
+                          {exercise.skill}
+                        </span>
+                      ) : null}
+                      <span className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-slate-600">
+                        Practice
+                      </span>
                     </div>
-                  ) : (
-                    <button className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white" onClick={() => openPractice(exercise)} type="button">
-                      <Play className="h-3.5 w-3.5" />
-                      {exercise.completed ? 'Luyện tập lại' : 'Bắt đầu luyện tập'}
-                    </button>
-                  )}
+                  </div>
+
+                  <h4 className="mt-4 font-['Manrope'] text-sm font-extrabold leading-snug text-[#1a1c1c] group-hover:text-[#730014] transition-colors">
+                    {exercise.title}
+                  </h4>
+
+                  <p className="mt-3 line-clamp-2 text-xs leading-6 text-[#584140]">
+                    {renderExerciseDescription(exercise.instruction || exercise.note)}
+                  </p>
+
+                  <div className="mt-auto -mx-5 -mb-5 flex h-14 items-center justify-between border-t border-gray-50 bg-gray-50/30 px-5 pt-4">
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {exercise.attemptCount || 0} lượt đã làm
+                    </span>
+                    <Link
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#730014] to-[#4b0009] px-3 py-1.5 text-xs font-bold text-white shadow-sm active:scale-95 transition hover:shadow"
+                      to={`/my-practice/${classroomId}/${exercise.exerciseId}`}
+                    >
+                      <Play className="h-3 w-3 fill-current" />
+                      {exercise.completed ? 'Luyện lại' : 'Bắt đầu'}
+                    </Link>
+                  </div>
                 </article>
               );
             })}
           </div>
-        </section>
-      ))}
+
+          {/* Pagination */}
+          <div className="mt-6 flex justify-center">
+            <Pagination
+              page={page}
+              onChange={setPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={6}
+              alwaysVisible={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2005,7 +2374,7 @@ function EditorModal({ children, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
         onClick={onClose}
         type="button"
       />
