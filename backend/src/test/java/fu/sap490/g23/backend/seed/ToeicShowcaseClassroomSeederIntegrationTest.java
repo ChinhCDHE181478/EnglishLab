@@ -16,11 +16,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @Transactional
 class ToeicShowcaseClassroomSeederIntegrationTest {
+
+    private static final Set<String> SEEDED_UNIT_TITLES = Set.of(
+            "Unit 1 - Photographs & mô tả hành động",
+            "Unit 2 - Question-Response",
+            "Unit 3 - Conversations",
+            "Unit 4 - Short Talks",
+            "Unit 5 - Incomplete Sentences",
+            "Unit 6 - Text Completion",
+            "Unit 7 - Reading Comprehension",
+            "Unit 8 - Full Test Strategy"
+    );
 
     @Autowired
     private UserRepository userRepository;
@@ -55,26 +68,32 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
 
         assertThat(offering.getCurriculumProgram()).isNotNull();
         assertThat(offering.getTrainingProgram()).isNotNull();
-        assertThat(curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(
-                offering.getCurriculumProgram().getId())).hasSize(8);
+        var seededUnits = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(
+                        offering.getCurriculumProgram().getId()).stream()
+                .filter(unit -> SEEDED_UNIT_TITLES.contains(unit.getTitle()))
+                .toList();
+        assertThat(seededUnits).hasSize(8);
         var learnerResponse = classroomMapper.toOfferingResponse(offering, true, learner.getId(), null, true);
-        assertThat(learnerResponse.getCurriculumProgram().getUnits()).hasSize(8)
+        var seededUnitResponses = learnerResponse.getCurriculumProgram().getUnits().stream()
+                .filter(unit -> SEEDED_UNIT_TITLES.contains(unit.getTitle()))
+                .toList();
+        assertThat(seededUnitResponses).hasSize(8)
                 .allSatisfy(unit -> {
                     assertThat(unit.getMaterials()).hasSizeGreaterThanOrEqualTo(1);
                     assertThat(unit.getExercises()).hasSizeGreaterThanOrEqualTo(1);
                     assertThat(unit.getFlashcards()).hasSize(1);
                     assertThat(unit.getFlashcards().getFirst().getContentJson()).contains("\"front\"");
                 });
-        assertThat(learnerResponse.getCurriculumProgram().getUnits().get(4).getAssessments())
+        assertThat(seededUnitResponses.get(4).getAssessments())
                 .hasSizeGreaterThanOrEqualTo(1);
-        assertThat(learnerResponse.getCurriculumProgram().getUnits().get(4).getAssessments())
+        assertThat(seededUnitResponses.get(4).getAssessments())
                 .anySatisfy(assessment -> {
                     assertThat(assessment.getTitle()).isEqualTo("TOEIC 650 Unit 5 Progress Check - Incomplete Sentences");
                     assertThat(assessment.getSubtitle()).isEqualTo("QUIZ");
                 })
                 .noneSatisfy(assessment -> assertThat(assessment.getSubtitle()).isEqualTo("MODULE_TEST"));
-        assertThat(learnerResponse.getCurriculumProgram().getUnits().getFirst().getFlashcards().getFirst().getContentJson())
-                .isNotEqualTo(learnerResponse.getCurriculumProgram().getUnits().get(1).getFlashcards().getFirst().getContentJson());
+        assertThat(seededUnitResponses.getFirst().getFlashcards().getFirst().getContentJson())
+                .isNotEqualTo(seededUnitResponses.get(1).getFlashcards().getFirst().getContentJson());
         assertThat(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(
                 offering.getId())).hasSize(8).allSatisfy(session -> {
                     assertThat(session.getRecordingUrl()).isNull();

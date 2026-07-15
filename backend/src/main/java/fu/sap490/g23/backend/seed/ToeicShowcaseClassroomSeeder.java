@@ -43,6 +43,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
 
+    private static final String LEGACY_DEMO_LARK_URL = "https://meet.larksuite.com/s/englishlab-toeic-650-showcase";
+
     private static final String LEARNER_EMAIL = "0386852628z@gmail.com";
     private static final String TEACHER_EMAIL = "classroom.teacher1@englishlab.vn";
     private static final String CURRICULUM_SLUG = "toeic-650-complete-virtual-v1";
@@ -143,6 +145,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
         TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
         ClassroomOffering offering = ensureOffering(classroomType, trainingProgram, curriculum, teacher);
+        clearLegacyDemoLarkLinks(offering);
 
         ensureTeacherAssignment(offering, teacher);
         ensureEnrollment(offering, learner, teacher);
@@ -501,8 +504,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .startDate(LocalDate.now().minusWeeks(3))
                             .endDate(LocalDate.now().plusWeeks(5))
                             .primaryTeacher(teacher)
-                            .defaultLarkMeetingUrl("https://meet.larksuite.com/s/englishlab-toeic-650-showcase")
-                            .larkMeetingStatus(LarkMeetingStatus.OPEN)
+                            .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                             .recordingVisible(false)
                             .syllabusSummary(curriculum.getOutcomes())
                             .programOutcomes(curriculum.getOutcomes())
@@ -515,6 +517,24 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
             offering.setRecordingVisible(false);
         }
         return offeringRepository.save(offering);
+    }
+
+    private void clearLegacyDemoLarkLinks(ClassroomOffering offering) {
+        if (LEGACY_DEMO_LARK_URL.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
+            offering.setDefaultLarkMeetingUrl(null);
+            offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
+            offeringRepository.save(offering);
+        }
+        sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()).stream()
+                .filter(session -> LEGACY_DEMO_LARK_URL.equalsIgnoreCase(session.getLarkMeetingUrl())
+                        || "DEMO".equalsIgnoreCase(session.getLarkSyncStatus()))
+                .forEach(session -> {
+                    session.setLarkMeetingUrl(null);
+                    session.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
+                    session.setLarkSyncStatus("PENDING");
+                    session.setLarkSyncError(null);
+                    sessionRepository.save(session);
+                });
     }
 
     private void ensureTeacherAssignment(ClassroomOffering offering, User teacher) {
@@ -573,11 +593,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                     .teacher(teacher)
                     .status(status)
                     .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                    .larkMeetingUrl(offering.getDefaultLarkMeetingUrl())
-                    .larkMeetingStatus(status == ClassroomSessionStatus.COMPLETED
-                            ? LarkMeetingStatus.ENDED
-                            : status == ClassroomSessionStatus.OPEN ? LarkMeetingStatus.OPEN : LarkMeetingStatus.SCHEDULED)
-                    .larkSyncStatus("DEMO")
+                    .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
+                    .larkSyncStatus("PENDING")
                     .recordingVisible(false)
                     .recordingUrl(null)
                     .sessionContent(units.get(index).getTitle())

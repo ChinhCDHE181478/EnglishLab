@@ -52,8 +52,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private static final String SLUG_REGISTRATION_PIPELINE = "ielts-registration-pipeline";
     private static final String SLUG_COMPLETED = "ielts-foundation-completed";
     private static final String DEFAULT_OFFLINE_ADDRESS = "123 Phố Huế, Hai Bà Trưng, Hà Nội";
-    private static final String DEMO_LARK_URL_SPEAKING = "https://meet.larksuite.com/s/englishlab-ielts-speaking-live";
-    private static final String DEMO_LARK_URL_TOEIC = "https://meet.larksuite.com/s/englishlab-toeic-communication-live";
+    private static final String LEGACY_DEMO_LARK_URL_SPEAKING = "https://meet.larksuite.com/s/englishlab-ielts-speaking-live";
+    private static final String LEGACY_DEMO_LARK_URL_TOEIC = "https://meet.larksuite.com/s/englishlab-toeic-communication-live";
 
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
@@ -85,7 +85,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     public void run(String... args) {
         syncEnglishSlugs();
         syncTeacher2Account();
-        syncVirtualDemoLarkLinks();
+        clearLegacyDemoLarkLinks();
 
         if (!seedEnabled) {
             return;
@@ -151,8 +151,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                     teacher2,
                     manager,
                     BigDecimal.valueOf(2_800_000),
-                    BigDecimal.valueOf(2_490_000),
-                    DEMO_LARK_URL_SPEAKING
+                    BigDecimal.valueOf(2_490_000)
             );
             seedVirtualUpcomingData(offering, teacher2, learner1, learner2);
         });
@@ -185,8 +184,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                     teacher2,
                     manager,
                     BigDecimal.valueOf(3_100_000),
-                    BigDecimal.valueOf(2_790_000),
-                    DEMO_LARK_URL_TOEIC
+                    BigDecimal.valueOf(2_790_000)
             );
             seedVirtualInProgressData(offering, teacher2, learner1, learner3, manager);
         });
@@ -355,9 +353,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(DEMO_LARK_URL_SPEAKING)
-                .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
-                .larkSyncStatus("DEMO")
+                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
+                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Speaking Part 1 & 2 practice")
                 .build());
@@ -480,9 +477,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
-                .larkMeetingStatus(LarkMeetingStatus.ENDED)
-                .larkSyncStatus("DEMO")
+                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
+                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.COMPLETED)
                 .sessionContent("TOEIC Listening Part 1-2")
                 .build());
@@ -494,9 +490,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(21, 0))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
-                .larkMeetingStatus(LarkMeetingStatus.OPEN)
-                .larkSyncStatus("DEMO")
+                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
+                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.OPEN)
                 .sessionContent("TOEIC Speaking practice hôm nay")
                 .build());
@@ -508,9 +503,8 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .endTime(LocalTime.of(20, 30))
                 .teacher(teacher)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
-                .larkMeetingUrl(DEMO_LARK_URL_TOEIC)
-                .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
-                .larkSyncStatus("DEMO")
+                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
+                .larkSyncStatus("PENDING")
                 .status(ClassroomSessionStatus.SCHEDULED)
                 .sessionContent("Role-play giao tiếp công sở")
                 .build());
@@ -676,8 +670,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             User teacher,
             User manager,
             BigDecimal price,
-            BigDecimal salePrice,
-            String demoLarkUrl
+            BigDecimal salePrice
     ) {
         LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
                 .packageType(classroomType)
@@ -703,8 +696,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .startDate(startDate)
                 .endDate(endDate)
                 .primaryTeacher(teacher)
-                .defaultLarkMeetingUrl(demoLarkUrl)
-                .larkMeetingStatus(LarkMeetingStatus.SCHEDULED)
+                .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                 .recordingVisible(true)
                 .syllabusSummary("Buổi live + bài tập + feedback cá nhân")
                 .build());
@@ -785,41 +777,33 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 : offering.getLearningPackage().getPrice();
     }
 
-    private void syncVirtualDemoLarkLinks() {
-        syncOfferingDemoLarkLinks(VIRTUAL_UPCOMING_TITLE, DEMO_LARK_URL_SPEAKING);
-        syncOfferingDemoLarkLinks(VIRTUAL_IN_PROGRESS_TITLE, DEMO_LARK_URL_TOEIC);
+    private void clearLegacyDemoLarkLinks() {
+        clearOfferingDemoLarkLinks(VIRTUAL_UPCOMING_TITLE, LEGACY_DEMO_LARK_URL_SPEAKING);
+        clearOfferingDemoLarkLinks(VIRTUAL_IN_PROGRESS_TITLE, LEGACY_DEMO_LARK_URL_TOEIC);
     }
 
-    private void syncOfferingDemoLarkLinks(String offeringTitle, String demoLarkUrl) {
+    private void clearOfferingDemoLarkLinks(String offeringTitle, String legacyDemoLarkUrl) {
         offeringRepository.findByLearningPackageTitleIgnoreCase(offeringTitle).ifPresent(offering -> {
-            if (offering.getDefaultLarkMeetingUrl() == null || offering.getDefaultLarkMeetingUrl().isBlank()) {
-                offering.setDefaultLarkMeetingUrl(demoLarkUrl);
-                offering.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
+            if (legacyDemoLarkUrl.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
+                offering.setDefaultLarkMeetingUrl(null);
+                offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
                 offeringRepository.save(offering);
             }
 
             sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
                     .forEach(session -> {
-                        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+                        boolean hasLegacyUrl = legacyDemoLarkUrl.equalsIgnoreCase(session.getLarkMeetingUrl());
+                        boolean hasDemoStatus = "DEMO".equalsIgnoreCase(session.getLarkSyncStatus());
+                        if (!hasLegacyUrl && !hasDemoStatus) {
                             return;
                         }
-                        if (session.getLarkMeetingUrl() != null && !session.getLarkMeetingUrl().isBlank()) {
-                            return;
-                        }
-                        session.setLarkMeetingUrl(demoLarkUrl);
-                        session.setLarkMeetingStatus(resolveDemoLarkStatus(session.getStatus()));
-                        session.setLarkSyncStatus("DEMO");
+                        session.setLarkMeetingUrl(null);
+                        session.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
+                        session.setLarkSyncStatus("PENDING");
+                        session.setLarkSyncError(null);
                         sessionRepository.save(session);
                     });
         });
-    }
-
-    private LarkMeetingStatus resolveDemoLarkStatus(ClassroomSessionStatus status) {
-        return switch (status) {
-            case OPEN, IN_PROGRESS -> LarkMeetingStatus.OPEN;
-            case COMPLETED -> LarkMeetingStatus.ENDED;
-            default -> LarkMeetingStatus.SCHEDULED;
-        };
     }
 
     private void syncTeacher2Account() {
