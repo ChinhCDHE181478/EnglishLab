@@ -112,14 +112,6 @@ const detailTabs = [
   { id: 'announcements', label: 'Thông báo' },
 ];
 
-const combineAssignmentScores = (homeworkScore, legacyQuizScore) => {
-  const scores = [homeworkScore, legacyQuizScore]
-    .map(Number)
-    .filter(Number.isFinite);
-  if (!scores.length) return null;
-  return Math.round((scores.reduce((sum, score) => sum + score, 0) / scores.length) * 100) / 100;
-};
-
 const usesModuleExamWorkspace = (homework) => {
   if (!homework || homework.activityType === 'FILE_RESPONSE' || homework.activityType === 'FLASHCARD_REVIEW') {
     return false;
@@ -549,7 +541,7 @@ export default function MyClassroomDetailPage() {
             />
             <KpiCard
               label="Điểm tích lũy"
-              value={gradebook?.homeworkScore != null ? `${gradebook.homeworkScore}/10` : '—'}
+              value={gradebook?.homeworkAverage != null ? `${gradebook.homeworkAverage}/10` : '—'}
               sub={gradebook ? formatGradebookFinalResult(gradebook.finalResult) : 'Đang cập nhật'}
               icon={<Award className="h-4.5 w-4.5" />}
             />
@@ -915,7 +907,9 @@ export default function MyClassroomDetailPage() {
     if (activeTab === 'payment') {
       const tuitionDue = classroom.tuitionAmountDue ?? 0;
       const tuitionRemaining = tuitionDue - (classroom.tuitionAmountPaid ?? 0);
-      const canSubmitProof = tuitionDue > 0 && (classroom.tuitionAmountPaid ?? 0) < tuitionDue;
+      const canSubmitProof = classroom.registrationStatus !== 'WAITLIST'
+        && tuitionDue > 0
+        && (classroom.tuitionAmountPaid ?? 0) < tuitionDue;
       return (
         <div className="space-y-6">
           {tuitionDue > 0 && (
@@ -944,6 +938,7 @@ export default function MyClassroomDetailPage() {
           <TuitionPaymentSection
             canSubmitProof={canSubmitProof}
             classroomId={id}
+            tuitionRemaining={tuitionRemaining}
             onUpdated={async () => {
               try {
                 const refreshed = await classroomApi.getMyClassroom(id);
@@ -1329,10 +1324,9 @@ export default function MyClassroomDetailPage() {
           </div>
           
           {/* Grade Summary Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <GradeIndicatorCard label="Bài tập" score={combineAssignmentScores(gradebook.homeworkScore, gradebook.quizScore)} color="red" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <GradeIndicatorCard label="Điểm TB bài tập" score={gradebook.homeworkAverage} color="red" />
             <GradeIndicatorCard label="Chuyên cần" score={gradebook.attendancePercent != null ? gradebook.attendancePercent / 10 : null} suffix="%" customScore={gradebook.attendancePercent} color="emerald" />
-            <GradeIndicatorCard label="Tương tác phát biểu" score={gradebook.participationScore} color="purple" />
           </div>
 
           {/* Final Result Banner */}

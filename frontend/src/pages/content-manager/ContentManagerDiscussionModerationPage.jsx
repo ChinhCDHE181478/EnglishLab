@@ -3,6 +3,7 @@ import { AlertTriangle, EyeOff, Flag, RefreshCw, ShieldCheck, XCircle } from 'lu
 import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -117,14 +118,15 @@ export default function ContentManagerDiscussionModerationPage() {
 
         <div className="flex items-center gap-3" aria-label="Loại báo cáo">
           <label className="text-sm font-bold text-[#564241]" htmlFor="report-category">Loại báo cáo</label>
-          <select
-            className="rounded-lg border border-[#dcc0bf]/50 bg-white px-3 py-2 text-sm font-semibold text-[#564241] outline-none focus:border-[#8a0018]"
+          <div className="min-w-[190px]">
+            <BrandedSelect
+            buttonClassName="rounded-lg border-[#dcc0bf]/50 bg-white py-2 text-sm font-semibold text-[#564241] shadow-none"
             id="report-category"
             onChange={(event) => setCategory(event.target.value)}
+            options={CATEGORY_FILTERS}
             value={category}
-          >
-            {CATEGORY_FILTERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
+            />
+          </div>
         </div>
 
         <button

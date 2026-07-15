@@ -9,6 +9,16 @@ import { readCart, removeCourseFromCart } from '../utils/commerceStore';
 import { buildCourseHomePath, normalizeCourse } from '../utils/courseModels';
 
 const isTruthyReturnValue = (value) => String(value || '').toLowerCase() === 'true';
+const CLASSROOM_TUITION_RETURN_KEY = 'englishlab.classroomTuitionReturn';
+
+const readClassroomTuitionReturn = () => {
+  try {
+    const raw = sessionStorage.getItem(CLASSROOM_TUITION_RETURN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const CheckoutPage = () => {
   const location = useLocation();
@@ -19,6 +29,7 @@ const CheckoutPage = () => {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteMessage, setQuoteMessage] = useState('');
   const [autoFreeEnrollmentAttempted, setAutoFreeEnrollmentAttempted] = useState(false);
+  const [classroomTuitionReturn] = useState(() => readClassroomTuitionReturn());
   const [paymentReturn, setPaymentReturn] = useState({
     checked: false,
     loading: false,
@@ -26,6 +37,7 @@ const CheckoutPage = () => {
     paid: false,
     message: '',
     orderCode: null,
+    classroomOfferingId: null,
   });
 
   const returnParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -74,8 +86,11 @@ const CheckoutPage = () => {
         loading: false,
         status: 'CANCELLED',
         paid: false,
-        message: 'Bạn đã hủy thanh toán. Giỏ hàng vẫn được giữ để bạn có thể thử lại.',
+        message: classroomTuitionReturn
+          ? 'Bạn đã hủy thanh toán học phí. Bạn có thể quay lại lớp để thử PayOS hoặc gửi minh chứng chuyển khoản.'
+          : 'Bạn đã hủy thanh toán. Giỏ hàng vẫn được giữ để bạn có thể thử lại.',
         orderCode,
+        classroomOfferingId: classroomTuitionReturn?.classroomId || null,
       });
       return;
     }
@@ -86,8 +101,11 @@ const CheckoutPage = () => {
         loading: false,
         status: 'UNKNOWN',
         paid: false,
-        message: 'Chưa thể xác minh đơn thanh toán vì thiếu mã đơn hàng. Giỏ hàng vẫn được giữ để bạn có thể kiểm tra lại.',
+        message: classroomTuitionReturn
+          ? 'Chưa thể xác minh đơn học phí vì thiếu mã đơn hàng. Vui lòng quay lại lớp để kiểm tra lịch sử thanh toán.'
+          : 'Chưa thể xác minh đơn thanh toán vì thiếu mã đơn hàng. Giỏ hàng vẫn được giữ để bạn có thể kiểm tra lại.',
         orderCode: null,
+        classroomOfferingId: classroomTuitionReturn?.classroomId || null,
       });
       return;
     }
@@ -100,6 +118,7 @@ const CheckoutPage = () => {
       paid: false,
       message: 'Đang xác nhận thanh toán với PayOS...',
       orderCode,
+      classroomOfferingId: classroomTuitionReturn?.classroomId || null,
     });
 
     const checkPaymentStatus = async () => {
@@ -107,8 +126,12 @@ const CheckoutPage = () => {
         const result = await paymentApi.getPaymentOrderStatus(orderCode);
         if (!active) return;
         const paid = Boolean(result?.paid) || String(result?.status || '').toUpperCase() === 'PAID';
-        if (paid) {
+        const isClassroomTuition = Boolean(result?.classroomOfferingId || result?.enrollmentId || classroomTuitionReturn);
+        if (paid && !isClassroomTuition) {
           checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
+        }
+        if (paid && isClassroomTuition) {
+          sessionStorage.removeItem(CLASSROOM_TUITION_RETURN_KEY);
         }
         setPaymentReturn({
           checked: true,
@@ -116,9 +139,12 @@ const CheckoutPage = () => {
           status: String(result?.status || (paid ? 'PAID' : 'PENDING')).toUpperCase(),
           paid,
           message: result?.message || (paid
-            ? 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.'
+            ? (isClassroomTuition
+              ? 'Thanh toán thành công. Học phí lớp đã được ghi nhận.'
+              : 'Thanh toán thành công. Khóa học đã được thêm vào tài khoản của bạn.')
             : 'Đơn thanh toán đang chờ PayOS xác nhận. Vui lòng tải lại sau vài giây.'),
           orderCode,
+          classroomOfferingId: result?.classroomOfferingId || classroomTuitionReturn?.classroomId || null,
         });
       } catch (error) {
         if (!active) return;
@@ -133,6 +159,7 @@ const CheckoutPage = () => {
           paid: code === '00' && status === 'PAID',
           message: serverMessage || 'Không thể xác nhận trạng thái thanh toán. Vui lòng thử lại.',
           orderCode,
+          classroomOfferingId: classroomTuitionReturn?.classroomId || null,
         });
       }
     };
@@ -142,7 +169,7 @@ const CheckoutPage = () => {
     return () => {
       active = false;
     };
-  }, [checkoutCourses, hasPaymentReturn, returnParams]);
+  }, [checkoutCourses, classroomTuitionReturn, hasPaymentReturn, returnParams]);
 
   const handleConfirmPayment = async () => {
     if (!selectedCourseIds.length || submitting) return;
@@ -252,10 +279,19 @@ const CheckoutPage = () => {
 
   if (paymentReturn.checked) {
     const paid = paymentReturn.paid;
+    const isClassroomTuition = Boolean(paymentReturn.classroomOfferingId || classroomTuitionReturn);
+    const classroomPath = classroomTuitionReturn?.returnPath
+      || (paymentReturn.classroomOfferingId ? `/my-classrooms/${paymentReturn.classroomOfferingId}?tab=payment` : '/my-classrooms');
     return (
       <LearnerPageShell
         title={paid ? 'Thanh toán thành công' : 'Thanh toán chưa hoàn tất'}
-        description={paid ? 'Khóa học của bạn đã sẵn sàng trong tài khoản EnglishLab.' : 'Bạn có thể quay lại giỏ hàng để kiểm tra và thanh toán lại khi sẵn sàng.'}
+        description={paid
+          ? (isClassroomTuition
+            ? 'Học phí lớp đã được cập nhật vào hồ sơ đăng ký của bạn.'
+            : 'Khóa học của bạn đã sẵn sàng trong tài khoản EnglishLab.')
+          : (isClassroomTuition
+            ? 'Bạn có thể quay lại lớp để thử PayOS lại hoặc gửi minh chứng chuyển khoản.'
+            : 'Bạn có thể quay lại giỏ hàng để kiểm tra và thanh toán lại khi sẵn sàng.')}
       >
         <section className="grid min-h-[520px] overflow-hidden rounded-[32px] border border-[#dfbfbd]/25 bg-white shadow-sm lg:grid-cols-[0.95fr_1.05fr]">
           <div className="flex flex-col justify-center p-8 md:p-10">
@@ -268,7 +304,9 @@ const CheckoutPage = () => {
               {paid ? 'PayOS đã xác nhận' : `Trạng thái: ${paymentReturn.status || 'UNKNOWN'}`}
             </p>
             <h2 className="mt-3 font-['Manrope'] text-4xl font-extrabold text-[#2b2828]">
-              {paid ? 'Khóa học đã được kích hoạt.' : 'Giao dịch chưa được ghi nhận thành công.'}
+              {paid
+                ? (isClassroomTuition ? 'Học phí lớp đã được ghi nhận.' : 'Khóa học đã được kích hoạt.')
+                : 'Giao dịch chưa được ghi nhận thành công.'}
             </h2>
             <p className="mt-4 text-base leading-8 text-[#584140]">{paymentReturn.message}</p>
             {paymentReturn.orderCode ? (
@@ -277,7 +315,7 @@ const CheckoutPage = () => {
               </p>
             ) : null}
             <div className="mt-8 flex flex-wrap gap-3">
-              {paid && successCourse ? (
+              {paid && !isClassroomTuition && successCourse ? (
                 <Link
                   className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#730014]"
                   to={buildCourseHomePath(successCourse)}
@@ -285,12 +323,21 @@ const CheckoutPage = () => {
                   Vào khóa học
                 </Link>
               ) : null}
-              <Link
-                className="rounded-2xl border border-[#dfbfbd]/50 px-6 py-4 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8]"
-                to={paid ? '/my-courses' : '/cart'}
-              >
-                {paid ? 'Xem khóa học của tôi' : 'Quay lại giỏ hàng'}
-              </Link>
+              {isClassroomTuition ? (
+                <Link
+                  className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#730014]"
+                  to={classroomPath}
+                >
+                  Quay lại lớp học
+                </Link>
+              ) : (
+                <Link
+                  className="rounded-2xl border border-[#dfbfbd]/50 px-6 py-4 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fcf8f8]"
+                  to={paid ? '/my-courses' : '/cart'}
+                >
+                  {paid ? 'Xem khóa học của tôi' : 'Quay lại giỏ hàng'}
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-center bg-[#fff8f6] p-6">

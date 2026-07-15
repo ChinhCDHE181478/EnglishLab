@@ -24,7 +24,7 @@ const getNavItemsByRole = (user) => {
     return [
       { label: 'Giảng dạy', to: '/teacher' },
       { label: 'Lịch dạy', to: '/teacher/schedule' },
-      { label: 'Yêu cầu thay đổi', to: '/teacher/requests' },
+      { label: 'Theo dõi yêu cầu', to: '/teacher/requests' },
     ];
   }
   if (role === 'TRAINING_MANAGER') {
@@ -58,33 +58,9 @@ const getNavItemsByRole = (user) => {
 const getProfileItemsByRole = (user) => {
   if (!user) return [];
   const role = String(user.role || '').toUpperCase();
-  if (role === 'TEACHER') {
-    return [
-      { label: 'Giảng dạy', to: '/teacher' },
-      { label: 'Lịch dạy', to: '/teacher/schedule' },
-      { label: 'Yêu cầu thay đổi', to: '/teacher/requests' },
-    ];
-  }
-  if (role === 'TRAINING_MANAGER') {
-    return [
-      { label: 'Bảng điều khiển', to: '/training-manager' },
-      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
-      { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
-    ];
-  }
-  if (role === 'MANAGER' || role === 'ADMIN') {
-    return [
-      { label: 'Bảng điều khiển', to: '/training-manager' },
-      { label: 'Lớp học', to: '/training-manager/classrooms' },
-      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
-      { label: 'Duyệt yêu cầu thay đổi', to: '/training-manager/requests' },
-      { label: 'Giảng dạy', to: '/teacher' },
-    ];
-  }
-  if (role === 'CONTENT_MANAGER') {
-    return [
-      { label: 'Quản lý nội dung', to: '/content-manager' },
-    ];
+  // Staff roles already have primary navigation in the header; keep the avatar menu for account actions only.
+  if (['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
+    return [];
   }
   // Student
   return [
@@ -96,6 +72,7 @@ const getProfileItemsByRole = (user) => {
     { label: 'Bài tập', to: '/my-homework' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },
+    { label: 'Trung tâm hỗ trợ', to: '/support' },
   ];
 };
 
@@ -291,9 +268,17 @@ const Header = () => {
                 onClick={() => setIsProfileMenuOpen((current) => !current)}
                 type="button"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#8a0018]/10 text-[#8a0018]">
-                  <UserRound size={17} />
-                </span>
+                {user.avatarUrl ? (
+                  <img
+                    alt={user.fullName || 'Ảnh hồ sơ'}
+                    className="h-8 w-8 rounded-full object-cover ring-1 ring-[#dfbfbd]/70"
+                    src={user.avatarUrl}
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#8a0018]/10 text-[#8a0018]">
+                    <UserRound size={17} />
+                  </span>
+                )}
                 <div className="hidden text-left leading-tight md:block">
                   <p className="max-w-[150px] truncate text-sm font-extrabold text-[#2b2828]">
                     {user.fullName || user.email}

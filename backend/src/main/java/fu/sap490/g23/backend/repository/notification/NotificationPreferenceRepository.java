@@ -1,0 +1,11 @@
+package fu.sap490.g23.backend.repository.notification;
+
+import fu.sap490.g23.backend.entity.notification.NotificationPreference;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface NotificationPreferenceRepository extends JpaRepository<NotificationPreference, Long> {
+
+    Optional<NotificationPreference> findByUserId(Long userId);
+}

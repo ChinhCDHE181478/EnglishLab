@@ -18,6 +18,10 @@ const statusLabel = (status) => {
   }
 };
 
+const orderTypeLabel = (orderType) => (
+  orderType === 'CLASSROOM_TUITION' ? 'Học phí lớp' : 'Khóa học online'
+);
+
 const formatMoney = (value) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
 
 const TransactionHistoryPage = () => {
@@ -102,7 +106,9 @@ const TransactionHistoryPage = () => {
                 <article key={order.orderCode} className="rounded-[28px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">Mã đơn #{order.orderCode}</p>
+                      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+                        {orderTypeLabel(order.orderType)} · Mã đơn #{order.orderCode}
+                      </p>
                       <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
                         {(order.courseTitles || []).join(' · ') || order.description || 'Thanh toán khóa học'}
                       </h2>

@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.repository.classroom;
 import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,7 +51,30 @@ public interface ClassroomEnrollmentRepository extends JpaRepository<ClassroomEn
             Collection<ClassroomRegistrationStatus> statuses
     );
 
+    List<ClassroomEnrollment> findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
+            Long classroomOfferingId,
+            ClassroomRegistrationStatus status
+    );
+
+    @Query("""
+            SELECT MAX(e.waitlistPriority)
+            FROM ClassroomEnrollment e
+            WHERE e.classroomOffering.id = :offeringId
+              AND e.registrationStatus = :status
+            """)
+    Integer findMaxWaitlistPriority(
+            @Param("offeringId") Long offeringId,
+            @Param("status") ClassroomRegistrationStatus status
+    );
+
     List<ClassroomEnrollment> findByRegistrationStatusIn(Collection<ClassroomRegistrationStatus> statuses);
+
+    List<ClassroomEnrollment> findByTuitionSettlementStatus(TuitionSettlementStatus status);
+
+    List<ClassroomEnrollment> findByClassroomOfferingIdAndTuitionSettlementStatus(
+            Long classroomOfferingId,
+            TuitionSettlementStatus status
+    );
 
     List<ClassroomEnrollment> findAllByOrderByEnrolledAtDesc();
 }

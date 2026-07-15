@@ -62,7 +62,7 @@ export const ReactionIcon = ({ reaction, className = 'h-5 w-5' }) => (
   />
 );
 
-export const ReactionButton = ({ counts = {}, myReaction, onReact, reactingKey, targetKey }) => {
+export const ReactionButton = ({ compact = false, counts = {}, myReaction, onReact, reactingKey, targetKey }) => {
   const activeReaction = getReactionMeta(myReaction);
   const total = getReactionTotal(counts);
   const active = Boolean(myReaction);
@@ -73,10 +73,10 @@ export const ReactionButton = ({ counts = {}, myReaction, onReact, reactingKey, 
       {/* Bridge to keep hover open */}
       <div className="pointer-events-none absolute bottom-full left-0 z-10 h-3 w-full opacity-0 group-hover:pointer-events-auto group-focus-within:pointer-events-auto" />
       {/* Reaction picker bar */}
-      <div className="pointer-events-none absolute bottom-full right-0 z-[70] flex translate-y-1 scale-95 items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100">
+      <div className={`pointer-events-none absolute bottom-full z-[70] flex translate-y-1 scale-95 items-center rounded-full border border-slate-200 bg-white py-1.5 opacity-0 shadow-lg transition group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:scale-100 group-focus-within:opacity-100 ${compact ? 'left-0 gap-0.5 px-1' : 'right-0 gap-1 px-2'}`}>
         {REACTIONS.map((reaction) => (
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-1 hover:scale-125 focus:-translate-y-1 focus:scale-125 focus:outline-none"
+            className={`${compact ? 'h-8 w-8' : 'h-10 w-10'} flex items-center justify-center rounded-full transition hover:-translate-y-1 hover:scale-125 focus:-translate-y-1 focus:scale-125 focus:outline-none`}
             disabled={Boolean(reactingKey)}
             key={reaction.id}
             onMouseDown={(e) => e.preventDefault()}
@@ -85,14 +85,14 @@ export const ReactionButton = ({ counts = {}, myReaction, onReact, reactingKey, 
             title={reaction.label}
             type="button"
           >
-            <ReactionIcon reaction={reaction} className="h-9 w-9" />
+            <ReactionIcon reaction={reaction} className={compact ? 'h-7 w-7' : 'h-9 w-9'} />
           </button>
         ))}
       </div>
 
       <button
         aria-pressed={active}
-        className={`inline-flex h-8 min-w-[74px] items-center justify-center gap-1.5 rounded-lg border border-transparent px-3 text-[11px] font-bold transition hover:bg-slate-50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`inline-flex h-8 items-center justify-center rounded-lg border border-transparent text-[11px] font-bold transition hover:bg-slate-50 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 ${compact ? 'min-w-[58px] gap-1 px-1.5' : 'min-w-[74px] gap-1.5 px-3'} ${
           active ? activeReaction.activeClass : 'text-slate-500'
         }`}
         disabled={Boolean(reactingKey)}

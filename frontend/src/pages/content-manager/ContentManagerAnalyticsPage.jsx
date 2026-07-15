@@ -160,6 +160,7 @@ export default function ContentManagerAnalyticsPage() {
           </table>
         </div>
       </Panel>
+
     </div>
   );
 }
@@ -192,11 +193,6 @@ function ChartRow({ color, label, max, value }) {
       </div>
     </div>
   );
-}
-
-function formatPercent(value, total) {
-  if (!total) return '0%';
-  return `${Math.round((Number(value || 0) / Number(total)) * 100)}%`;
 }
 
 function formatDate(value) {

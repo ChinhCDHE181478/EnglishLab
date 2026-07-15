@@ -52,6 +52,8 @@ import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
 import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
+import ManagerSupportTicketsPage from './pages/manager/ManagerSupportTicketsPage';
+import SupportTicketsPage from './pages/SupportTicketsPage';
 import AdminRoutes from './pages/admin/AdminRoutes';
 
 function CourseDetailRoute() {
@@ -114,6 +116,7 @@ function AppRoutes() {
         <Route path="/my-quizzes" element={<Navigate to="/my-homework?type=online-quiz" replace />} />
         <Route path="/mock-tests" element={<MockTestsPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
+        <Route path="/support" element={<SupportTicketsPage />} />
       </Route>
 
       {/* Shared authenticated routes */}
@@ -141,6 +144,7 @@ function AppRoutes() {
           <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
           <Route path="/training-manager/infrastructure" element={<TrainingManagerInfrastructurePage />} />
           <Route path="/training-manager/recordings" element={<TrainingManagerRecordingsPage />} />
+          <Route path="/training-manager/support-tickets" element={<ManagerSupportTicketsPage />} />
           <Route path="/training-manager/classroom-registrations" element={<Navigate to="/training-manager/registrations" replace />} />
         </Route>
       </Route>
@@ -153,6 +157,7 @@ function AppRoutes() {
           <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
         </Route>
         <Route path="/manager/classrooms" element={<Navigate to="/training-manager/classrooms" replace />} />
+        <Route path="/manager/support-tickets" element={<Navigate to="/training-manager/support-tickets" replace />} />
       </Route>
       <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />

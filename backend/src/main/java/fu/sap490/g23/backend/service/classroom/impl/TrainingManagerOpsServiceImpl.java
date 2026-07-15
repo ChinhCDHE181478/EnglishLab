@@ -55,8 +55,7 @@ public class TrainingManagerOpsServiceImpl implements TrainingManagerOpsService 
         int pendingTuitionCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
                 + countByStatus(pendingRegistrations, ClassroomRegistrationStatus.DEPOSIT_PAID)
                 + countByStatus(pendingRegistrations, ClassroomRegistrationStatus.PARTIALLY_PAID);
-        int readyToAssignCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.FULLY_PAID)
-                + countByStatus(pendingRegistrations, ClassroomRegistrationStatus.WAITLIST);
+        int readyToAssignCount = countByStatus(pendingRegistrations, ClassroomRegistrationStatus.FULLY_PAID);
 
         List<TrainingManagerActionItemResponse> actionItems = new ArrayList<>();
         pendingRegistrations.stream()
@@ -90,9 +89,9 @@ public class TrainingManagerOpsServiceImpl implements TrainingManagerOpsService 
         ClassroomOffering offering = enrollment.getClassroomOffering();
         ClassroomRegistrationStatus status = enrollment.getRegistrationStatus();
         String kind = switch (status) {
-            case PENDING_CONFIRMATION -> "CONFIRM_REGISTRATION";
-            case PENDING_TUITION_PAYMENT, DEPOSIT_PAID, PARTIALLY_PAID -> "RECORD_TUITION";
-            case FULLY_PAID, WAITLIST -> "ASSIGN_CLASS";
+            case PENDING_CONFIRMATION, PENDING_TUITION_PAYMENT, DEPOSIT_PAID, PARTIALLY_PAID -> "RECORD_TUITION";
+            case FULLY_PAID -> "ASSIGN_CLASS";
+            case WAITLIST -> "INVITE_PAYMENT";
             default -> "REGISTRATION";
         };
         String title = enrollment.getStudent().getFullName() == null || enrollment.getStudent().getFullName().isBlank()

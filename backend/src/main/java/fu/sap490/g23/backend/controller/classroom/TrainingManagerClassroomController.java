@@ -1,7 +1,24 @@
 package fu.sap490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.*;
-import fu.sap490.g23.backend.dto.response.classroom.*;
+import fu.sap490.g23.backend.dto.request.classroom.AssignToClassRequest;
+import fu.sap490.g23.backend.dto.request.classroom.ConflictCheckRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
+import fu.sap490.g23.backend.dto.request.classroom.EnrollStudentRequest;
+import fu.sap490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
+import fu.sap490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
+import fu.sap490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
+import fu.sap490.g23.backend.dto.request.classroom.TransferStudentRequest;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sap490.g23.backend.dto.response.classroom.TuitionProofResponse;
+import fu.sap490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -13,13 +30,18 @@ import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.TuitionProofService;
 import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
-import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Comparator;
 import java.util.List;
@@ -27,7 +49,6 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/training-manager/classrooms")
-@RequiredArgsConstructor
 public class TrainingManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
@@ -36,6 +57,22 @@ public class TrainingManagerClassroomController {
     private final TrainingProgramService trainingProgramService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
+
+    public TrainingManagerClassroomController(
+            ClassroomOfferingService classroomOfferingService,
+            CurriculumProgramService curriculumProgramService,
+            TuitionProofService tuitionProofService,
+            TrainingProgramService trainingProgramService,
+            UserRepository userRepository,
+            ClassroomRoomRepository roomRepository
+    ) {
+        this.classroomOfferingService = classroomOfferingService;
+        this.curriculumProgramService = curriculumProgramService;
+        this.tuitionProofService = tuitionProofService;
+        this.trainingProgramService = trainingProgramService;
+        this.userRepository = userRepository;
+        this.roomRepository = roomRepository;
+    }
 
     @GetMapping
     public ResponseEntity<List<ClassroomOfferingResponse>> listOfferings() {
@@ -210,9 +247,15 @@ public class TrainingManagerClassroomController {
     public ResponseEntity<List<ClassroomEnrollmentResponse>> listRegistrations(
             @RequestParam(required = false) ClassroomRegistrationStatus status,
             @RequestParam(required = false) Long classroomOfferingId,
-            @RequestParam(required = false) Boolean needsAction
+            @RequestParam(required = false) Boolean needsAction,
+            @RequestParam(required = false) Boolean settlementPending
     ) {
-        return ResponseEntity.ok(classroomOfferingService.listRegistrations(status, classroomOfferingId, needsAction));
+        return ResponseEntity.ok(classroomOfferingService.listRegistrations(
+                status,
+                classroomOfferingId,
+                needsAction,
+                settlementPending
+        ));
     }
 
     @GetMapping("/enrollments/{enrollmentId}")
