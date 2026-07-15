@@ -3,6 +3,7 @@ import { BookOpenCheck, RefreshCw } from 'lucide-react';
 import courseApi from '../api/courseApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import WorkspaceFlashcards from '../components/course-workspace/WorkspaceFlashcards';
+import BrandedSelect from '../components/ui/BrandedSelect';
 
 export default function FlashcardPracticePage() {
   const [courses, setCourses] = useState([]);
@@ -60,10 +61,14 @@ export default function FlashcardPracticePage() {
     >
       <section className="mb-8 rounded-3xl border border-[#ead9db] bg-white p-5 shadow-sm">
         <div className="flex items-start gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f7eeee] text-[#730014]"><BookOpenCheck className="h-5 w-5" /></span><div><h2 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Chọn khóa học</h2><p className="mt-1 text-xs text-[#806765]">Flashcard sẽ được tải sau khi bạn chọn một khóa học.</p></div></div>
-        <select className="mt-4 w-full rounded-2xl border border-[#dfbfbd] bg-[#fffdfc] px-4 py-3 text-sm font-bold text-[#4b0009] outline-none focus:border-[#8a0018]" disabled={loadingCourses} onChange={(event) => setCourseId(event.target.value)} value={courseId}>
-          <option value="">{loadingCourses ? 'Đang tải khóa học...' : '-- Chọn khóa học --'}</option>
-          {courses.map((course) => <option key={course.courseId || course.id} value={course.courseId || course.id}>{course.courseTitle || course.title}</option>)}
-        </select>
+        <BrandedSelect
+          buttonClassName="mt-4 rounded-2xl border-[#dfbfbd] bg-[#fffdfc] px-4 py-3 text-sm font-bold text-[#4b0009] shadow-none focus:border-[#8a0018]"
+          disabled={loadingCourses}
+          onChange={(event) => setCourseId(event.target.value)}
+          options={courses.map((course) => ({ label: course.courseTitle || course.title, value: course.courseId || course.id }))}
+          placeholder={loadingCourses ? 'Đang tải khóa học...' : '-- Chọn khóa học --'}
+          value={courseId}
+        />
       </section>
 
       {error ? <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">{error}</div> : null}
