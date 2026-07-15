@@ -103,17 +103,18 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     ) {
         User learner = requireLearner(userEmail);
         SupportTicket ticket = requireOwnedTicket(ticketId, learner);
-        if (request.getStatus() == SupportTicketStatus.CLOSED) {
-            ticket.setStatus(SupportTicketStatus.CLOSED);
-            ticket.setResolvedAt(LocalDateTime.now());
-            ticket.setResolvedBy(null);
-        } else if (request.getStatus() == SupportTicketStatus.OPEN && isTerminal(ticket)) {
-            ticket.setStatus(SupportTicketStatus.OPEN);
-            ticket.setResolvedAt(null);
-            ticket.setResolvedBy(null);
-        } else {
-            throw new IllegalArgumentException("Học viên chỉ có thể đóng hoặc mở lại ticket đã hoàn tất.");
+        // Học viên chỉ được đóng ticket; không được mở lại sau khi CLOSED/RESOLVED.
+        if (request.getStatus() != SupportTicketStatus.CLOSED) {
+            throw new IllegalArgumentException(
+                    "Học viên không thể mở lại ticket. Vui lòng tạo ticket mới nếu cần hỗ trợ thêm.");
         }
+        if (isTerminal(ticket)) {
+            throw new IllegalArgumentException(
+                    "Ticket đã đóng hoặc đã giải quyết, không thể thay đổi trạng thái.");
+        }
+        ticket.setStatus(SupportTicketStatus.CLOSED);
+        ticket.setResolvedAt(LocalDateTime.now());
+        ticket.setResolvedBy(null);
         return toResponse(ticketRepository.save(ticket), true);
     }
 

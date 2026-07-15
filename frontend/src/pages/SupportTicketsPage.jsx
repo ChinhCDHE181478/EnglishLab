@@ -113,7 +113,7 @@ export default function SupportTicketsPage() {
     try {
       const updated = await supportApi.updateMyTicketStatus(detail.id, status);
       setDetail(updated);
-      setSuccess(status === 'CLOSED' ? 'Đã đóng ticket.' : 'Đã mở lại ticket.');
+      setSuccess('Đã đóng ticket.');
       await loadTickets(updated.id);
     } catch (err) {
       setError(supportApiError(err, 'Không thể cập nhật trạng thái ticket.'));
@@ -279,16 +279,7 @@ export default function SupportTicketsPage() {
                     <span className={`rounded-full border px-3 py-1 text-xs font-bold ${supportStatusClasses[detail.status]}`}>
                       {supportStatusLabels[detail.status]}
                     </span>
-                    {isSupportTicketTerminal(detail.status) ? (
-                      <button
-                        className="text-xs font-bold text-[#730014] hover:underline"
-                        disabled={working}
-                        onClick={() => changeStatus('OPEN')}
-                        type="button"
-                      >
-                        Mở lại ticket
-                      </button>
-                    ) : (
+                    {!isSupportTicketTerminal(detail.status) ? (
                       <button
                         className="text-xs font-bold text-slate-500 hover:text-rose-700"
                         disabled={working}
@@ -297,7 +288,7 @@ export default function SupportTicketsPage() {
                       >
                         Đóng ticket
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -398,7 +389,7 @@ export default function SupportTicketsPage() {
                     </form>
                   ) : (
                     <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-                      Ticket đã đóng/giải quyết. Mở lại nếu bạn cần trao đổi thêm.
+                      Ticket đã đóng/giải quyết. Bạn không thể mở lại — vui lòng tạo ticket mới nếu cần hỗ trợ thêm.
                     </p>
                   )}
                 </div>

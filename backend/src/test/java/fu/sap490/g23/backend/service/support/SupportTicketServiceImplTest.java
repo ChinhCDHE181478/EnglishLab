@@ -139,20 +139,18 @@ class SupportTicketServiceImplTest {
     }
 
     @Test
-    void learnerCanReopenOnlyTerminalTicket() {
+    void learnerCannotReopenClosedTicket() {
         SupportTicket ticket = ticket(24L, learner);
         ticket.setStatus(SupportTicketStatus.CLOSED);
         LearnerSupportTicketStatusRequest request = new LearnerSupportTicketStatusRequest();
         request.setStatus(SupportTicketStatus.OPEN);
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(ticketRepository.findById(24L)).thenReturn(Optional.of(ticket));
-        when(ticketRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(messageRepository.findByTicketIdOrderByCreatedAtAsc(24L)).thenReturn(List.of());
 
-        var response = service.updateMyStatus(24L, learner.getEmail(), request);
-
-        assertThat(response.getStatus()).isEqualTo(SupportTicketStatus.OPEN);
-        assertThat(ticket.getResolvedAt()).isNull();
+        assertThatThrownBy(() -> service.updateMyStatus(24L, learner.getEmail(), request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("không thể mở lại");
+        assertThat(ticket.getStatus()).isEqualTo(SupportTicketStatus.CLOSED);
     }
 
     private SupportTicket ticket(Long id, User requester) {
