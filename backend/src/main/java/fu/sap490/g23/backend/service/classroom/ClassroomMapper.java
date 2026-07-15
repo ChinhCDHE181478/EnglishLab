@@ -530,21 +530,29 @@ public class ClassroomMapper {
                 .curriculumProgramCode(curriculum == null ? null : curriculum.getCode())
                 .curriculumProgramExamCategory(curriculum == null ? null : curriculum.getExamCategory())
                 .curriculumProgramStatus(curriculum == null ? null : curriculum.getStatus())
-                .entryLevel(program.getEntryLevel())
-                .targetScore(program.getTargetScore())
-                .targetOutcome(program.getTargetOutcome())
-                .defaultCapacity(program.getDefaultCapacity())
+                .entryLevel(curriculum == null ? null : curriculum.getEntryLevel())
+                .targetScore(resolveTargetScore(curriculum))
+                .targetOutcome(curriculum == null ? null : curriculum.getOutcomes())
                 .price(program.getPrice())
                 .salePrice(program.getSalePrice())
                 .duration(program.getDuration())
                 .studyMode(program.getStudyMode())
                 .status(program.getStatus())
                 .statusLabel(program.getStatus() == null ? null : program.getStatus().name())
-                .materialCount(program.getMaterials().size())
                 .classroomCount(program.getClassroomOfferings().size())
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
                 .build();
+    }
+
+    private String resolveTargetScore(CurriculumProgram curriculum) {
+        if (curriculum == null) {
+            return null;
+        }
+        if (curriculum.getTargetBand() != null) {
+            return curriculum.getTargetBand().stripTrailingZeros().toPlainString();
+        }
+        return curriculum.getTargetScore() == null ? null : String.valueOf(curriculum.getTargetScore());
     }
 
     private CurriculumProgramResponse toCurriculumProgramResponse(CurriculumProgram program, boolean includeUnits) {
@@ -608,8 +616,7 @@ public class ClassroomMapper {
     }
 
     private boolean isMandatoryMaterial(String sourceType) {
-        return "PROGRAM_LIBRARY".equalsIgnoreCase(sourceType)
-                || "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType);
+        return "CURRICULUM_LIBRARY".equalsIgnoreCase(sourceType);
     }
 
     private CurriculumReferenceResponse toCurriculumExerciseRef(CurriculumExerciseRef ref) {

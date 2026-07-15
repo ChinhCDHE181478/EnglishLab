@@ -275,7 +275,43 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .createdBy(teacher)
                         .build());
         exercise.setExerciseType("PRACTICE");
+        if (exercise.getPrompt() == null || !exercise.getPrompt().trim().startsWith("{")) {
+            exercise.setPrompt(buildSystemPracticeConfig(seed, unitNumber));
+            exercise.setAnswerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}");
+            exercise.setExplanation("Xem lại đáp án, xác định nguyên nhân câu sai và thực hiện một lượt mới để cải thiện kết quả.");
+        }
         return exerciseRepository.save(exercise);
+    }
+
+    private String buildSystemPracticeConfig(UnitSeed seed, int unitNumber) {
+        String skill = unitNumber <= 4 ? "LISTENING" : "READING";
+        String type = unitNumber <= 4 ? "ielts_listening_exam" : "ielts_reading_exam";
+        return """
+                {
+                  "type":"%s",
+                  "key":"toeic-650-unit-%d-practice",
+                  "title":"TOEIC 650 Unit %d Practice - %s",
+                  "durationMinutes":10,
+                  "rules":["Mỗi câu chỉ chọn một đáp án","Có thể luyện lại nhiều lần","Kết quả không tính vào bảng điểm lớp"],
+                  "parts":[{
+                    "key":"part_1",
+                    "partNumber":%d,
+                    "title":"%s Practice",
+                    "questionRange":"Questions 1-3",
+                    "passage":{"title":"Practice instructions","paragraphs":[{"label":"%s","text":"%s"}]},
+                    "questionGroups":[{
+                      "type":"single_choice",
+                      "title":"Choose the best answer",
+                      "instructions":"Select one answer for each question.",
+                      "questions":[
+                        {"number":1,"prompt":"Which option best matches the target skill for this unit?","options":[{"value":"A","label":"Ignore the context"},{"value":"B","label":"Identify key words and context"},{"value":"C","label":"Choose the longest option"},{"value":"D","label":"Skip every difficult item"}]},
+                        {"number":2,"prompt":"What should you do before confirming an answer?","options":[{"value":"A","label":"Check the evidence in the question"},{"value":"B","label":"Change the answer randomly"},{"value":"C","label":"Look only at one word"},{"value":"D","label":"Leave the question blank"}]},
+                        {"number":3,"prompt":"Which review method is most useful after the practice?","options":[{"value":"A","label":"Forget all incorrect answers"},{"value":"B","label":"Repeat without checking"},{"value":"C","label":"Classify errors and review explanations"},{"value":"D","label":"Memorize option letters only"}]}
+                      ]
+                    }]
+                  }]
+                }
+                """.formatted(type, unitNumber, unitNumber, seed.title(), unitNumber, skill, seed.title(), seed.description());
     }
 
     private FlashcardSet ensureFlashcards(UnitSeed seed, int unitNumber) {
@@ -419,19 +455,11 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                         .curriculumProgram(curriculum)
                         .shortDescription("Lớp 8 buổi bám sát khung TOEIC 7 Part.")
-                        .description("Bao gồm tài liệu trung tâm, flashcard theo unit, bài trực tiếp và bài nộp file.")
-                        .entryLevel("TOEIC 350+")
-                        .targetScore("650+")
-                        .targetOutcome("Hoàn thành đủ 7 Part và một full test 200 câu.")
-                        .defaultCapacity(16)
+                        .description("Triển khai giáo trình TOEIC 650 theo hình thức virtual trong 8 tuần.")
                         .price(BigDecimal.valueOf(3_900_000))
                         .salePrice(BigDecimal.valueOf(3_490_000))
                         .duration("8 tuần")
                         .studyMode("Virtual · Lark")
-                        .syllabusSummary("8 unit · 8 buổi live · flashcard và homework theo unit")
-                        .programOutcomes(curriculum.getOutcomes())
-                        .teacherGuide(curriculum.getTeacherGuide())
-                        .interactionActivities(curriculum.getInteractionActivities())
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
                         .featured(true)
@@ -476,10 +504,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .defaultLarkMeetingUrl("https://meet.larksuite.com/s/englishlab-toeic-650-showcase")
                             .larkMeetingStatus(LarkMeetingStatus.OPEN)
                             .recordingVisible(false)
-                            .syllabusSummary(trainingProgram.getSyllabusSummary())
-                            .programOutcomes(trainingProgram.getProgramOutcomes())
-                            .teacherGuide(trainingProgram.getTeacherGuide())
-                            .interactionActivities(trainingProgram.getInteractionActivities())
+                            .syllabusSummary(curriculum.getOutcomes())
+                            .programOutcomes(curriculum.getOutcomes())
+                            .teacherGuide(curriculum.getTeacherGuide())
+                            .interactionActivities(curriculum.getInteractionActivities())
                             .build();
                 });
         if (!StringUtils.hasText(offering.getRecordingUrl()) || isDemoRecordingUrl(offering.getRecordingUrl())) {

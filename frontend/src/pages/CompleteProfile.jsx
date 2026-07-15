@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, updateCurrentUser } from '../api/authApi';
-import Footer from '../components/ai-learning/Footer';
+import CourseFooter from '../components/course/CourseFooter';
 import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import { useAuth } from '../context/AuthContext';
@@ -581,7 +581,7 @@ const CompleteProfile = () => {
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>
       </motion.main>
-      <Footer />
+      <CourseFooter />
     </div>
   );
 };

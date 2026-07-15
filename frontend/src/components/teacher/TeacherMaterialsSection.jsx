@@ -30,7 +30,7 @@ const inferFileType = (fileNameOrUrl) => {
 
 const isMandatoryMaterial = (material) => (
   material?.mandatory === true
-  || ['PROGRAM_LIBRARY', 'CURRICULUM_LIBRARY'].includes(String(material?.sourceType || '').toUpperCase())
+  || String(material?.sourceType || '').toUpperCase() === 'CURRICULUM_LIBRARY'
 );
 
 const sessionOptionsFor = (sessions) => ([

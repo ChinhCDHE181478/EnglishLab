@@ -549,7 +549,7 @@ export default function ContentManagerMaterialsPage() {
                             Sửa
                           </button>
                           {item.status === 'DRAFT' ? (
-                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
+                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
                               <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
                             </button>
                           ) : null}

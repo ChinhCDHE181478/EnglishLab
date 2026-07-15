@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Archive,
   BookOpen,
@@ -591,7 +592,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                     </button>
                   ) : item.status === 'DRAFT' ? (
                     <button
-                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-700 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800 disabled:opacity-45"
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-45"
                       disabled={working}
                       onClick={() => publishItem(item)}
                       type="button"
@@ -736,12 +737,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         </SkillPracticeShell>
       ) : (
         <>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{pageConfig.title}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#564241]">{pageConfig.subtitle}</p>
-            </div>
-          </div>
           <ManagerStatsGrid stats={stats} />
           <ManagerFilterBar>{renderFilters()}</ManagerFilterBar>
           {renderTable()}
@@ -846,7 +841,7 @@ function AssessmentHubModal({ children, onClose }) {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
@@ -857,6 +852,7 @@ function AssessmentHubModal({ children, onClose }) {
       <div className="relative z-10 w-full max-w-[1200px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

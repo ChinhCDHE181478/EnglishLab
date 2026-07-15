@@ -92,6 +92,7 @@ const getProfileItemsByRole = (user) => {
     { label: 'Luyện flashcard', to: '/flashcards/practice' },
     { label: 'Lớp của tôi', to: '/my-classrooms' },
     { label: 'Lịch học', to: '/my-schedule' },
+    { label: 'Luyện tập', to: '/my-practice' },
     { label: 'Bài tập', to: '/my-homework' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },

@@ -237,7 +237,7 @@ export default function ContentManagerCoursesPage() {
                           Biên soạn
                         </Link>
                         {course.status === 'DRAFT' || course.status === 'REJECTED' ? (
-                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
+                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
                           </button>
                         ) : null}

@@ -102,7 +102,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", RoleEnum.LEARNER);
         User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
         User trainingManager = ensureUser("training.manager@englishlab.vn", "Quản Lý Đào Tạo", RoleEnum.TRAINING_MANAGER);
-        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Xi Em Em", RoleEnum.CONTENT_MANAGER);
+        User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
         User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
 
         ClassroomRoom roomA = roomRepository.findByActiveTrue().stream()

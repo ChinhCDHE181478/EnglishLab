@@ -185,7 +185,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .slug(generateUniqueSlug(request.getTitle()))
                 .shortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()))
                 .description(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()))
-                .targetScore(defaultText(request.getTargetScore(), trainingProgram == null ? null : trainingProgram.getTargetScore()))
+                .targetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)))
                 .duration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()))
                 .studyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()))
                 .price(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()))
@@ -204,9 +204,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .trainingProgram(trainingProgram)
                 .curriculumProgram(curriculumProgram)
                 .status(request.getClassroomStatus() == null ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus())
-                .entryLevel(defaultText(request.getEntryLevel(), trainingProgram == null ? null : trainingProgram.getEntryLevel()))
-                .targetOutcome(defaultText(request.getTargetOutcome(), trainingProgram == null ? null : trainingProgram.getTargetOutcome()))
-                .maxCapacity(request.getMaxCapacity() == null ? (trainingProgram == null ? 30 : trainingProgram.getDefaultCapacity()) : request.getMaxCapacity())
+                .entryLevel(defaultText(request.getEntryLevel(), curriculumProgram == null ? null : curriculumProgram.getEntryLevel()))
+                .targetOutcome(defaultText(request.getTargetOutcome(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()))
+                .maxCapacity(request.getMaxCapacity() == null ? 30 : request.getMaxCapacity())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
                 .primaryTeacher(resolveTeacher(request.getPrimaryTeacherId()))
@@ -217,10 +217,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingStatus(larkMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
                 .recordingUrl(request.getRecordingUrl())
                 .recordingVisible(Boolean.TRUE.equals(request.getRecordingVisible()))
-                .syllabusSummary(defaultText(request.getSyllabusSummary(), trainingProgram == null ? null : trainingProgram.getSyllabusSummary()))
-                .programOutcomes(trainingProgram == null ? null : trainingProgram.getProgramOutcomes())
-                .teacherGuide(trainingProgram == null ? null : trainingProgram.getTeacherGuide())
-                .interactionActivities(trainingProgram == null ? null : trainingProgram.getInteractionActivities())
+                .syllabusSummary(defaultText(request.getSyllabusSummary(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()))
+                .programOutcomes(curriculumProgram == null ? null : curriculumProgram.getOutcomes())
+                .teacherGuide(curriculumProgram == null ? null : curriculumProgram.getTeacherGuide())
+                .interactionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities())
                 .build();
 
         if (offering.getPrimaryTeacher() != null) {
@@ -271,7 +271,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         learningPackage.setTitle(request.getTitle().trim());
         learningPackage.setShortDescription(defaultText(request.getShortDescription(), trainingProgram == null ? null : trainingProgram.getShortDescription()));
         learningPackage.setDescription(defaultText(request.getDescription(), trainingProgram == null ? null : trainingProgram.getDescription()));
-        learningPackage.setTargetScore(defaultText(request.getTargetScore(), trainingProgram == null ? null : trainingProgram.getTargetScore()));
+        learningPackage.setTargetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)));
         learningPackage.setDuration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()));
         learningPackage.setStudyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()));
         learningPackage.setPrice(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()));
@@ -289,12 +289,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
-        offering.setEntryLevel(defaultText(request.getEntryLevel(), trainingProgram == null ? null : trainingProgram.getEntryLevel()));
-        offering.setTargetOutcome(defaultText(request.getTargetOutcome(), trainingProgram == null ? null : trainingProgram.getTargetOutcome()));
+        offering.setEntryLevel(defaultText(request.getEntryLevel(), curriculumProgram == null ? null : curriculumProgram.getEntryLevel()));
+        offering.setTargetOutcome(defaultText(request.getTargetOutcome(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()));
         if (request.getMaxCapacity() != null) {
             offering.setMaxCapacity(request.getMaxCapacity());
-        } else if (trainingProgram != null) {
-            offering.setMaxCapacity(trainingProgram.getDefaultCapacity());
         }
         offering.setStartDate(request.getStartDate());
         offering.setEndDate(request.getEndDate());
@@ -308,12 +306,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getRecordingVisible() != null) {
             offering.setRecordingVisible(request.getRecordingVisible());
         }
-        offering.setSyllabusSummary(defaultText(request.getSyllabusSummary(), trainingProgram == null ? null : trainingProgram.getSyllabusSummary()));
-        if (trainingProgram != null) {
-            offering.setProgramOutcomes(trainingProgram.getProgramOutcomes());
-            offering.setTeacherGuide(trainingProgram.getTeacherGuide());
-            offering.setInteractionActivities(trainingProgram.getInteractionActivities());
-        }
+        offering.setSyllabusSummary(defaultText(request.getSyllabusSummary(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()));
+        offering.setProgramOutcomes(curriculumProgram == null ? null : curriculumProgram.getOutcomes());
+        offering.setTeacherGuide(curriculumProgram == null ? null : curriculumProgram.getTeacherGuide());
+        offering.setInteractionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities());
 
         ClassroomOffering saved = offeringRepository.save(offering);
         classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, null);
@@ -1672,6 +1668,18 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private String defaultText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
+    }
+
+    private String resolveTargetScore(CurriculumProgram curriculumProgram) {
+        if (curriculumProgram == null) {
+            return null;
+        }
+        if (curriculumProgram.getTargetBand() != null) {
+            return curriculumProgram.getTargetBand().stripTrailingZeros().toPlainString();
+        }
+        return curriculumProgram.getTargetScore() == null
+                ? null
+                : String.valueOf(curriculumProgram.getTargetScore());
     }
 
     private Long getPrimaryTeacherId(ClassroomOffering offering) {

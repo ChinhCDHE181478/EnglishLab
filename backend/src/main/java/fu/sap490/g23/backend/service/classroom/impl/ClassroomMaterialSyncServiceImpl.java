@@ -4,7 +4,6 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgramMaterial;
 import fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncService {
 
     private static final Set<String> MANDATORY_SOURCE_TYPES = Set.of(
-            "PROGRAM_LIBRARY",
             "CURRICULUM_LIBRARY"
     );
 
@@ -76,14 +74,6 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
 
     private Map<Long, RequiredMaterial> collectRequiredMaterials(ClassroomOffering offering) {
         Map<Long, RequiredMaterial> required = new LinkedHashMap<>();
-        if (offering.getTrainingProgram() != null) {
-            for (TrainingProgramMaterial programMaterial : offering.getTrainingProgram().getMaterials()) {
-                CenterMaterialLibraryItem material = programMaterial.getMaterial();
-                if (material != null && material.getId() != null) {
-                    required.put(material.getId(), new RequiredMaterial(material, null, "PROGRAM_LIBRARY"));
-                }
-            }
-        }
         if (offering.getCurriculumProgram() != null) {
             for (CurriculumUnit unit : offering.getCurriculumProgram().getUnits()) {
                 for (CurriculumMaterialRef materialRef : unit.getMaterialRefs()) {

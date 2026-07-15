@@ -33,7 +33,8 @@ const Courses = () => {
   const [activeCategory, setActiveCategory] = useState('');
   const [keyword, setKeyword] = useState('');
   const [filters, setFilters] = useState(defaultFilters);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [error, setError] = useState('');
   const [backendRecommendations, setBackendRecommendations] = useState([]);
   const [recommendationLoading, setRecommendationLoading] = useState(false);
@@ -130,7 +131,7 @@ const Courses = () => {
   }, []);
 
   const loadCourses = useCallback(async () => {
-    setLoading(true);
+    setCoursesLoading(true);
     setError('');
 
     try {
@@ -161,7 +162,8 @@ const Courses = () => {
           : 'Không thể tải danh sách khóa học. Vui lòng thử lại.'
       );
     } finally {
-      setLoading(false);
+      setCoursesLoading(false);
+      setInitialLoading(false);
     }
   }, [activeCategory, filters.category, filters.currentBand, filters.skill, filters.targetBand, keyword, loadMyEnrollments]);
 
@@ -209,7 +211,7 @@ const Courses = () => {
       title="Thư viện khóa học"
       description="Tìm kiếm và khám phá các khóa học IELTS, TOEIC và tiếng Anh giao tiếp trực tuyến chất lượng cao từ EnglishLab."
     >
-      {loading ? (
+      {initialLoading ? (
         <BrandLoadingState message="Đang tải danh sách khóa học..." />
       ) : (
         <>
@@ -240,7 +242,7 @@ const Courses = () => {
           <RecommendedCoursesSection
             courses={recommendedCourses}
             currentBand={user?.currentBand ?? null}
-            loading={isAuthenticated ? recommendationLoading : loading}
+            loading={isAuthenticated ? recommendationLoading : coursesLoading}
             error={isAuthenticated ? recommendationError : error ? 'Không thể tải gợi ý khóa học. Vui lòng thử lại.' : ''}
             profileBased={isAuthenticated}
             onRetry={isAuthenticated ? loadRecommendations : loadCourses}
@@ -254,7 +256,7 @@ const Courses = () => {
             onKeywordChange={setKeyword}
             onFilterChange={handleFilterChange}
             onClear={handleClearFilters}
-            loading={loading}
+            loading={coursesLoading}
             currentBand={user?.currentBand ?? null}
             categories={categories}
           />

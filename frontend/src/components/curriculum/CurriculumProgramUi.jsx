@@ -169,7 +169,7 @@ export function ProgramTable({
         <table className="min-w-[980px] w-full text-left">
           <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
             <tr>
-              {['Chương trình', 'Giáo trình gốc', 'Cấp độ', 'Tài liệu', 'Lớp đang dùng', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
+              {['Chương trình', 'Giáo trình gốc', 'Cấp độ', 'Lớp đang dùng', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
                 <th className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
               ))}
             </tr>
@@ -178,7 +178,7 @@ export function ProgramTable({
             {loading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <tr key={index}>
-                  {Array.from({ length: 8 }).map((__, cellIndex) => (
+                  {Array.from({ length: 7 }).map((__, cellIndex) => (
                     <td className="px-5 py-5" key={cellIndex}>
                       <div className="h-4 animate-pulse rounded bg-[#eef1f6]" />
                     </td>
@@ -201,7 +201,6 @@ export function ProgramTable({
                     <p className="mt-1 text-xs text-[#584140]">{program.curriculumProgramCode || program.curriculumProgramExamCategory || 'Giáo trình'}</p>
                   </td>
                   <td className="px-5 py-5 text-sm text-[#0b1c30]">{program.entryLevel || '—'}</td>
-                  <td className="px-5 py-5 text-sm font-bold text-[#0b1c30]">{program.materialCount || 0}</td>
                   <td className="px-5 py-5">
                     <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold ${program.activeClassroomCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-[#dce9ff] text-[#564241]'}`}>
                       {program.activeClassroomCount > 0 ? program.activeClassroomCount : (program.classroomCount || 0)}
@@ -217,14 +216,14 @@ export function ProgramTable({
                     <div className="flex items-center justify-end gap-1.5">
                       <button className="inline-flex items-center gap-1 rounded-lg border border-[#dcc0bf]/40 bg-white px-2.5 py-1.5 text-[11px] font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]" onClick={() => onEdit(program)} type="button">
                         <Edit3 className="h-3.5 w-3.5" />
-                        Sửa
+                        Builder
                       </button>
                       <button className="inline-flex items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white p-1.5 text-[#4b0009] hover:bg-[#eff4ff]" disabled={working} onClick={() => onClone(program)} type="button">
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                       {program.status === 'DRAFT' || program.status === 'REJECTED' ? (
                         <button
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-emerald-800 disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#4b0009] px-2.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-[#730014] disabled:opacity-60"
                           disabled={working}
                           onClick={() => onPublish(program)}
                           type="button"
@@ -251,7 +250,7 @@ export function ProgramTable({
               ))
             ) : (
               <tr>
-                <td className="px-5 py-14 text-center text-sm text-[#564241]" colSpan={8}>
+                <td className="px-5 py-14 text-center text-sm text-[#564241]" colSpan={7}>
                   Không có chương trình phù hợp với bộ lọc hiện tại.
                 </td>
               </tr>

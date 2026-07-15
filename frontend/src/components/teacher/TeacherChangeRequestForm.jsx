@@ -444,6 +444,7 @@ export default function TeacherChangeRequestForm({
               options={teacherOptions}
               placeholder="Chọn giáo viên thay thế"
               value={form.teacherId}
+              searchable={true}
             />
           )}
         </div>

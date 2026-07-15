@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, GripVertical, Plus, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, GripVertical, Play, Plus, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
@@ -906,6 +907,7 @@ export default function ContentManagerCourseBuilderPage() {
                         options={flashcardSetOptions}
                         placeholder="Chọn bộ flashcard trong kho"
                         value={selectedLessonFlashcardSetId}
+                        searchable={true}
                       />
                       <button
                         className="rounded-xl bg-[#4b0009] px-4 py-3 font-semibold text-white transition hover:bg-[#730014]"
@@ -1088,9 +1090,7 @@ export default function ContentManagerCourseBuilderPage() {
         onChangeLesson={updateLesson}
         onPatchLesson={patchActiveLesson}
         onClose={() => setLessonModalOpen(false)}
-        onRefreshTranscript={handleRefreshTranscript}
         open={lessonModalOpen}
-        refreshingTranscript={refreshingTranscript}
         uploadFile={uploadFile}
         uploadingVideo={uploadingVideo}
         uploadProgress={uploadProgress}
@@ -1228,6 +1228,7 @@ function AssessmentBankAttachBar({ disabled = false, onAdd, onChange, options, v
         options={options}
         placeholder="Chọn đề trong ngân hàng đề"
         value={value}
+        searchable={true}
       />
       <button
         className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-50"
@@ -1322,18 +1323,32 @@ function LessonEditorModal({
   onChangeLesson,
   onPatchLesson,
   onClose,
-  onRefreshTranscript,
   onSelectUploadFile,
   open,
-  refreshingTranscript,
   uploadFile,
   uploadingVideo,
   uploadProgress,
 }) {
   if (!open || !activeLesson) return null;
 
+  const [videoSource, setVideoSource] = useState(() => {
+    if (activeLesson.bunnyVideoId) return 'UPLOAD';
+    return 'LINK';
+  });
+
+  useEffect(() => {
+    if (activeLesson) {
+      if (activeLesson.bunnyVideoId) {
+        setVideoSource('UPLOAD');
+      } else {
+        setVideoSource('LINK');
+      }
+    }
+  }, [activeLesson.id, activeLesson.bunnyVideoId]);
+
   const contentType = formatContentType(activeLesson.contentType);
   const isVideo = contentType === 'VIDEO';
+  const isArticle = contentType === 'ARTICLE';
   const contentLabel = getContentLabel(contentType);
 
   return (
@@ -1378,57 +1393,120 @@ function LessonEditorModal({
             <div className="space-y-4">
               {isVideo ? (
                 <>
-                  <TextField label="Liên kết video" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
+                  <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-5">
+                    <span className="mb-3 block text-xs font-bold uppercase tracking-[0.18em] text-[#8b706e]">Phương thức cung cấp Video</span>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setVideoSource('LINK')}
+                        className={`flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-all duration-200 ${
+                          videoSource === 'LINK'
+                            ? 'border-[#4b0009] bg-white ring-2 ring-[#4b0009]/10'
+                            : 'border-[#dfbfbd]/45 bg-slate-50 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex w-full items-center justify-between">
+                          <div className={`rounded-lg p-2 ${videoSource === 'LINK' ? 'bg-[#fff2f3] text-[#4b0009]' : 'bg-slate-200 text-slate-600'}`}>
+                            <Play className="h-5 w-5" />
+                          </div>
+                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${videoSource === 'LINK' ? 'border-[#4b0009]' : 'border-slate-300'}`}>
+                            {videoSource === 'LINK' ? <div className="h-2 w-2 rounded-full bg-[#4b0009]" /> : null}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-extrabold text-[#1a1c1c]">Dùng liên kết</p>
+                          <p className="mt-1 text-[10px] leading-4 text-slate-500">Dán đường dẫn từ YouTube, Vimeo...</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setVideoSource('UPLOAD')}
+                        className={`flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-all duration-200 ${
+                          videoSource === 'UPLOAD'
+                            ? 'border-[#4b0009] bg-white ring-2 ring-[#4b0009]/10'
+                            : 'border-[#dfbfbd]/45 bg-slate-50 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex w-full items-center justify-between">
+                          <div className={`rounded-lg p-2 ${videoSource === 'UPLOAD' ? 'bg-[#fff2f3] text-[#4b0009]' : 'bg-slate-200 text-slate-600'}`}>
+                            <Upload className="h-5 w-5" />
+                          </div>
+                          <div className={`h-4 w-4 rounded-full border flex items-center justify-center ${videoSource === 'UPLOAD' ? 'border-[#4b0009]' : 'border-slate-300'}`}>
+                            {videoSource === 'UPLOAD' ? <div className="h-2 w-2 rounded-full bg-[#4b0009]" /> : null}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-extrabold text-[#1a1c1c]">Tải video lên</p>
+                          <p className="mt-1 text-[10px] leading-4 text-slate-500">Tải tệp MP4 trực tiếp lên hệ thống.</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {videoSource === 'LINK' ? (
+                    <TextField label="Liên kết video" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
+                  ) : (
+                    <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Tải video lên hệ thống</p>
+                          {activeLesson.bunnyVideoId ? (
+                            <p className="mt-1.5 text-xs font-semibold text-emerald-700">
+                              ✓ Video đã tải lên hệ thống (ID: {activeLesson.bunnyVideoId})
+                            </p>
+                          ) : null}
+                        </div>
+                        <Upload className="h-5 w-5 text-[#730014]" />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dfbfbd]/70 bg-white px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]">
+                          {uploadFile ? uploadFile.name : 'Chọn video'}
+                          <input accept="video/*" className="sr-only" onChange={(event) => onSelectUploadFile(event.target.files?.[0] || null)} type="file" />
+                        </label>
+                        <button
+                          className="rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
+                          disabled={!activeLesson.id || !uploadFile || uploadingVideo}
+                          onClick={onBunnyUpload}
+                          type="button"
+                        >
+                          {uploadingVideo ? `Đang tải ${uploadProgress}%` : 'Tải lên'}
+                        </button>
+                      </div>
+                      {!activeLesson.id ? (
+                        <p className="mt-3 text-xs font-semibold text-[#93000a]">Hãy lưu khu vực biên soạn trước để bài học có ID rồi mới tải video lên.</p>
+                      ) : null}
+                      {uploadingVideo ? (
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f1dfe1]">
+                          <div className="h-full rounded-full bg-[#730014] transition-all" style={{ width: `${uploadProgress}%` }} />
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
                   <TranscriptEditor
                     onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
-                    onRefresh={onRefreshTranscript}
-                    refreshing={refreshingTranscript}
                     segments={activeLesson.transcriptSegments}
                     videoUrl={activeLesson.videoUrl}
                   />
-                  <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Tải video lên hệ thống</p>
-                        {/* <p className="mt-1 text-sm text-[#584140]">
-                          {activeLesson.bunnyVideoId ? `Mã video: ${activeLesson.bunnyVideoId}` : 'Tải video trực tiếp lên .'}
-                        </p> */}
-                      </div>
-                      <Upload className="h-5 w-5 text-[#730014]" />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer items-center rounded-xl border border-[#dfbfbd]/70 bg-white px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]">
-                        {uploadFile ? uploadFile.name : 'Chọn video'}
-                        <input accept="video/*" className="sr-only" onChange={(event) => onSelectUploadFile(event.target.files?.[0] || null)} type="file" />
-                      </label>
-                      <button
-                        className="rounded-xl bg-[#4b0009] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
-                        disabled={!activeLesson.id || !uploadFile || uploadingVideo}
-                        onClick={onBunnyUpload}
-                        type="button"
-                      >
-                        {uploadingVideo ? `Đang tải ${uploadProgress}%` : 'Tải lên'}
-                      </button>
-                    </div>
-                    {!activeLesson.id ? (
-                      <p className="mt-3 text-xs font-semibold text-[#93000a]">Hãy lưu khu vực biên soạn trước để bài học có ID rồi mới tải video lên.</p>
-                    ) : null}
-                    {uploadingVideo ? (
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#f1dfe1]">
-                        <div className="h-full rounded-full bg-[#730014] transition-all" style={{ width: `${uploadProgress}%` }} />
-                      </div>
-                    ) : null}
-                  </div>
                 </>
               ) : null}
 
-              <TextField
-                label={contentLabel}
-                onChange={onChangeLesson('contentText')}
-                rows={isVideo ? 12 : 20}
-                textarea
-                value={activeLesson.contentText || ''}
-              />
+              {isArticle ? (
+                <RichTextEditor
+                  label={contentLabel}
+                  onChange={(contentText) => onPatchLesson({ contentText })}
+                  value={activeLesson.contentText || ''}
+                />
+              ) : (
+                <TextField
+                  label={contentLabel}
+                  onChange={onChangeLesson('contentText')}
+                  rows={isVideo ? 12 : 20}
+                  textarea
+                  value={activeLesson.contentText || ''}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1448,7 +1526,7 @@ function LessonEditorModal({
   );
 }
 
-function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl }) {
+function TranscriptEditor({ segments, onChange, videoUrl }) {
   const normalizedSegments = normalizeTranscriptSegments(segments, true);
   const updateSegment = (index, field, value) => {
     const next = normalizedSegments.map((segment, segmentIndex) => (
@@ -1466,14 +1544,6 @@ function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl 
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bản chép lời video</p>
           <p className="mt-1 text-sm leading-6 text-[#584140]">Thêm từng đoạn có mốc thời gian để học viên theo dõi và bấm chuyển đến đúng vị trí trong video.</p>
         </div>
-        <button
-          className="rounded-xl border border-[#dfbfbd]/70 bg-white px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-45"
-          disabled={!videoUrl || refreshing}
-          onClick={onRefresh}
-          type="button"
-        >
-          {refreshing ? 'Đang lấy caption...' : 'Lấy caption YouTube'}
-        </button>
       </div>
 
       <div className="mt-4 space-y-3">

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
@@ -385,7 +386,7 @@ function DiscountCodeModal({ children, onClose }) {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
@@ -396,6 +397,7 @@ function DiscountCodeModal({ children, onClose }) {
       <div className="relative z-10 w-full max-w-[600px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
