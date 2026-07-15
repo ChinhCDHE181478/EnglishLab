@@ -1,1 +1,25 @@
 AGENTS.md
+
+# Local environment and secrets
+.env
+backend/.env
+
+# Dependencies
+node_modules/
+
+# Local tooling, generated docs, and helper scripts
+docs/
+rtk/
+backend/scripts/
+scripts/
+.cursor/
+
+# Local IDE / runtime artifacts
+.idea/
+frontend/dist/
+frontend/*.log
+backend/backend/
+backend/target/
+backend/*.log
+backend/*.err
+backend/*.pid
