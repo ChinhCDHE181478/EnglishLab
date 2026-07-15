@@ -16,11 +16,7 @@ const emptyForm = {
   recommendedCurrentBandMin: '',
   recommendedCurrentBandMax: '',
   targetBand: '',
-  learningPathCode: '',
-  learningPathName: '',
-  learningPathOrder: '',
   targetOutcome: '',
-  recommendedNextCourseSlug: '',
   duration: '',
   studyMode: 'Online',
   price: '0',
@@ -44,11 +40,7 @@ const mapCourseToForm = (course = {}) => ({
   recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
   recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
   targetBand: course.targetBand ?? '',
-  learningPathCode: course.learningPathCode ?? '',
-  learningPathName: course.learningPathName ?? '',
-  learningPathOrder: course.learningPathOrder ?? '',
   targetOutcome: course.targetOutcome ?? '',
-  recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
   duration: course.duration ?? '',
   studyMode: course.studyMode ?? 'Online',
   price: course.price ?? '0',
@@ -149,16 +141,22 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
     setSuccess('');
 
     const payload = {
-      ...form,
+      title: form.title,
+      shortDescription: form.shortDescription,
+      description: form.description,
+      category: form.category,
+      level: form.level,
+      targetScore: form.targetScore,
+      targetOutcome: form.targetOutcome,
+      duration: form.duration,
+      studyMode: form.studyMode,
+      thumbnailUrl: form.thumbnailUrl,
+      featured: form.featured,
       price: Number(form.price || 0),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      learningPathCode: form.learningPathCode.trim() || null,
-      learningPathName: form.learningPathName.trim() || null,
-      learningPathOrder: form.learningPathOrder === '' ? null : Number(form.learningPathOrder),
-      recommendedNextCourseSlug: form.recommendedNextCourseSlug.trim() || null,
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
@@ -235,10 +233,6 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <TextField label="Band đầu vào tối thiểu" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
             <TextField label="Band đầu vào tối đa" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
             <TextField label="Band mục tiêu" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
-            <TextField label="Mã lộ trình học" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
-            <TextField label="Tên lộ trình học" onChange={handleChange('learningPathName')} value={form.learningPathName} />
-            <TextField label="Thứ tự trong lộ trình" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
-            <TextField label="Slug khóa học gợi ý tiếp theo" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
             <TextField label="Thời lượng ước tính" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Hình thức học" onChange={handleChange('studyMode')} value={form.studyMode} />
             <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
@@ -282,12 +276,15 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         <Panel className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs text-[#8b706e] leading-relaxed max-w-xl">
-              {hasNoStructure && (
+              {!editMode ? (
+                <p className="text-[#584140] font-semibold">
+                  Tạo khóa học ở trạng thái nháp trước. Sau đó mở khu vực biên soạn để thêm mô-đun, bài học và tài nguyên.
+                </p>
+              ) : hasNoStructure ? (
                 <p className="text-[#730014] font-semibold">
                   ⚠️ Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
                 </p>
-              )}
-              {!hasNoStructure && (
+              ) : (
                 <p>
                   Hãy thiết lập band đầu vào, band mục tiêu và đầu ra của khóa học. Nhấn Lưu thay đổi hoặc Xuất bản để áp dụng.
                 </p>
@@ -301,11 +298,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
                 onClick={() => handleSubmit()}
                 type="button"
               >
-                {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
+                {saving && savingAction === 'save' ? (editMode ? 'Đang lưu...' : 'Đang tạo...') : (editMode ? 'Lưu thay đổi' : 'Tạo khóa học')}
               </button>
-              {form.status !== 'PUBLISHED' && form.status !== 'ARCHIVED' ? (
+              {editMode && form.status !== 'PUBLISHED' && form.status !== 'ARCHIVED' ? (
                 <button
-                  className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 active:scale-95"
+                  className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95"
                   disabled={saving}
                   onClick={() => handleSubmit('PUBLISHED')}
                   type="button"
@@ -342,15 +339,6 @@ function validateCourseForm(form, targetStatus, hasNoStructure) {
   }
   if (minBand != null && maxBand != null && minBand > maxBand) {
     return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
-  }
-
-  const pathCode = form.learningPathCode.trim();
-  const pathName = form.learningPathName.trim();
-  if ((pathCode && !pathName) || (!pathCode && pathName)) {
-    return 'Mã và tên lộ trình học phải được nhập cùng nhau.';
-  }
-  if (pathCode && form.learningPathOrder === '') {
-    return 'Hãy nhập thứ tự của khóa học trong lộ trình.';
   }
   if (targetStatus === 'PUBLISHED' && hasNoStructure) {
     return 'Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.';
