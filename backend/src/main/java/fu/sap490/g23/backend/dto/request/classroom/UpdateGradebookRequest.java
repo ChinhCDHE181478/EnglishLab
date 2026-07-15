@@ -6,12 +6,14 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,25 +24,13 @@ public class UpdateGradebookRequest {
     @NotNull(message = "Học viên không được để trống")
     private Long studentId;
 
-    @DecimalMin(value = "0.0", message = "Điểm bài tập không được nhỏ hơn 0")
-    @DecimalMax(value = "10.0", message = "Điểm bài tập không được lớn hơn 10")
-    @Digits(integer = 2, fraction = 2, message = "Điểm bài tập chỉ được có tối đa 2 chữ số thập phân")
-    private BigDecimal homeworkScore;
-
-    @DecimalMin(value = "0.0", message = "Điểm quiz không được nhỏ hơn 0")
-    @DecimalMax(value = "10.0", message = "Điểm quiz không được lớn hơn 10")
-    @Digits(integer = 2, fraction = 2, message = "Điểm quiz chỉ được có tối đa 2 chữ số thập phân")
-    private BigDecimal quizScore;
+    @Valid
+    private List<UpdateGradebookHomeworkScoreRequest> homeworkScores;
 
     @DecimalMin(value = "0.0", message = "Chuyên cần không được nhỏ hơn 0%")
     @DecimalMax(value = "100.0", message = "Chuyên cần không được lớn hơn 100%")
     @Digits(integer = 3, fraction = 2, message = "Chuyên cần chỉ được có tối đa 2 chữ số thập phân")
     private BigDecimal attendancePercent;
-
-    @DecimalMin(value = "0.0", message = "Điểm phát biểu không được nhỏ hơn 0")
-    @DecimalMax(value = "10.0", message = "Điểm phát biểu không được lớn hơn 10")
-    @Digits(integer = 2, fraction = 2, message = "Điểm phát biểu chỉ được có tối đa 2 chữ số thập phân")
-    private BigDecimal participationScore;
 
     @DecimalMin(value = "0.0", message = "Kết quả không được nhỏ hơn 0")
     @DecimalMax(value = "10.0", message = "Kết quả không được lớn hơn 10")

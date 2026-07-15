@@ -422,7 +422,7 @@ export default function MyClassroomDetailPage() {
             />
             <KpiCard
               label="Điểm tích lũy"
-              value={gradebook?.homeworkScore != null ? `${gradebook.homeworkScore}/10` : '—'}
+              value={gradebook?.homeworkAverage != null ? `${gradebook.homeworkAverage}/10` : '—'}
               sub={gradebook ? formatGradebookFinalResult(gradebook.finalResult) : 'Đang cập nhật'}
               icon={<Award className="h-4.5 w-4.5" />}
             />
@@ -1153,13 +1153,9 @@ export default function MyClassroomDetailPage() {
           </div>
           
           {/* Grade Summary Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <GradeIndicatorCard label="Bài tập" score={gradebook.homeworkScore} color="red" />
-            {gradebook.quizScore != null ? (
-              <GradeIndicatorCard label="Quiz" score={gradebook.quizScore} color="blue" />
-            ) : null}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <GradeIndicatorCard label="Điểm TB bài tập" score={gradebook.homeworkAverage} color="red" />
             <GradeIndicatorCard label="Chuyên cần" score={gradebook.attendancePercent != null ? gradebook.attendancePercent / 10 : null} suffix="%" customScore={gradebook.attendancePercent} color="emerald" />
-            <GradeIndicatorCard label="Tương tác phát biểu" score={gradebook.participationScore} color="purple" />
           </div>
 
           {/* Final Result Banner */}

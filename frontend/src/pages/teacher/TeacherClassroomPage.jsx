@@ -17,7 +17,6 @@ import {
   HelpCircle,
   ChevronRight,
   User,
-  Download,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import Header from '../../components/ai-learning/Header';
@@ -166,15 +165,13 @@ export default function TeacherClassroomPage() {
       entry.studentName || `Học viên #${entry.studentId}`,
       entry.studentEmail || '',
       entry.attendancePercent ?? '',
-      entry.homeworkScore ?? '',
-      entry.quizScore ?? '',
-      entry.participationScore ?? '',
+      entry.homeworkAverage ?? '',
       entry.finalResult ?? '',
       entry.status || '',
     ]);
     downloadCsv(
       `${sanitizeCsvFilename(`bang-diem-${classroom?.title || id}`)}.csv`,
-      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm bài tập', 'Điểm quiz', 'Điểm phát biểu', 'Điểm/Kết quả cuối', 'Trạng thái'],
+      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm TB bài tập', 'Điểm/Kết quả cuối', 'Trạng thái'],
       rows
     );
   };
@@ -187,8 +184,7 @@ export default function TeacherClassroomPage() {
       name: entry.studentName || `Học viên #${entry.studentId}`,
       email: entry.studentEmail || 'Chưa cập nhật',
       attendance: entry.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
-      assignmentScore: entry.homeworkScore ?? '—',
-      participation: entry.participationScore ?? '—',
+      assignmentScore: entry.homeworkAverage ?? '—',
       result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
     }));
@@ -450,22 +446,15 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'gradebook') {
       return (
-        <div className="space-y-6">
-          <div className="flex justify-end">
-            <button className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-extrabold text-[#4b0009] transition hover:bg-slate-50 disabled:opacity-50" disabled={!gradebook.length} onClick={handleExportGradebook} type="button">
-              <Download className="h-4 w-4" />
-              Xuất CSV bảng điểm
-            </button>
-          </div>
-          <TeacherGradebookSection
-            classroomId={id}
-            gradebook={gradebook}
-            onGradebookChange={setGradebook}
-            onMessage={setActionMessage}
-            onPublish={handlePublishGradebook}
-            onUnpublish={handleUnpublishGradebook}
-          />
-        </div>
+        <TeacherGradebookSection
+          classroomId={id}
+          gradebook={gradebook}
+          onExport={handleExportGradebook}
+          onGradebookChange={setGradebook}
+          onMessage={setActionMessage}
+          onPublish={handlePublishGradebook}
+          onUnpublish={handleUnpublishGradebook}
+        />
       );
     }
 
@@ -521,6 +510,9 @@ export default function TeacherClassroomPage() {
 
     return null;
   };
+
+  const actionMessageIsSuccess = actionMessage.startsWith('Đã ')
+    || actionMessage.includes('thành công');
 
   return (
     <div className={PAGE_SHELL_CLASS}>
@@ -626,11 +618,11 @@ export default function TeacherClassroomPage() {
               {/* Action Notification */}
               {actionMessage ? (
                 <div className={`rounded-2xl border p-4 text-xs flex items-start gap-2 ${
-                  actionMessage.includes('thành công')
+                  actionMessageIsSuccess
                     ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
                     : 'bg-rose-50 border-rose-100 text-rose-800'
                 }`}>
-                  {actionMessage.includes('thành công') ? (
+                  {actionMessageIsSuccess ? (
                     <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5 text-emerald-700" />
                   ) : (
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-rose-700" />

@@ -1195,7 +1195,93 @@ Xây dựng luồng support ticket end-to-end: học viên tạo và theo dõi y
 
 ### 10. Kết quả mong đợi
 
-Học viên và đội ngũ Manager/Admin có một kênh hỗ trợ bền vững, phân quyền đúng và giữ đầy đủ lịch sử. Ticket có lifecycle/priority/assignee rõ ràng, tồn tại sau refresh, có notification khi staff cập nhật và không cho truy cập chéo dữ liệu learner.
+Học viên và đội ngũ Manager/Admin có một k
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ênh hỗ trợ bền vững, phân quyền đúng và giữ đầy đủ lịch sử. Ticket có lifecycle/priority/assignee rõ ràng, tồn tại sau refresh, có notification khi staff cập nhật và không cho truy cập chéo dữ liệu learner.
 
 ### 11. Ghi chú / Rủi ro
 
@@ -1410,6 +1496,95 @@ Sản phẩm không còn expose Task 4/6/7; Task 5 payment-first không bị ph�
 ### 11. Ghi chú / Rủi ro
 
 Service/unit test backend cũ của Task 4/6/7 có thể còn trong repo nhưng không còn endpoint UI. Migration DB cũ không rollback.
+
+---
+
+## Task 2 (bổ sung): Redesign Gradebook quản lý điểm bài tập động
+
+- **Ngày:** 2026-07-15
+- **Nhánh:** `phongdx`
+- **Commit:** Chưa commit
+
+### 1. Tóm tắt
+
+Thiết kế lại Gradebook để bảng chính chỉ hiển thị kết quả học tập tổng hợp theo học viên. Toàn bộ bài tập và điểm tương ứng được tải động trong modal xem/chỉnh sửa, do đó số lượng 10, 30 hay 100 bài không làm phát sinh thêm cột ngang. Điểm trung bình bài tập được tính từ các bài đã chấm và chuẩn hóa về thang 10.
+
+### 2. Phạm vi thay đổi
+
+- Backend DTO, repository và service Gradebook/Homework.
+- Frontend Gradebook giáo viên, dữ liệu export và phần kết quả tổng hợp của học viên.
+- Tái sử dụng endpoint Gradebook, Homework submission, status badge và confirm modal hiện có.
+- Không thay đổi trang Homework chịu trách nhiệm tạo/sửa/xóa bài và chấm từng bài theo submission.
+- Không thay đổi tính năng Quiz độc lập; chỉ loại Quiz/Phát biểu khỏi contract và giao diện Gradebook tổng hợp.
+
+### 3. Tệp đã thay đổi
+
+- `ClassroomGradebookResponse.java`, `ClassroomGradebookHomeworkResponse.java`: trả `homeworkAverage` và mảng `homeworks` động theo từng học viên.
+- `UpdateGradebookRequest.java`, `UpdateGradebookHomeworkScoreRequest.java`: nhận danh sách `{homeworkId, score}` thay vì trường điểm bài tập/quiz/phát biểu cố định.
+- `ClassroomGradebookServiceImpl.java`: tải homework/submission theo batch, dựng chi tiết trạng thái, cập nhật điểm động và tính lại trung bình.
+- `ClassroomHomeworkScoreCalculator.java`: dùng chung công thức chuẩn hóa điểm từng bài về thang 10 và lấy trung bình các bài `GRADED`.
+- `ClassroomHomeworkSubmissionRepository.java`, `ClassroomGradebookEntryRepository.java`: thêm truy vấn phục vụ Gradebook không N+1 và fetch học viên.
+- `ClassroomHomeworkServiceImpl.java`, `ClassroomMapper.java`: đồng bộ điểm trung bình theo calculator chung và response mới.
+- `TeacherGradebookSection.jsx`: bảng 6 cột, modal xem/sửa chi tiết động và responsive.
+- `TeacherClassroomPage.jsx`, `MyClassroomDetailPage.jsx`: export/tổng quan dùng `homeworkAverage`, bỏ presentation Quiz/Phát biểu khỏi Gradebook.
+- `ClassroomGradebookServiceImplTest.java`, `ClassroomHomeworkScoreCalculatorTest.java`: test cập nhật động, publish status và chuẩn hóa điểm khác thang.
+
+### 4. Thay đổi Backend
+
+- `GET gradebook` tải một lần danh sách homework, một lần toàn bộ submission của lớp rồi nhóm theo học viên; không truy vấn theo từng ô/bài.
+- Mỗi homework trả `id`, `title`, `score`, `maxScore`, `status`; chưa có submission trả `NOT_SUBMITTED`.
+- `homeworkAverage` chỉ tính bài `GRADED` có điểm. Mỗi điểm được quy đổi theo `score / maxScore * 10`, sau đó trung bình và làm tròn 1 chữ số.
+- Cập nhật Gradebook nhận mảng điểm động. Giáo viên có thể ghi điểm thủ công cho bài chưa có submission hoặc xóa điểm; attendance/final result giữ validation hiện có.
+- Khi chấm bài tại trang Homework, cùng calculator và truy vấn batch được dùng để đồng bộ điểm trung bình, tránh logic trùng và N+1.
+
+### 5. Thay đổi Frontend
+
+- Bảng chính còn: Học viên, Điểm TB bài tập, Chuyên cần, Kết quả cuối, Công bố, Thao tác.
+- Nhấn điểm trung bình hoặc icon xem mở modal chi tiết; nhấn Chỉnh sửa mở modal nhập điểm cho mọi homework hiện có.
+- Modal gọi lại API mỗi lần mở nên bài mới tạo xuất hiện ngay khi xem Gradebook mà không thêm cột hoặc sửa component.
+- Danh sách homework cuộn dọc trong modal, tên bài tự xuống dòng; bảng chính không phụ thuộc số lượng homework.
+- Trạng thái chi tiết phân biệt Đã chấm, Chờ chấm, Cần nộp lại và Chưa nộp.
+
+### 6. Thay đổi Database
+
+Không thay đổi bảng, cột hoặc migration. Tái sử dụng `classroom_homework`, `classroom_homework_submissions` và `classroom_gradebook_entries`. Các cột lịch sử Quiz/Participation trong DB không bị drop để tránh migration phá hủy dữ liệu, nhưng không còn nằm trong contract/UI Gradebook mới.
+
+### 7. Thay đổi API
+
+- Giữ nguyên `GET /api/teacher/classrooms/{id}/gradebook` và `GET /api/student/classrooms/{id}/gradebook/me`; response dùng `homeworkAverage`, `attendancePercent`, `finalResult`, `status`, `homeworks[]`.
+- Giữ nguyên `PUT /api/teacher/classrooms/{id}/gradebook`; request dùng `studentId`, `homeworkScores[]`, `attendancePercent`, `finalResult`.
+- Mỗi phần tử `homeworkScores` có `homeworkId` và `score`; backend từ chối ID ngoài lớp, ID trùng, điểm âm hoặc vượt `maxScore`.
+- Quyền truy cập tiếp tục theo SecurityConfig và kiểm tra role Teacher hiện có; learner chỉ nhận Gradebook khi status `PUBLISHED` và không nhận homework `DRAFT`.
+
+### 8. Thay đổi UI/UX
+
+- Giữ theme đỏ rượu, typography, spacing, badge và button hiện có.
+- Modal có loading, empty, validation, save/error state; hỗ trợ đóng bằng nút X hoặc Escape.
+- Trên màn hình nhỏ, từng homework chuyển thành bố cục dọc; modal giới hạn chiều cao và cuộn nội dung.
+- Không có horizontal scrolling phát sinh theo số bài vì homework không còn là cột bảng.
+
+### 9. Các bước test trên web
+
+1. Restart backend và frontend; đăng nhập `classroom.teacher1@englishlab.vn` / `Password123!`, mở một lớp được phân công và tab **Bảng điểm**.
+2. Xác nhận bảng chỉ có 6 cột tổng hợp; không còn Quiz, Phát biểu hoặc cột riêng cho từng homework.
+3. Nhấn **Điểm TB bài tập** của một học viên; modal phải tải mọi homework của lớp với điểm, điểm tối đa và trạng thái tương ứng.
+4. Đóng modal, sang tab **Bài tập**, tạo thêm một homework; quay lại **Bảng điểm**, mở chi tiết cùng học viên và xác nhận bài mới tự xuất hiện là **Chưa nộp**.
+5. Nhấn **Chỉnh sửa**, nhập/sửa điểm cho nhiều homework, chuyên cần và kết quả cuối rồi lưu; mở lại modal và xác nhận dữ liệu cùng điểm trung bình đã cập nhật.
+6. Để trống điểm của một bài đã chấm rồi lưu; xác nhận điểm được xóa, status chuyển về Chờ chấm nếu đã nộp hoặc Chưa nộp nếu chưa có bài nộp.
+7. Nhập điểm âm, lớn hơn điểm tối đa, attendance > 100 hoặc final result > 10; UI/backend phải từ chối với thông báo rõ ràng.
+8. Tạo hoặc chuẩn bị 30–100 homework; xác nhận bảng chính không thêm cột, modal cuộn dọc và vẫn thao tác được trên viewport desktop/mobile.
+9. Công bố bảng điểm, đăng nhập learner thuộc lớp và xác nhận chỉ bảng điểm `PUBLISHED` hiển thị; phần tổng hợp dùng Điểm TB bài tập/Chuyên cần, không còn Quiz/Phát biểu.
+
+### 10. Kết quả mong đợi
+
+Gradebook luôn gọn với 6 cột bất kể số homework. Giáo viên xem và chỉnh sửa danh sách bài tập được sinh từ database, điểm trung bình nhất quán với trang Homework, validation đúng theo `maxScore`, learner chỉ xem kết quả đã công bố.
+
+### 11. Ghi chú / Rủi ro
+
+- Không có công thức nghiệp vụ được phê duyệt để tự tính `finalResult`, nên trường này vẫn do giáo viên nhập; hệ thống không tự suy đoán trọng số homework/attendance.
+- Xóa vật lý các cột DB Quiz/Participation được hoãn để tránh mất dữ liệu lịch sử; lớp Quiz độc lập vẫn hoạt động nhưng không còn là thành phần tổng hợp Gradebook.
+- Verification tự động: backend compile pass; 4/4 focused tests pass; frontend ESLint và production build pass. Full backend regression đạt 121/122; lỗi duy nhất ở TOEIC showcase seeder line 79 do demo DB có 9 session thay vì fixture kỳ vọng 8, không liên quan Gradebook.
+- Browser runtime không được cấp trong phiên Codex này nên click-test trực quan chưa thực hiện; dùng hướng dẫn trên để test thủ công sau restart.
 
 ---
 

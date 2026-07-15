@@ -1,15 +1,21 @@
 package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.UpdateGradebookRequest;
+import fu.sap490.g23.backend.dto.request.classroom.UpdateGradebookHomeworkScoreRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sap490.g23.backend.entity.classroom.ClassroomGradebookEntry;
+import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sap490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.classroom.impl.ClassroomGradebookServiceImpl;
@@ -33,6 +39,8 @@ class ClassroomGradebookServiceImplTest {
     @Mock private ClassroomGradebookEntryRepository gradebookEntryRepository;
     @Mock private ClassroomOfferingRepository offeringRepository;
     @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassroomHomeworkRepository homeworkRepository;
+    @Mock private ClassroomHomeworkSubmissionRepository submissionRepository;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomMapper mapper;
 
@@ -45,8 +53,11 @@ class ClassroomGradebookServiceImplTest {
                 gradebookEntryRepository,
                 offeringRepository,
                 enrollmentRepository,
+                homeworkRepository,
+                submissionRepository,
                 accessHelper,
-                mapper
+                mapper,
+                new ClassroomHomeworkScoreCalculator()
         );
 
         ClassroomOffering offering = ClassroomOffering.builder().id(21L).build();
@@ -63,7 +74,7 @@ class ClassroomGradebookServiceImplTest {
     }
 
     @Test
-    void updateEntry_UpdatesManualScoresAndMarksPendingEntryAsGraded() {
+    void updateEntry_UpdatesDynamicHomeworkScoresAndMarksPendingEntryAsGraded() {
         when(offeringRepository.findById(21L)).thenReturn(Optional.of(entry.getClassroomOffering()));
         when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(31L, 21L))
                 .thenReturn(Optional.of(ClassroomEnrollment.builder()
@@ -72,12 +83,30 @@ class ClassroomGradebookServiceImplTest {
                         .build()));
         when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, 31L))
                 .thenReturn(Optional.of(entry));
+        ClassroomHomework homework = ClassroomHomework.builder()
+                .id(61L)
+                .classroomOffering(entry.getClassroomOffering())
+                .title("Unit 5")
+                .maxScore(BigDecimal.TEN)
+                .build();
+        ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
+                .id(71L)
+                .homework(homework)
+                .student(entry.getStudent())
+                .status(HomeworkSubmissionStatus.SUBMITTED)
+                .build();
+        when(homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(21L))
+                .thenReturn(List.of(homework));
+        when(submissionRepository.findAllForStudentGradebook(21L, 31L))
+                .thenReturn(List.of(submission));
+
         UpdateGradebookRequest request = UpdateGradebookRequest.builder()
                 .studentId(31L)
-                .homeworkScore(new BigDecimal("8.50"))
-                .quizScore(new BigDecimal("9.00"))
+                .homeworkScores(List.of(UpdateGradebookHomeworkScoreRequest.builder()
+                        .homeworkId(61L)
+                        .score(new BigDecimal("8.50"))
+                        .build()))
                 .attendancePercent(new BigDecimal("95.00"))
-                .participationScore(new BigDecimal("8.00"))
                 .finalResult(new BigDecimal("8.70"))
                 .teacherComment("Tiến bộ tốt")
                 .build();
@@ -86,10 +115,8 @@ class ClassroomGradebookServiceImplTest {
         when(mapper.toGradebookResponse(entry)).thenAnswer(invocation -> ClassroomGradebookResponse.builder()
                 .id(entry.getId())
                 .studentId(entry.getStudent().getId())
-                .homeworkScore(entry.getHomeworkScore())
-                .quizScore(entry.getQuizScore())
+                .homeworkAverage(entry.getHomeworkScore())
                 .attendancePercent(entry.getAttendancePercent())
-                .participationScore(entry.getParticipationScore())
                 .finalResult(entry.getFinalResult())
                 .teacherComment(entry.getTeacherComment())
                 .status(entry.getStatus())
@@ -97,14 +124,19 @@ class ClassroomGradebookServiceImplTest {
 
         ClassroomGradebookResponse response = service.updateEntry(21L, request, "teacher@example.com");
 
-        assertThat(response.getHomeworkScore()).isEqualByComparingTo("8.50");
-        assertThat(response.getQuizScore()).isEqualByComparingTo("9.00");
+        assertThat(response.getHomeworkAverage()).isEqualByComparingTo("8.5");
+        assertThat(response.getHomeworks()).singleElement().satisfies(item -> {
+            assertThat(item.getTitle()).isEqualTo("Unit 5");
+            assertThat(item.getScore()).isEqualByComparingTo("8.50");
+            assertThat(item.getStatus()).isEqualTo("GRADED");
+        });
         assertThat(response.getAttendancePercent()).isEqualByComparingTo("95.00");
         assertThat(response.getFinalResult()).isEqualByComparingTo("8.70");
         assertThat(response.getTeacherComment()).isEqualTo("Tiến bộ tốt");
         assertThat(response.getStatus()).isEqualTo(GradebookEntryStatus.GRADED);
         assertThat(entry.getUpdatedBy()).isNotNull();
         verify(accessHelper).assertTeacher(entry.getUpdatedBy());
+        verify(submissionRepository).saveAll(List.of(submission));
     }
 
     @Test
