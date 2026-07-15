@@ -51,6 +51,7 @@ import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatAttendanceStatus,
+  formatAttendanceDisputeStatus,
   formatAssessmentType,
   formatClassroomDate,
   formatClassroomDateTime,
@@ -1241,7 +1242,7 @@ export default function MyClassroomDetailPage() {
                       <td className="min-w-[260px] px-6 py-4.5 text-right flex justify-end">
                         {dispute ? (
                           <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-[11px] text-left max-w-xs leading-normal">
-                            <p className="font-extrabold text-[#730014] uppercase tracking-wider text-[9px]">{formatDisputeStatus(dispute.status)}</p>
+                            <p className="font-extrabold text-[#730014] uppercase tracking-wider text-[9px]">{formatAttendanceDisputeStatus(dispute.status)}</p>
                             {dispute.reason && <p className="mt-1 text-gray-500">Lý do: "{dispute.reason}"</p>}
                             {dispute.reviewNote && <p className="mt-1.5 pt-1.5 border-t border-gray-200 text-[#584140] font-medium">Bản duyệt: "{dispute.reviewNote}"</p>}
                           </div>

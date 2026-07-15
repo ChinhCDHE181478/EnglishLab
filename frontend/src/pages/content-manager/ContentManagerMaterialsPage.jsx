@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
   Archive,
@@ -333,13 +334,7 @@ export default function ContentManagerMaterialsPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">Kho học liệu trung tâm</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#564241]">
-            Học liệu trung tâm được dùng lại theo band IELTS, dải điểm TOEIC, kỹ năng và mục tiêu lớp học.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <button
           className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
           onClick={() => setComposerOpen(true)}
@@ -744,7 +739,7 @@ function MaterialEditorModal({ children, onClose }) {
     };
   }, []);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
@@ -755,6 +750,7 @@ function MaterialEditorModal({ children, onClose }) {
       <div className="relative z-10 w-full max-w-[800px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
