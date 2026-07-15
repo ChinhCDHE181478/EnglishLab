@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { BookMarked, Check, ChevronDown, ChevronUp, GraduationCap, Link2, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import { BookMarked, Check, ChevronDown, ChevronUp, GraduationCap, Link2, Pencil, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
@@ -41,11 +41,26 @@ const emptyProgramForm = {
   outcomes: '',
   totalSessions: 0,
   status: 'DRAFT',
+  teacherGuide: '',
+  interactionActivities: '',
+  displayOrder: 0,
+  virtualPlatform: '',
+  recordingAllowed: false,
+  recordingAvailableDays: 0,
+  materialsDownloadable: false,
+  sessionOpenBeforeMinutes: 0,
+  sessionCloseAfterMinutes: 0,
+  deviceCheckRequired: false,
+  micRequired: false,
+  speakerRequired: false,
+  cameraRequired: false,
+  autoAttendanceEnabled: false,
+  minAttendanceMinutes: 0,
 };
 
 const deliveryModeOptions = [
   { label: 'Tại trung tâm', value: 'OFFLINE' },
-  { label: 'Virtual', value: 'VIRTUAL' },
+  { label: 'Trực tuyến với giảng viên', value: 'VIRTUAL' },
 ];
 
 const examOptions = [
@@ -127,6 +142,43 @@ const makeCode = (title, mode) => {
   return [mode, ...words].filter(Boolean).join('-');
 };
 
+const toProgramForm = (program) => ({
+  ...emptyProgramForm,
+  ...program,
+  targetBand: program?.targetBand ?? '',
+  targetScore: program?.targetScore ?? '',
+  totalSessions: program?.totalSessions ?? 0,
+});
+
+const toProgramPayload = (form, forceDraft = false) => ({
+  title: form.title.trim(),
+  code: form.code.trim() || makeCode(form.title, form.deliveryMode),
+  slug: form.slug.trim() || toSlug(form.title),
+  deliveryMode: form.deliveryMode,
+  examCategory: form.examCategory,
+  targetBand: form.targetBand === '' ? null : Number(form.targetBand),
+  targetScore: form.targetScore === '' ? null : Number(form.targetScore),
+  entryLevel: form.entryLevel?.trim() || null,
+  outcomes: form.outcomes?.trim() || null,
+  teacherGuide: form.teacherGuide?.trim() || null,
+  interactionActivities: form.interactionActivities?.trim() || null,
+  totalSessions: Number(form.totalSessions || 0),
+  status: forceDraft ? 'DRAFT' : (form.status || 'DRAFT'),
+  displayOrder: Number(form.displayOrder || 0),
+  virtualPlatform: form.virtualPlatform || null,
+  recordingAllowed: Boolean(form.recordingAllowed),
+  recordingAvailableDays: Number(form.recordingAvailableDays || 0),
+  materialsDownloadable: Boolean(form.materialsDownloadable),
+  sessionOpenBeforeMinutes: Number(form.sessionOpenBeforeMinutes || 0),
+  sessionCloseAfterMinutes: Number(form.sessionCloseAfterMinutes || 0),
+  deviceCheckRequired: Boolean(form.deviceCheckRequired),
+  micRequired: Boolean(form.micRequired),
+  speakerRequired: Boolean(form.speakerRequired),
+  cameraRequired: Boolean(form.cameraRequired),
+  autoAttendanceEnabled: Boolean(form.autoAttendanceEnabled),
+  minAttendanceMinutes: Number(form.minAttendanceMinutes || 0),
+});
+
 export default function ContentManagerSyllabusBuilderPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProgramId = searchParams.get('programId') || '';
@@ -137,6 +189,7 @@ export default function ContentManagerSyllabusBuilderPage() {
   const [programDetail, setProgramDetail] = useState(null);
   const [programForm, setProgramForm] = useState(emptyProgramForm);
   const [programCreatorOpen, setProgramCreatorOpen] = useState(false);
+  const [programEditorOpen, setProgramEditorOpen] = useState(false);
   const [unitForm, setUnitForm] = useState(emptyUnit);
   const [editingUnitId, setEditingUnitId] = useState(null);
   const [unitEditorOpen, setUnitEditorOpen] = useState(requestedPanel === 'unit');
@@ -293,6 +346,19 @@ export default function ContentManagerSyllabusBuilderPage() {
     setProgramForm(emptyProgramForm);
   };
 
+  const openProgramEditor = () => {
+    if (!programDetail) return;
+    setProgramForm(toProgramForm(programDetail));
+    setProgramEditorOpen(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const closeProgramEditor = () => {
+    setProgramEditorOpen(false);
+    setProgramForm(emptyProgramForm);
+  };
+
   const createProgram = async (event) => {
     event.preventDefault();
     if (!programForm.title.trim()) {
@@ -309,14 +375,8 @@ export default function ContentManagerSyllabusBuilderPage() {
     setSuccess('');
     try {
       const saved = await curriculumApi.createCurriculumProgram({
-        ...programForm,
-        title: programForm.title.trim(),
+        ...toProgramPayload(programForm, true),
         code: generatedCode,
-        slug: programForm.slug.trim() || toSlug(programForm.title),
-        targetBand: programForm.targetBand === '' ? null : Number(programForm.targetBand),
-        targetScore: programForm.targetScore === '' ? null : Number(programForm.targetScore),
-        totalSessions: Number(programForm.totalSessions || 0),
-        status: 'DRAFT',
         displayOrder: 0,
       });
       setPrograms((current) => [saved, ...current]);
@@ -327,6 +387,30 @@ export default function ContentManagerSyllabusBuilderPage() {
       setSuccess('Đã tạo giáo trình. Bắt đầu thêm unit/buổi học cho giáo trình này.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tạo được giáo trình.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const updateProgram = async (event) => {
+    event.preventDefault();
+    if (!programDetail || !programForm.title.trim() || !programForm.code.trim()) {
+      setError('Vui lòng nhập đầy đủ tên và mã giáo trình.');
+      return;
+    }
+    setWorking(true);
+    setError('');
+    setSuccess('');
+    try {
+      const saved = await curriculumApi.updateCurriculumProgram(programDetail.id, toProgramPayload(programForm));
+      setProgramDetail(saved);
+      setPrograms((current) => current.map((program) => (
+        String(program.id) === String(saved.id) ? { ...program, ...saved } : program
+      )));
+      closeProgramEditor();
+      setSuccess('Đã cập nhật thông tin giáo trình.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không cập nhật được thông tin giáo trình.');
     } finally {
       setWorking(false);
     }
@@ -615,6 +699,17 @@ export default function ContentManagerSyllabusBuilderPage() {
         />
       ) : null}
 
+      {programEditorOpen ? (
+        <SyllabusProgramCreateModal
+          form={programForm}
+          mode="edit"
+          onChange={updateProgramForm}
+          onClose={closeProgramEditor}
+          onSubmit={updateProgram}
+          saving={working}
+        />
+      ) : null}
+
       {!selectedProgramId ? (
         <SyllabusProgramListPanel
           programs={programs}
@@ -643,17 +738,21 @@ export default function ContentManagerSyllabusBuilderPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
+                <button type="button" onClick={openProgramEditor} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dcc0bf]/40 bg-white px-4 py-2.5 text-sm font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">
+                  <Pencil className="h-4 w-4" /> Chỉnh sửa thông tin
+                </button>
                 <button type="button" onClick={reloadAll} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dcc0bf]/40 bg-white px-4 py-2.5 text-sm font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">
                   <RefreshCw className="h-4 w-4" /> Tải lại
                 </button>
               </div>
             </div>
 
-            <div className="grid gap-3 px-6 py-5 md:grid-cols-4">
+            <div className="grid gap-3 px-6 py-5 sm:grid-cols-2 lg:grid-cols-5">
               <InfoTile label="Mã giáo trình" value={programDetail?.code || '-'} />
               <InfoTile label="Hình thức" value={programDetail?.deliveryModeLabel || programDetail?.deliveryMode || '-'} />
               <InfoTile label="Target" value={programDetail?.targetBand || programDetail?.targetScore || '-'} />
-              <InfoTile label="Unit/buổi học" value={units.length} />
+              <InfoTile label="Unit hiện có" value={units.length} />
+              <InfoTile label="Số buổi dự kiến" value={programDetail?.totalSessions ?? '-'} />
             </div>
           </section>
 
@@ -906,7 +1005,8 @@ function FieldSelect({ label, value, options, onChange, placeholder, disabled })
   );
 }
 
-function SyllabusProgramCreateModal({ form, onChange, onClose, onSubmit, saving }) {
+function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, onSubmit, saving }) {
+  const editing = mode === 'edit';
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -930,13 +1030,14 @@ function SyllabusProgramCreateModal({ form, onChange, onClose, onSubmit, saving 
       />
       <div className="relative z-10 flex max-h-[calc(100dvh-2rem)] w-full max-w-[760px] min-h-0 flex-col overflow-hidden rounded-xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#dcc0bf]/20 p-5">
+          <div className="border-b border-[#dcc0bf]/20 p-5">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Biên soạn giáo trình</p>
-              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">Tạo giáo trình mới</h2>
-              <p className="mt-2 text-sm leading-6 text-[#584140]">Tạo khung giáo trình trước, sau đó thêm unit/buổi học và gắn tài nguyên ngay trong trang này.</p>
+              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{editing ? 'Chỉnh sửa thông tin giáo trình' : 'Tạo giáo trình mới'}</h2>
+              <p className="mt-2 text-sm leading-6 text-[#584140]">
+                {editing ? 'Cập nhật thông tin chung của giáo trình. Các unit và tài nguyên đã biên soạn vẫn được giữ nguyên.' : 'Tạo khung giáo trình trước, sau đó thêm unit/buổi học và gắn tài nguyên ngay trong trang này.'}
+              </p>
             </div>
-            <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={onClose} type="button">Đóng</button>
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
@@ -981,8 +1082,8 @@ function SyllabusProgramCreateModal({ form, onChange, onClose, onSubmit, saving 
           <div className="flex flex-wrap justify-end gap-3 border-t border-[#dcc0bf]/20 p-5">
             <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009]" onClick={onClose} type="button">Hủy</button>
             <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
-              <Plus className="h-4 w-4" />
-              {saving ? 'Đang tạo...' : 'Tạo và biên soạn'}
+              {editing ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+              {saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Tạo và biên soạn')}
             </button>
           </div>
         </form>

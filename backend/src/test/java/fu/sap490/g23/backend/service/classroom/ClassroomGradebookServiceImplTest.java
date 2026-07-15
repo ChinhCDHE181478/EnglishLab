@@ -62,7 +62,6 @@ class ClassroomGradebookServiceImplTest {
 
         ClassroomOffering offering = ClassroomOffering.builder().id(21L).build();
         User student = User.builder().id(31L).fullName("Learner Test").build();
-        User teacher = User.builder().id(41L).role(RoleEnum.TEACHER).build();
         entry = ClassroomGradebookEntry.builder()
                 .id(51L)
                 .classroomOffering(offering)
@@ -70,11 +69,12 @@ class ClassroomGradebookServiceImplTest {
                 .status(GradebookEntryStatus.PENDING)
                 .build();
 
-        when(accessHelper.requireUser("teacher@example.com")).thenReturn(teacher);
     }
 
     @Test
     void updateEntry_UpdatesDynamicHomeworkScoresAndMarksPendingEntryAsGraded() {
+        when(accessHelper.requireUser("teacher@example.com"))
+                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
         when(offeringRepository.findById(21L)).thenReturn(Optional.of(entry.getClassroomOffering()));
         when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(31L, 21L))
                 .thenReturn(Optional.of(ClassroomEnrollment.builder()
@@ -141,6 +141,8 @@ class ClassroomGradebookServiceImplTest {
 
     @Test
     void unpublishGradebook_MarksPublishedEntriesAsGraded() {
+        when(accessHelper.requireUser("teacher@example.com"))
+                .thenReturn(User.builder().id(41L).role(RoleEnum.TEACHER).build());
         entry.setStatus(GradebookEntryStatus.PUBLISHED);
         when(gradebookEntryRepository.findByClassroomOfferingId(21L)).thenReturn(List.of(entry));
         when(gradebookEntryRepository.saveAll(List.of(entry))).thenReturn(List.of(entry));
@@ -160,5 +162,29 @@ class ClassroomGradebookServiceImplTest {
                 .isEqualTo(GradebookEntryStatus.GRADED);
         verify(accessHelper).assertTeacher(entry.getUpdatedBy());
         verify(gradebookEntryRepository).saveAll(List.of(entry));
+    }
+
+    @Test
+    void getMyGradebook_ReturnsNoContentWhenEntryDoesNotExist() {
+        User learner = entry.getStudent();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, learner.getId()))
+                .thenReturn(Optional.empty());
+
+        ClassroomGradebookResponse response = service.getMyGradebook(21L, "learner@example.com");
+
+        assertThat(response).isNull();
+    }
+
+    @Test
+    void getMyGradebook_ReturnsNoContentWhenEntryIsNotPublished() {
+        User learner = entry.getStudent();
+        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
+        when(gradebookEntryRepository.findByClassroomOfferingIdAndStudentId(21L, learner.getId()))
+                .thenReturn(Optional.of(entry));
+
+        ClassroomGradebookResponse response = service.getMyGradebook(21L, "learner@example.com");
+
+        assertThat(response).isNull();
     }
 }

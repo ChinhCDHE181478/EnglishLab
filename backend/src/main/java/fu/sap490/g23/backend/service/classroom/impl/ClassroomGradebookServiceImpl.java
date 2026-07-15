@@ -62,9 +62,9 @@ public class ClassroomGradebookServiceImpl implements ClassroomGradebookService 
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomGradebookEntry entry = gradebookEntryRepository
                 .findByClassroomOfferingIdAndStudentId(offeringId, learner.getId())
-                .orElseThrow(() -> new RuntimeException("Chưa có bảng điểm cho học viên này."));
-        if (entry.getStatus() != GradebookEntryStatus.PUBLISHED) {
-            throw new RuntimeException("Bảng điểm chưa được công bố.");
+                .orElse(null);
+        if (entry == null || entry.getStatus() != GradebookEntryStatus.PUBLISHED) {
+            return null;
         }
         List<ClassroomHomework> homeworks = homeworkRepository
                 .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()

@@ -217,7 +217,8 @@ public class StudentClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomGradebookService.getMyGradebook(id, authentication.getName()));
+        ClassroomGradebookResponse gradebook = classroomGradebookService.getMyGradebook(id, authentication.getName());
+        return gradebook == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(gradebook);
     }
 
     @GetMapping("/{id}/materials")
