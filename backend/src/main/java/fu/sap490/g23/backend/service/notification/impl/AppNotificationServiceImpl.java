@@ -1,29 +1,35 @@
 package fu.sap490.g23.backend.service.notification.impl;
 
-import fu.sap490.g23.backend.service.notification.*;
-
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.dto.response.classroom.AppNotificationResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.notification.AppNotification;
 import fu.sap490.g23.backend.repository.notification.AppNotificationRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.classroom.ClassroomMapper;
+import fu.sap490.g23.backend.service.notification.AppNotificationService;
+import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AppNotificationServiceImpl implements AppNotificationService {
 
     private final AppNotificationRepository notificationRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomMapper classroomMapper;
+    private final NotificationPreferenceService preferenceService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
@@ -64,5 +70,30 @@ public class AppNotificationServiceImpl implements AppNotificationService {
     public long countUnread(String userEmail) {
         User user = accessHelper.requireUser(userEmail);
         return notificationRepository.countByUserIdAndReadFalse(user.getId());
+    }
+
+    @Override
+    public void createForUser(
+            User user,
+            String type,
+            String title,
+            String body,
+            Map<String, Object> metadata
+    ) {
+        if (user == null || !preferenceService.isInAppEnabled(user)) {
+            return;
+        }
+        try {
+            String metadataJson = metadata == null ? null : objectMapper.writeValueAsString(metadata);
+            notificationRepository.save(AppNotification.builder()
+                    .user(user)
+                    .type(type)
+                    .title(title)
+                    .body(body)
+                    .metadataJson(metadataJson)
+                    .build());
+        } catch (JsonProcessingException exception) {
+            log.warn("Không thể tạo thông báo cho user {}: {}", user.getId(), exception.getMessage());
+        }
     }
 }

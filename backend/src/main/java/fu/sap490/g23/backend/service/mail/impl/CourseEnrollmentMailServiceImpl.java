@@ -6,6 +6,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
     private static final String DEFAULT_HERO_CONTENT_ID = "paymentSuccessHero";
 
     private final JavaMailSender mailSender;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     @Value("${englishlab.mail.enabled:true}")
     private boolean enabled;
@@ -62,6 +64,10 @@ public class CourseEnrollmentMailServiceImpl implements CourseEnrollmentMailServ
     private String privacyPolicyUrl;
 
     public void sendEnrollmentSuccessEmail(User student, OnlineCourse course, PackageEnrollment enrollment) {
+        if (student != null && !notificationPreferenceService.isEmailEnabled(student)) {
+            log.debug("Course enrollment email was skipped because user {} disabled email notifications.", student.getId());
+            return;
+        }
         if (!enabled) {
             log.debug("Course enrollment email is disabled.");
             return;

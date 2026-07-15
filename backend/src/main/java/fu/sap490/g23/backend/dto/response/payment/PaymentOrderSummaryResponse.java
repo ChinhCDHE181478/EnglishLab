@@ -21,4 +21,13 @@ public class PaymentOrderSummaryResponse {
     private List<String> courseTitles;
     private LocalDateTime createdAt;
     private LocalDateTime paidAt;
+    /** COURSE | CLASSROOM_TUITION */
+    private String orderType;
+    private boolean refundable;
+    private boolean hasReceipt;
+    private Long refundedAmount;
+    private LocalDateTime refundedAt;
+    private String refundReason;
+    private String studentEmail;
+    private String studentName;
 }

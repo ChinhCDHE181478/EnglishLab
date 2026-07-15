@@ -4,5 +4,6 @@ public enum TuitionPaymentKind {
     DEPOSIT,
     PARTIAL,
     FULL,
-    MANUAL_CONFIRMATION
+    MANUAL_CONFIRMATION,
+    REFUND
 }

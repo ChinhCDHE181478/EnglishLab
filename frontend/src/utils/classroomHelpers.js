@@ -150,6 +150,7 @@ export const formatTuitionPaymentKind = (kind, label) => {
     PARTIAL: 'Thanh toán một phần',
     FULL: 'Thanh toán đủ',
     MANUAL_CONFIRMATION: 'Xác nhận thủ công',
+    REFUND: 'Hoàn tiền học phí',
   };
   return map[kind] || kind || 'Ghi nhận học phí';
 };

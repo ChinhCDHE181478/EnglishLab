@@ -13,4 +13,6 @@ public interface ClassroomGradebookService {
     ClassroomGradebookResponse updateEntry(Long offeringId, UpdateGradebookRequest request, String updaterEmail);
 
     List<ClassroomGradebookResponse> publishGradebook(Long offeringId, String publisherEmail);
+
+    List<ClassroomGradebookResponse> unpublishGradebook(Long offeringId, String publisherEmail);
 }

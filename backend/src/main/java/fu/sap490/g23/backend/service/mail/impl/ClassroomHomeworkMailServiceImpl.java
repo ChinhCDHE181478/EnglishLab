@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.service.mail.*;
 
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailService {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private final JavaMailSender mailSender;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     @Value("${englishlab.mail.enabled:true}") private boolean enabled;
     @Value("${spring.mail.host:}") private String mailHost;
@@ -30,6 +32,7 @@ public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailSe
     @Value("${englishlab.mail.base-url:http://localhost:5173}") private String baseUrl;
 
     public void sendHomeworkAssigned(User student, ClassroomHomework homework) {
+        if (student != null && !notificationPreferenceService.isEmailEnabled(student)) return;
         if (!enabled || blank(mailHost) || blank(fromAddress) || student == null || blank(student.getEmail())) return;
         try {
             MimeMessage message = mailSender.createMimeMessage();

@@ -10,4 +10,6 @@ public class PaymentOrderStatusResponse {
     private String status;
     private boolean paid;
     private String message;
+    private Long classroomOfferingId;
+    private Long enrollmentId;
 }

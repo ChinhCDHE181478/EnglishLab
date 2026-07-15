@@ -5,7 +5,6 @@ import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
 import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
-import fu.sap490.g23.backend.dto.response.payment.RevenueAnalyticsResponse;
 import fu.sap490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

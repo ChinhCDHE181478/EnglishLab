@@ -79,6 +79,14 @@ const isPendingClass = (item) =>
 // ─── Custom Minimalist Status configuration ───────────────────────────────────
 const getMinimalistStatusInfo = (classroom) => {
   const days = daysUntil(classroom.startDate);
+  if (classroom.registrationStatus === 'WAITLIST') {
+    return {
+      text: 'Danh sách chờ',
+      dotColor: 'bg-blue-500',
+      textColor: 'text-blue-700',
+      badgeBg: 'bg-blue-50 border-blue-100',
+    };
+  }
   if (isActiveClass(classroom)) {
     const end = daysUntil(classroom.endDate);
     if (end != null && end > 0) return { text: `Còn ${end} ngày`, dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', badgeBg: 'bg-emerald-50 border-emerald-100' };

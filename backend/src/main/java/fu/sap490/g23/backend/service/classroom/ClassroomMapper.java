@@ -1,6 +1,5 @@
 package fu.sap490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
@@ -136,6 +135,10 @@ public class ClassroomMapper {
                         enrollment == null ? null : enrollment.getTuitionSettlementType()))
                 .tuitionSettlementNote(enrollment == null ? null : enrollment.getTuitionSettlementNote())
                 .waitlistCount((int) waitlistCount)
+                .waitlistPosition(enrollment != null
+                        && enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
+                        ? enrollment.getWaitlistPriority()
+                        : null)
                 .scheduleSummary(scheduleSummary == null ? null : scheduleSummary.summary())
                 .scheduleDaysOfWeek(scheduleSummary == null ? null : scheduleSummary.daysOfWeek())
                 .typicalStartTime(scheduleSummary == null ? null : scheduleSummary.startTime())
@@ -259,6 +262,13 @@ public class ClassroomMapper {
         User tuitionRecordedBy = enrollment.getTuitionRecordedBy();
         ClassroomOffering offering = enrollment.getClassroomOffering();
         BigDecimal remaining = enrollment.tuitionBalance();
+        boolean waitlisted = enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
+        Integer waitlistSize = waitlisted
+                ? (int) enrollmentRepository.countByOfferingAndRegistrationStatuses(
+                        offering.getId(),
+                        WAITLIST_STATUSES
+                )
+                : null;
         return ClassroomEnrollmentResponse.builder()
                 .id(enrollment.getId())
                 .studentId(enrollment.getStudent().getId())
@@ -271,6 +281,9 @@ public class ClassroomMapper {
                 .registrationStatus(enrollment.getRegistrationStatus())
                 .registrationStatusLabel(ClassroomRegistrationSupport.registrationStatusLabel(enrollment.getRegistrationStatus()))
                 .holdSpot(enrollment.isHoldSpot())
+                .waitlistPriority(waitlisted ? enrollment.getWaitlistPriority() : null)
+                .waitlistPosition(waitlisted ? enrollment.getWaitlistPriority() : null)
+                .waitlistSize(waitlistSize)
                 .tuitionAmountDue(enrollment.getTuitionAmountDue())
                 .tuitionAmountPaid(enrollment.getTuitionAmountPaid())
                 .tuitionDepositPaid(enrollment.getTuitionDepositPaid())
@@ -278,6 +291,14 @@ public class ClassroomMapper {
                 .tuitionSettlementType(enrollment.getTuitionSettlementType())
                 .tuitionSettlementTypeLabel(ClassroomRegistrationSupport.tuitionSettlementLabel(enrollment.getTuitionSettlementType()))
                 .tuitionSettlementNote(enrollment.getTuitionSettlementNote())
+                .tuitionSettlementStatus(enrollment.getTuitionSettlementStatus())
+                .tuitionSettlementStatusLabel(ClassroomRegistrationSupport.tuitionSettlementStatusLabel(
+                        enrollment.getTuitionSettlementStatus()))
+                .tuitionSettlementResolvedAt(enrollment.getTuitionSettlementResolvedAt())
+                .tuitionSettlementResolvedByName(enrollment.getTuitionSettlementResolvedBy() == null
+                        ? null
+                        : enrollment.getTuitionSettlementResolvedBy().getFullName())
+                .tuitionSettlementResolutionNote(enrollment.getTuitionSettlementResolutionNote())
                 .hasClassAccess(enrollment.hasClassAccess())
                 .transferredFromEnrollmentId(enrollment.getTransferredFromEnrollmentId())
                 .enrolledAt(enrollment.getEnrolledAt())
@@ -428,10 +449,8 @@ public class ClassroomMapper {
                 .id(entry.getId())
                 .studentId(entry.getStudent().getId())
                 .studentName(entry.getStudent().getFullName())
-                .homeworkScore(entry.getHomeworkScore())
-                .quizScore(entry.getQuizScore())
+                .homeworkAverage(entry.getHomeworkScore())
                 .attendancePercent(entry.getAttendancePercent())
-                .participationScore(entry.getParticipationScore())
                 .finalResult(entry.getFinalResult())
                 .teacherComment(entry.getTeacherComment())
                 .status(entry.getStatus())

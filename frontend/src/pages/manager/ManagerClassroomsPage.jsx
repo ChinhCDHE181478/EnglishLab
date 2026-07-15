@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Megaphone, Save } from 'lucide-react';
+import { CalendarDays, ChevronRight, Megaphone, Plus, Save } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';

@@ -43,6 +43,10 @@ public interface OnlineCourseService {
     OnlineCourseResponse registerCourse(Long courseId, String studentEmail);
     OnlineCourseResponse getEnrolledCourse(Long courseId, String studentEmail);
     OnlineCourseResponse activatePaidCourse(Long courseId, String studentEmail);
+
+    /** Hủy quyền học sau khi hoàn tiền đơn PayOS khóa học. */
+    void revokePaidCourseAccess(Long courseId, String studentEmail);
+
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
