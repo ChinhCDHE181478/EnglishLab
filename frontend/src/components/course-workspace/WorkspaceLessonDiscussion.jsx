@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Loader2, MessageCircle, Send } from 'lucide-react';
+import { Loader2, MessageCircle, Send } from 'lucide-react';
 import courseApi from '../../api/courseApi';
+import Pagination from '../ui/Pagination';
 import {
   ReactionButton,
   ReactionSummary,
@@ -94,12 +95,6 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
     setMessage('');
     setFilter(nextFilter);
     setPage(0);
-  };
-
-  const handlePageChange = (delta) => {
-    const next = page + delta;
-    if (next < 0 || next >= totalPages) return;
-    setPage(next);
   };
 
   const replaceThread = (updated) =>
@@ -362,8 +357,9 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
             <p className="mt-2 whitespace-pre-line text-xs leading-5 text-[#5f5353]">{thread.content}</p>
 
             {/* Actions */}
-            <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[#f0e3e4] pt-2">
+            <div className="mt-3 flex flex-nowrap items-center gap-1 overflow-visible border-t border-[#f0e3e4] pt-2">
               <ReactionButton
+                compact
                 counts={thread.reactionCounts}
                 myReaction={thread.myReaction}
                 onReact={(type) => handleReaction('thread', thread.id, type)}
@@ -371,7 +367,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
                 targetKey={`thread:${thread.id}`}
               />
               <button
-                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold text-[#6a5352] hover:bg-[#fff8f8]"
+                className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-1.5 py-1 text-[10px] font-bold text-[#6a5352] hover:bg-[#fff8f8]"
                 onClick={() => setExpanded((cur) => ({ ...cur, [thread.id]: !cur[thread.id] }))}
                 type="button"
               >
@@ -383,7 +379,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
                 onOpen={() => handleOpenReactionModal('thread', thread.id, thread.reactionCounts)}
               />
               <button
-                className="ml-auto text-[10px] font-bold text-rose-700 hover:underline"
+                className="ml-auto shrink-0 whitespace-nowrap px-1 text-[10px] font-bold text-rose-700 hover:underline"
                 onClick={() => openReport('thread', thread.id)}
                 type="button"
               >
@@ -405,8 +401,9 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
                       )}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-[#5f5353]">{reply.content}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                    <div className="mt-2 flex flex-nowrap items-center gap-1 overflow-visible text-[10px] font-bold">
                       <ReactionButton
+                        compact
                         counts={reply.reactionCounts}
                         myReaction={reply.myReaction}
                         onReact={(type) => handleReaction('reply', reply.id, type)}
@@ -441,7 +438,7 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
                         </button>
                       )}
                       <button
-                        className="text-rose-700 hover:underline"
+                        className="ml-auto shrink-0 whitespace-nowrap text-rose-700 hover:underline"
                         onClick={() => openReport('reply', reply.id)}
                         type="button"
                       >
@@ -476,29 +473,18 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
 
       {/* Pagination */}
       {totalElements > 0 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <button
-            className="inline-flex items-center gap-1 rounded-lg border border-[#ead9db] bg-white px-3 py-1.5 text-xs font-bold text-[#6a5352] transition hover:bg-[#fff8f8] disabled:opacity-40"
-            disabled={page === 0 || loading}
-            onClick={() => handlePageChange(-1)}
-            type="button"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Trước
-          </button>
-          <span className="text-[11px] font-semibold text-[#8c716f]">
-            Trang {page + 1} / {totalPages}
-          </span>
-          <button
-            className="inline-flex items-center gap-1 rounded-lg border border-[#ead9db] bg-white px-3 py-1.5 text-xs font-bold text-[#6a5352] transition hover:bg-[#fff8f8] disabled:opacity-40"
-            disabled={page >= totalPages - 1 || loading}
-            onClick={() => handlePageChange(1)}
-            type="button"
-          >
-            Sau
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        <Pagination
+          alwaysVisible
+          className="pt-2"
+          compact
+          onChange={(nextPage) => {
+            if (!loading) setPage(Math.max(0, nextPage - 1));
+          }}
+          page={page + 1}
+          pageSize={PAGE_SIZE}
+          totalItems={totalElements}
+          totalPages={Math.max(totalPages, 1)}
+        />
       )}
 
       {/* Reaction modal */}
