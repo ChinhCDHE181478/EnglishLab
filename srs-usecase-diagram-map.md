@@ -1,117 +1,146 @@
 # SRS Use Case Diagram Map
 
-Danh sách này bám theo phần **Use Case Specification** trong file SRS. Các sequence được gom theo class diagram chung để dễ vẽ domain classes liên quan.
+Tài liệu này đối chiếu SRS với các Mermaid source hiện có trong `C:\Users\Chinh\Downloads\sds-diagrams` và hành vi backend được ghi trong 7 SDS guide đã cập nhật. Trạng thái “đã vẽ” chỉ xác nhận file `.mmd` tồn tại; nó không có nghĩa mọi hành vi trong SRS đã được code hỗ trợ.
 
-## CD01 - Account, Profile, Notification, Support
+## Quy ước và tổng quan
 
-**Class chính:** `User`, `Role`, `AuthToken`, `UserProfile fields`, `AppNotification`, `SupportTicket`, `TicketReply`
+- Có **51 parent UC** (`UC-01` đến `UC-51`). Các mục `UC-05a/b`, `UC-32a-d`, `UC-33a-d`, `UC-34a-d` là các flow con của parent UC tương ứng.
+- Có **64 sequence source** (`SQ01`-`SQ64`) và **9 class source** (`CD01`, `CD02A`, `CD02B`, `CD03`-`CD08`), tổng cộng **73 Mermaid source**.
+- Không áp dụng giả định “mỗi parent UC có đúng một sequence”: các flow authentication được tách thành nhiều file, PayOS webhook có file riêng, còn các CRUD management được tách theo operation.
+- Tất cả **73 source** đã được vẽ và có **73 SVG render** cùng basename.
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-01 | Register Account | register + verify OTP + resend OTP |
-| UC-03 | Login | email/password login + Google login + invalid credentials + account locked |
-| UC-04 | Forgot Password | request reset OTP + verify OTP + reset password + resend OTP |
-| UC-05a | View Profile | retrieve and display current profile |
-| UC-05b | Update Profile | update profile + alternative change password |
-| UC-06 | View Notifications | list notifications + mark shown notifications as read |
-| UC-07 | Submit Support Ticket | create support ticket with status Open |
-| UC-42 | Manage User Accounts | search/select user + lock/unlock + create internal user + update internal user |
-| UC-43 | Manage System Notifications | create/broadcast notification + delete notification |
-| UC-44 | Resolve Support Tickets | list open tickets + view ticket + reply and close |
+## Phase 1 / CD01 - Authentication and Common
 
-## CD02 - Course Commerce and Online Learning
+**File:** `CD01-authentication-common.mmd`  
+**Class inventory thực tế:** controllers `AuthController`, `UserController`, `StudentNotificationController`, `AdminUserController`; services `AuthService`, `AuthTokenService`, `GoogleAuthService`, `FacebookAuthService`, `UserService`, `AppNotificationService`, `AdminUserService`, `AuditLogService`, `UserRoleService`; entities `User`, `Role`, `AuthToken`, `AppNotification`, `AuditLog`; các repository tương ứng.
 
-**Class chính:** `OnlineCourse`, `CourseCategory`, `WishlistItem`, `CartItem`, `PaymentOrder`, `PaymentTransaction`, `Enrollment`, `Lesson`, `LessonProgress`, `CourseMaterial`
+| UC | Use Case | Sequence source | Code alignment |
+|---|---|---|---|
+| UC-01 | Register Account | `SQ01-register-account.mmd`, `SQ02-verify-email.mmd`, `SQ03-resend-verification-otp.mmd` | Implemented |
+| UC-03 | Login | `SQ04-login-email-password.mmd`, `SQ05-login-google.mmd`, `SQ06-login-facebook.mmd` | Implemented |
+| UC-04 | Forgot Password | `SQ07-forgot-password.mmd`, `SQ08-reset-password.mmd` | Implemented |
+| UC-05a | View Profile | `SQ09-view-profile.mmd` | Implemented |
+| UC-05b | Update Profile | `SQ10-update-profile.mmd` | Implemented |
+| UC-06 | View Notifications | `SQ11-view-notifications.mmd` | Implemented |
+| UC-07 | Submit Support Ticket | Không có SQ | **Unsupported:** không có ticket model/controller/service |
+| UC-42 | Manage User Accounts | `SQ64-manage-user-accounts.mmd` | **Implemented:** search/create/update/roles/status và audit |
+| UC-43 | Manage System Notifications | Không có SQ | **Unsupported:** learner list/read có code, admin create/broadcast/delete không có |
+| UC-44 | Resolve Support Tickets | Không có SQ | **Unsupported:** không có support-ticket resolution workflow |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-02 | View Public Courses | browse/search/filter course catalog + view course detail |
-| UC-08 | Enroll in Course | validate course/enrollment + checkout/payment + create enrollment + grant access |
-| UC-45 | Wishlist Courses | add wishlist + view wishlist + remove wishlist + add to cart from wishlist |
-| UC-46 | Add Courses to Cart | add cart + view cart + remove item + move item to wishlist + continue to payment |
-| UC-47 | Checkout | review order + apply coupon + PayOS payment + free order + cancel/failure/timeout |
-| UC-48 | Access Online Learning Materials | open enrolled course + select unlocked lesson + render content + mark complete + open attached material |
+## Phase 2 / CD02A-CD02B - Online Course, Commerce, and Learning
 
-## CD03 - Learner Classroom and Academic Report
+**Files:** `CD02A-course-commerce-enrollment.mmd`, `CD02B-online-learning-experience.mmd`  
+**CD02A:** public catalog/category, wishlist/cart, checkout/PayOS/discount, ownership, payment và enrollment; primary mapping SQ12-SQ17.  
+**CD02B:** enrolled modules/lessons/progress, progression assessment dependencies, discussion/reply/helpful/reaction/report/moderation, notes, access policy, notifications và audit; primary mapping SQ18 và SQ61-SQ63. SQ17 enrollment được cross-reference qua shared `User`, `OnlineCourse`, `LearningPackage`, `PackageEnrollment`.
 
-**Class chính:** `Classroom`, `ClassroomSession`, `ClassroomEnrollment`, `ClassroomMaterial`, `Homework`, `HomeworkSubmission`, `AttendanceRecord`, `GradebookEntry`, `AcademicReport`
+| UC | Use Case | Sequence source | Code alignment |
+|---|---|---|---|
+| UC-02 | View Public Courses | `SQ12-view-public-courses.mmd` | Implemented; CD02A |
+| UC-45 | Wishlist Courses | `SQ13-wishlist-courses.mmd` | Implemented; CD02A; không có cart-to-wishlist endpoint |
+| UC-46 | Add Courses to Cart | `SQ14-add-courses-to-cart.mmd` | Implemented; CD02A |
+| UC-47 | Checkout | `SQ15-checkout.mmd`, `SQ16-payos-webhook.mmd` | Implemented; CD02A; webhook được tách riêng |
+| UC-08 | Enroll in Course | `SQ17-enroll-in-course.mmd` | Implemented; CD02A primary, CD02B cross-reference |
+| UC-48 | Access Online Learning Materials | `SQ18-access-online-learning-materials.mmd` | Implemented; CD02B; authorized content/material URL, không có download endpoint riêng |
+| UC-49 | Discuss in Course | `SQ61-discuss-in-course.mmd` | CD02B; implemented read/create/reply/reaction/helpful/resolve; **thiếu edit/delete thread và edit/delete reply** |
+| UC-50 | Report Discussion | `SQ62-report-discussion.mmd` | CD02B; learner report là **create-only**; moderation queue/hide/dismiss được code hỗ trợ |
+| UC-51 | Take Note in Course | `SQ63-take-note-in-course.mmd` | CD02B; implemented **list/create/update/delete**; không có **GET-one** |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-09 | View Timetable | select week/month + load enrolled classroom sessions + view session detail |
-| UC-10 | Join Online Meeting | open virtual session + join Lark link + link not ready |
-| UC-11 | Access Learning Materials | open classroom material + render embedded viewer + material unavailable |
-| UC-12 | Download Learning Materials | verify downloadable classroom material + trigger download + restricted online-course material |
-| UC-13 | Submit Homework | upload file + validate file + submit + resubmit before deadline |
-| UC-14 | View Academic Report | load grades/quiz scores/attendance/progress + calculate average/progress + gradebook not published |
+## Phase 3 / CD03 - Content Management
 
-## CD04 - Assessment and Learner Practice
+**File:** `CD03-content-management.mmd`  
+**Class inventory thực tế:** content-manager course/curriculum/placement controllers; `OnlineCourseService`, `CourseProgressService`, `CurriculumProgramService`, `PlacementTestDefinitionService`; entities `LearningPackage`, `OnlineCourse`, `CourseCategory`, `CourseModule`, `Lesson`, `CurriculumProgram`, `CurriculumUnit`, `AssessmentBankItem`, `PlacementTestDefinition`, `PlacementTestAttempt`; các repository tương ứng.
 
-**Class chính:** `Quiz`, `Question`, `AnswerOption`, `AnswerKey`, `Attempt`, `AnswerSubmission`, `WritingSubmission`, `SpeakingSubmission`, `AudioSubmission`, `Flashcard`, `FlashcardProgress`
+| UC flow | Use Case | Sequence source | Code alignment |
+|---|---|---|---|
+| UC-32a | Create Syllabus | `SQ19-create-syllabus.mmd` | Implemented như curriculum/program |
+| UC-32b | View Syllabus | `SQ20-view-syllabus.mmd` | Implemented |
+| UC-32c | Update Syllabus | `SQ21-update-syllabus.mmd` | Implemented |
+| UC-32d | Delete Syllabus | `SQ22-delete-syllabus.mmd` | Archive/delete implemented; SRS active-link blocking phải được ghi là SRS-only nếu code không enforce |
+| UC-33a | Create Online Course | `SQ23-create-online-course.mmd` | Implemented |
+| UC-33b | View Online Courses | `SQ24-view-online-courses.mmd` | Implemented |
+| UC-33c | Update Online Course | `SQ25-update-online-course.mmd` | Implemented |
+| UC-33d | Delete Online Course | `SQ26-delete-online-course.mmd` | Soft delete/archive implemented; **SRS active-enrollment guard không có trong code** |
+| UC-34a | Create Placement Exam | `SQ27-create-placement-exam.mmd` | **SRS-only unsupported:** không có create/import endpoint; GET lazy-seed singleton |
+| UC-34b | View Placement Exams | `SQ28-view-placement-exams.mmd` | Implemented |
+| UC-34c | Update Placement Exam | `SQ29-update-placement-exam.mmd` | Implemented |
+| UC-34d | Delete Placement Exam | `SQ30-delete-placement-exam.mmd` | **Không có DELETE**; code chỉ PUT singleton với `active=false`, giữ attempts |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-15 | Take Quiz | start quiz + countdown + answer + submit + auto-submit when timer expires |
-| UC-16 | Take Placement Exam | start placement exam + sections + submit confirmation + score/result + auto-submit |
-| UC-17 | Practice Writing Skill | display prompt + auto-save draft + submit for grading |
-| UC-18 | Practice Listening Skill | load audio/questions + submit answers + score + timer auto-submit |
-| UC-19 | Practice Speaking Skill | mic check + record + auto-stop at 5 minutes + playback + upload |
-| UC-20 | Practice Reading Skill | display passage/questions + submit + evaluate + show correct/incorrect |
-| UC-21 | Practice Flashcard | flip card + mark mastered/not mastered + study/match mode |
+## Phase 4 / CD04 - Classroom Participation
 
-## CD05 - Syllabus, Online Course, Placement Exam Management
+**File:** `CD04-learner-classroom-participation.mmd`  
+**Class inventory thực tế:** `StudentClassroomController`; offering, homework, gradebook, content, material-sync, attachment-storage và attendance services; entities `ClassroomOffering`, `ClassroomEnrollment`, `ClassroomSession`, material/syllabus/announcement/homework/submission/attendance/gradebook; các repository tương ứng.
 
-**Class chính:** `Syllabus`, `CoursebookFile`, `OnlineCourse`, `CourseModule`, `Lesson`, `PlacementExam`, `PlacementQuestion`, `QuestionOption`, `AnswerKey`
+| UC | Use Case | Sequence source | Code alignment |
+|---|---|---|---|
+| UC-09 | View Timetable | `SQ31-view-timetable.mmd` | Implemented |
+| UC-10 | Join Online Meeting | `SQ32-join-online-meeting.mmd` | Implemented |
+| UC-11 | Access Learning Materials | `SQ33-access-classroom-learning-materials.mmd` | Implemented |
+| UC-12 | Download Learning Materials | `SQ34-download-classroom-learning-materials.mmd` | Chỉ trả stored `fileUrl`; không có backend download/downloadability check |
+| UC-13 | Submit Homework | `SQ35-submit-homework.mmd` | Implemented; upload attachment trước khi submit URL |
+| UC-14 | View Academic Report | `SQ36-view-academic-report.mmd` | Published gradebook entry và attendance là endpoint riêng |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-32a | Create Syllabus | create syllabus |
-| UC-32b | View Syllabus | view/search syllabus list + view detail |
-| UC-32c | Update Syllabus | update syllabus |
-| UC-32d | Delete Syllabus | delete syllabus + block if linked to active course/classroom |
-| UC-33a | Create Online Course | create online course |
-| UC-33b | View Online Courses | view/search course list + view detail/module structure |
-| UC-33c | Update Online Course | update course + module/lesson structure |
-| UC-33d | Delete Online Course | delete/archive course + block if active enrolled learners |
-| UC-34a | Create Placement Exam | create question/exam + import questions from file |
-| UC-34b | View Placement Exams | view/search/filter placement bank + view detail |
-| UC-34c | Update Placement Exam | update exam/question + cancel edit + restrict if existing attempts affected |
-| UC-34d | Delete Placement Exam | delete/deactivate exam/question + cancel deletion + preserve attempts |
+## Phase 5 / CD05 - Classroom Practice
 
-## CD06 - Teacher Classroom Operations and Practice Content
+**File:** `CD05-classroom-practice-assessment.mmd`  
+**Class inventory thực tế:** quiz, student assessment, placement, flashcard-practice và student-course controllers; quiz/AI assessment/audio/placement/flashcard/course services và policies; entities `ClassroomQuiz`, `ClassroomQuizQuestion`, `ClassroomQuizAttempt`, `CourseAssessment`, `AssessmentRubric`, `AssessmentSubmission`, `PlacementTestAttempt`, `OnlineCourse`, `VocabularyProgress`; các repository tương ứng.
 
-**Class chính:** `TeacherAssignment`, `ClassroomSession`, `ClassroomAttendance`, `Syllabus`, `Homework`, `HomeworkSubmission`, `GradebookEntry`, `QuizPracticeContent`, `WritingPracticeContent`, `SpeakingPracticeContent`, `ReadingPracticeContent`, `ListeningPracticeContent`
+| UC | Use Case | Sequence source | Code alignment / SRS-only gap |
+|---|---|---|---|
+| UC-15 | Take Quiz | `SQ37-take-quiz.mmd` | Implemented submit; **SRS countdown/forced auto-submit unsupported** |
+| UC-16 | Take Placement Exam | `SQ38-take-placement-exam.mmd` | Implemented current-test read/submit; draft/timer là client-side, không có start/autosave API |
+| UC-17 | Practice Writing Skill | `SQ39-practice-writing-skill.mmd` | Implemented; **SRS resumable periodic autosave backend unsupported** |
+| UC-18 | Practice Listening Skill | `SQ40-practice-listening-skill.mmd` | Implemented; timer/auto-submit là client-side |
+| UC-19 | Practice Speaking Skill | `SQ41-practice-speaking-skill.mmd` | Implemented upload/submit; **SRS five-minute cap không được backend enforce** |
+| UC-20 | Practice Reading Skill | `SQ42-practice-reading-skill.mmd` | Implemented; timer/auto-submit là client-side |
+| UC-21 | Practice Flashcard | `SQ43-practice-flashcard.mmd` | Implemented read và progress qua hai boundaries |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-22 | View Teaching Schedule | select week/month/today + load assigned sessions |
-| UC-23 | Manage Class Attendance | load roster + set attendance status + save/update attendance |
-| UC-24 | View Syllabus | load linked syllabus + render viewer |
-| UC-25 | Download Syllabus | prepare syllabus file + trigger download |
-| UC-26 | Manage Homework | create homework + update homework + delete homework + grade/update score |
-| UC-27 | Manage Quiz Practice Content | create quiz + update quiz + delete quiz |
-| UC-28 | Manage Writing Practice Content | SRS section is duplicated as UC-27 quiz content; no distinct writing flow is present in extracted spec |
-| UC-29 | Manage Speaking Practice Content | create speaking exercise + update speaking exercise + delete speaking exercise |
-| UC-30 | Manage Reading Practice Content | create reading exercise + update reading exercise + delete reading exercise |
-| UC-31 | Manage Listening Practice Content | create listening exercise + update listening exercise + delete listening exercise |
+## Phase 6 / CD06 - Teacher Classroom Operations
 
-## CD07 - Training Management
+**File:** `CD06-teacher-classroom-operations.mmd`  
+**Class inventory thực tế:** `TeacherClassroomController`, `ClassroomQuizController`, `ExerciseBankController`; offering/attendance/homework/content/quiz/exercise-bank services; entities offering/assignment/session/attendance/homework/submission/material/quiz/question và `ExerciseBankItem`; các repository tương ứng.
 
-**Class chính:** `TeacherProfile`, `TeacherPerformanceMetric`, `Classroom`, `TeacherAssignment`, `ClassroomEnrollment`
+| UC | Use Case | Sequence source | Code alignment / SRS-only gap |
+|---|---|---|---|
+| UC-22 | View Teaching Schedule | `SQ44-view-teaching-schedule.mmd` | Assigned classrooms + sessions; không có aggregate schedule/date filter |
+| UC-23 | Manage Class Attendance | `SQ45-manage-class-attendance.mmd` | Implemented; current ownership/lock enforcement hạn chế |
+| UC-24 | View Syllabus | `SQ46-teacher-view-syllabus.mmd` | **Không có teacher syllabus endpoint riêng**; detail chỉ có `syllabusSummary` |
+| UC-25 | Download Syllabus | `SQ47-teacher-download-syllabus.mmd` | **SRS-only unsupported:** không có syllabus generation/download endpoint |
+| UC-26 | Manage Homework | `SQ48-manage-homework.mmd` | Implemented list/create/update/delete/submissions/grade |
+| UC-27 | Manage Quiz Practice Content | `SQ49-manage-quiz-practice-content.mmd` | List/create/open/close/delete; **content update unsupported** |
+| UC-28 | Manage Writing Practice Content | `SQ50-manage-writing-practice-content.mmd` | **SRS teacher operation unsupported:** CRUD chỉ ở content-manager exercise bank |
+| UC-29 | Manage Speaking Practice Content | `SQ51-manage-speaking-practice-content.mmd` | Cùng role mismatch; teacher CRUD unsupported |
+| UC-30 | Manage Reading Practice Content | `SQ52-manage-reading-practice-content.mmd` | Cùng role mismatch; teacher CRUD unsupported |
+| UC-31 | Manage Listening Practice Content | `SQ53-manage-listening-practice-content.mmd` | Cùng role mismatch; không có audio storage/upload |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-35 | View Teacher Profiles | search teacher + view teacher profile with schedule/performance metrics |
-| UC-36 | Manage Classrooms | create classroom + update classroom + delete classroom |
-| UC-37 | Assign Teacher to Classroom | search/select teacher + check schedule conflict + save assignment |
-| UC-38 | Assign Learner to Classroom | select learners + check capacity + add learners to roster |
-| UC-39 | Evaluate Teacher Performance | aggregate metrics + enter feedback/rating + save evaluation |
+## Phase 7 / CD07 - Training Management
 
-## CD08 - Reports
+**File:** `CD07-training-management.mmd`  
+**Class inventory thực tế:** `TrainingManagerClassroomController`, `ClassroomOfferingService`, `ClassroomConflictService`; `User`, offering, teacher assignment, enrollment, session, tuition payment, room; các repository tương ứng.
 
-**Class chính:** `OperationalReportData`, `RevenueAnalyticsData`, `RevenueExportFile`
+| UC | Use Case | Sequence source | Code alignment / SRS-only gap |
+|---|---|---|---|
+| UC-35 | View Teacher Profiles | `SQ54-view-teacher-profiles.mmd` | Chỉ teacher picker; **profile detail/search/paging/history unsupported** |
+| UC-36 | Manage Classrooms | `SQ55-manage-classrooms.mmd` | List/get/create/update/publish/close; **SRS delete/archive/filter/paging unsupported** |
+| UC-37 | Assign Teacher to Classroom | `SQ56-assign-teacher-to-classroom.mmd` | Implemented assign/replace |
+| UC-38 | Assign Learner to Classroom | `SQ57-assign-learner-to-classroom.mmd` | Implemented registration/confirm/tuition/conflict/assign và direct enroll |
+| UC-39 | Evaluate Teacher Performance | `SQ58-evaluate-teacher-performance.mmd` | **SRS-only unsupported:** không có teacher evaluation subsystem |
 
-| UC | Use Case | Sequence cần vẽ theo spec |
-|---|---|---|
-| UC-40 | View Operational Report | select filters/date range + query operational data + render charts/tables |
-| UC-41 | View Revenue Analytic of Online Course | select filters/date range + calculate revenue metrics + compare periods + drill down + export report |
+## Phase 7 / CD08 - Reports
+
+**File:** `CD08-reports.mmd`  
+**Class inventory thực tế:** `TrainingManagerDashboardController`, `ContentManagerRevenueController`, `TrainingManagerOpsService`, `PaymentService`; offering/enrollment/change-request/session/payment repositories và entities; dashboard/revenue response models.
+
+| UC | Use Case | Sequence source | Code alignment / SRS-only gap |
+|---|---|---|---|
+| UC-40 | View Operational Report | `SQ59-view-operational-report.mmd` | Fixed training-manager dashboard; **SRS date/filter/detail/export unsupported** |
+| UC-41 | View Revenue Analytic of Online Course | `SQ60-view-revenue-analytics.mmd` | Fixed content-manager analytics; **SRS date/course filter, comparison, export/detail unsupported** |
+
+## Final counts
+
+| Artifact / scope | Count |
+|---|---:|
+| Parent use cases | **51** |
+| Sequence diagram source files | **64** |
+| Class diagram source files | **9** |
+| Total Mermaid source files | **73** |
+| Existing SVG render files | **73** |
