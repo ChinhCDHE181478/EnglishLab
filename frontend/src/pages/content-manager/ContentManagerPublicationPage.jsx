@@ -53,9 +53,6 @@ export default function ContentManagerPublicationPage() {
       if (action === 'SUBMIT_REVIEW') {
         updated = await courseApi.submitOnlineCourseForReview(course.id);
         setSuccess('Khóa học đã được gửi duyệt.');
-      } else if (action === 'PUBLISHED') {
-        updated = await courseApi.publishOnlineCourse(course.id);
-        setSuccess('Khóa học đã được xuất bản.');
       } else {
         updated = await courseApi.archiveOnlineCourse(course.id);
         setSuccess('Khóa học đã được chuyển vào lưu trữ.');

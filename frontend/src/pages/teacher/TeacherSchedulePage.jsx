@@ -938,7 +938,7 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
         newValuesJson: buildNewValues(TIME_SLOTS[slotIndex], newDate),
         reason: reason.trim(),
       });
-      setSuccess('Đã gửi yêu cầu chuyển lịch. Yêu cầu sẽ được Quản lý đào tạo xác nhận trước khi áp dụng.');
+      setSuccess('Đã gửi yêu cầu chuyển lịch. Yêu cầu sẽ được Nhân viên đào tạo xác nhận trước khi áp dụng.');
       setTimeout(() => onSubmitted?.(), 1400);
     } catch (err) {
       setError(getClassroomErrorMessage(err, 'Không thể gửi yêu cầu chuyển lịch.'));
@@ -966,7 +966,7 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
       </div>
       <p className="text-xs leading-6 text-[#8b706e]">
         Chọn ngày mới — hệ thống chỉ hiển thị các khung giờ mà học viên trong lớp không bị
-        trùng lịch với lớp khác. Yêu cầu cần Quản lý đào tạo xác nhận trước khi áp dụng.
+        trùng lịch với lớp khác. Yêu cầu cần Nhân viên đào tạo xác nhận trước khi áp dụng.
       </p>
 
       {/* New date */}
@@ -1017,7 +1017,7 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Nhập lý do để Quản lý đào tạo xem xét..."
+          placeholder="Nhập lý do để Nhân viên đào tạo xem xét..."
           className="min-h-[80px] w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
         />
       </div>

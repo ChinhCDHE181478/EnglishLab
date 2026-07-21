@@ -21,6 +21,7 @@ import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPa
 import ContentManagerPackagesPage from './ContentManagerPackagesPage';
 import ContentManagerSettingsPage from './ContentManagerSettingsPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
+import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -46,6 +47,7 @@ export default function ContentManagerRoutes() {
         <Route path="courses/new" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/edit" element={<ContentManagerCourseEditorPage />} />
         <Route path="courses/:slugOrId/builder" element={<ContentManagerCourseBuilderPage />} />
+        <Route path="courses/:slugOrId/preview" element={<ContentManagerCoursePreviewPage />} />
         <Route path="discount-codes" element={<ContentManagerDiscountCodesPage />} />
         <Route path="materials" element={<ContentManagerMaterialsPage />} />
         <Route path="flashcards" element={<ContentManagerFlashcardsPage />} />

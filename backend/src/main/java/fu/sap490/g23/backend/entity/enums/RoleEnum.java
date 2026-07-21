@@ -5,6 +5,8 @@ public enum RoleEnum {
     TEACHER,
     MANAGER,
     CONTENT_MANAGER,
+    STAFF,
+    /** Vai trò tương thích; nghiệp vụ vận hành mới dùng {@link #STAFF}. */
     TRAINING_MANAGER,
     ADMIN
 }

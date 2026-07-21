@@ -1,5 +1,7 @@
 package fu.sap490.g23.backend.dto.response.assessment;
 
+import fu.sap490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
+import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -11,6 +13,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PlacementTestAttemptResponse {
     private Long id;
+    private Long learnerId;
+    private String learnerName;
+    private String learnerEmail;
     private String testCode;
     private String examType;
     private BigDecimal listeningScore;
@@ -22,5 +27,12 @@ public class PlacementTestAttemptResponse {
     private Integer correctReading;
     private String aiFeedbackJson;
     private String status;
+    private PlacementEvaluationStatus evaluationStatus;
+    private PlacementLevel recommendedLevel;
+    private LocalDateTime expiresAt;
+    private Long reviewerId;
+    private String reviewerName;
+    private LocalDateTime reviewedAt;
+    private String reviewNote;
     private LocalDateTime submittedAt;
 }

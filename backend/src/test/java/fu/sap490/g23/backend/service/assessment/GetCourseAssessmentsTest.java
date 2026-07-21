@@ -7,14 +7,17 @@ import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sap490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +54,9 @@ class GetCourseAssessmentsTest {
 
     @Mock
     private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+
+    @Mock
+    private OnlineCourseVersionService onlineCourseVersionService;
 
     @InjectMocks
     private AiAssessmentServiceImpl aiAssessmentService;
@@ -105,6 +111,36 @@ class GetCourseAssessmentsTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(assessment.getId(), result.get(0).getId());
+    }
+
+    @Test
+    void getCourseAssessments_UsesEnrollmentVersionSnapshotInsteadOfCurrentActiveSet() {
+        OnlineCourseVersion versionOne = OnlineCourseVersion.builder()
+                .id(20L)
+                .onlineCourse(course)
+                .versionNumber(1)
+                .status(CourseVersionStatus.RETIRED)
+                .assessmentIdsJson("[100]")
+                .build();
+        enrollment.setCourseVersion(versionOne);
+        assessment.setActive(false);
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(onlineCourseVersionService.getEnrollmentAssessmentIds(enrollment)).thenReturn(List.of(assessment.getId()));
+        when(courseAssessmentRepository.findAllById(List.of(assessment.getId()))).thenReturn(List.of(assessment));
+        when(submissionRepository.findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student))
+                .thenReturn(List.of());
+
+        List<CourseAssessmentResponse> result = aiAssessmentService.getCourseAssessments(
+                course.getId(),
+                student.getEmail()
+        );
+
+        assertEquals(List.of(assessment.getId()), result.stream().map(CourseAssessmentResponse::getId).toList());
+        verify(courseAssessmentRepository, never())
+                .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
     }
 
     /**

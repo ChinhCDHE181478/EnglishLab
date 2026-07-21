@@ -85,12 +85,24 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     }
 
     private CompletionSnapshot buildSnapshot(PackageEnrollment enrollment, OnlineCourse course, User student) {
-        int totalLessons = course.getModules().stream()
+        int liveLessonCount = course.getModules().stream()
                 .mapToInt(module -> module.getLessons().size())
                 .sum();
-        int totalAssessments = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));
-        int completedLessons = Math.toIntExact(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED));
-        int completedAssessments = Math.toIntExact(assessmentSubmissionRepository.countCompletedAssessments(student, course, COMPLETED_ASSESSMENT_STATUSES));
+        int liveAssessmentCount = Math.toIntExact(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course));
+        int totalLessons = enrollment.getCourseVersion() == null
+                ? liveLessonCount
+                : enrollment.getCourseVersion().getTotalRequiredLessons();
+        int totalAssessments = enrollment.getCourseVersion() == null
+                ? liveAssessmentCount
+                : enrollment.getCourseVersion().getTotalRequiredAssessments();
+        int completedLessons = Math.min(
+                totalLessons,
+                Math.toIntExact(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
+        );
+        int completedAssessments = Math.min(
+                totalAssessments,
+                Math.toIntExact(assessmentSubmissionRepository.countCompletedAssessments(student, course, COMPLETED_ASSESSMENT_STATUSES))
+        );
         boolean completedRequiredLessons = totalLessons > 0 && completedLessons >= totalLessons;
         boolean completedRequiredAssessments = totalAssessments == 0 || completedAssessments >= totalAssessments;
         boolean hasEnoughDataForCertificate = totalLessons > 0;

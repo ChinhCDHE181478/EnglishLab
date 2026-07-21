@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -54,12 +55,21 @@ class TrainingProgramServiceImplTest {
                 .slug("toeic-650-offline")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .curriculumProgram(curriculum)
+                .maxCapacity(24)
+                .plannedStartDate(LocalDate.of(2026, 8, 15))
+                .plannedSchedule("Thứ 2, 4, 6 · 18:30–20:30")
                 .status(PackageStatus.DRAFT)
                 .build();
         when(programRepository.findById(21L)).thenReturn(Optional.of(program));
 
         TrainingProgramResponse response = service.getProgram(21L);
 
+        assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
+        assertThat(response.getDeliveryMode()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
+        assertThat(response.getCapacity()).isEqualTo(24);
+        assertThat(response.getMaxCapacity()).isEqualTo(24);
+        assertThat(response.getPlannedStartDate()).isEqualTo(LocalDate.of(2026, 8, 15));
+        assertThat(response.getPlannedSchedule()).isEqualTo("Thứ 2, 4, 6 · 18:30–20:30");
         assertThat(response.getEntryLevel()).isEqualTo(curriculum.getEntryLevel());
         assertThat(response.getTargetScore()).isEqualTo("650");
         assertThat(response.getTargetOutcome()).isEqualTo(curriculum.getOutcomes());

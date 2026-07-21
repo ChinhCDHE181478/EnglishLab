@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 public class LessonResponse {
     private Long id;
+    private String lessonKey;
     private String title;
     private String description;
     private String contentType;

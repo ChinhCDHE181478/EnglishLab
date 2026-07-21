@@ -4,7 +4,7 @@ import adminApi from '../../api/adminApi';
 import { ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 
-const ROLES = ['LEARNER', 'TEACHER', 'CONTENT_MANAGER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN'];
+const ROLES = ['LEARNER', 'TEACHER', 'CONTENT_MANAGER', 'STAFF', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN'];
 const emptyForm = { fullName: '', email: '', phoneNumber: '', password: '', roles: ['LEARNER'] };
 
 export default function AdminUsersPage() {

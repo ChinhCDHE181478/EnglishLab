@@ -1,4 +1,4 @@
-// Shared form/border styles to keep Content Manager & Training Manager screens
+// Shared form/border styles for Content Manager and training-operation screens.
 // consistent with the rest of the EnglishLab admin UI (rounded-2xl, soft slate
 // borders, branded focus ring — never the default black outline).
 

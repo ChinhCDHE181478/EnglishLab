@@ -296,14 +296,14 @@ function resolveMeta(pathname) {
   if (/^\/content-manager\/offline-programs\/[^/]+\/edit$/.test(pathname)) {
     return {
       ...contentManagerPageMeta['/content-manager/offline-programs'],
-      title: 'Sửa chương trình offline',
+      title: 'Sửa khóa học Offline',
     };
   }
 
   if (/^\/content-manager\/virtual-programs\/[^/]+\/edit$/.test(pathname)) {
     return {
       ...contentManagerPageMeta['/content-manager/virtual-programs'],
-      title: 'Sửa chương trình virtual',
+      title: 'Sửa khóa học Virtual',
     };
   }
 

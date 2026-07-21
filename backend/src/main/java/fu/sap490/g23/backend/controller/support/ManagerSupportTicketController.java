@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping({"/api/training-manager/support-tickets", "/api/manager/support-tickets"})
+@RequestMapping({"/api/staff/support-tickets", "/api/training-manager/support-tickets", "/api/manager/support-tickets"})
 @RequiredArgsConstructor
 public class ManagerSupportTicketController {
 

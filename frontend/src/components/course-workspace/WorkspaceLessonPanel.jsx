@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { looksLikeRichTextHtml, sanitizeLessonHtml } from '../../utils/lessonRichText';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const getVideoEmbedUrl = (url) => {
   if (!url) return '';
@@ -14,7 +14,7 @@ const renderInlineMarkdown = (text = '') => {
   const parts = String(text).split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong>;
+      return <strong key={`${part}-${index}`} className="font-bold text-[#1f2430]">{part.slice(2, -2)}</strong>;
     }
     return <span key={`${part}-${index}`}>{part.replace(/\*\*/g, '')}</span>;
   });
@@ -23,35 +23,105 @@ const renderInlineMarkdown = (text = '') => {
 const renderLine = (line, key) => {
   if (!line.trim()) return <div key={key} className="h-3" />;
   const boldHeadingMatch = line.match(/^\*\*([^*]+)\*\*:?$/);
-  if (boldHeadingMatch) return <h4 key={key} className="mt-4 text-base font-semibold text-[#2b2828]">{boldHeadingMatch[1]}</h4>;
-  if (line.startsWith('### ')) return <h4 key={key} className="mt-4 text-base font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(4))}</h4>;
-  if (line.startsWith('## ')) return <h3 key={key} className="mt-5 text-lg font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(3))}</h3>;
-  if (line.startsWith('# ')) return <h2 key={key} className="text-2xl font-extrabold text-[#2b2828]">{renderInlineMarkdown(line.slice(2))}</h2>;
-  if (/^\d+\.\s+/.test(line)) return <p key={key} className="pl-4 font-medium text-[#3f3030]">{renderInlineMarkdown(line)}</p>;
-  if (line.startsWith('- ')) return <p key={key} className="pl-4 before:mr-2 before:content-['•']">{renderInlineMarkdown(line.slice(2))}</p>;
-  return <p key={key}>{renderInlineMarkdown(line)}</p>;
+  if (boldHeadingMatch) return <h4 key={key} className="mt-5 text-[15px] font-bold text-[#1f2430]">{boldHeadingMatch[1]}</h4>;
+  if (line.startsWith('### ')) return <h4 key={key} className="mt-4 text-[13px] font-bold uppercase tracking-wide text-[#5f5353]">{renderInlineMarkdown(line.slice(4))}</h4>;
+  if (line.startsWith('## ')) return <h3 key={key} className="mt-5 text-base font-bold text-[#1f2430]">{renderInlineMarkdown(line.slice(3))}</h3>;
+  if (line.startsWith('# ')) return <h2 key={key} className="text-lg font-bold text-[#1f2430]">{renderInlineMarkdown(line.slice(2))}</h2>;
+  if (/^\d+\.\s+/.test(line)) return <p key={key} className="flex gap-2 pl-2 font-medium text-[#3f3030]"><span className="shrink-0 font-bold text-[#4b0009]">{line.match(/^\d+/)?.[0]}.</span><span>{renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</span></p>;
+  if (line.startsWith('- ')) return <p key={key} className="flex gap-2 pl-2 text-[#3f3030]"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#4b0009]" /><span>{renderInlineMarkdown(line.slice(2))}</span></p>;
+  return <p key={key} className="text-[#3f3030]">{renderInlineMarkdown(line)}</p>;
 };
+
+const LESSON_HTML_CLASSES = [
+  'mt-5 select-text rounded-[24px] border border-[#ead9db] bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030]',
+  'selection:bg-[#fff0f1] selection:text-[#4b0009]',
+  /* links */
+  '[&_a]:font-semibold [&_a]:text-[#730014] [&_a]:underline',
+  /* headings — bold sentence-case, not uppercase */
+  '[&_h1]:mb-3 [&_h1]:text-xl [&_h1]:font-bold [&_h1]:text-[#1f2430]',
+  '[&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#1f2430]',
+  '[&_h3]:mb-1.5 [&_h3]:mt-5 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-[#5f5353]',
+  '[&_h4]:mb-1 [&_h4]:mt-4 [&_h4]:text-sm [&_h4]:font-bold [&_h4]:text-[#1f2430]',
+  /* paragraphs, lists */
+  '[&_p]:my-1.5',
+  '[&_ul]:my-3 [&_ul]:space-y-1 [&_ul]:pl-0 [&_ul>li]:flex [&_ul>li]:gap-2 [&_ul>li]:items-baseline [&_ul>li]:before:mt-1.5 [&_ul>li]:before:h-1.5 [&_ul>li]:before:w-1.5 [&_ul>li]:before:shrink-0 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-[#4b0009] [&_ul>li]:before:content-[""]',
+  '[&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol>li]:pl-1 [&_ol>li]:marker:font-bold [&_ol>li]:marker:text-[#4b0009]',
+  /* blockquote */
+  '[&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fff7f7] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-[#584140]',
+  /* strong / b inside rich text */
+  '[&_strong]:font-bold [&_strong]:text-[#1f2430] [&_b]:font-bold [&_b]:text-[#1f2430]',
+  /* code/pre */
+  '[&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-4 [&_pre]:text-white',
+].join(' ');
+
+/** Convert a subset of Markdown to HTML so both storage formats render correctly. */
+const markdownToHtml = (text = '') => {
+  const lines = String(text).split('\n');
+  const out = [];
+  let inUl = false;
+  let inOl = false;
+
+  const flushList = () => {
+    if (inUl) { out.push('</ul>'); inUl = false; }
+    if (inOl) { out.push('</ol>'); inOl = false; }
+  };
+
+  const inlineMarkdown = (s) =>
+    s
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      flushList();
+      out.push('<br>');
+      continue;
+    }
+    if (line.startsWith('# '))  { flushList(); out.push(`<h1>${inlineMarkdown(line.slice(2))}</h1>`); continue; }
+    if (line.startsWith('## ')) { flushList(); out.push(`<h2>${inlineMarkdown(line.slice(3))}</h2>`); continue; }
+    if (line.startsWith('### ')) { flushList(); out.push(`<h3>${inlineMarkdown(line.slice(4))}</h3>`); continue; }
+    if (line.startsWith('#### ')) { flushList(); out.push(`<h4>${inlineMarkdown(line.slice(5))}</h4>`); continue; }
+
+    const olMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (olMatch) {
+      if (!inOl) { if (inUl) { out.push('</ul>'); inUl = false; } out.push('<ol>'); inOl = true; }
+      out.push(`<li>${inlineMarkdown(olMatch[2])}</li>`);
+      continue;
+    }
+
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      if (!inUl) { if (inOl) { out.push('</ol>'); inOl = false; } out.push('<ul>'); inUl = true; }
+      out.push(`<li>${inlineMarkdown(line.slice(2))}</li>`);
+      continue;
+    }
+
+    flushList();
+    const boldHeading = line.match(/^\*\*([^*]+)\*\*:?\s*$/);
+    if (boldHeading) { out.push(`<h4>${boldHeading[1]}</h4>`); continue; }
+    out.push(`<p>${inlineMarkdown(line)}</p>`);
+  }
+  flushList();
+  return out.join('\n');
+};
+
+/** True when content is stored as rich-text HTML (from the Quill/Tiptap editor). */
+const isRichTextHtml = (value = '') => /\s*<\/?(?:h[1-6]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i.test(String(value));
 
 const LessonContent = ({ content }) => {
   if (!content) return null;
 
-  if (looksLikeRichTextHtml(content)) {
-    return (
-      <div
-        id="khu-vuc-noi-dung-bai-hoc"
-        className="mt-5 select-text rounded-[24px] border border-[#ead9db] bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030] selection:bg-[#fff0f1] selection:text-[#4b0009] [&_a]:font-semibold [&_a]:text-[#730014] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fff7f7] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-extrabold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-extrabold [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-900 [&_pre]:p-4 [&_pre]:text-white [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-6"
-        dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(content) }}
-      />
-    );
-  }
+  // Convert to HTML regardless of source format so markdown is always rendered.
+  const html = isRichTextHtml(content)
+    ? sanitizeLessonHtml(content)
+    : sanitizeLessonHtml(markdownToHtml(content));
 
   return (
     <div
       id="khu-vuc-noi-dung-bai-hoc"
-      className="mt-5 select-text rounded-[24px] border border-[#ead9db] bg-[#fffdfc] p-5 text-sm leading-7 text-[#3f3030] selection:bg-[#fff0f1] selection:text-[#4b0009]"
-    >
-      {String(content).split('\n').map((line, index) => renderLine(line, `${index}-${line.slice(0, 16)}`))}
-    </div>
+      className={LESSON_HTML_CLASSES}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 };
 
@@ -287,3 +357,4 @@ const WorkspaceLessonPanel = ({
 };
 
 export default WorkspaceLessonPanel;
+

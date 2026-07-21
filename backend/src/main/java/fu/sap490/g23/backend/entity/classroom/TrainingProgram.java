@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +63,16 @@ public class TrainingProgram {
 
     @Column(length = 120)
     private String studyMode;
+
+    @Column(name = "max_capacity", nullable = false, columnDefinition = "integer default 30")
+    @Builder.Default
+    private Integer maxCapacity = 30;
+
+    @Column(name = "planned_start_date")
+    private LocalDate plannedStartDate;
+
+    @Column(name = "planned_schedule", length = 500)
+    private String plannedSchedule;
 
     @Column(length = 700)
     private String thumbnailUrl;

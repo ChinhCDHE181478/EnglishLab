@@ -3,12 +3,17 @@ package fu.sap490.g23.backend.controller.course;
 import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
 import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
+import fu.sap490.g23.backend.dto.request.course.ReorderLessonsRequest;
+import fu.sap490.g23.backend.dto.request.course.ReorderModulesRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.dto.response.ApiResponse;
 import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
+import fu.sap490.g23.backend.dto.response.course.LessonResponse;
+import fu.sap490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.service.course.OnlineCourseService;
 import jakarta.validation.Valid;
@@ -59,6 +64,35 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.getManagerCourse(slugOrId));
     }
 
+    @GetMapping("/{slugOrId}/preview")
+    public ResponseEntity<OnlineCoursePreviewResponse> getCoursePreview(@PathVariable String slugOrId) {
+        return ResponseEntity.ok(onlineCourseService.getManagerCoursePreview(slugOrId));
+    }
+
+    @PatchMapping("/{courseId}/modules/reorder")
+    public ResponseEntity<List<ModuleResponse>> reorderModules(
+            @PathVariable Long courseId,
+            @Valid @RequestBody ReorderModulesRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.reorderModules(courseId, request, authentication.getName()));
+    }
+
+    @PatchMapping("/{courseId}/modules/{moduleId}/lessons/reorder")
+    public ResponseEntity<List<LessonResponse>> reorderLessons(
+            @PathVariable Long courseId,
+            @PathVariable Long moduleId,
+            @Valid @RequestBody ReorderLessonsRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.reorderLessons(
+                courseId,
+                moduleId,
+                request,
+                authentication.getName()
+        ));
+    }
+
     @GetMapping("/{courseId}/assessments")
     public ResponseEntity<List<CourseAssessmentResponse>> getCourseAssessments(@PathVariable Long courseId) {
         return ResponseEntity.ok(onlineCourseService.getManagerCourseAssessments(courseId));
@@ -67,9 +101,14 @@ public class ContentManagerOnlineCourseController {
     @PutMapping("/{courseId}/assessments")
     public ResponseEntity<List<CourseAssessmentResponse>> saveCourseAssessments(
             @PathVariable Long courseId,
-            @Valid @RequestBody List<ContentManagerCourseAssessmentRequest> requests
+            @Valid @RequestBody List<ContentManagerCourseAssessmentRequest> requests,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(onlineCourseService.saveManagerCourseAssessments(courseId, requests));
+        return ResponseEntity.ok(onlineCourseService.saveManagerCourseAssessments(
+                courseId,
+                requests,
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/assessment-rubrics")
@@ -88,8 +127,12 @@ public class ContentManagerOnlineCourseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<OnlineCourseResponse> updateCourse(@PathVariable Long id, @Valid @RequestBody OnlineCourseRequest request) {
-        return ResponseEntity.ok(onlineCourseService.updateCourse(id, request));
+    public ResponseEntity<OnlineCourseResponse> updateCourse(
+            @PathVariable Long id,
+            @Valid @RequestBody OnlineCourseRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(onlineCourseService.updateCourse(id, request, authentication.getName()));
     }
 
     @PatchMapping("/learning-path-order")
@@ -100,13 +143,13 @@ public class ContentManagerOnlineCourseController {
     }
 
     @PatchMapping("/{id}/publish")
-    public ResponseEntity<OnlineCourseResponse> publishCourse(@PathVariable Long id) {
-        return ResponseEntity.ok(onlineCourseService.publishCourse(id));
+    public ResponseEntity<OnlineCourseResponse> publishCourse(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.publishCourse(id, authentication.getName()));
     }
 
     @PatchMapping("/{id}/submit-review")
-    public ResponseEntity<OnlineCourseResponse> submitForReview(@PathVariable Long id) {
-        return ResponseEntity.ok(onlineCourseService.submitForReview(id));
+    public ResponseEntity<OnlineCourseResponse> submitForReview(@PathVariable Long id, Authentication authentication) {
+        return ResponseEntity.ok(onlineCourseService.submitForReview(id, authentication.getName()));
     }
 
     @PatchMapping("/{id}/archive")
@@ -128,16 +171,28 @@ public class ContentManagerOnlineCourseController {
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @RequestParam(required = false) String title,
-            @RequestPart("file") MultipartFile file
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(onlineCourseService.uploadLessonVideo(courseId, lessonId, title, file));
+        return ResponseEntity.ok(onlineCourseService.uploadLessonVideo(
+                courseId,
+                lessonId,
+                title,
+                file,
+                authentication.getName()
+        ));
     }
 
     @PostMapping("/{courseId}/lessons/{lessonId}/transcript/youtube")
     public ResponseEntity<OnlineCourseResponse> refreshLessonTranscript(
             @PathVariable Long courseId,
-            @PathVariable Long lessonId
+            @PathVariable Long lessonId,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(onlineCourseService.refreshLessonTranscript(courseId, lessonId));
+        return ResponseEntity.ok(onlineCourseService.refreshLessonTranscript(
+                courseId,
+                lessonId,
+                authentication.getName()
+        ));
     }
 }

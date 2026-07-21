@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Clock, Megaphone, Plus, Users, Wand2, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Clock, Megaphone, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -56,6 +56,9 @@ export default function TrainingManagerClassroomDetailPage() {
   const [teachers, setTeachers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [allClassrooms, setAllClassrooms] = useState([]);
+  const [transfer, setTransfer] = useState({ enrollment: null, targetId: '' });
+  const [studentActionId, setStudentActionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -103,16 +106,18 @@ export default function TrainingManagerClassroomDetailPage() {
         }
       };
 
-      const [data, teacherData, roomData, templateData] = await Promise.all([
+      const [data, teacherData, roomData, templateData, classroomData] = await Promise.all([
         classroomApi.getManagerClassroom(id),
         classroomApi.getTrainingManagerTeachers(),
         classroomApi.getTrainingManagerRooms(),
         loadSessionTemplates(),
+        classroomApi.getManagerClassrooms(),
       ]);
       setClassroom(data);
       setTeachers(teacherData);
       setRooms(roomData);
       setTemplates(templateData);
+      setAllClassrooms(classroomData);
       setSessionForm((current) => ({
         ...current,
         sessionDate: current.sessionDate || data.startDate || '',
@@ -194,6 +199,40 @@ export default function TrainingManagerClassroomDetailPage() {
     }
   };
 
+  const handleRemoveStudent = async (enrollment) => {
+    if (!window.confirm(`Loại ${enrollment.studentName || enrollment.studentEmail} khỏi danh sách lớp hiện tại?`)) return;
+    setStudentActionId(enrollment.id);
+    setActionMessage('');
+    try {
+      await classroomApi.removeStudent(id, enrollment.studentId);
+      setActionMessage('Đã loại học viên khỏi danh sách lớp hiện tại.');
+      await loadClassroom();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể loại học viên khỏi lớp.'));
+    } finally {
+      setStudentActionId(null);
+    }
+  };
+
+  const handleTransferStudent = async () => {
+    if (!transfer.enrollment || !transfer.targetId) return;
+    setStudentActionId(transfer.enrollment.id);
+    setActionMessage('');
+    try {
+      await classroomApi.transferStudent(id, {
+        studentId: transfer.enrollment.studentId,
+        targetClassroomOfferingId: Number(transfer.targetId),
+      });
+      setActionMessage('Đã chuyển học viên sang lớp mới; tên đã được loại khỏi danh sách lớp nguồn.');
+      setTransfer({ enrollment: null, targetId: '' });
+      await loadClassroom();
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể chuyển lớp cho học viên.'));
+    } finally {
+      setStudentActionId(null);
+    }
+  };
+
   const handleGenerateSessions = async (event) => {
     event.preventDefault();
     setActionMessage('');
@@ -242,7 +281,7 @@ export default function TrainingManagerClassroomDetailPage() {
         <ClassroomErrorState message={error || 'Không tìm thấy lớp học.'} onRetry={loadClassroom} />
         <button
           className="text-sm font-bold text-[#730014] hover:underline"
-          onClick={() => navigate('/training-manager/classrooms')}
+          onClick={() => navigate('/staff/classrooms')}
           type="button"
         >
           ← Quay lại danh sách lớp
@@ -254,7 +293,7 @@ export default function TrainingManagerClassroomDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link className="text-sm font-bold text-[#730014] hover:underline" to="/training-manager/classrooms">
+        <Link className="text-sm font-bold text-[#730014] hover:underline" to="/staff/classrooms">
           ← Danh sách lớp
         </Link>
         <div className="flex flex-wrap gap-2">
@@ -350,15 +389,9 @@ export default function TrainingManagerClassroomDetailPage() {
           {assignedStudents.length ? (
             <div className="mt-4 space-y-3">
               {assignedStudents.map((enrollment) => (
-                <article className="rounded-xl border border-[#f0e4e2] px-4 py-3 text-sm text-[#584140]" key={enrollment.id}>
-                  <p className="font-extrabold text-[#2b2828]">
-                    {enrollment.studentName || enrollment.studentEmail}
-                  </p>
-                  <p className="mt-1">
-                    {formatRegistrationStatus(enrollment.registrationStatus, enrollment.registrationStatusLabel)}
-                    {' · '}
-                    {formatClassroomPrice(enrollment.tuitionAmountPaid ?? 0)} / {formatClassroomPrice(enrollment.tuitionAmountDue)}
-                  </p>
+                <article className="flex flex-col gap-3 rounded-xl border border-[#f0e4e2] px-4 py-3 text-sm text-[#584140] sm:flex-row sm:items-center sm:justify-between" key={enrollment.id}>
+                  <div><p className="font-extrabold text-[#2b2828]">{enrollment.studentName || enrollment.studentEmail}</p><p className="mt-1">{formatRegistrationStatus(enrollment.registrationStatus, enrollment.registrationStatusLabel)}{' · '}{formatClassroomPrice(enrollment.tuitionAmountPaid ?? 0)} / {formatClassroomPrice(enrollment.tuitionAmountDue)}</p></div>
+                  <div className="flex flex-wrap gap-2"><button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-3 py-2 text-xs font-extrabold text-[#730014]" disabled={studentActionId === enrollment.id} onClick={() => setTransfer({ enrollment, targetId: '' })} type="button"><ArrowRightLeft className="h-3.5 w-3.5" />Chuyển lớp</button><button className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-xs font-extrabold text-rose-700" disabled={studentActionId === enrollment.id} onClick={() => handleRemoveStudent(enrollment)} type="button"><Trash2 className="h-3.5 w-3.5" />Loại khỏi lớp</button></div>
                 </article>
               ))}
             </div>
@@ -371,6 +404,8 @@ export default function TrainingManagerClassroomDetailPage() {
         </section>
       ) : null}
 
+      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Sau khi chuyển, học viên biến mất khỏi danh sách lớp nguồn và xuất hiện ở lớp đích.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${item.startDate || 'Chưa có ngày'} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
+
       {activeTab === 'schedule' ? (
         <div className="space-y-5">
           <form className="space-y-4 rounded-xl border border-[#dfbfbd]/35 bg-gradient-to-br from-[#fffafb] to-white p-5 shadow-sm" onSubmit={handleGenerateSessions}>
@@ -379,7 +414,7 @@ export default function TrainingManagerClassroomDetailPage() {
                 <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Sinh lịch từ mẫu</h3>
                 <p className="mt-1 text-sm text-[#8b706e]">Dùng mẫu lịch để tạo nhanh nhiều buổi học, vẫn đi qua kiểm tra trùng lịch backend.</p>
               </div>
-              <Link className="text-sm font-extrabold text-[#730014] hover:underline" to="/training-manager/infrastructure">
+              <Link className="text-sm font-extrabold text-[#730014] hover:underline" to="/staff/infrastructure">
                 Quản lý mẫu lịch
               </Link>
             </div>
