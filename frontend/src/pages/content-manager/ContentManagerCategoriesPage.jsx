@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { ContentManagerLoadingState, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
 const emptyForm = {
   code: '',
@@ -37,6 +38,16 @@ export default function ContentManagerCategoriesPage() {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.code).localeCompare(String(b.code)));
+  }, [categories]);
+
+  const { page, setPage, totalPages, pageItems: paginatedCategories, totalItems } = usePagination(
+    sortedCategories,
+    8,
+    'course-categories'
+  );
 
   const openCreate = () => {
     setEditingId(null);
@@ -146,7 +157,7 @@ export default function ContentManagerCategoriesPage() {
       {success ? <Notice tone="success">{success}</Notice> : null}
 
       {editorOpen ? (
-        <Panel className="p-6">
+        <CategoryModal onClose={closeEditor}>
           <div className="mb-5 flex items-center justify-between gap-4">
             <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">
               {editingId ? 'Chỉnh sửa danh mục' : 'Thêm danh mục'}
@@ -155,6 +166,7 @@ export default function ContentManagerCategoriesPage() {
               <X className="h-5 w-5" />
             </button>
           </div>
+          {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Mã danh mục">
               <input
@@ -217,7 +229,7 @@ export default function ContentManagerCategoriesPage() {
               {saving ? 'Đang lưu...' : 'Lưu danh mục'}
             </button>
           </div>
-        </Panel>
+        </CategoryModal>
       ) : null}
 
       <Panel className="overflow-hidden">
@@ -231,7 +243,7 @@ export default function ContentManagerCategoriesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0e3e4]">
-              {categories.length ? categories.map((category) => (
+              {paginatedCategories.length ? paginatedCategories.map((category) => (
                 <tr key={category.id}>
                   <td className="px-5 py-4 text-sm">{category.displayOrder}</td>
                   <td className="px-5 py-4 text-sm font-bold text-[#4b0009]">{category.code}</td>
@@ -258,6 +270,21 @@ export default function ContentManagerCategoriesPage() {
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
+            <span className="text-sm font-semibold text-[#584140]">
+              Trang {page} / {totalPages} · <span className="font-bold text-[#730014]">{totalItems}</span> danh mục
+            </span>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+              totalItems={totalItems}
+              pageSize={8}
+            />
+          </div>
+        )}
       </Panel>
     </div>
   );
@@ -285,4 +312,28 @@ function normalizeCategoryCodePreview(value) {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+function CategoryModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[760px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>
+  );
 }

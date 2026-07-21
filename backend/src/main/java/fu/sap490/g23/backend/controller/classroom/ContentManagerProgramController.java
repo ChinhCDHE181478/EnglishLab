@@ -38,26 +38,32 @@ public class ContentManagerProgramController {
     private final CenterMaterialLibraryService centerMaterialLibraryService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
 
-    @GetMapping("/training-programs")
+    @GetMapping({"/scheduled-course-offerings", "/training-programs"})
     public ResponseEntity<List<TrainingProgramResponse>> listTrainingPrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryType,
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
-        return ResponseEntity.ok(trainingProgramService.listPrograms(deliveryMode));
+        if (deliveryType != null && deliveryMode != null && deliveryType != deliveryMode) {
+            throw new IllegalArgumentException("deliveryType và deliveryMode không được mâu thuẫn.");
+        }
+        return ResponseEntity.ok(trainingProgramService.listPrograms(
+                deliveryType != null ? deliveryType : deliveryMode
+        ));
     }
 
-    @GetMapping("/training-programs/{id}")
+    @GetMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
     public ResponseEntity<TrainingProgramResponse> getTrainingProgram(@PathVariable Long id) {
         return ResponseEntity.ok(trainingProgramService.getProgram(id));
     }
 
-    @PostMapping("/training-programs")
+    @PostMapping({"/scheduled-course-offerings", "/training-programs"})
     public ResponseEntity<TrainingProgramResponse> createTrainingProgram(
             @Valid @RequestBody TrainingProgramRequest request
     ) {
         return ResponseEntity.ok(trainingProgramService.createProgram(request));
     }
 
-    @PutMapping("/training-programs/{id}")
+    @PutMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
     public ResponseEntity<TrainingProgramResponse> updateTrainingProgram(
             @PathVariable Long id,
             @Valid @RequestBody TrainingProgramRequest request
@@ -65,12 +71,12 @@ public class ContentManagerProgramController {
         return ResponseEntity.ok(trainingProgramService.updateProgram(id, request));
     }
 
-    @PostMapping("/training-programs/{id}/clone")
+    @PostMapping({"/scheduled-course-offerings/{id}/clone", "/training-programs/{id}/clone"})
     public ResponseEntity<TrainingProgramResponse> cloneTrainingProgram(@PathVariable Long id) {
         return ResponseEntity.ok(trainingProgramService.cloneProgram(id));
     }
 
-    @DeleteMapping("/training-programs/{id}")
+    @DeleteMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
     public ResponseEntity<Void> archiveTrainingProgram(@PathVariable Long id) {
         trainingProgramService.archiveProgram(id);
         return ResponseEntity.noContent().build();

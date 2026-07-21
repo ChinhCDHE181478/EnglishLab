@@ -2,14 +2,11 @@ package fu.sap490.g23.backend.service.classroom.impl;
 
 import fu.sap490.g23.backend.dto.request.classroom.TrainingProgramRequest;
 import fu.sap490.g23.backend.dto.response.classroom.TrainingProgramResponse;
-import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgramMaterial;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sap490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
@@ -20,8 +17,6 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
-import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -39,7 +34,6 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     private final TrainingProgramRepository programRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
-    private final CenterMaterialLibraryItemRepository materialRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -47,7 +41,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         List<TrainingProgram> programs = deliveryMode == null
                 ? programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()
                 : programRepository.findByDeliveryModeOrderByDisplayOrderAscUpdatedAtDescIdDesc(deliveryMode);
-        return programs.stream().map(program -> toResponse(program, false)).toList();
+        return programs.stream().map(this::toResponse).toList();
     }
 
     @Override
@@ -60,8 +54,25 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     @Override
     @Transactional(readOnly = true)
+    public TrainingProgramResponse getPublishedProgram(String slugOrId) {
+        TrainingProgram program;
+        try {
+            program = programRepository.findById(Long.parseLong(slugOrId))
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
+        } catch (NumberFormatException ignored) {
+            program = programRepository.findBySlug(slugOrId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học."));
+        }
+        if (program.getStatus() != PackageStatus.PUBLISHED) {
+            throw new RuntimeException("Khóa học chưa mở nhận đăng ký.");
+        }
+        return toResponse(program);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TrainingProgramResponse getProgram(Long id) {
-        return toResponse(findProgram(id), true);
+        return toResponse(findProgram(id));
     }
 
     @Override
@@ -69,47 +80,38 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         CurriculumProgram curriculum = resolveCurriculum(request.getCurriculumProgramId());
         TrainingProgram program = TrainingProgram.builder()
                 .title(request.getTitle().trim())
-                .code(uniqueCode(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryMode()))))
+                .code(uniqueCode(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryType()))))
                 .slug(uniqueSlug(defaultText(request.getSlug(), slugify(request.getTitle()))))
-                .deliveryMode(request.getDeliveryMode())
+                .deliveryMode(request.getDeliveryType())
                 .curriculumProgram(curriculum)
                 .status(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus())
                 .build();
         apply(program, request);
-        replaceMaterials(program, request.getMaterialIds());
         validatePublishable(program);
-        return toResponse(programRepository.save(program), true);
+        return toResponse(programRepository.save(program));
     }
 
     @Override
     public TrainingProgramResponse updateProgram(Long id, TrainingProgramRequest request) {
         TrainingProgram program = findProgram(id);
         Long originalCurriculumId = program.getCurriculumProgram() == null ? null : program.getCurriculumProgram().getId();
-        List<Long> originalMaterialIds = program.getMaterials().stream()
-                .map(ref -> ref.getMaterial().getId())
-                .toList();
         PackageStatus originalStatus = program.getStatus();
         program.setTitle(request.getTitle().trim());
-        program.setCode(uniqueCodeForUpdate(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryMode())), program.getId()));
+        program.setCode(uniqueCodeForUpdate(defaultText(request.getCode(), makeCode(request.getTitle(), request.getDeliveryType())), program.getId()));
         program.setSlug(uniqueSlugForUpdate(defaultText(request.getSlug(), slugify(request.getTitle())), program.getId()));
-        program.setDeliveryMode(request.getDeliveryMode());
+        program.setDeliveryMode(request.getDeliveryType());
         program.setCurriculumProgram(resolveCurriculum(request.getCurriculumProgramId()));
         program.setStatus(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus());
         apply(program, request);
-        replaceMaterials(program, request.getMaterialIds());
-        List<Long> updatedMaterialIds = program.getMaterials().stream()
-                .map(ref -> ref.getMaterial().getId())
-                .toList();
         if (countActiveClassrooms(program) > 0
                 && (!java.util.Objects.equals(originalCurriculumId, program.getCurriculumProgram().getId())
-                || !originalMaterialIds.equals(updatedMaterialIds)
                 || originalStatus != program.getStatus())) {
             throw new IllegalArgumentException(
-                    "Không thể đổi giáo trình, học liệu hoặc trạng thái của chương trình đang được lớp hoạt động sử dụng."
+                    "Không thể đổi chương trình đào tạo hoặc trạng thái của khóa học đang được lớp hoạt động sử dụng."
             );
         }
         validatePublishable(program);
-        return toResponse(programRepository.save(program), true);
+        return toResponse(programRepository.save(program));
     }
 
     @Override
@@ -123,36 +125,26 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .curriculumProgram(source.getCurriculumProgram())
                 .shortDescription(source.getShortDescription())
                 .description(source.getDescription())
-                .entryLevel(source.getEntryLevel())
-                .targetScore(source.getTargetScore())
-                .targetOutcome(source.getTargetOutcome())
-                .defaultCapacity(source.getDefaultCapacity())
                 .price(source.getPrice())
                 .salePrice(source.getSalePrice())
                 .duration(source.getDuration())
                 .studyMode(source.getStudyMode())
+                .maxCapacity(source.getMaxCapacity())
+                .plannedStartDate(source.getPlannedStartDate())
+                .plannedSchedule(source.getPlannedSchedule())
                 .thumbnailUrl(source.getThumbnailUrl())
-                .syllabusSummary(source.getSyllabusSummary())
-                .programOutcomes(source.getProgramOutcomes())
-                .teacherGuide(source.getTeacherGuide())
-                .interactionActivities(source.getInteractionActivities())
                 .status(PackageStatus.DRAFT)
                 .displayOrder(source.getDisplayOrder())
                 .featured(false)
                 .build();
-        source.getMaterials().forEach(material -> clone.addMaterial(TrainingProgramMaterial.builder()
-                .material(material.getMaterial())
-                .displayOrder(material.getDisplayOrder())
-                .note(material.getNote())
-                .build()));
-        return toResponse(programRepository.save(clone), true);
+        return toResponse(programRepository.save(clone));
     }
 
     @Override
     public void archiveProgram(Long id) {
         TrainingProgram program = findProgram(id);
         if (countActiveClassrooms(program) > 0) {
-            throw new RuntimeException("Không thể lưu trữ chương trình đang được lớp sắp khai giảng hoặc đang hoạt động sử dụng.");
+            throw new RuntimeException("Không thể lưu trữ khóa học đang được lớp sắp khai giảng hoặc đang hoạt động sử dụng.");
         }
         program.setStatus(PackageStatus.ARCHIVED);
         programRepository.save(program);
@@ -161,37 +153,16 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     private void apply(TrainingProgram program, TrainingProgramRequest request) {
         program.setShortDescription(trimOrNull(request.getShortDescription()));
         program.setDescription(trimOrNull(request.getDescription()));
-        program.setEntryLevel(trimOrNull(request.getEntryLevel()));
-        program.setTargetScore(trimOrNull(request.getTargetScore()));
-        program.setTargetOutcome(trimOrNull(request.getTargetOutcome()));
-        program.setDefaultCapacity(request.getDefaultCapacity() == null ? 30 : request.getDefaultCapacity());
         program.setPrice(request.getPrice() == null ? BigDecimal.ZERO : request.getPrice());
         program.setSalePrice(request.getSalePrice());
         program.setDuration(trimOrNull(request.getDuration()));
         program.setStudyMode(trimOrNull(request.getStudyMode()));
+        program.setMaxCapacity(request.getCapacity() == null ? 30 : request.getCapacity());
+        program.setPlannedStartDate(request.getPlannedStartDate());
+        program.setPlannedSchedule(trimOrNull(request.getPlannedSchedule()));
         program.setThumbnailUrl(trimOrNull(request.getThumbnailUrl()));
-        program.setSyllabusSummary(trimOrNull(request.getSyllabusSummary()));
-        program.setProgramOutcomes(trimOrNull(request.getProgramOutcomes()));
-        program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
-        program.setInteractionActivities(trimOrNull(request.getInteractionActivities()));
         program.setDisplayOrder(request.getDisplayOrder() == null ? 0 : request.getDisplayOrder());
         program.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
-    }
-
-    private void replaceMaterials(TrainingProgram program, List<Long> materialIds) {
-        program.getMaterials().clear();
-        if (materialIds == null || materialIds.isEmpty()) {
-            return;
-        }
-        int index = 0;
-        for (Long materialId : new LinkedHashSet<>(materialIds)) {
-            CenterMaterialLibraryItem material = materialRepository.findById(materialId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu #" + materialId));
-            program.addMaterial(TrainingProgramMaterial.builder()
-                    .material(material)
-                    .displayOrder(index++)
-                    .build());
-        }
     }
 
     private void validatePublishable(TrainingProgram program) {
@@ -200,23 +171,18 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         }
         if (program.getCurriculumProgram() == null
                 || !"PUBLISHED".equalsIgnoreCase(program.getCurriculumProgram().getStatus())) {
-            throw new IllegalArgumentException("Chỉ có thể xuất bản chương trình khi giáo trình gốc đã được duyệt.");
-        }
-        boolean hasUnpublishedMaterial = program.getMaterials().stream()
-                .map(TrainingProgramMaterial::getMaterial)
-                .anyMatch(material -> !"PUBLISHED".equalsIgnoreCase(material.getStatus()));
-        if (hasUnpublishedMaterial) {
-            throw new IllegalArgumentException("Chương trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
+            throw new IllegalArgumentException("Chỉ có thể xuất bản khóa học khi chương trình đào tạo gốc đã được duyệt.");
         }
     }
 
-    private TrainingProgramResponse toResponse(TrainingProgram program, boolean includeMaterials) {
+    private TrainingProgramResponse toResponse(TrainingProgram program) {
         CurriculumProgram curriculum = program.getCurriculumProgram();
         return TrainingProgramResponse.builder()
                 .id(program.getId())
                 .title(program.getTitle())
                 .code(program.getCode())
                 .slug(program.getSlug())
+                .deliveryType(program.getDeliveryMode())
                 .deliveryMode(program.getDeliveryMode())
                 .deliveryModeLabel(deliveryModeLabel(program.getDeliveryMode()))
                 .curriculumProgramId(curriculum == null ? null : curriculum.getId())
@@ -226,58 +192,47 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .curriculumProgramStatus(curriculum == null ? null : curriculum.getStatus())
                 .shortDescription(program.getShortDescription())
                 .description(program.getDescription())
-                .entryLevel(program.getEntryLevel())
-                .targetScore(program.getTargetScore())
-                .targetOutcome(program.getTargetOutcome())
-                .defaultCapacity(program.getDefaultCapacity())
+                .entryLevel(curriculum == null ? null : curriculum.getEntryLevel())
+                .targetScore(resolveTargetScore(curriculum))
+                .targetOutcome(curriculum == null ? null : curriculum.getOutcomes())
                 .price(program.getPrice())
                 .salePrice(program.getSalePrice())
                 .duration(program.getDuration())
                 .studyMode(program.getStudyMode())
+                .capacity(program.getMaxCapacity())
+                .maxCapacity(program.getMaxCapacity())
+                .plannedStartDate(program.getPlannedStartDate())
+                .plannedSchedule(program.getPlannedSchedule())
                 .thumbnailUrl(program.getThumbnailUrl())
-                .syllabusSummary(program.getSyllabusSummary())
-                .programOutcomes(program.getProgramOutcomes())
-                .teacherGuide(program.getTeacherGuide())
-                .interactionActivities(program.getInteractionActivities())
                 .status(program.getStatus())
                 .statusLabel(statusLabel(program.getStatus()))
                 .displayOrder(program.getDisplayOrder())
                 .featured(program.isFeatured())
-                .materialCount(program.getMaterials().size())
                 .classroomCount(program.getClassroomOfferings().size())
                 .activeClassroomCount((int) countActiveClassrooms(program))
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
-                .materials(includeMaterials ? program.getMaterials().stream()
-                        .sorted(Comparator.comparing(TrainingProgramMaterial::getDisplayOrder, Comparator.nullsLast(Integer::compareTo)))
-                        .map(this::toMaterialSummary)
-                        .toList() : null)
                 .build();
     }
 
-    private TrainingProgramResponse.MaterialSummary toMaterialSummary(TrainingProgramMaterial ref) {
-        CenterMaterialLibraryItem material = ref.getMaterial();
-        return TrainingProgramResponse.MaterialSummary.builder()
-                .id(ref.getId())
-                .materialId(material.getId())
-                .title(material.getTitle())
-                .materialType(material.getMaterialType())
-                .fileType(material.getFileType())
-                .provider(material.getProvider())
-                .status(material.getStatus())
-                .displayOrder(ref.getDisplayOrder())
-                .note(ref.getNote())
-                .build();
+    private String resolveTargetScore(CurriculumProgram curriculum) {
+        if (curriculum == null) {
+            return null;
+        }
+        if (curriculum.getTargetBand() != null) {
+            return curriculum.getTargetBand().stripTrailingZeros().toPlainString();
+        }
+        return curriculum.getTargetScore() == null ? null : String.valueOf(curriculum.getTargetScore());
     }
 
     private TrainingProgram findProgram(Long id) {
         return programRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy chương trình học."));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học theo lịch."));
     }
 
     private CurriculumProgram resolveCurriculum(Long id) {
         return curriculumProgramRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy chương trình đào tạo."));
     }
 
     private long countActiveClassrooms(TrainingProgram program) {
@@ -359,7 +314,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     }
 
     private String deliveryModeLabel(ClassroomDeliveryMode mode) {
-        return mode == ClassroomDeliveryMode.VIRTUAL ? "Virtual" : "Tại trung tâm";
+        return mode == ClassroomDeliveryMode.VIRTUAL ? "Virtual" : "Offline";
     }
 
     private String statusLabel(PackageStatus status) {

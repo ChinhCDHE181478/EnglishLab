@@ -131,8 +131,23 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
+  async getMyPractice() {
+    const response = await axiosClient.get('/api/student/classrooms/my-practice');
+    return asList(unwrapData(response));
+  },
+
   async completeClassroomPractice(id, exerciseId, payload) {
     const response = await axiosClient.post(`/api/student/classrooms/${id}/practice/${exerciseId}/complete`, payload);
+    return unwrapData(response);
+  },
+
+  async getClassroomPracticeAttempts(id, exerciseId) {
+    const response = await axiosClient.get(`/api/student/classrooms/${id}/practice/${exerciseId}/attempts`);
+    return asList(unwrapData(response));
+  },
+
+  async submitClassroomPracticeAttempt(id, exerciseId, payload) {
+    const response = await axiosClient.post(`/api/student/classrooms/${id}/practice/${exerciseId}/attempts`, payload);
     return unwrapData(response);
   },
 
@@ -348,196 +363,196 @@ export const classroomApi = {
   },
 
   async getPendingChangeRequests() {
-    const response = await axiosClient.get('/api/training-manager/requests/pending');
+    const response = await axiosClient.get('/api/staff/requests/pending');
     return asList(unwrapData(response));
   },
 
   async checkChangeRequestConflict(requestId) {
-    const response = await axiosClient.post(`/api/training-manager/requests/${requestId}/conflict-check`);
+    const response = await axiosClient.post(`/api/staff/requests/${requestId}/conflict-check`);
     return unwrapData(response);
   },
 
   async getTrainingManagerDashboard() {
-    const response = await axiosClient.get('/api/training-manager/dashboard');
+    const response = await axiosClient.get('/api/staff/dashboard');
     return unwrapData(response);
   },
 
   async approveChangeRequest(requestId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/requests/${requestId}/approve`, payload);
+    const response = await axiosClient.post(`/api/staff/requests/${requestId}/approve`, payload);
     return unwrapData(response);
   },
 
   async rejectChangeRequest(requestId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/requests/${requestId}/reject`, payload);
+    const response = await axiosClient.post(`/api/staff/requests/${requestId}/reject`, payload);
     return unwrapData(response);
   },
 
   async getManagerClassrooms() {
-    const response = await axiosClient.get('/api/training-manager/classrooms');
+    const response = await axiosClient.get('/api/staff/classrooms');
     return asList(unwrapData(response));
   },
 
   async getManagerClassroom(id) {
-    const response = await axiosClient.get(`/api/training-manager/classrooms/${id}`);
+    const response = await axiosClient.get(`/api/staff/classrooms/${id}`);
     return unwrapData(response);
   },
 
   async getTrainingManagerTeachers() {
-    const response = await axiosClient.get('/api/training-manager/classrooms/teachers');
+    const response = await axiosClient.get('/api/staff/classrooms/teachers');
     return asList(unwrapData(response));
   },
 
   async getTrainingManagerRooms() {
-    const response = await axiosClient.get('/api/training-manager/classrooms/rooms');
+    const response = await axiosClient.get('/api/staff/classrooms/rooms');
     return asList(unwrapData(response));
   },
 
   async getTrainingManagerCurriculumPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/training-manager/classrooms/curriculum-programs', {
+    const response = await axiosClient.get('/api/staff/classrooms/curriculum-programs', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async getTrainingManagerPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/training-manager/classrooms/training-programs', {
+    const response = await axiosClient.get('/api/staff/classrooms/course-offerings', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async createManagerClassroom(payload) {
-    const response = await axiosClient.post('/api/training-manager/classrooms', payload);
+    const response = await axiosClient.post('/api/staff/classrooms', payload);
     return unwrapData(response);
   },
 
   async updateManagerClassroom(id, payload) {
-    const response = await axiosClient.put(`/api/training-manager/classrooms/${id}`, payload);
+    const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
     return unwrapData(response);
   },
 
   async publishManagerClassroom(id) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/publish`);
+    const response = await axiosClient.post(`/api/staff/classrooms/${id}/publish`);
     return unwrapData(response);
   },
 
   async getTrainingManagerClassroomSessions(id) {
-    const response = await axiosClient.get(`/api/training-manager/classrooms/${id}/sessions`);
+    const response = await axiosClient.get(`/api/staff/classrooms/${id}/sessions`);
     return asList(unwrapData(response));
   },
 
   async createTrainingManagerClassroomSession(id, payload) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/sessions`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/${id}/sessions`, payload);
     return unwrapData(response);
   },
 
   async updateTrainingManagerClassroomSession(sessionId, payload) {
-    const response = await axiosClient.put(`/api/training-manager/classrooms/sessions/${sessionId}`, payload);
+    const response = await axiosClient.put(`/api/staff/classrooms/sessions/${sessionId}`, payload);
     return unwrapData(response);
   },
 
   async enrollStudent(classroomId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/enroll`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/${classroomId}/enroll`, payload);
     return unwrapData(response);
   },
 
   async removeStudent(classroomId, studentId) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/students/${studentId}/remove`);
+    const response = await axiosClient.post(`/api/staff/classrooms/${classroomId}/students/${studentId}/remove`);
     return unwrapData(response);
   },
 
   async transferStudent(classroomId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${classroomId}/transfer-student`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/${classroomId}/transfer-student`, payload);
     return unwrapData(response);
   },
 
   async checkConflict(payload) {
-    const response = await axiosClient.post('/api/training-manager/classrooms/conflict-check', payload);
+    const response = await axiosClient.post('/api/staff/classrooms/conflict-check', payload);
     return unwrapData(response);
   },
 
   async confirmClassRegistration(enrollmentId) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/confirm`);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/confirm`);
     return unwrapData(response);
   },
 
   async rejectClassRegistration(enrollmentId, payload = {}) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/reject`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/reject`, payload);
     return unwrapData(response);
   },
 
   async recordTuitionPayment(enrollmentId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/tuition`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/tuition`, payload);
     return unwrapData(response);
   },
 
   async getTuitionHistory(enrollmentId) {
-    const response = await axiosClient.get(`/api/training-manager/classrooms/enrollments/${enrollmentId}/tuition-history`);
+    const response = await axiosClient.get(`/api/staff/classrooms/enrollments/${enrollmentId}/tuition-history`);
     return asList(unwrapData(response));
   },
 
   async getPendingTuitionProofs() {
-    const response = await axiosClient.get('/api/training-manager/classrooms/tuition-proofs/pending');
+    const response = await axiosClient.get('/api/staff/classrooms/tuition-proofs/pending');
     return asList(unwrapData(response));
   },
 
   async getEnrollmentTuitionProofs(enrollmentId) {
-    const response = await axiosClient.get(`/api/training-manager/classrooms/enrollments/${enrollmentId}/tuition-proofs`);
+    const response = await axiosClient.get(`/api/staff/classrooms/enrollments/${enrollmentId}/tuition-proofs`);
     return asList(unwrapData(response));
   },
 
   async confirmTuitionProof(proofId) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/tuition-proofs/${proofId}/confirm`);
+    const response = await axiosClient.post(`/api/staff/classrooms/tuition-proofs/${proofId}/confirm`);
     return unwrapData(response);
   },
 
   async rejectTuitionProof(proofId, payload = {}) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/tuition-proofs/${proofId}/reject`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/tuition-proofs/${proofId}/reject`, payload);
     return unwrapData(response);
   },
 
   async getTrainingManagerPendingCurriculum() {
-    const response = await axiosClient.get('/api/training-manager/classrooms/curriculum-programs/pending-review');
+    const response = await axiosClient.get('/api/staff/classrooms/curriculum-programs/pending-review');
     return asList(unwrapData(response));
   },
 
   async approveCurriculumProgram(programId) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/curriculum-programs/${programId}/approve`);
+    const response = await axiosClient.post(`/api/staff/classrooms/curriculum-programs/${programId}/approve`);
     return unwrapData(response);
   },
 
   async rejectCurriculumProgram(programId, payload = {}) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/curriculum-programs/${programId}/reject`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/curriculum-programs/${programId}/reject`, payload);
     return unwrapData(response);
   },
 
   async assignStudentToClass(enrollmentId, payload = {}) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/assign`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/assign`, payload);
     return unwrapData(response);
   },
 
   async transferClassEnrollment(enrollmentId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/transfer`, payload);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/transfer`, payload);
     return unwrapData(response);
   },
 
   async checkEnrollmentConflict(enrollmentId) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/enrollments/${enrollmentId}/conflict-check`);
+    const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/conflict-check`);
     return unwrapData(response);
   },
 
   async getTrainingManagerClassrooms() {
-    const response = await axiosClient.get('/api/training-manager/classrooms');
+    const response = await axiosClient.get('/api/staff/classrooms');
     return asList(unwrapData(response));
   },
 
   async getTrainingManagerRegistrations(params = {}) {
-    const response = await axiosClient.get('/api/training-manager/classrooms/registrations', { params });
+    const response = await axiosClient.get('/api/staff/classrooms/registrations', { params });
     return asList(unwrapData(response));
   },
 
   async getTrainingManagerEnrollment(enrollmentId) {
-    const response = await axiosClient.get(`/api/training-manager/classrooms/enrollments/${enrollmentId}`);
+    const response = await axiosClient.get(`/api/staff/classrooms/enrollments/${enrollmentId}`);
     return unwrapData(response);
   },
 
@@ -589,59 +604,59 @@ export const classroomApi = {
   },
 
   async listCampuses() {
-    const response = await axiosClient.get('/api/training-manager/infrastructure/campuses');
+    const response = await axiosClient.get('/api/staff/infrastructure/campuses');
     return asList(unwrapData(response));
   },
 
   async createCampus(payload) {
-    const response = await axiosClient.post('/api/training-manager/infrastructure/campuses', payload);
+    const response = await axiosClient.post('/api/staff/infrastructure/campuses', payload);
     return unwrapData(response);
   },
 
   async updateCampus(id, payload) {
-    const response = await axiosClient.put(`/api/training-manager/infrastructure/campuses/${id}`, payload);
+    const response = await axiosClient.put(`/api/staff/infrastructure/campuses/${id}`, payload);
     return unwrapData(response);
   },
 
   async listRooms(campusId) {
-    const response = await axiosClient.get('/api/training-manager/infrastructure/rooms', {
+    const response = await axiosClient.get('/api/staff/infrastructure/rooms', {
       params: campusId ? { campusId } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async createRoom(payload) {
-    const response = await axiosClient.post('/api/training-manager/infrastructure/rooms', payload);
+    const response = await axiosClient.post('/api/staff/infrastructure/rooms', payload);
     return unwrapData(response);
   },
 
   async updateRoom(id, payload) {
-    const response = await axiosClient.put(`/api/training-manager/infrastructure/rooms/${id}`, payload);
+    const response = await axiosClient.put(`/api/staff/infrastructure/rooms/${id}`, payload);
     return unwrapData(response);
   },
 
   async listSessionTemplates() {
-    const response = await axiosClient.get('/api/training-manager/infrastructure/session-templates');
+    const response = await axiosClient.get('/api/staff/infrastructure/session-templates');
     return asList(unwrapData(response));
   },
 
   async createSessionTemplate(payload) {
-    const response = await axiosClient.post('/api/training-manager/infrastructure/session-templates', payload);
+    const response = await axiosClient.post('/api/staff/infrastructure/session-templates', payload);
     return unwrapData(response);
   },
 
   async updateSessionTemplate(id, payload) {
-    const response = await axiosClient.put(`/api/training-manager/infrastructure/session-templates/${id}`, payload);
+    const response = await axiosClient.put(`/api/staff/infrastructure/session-templates/${id}`, payload);
     return unwrapData(response);
   },
 
   async generateSessionsFromTemplate(offeringId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/infrastructure/classrooms/${offeringId}/generate-sessions`, payload);
+    const response = await axiosClient.post(`/api/staff/infrastructure/classrooms/${offeringId}/generate-sessions`, payload);
     return asList(unwrapData(response));
   },
 
   async closeClassroomOffering(id) {
-    const response = await axiosClient.post(`/api/training-manager/classrooms/${id}/close`);
+    const response = await axiosClient.post(`/api/staff/classrooms/${id}/close`);
     return unwrapData(response);
   },
 
@@ -696,44 +711,44 @@ export const classroomApi = {
   },
 
   async listPendingAttendanceDisputes() {
-    const response = await axiosClient.get('/api/training-manager/attendance-disputes/pending');
+    const response = await axiosClient.get('/api/teacher/attendance-disputes/pending');
     return asList(unwrapData(response));
   },
 
   async reviewAttendanceDispute(disputeId, payload) {
-    const response = await axiosClient.post(`/api/training-manager/attendance-disputes/${disputeId}/review`, payload);
+    const response = await axiosClient.post(`/api/teacher/attendance-disputes/${disputeId}/review`, payload);
     return unwrapData(response);
   },
 
-  async getContentManagerPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/content-manager/training-programs', {
-      params: deliveryMode ? { deliveryMode } : undefined,
+  async getContentManagerPrograms(deliveryType) {
+    const response = await axiosClient.get('/api/content-manager/scheduled-course-offerings', {
+      params: deliveryType ? { deliveryType } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async getContentManagerProgram(id) {
-    const response = await axiosClient.get(`/api/content-manager/training-programs/${id}`);
+    const response = await axiosClient.get(`/api/content-manager/scheduled-course-offerings/${id}`);
     return unwrapData(response);
   },
 
   async createContentManagerProgram(payload) {
-    const response = await axiosClient.post('/api/content-manager/training-programs', payload);
+    const response = await axiosClient.post('/api/content-manager/scheduled-course-offerings', payload);
     return unwrapData(response);
   },
 
   async updateContentManagerProgram(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/training-programs/${id}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/scheduled-course-offerings/${id}`, payload);
     return unwrapData(response);
   },
 
   async cloneContentManagerProgram(id) {
-    const response = await axiosClient.post(`/api/content-manager/training-programs/${id}/clone`);
+    const response = await axiosClient.post(`/api/content-manager/scheduled-course-offerings/${id}/clone`);
     return unwrapData(response);
   },
 
   async archiveContentManagerProgram(id) {
-    const response = await axiosClient.delete(`/api/content-manager/training-programs/${id}`);
+    const response = await axiosClient.delete(`/api/content-manager/scheduled-course-offerings/${id}`);
     return unwrapData(response);
   },
 
@@ -763,22 +778,22 @@ export const classroomApi = {
   },
 
   async updateOfferingRecording(offeringId, payload) {
-    const response = await axiosClient.put(`/api/training-manager/recordings/classrooms/${offeringId}`, payload);
+    const response = await axiosClient.put(`/api/staff/recordings/classrooms/${offeringId}`, payload);
     return unwrapData(response);
   },
 
   async updateSessionRecording(sessionId, payload) {
-    const response = await axiosClient.put(`/api/training-manager/recordings/sessions/${sessionId}`, payload);
+    const response = await axiosClient.put(`/api/staff/recordings/sessions/${sessionId}`, payload);
     return unwrapData(response);
   },
 
   async getManagerRecordingSessions(offeringId) {
-    const response = await axiosClient.get(`/api/training-manager/recordings/classrooms/${offeringId}/sessions`);
+    const response = await axiosClient.get(`/api/staff/recordings/classrooms/${offeringId}/sessions`);
     return asList(unwrapData(response));
   },
 
   async syncLarkRecording(sessionId) {
-    const response = await axiosClient.post(`/api/training-manager/recordings/sessions/${sessionId}/sync-lark`);
+    const response = await axiosClient.post(`/api/staff/recordings/sessions/${sessionId}/sync-lark`);
     return unwrapData(response);
   },
 };

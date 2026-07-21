@@ -10,6 +10,7 @@ import {
   ManagerTablePagination,
 } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { usePagination } from '../../components/ui/Pagination';
 import {
   ERROR_NOTICE_CLASS,
@@ -182,6 +183,14 @@ export default function ContentManagerExerciseBankPage() {
     await loadItems();
   };
 
+  const updateSystemPractice = (field, value) => {
+    if (field === 'uiConfigJson') {
+      setForm((current) => ({ ...current, prompt: value }));
+    } else if (field === 'objectiveAnswerKey') {
+      setForm((current) => ({ ...current, answerKey: value }));
+    }
+  };
+
   const restoreItem = async (item) => {
     if (!window.confirm(`Khôi phục bài tập "${item.title}"?`)) return;
     setWorking(true);
@@ -224,8 +233,29 @@ export default function ContentManagerExerciseBankPage() {
               <BrandedSelect label="Loại bài" value={form.exerciseType} onChange={(event) => setForm({ ...form, exerciseType: event.target.value })} options={typeOptions} />
             </div>
             <input value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Cấp độ (vd: IELTS 6.0)" className={FIELD_CLASS} />
-            <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
-            <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
+            {form.exerciseType === 'PRACTICE' && ['LISTENING', 'READING'].includes(form.skill) ? (
+              <div className="rounded-2xl border border-[#ead9db] bg-[#fffdfd] p-5">
+                <h4 className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">Biên soạn bài luyện tập trên hệ thống</h4>
+                <p className="mt-2 text-sm leading-6 text-[#584140]">Dùng cùng trình biên soạn với Module Test để tạo phần thi, câu hỏi, lựa chọn và đáp án chấm tự động.</p>
+                <div className="mt-5">
+                  <AssessmentExamBuilder
+                    assessment={{
+                      title: form.title || 'Bài luyện tập',
+                      skill: form.skill,
+                      uiConfigJson: form.prompt,
+                      objectiveAnswerKey: form.answerKey,
+                      timeLimitMinutes: 10,
+                    }}
+                    onChange={updateSystemPractice}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
+                <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
+              </>
+            )}
             <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Giải thích" rows={3} className={TEXTAREA_CLASS} />
             <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="Thẻ (cách nhau bởi dấu phẩy)" className={FIELD_CLASS} />
             <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
@@ -294,7 +324,7 @@ export default function ContentManagerExerciseBankPage() {
                   <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
                     <td className="px-6 py-5">
                       <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
-                      {item.prompt ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{item.prompt}</p> : null}
+                      {item.prompt ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{summarizeExerciseContent(item.prompt)}</p> : null}
                     </td>
                     <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatSkill(item.skill)}</ManagerStatusBadge></td>
                     <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatExerciseType(item.exerciseType)}</td>
@@ -370,4 +400,33 @@ function formatExerciseType(value) {
     PRACTICE: 'Luyện tập',
   };
   return labels[String(value || '').toUpperCase()] || value || '-';
+}
+
+function summarizeExerciseContent(value) {
+  const text = String(value || '').trim();
+  if (!text.startsWith('{') && !text.startsWith('[')) return text;
+
+  try {
+    const config = JSON.parse(text);
+    const parts = Array.isArray(config.parts) ? config.parts : [];
+    const directQuestions = Array.isArray(config.questions) ? config.questions.length : 0;
+    const nestedQuestions = parts.reduce((total, part) => {
+      const partQuestions = Array.isArray(part.questions) ? part.questions.length : 0;
+      const groupedQuestions = (part.questionGroups || []).reduce(
+        (sum, group) => sum + (group.questions?.length || group.questionNumbers?.length || 0),
+        0,
+      );
+      return total + partQuestions + groupedQuestions;
+    }, 0);
+    const details = [
+      parts.length ? `${parts.length} phần` : null,
+      directQuestions + nestedQuestions ? `${directQuestions + nestedQuestions} câu` : null,
+      Number(config.durationMinutes || config.timeLimitMinutes)
+        ? `${Number(config.durationMinutes || config.timeLimitMinutes)} phút`
+        : null,
+    ].filter(Boolean);
+    return details.length ? details.join(' · ') : 'Nội dung đã được biên soạn trên hệ thống';
+  } catch {
+    return 'Nội dung đã được biên soạn trên hệ thống';
+  }
 }

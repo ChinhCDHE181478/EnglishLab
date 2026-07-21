@@ -114,11 +114,14 @@ const Toggle = ({ checked, onChange }) => (
   </label>
 );
 
-const WorkspaceFlashcards = ({ course, termsOverride, emptyStateDescription = 'Khóa học này chưa gắn bộ flashcard nào từ kho.' }) => {
+const WorkspaceFlashcards = ({
+  course,
+  termsOverride,
+  emptyStateDescription = 'Khóa học này chưa gắn bộ flashcard nào từ kho.',
+}) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
-  const externalTerms = Array.isArray(termsOverride) ? termsOverride : null;
   const hasBankFlashcards = useMemo(() => extractBankFlashcardTerms(course).length > 0, [course]);
-  const [terms, setTerms] = useState(externalTerms || fallbackTerms);
+  const [terms, setTerms] = useState(() => (Array.isArray(termsOverride) ? termsOverride : fallbackTerms));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('cards');
@@ -218,8 +221,8 @@ const WorkspaceFlashcards = ({ course, termsOverride, emptyStateDescription = 'K
   useEffect(() => {
     let mounted = true;
     const loadTerms = async () => {
-      if (externalTerms) {
-        setTerms(externalTerms);
+      if (Array.isArray(termsOverride)) {
+        setTerms(termsOverride);
         setLoading(false);
         setError('');
         return;
@@ -254,7 +257,7 @@ const WorkspaceFlashcards = ({ course, termsOverride, emptyStateDescription = 'K
     return () => {
       mounted = false;
     };
-  }, [course?.id, externalTerms, fallbackTerms, hasBankFlashcards]);
+  }, [course?.id, fallbackTerms, hasBankFlashcards, termsOverride]);
 
   useEffect(() => {
     if (activeIndex >= studyTerms.length) setActiveIndex(0);
@@ -357,13 +360,18 @@ const WorkspaceFlashcards = ({ course, termsOverride, emptyStateDescription = 'K
   });
 
   const persistTerm = async (termKey, payload) => {
+    const previousTerm = terms.find((term) => term.termKey === termKey);
     setTerms((current) => current.map((term) => (term.termKey === termKey ? { ...term, ...payload } : term)));
     if (!course?.id) return;
 
+    setError('');
     try {
       const updated = await courseApi.updateVocabularyProgress(course.id, termKey, payload);
       setTerms((current) => current.map((term) => (term.termKey === termKey ? { ...term, ...updated } : term)));
     } catch (err) {
+      if (previousTerm) {
+        setTerms((current) => current.map((term) => (term.termKey === termKey ? previousTerm : term)));
+      }
       setError(err?.response?.data?.message || 'Không lưu được tiến độ flashcard. Vui lòng thử lại.');
     }
   };

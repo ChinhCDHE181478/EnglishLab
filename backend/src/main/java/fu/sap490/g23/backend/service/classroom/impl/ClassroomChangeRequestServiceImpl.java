@@ -80,7 +80,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         String oldValuesJson = buildOldValuesJson(request.getRequestType(), offering, targetSession);
         ConflictCheckRequest conflictRequest = buildConflictRequest(request, offering, targetSession);
         // Block submission when there is a real schedule conflict (teacher/room/learner).
-        // Training Manager can still override at approval time.
+        // Nhân viên đào tạo vẫn có thể xử lý xung đột theo quyền vận hành khi duyệt.
         conflictService.assertNoBlockingConflict(conflictRequest);
 
         ClassroomChangeRequest changeRequest = ClassroomChangeRequest.builder()
@@ -106,7 +106,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 requester,
                 "CLASSROOM_CHANGE_REQUEST_CREATED",
                 "Yêu cầu thay đổi đã được gửi",
-                "Yêu cầu " + mapper.changeRequestTypeLabel(request.getRequestType()) + " đang chờ Training Manager duyệt.",
+                "Yêu cầu " + mapper.changeRequestTypeLabel(request.getRequestType()) + " đang chờ Nhân viên đào tạo duyệt.",
                 Map.of("requestId", changeRequest.getId(), "classroomId", offering.getId())
         );
         return mapper.toChangeRequestResponse(changeRequest);

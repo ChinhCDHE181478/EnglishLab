@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
   Archive,
@@ -172,7 +173,7 @@ export default function ContentManagerMaterialsPage() {
     }
   }, [currentPage, totalPages]);
 
-  const resetForm = (open = true) => {
+  const resetForm = (open = false) => {
     setEditingId(null);
     setForm(emptyForm);
     setComposerOpen(open);
@@ -333,39 +334,34 @@ export default function ContentManagerMaterialsPage() {
         </div>
       ) : null}
 
-      <Panel className="p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <SectionTitle title={editingId ? 'Chỉnh sửa học liệu' : 'Thêm học liệu mới'} />
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-[#584140]">
-              Học liệu trung tâm được dùng lại theo band IELTS, dải điểm TOEIC, kỹ năng và mục tiêu lớp học.
-            </p>
-          </div>
+      <div className="flex justify-end">
+        <button
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
+          onClick={() => setComposerOpen(true)}
+          type="button"
+        >
+          <Plus className="h-4 w-4" />
+          Thêm học liệu mới
+        </button>
+      </div>
 
-          <div className="flex flex-wrap gap-2">
-            {!composerOpen ? (
-              <button
-                className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
-                onClick={() => setComposerOpen(true)}
-                type="button"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm học liệu mới
-              </button>
-            ) : null}
-
-            <button
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#dfbfbd]/65 bg-white text-[#730014] transition hover:bg-[#fff2f3]"
-              onClick={() => setComposerOpen((current) => !current)}
-              type="button"
-            >
-              {composerOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+      {composerOpen && (
+        <MaterialEditorModal onClose={() => resetForm(false)}>
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-['Manrope'] text-xl font-extrabold text-[#0b1c30]">
+                {editingId ? 'Chỉnh sửa học liệu' : 'Thêm học liệu mới'}
+              </h3>
+              <p className="mt-1 text-sm text-[#584140]">
+                Nhập metadata học liệu; hệ thống sẽ lưu vào thư viện trung tâm để sử dụng lại.
+              </p>
+            </div>
+            <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => resetForm(false)} type="button">
+              Đóng
             </button>
           </div>
-        </div>
 
-        {composerOpen ? (
-          <div className="mt-6 space-y-4 border-t border-[#f0e3e4] pt-6">
+          <div className="space-y-4">
             <TextInput
               label="Tên học liệu *"
               value={form.title}
@@ -389,55 +385,54 @@ export default function ContentManagerMaterialsPage() {
                     className="hidden"
                     type="file"
                     accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                onChange={(event) => {
-                  handleUpload(event.target.files?.[0] || null);
-                  event.target.value = '';
-                }}
-              />
+                    onChange={(event) => {
+                      handleUpload(event.target.files?.[0] || null);
+                      event.target.value = '';
+                    }}
+                  />
                 </label>
                 <span className="text-sm text-[#8b706e]">Hoặc dán liên kết ở ô bên dưới nếu học liệu nằm trên nền tảng ngoài.</span>
               </div>
             </div>
 
             <TextInput
-              label="Liên kết hoặc URL tệp *"
+              label="Liên kết tệp *"
               value={form.fileUrl}
               onChange={(value) => setForm((current) => ({ ...current, fileUrl: value, provider: current.provider || guessProvider(value) }))}
-              placeholder="https://..."
+              placeholder="https://docs.google.com/document/d/... hoặc link tải tệp"
             />
 
             <div className="grid gap-4 md:grid-cols-2">
+              <TextInput label="Định dạng tệp" value={form.fileType} onChange={(value) => setForm((current) => ({ ...current, fileType: value }))} placeholder="Ví dụ: PDF, DOCX, ZIP" />
+              <TextInput label="Nguồn / Nền tảng" value={form.provider} onChange={(value) => setForm((current) => ({ ...current, provider: value }))} placeholder="Ví dụ: Google Drive, Youtube, EnglishLab" />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <FilterSelect
+                label="Kỹ năng chính"
+                value={form.skill}
+                options={skillOptions}
+                onChange={(value) => setForm((current) => ({ ...current, skill: value }))}
+              />
               <FilterSelect
                 label="Loại học liệu"
                 value={form.materialType}
                 options={materialTypeOptions.map((value) => ({ label: value, value }))}
                 onChange={(value) => setForm((current) => ({ ...current, materialType: value }))}
               />
-              <TextInput
-                label="Nguồn cung cấp"
-                value={form.provider}
-                onChange={(value) => setForm((current) => ({ ...current, provider: value }))}
-                placeholder="EnglishLab / Google Drive / ..."
-              />
               <FilterSelect
-                label="Nhóm kỳ thi"
+                label="Nhóm chứng chỉ"
                 value={form.examCategory}
                 options={examOptions.map((value) => ({ label: value, value }))}
                 onChange={(value) => setForm((current) => ({ ...current, examCategory: value }))}
               />
-              <FilterSelect
-                label="Kỹ năng"
-                value={form.skill}
-                options={skillOptions}
-                onChange={(value) => setForm((current) => ({ ...current, skill: value }))}
-              />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextInput label="IELTS band tối thiểu" value={String(form.ieltsBandMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="5.5" />
-              <TextInput label="IELTS band tối đa" value={String(form.ieltsBandMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="7.0" />
-              <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMin: value }))} placeholder="650" />
-              <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMax: value }))} placeholder="850" />
+            <div className="grid gap-4 md:grid-cols-4">
+              <TextInput label="IELTS Band tối thiểu" value={String(form.ieltsBandMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="5.5" />
+              <TextInput label="IELTS Band tối đa" value={String(form.ieltsBandMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="7.5" />
+              <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="550" />
+              <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="850" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -448,10 +443,6 @@ export default function ContentManagerMaterialsPage() {
                 options={statusOptions.map((value) => ({ label: labelStatus(value), value }))}
                 onChange={(value) => setForm((current) => ({ ...current, status: value }))}
               />
-            </div>
-
-            <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-4 text-sm leading-7 text-[#584140]">
-              Nếu học liệu chưa sẵn sàng cho giáo viên dùng lại, hãy để trạng thái là <strong className="text-[#4b0009]">Bản nháp</strong>.
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">
@@ -474,8 +465,8 @@ export default function ContentManagerMaterialsPage() {
               </button>
             </div>
           </div>
-        ) : null}
-      </Panel>
+        </MaterialEditorModal>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={FileStack} label="Tổng học liệu" value={stats.total} note="Toàn bộ kho trung tâm" />
@@ -553,7 +544,7 @@ export default function ContentManagerMaterialsPage() {
                             Sửa
                           </button>
                           {item.status === 'DRAFT' ? (
-                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-emerald-800" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
+                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
                               <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
                             </button>
                           ) : null}
@@ -737,4 +728,29 @@ function formatDate(value) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function MaterialEditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[800px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
 }

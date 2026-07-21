@@ -145,6 +145,7 @@ const TransactionHistoryPage = () => {
             <div className="flex justify-end">
               <Pagination
                 page={page}
+                totalPages={totalPages}
                 onChange={setPage}
                 totalItems={totalItems}
                 pageSize={5}

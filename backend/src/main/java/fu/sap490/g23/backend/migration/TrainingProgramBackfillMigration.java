@@ -51,17 +51,9 @@ public class TrainingProgramBackfillMigration implements CommandLineRunner {
                     .deliveryMode(mode)
                     .curriculumProgram(curriculum)
                     .shortDescription(curriculum.getOutcomes())
-                    .entryLevel(curriculum.getEntryLevel())
-                    .targetScore(resolveTargetScore(curriculum))
-                    .targetOutcome(curriculum.getOutcomes())
-                    .defaultCapacity(30)
                     .price(BigDecimal.ZERO)
                     .duration(curriculum.getTotalSessions() == null || curriculum.getTotalSessions() <= 0 ? null : curriculum.getTotalSessions() + " buổi")
                     .studyMode(mode == ClassroomDeliveryMode.VIRTUAL ? "Virtual" : "Tại trung tâm")
-                    .syllabusSummary(curriculum.getOutcomes())
-                    .programOutcomes(curriculum.getOutcomes())
-                    .teacherGuide(curriculum.getTeacherGuide())
-                    .interactionActivities(curriculum.getInteractionActivities())
                     .status(toPackageStatus(curriculum.getStatus()))
                     .displayOrder(curriculum.getDisplayOrder() == null ? 0 : curriculum.getDisplayOrder())
                     .featured(false)
@@ -81,16 +73,6 @@ public class TrainingProgramBackfillMigration implements CommandLineRunner {
                     .or(() -> trainingProgramRepository.findFirstByCurriculumProgramIdOrderByIdAsc(curriculumId))
                     .ifPresent(offering::setTrainingProgram);
         }
-    }
-
-    private String resolveTargetScore(CurriculumProgram curriculum) {
-        if (curriculum.getTargetBand() != null) {
-            return curriculum.getTargetBand().stripTrailingZeros().toPlainString();
-        }
-        if (curriculum.getTargetScore() != null) {
-            return String.valueOf(curriculum.getTargetScore());
-        }
-        return null;
     }
 
     private PackageStatus toPackageStatus(String status) {

@@ -51,10 +51,10 @@ export default function LearningPathCatalogPage() {
   } = usePagination(paths, 10);
 
   return (
-    <div className="min-h-screen bg-[#f9f9f9] text-[#2b2828]">
+    <div className="flex min-h-screen flex-col bg-[#f9f9f9] text-[#2b2828]">
       <CourseGlobalStyles />
       <Header />
-      <main className="mx-auto max-w-[1200px] px-4 py-10 md:px-8">
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-10 md:px-8">
         <Link className="inline-flex items-center gap-2 text-sm font-bold text-[#730014] hover:underline" to="/courses">
           <ArrowLeft className="h-4 w-4" />
           Quay lại danh sách khóa học

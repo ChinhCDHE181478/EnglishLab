@@ -11,6 +11,8 @@ public interface TrainingProgramService {
 
     List<TrainingProgramResponse> listPublishedPrograms(ClassroomDeliveryMode deliveryMode);
 
+    TrainingProgramResponse getPublishedProgram(String slugOrId);
+
     TrainingProgramResponse getProgram(Long id);
 
     TrainingProgramResponse createProgram(TrainingProgramRequest request);

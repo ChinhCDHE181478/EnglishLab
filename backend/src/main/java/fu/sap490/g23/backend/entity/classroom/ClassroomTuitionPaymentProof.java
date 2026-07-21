@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Minh chứng chuyển khoản học phí do học viên nộp, chờ Training Manager xác nhận.
+ * Minh chứng chuyển khoản học phí do học viên nộp, chờ Nhân viên đào tạo xác nhận.
  */
 @Getter
 @Setter

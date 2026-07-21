@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoTrainingManagerAccountRepairSeeder implements CommandLineRunner {
 
     static final String TRAINING_MANAGER_EMAIL = "training.manager@englishlab.vn";
+    static final String STAFF_EMAIL = "staff@englishlab.vn";
     static final String CLASSROOM_MANAGER_EMAIL = "classroom.manager@englishlab.vn";
     static final String DEMO_PASSWORD = "Password123!";
 
@@ -28,6 +29,7 @@ public class DemoTrainingManagerAccountRepairSeeder implements CommandLineRunner
     @Transactional
     public void run(String... args) {
         ensureDemoAccount(TRAINING_MANAGER_EMAIL, "Quản Lý Đào Tạo", RoleEnum.TRAINING_MANAGER);
+        ensureDemoAccount(STAFF_EMAIL, "Nhân Viên Đào Tạo", RoleEnum.STAFF);
         ensureDemoAccount(CLASSROOM_MANAGER_EMAIL, "Quản Lý Lớp Học", RoleEnum.MANAGER);
     }
 

@@ -19,8 +19,10 @@ import {
   TrendingUp,
   RefreshCw,
   ShieldCheck,
-  Building
+  Building,
+  Search
 } from 'lucide-react';
+import BrandedSelect from '../../components/ui/BrandedSelect';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -104,6 +106,7 @@ const getMinimalistStatusInfo = (classroom) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function MyClassroomsPage() {
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -146,18 +149,24 @@ export default function MyClassroomsPage() {
     }
   };
 
-  const filteredClassrooms = useMemo(() => classrooms.filter((item) => {
-    if (activeTab === 'active') return isActiveClass(item);
-    if (activeTab === 'upcoming') return isUpcomingClass(item);
-    if (activeTab === 'completed') return isCompletedClass(item);
-    if (activeTab === 'pending') return isPendingClass(item);
-    return true;
-  }), [activeTab, classrooms]);
+  const filteredClassrooms = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return classrooms.filter((item) => {
+      if (activeTab === 'active' && !isActiveClass(item)) return false;
+      if (activeTab === 'upcoming' && !isUpcomingClass(item)) return false;
+      if (activeTab === 'completed' && !isCompletedClass(item)) return false;
+      if (activeTab === 'pending' && !isPendingClass(item)) return false;
+      if (!query) return true;
+      return String(item.title || item.classroomTitle || '').toLowerCase().includes(query) ||
+        String(item.code || '').toLowerCase().includes(query) ||
+        String(item.courseTitle || '').toLowerCase().includes(query);
+    });
+  }, [activeTab, classrooms, searchQuery]);
 
   const { page, setPage, totalPages, pageItems: paginatedClassrooms, totalItems } = usePagination(
     filteredClassrooms,
     6,
-    activeTab
+    `${activeTab}-${searchQuery}`
   );
 
   const counts = useMemo(() => ({
@@ -167,6 +176,13 @@ export default function MyClassroomsPage() {
     pending: classrooms.filter(isPendingClass).length,
     completed: classrooms.filter(isCompletedClass).length,
   }), [classrooms]);
+
+  const learnerTabOptions = useMemo(() => (
+    learnerTabs.map((tab) => ({
+      label: `${tab.label} (${counts[tab.id] ?? 0})`,
+      value: tab.id,
+    }))
+  ), [counts]);
 
   return (
     <LearnerPageShell
@@ -218,44 +234,43 @@ export default function MyClassroomsPage() {
           </div>
 
           {/* Filters & Alerts Area */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-3">
-            <div className="flex flex-wrap gap-2.5">
-              {learnerTabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    className={`relative rounded-xl px-5 py-3 text-xs font-extrabold tracking-wide transition-all duration-300 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
-                        : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
-                    }`}
-                    onClick={() => setActiveTab(tab.id)}
-                    type="button"
-                  >
-                    {tab.label}
-                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-gray-150 text-[#584140]'
-                    }`}>
-                      {counts[tab.id] ?? 0}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            
-            {cancelMessage && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 flex items-center gap-1.5"
-              >
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                {cancelMessage}
-              </motion.div>
-            )}
-          </div>
+          <section className="grid gap-3 rounded-[24px] border border-[#ead9db]/85 bg-white p-4 shadow-[0_8px_30px_rgba(75,0,9,0.015)] lg:grid-cols-[1fr_280px_auto]">
+            <label className="relative block">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c2acab]" />
+              <input
+                className="w-full rounded-2xl border border-[#dfbfbd]/50 bg-[#fffdfd] py-3 pl-11 pr-4 text-sm outline-none transition focus:border-[#730014] focus:bg-white focus:ring-4 focus:ring-[#730014]/5"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm lớp học..."
+                value={searchQuery}
+              />
+            </label>
+            <BrandedSelect
+              buttonClassName="h-full rounded-2xl border-[#dfbfbd]/50 bg-[#fffdfd]"
+              onChange={(event) => setActiveTab(event.target.value)}
+              options={learnerTabOptions}
+              value={activeTab}
+            />
+            <button
+              aria-label="Tải lại"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-5 py-3 text-sm font-extrabold text-[#730014] shadow-sm transition hover:bg-[#fff2f3] active:scale-95"
+              onClick={loadClassrooms}
+              type="button"
+            >
+              <RefreshCw className="h-4 w-4" /> Tải lại
+            </button>
+          </section>
+
+          {cancelMessage && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 flex items-center gap-1.5"
+            >
+              <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              {cancelMessage}
+            </motion.div>
+          )}
 
           {/* Clean Minimalist Cards Grid */}
           <div className="space-y-6">
@@ -363,7 +378,7 @@ function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
           {/* Delivery Mode Badge */}
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
             {isVirtual ? <Video className="h-3 w-3 text-purple-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
-            {isVirtual ? 'Zoom/Meet' : 'Tại cơ sở'}
+            {isVirtual ? 'LARK Meeting' : 'Tại cơ sở'}
           </span>
         </div>
 

@@ -117,6 +117,8 @@ public class OnlineCourseMapper {
                 .id(enrollment.getId())
                 .packageId(learningPackage.getId())
                 .courseId(courseId)
+                .courseVersionId(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getId())
+                .courseVersionNumber(enrollment.getCourseVersion() == null ? null : enrollment.getCourseVersion().getVersionNumber())
                 .courseTitle(learningPackage.getTitle())
                 .courseSlug(learningPackage.getSlug())
                 .thumbnailUrl(learningPackage.getThumbnailUrl())
@@ -150,6 +152,7 @@ public class OnlineCourseMapper {
                     boolean exposeContent = includeLessonContent || lesson.isPreview();
                     return LessonResponse.builder()
                         .id(lesson.getId())
+                        .lessonKey(lesson.getLessonKey())
                         .title(lesson.getTitle())
                         .description(lesson.getDescription())
                         .contentType(lesson.getContentType())

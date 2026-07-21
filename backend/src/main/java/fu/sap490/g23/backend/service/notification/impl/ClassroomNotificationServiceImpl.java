@@ -19,6 +19,7 @@ import java.util.Set;
 public class ClassroomNotificationServiceImpl implements ClassroomNotificationService {
 
     private static final Set<RoleEnum> TRAINING_MANAGER_ROLES = EnumSet.of(
+            RoleEnum.STAFF,
             RoleEnum.TRAINING_MANAGER,
             RoleEnum.MANAGER,
             RoleEnum.ADMIN

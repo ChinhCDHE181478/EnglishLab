@@ -200,7 +200,7 @@ const normalizeToeicQuestion = (question = {}, fallbackNumber) => {
   return {
     ...question,
     number: Number(question.number || question.id || fallbackNumber),
-    prompt: question.prompt || question.question || question.text || `CĂ¢u ${fallbackNumber}`,
+    prompt: question.prompt || question.question || question.text || `Câu ${fallbackNumber}`,
     options,
   };
 };
@@ -315,7 +315,7 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
       recorder.start();
       setRecording(true);
     } catch {
-      window.alert('KhĂ´ng thá»ƒ truy cáº­p microphone. HĂ£y kiá»ƒm tra quyá»n cá»§a trĂ¬nh duyá»‡t.');
+      window.alert('Không thể truy cập microphone. Hãy kiểm tra quyền của trình duyệt.');
     }
   };
 
@@ -357,15 +357,15 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
           <div className="rounded-[28px] border border-[#ead8d5] bg-[#fffdfc] p-4 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Báº£n ghi Speaking</p>
-                <h3 className="mt-1 font-['Manrope'] text-2xl font-black text-[#341c1d]">Ghi má»™t láº§n cho toĂ n bá»™ bĂ i nĂ³i</h3>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bản ghi Speaking</p>
+                <h3 className="mt-1 font-['Manrope'] text-2xl font-black text-[#341c1d]">Ghi một lần cho toàn bộ bài nói</h3>
               </div>
               <div className={`rounded-full px-4 py-2 text-sm font-extrabold ${audioUrl ? 'bg-[#8a0018] text-white' : 'bg-[#fff0f1] text-[#8a0018]'}`}>
-                {audioUrl ? 'ÄĂ£ cĂ³ báº£n ghi' : 'ChÆ°a cĂ³ báº£n ghi'}
+                {audioUrl ? 'Đã có bản ghi' : 'Chưa có bản ghi'}
               </div>
             </div>
 
-            <p className="mt-4 text-sm leading-7 text-[#584140]">Thiáº¿t bá»‹ Ä‘Ă£ Ä‘Æ°á»£c kiá»ƒm tra trÆ°á»›c khi báº¯t Ä‘áº§u bĂ i Ä‘Ă¡nh giĂ¡. HĂ£y ghi Ă¢m má»™t láº§n cho cáº£ ba pháº§n Speaking.</p>
+            <p className="mt-4 text-sm leading-7 text-[#584140]">Thiết bị đã được kiểm tra trước khi bắt đầu bài đánh giá. Hãy ghi âm một lần cho cả ba phần Speaking.</p>
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button
@@ -373,27 +373,27 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
                 onClick={recording ? stopRecording : startRecording}
                 type="button"
               >
-                {recording ? 'Dá»«ng vĂ  táº£i báº£n ghi' : 'Báº¯t Ä‘áº§u ghi Ă¢m'}
+                {recording ? 'Dừng và tải bản ghi' : 'Bắt đầu ghi âm'}
               </button>
               <div className="rounded-full border border-[#dfbfbd] px-4 py-3 text-sm font-semibold text-[#6f5a58]">
-                {uploading ? 'Äang táº£i báº£n ghi...' : audioUrl ? 'Báº£n ghi Ä‘Ă£ Ä‘Æ°á»£c lÆ°u.' : 'ChÆ°a táº£i báº£n ghi nĂ o.'}
+                {uploading ? 'Đang tải bản ghi...' : audioUrl ? 'Bản ghi đã được lưu.' : 'Chưa tải bản ghi nào.'}
               </div>
             </div>
 
             {previewUrl ? <audio className="mt-4 w-full" controls src={previewUrl} /> : null}
 
-            <label className="mt-6 block text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Ná»™i dung Ä‘Ă£ nĂ³i, náº¿u cáº§n bá»• sung</label>
+            <label className="mt-6 block text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Nội dung đã nói, nếu cần bổ sung</label>
             <textarea
               className="mt-3 min-h-[46vh] w-full rounded-[24px] border border-[#dfbfbd]/60 bg-white px-5 py-4 text-[15px] leading-8 text-[#2b1718] outline-none transition focus:border-[#8a0018]"
               onChange={(event) => onTranscriptChange(event.target.value)}
-              placeholder="Náº¿u cáº§n, báº¡n cĂ³ thá»ƒ ghi láº¡i ná»™i dung hoáº·c Ă½ chĂ­nh cá»§a pháº§n nĂ³i á»Ÿ Ä‘Ă¢y..."
+              placeholder="Nếu cần, bạn có thể ghi lại nội dung hoặc ý chính của phần nói ở đây..."
               spellCheck={false}
               value={transcript}
             />
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[#6f5a58]">
-              <span>Sá»‘ tá»« Ä‘Ă£ ghi láº¡i: {countWords(transcript)}</span>
-              <span>Báº¡n cĂ³ thá»ƒ ná»™p báº±ng báº£n ghi Ă¢m, ná»™i dung Ä‘Ă£ nĂ³i hoáº·c cáº£ hai.</span>
+              <span>Số từ đã ghi lại: {countWords(transcript)}</span>
+              <span>Bạn có thể nộp bằng bản ghi âm, nội dung đã nói hoặc cả hai.</span>
             </div>
           </div>
         </div>
@@ -412,7 +412,7 @@ function LegacyPlacementSpeakingExamMode({
   onSubmit,
   onTranscriptChange,
   onAudioReady,
-  submitLabel = 'Ná»™p toĂ n bá»™ bĂ i thi',
+  submitLabel = 'Nộp toàn bộ bài thi',
 }) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 15)) * 60);
   const [submissionPending, setSubmissionPending] = useState(false);
@@ -460,23 +460,23 @@ function LegacyPlacementSpeakingExamMode({
 
     const handleVisibility = () => {
       if (document.hidden) {
-        warn('Báº¡n vá»«a rá»i khá»i tab hoáº·c thu nhá» cá»­a sá»• trong lĂºc lĂ m bĂ i Speaking.');
+        warn('Bạn vừa rời khỏi tab hoặc thu nhỏ cửa sổ trong lúc làm bài Speaking.');
       }
     };
 
     const handleBlur = () => {
-      warn('Cá»­a sá»• bĂ i thi Speaking Ä‘Ă£ máº¥t focus.');
+      warn('Cửa sổ bài thi Speaking đã mất focus.');
     };
 
     const handlePopState = () => {
       pushExamState();
-      warn('KhĂ´ng thá»ƒ quay láº¡i trang khĂ¡c trong lĂºc Ä‘ang lĂ m bĂ i Speaking.');
+      warn('Không thể quay lại trang khác trong lúc đang làm bài Speaking.');
     };
 
     const handleFullscreen = () => {
       if (!document.fullscreenElement && !intentionalExitRef.current) {
         void restoreFullscreen();
-        warn('KhĂ´ng thá»ƒ thoĂ¡t toĂ n mĂ n hĂ¬nh trong lĂºc Ä‘ang thi Speaking.');
+        warn('Không thể thoát toàn màn hình trong lúc đang thi Speaking.');
       }
     };
 
@@ -499,8 +499,8 @@ function LegacyPlacementSpeakingExamMode({
       event.stopPropagation();
       warn(
         event.key === 'Escape'
-          ? 'Báº¡n khĂ´ng thá»ƒ dĂ¹ng phĂ­m Esc Ä‘á»ƒ thoĂ¡t toĂ n mĂ n hĂ¬nh trong khi Ä‘ang thi Speaking.'
-          : 'Má»™t thao tĂ¡c Ä‘iá»u hÆ°á»›ng hoáº·c sao chĂ©p ngoĂ i bĂ i thi Speaking vá»«a bá»‹ cháº·n.'
+          ? 'Bạn không thể dùng phím Esc để thoát toàn màn hình trong khi đang thi Speaking.'
+          : 'Một thao tác điều hướng hoặc sao chép ngoài bài thi Speaking vừa bị chặn.'
       );
     };
 
@@ -545,7 +545,7 @@ function LegacyPlacementSpeakingExamMode({
     >
       <header className="flex min-h-[78px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">ÄĂ¡nh giĂ¡ Ä‘áº§u vĂ o EnglishLab</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Đánh giá đầu vào EnglishLab</p>
           <h2 className="font-['Manrope'] text-lg font-extrabold text-[#341c1d]">{assessment?.title || config?.title}</h2>
         </div>
 
@@ -553,13 +553,13 @@ function LegacyPlacementSpeakingExamMode({
           <div className="rounded-full bg-[#fff0f1] px-5 py-2 text-xl font-black text-[#8a0018] shadow-[0_10px_24px_rgba(138,0,24,0.10)]">
             {formatTimer(remainingSeconds)}
           </div>
-          <span className="rounded-full bg-[#8a0018] px-4 py-2 text-xs font-bold text-white">Vi pháº¡m: {violations.length}</span>
+          <span className="rounded-full bg-[#8a0018] px-4 py-2 text-xs font-bold text-white">Vi phạm: {violations.length}</span>
           <button
             className="rounded-full border border-[#8a0018]/20 px-5 py-2 text-sm font-bold text-[#8a0018] transition hover:bg-[#fff0f1]"
             onClick={() => setExitConfirmOpen(true)}
             type="button"
           >
-            ThoĂ¡t
+            Thoát
           </button>
           <button
             className="rounded-full bg-[linear-gradient(135deg,#8a0018,#650012)] px-6 py-3 text-sm font-black text-white shadow-[0_14px_28px_rgba(138,0,24,0.24)] transition hover:brightness-105 disabled:opacity-60"
@@ -574,7 +574,7 @@ function LegacyPlacementSpeakingExamMode({
             }}
             type="button"
           >
-            {submitting || submissionPending ? 'Äang lÆ°u...' : submitLabel}
+            {submitting || submissionPending ? 'Đang lưu...' : submitLabel}
           </button>
         </div>
       </header>
@@ -590,8 +590,8 @@ function LegacyPlacementSpeakingExamMode({
       {warning ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#261112]/55 px-4">
           <div className="max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b26a00]">Cáº£nh bĂ¡o bĂ i thi</p>
-            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">HĂ£y quay láº¡i bĂ i Speaking</h3>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b26a00]">Cảnh báo bài thi</p>
+            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">Hãy quay lại bài Speaking</h3>
             <p className="mt-3 text-sm leading-7 text-[#584140]">{warning.reason}</p>
             <button
               className="mt-5 w-full rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white"
@@ -601,7 +601,7 @@ function LegacyPlacementSpeakingExamMode({
               }}
               type="button"
             >
-              Tiáº¿p tá»¥c lĂ m bĂ i
+              Tiếp tục làm bài
             </button>
           </div>
         </div>
@@ -610,23 +610,23 @@ function LegacyPlacementSpeakingExamMode({
       {exitConfirmOpen ? (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#261112]/55 px-4">
           <div className="max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">ThoĂ¡t cháº¿ Ä‘á»™ thi?</p>
-            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">BĂ i Speaking hiá»‡n chÆ°a Ä‘Æ°á»£c ná»™p</h3>
-            <p className="mt-3 text-sm leading-7 text-[#584140]">Náº¿u báº¡n thoĂ¡t bĂ¢y giá», EnglishLab sáº½ quay vá» mĂ n hĂ¬nh báº¯t Ä‘áº§u Ä‘Ă¡nh giĂ¡. Báº£n nhĂ¡p váº«n Ä‘Æ°á»£c giá»¯ vĂ  pháº§n Speaking nĂ y chÆ°a Ä‘Æ°á»£c ghi nháº­n ná»™p.</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Thoát chế độ thi?</p>
+            <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">Bài Speaking hiện chưa được nộp</h3>
+            <p className="mt-3 text-sm leading-7 text-[#584140]">Nếu bạn thoát bây giờ, EnglishLab sẽ quay về màn hình bắt đầu đánh giá. Bản nháp vẫn được giữ và phần Speaking này chưa được ghi nhận nộp.</p>
             <div className="mt-5 flex gap-3">
               <button
                 className="flex-1 rounded-2xl border border-[#dfbfbd] px-5 py-3 text-sm font-bold text-[#8a0018]"
                 onClick={() => setExitConfirmOpen(false)}
                 type="button"
               >
-                á» láº¡i
+                Ở lại
               </button>
               <button
                 className="flex-1 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white"
                 onClick={handleCloseExam}
                 type="button"
               >
-                ThoĂ¡t
+                Thoát
               </button>
             </div>
           </div>
@@ -672,7 +672,7 @@ export default function PlacementTestPage() {
         const missingSkills = SKILLS.filter((skill) => !sections?.[skill.key]);
 
         if (missingSkills.length) {
-          throw new Error(`Äá» thi Ä‘ang thiáº¿u dá»¯ liá»‡u: ${missingSkills.map((skill) => skill.label).join(', ')}`);
+          throw new Error(`Đề thi đang thiếu dữ liệu: ${missingSkills.map((skill) => skill.label).join(', ')}`);
         }
 
         setTest(response);
@@ -683,7 +683,7 @@ export default function PlacementTestPage() {
           setStage('result');
         }
       } catch (error) {
-        setLoadError(error?.response?.data?.message || error?.message || 'KhĂ´ng táº£i Ä‘Æ°á»£c Ä‘á» thi thá»­.');
+        setLoadError(error?.response?.data?.message || error?.message || 'Không tải được đề thi thử.');
       } finally {
         setLoading(false);
       }
@@ -735,7 +735,7 @@ export default function PlacementTestPage() {
   const submitAll = async ({ skipSpeakingValidation = false, draftOverride = null } = {}) => {
     const submissionDraft = draftOverride || draft;
     if (selectedExamType !== 'TOEIC' && !skipSpeakingValidation && !submissionDraft.speakingAudioUrl && !submissionDraft.speakingTranscript.trim()) {
-      setSubmitError('HĂ£y hoĂ n thĂ nh báº£n ghi Ă¢m cho pháº§n NĂ³i trÆ°á»›c khi ná»™p bĂ i.');
+      setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
       return;
     }
 
@@ -769,7 +769,7 @@ export default function PlacementTestPage() {
         localStorage.removeItem(DRAFT_KEY);
       }
     } catch (error) {
-      setSubmitError(error?.response?.data?.message || 'ChÆ°a thá»ƒ ná»™p bĂ i. Báº£n nhĂ¡p váº«n Ä‘Æ°á»£c giá»¯ trĂªn thiáº¿t bá»‹ nĂ y.');
+      setSubmitError(error?.response?.data?.message || 'Chưa thể nộp bài. Bản nháp vẫn được giữ trên thiết bị này.');
     } finally {
       setSubmitting(false);
     }
@@ -780,7 +780,7 @@ export default function PlacementTestPage() {
     const speakingAudioUrl = String(payload.submittedAudioUrl || '').trim();
 
     if (!speakingAudioUrl && !speakingTranscript) {
-      setSubmitError('HĂ£y hoĂ n thĂ nh báº£n ghi Ă¢m cho pháº§n NĂ³i trÆ°á»›c khi ná»™p bĂ i.');
+      setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
       return null;
     }
 
@@ -818,7 +818,7 @@ export default function PlacementTestPage() {
       }
       return response;
     } catch (error) {
-      setSubmitError(error?.response?.data?.message || 'ChÆ°a thá»ƒ ná»™p bĂ i. BĂ i lĂ m cá»§a báº¡n váº«n Ä‘Æ°á»£c lÆ°u an toĂ n.');
+      setSubmitError(error?.response?.data?.message || 'Chưa thể nộp bài. Bài làm của bạn vẫn được lưu an toàn.');
       throw error;
     } finally {
       setSubmitting(false);
@@ -836,7 +836,7 @@ export default function PlacementTestPage() {
       const parsed = parseObjectivePayload(payload);
       const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
       if (missingCount > 0) {
-        setPendingSkillAdvance({ missingCount, unitLabel: 'cĂ¢u' });
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
         return;
       }
       await goToNextSkill(nextDraft);
@@ -856,7 +856,7 @@ export default function PlacementTestPage() {
       const parsed = parseObjectivePayload(payload);
       const missingCount = Math.max(0, Number(parsed.totalQuestions || 0) - Number(parsed.answeredCount || 0));
       if (missingCount > 0) {
-        setPendingSkillAdvance({ missingCount, unitLabel: 'cĂ¢u' });
+        setPendingSkillAdvance({ missingCount, unitLabel: 'câu' });
         return;
       }
       await goToNextSkill(nextDraft);
@@ -886,14 +886,14 @@ export default function PlacementTestPage() {
 
   const renderSkillAdvanceDialog = () => pendingSkillAdvance ? (
     <ExamSectionChangeDialog
-      currentLabel={activeSkill?.label || 'Pháº§n hiá»‡n táº¡i'}
+      currentLabel={activeSkill?.label || 'Phần hiện tại'}
       missingCount={pendingSkillAdvance.missingCount}
       onCancel={() => setPendingSkillAdvance(null)}
       onConfirm={() => {
         setPendingSkillAdvance(null);
         void goToNextSkill();
       }}
-      targetLabel={activeSkills[skillIndex + 1]?.label || 'ná»™p bĂ i'}
+      targetLabel={activeSkills[skillIndex + 1]?.label || 'nộp bài'}
       unitLabel={pendingSkillAdvance.unitLabel}
     />
   ) : null;
@@ -925,7 +925,7 @@ export default function PlacementTestPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f4f1] px-4">
-        <BrandLoadingState className="w-full max-w-3xl rounded-[28px]" message="Äang táº£i bĂ i Ä‘Ă¡nh giĂ¡ Ä‘áº§u vĂ o..." />
+        <BrandLoadingState className="w-full max-w-3xl rounded-[28px]" message="Đang tải bài đánh giá đầu vào..." />
       </div>
     );
   }
@@ -934,7 +934,7 @@ export default function PlacementTestPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f8f4f1] px-6 text-center">
         <p className="font-bold text-red-700">{loadError}</p>
-        <button className="rounded-xl bg-[#8a0018] px-5 py-3 font-bold text-white" onClick={() => window.location.reload()} type="button">Thá»­ láº¡i</button>
+        <button className="rounded-xl bg-[#8a0018] px-5 py-3 font-bold text-white" onClick={() => window.location.reload()} type="button">Thử lại</button>
       </div>
     );
   }
@@ -948,15 +948,15 @@ export default function PlacementTestPage() {
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div className="max-w-3xl">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Placement Test</p>
-                <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Chá»n dáº¡ng bĂ i Ä‘Ă¡nh giĂ¡ Ä‘áº§u vĂ o</h1>
-                <p className="mt-5 leading-8 text-[#584140]">Báº¡n cĂ³ thá»ƒ lĂ m bĂ i theo format IELTS Ä‘áº§y Ä‘á»§ 4 ká»¹ nÄƒng hoáº·c TOEIC Listening & Reading. Káº¿t quáº£ Ä‘Æ°á»£c dĂ¹ng Ä‘á»ƒ gá»£i Ă½ lá»™ trĂ¬nh há»c phĂ¹ há»£p.</p>
+                <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Chọn dạng bài đánh giá đầu vào</h1>
+                <p className="mt-5 leading-8 text-[#584140]">Bạn có thể làm bài theo format IELTS đầy đủ 4 kỹ năng hoặc TOEIC Listening & Reading. Kết quả được dùng để gợi ý lộ trình học phù hợp.</p>
               </div>
               <button
                 className="rounded-2xl border border-[#8a0018]/25 px-5 py-3 text-sm font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
                 onClick={() => navigate('/mock-tests')}
                 type="button"
               >
-                VĂ o Mock Test
+                Vào Mock Test
               </button>
             </div>
 
@@ -971,7 +971,7 @@ export default function PlacementTestPage() {
                   <PenLine aria-hidden="true" size={22} />
                 </div>
                 <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#341c1d]">IELTS Placement</h2>
-                <p className="mt-3 text-sm leading-7 text-[#584140]">LĂ m láº§n lÆ°á»£t Listening, Reading, Writing vĂ  Speaking theo giao diá»‡n thi hiá»‡n táº¡i.</p>
+                <p className="mt-3 text-sm leading-7 text-[#584140]">Làm lần lượt Listening, Reading, Writing và Speaking theo giao diện thi hiện tại.</p>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {SKILLS.map((skill) => {
                     const Icon = skill.icon;
@@ -984,7 +984,7 @@ export default function PlacementTestPage() {
                   })}
                 </div>
                 <span className="mt-6 inline-flex rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
-                  {canRetake ? 'Chá»n IELTS' : 'ÄĂ£ dĂ¹ng háº¿t lÆ°á»£t lĂ m'}
+                  {canRetake ? 'Chọn IELTS' : 'Đã dùng hết lượt làm'}
                 </span>
               </button>
 
@@ -998,7 +998,7 @@ export default function PlacementTestPage() {
                   <Headphones aria-hidden="true" size={22} />
                 </div>
                 <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#21446d]">TOEIC Placement</h2>
-                <p className="mt-3 text-sm leading-7 text-[#40536a]">LĂ m Listening vĂ  Reading theo format TOEIC má»›i (ETS 2026 Test 10). Há»‡ thá»‘ng cháº¥m khĂ¡ch quan theo answer key.</p>
+                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC mới (ETS 2026 Test 10). Hệ thống chấm khách quan theo answer key.</p>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {TOEIC_SKILLS.map((skill) => {
                     const Icon = skill.icon;
@@ -1011,7 +1011,7 @@ export default function PlacementTestPage() {
                   })}
                 </div>
                 <span className="mt-6 inline-flex rounded-2xl bg-[#21446d] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
-                  {canRetake ? 'Chá»n TOEIC' : 'ÄĂ£ dĂ¹ng háº¿t lÆ°á»£t lĂ m'}
+                  {canRetake ? 'Chọn TOEIC' : 'Đã dùng hết lượt làm'}
                 </span>
               </button>
             </div>
@@ -1029,11 +1029,11 @@ export default function PlacementTestPage() {
                 type="button"
               >
                 <span>
-                  Láº§n gáº§n nháº¥t: {test.latestAttempt.examType === 'TOEIC'
-                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'Ä‘ang cháº¥m'}`
-                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'Ä‘ang cháº¥m'}`} Â· {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                  Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
+                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
+                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
-                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem káº¿t quáº£</span>
+                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
             ) : null}
           </div>
@@ -1048,15 +1048,15 @@ export default function PlacementTestPage() {
       <main className="min-h-screen bg-[#f8f4f1] px-4 py-10">
         <ExamDeviceCheck
           description={selectedExamType === 'TOEIC'
-            ? 'Kiá»ƒm tra tai nghe trÆ°á»›c khi báº¯t Ä‘áº§u bĂ i TOEIC. Cháº¿ Ä‘á»™ toĂ n mĂ n hĂ¬nh sáº½ Ä‘Æ°á»£c báº­t khi báº¡n vĂ o phĂ²ng thi.'
-            : 'Kiá»ƒm tra tai nghe vĂ  microphone trÆ°á»›c khi báº¯t Ä‘áº§u bĂ i Ä‘Ă¡nh giĂ¡ Ä‘áº§u vĂ o. Cháº¿ Ä‘á»™ toĂ n mĂ n hĂ¬nh sáº½ Ä‘Æ°á»£c báº­t khi báº¡n vĂ o phĂ²ng thi.'}
+            ? 'Kiểm tra tai nghe trước khi bắt đầu bài TOEIC. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
+            : 'Kiểm tra tai nghe và microphone trước khi bắt đầu bài đánh giá đầu vào. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'}
           onComplete={(value) => {
             setDeviceCheck(value);
             setStage('exam');
           }}
           requireFullscreen={false}
           requireMic={selectedExamType !== 'TOEIC'}
-          title="Kiá»ƒm tra thiáº¿t bá»‹ trÆ°á»›c khi lĂ m bĂ i"
+          title="Kiểm tra thiết bị trước khi làm bài"
         />
       </main>
     );
@@ -1068,11 +1068,11 @@ export default function PlacementTestPage() {
         <Header />
         <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-12">
           <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Káº¿t quáº£ Ä‘Ă¡nh giĂ¡ Ä‘áº§u vĂ o</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
             <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">
               {isToeicResult
-                ? `TOEIC tá»•ng: ${result.overallScore != null ? Math.round(Number(result.overallScore)) : 'Äang cháº¥m'}`
-                : `Band tá»•ng quan: ${result.overallScore != null ? formatBandValue(result.overallScore) : 'Äang cháº¥m'}`}
+                ? `TOEIC tổng: ${result.overallScore != null ? Math.round(Number(result.overallScore)) : 'Đang chấm'}`
+                : `Band tổng quan: ${result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}`}
             </h1>
 
             <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${isToeicResult ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
@@ -1090,13 +1090,13 @@ export default function PlacementTestPage() {
 
             <p className="mt-6 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-5 text-sm leading-7 text-[#584140]">
               {isToeicResult
-                ? `Listening: ${result.correctListening ?? 0} cĂ¢u Ä‘Ăºng Â· Reading: ${result.correctReading ?? 0} cĂ¢u Ä‘Ăºng. Káº¿t quáº£ TOEIC Ä‘Ă£ Ä‘Æ°á»£c lÆ°u theo bĂ i Listening & Reading.`
+                ? `Listening: ${result.correctListening ?? 0} câu đúng · Reading: ${result.correctReading ?? 0} câu đúng. Kết quả TOEIC đã được lưu theo bài Listening & Reading.`
                 : (
                   <>
-                    Listening: {result.correctListening}/40 cĂ¢u Ä‘Ăºng Â· Reading: {result.correctReading}/40 cĂ¢u Ä‘Ăºng.
+                    Listening: {result.correctListening}/40 câu đúng · Reading: {result.correctReading}/40 câu đúng.
                     {result.status === 'OBJECTIVE_EVALUATED'
-                      ? ' Writing vĂ  Speaking chÆ°a cĂ³ Ä‘iá»ƒm do dá»‹ch vá»¥ AI táº¡m thá»i khĂ´ng sáºµn sĂ ng. Báº£n nhĂ¡p váº«n Ä‘Æ°á»£c giá»¯ Ä‘á»ƒ báº¡n ná»™p láº¡i.'
-                      : ' Káº¿t quáº£ Ä‘Ă£ Ä‘Æ°á»£c lÆ°u vĂ o há»“ sÆ¡ Ä‘Ă¡nh giĂ¡ Ä‘áº§u vĂ o.'}
+                      ? ' Writing và Speaking chưa có điểm do dịch vụ AI tạm thời không sẵn sàng. Bản nháp vẫn được giữ để bạn nộp lại.'
+                      : ' Kết quả đã được lưu vào hồ sơ đánh giá đầu vào.'}
                   </>
                 )}
             </p>
@@ -1112,15 +1112,15 @@ export default function PlacementTestPage() {
                 }}
                 type="button"
               >
-                Quay láº¡i chá»n Ä‘á»
+                Quay lại chọn đề
               </button>
               {canRetake ? (
                 <button className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]" onClick={startRetake} type="button">
-                  LĂ m láº¡i ({attemptCount + 1}/{maxAttempts})
+                  Làm lại ({attemptCount + 1}/{maxAttempts})
                 </button>
               ) : null}
               <button className="rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/complete-profile')} type="button">
-                Tiáº¿p tá»¥c hoĂ n thiá»‡n há»“ sÆ¡
+                Tiếp tục hoàn thiện hồ sơ
               </button>
             </div>
           </div>
@@ -1134,9 +1134,9 @@ export default function PlacementTestPage() {
     if (!activeConfig) {
       return (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f8f4f1] px-6 text-center">
-          <p className="font-bold text-red-700">KhĂ´ng tĂ¬m tháº¥y dá»¯ liá»‡u pháº§n thi {activeSkill?.label || ''}. Báº£n nhĂ¡p cá»§a báº¡n váº«n Ä‘Æ°á»£c giá»¯.</p>
+          <p className="font-bold text-red-700">Không tìm thấy dữ liệu phần thi {activeSkill?.label || ''}. Bản nháp của bạn vẫn được giữ.</p>
           <button className="rounded-xl bg-[#8a0018] px-5 py-3 font-bold text-white" onClick={() => setStage('intro')} type="button">
-            Quay láº¡i
+            Quay lại
           </button>
         </div>
       );
@@ -1153,7 +1153,7 @@ export default function PlacementTestPage() {
             onSubmit={handleListeningSubmit}
             preserveFullscreenOnUnmount
             skipAudioCheck
-            submitLabel="HoĂ n thĂ nh pháº§n Listening"
+            submitLabel="Hoàn thành phần Listening"
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
@@ -1172,7 +1172,7 @@ export default function PlacementTestPage() {
             onClose={() => navigate('/')}
             onSubmit={handleReadingSubmit}
             preserveFullscreenOnUnmount
-            submitLabel="HoĂ n thĂ nh pháº§n Reading"
+            submitLabel="Hoàn thành phần Reading"
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
@@ -1191,7 +1191,7 @@ export default function PlacementTestPage() {
             onClose={() => navigate('/')}
             onSubmit={handleWritingSubmit}
             preserveFullscreenOnUnmount
-            submitLabel="HoĂ n thĂ nh pháº§n Writing"
+            submitLabel="Hoàn thành phần Writing"
             submitting={submitting}
           />
           {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
@@ -1203,7 +1203,7 @@ export default function PlacementTestPage() {
     return (
       <>
         <SpeakingExamMode
-          config={{ ...toSpeakingExamConfig(activeConfig), submissionLabel: 'ÄĂ¡nh giĂ¡ Ä‘áº§u vĂ o' }}
+          config={{ ...toSpeakingExamConfig(activeConfig), submissionLabel: 'Đánh giá đầu vào' }}
           initialAudioUrl={draft.speakingAudioUrl}
           onAudioReady={(speakingAudioUrl) => {
             setDraft((current) => ({ ...current, speakingAudioUrl }));
@@ -1235,18 +1235,18 @@ export default function PlacementTestPage() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 items-center px-4 py-10">
         <div className="grid w-full gap-8 rounded-[36px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl lg:grid-cols-[1.1fr_0.9fr] lg:p-11">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">ÄĂ¡nh giĂ¡ Ä‘áº§u vĂ o</p>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Đánh giá đầu vào</p>
             <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">
-              {selectedExamType === 'TOEIC' ? 'Placement TOEIC Listening & Reading' : 'Placement IELTS Ä‘á»§ 4 ká»¹ nÄƒng'}
+              {selectedExamType === 'TOEIC' ? 'Placement TOEIC Listening & Reading' : 'Placement IELTS đủ 4 kỹ năng'}
             </h1>
             <p className="mt-5 max-w-2xl leading-8 text-[#584140]">
               {selectedExamType === 'TOEIC'
-                ? 'Báº¡n sáº½ kiá»ƒm tra thiáº¿t bá»‹ má»™t láº§n, sau Ä‘Ă³ lĂ m Listening vĂ  Reading theo format TOEIC. Káº¿t quáº£ Ä‘Æ°á»£c dĂ¹ng Ä‘á»ƒ Ä‘á» xuáº¥t lá»™ trĂ¬nh há»c phĂ¹ há»£p.'
-                : 'Báº¡n sáº½ kiá»ƒm tra thiáº¿t bá»‹ má»™t láº§n, sau Ä‘Ă³ lĂ m láº§n lÆ°á»£t Listening, Reading, Writing vĂ  Speaking. Káº¿t quáº£ Ä‘Æ°á»£c dĂ¹ng Ä‘á»ƒ Ä‘á» xuáº¥t lá»™ trĂ¬nh há»c phĂ¹ há»£p.'}
+                ? 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm Listening và Reading theo format TOEIC. Kết quả được dùng để đề xuất lộ trình học phù hợp.'
+                : 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.'}
             </p>
 
             <div className="mt-5 rounded-2xl border border-[#e9c9c2] bg-[#fff8f6] p-4 text-sm font-semibold leading-7 text-[#7a3430]">
-              HĂ£y lĂ m bĂ i cáº©n trá»ng vĂ¬ káº¿t quáº£ Ä‘Æ°á»£c dĂ¹ng Ä‘á»ƒ Ä‘Ă¡nh giĂ¡ trĂ¬nh Ä‘á»™ Ä‘áº§u vĂ o vĂ  gá»£i Ă½ lá»™ trĂ¬nh há»c phĂ¹ há»£p.
+              Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -1274,27 +1274,27 @@ export default function PlacementTestPage() {
                 type="button"
               >
                 <span>
-                  Láº§n gáº§n nháº¥t: {test.latestAttempt.examType === 'TOEIC'
-                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'Ä‘ang cháº¥m'}`
-                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'Ä‘ang cháº¥m'}`} Â· {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                  Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
+                    ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
+                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
-                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem káº¿t quáº£</span>
+                <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
             ) : null}
           </div>
 
           <aside className="rounded-[28px] bg-[linear-gradient(145deg,#4b0009,#8a0018)] p-7 text-white">
-            <h2 className="font-['Manrope'] text-2xl font-black">TrÆ°á»›c khi báº¯t Ä‘áº§u</h2>
+            <h2 className="font-['Manrope'] text-2xl font-black">Trước khi bắt đầu</h2>
             <ul className="mt-5 space-y-4 text-sm leading-7 text-white/85">
-              <li>â€¢ Chuáº©n bá»‹ khoáº£ng {selectedExamType === 'TOEIC' ? '2 giá»' : '2 giá» 50 phĂºt'}.</li>
-              <li>â€¢ DĂ¹ng Chrome hoáº·c Edge{selectedExamType === 'TOEIC' ? '.' : ' vĂ  cáº¥p quyá»n microphone.'}</li>
-              <li>â€¢ KhĂ´ng táº£i láº¡i trang; báº£n nhĂ¡p Ä‘Æ°á»£c lÆ°u tá»± Ä‘á»™ng trĂªn thiáº¿t bá»‹.</li>
-              <li>â€¢ Náº¿u máº¥t máº¡ng lĂºc ná»™p, hĂ£y thá»­ láº¡i â€” bĂ i lĂ m khĂ´ng bá»‹ xĂ³a.</li>
-              <li>â€¢ Báº¡n cĂ³ tá»‘i Ä‘a {maxAttempts} lÆ°á»£t lĂ m; hiá»‡n Ä‘Ă£ dĂ¹ng {attemptCount}/{maxAttempts} lÆ°á»£t.</li>
+              <li>• Chuẩn bị khoảng {selectedExamType === 'TOEIC' ? '2 giờ' : '2 giờ 50 phút'}.</li>
+              <li>• Dùng Chrome hoặc Edge{selectedExamType === 'TOEIC' ? '.' : ' và cấp quyền microphone.'}</li>
+              <li>• Không tải lại trang; bản nháp được lưu tự động trên thiết bị.</li>
+              <li>• Nếu mất mạng lúc nộp, hãy thử lại — bài làm không bị xóa.</li>
+              <li>• Bạn có tối đa {maxAttempts} lượt làm; hiện đã dùng {attemptCount}/{maxAttempts} lượt.</li>
             </ul>
 
             <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
-              {canRetake ? (attemptCount ? `LĂ m láº¡i bĂ i (${attemptCount + 1}/${maxAttempts})` : 'Kiá»ƒm tra thiáº¿t bá»‹') : 'ÄĂ£ dĂ¹ng háº¿t lÆ°á»£t lĂ m'}
+              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount + 1}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
             </button>
 
             <button
@@ -1302,11 +1302,11 @@ export default function PlacementTestPage() {
               onClick={() => setStage('select')}
               type="button"
             >
-              Äá»•i dáº¡ng bĂ i
+              Đổi dạng bài
             </button>
 
             {hasDraftProgress ? (
-              <p className="mt-4 text-sm text-white/80">ÄĂ£ cĂ³ báº£n nhĂ¡p trĂªn thiáº¿t bá»‹ nĂ y.</p>
+              <p className="mt-4 text-sm text-white/80">Đã có bản nháp trên thiết bị này.</p>
             ) : null}
           </aside>
         </div>

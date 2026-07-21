@@ -98,7 +98,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 learner,
                 "CLASSROOM_TUITION_PROOF_SUBMITTED",
                 "Đã gửi minh chứng thanh toán",
-                "Minh chứng thanh toán lớp " + classTitle + " đang chờ Training Manager xác nhận.",
+                "Minh chứng thanh toán lớp " + classTitle + " đang chờ Nhân viên đào tạo xác nhận.",
                 Map.of("proofId", proof.getId(), "classroomId", enrollment.getClassroomOffering().getId())
         );
         return toResponse(proof);

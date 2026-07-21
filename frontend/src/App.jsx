@@ -29,11 +29,13 @@ import VerifyEmail from './pages/VerifyEmail';
 import WishlistPage from './pages/WishlistPage';
 import ContentManagerRoutes from './pages/content-manager/ContentManagerRoutes';
 import ClassroomsCatalogPage from './pages/classroom/ClassroomsCatalogPage';
-import ClassroomPublicDetailPage from './pages/classroom/ClassroomPublicDetailPage';
+import MyEnrollmentRequestsPage from './pages/classroom/MyEnrollmentRequestsPage';
 import MyClassroomsPage from './pages/classroom/MyClassroomsPage';
 import MyClassroomDetailPage from './pages/classroom/MyClassroomDetailPage';
 import MySchedulePage from './pages/classroom/MySchedulePage';
 import MyHomeworkPage from './pages/classroom/MyHomeworkPage';
+import MyPracticePage from './pages/classroom/MyPracticePage';
+import PracticeRunnerPage from './pages/classroom/PracticeRunnerPage';
 import TeacherDashboardPage from './pages/teacher/TeacherDashboardPage';
 import TeacherClassroomPage from './pages/teacher/TeacherClassroomPage';
 import TeacherSessionPage from './pages/teacher/TeacherSessionPage';
@@ -45,15 +47,16 @@ import TrainingManagerClassroomDetailPage from './pages/training-manager/Trainin
 import TrainingManagerRequestsPage from './pages/training-manager/TrainingManagerRequestsPage';
 import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/TrainingManagerClassroomRegistrationsPage';
 import TrainingManagerInfrastructurePage from './pages/training-manager/TrainingManagerInfrastructurePage';
-import TrainingManagerAttendanceDisputesPage from './pages/training-manager/TrainingManagerAttendanceDisputesPage';
 import TrainingManagerRecordingsPage from './pages/training-manager/TrainingManagerRecordingsPage';
-import TrainingManagerCurriculumApprovalPage from './pages/training-manager/TrainingManagerCurriculumApprovalPage';
 import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
+import ManagerClassroomProposalsPage from './pages/manager/ManagerClassroomProposalsPage';
 import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
 import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
 import ManagerSupportTicketsPage from './pages/manager/ManagerSupportTicketsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
+import StaffEnrollmentRequestsPage from './pages/staff/StaffEnrollmentRequestsPage';
+import StaffClassroomProposalsPage from './pages/staff/StaffClassroomProposalsPage';
 import AdminRoutes from './pages/admin/AdminRoutes';
 
 function CourseDetailRoute() {
@@ -71,6 +74,12 @@ function CourseHomeRoute() {
   return <CourseHome key={`course-home-${slugOrId}`} />;
 }
 
+function LegacyTrainingManagerRedirect() {
+  const location = useLocation();
+  const pathname = location.pathname.replace(/^\/training-manager/, '/staff');
+  return <Navigate replace to={`${pathname}${location.search}${location.hash}`} />;
+}
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -86,7 +95,7 @@ function AppRoutes() {
       </Route>
       {/* Public / student-facing marketing pages */}
       <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
-      <Route path="/opening-schedule/:slugOrId" element={<ClassroomPublicDetailPage />} />
+      <Route path="/opening-schedule/:slugOrId" element={<Navigate replace to="/opening-schedule#dang-ky-tu-van" />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/learning-paths" element={<LearningPathCatalogPage />} />
       <Route path="/learning-paths/:code" element={<LearningPathReferencePage />} />
@@ -108,9 +117,12 @@ function AppRoutes() {
         <Route path="/learning-path" element={<LearningPathPage />} />
         <Route path="/flashcards/practice" element={<FlashcardPracticePage />} />
         <Route path="/my-classrooms" element={<MyClassroomsPage />} />
+        <Route path="/my-enrollment-requests" element={<MyEnrollmentRequestsPage />} />
         <Route path="/my-classrooms/:id" element={<MyClassroomDetailPage />} />
         <Route path="/my-schedule" element={<MySchedulePage />} />
         <Route path="/my-homework" element={<MyHomeworkPage />} />
+        <Route path="/my-practice" element={<MyPracticePage />} />
+        <Route path="/my-practice/:classroomId/:exerciseId" element={<PracticeRunnerPage />} />
         <Route path="/my-quizzes" element={<Navigate to="/my-homework?type=online-quiz" replace />} />
         <Route path="/mock-tests" element={<MockTestsPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
@@ -132,32 +144,34 @@ function AppRoutes() {
         <Route path="/teacher/requests" element={<TeacherRequestsPage />} />
       </Route>
 
-      {/* Training manager routes */}
-      <Route element={<ProtectedRoute allowedRoles={['TRAINING_MANAGER', 'MANAGER', 'ADMIN']} />}>
+      {/* Staff training-operation routes. TRAINING_MANAGER remains a temporary compatibility role. */}
+      <Route element={<ProtectedRoute allowedRoles={['STAFF', 'TRAINING_MANAGER', 'ADMIN']} />}>
         <Route element={<TrainingManagerLayout />}>
-          <Route path="/training-manager" element={<TrainingManagerDashboardPage />} />
-          <Route path="/training-manager/classrooms" element={<ManagerClassroomsPage />} />
-          <Route path="/training-manager/classrooms/:id" element={<TrainingManagerClassroomDetailPage />} />
-          <Route path="/training-manager/registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
-          <Route path="/training-manager/requests" element={<TrainingManagerRequestsPage />} />
-          <Route path="/training-manager/infrastructure" element={<TrainingManagerInfrastructurePage />} />
-          <Route path="/training-manager/recordings" element={<TrainingManagerRecordingsPage />} />
-          <Route path="/training-manager/curriculum-approvals" element={<TrainingManagerCurriculumApprovalPage />} />
-          <Route path="/training-manager/attendance-disputes" element={<TrainingManagerAttendanceDisputesPage />} />
-          <Route path="/training-manager/support-tickets" element={<ManagerSupportTicketsPage />} />
-          <Route path="/training-manager/classroom-registrations" element={<Navigate to="/training-manager/registrations" replace />} />
+          <Route path="/staff" element={<TrainingManagerDashboardPage />} />
+          <Route path="/staff/classrooms" element={<ManagerClassroomsPage />} />
+          <Route path="/staff/classrooms/:id" element={<TrainingManagerClassroomDetailPage />} />
+          <Route path="/staff/registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
+          <Route path="/staff/enrollment-requests" element={<StaffEnrollmentRequestsPage />} />
+          <Route path="/staff/classroom-proposals" element={<StaffClassroomProposalsPage />} />
+          <Route path="/staff/requests" element={<TrainingManagerRequestsPage />} />
+          <Route path="/staff/infrastructure" element={<TrainingManagerInfrastructurePage />} />
+          <Route path="/staff/recordings" element={<TrainingManagerRecordingsPage />} />
+          <Route path="/staff/support-tickets" element={<ManagerSupportTicketsPage />} />
+          <Route path="/staff/classroom-registrations" element={<Navigate to="/staff/registrations" replace />} />
         </Route>
+        <Route path="/training-manager/*" element={<LegacyTrainingManagerRedirect />} />
       </Route>
 
       {/* Manager routes */}
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route element={<TrainingManagerLayout />}>
+          <Route path="/manager/classroom-proposals" element={<ManagerClassroomProposalsPage />} />
           <Route path="/manager/course-approvals" element={<ManagerCourseApprovalPage />} />
           <Route path="/manager/content-approvals" element={<ManagerContentApprovalPage />} />
           <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
+          <Route path="/manager/support-tickets" element={<ManagerSupportTicketsPage />} />
         </Route>
-        <Route path="/manager/classrooms" element={<Navigate to="/training-manager/classrooms" replace />} />
-        <Route path="/manager/support-tickets" element={<Navigate to="/training-manager/support-tickets" replace />} />
+        <Route path="/manager/classrooms" element={<Navigate to="/manager/classroom-proposals" replace />} />
       </Route>
       <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />

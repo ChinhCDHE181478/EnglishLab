@@ -61,6 +61,35 @@ public class PlacementTestAttempt {
     @Column(nullable = false, length = 40)
     private String status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "evaluation_status", nullable = false, length = 40, columnDefinition = "varchar(40) default 'SUBMITTED'")
+    @Builder.Default
+    private PlacementEvaluationStatus evaluationStatus = PlacementEvaluationStatus.SUBMITTED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recommended_level", length = 30)
+    private PlacementLevel recommendedLevel;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "fraud_suspected", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean fraudSuspected = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewer_id")
+    private User reviewer;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "review_note", length = 700)
+    private String reviewNote;
+
     @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
 }

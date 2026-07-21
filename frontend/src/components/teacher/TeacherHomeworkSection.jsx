@@ -544,6 +544,7 @@ export default function TeacherHomeworkSection({
                 onChange={(event) => setForm((current) => ({ ...current, curriculumUnitId: event.target.value }))}
                 options={curriculumUnitOptions}
                 value={form.curriculumUnitId}
+                searchable={true}
               />
             </label>
 
@@ -667,6 +668,7 @@ export default function TeacherHomeworkSection({
                   options={aiAssessmentSelectOptions}
                   placeholder="Không dùng đề hệ thống"
                   value={form.assessmentBankItemId}
+                  searchable={true}
                 />
               )}
               <p className="text-xs leading-5 text-[#8b706e]">

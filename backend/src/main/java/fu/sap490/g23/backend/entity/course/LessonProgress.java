@@ -39,6 +39,13 @@ public class LessonProgress {
     @JoinColumn(name = "enrollment_id", nullable = false)
     private PackageEnrollment enrollment;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_version_id")
+    private OnlineCourseVersion courseVersion;
+
+    @Column(name = "lesson_key", length = 120)
+    private String lessonKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default

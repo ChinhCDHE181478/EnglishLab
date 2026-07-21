@@ -27,22 +27,22 @@ const getNavItemsByRole = (user) => {
       { label: 'Theo dõi yêu cầu', to: '/teacher/requests' },
     ];
   }
-  if (role === 'TRAINING_MANAGER') {
+  if (role === 'STAFF' || role === 'TRAINING_MANAGER') {
     return [
-      { label: 'Bảng điều khiển', to: '/training-manager' },
-      { label: 'Lớp học', to: '/training-manager/classrooms' },
-      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
-      { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
+      { label: 'Bảng điều khiển', to: '/staff' },
+      { label: 'Lớp học', to: '/staff/classrooms' },
+      { label: 'Yêu cầu đăng ký', to: '/staff/enrollment-requests' },
+      { label: 'Hàng đợi đăng ký', to: '/staff/registrations' },
+      { label: 'Duyệt yêu cầu', to: '/staff/requests' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
     ];
   }
   if (role === 'MANAGER' || role === 'ADMIN') {
     return [
-      { label: 'Bảng điều khiển', to: '/training-manager' },
-      { label: 'Lớp học', to: '/training-manager/classrooms' },
-      { label: 'Hàng đợi đăng ký', to: '/training-manager/registrations' },
-      { label: 'Duyệt yêu cầu', to: '/training-manager/requests' },
-      { label: 'Giảng dạy', to: '/teacher' },
+      { label: 'Duyệt đề xuất lớp', to: '/manager/classroom-proposals' },
+      { label: 'Duyệt khóa học', to: '/manager/course-approvals' },
+      { label: 'Duyệt nội dung', to: '/manager/content-approvals' },
+      { label: 'Ghi danh online', to: '/manager/online-enrollments' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
     ];
   }
@@ -59,15 +59,17 @@ const getProfileItemsByRole = (user) => {
   if (!user) return [];
   const role = String(user.role || '').toUpperCase();
   // Staff roles already have primary navigation in the header; keep the avatar menu for account actions only.
-  if (['TEACHER', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
+  if (['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
     return [];
   }
   // Student
   return [
     { label: 'Khóa học của tôi', to: '/my-courses' },
+    { label: 'Yêu cầu đăng ký', to: '/my-enrollment-requests' },
     { label: 'Luyện flashcard', to: '/flashcards/practice' },
     { label: 'Lớp của tôi', to: '/my-classrooms' },
     { label: 'Lịch học', to: '/my-schedule' },
+    { label: 'Luyện tập', to: '/my-practice' },
     { label: 'Bài tập', to: '/my-homework' },
     { label: 'Hồ sơ', to: '/profile' },
     { label: 'Lịch sử giao dịch', to: '/transaction-history' },
@@ -79,13 +81,14 @@ const getRoleLabel = (user) => {
   if (!user) return '';
   const role = String(user.role || '').toUpperCase();
   if (role === 'TEACHER') return 'Giáo viên';
+  if (role === 'STAFF') return 'Nhân viên đào tạo';
   if (role === 'TRAINING_MANAGER') return 'Quản lý đào tạo';
   if (role === 'MANAGER' || role === 'ADMIN') return 'Quản lý';
   if (role === 'CONTENT_MANAGER') return 'Quản lý nội dung';
   return user.targetExam || 'Học viên EnglishLab';
 };
 
-const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 const Header = () => {
   const location = useLocation();

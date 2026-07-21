@@ -65,9 +65,10 @@ public class YouTubeTranscriptServiceImpl implements YouTubeTranscriptService {
     }
 
     public List<TranscriptSegmentResponse> fetchTranscriptSegments(String videoUrl) {
-        return extractVideoId(videoUrl)
+        List<TranscriptSegmentResponse> segments = extractVideoId(videoUrl)
                 .map(this::fetchTranscriptSegmentsByVideoId)
                 .orElseGet(List::of);
+        return TranscriptSegmentNormalizer.normalize(segments);
     }
 
     private List<TranscriptSegmentResponse> fetchTranscriptSegmentsByVideoId(String videoId) {

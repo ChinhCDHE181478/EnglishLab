@@ -71,7 +71,7 @@ export function ContentManagerLayout({ children }) {
         }}
       />
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[270px] flex-col overflow-hidden border-r border-slate-200 bg-[#4b0009] text-white shadow-xl lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-[270px] flex-col overflow-hidden border-r border-slate-200 bg-[#4b0009] text-white shadow-xl lg:flex">
         <div className="shrink-0 border-b border-white/10 bg-[#4b0009] px-6 pb-5 pt-7">
           <p className="bg-gradient-to-r from-white to-pink-200 bg-clip-text font-['Manrope'] text-2xl font-black tracking-tight text-transparent">
             EnglishLab
@@ -129,8 +129,8 @@ export function ContentManagerLayout({ children }) {
         </div>
       </aside>
 
-      <div className="lg:ml-[270px]">
-        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur-md">
+      <div className="relative lg:ml-[270px] z-20">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md">
           <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -296,14 +296,14 @@ function resolveMeta(pathname) {
   if (/^\/content-manager\/offline-programs\/[^/]+\/edit$/.test(pathname)) {
     return {
       ...contentManagerPageMeta['/content-manager/offline-programs'],
-      title: 'Sửa chương trình offline',
+      title: 'Sửa khóa học Offline',
     };
   }
 
   if (/^\/content-manager\/virtual-programs\/[^/]+\/edit$/.test(pathname)) {
     return {
       ...contentManagerPageMeta['/content-manager/virtual-programs'],
-      title: 'Sửa chương trình virtual',
+      title: 'Sửa khóa học Virtual',
     };
   }
 

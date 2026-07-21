@@ -175,6 +175,15 @@ export const formatAttendanceStatus = (status) => {
   return map[status] || status || 'Chưa ghi nhận';
 };
 
+export const formatAttendanceDisputeStatus = (status) => {
+  const labels = {
+    PENDING: 'Đang chờ giáo viên xử lý',
+    APPROVED: 'Đã chấp nhận',
+    REJECTED: 'Đã từ chối',
+  };
+  return labels[String(status || '').toUpperCase()] || status || 'Đang cập nhật';
+};
+
 export const formatHomeworkStatus = (status, overdue) => {
   if (overdue) return 'Quá hạn';
   const map = {

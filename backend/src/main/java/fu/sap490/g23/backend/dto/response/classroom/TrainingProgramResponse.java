@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -16,6 +16,8 @@ public class TrainingProgramResponse {
     private String title;
     private String code;
     private String slug;
+    /** Tên canonical trên API; deliveryMode được giữ trong compatibility window. */
+    private ClassroomDeliveryMode deliveryType;
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
     private Long curriculumProgramId;
@@ -28,38 +30,22 @@ public class TrainingProgramResponse {
     private String entryLevel;
     private String targetScore;
     private String targetOutcome;
-    private Integer defaultCapacity;
     private BigDecimal price;
     private BigDecimal salePrice;
     private String duration;
     private String studyMode;
+    private Integer capacity;
+    /** Trường tương thích cho client cũ; dùng capacity cho tích hợp mới. */
+    private Integer maxCapacity;
+    private LocalDate plannedStartDate;
+    private String plannedSchedule;
     private String thumbnailUrl;
-    private String syllabusSummary;
-    private String programOutcomes;
-    private String teacherGuide;
-    private String interactionActivities;
     private PackageStatus status;
     private String statusLabel;
     private Integer displayOrder;
     private boolean featured;
-    private Integer materialCount;
     private Integer classroomCount;
     private Integer activeClassroomCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private List<MaterialSummary> materials;
-
-    @Data
-    @Builder
-    public static class MaterialSummary {
-        private Long id;
-        private Long materialId;
-        private String title;
-        private String materialType;
-        private String fileType;
-        private String provider;
-        private String status;
-        private Integer displayOrder;
-        private String note;
-    }
 }

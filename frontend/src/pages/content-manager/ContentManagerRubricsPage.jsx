@@ -276,182 +276,184 @@ export default function ContentManagerRubricsPage() {
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
 
-      {editorOpen ? (
-        <form className="scroll-mt-24 space-y-5 rounded-xl border border-[#dcc0bf]/30 bg-white p-5 shadow-sm" onSubmit={saveRubric} ref={editorRef}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">
-                {editingId ? 'Edit rubric' : 'New rubric'}
-              </p>
-              <h3 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-slate-900">
-                {editingId ? 'Sửa rubric' : 'Tạo rubric mới'}
-              </h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Tổng trọng số hiện tại: <strong className={totalWeight === 100 ? 'text-emerald-700' : 'text-amber-700'}>{totalWeight}%</strong>
-                {totalWeight !== 100 ? ' (không bắt buộc 100%, nhưng nên chuẩn hóa để dễ đọc)' : ''}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-slate-600 transition hover:bg-slate-50"
-                onClick={() => resetForm(true)}
-                type="button"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </button>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]"
-                onClick={() => resetForm(false)}
-                type="button"
-              >
-                <X className="h-4 w-4" />
-                Đóng
-              </button>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <TextField label="Tên rubric" onChange={(value) => setForm((current) => ({ ...current, name: value }))} value={form.name} />
-            <TextField label="Loại kỳ thi" onChange={(value) => setForm((current) => ({ ...current, examType: value }))} value={form.examType} />
-            <Picker
-              label="Kỹ năng"
-              onChange={(value) => setForm((current) => ({ ...current, skill: value }))}
-              options={skillOptions.filter((option) => option.value !== 'ALL')}
-              value={form.skill}
-            />
-            <TextField label="Loại task" onChange={(value) => setForm((current) => ({ ...current, taskType: value }))} value={form.taskType} />
-            <TextField label="Thang điểm" onChange={(value) => setForm((current) => ({ ...current, scoringScale: value }))} value={form.scoringScale} />
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <input
-                checked={form.active}
-                className="h-4 w-4 accent-[#4b0009]"
-                onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
-                type="checkbox"
-              />
-              <span className="text-sm font-bold text-slate-700">Cho phép sử dụng rubric này</span>
-            </label>
-          </div>
-          <TextField label="Mô tả" onChange={(value) => setForm((current) => ({ ...current, description: value }))} textarea value={form.description} />
-
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Tiêu chí / rule chấm điểm</h4>
-              <button
-                className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff4f5]"
-                onClick={addCriterion}
-                type="button"
-              >
-                <Plus className="h-4 w-4" />
-                Thêm rule
-              </button>
-            </div>
-            {form.criteria.map((criterion, index) => (
-              <CriterionEditor
-                criterion={criterion}
-                index={index}
-                key={`${criterion.id || 'new'}-${index}`}
-                onChange={(patch) => updateCriterion(index, patch)}
-                onRemove={() => removeCriterion(index)}
-                removable={form.criteria.length > 1}
-              />
-            ))}
-          </div>
-
-          <button
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={working}
-            type="submit"
-          >
-            <Save className="h-4 w-4" />
-            {working ? 'Đang lưu...' : editingId ? 'Cập nhật rubric' : 'Tạo rubric'}
-          </button>
-        </form>
-      ) : (
-        <>
-          <ManagerStatsGrid stats={statItems} />
-
-          <ManagerFilterBar>
-            <div className="min-w-[300px] flex-1">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
-                <input
-                  className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
-                  onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Tìm rubric, task, thang điểm..."
-                  value={keyword}
-                />
+      {editorOpen && (
+        <RubricEditorModal onClose={() => resetForm(false)}>
+          <form className="space-y-5" onSubmit={saveRubric} ref={editorRef}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">
+                  {editingId ? 'Edit rubric' : 'New rubric'}
+                </p>
+                <h3 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-slate-900">
+                  {editingId ? 'Sửa rubric' : 'Tạo rubric mới'}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Tổng trọng số hiện tại: <strong className={totalWeight === 100 ? 'text-emerald-700' : 'text-amber-700'}>{totalWeight}%</strong>
+                  {totalWeight !== 100 ? ' (không bắt buộc 100%, nhưng nên chuẩn hóa để dễ đọc)' : ''}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-slate-600 transition hover:bg-slate-50"
+                  onClick={() => resetForm(true)}
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]"
+                  onClick={() => resetForm(false)}
+                  type="button"
+                >
+                  <X className="h-4 w-4" />
+                  Đóng
+                </button>
               </div>
             </div>
-            <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
-              <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
-              <FilterSelect label="Trạng thái" onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
-            </div>
-            <button
-              aria-label="Làm mới rubrics"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
-              onClick={loadRubrics}
-              type="button"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={() => resetForm(true)} type="button">
-              <Plus className="h-4 w-4" />
-              Tạo rubric mới
-            </button>
-          </ManagerFilterBar>
 
-          {loading ? (
-            <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải rubrics...</div>
-          ) : !filteredRubrics.length ? (
-            <ManagerEmptyState>Chưa có rubric phù hợp.</ManagerEmptyState>
-          ) : (
-            <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
-              <ManagerTable
-                columns={[
-                  { label: 'Tên rubric', key: 'name' },
-                  { label: 'Kỹ năng', key: 'skill' },
-                  { label: 'Task', key: 'task' },
-                  { label: 'Rule', key: 'rules', align: 'center' },
-                  { label: 'Trạng thái', key: 'status' },
-                  { label: 'Thao tác', key: 'actions', align: 'right' },
-                ]}
-                minWidth="1040px"
-              >
-                {pageItems.map((rubric) => (
-                  <tr className="transition hover:bg-[#eff4ff]" key={rubric.id}>
-                    <td className="px-6 py-5">
-                      <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{rubric.name}</p>
-                      {rubric.scoringScale ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{rubric.scoringScale}</p> : null}
-                    </td>
-                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{rubric.skill || '-'}</ManagerStatusBadge></td>
-                    <td className="px-6 py-5 text-sm text-[#0b1c30]">{rubric.taskType || '-'}</td>
-                    <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{rubric.criteria?.length || 0}</td>
-                    <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => editRubric(rubric)} type="button">
-                          <Edit3 className="h-3.5 w-3.5" />
-                          Chỉnh sửa
-                        </button>
-                        <button
-                          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
-                          disabled={working}
-                          onClick={() => toggleRubricActive(rubric)}
-                          type="button"
-                        >
-                          {rubric.active === false ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
-                          {rubric.active === false ? 'Khôi phục' : 'Tạm ngưng'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </ManagerTable>
-              <ManagerTablePagination itemLabel="rubric" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
-            </section>
-          )}
-        </>
+            {error ? <div className="mb-4"><Notice tone="error">{error}</Notice></div> : null}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField label="Tên rubric" onChange={(value) => setForm((current) => ({ ...current, name: value }))} value={form.name} />
+              <TextField label="Loại kỳ thi" onChange={(value) => setForm((current) => ({ ...current, examType: value }))} value={form.examType} />
+              <Picker
+                label="Kỹ năng"
+                onChange={(value) => setForm((current) => ({ ...current, skill: value }))}
+                options={skillOptions.filter((option) => option.value !== 'ALL')}
+                value={form.skill}
+              />
+              <TextField label="Loại task" onChange={(value) => setForm((current) => ({ ...current, taskType: value }))} value={form.taskType} />
+              <TextField label="Thang điểm" onChange={(value) => setForm((current) => ({ ...current, scoringScale: value }))} value={form.scoringScale} />
+              <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <input
+                  checked={form.active}
+                  className="h-4 w-4 accent-[#4b0009]"
+                  onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
+                  type="checkbox"
+                />
+                <span className="text-sm font-bold text-slate-700">Cho phép sử dụng rubric này</span>
+              </label>
+            </div>
+            <TextField label="Mô tả" onChange={(value) => setForm((current) => ({ ...current, description: value }))} textarea value={form.description} />
+
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Tiêu chí / rule chấm điểm</h4>
+                <button
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff4f5]"
+                  onClick={addCriterion}
+                  type="button"
+                >
+                  <Plus className="h-4 w-4" />
+                  Thêm rule
+                </button>
+              </div>
+              {form.criteria.map((criterion, index) => (
+                <CriterionEditor
+                  criterion={criterion}
+                  index={index}
+                  key={`${criterion.id || 'new'}-${index}`}
+                  onChange={(patch) => updateCriterion(index, patch)}
+                  onRemove={() => removeCriterion(index)}
+                  removable={form.criteria.length > 1}
+                />
+              ))}
+            </div>
+
+            <button
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={working}
+              type="submit"
+            >
+              <Save className="h-4 w-4" />
+              {working ? 'Đang lưu...' : editingId ? 'Cập nhật rubric' : 'Tạo rubric'}
+            </button>
+          </form>
+        </RubricEditorModal>
+      )}
+
+      <ManagerStatsGrid stats={statItems} />
+
+      <ManagerFilterBar>
+        <div className="min-w-[300px] flex-1">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
+            <input
+              className="w-full rounded-lg border border-[#dcc0bf]/50 bg-[#f8f9ff] py-2 pl-10 pr-4 text-sm text-[#0b1c30] outline-none transition focus:border-[#4b0009] focus:bg-white focus:ring-4 focus:ring-[#4b0009]/5"
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tìm rubric, task, thang điểm..."
+              value={keyword}
+            />
+          </div>
+        </div>
+        <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
+          <FilterSelect label="Kỹ năng" onChange={(event) => setSkillFilter(event.target.value)} options={skillOptions} value={skillFilter} />
+          <FilterSelect label="Trạng thái" onChange={(event) => setActiveFilter(event.target.value)} options={activeOptions} value={activeFilter} />
+        </div>
+        <button
+          aria-label="Làm mới rubrics"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/40 text-[#564241] transition hover:bg-[#eff4ff]"
+          onClick={loadRubrics}
+          type="button"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+        <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={() => resetForm(true)} type="button">
+          <Plus className="h-4 w-4" />
+          Tạo rubric mới
+        </button>
+      </ManagerFilterBar>
+
+      {loading ? (
+        <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải rubrics...</div>
+      ) : !filteredRubrics.length ? (
+        <ManagerEmptyState>Chưa có rubric phù hợp.</ManagerEmptyState>
+      ) : (
+        <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
+          <ManagerTable
+            columns={[
+              { label: 'Tên rubric', key: 'name' },
+              { label: 'Kỹ năng', key: 'skill' },
+              { label: 'Task', key: 'task' },
+              { label: 'Rule', key: 'rules', align: 'center' },
+              { label: 'Trạng thái', key: 'status' },
+              { label: 'Thao tác', key: 'actions', align: 'right' },
+            ]}
+            minWidth="1040px"
+          >
+            {pageItems.map((rubric) => (
+              <tr className="transition hover:bg-[#eff4ff]" key={rubric.id}>
+                <td className="px-6 py-5">
+                  <p className="max-w-[340px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{rubric.name}</p>
+                  {rubric.scoringScale ? <p className="mt-1 max-w-[340px] truncate text-xs text-[#564241]">{rubric.scoringScale}</p> : null}
+                </td>
+                <td className="px-6 py-5"><ManagerStatusBadge tone="info">{rubric.skill || '-'}</ManagerStatusBadge></td>
+                <td className="px-6 py-5 text-sm text-[#0b1c30]">{rubric.taskType || '-'}</td>
+                <td className="px-6 py-5 text-center text-sm font-semibold text-[#0b1c30]">{rubric.criteria?.length || 0}</td>
+                <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
+                <td className="px-6 py-5 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => editRubric(rubric)} type="button">
+                      <Edit3 className="h-3.5 w-3.5" />
+                      Chỉnh sửa
+                    </button>
+                    <button
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#4b0009] px-4 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-45"
+                      disabled={working}
+                      onClick={() => toggleRubricActive(rubric)}
+                      type="button"
+                    >
+                      {rubric.active === false ? <RefreshCw className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                      {rubric.active === false ? 'Khôi phục' : 'Tạm ngưng'}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </ManagerTable>
+          <ManagerTablePagination itemLabel="rubric" onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+        </section>
       )}
     </div>
   );
@@ -611,4 +613,28 @@ function Notice({ children, tone }) {
     ? 'border-rose-200 bg-rose-50 text-rose-700'
     : 'border-emerald-200 bg-emerald-50 text-emerald-700';
   return <div className={`rounded-2xl border px-5 py-4 text-sm font-bold ${className}`}>{children}</div>;
+}
+
+function RubricEditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+      <button
+        aria-label="Đóng modal"
+        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="relative z-10 w-full max-w-[800px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+        {children}
+      </div>
+    </div>
+  );
 }

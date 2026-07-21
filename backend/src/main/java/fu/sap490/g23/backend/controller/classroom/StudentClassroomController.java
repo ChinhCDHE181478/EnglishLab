@@ -153,6 +153,11 @@ public class StudentClassroomController {
         return ResponseEntity.ok(classroomPracticeService.listForLearner(id, authentication.getName()));
     }
 
+    @GetMapping("/my-practice")
+    public ResponseEntity<List<ClassroomPracticeResponse>> getMyPractice(Authentication authentication) {
+        return ResponseEntity.ok(classroomPracticeService.listAllForLearner(authentication.getName()));
+    }
+
     @PostMapping("/{id}/practice/{exerciseId}/complete")
     public ResponseEntity<ClassroomPracticeResponse> completePractice(
             @PathVariable Long id,
@@ -161,6 +166,25 @@ public class StudentClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomPracticeService.complete(id, exerciseId, request, authentication.getName()));
+    }
+
+    @PostMapping("/{id}/practice/{exerciseId}/attempts")
+    public ResponseEntity<ClassroomPracticeAttemptResponse> submitPracticeAttempt(
+            @PathVariable Long id,
+            @PathVariable Long exerciseId,
+            @Valid @RequestBody CompletePracticeRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomPracticeService.submitAttempt(id, exerciseId, request, authentication.getName()));
+    }
+
+    @GetMapping("/{id}/practice/{exerciseId}/attempts")
+    public ResponseEntity<List<ClassroomPracticeAttemptResponse>> getPracticeAttempts(
+            @PathVariable Long id,
+            @PathVariable Long exerciseId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomPracticeService.listAttempts(id, exerciseId, authentication.getName()));
     }
 
     @PostMapping("/homework/{homeworkId}/submit")
@@ -193,7 +217,8 @@ public class StudentClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(classroomGradebookService.getMyGradebook(id, authentication.getName()));
+        ClassroomGradebookResponse gradebook = classroomGradebookService.getMyGradebook(id, authentication.getName());
+        return gradebook == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(gradebook);
     }
 
     @GetMapping("/{id}/materials")

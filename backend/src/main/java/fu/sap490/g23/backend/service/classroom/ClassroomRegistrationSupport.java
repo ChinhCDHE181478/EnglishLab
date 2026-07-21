@@ -41,7 +41,7 @@ public final class ClassroomRegistrationSupport {
             ClassroomRegistrationStatus.ASSIGNED
     );
 
-    /** Hồ sơ đăng ký cần Training Manager xử lý (không gồm đã xếp lớp / từ chối / hủy). */
+    /** Hồ sơ đăng ký cần Nhân viên đào tạo xử lý (không gồm đã xếp lớp / từ chối / hủy). */
     public static final Set<ClassroomRegistrationStatus> NEEDS_ACTION_STATUSES = EnumSet.of(
             ClassroomRegistrationStatus.PENDING_CONFIRMATION,
             ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT,

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Filter, RefreshCw } from 'lucide-react';
+import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter, RefreshCw } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination from '../../components/ui/Pagination';
 import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -119,19 +120,19 @@ export default function ContentManagerCoursesPage() {
   const updateFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }));
 
   const changeCourseStatus = async (course, action) => {
-    const publishing = action === 'PUBLISH';
-    if (!publishing && !window.confirm(`Lưu trữ khóa học "${course.title}"?`)) return;
+    const submitting = action === 'SUBMIT_REVIEW';
+    if (!submitting && !window.confirm(`Lưu trữ khóa học "${course.title}"?`)) return;
     setWorkingId(course.id);
     setError('');
     setSuccess('');
     try {
-      const updated = publishing
-        ? await courseApi.publishOnlineCourse(course.id)
+      const updated = submitting
+        ? await courseApi.submitOnlineCourseForReview(course.id)
         : await courseApi.archiveOnlineCourse(course.id);
       setCourses((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSuccess(publishing ? 'Đã xuất bản khóa học.' : 'Đã lưu trữ khóa học.');
+      setSuccess(submitting ? 'Đã gửi phiên bản khóa học cho Manager duyệt.' : 'Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || (publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
+      setError(err?.response?.data?.message || err?.message || (submitting ? 'Không thể gửi duyệt khóa học.' : 'Không thể lưu trữ khóa học.'));
     } finally {
       setWorkingId(null);
     }
@@ -225,6 +226,10 @@ export default function ContentManagerCoursesPage() {
                     <td className="px-5 py-5 text-sm text-[#69778a]">{formatDate(course.updatedAt)}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        <Link className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/preview`}>
+                          <Eye className="h-3.5 w-3.5" />
+                          Xem trước
+                        </Link>
                         <button
                           className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
                           onClick={() => setSearchParams((prev) => { prev.set('edit', course.slug); return prev; })}
@@ -236,8 +241,8 @@ export default function ContentManagerCoursesPage() {
                           Biên soạn
                         </Link>
                         {course.status === 'DRAFT' || course.status === 'REJECTED' ? (
-                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
+                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'SUBMIT_REVIEW')} type="button">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Gửi duyệt
                           </button>
                         ) : null}
                         {course.status === 'PUBLISHED' ? (
@@ -260,32 +265,17 @@ export default function ContentManagerCoursesPage() {
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-[#eef1f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-[#eef1f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between bg-[#fffafb]/25">
           <p className="text-sm text-[#69778a]">
             Hiển thị <span className="font-bold text-[#26364a]">{filteredCourses.length ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, filteredCourses.length)}</span> của <span className="font-bold text-[#26364a]">{filteredCourses.length}</span> khóa học
           </p>
-          <div className="flex items-center gap-2">
-            <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e3e8f0] bg-white text-[#69778a] transition hover:bg-[#f7f9fc] disabled:opacity-35" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} type="button">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            {buildPageItems(page, totalPages).map((item, index) => (
-              item === 'dots' ? (
-                <span className="px-1 text-sm text-[#69778a]" key={`${item}-${index}`}>...</span>
-              ) : (
-                <button
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold transition ${item === page ? 'bg-[#4b0009] text-white' : 'text-[#69778a] hover:bg-[#f7f9fc]'}`}
-                  key={item}
-                  onClick={() => setPage(item)}
-                  type="button"
-                >
-                  {item}
-                </button>
-              )
-            ))}
-            <button className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e3e8f0] bg-white text-[#69778a] transition hover:bg-[#f7f9fc] disabled:opacity-35" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} type="button">
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onChange={setPage}
+            totalItems={filteredCourses.length}
+            pageSize={pageSize}
+          />
         </div>
       </Panel>
 
@@ -329,7 +319,7 @@ function EditorModal({ children, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
         onClick={onClose}
         type="button"
       />

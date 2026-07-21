@@ -348,6 +348,63 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getManagedOnlineCoursePreview(slugOrId) {
+    const response = await axiosClient.get(`/api/content-manager/online-courses/${slugOrId}/preview`);
+    return unwrapData(response);
+  },
+
+  async getOnlineCourseVersions(courseId) {
+    const response = await axiosClient.get(`/api/content-manager/online-courses/${courseId}/versions`);
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.items || [];
+  },
+
+  async getManagedOnlineCourseVersionPreview(courseId, versionId) {
+    const response = await axiosClient.get(`/api/content-manager/online-courses/${courseId}/versions/${versionId}/preview`);
+    return unwrapData(response);
+  },
+
+  async createOnlineCourseVersion(courseId, changeNote = '') {
+    const response = await axiosClient.post(`/api/content-manager/online-courses/${courseId}/versions`, { changeNote });
+    return unwrapData(response);
+  },
+
+  async updateOnlineCourseVersion(courseId, versionId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/online-courses/${courseId}/versions/${versionId}`, payload);
+    return unwrapData(response);
+  },
+
+  async submitOnlineCourseVersion(courseId, versionId) {
+    const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/versions/${versionId}/submit-review`);
+    return unwrapData(response);
+  },
+
+  async publishOnlineCourseVersion(courseId, versionId) {
+    const response = await axiosClient.patch(`/api/manager/online-courses/${courseId}/versions/${versionId}/publish`);
+    return unwrapData(response);
+  },
+
+  async rejectOnlineCourseVersion(courseId, versionId, reviewNote) {
+    const response = await axiosClient.patch(`/api/manager/online-courses/${courseId}/versions/${versionId}/reject`, { reviewNote });
+    return unwrapData(response);
+  },
+
+  async getPendingOnlineCourseVersions() {
+    const response = await axiosClient.get('/api/manager/online-course-versions/pending');
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : data?.items || [];
+  },
+
+  async reorderOnlineCourseModules(courseId, items) {
+    const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/modules/reorder`, { items });
+    return unwrapData(response);
+  },
+
+  async reorderOnlineCourseLessons(courseId, moduleId, items) {
+    const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/modules/${moduleId}/lessons/reorder`, { items });
+    return unwrapData(response);
+  },
+
   async getManagedCourseStats() {
     const response = await axiosClient.get('/api/content-manager/online-courses/stats');
     return unwrapData(response);
@@ -433,14 +490,16 @@ export const courseApi = {
     return unwrapData(response);
   },
 
-  async publishOnlineCourse(id) {
-    const response = await axiosClient.patch(`/api/content-manager/online-courses/${id}/publish`);
-    return unwrapData(response);
-  },
-
   async submitOnlineCourseForReview(id) {
-    const response = await axiosClient.patch(`/api/content-manager/online-courses/${id}/submit-review`);
-    return unwrapData(response);
+    const versionsResponse = await axiosClient.get(`/api/content-manager/online-courses/${id}/versions`);
+    const versions = unwrapData(versionsResponse) || [];
+    const draft = versions.find((version) => version.status === 'DRAFT');
+    if (!draft) {
+      throw new Error('Khóa học chưa có phiên bản nháp để gửi duyệt.');
+    }
+    await axiosClient.patch(`/api/content-manager/online-courses/${id}/versions/${draft.id}/submit-review`);
+    const courseResponse = await axiosClient.get(`/api/content-manager/online-courses/${id}`);
+    return unwrapData(courseResponse);
   },
 
   async approveOnlineCourse(id, reviewNote) {

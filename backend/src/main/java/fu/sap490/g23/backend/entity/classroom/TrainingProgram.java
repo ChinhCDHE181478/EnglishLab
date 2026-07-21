@@ -10,6 +10,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,19 +51,6 @@ public class TrainingProgram {
     @Column(columnDefinition = "text")
     private String description;
 
-    @Column(length = 120)
-    private String entryLevel;
-
-    @Column(length = 80)
-    private String targetScore;
-
-    @Column(length = 700)
-    private String targetOutcome;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer defaultCapacity = 30;
-
     @Column(precision = 12, scale = 2)
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
@@ -76,20 +64,18 @@ public class TrainingProgram {
     @Column(length = 120)
     private String studyMode;
 
+    @Column(name = "max_capacity", nullable = false, columnDefinition = "integer default 30")
+    @Builder.Default
+    private Integer maxCapacity = 30;
+
+    @Column(name = "planned_start_date")
+    private LocalDate plannedStartDate;
+
+    @Column(name = "planned_schedule", length = 500)
+    private String plannedSchedule;
+
     @Column(length = 700)
     private String thumbnailUrl;
-
-    @Column(columnDefinition = "text")
-    private String syllabusSummary;
-
-    @Column(columnDefinition = "text")
-    private String programOutcomes;
-
-    @Column(columnDefinition = "text")
-    private String teacherGuide;
-
-    @Column(columnDefinition = "text")
-    private String interactionActivities;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -104,11 +90,6 @@ public class TrainingProgram {
     @Builder.Default
     private boolean featured = false;
 
-    @OneToMany(mappedBy = "trainingProgram", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC, id ASC")
-    @Builder.Default
-    private List<TrainingProgramMaterial> materials = new ArrayList<>();
-
     @OneToMany(mappedBy = "trainingProgram")
     @Builder.Default
     private List<ClassroomOffering> classroomOfferings = new ArrayList<>();
@@ -121,8 +102,4 @@ public class TrainingProgram {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void addMaterial(TrainingProgramMaterial material) {
-        materials.add(material);
-        material.setTrainingProgram(this);
-    }
 }

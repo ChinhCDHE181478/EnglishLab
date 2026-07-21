@@ -8,7 +8,6 @@ import fu.sap490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemRes
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sap490.g23.backend.repository.classroom.TrainingProgramMaterialRepository;
 import fu.sap490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +25,6 @@ import java.util.Locale;
 public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibraryService {
 
     private final CenterMaterialLibraryItemRepository repository;
-    private final TrainingProgramMaterialRepository trainingProgramMaterialRepository;
     private final CurriculumMaterialRefRepository curriculumMaterialRefRepository;
     private final ClassroomAccessHelper accessHelper;
 
@@ -71,10 +69,9 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
 
         CenterMaterialLibraryItem item = repository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trung tâm."));
-        if (trainingProgramMaterialRepository.existsByMaterialId(materialId)
-                || curriculumMaterialRefRepository.existsByMaterialId(materialId)) {
+        if (curriculumMaterialRefRepository.existsByMaterialId(materialId)) {
             throw new IllegalArgumentException(
-                    "Học liệu đang được sử dụng trong chương trình hoặc giáo trình. Hãy gỡ liên kết trước khi xóa."
+                    "Học liệu đang được sử dụng trong giáo trình. Hãy gỡ khỏi unit trước khi xóa."
             );
         }
         repository.delete(item);

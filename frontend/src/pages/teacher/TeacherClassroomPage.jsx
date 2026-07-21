@@ -43,6 +43,7 @@ import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
+import TeacherAttendanceDisputesSection from '../../components/teacher/TeacherAttendanceDisputesSection';
 import TeacherGradebookSection from '../../components/teacher/TeacherGradebookSection';
 import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 
@@ -54,7 +55,8 @@ const teacherTabs = [
   { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
-  { id: 'change-requests', label: 'Gửi yêu cầu' },
+  { id: 'attendance-disputes', label: 'Khiếu nại điểm danh' },
+  { id: 'change-requests', label: 'Yêu cầu thay đổi' },
 ];
 
 export default function TeacherClassroomPage() {
@@ -444,6 +446,10 @@ export default function TeacherClassroomPage() {
       );
     }
 
+    if (activeTab === 'attendance-disputes') {
+      return <TeacherAttendanceDisputesSection classroomId={id} onMessage={setActionMessage} />;
+    }
+
     if (activeTab === 'gradebook') {
       return (
         <TeacherGradebookSection
@@ -671,7 +677,7 @@ function TeacherCurriculumPanel({ curriculum }) {
   if (!curriculum) {
     return (
       <ClassroomEmptyState
-        description="Lớp này chưa được gắn giáo trình. Training Manager cần chọn giáo trình khi mở hoặc cập nhật lớp."
+        description="Lớp này chưa được gắn chương trình đào tạo. Nhân viên đào tạo cần chọn chương trình khi chuẩn bị hoặc cập nhật lớp."
         title="Chưa có giáo trình"
       />
     );

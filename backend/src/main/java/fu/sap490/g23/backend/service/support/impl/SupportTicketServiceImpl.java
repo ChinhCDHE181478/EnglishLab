@@ -31,8 +31,13 @@ import java.util.Set;
 @Transactional
 public class SupportTicketServiceImpl implements SupportTicketService {
 
-    /** Support queue is handled by Training Manager (and Admin). */
-    private static final Set<RoleEnum> SUPPORT_STAFF_ROLES = Set.of(RoleEnum.TRAINING_MANAGER, RoleEnum.ADMIN);
+    /** Support queue is handled by Staff; TRAINING_MANAGER remains a temporary compatibility role. */
+    private static final Set<RoleEnum> SUPPORT_STAFF_ROLES = Set.of(
+            RoleEnum.STAFF,
+            RoleEnum.TRAINING_MANAGER,
+            RoleEnum.MANAGER,
+            RoleEnum.ADMIN
+    );
 
     private final SupportTicketRepository ticketRepository;
     private final SupportTicketMessageRepository messageRepository;

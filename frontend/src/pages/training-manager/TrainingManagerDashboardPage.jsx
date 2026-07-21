@@ -56,25 +56,25 @@ export default function TrainingManagerDashboardPage() {
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          href="/training-manager/registrations"
+          href="/staff/registrations"
           icon={ClipboardList}
           label="Đăng ký cần xử lý"
           value={dashboard?.pendingRegistrationCount ?? 0}
         />
         <SummaryCard
-          href="/training-manager/requests"
+          href="/staff/requests"
           icon={CheckSquare}
           label="Yêu cầu chờ duyệt"
           value={dashboard?.pendingChangeRequestCount ?? 0}
         />
         <SummaryCard
-          href="/training-manager/registrations?tab=PENDING_TUITION_PAYMENT"
+          href="/staff/registrations?tab=PENDING_TUITION_PAYMENT"
           icon={Users}
           label="Chờ thanh toán"
           value={dashboard?.pendingTuitionCount ?? 0}
         />
         <SummaryCard
-          href="/training-manager/registrations?tab=NEEDS_ACTION"
+          href="/staff/registrations?tab=NEEDS_ACTION"
           icon={CalendarDays}
           label="Sẵn sàng xếp lớp"
           value={dashboard?.readyToAssignCount ?? 0}
@@ -85,7 +85,7 @@ export default function TrainingManagerDashboardPage() {
         <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Việc cần làm</h2>
-            <Link className="text-xs font-bold text-[#730014] hover:underline" to="/training-manager/registrations">
+            <Link className="text-xs font-bold text-[#730014] hover:underline" to="/staff/registrations">
               Xem hàng đợi đăng ký
             </Link>
           </div>
@@ -125,7 +125,7 @@ export default function TrainingManagerDashboardPage() {
                 <Link
                   className="block rounded-2xl border border-amber-100 bg-amber-50/40 p-4 transition hover:bg-amber-50"
                   key={`${alert.classroomOfferingId}-${alert.alertType}`}
-                  to={alert.href || `/training-manager/classrooms/${alert.classroomOfferingId}`}
+                  to={alert.href || `/staff/classrooms/${alert.classroomOfferingId}`}
                 >
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700" />

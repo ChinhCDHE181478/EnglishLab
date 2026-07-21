@@ -3,8 +3,6 @@ package fu.sap490.g23.backend.service.classroom;
 import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sap490.g23.backend.entity.classroom.ClassroomMaterial;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgramMaterial;
 import fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
@@ -40,20 +38,19 @@ class ClassroomMaterialSyncServiceImplTest {
     }
 
     @Test
-    void synchronizesProgramAndCurriculumMaterialsAsMandatory() {
-        CenterMaterialLibraryItem programMaterial = material(10L, "Tài liệu chung");
+    void synchronizesCurriculumMaterialsAsMandatory() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Unit 1 worksheet");
         CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
-        ClassroomOffering offering = offering(programMaterial, unit);
+        ClassroomOffering offering = offering(unit);
         when(materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
 
         service.synchronizeMandatoryMaterials(offering, null);
 
         ArgumentCaptor<ClassroomMaterial> captor = ArgumentCaptor.forClass(ClassroomMaterial.class);
-        verify(materialRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        verify(materialRepository).save(captor.capture());
         assertThat(captor.getAllValues())
                 .extracting(ClassroomMaterial::getSourceType)
-                .containsExactlyInAnyOrder("PROGRAM_LIBRARY", "CURRICULUM_LIBRARY");
+                .containsExactly("CURRICULUM_LIBRARY");
         ClassroomMaterial syncedUnitMaterial = captor.getAllValues().stream()
                 .filter(item -> "CURRICULUM_LIBRARY".equals(item.getSourceType()))
                 .findFirst()
@@ -67,7 +64,7 @@ class ClassroomMaterialSyncServiceImplTest {
     void upgradesPreviouslyAttachedCenterMaterialWhenItBecomesRequired() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Tên mới từ giáo trình");
         CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
-        ClassroomOffering offering = offering(null, unit);
+        ClassroomOffering offering = offering(unit);
         ClassroomMaterial existing = ClassroomMaterial.builder()
                 .id(301L)
                 .classroomOffering(offering)
@@ -87,7 +84,7 @@ class ClassroomMaterialSyncServiceImplTest {
 
     @Test
     void removesStaleMandatoryMaterialButKeepsTeacherSupplement() {
-        ClassroomOffering offering = offering(null);
+        ClassroomOffering offering = offering();
         ClassroomMaterial stale = ClassroomMaterial.builder()
                 .id(301L)
                 .classroomOffering(offering)
@@ -108,24 +105,12 @@ class ClassroomMaterialSyncServiceImplTest {
         verify(materialRepository, never()).delete(supplement);
     }
 
-    private ClassroomOffering offering(CenterMaterialLibraryItem programMaterial, CurriculumUnit... units) {
-        TrainingProgram trainingProgram = null;
-        if (programMaterial != null) {
-            TrainingProgramMaterial ref = TrainingProgramMaterial.builder()
-                    .material(programMaterial)
-                    .displayOrder(0)
-                    .build();
-            trainingProgram = TrainingProgram.builder()
-                    .materials(new ArrayList<>(List.of(ref)))
-                    .build();
-            ref.setTrainingProgram(trainingProgram);
-        }
+    private ClassroomOffering offering(CurriculumUnit... units) {
         CurriculumProgram curriculum = CurriculumProgram.builder()
                 .units(new ArrayList<>(List.of(units)))
                 .build();
         return ClassroomOffering.builder()
                 .id(1L)
-                .trainingProgram(trainingProgram)
                 .curriculumProgram(curriculum)
                 .build();
     }

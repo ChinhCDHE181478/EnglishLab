@@ -24,7 +24,7 @@ import {
   updateCurrentUserNotificationPreferences,
   uploadCurrentUserAvatar,
 } from '../api/authApi';
-import Footer from '../components/ai-learning/Footer';
+import CourseFooter from '../components/course/CourseFooter';
 import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import { useAuth } from '../context/AuthContext';
@@ -688,7 +688,7 @@ function NotificationPreferencesTab() {
   );
 }
 
-const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 // ── Main page ───────────────────────────────────────────────────────────────
 const CompleteProfile = () => {
@@ -767,7 +767,7 @@ const CompleteProfile = () => {
           {activeTab === 'linked' && <LinkedTab />}
         </motion.div>
       </motion.main>
-      <Footer />
+      <CourseFooter />
     </div>
   );
 };

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Brain } from 'lucide-react';
+import { ArrowLeft, Brain, Eye } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
+import CourseVersionPanel from '../../components/content-manager/CourseVersionPanel';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 
 const emptyForm = {
   title: '',
@@ -16,11 +18,7 @@ const emptyForm = {
   recommendedCurrentBandMin: '',
   recommendedCurrentBandMax: '',
   targetBand: '',
-  learningPathCode: '',
-  learningPathName: '',
-  learningPathOrder: '',
   targetOutcome: '',
-  recommendedNextCourseSlug: '',
   duration: '',
   studyMode: 'Online',
   price: '0',
@@ -44,11 +42,7 @@ const mapCourseToForm = (course = {}) => ({
   recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
   recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
   targetBand: course.targetBand ?? '',
-  learningPathCode: course.learningPathCode ?? '',
-  learningPathName: course.learningPathName ?? '',
-  learningPathOrder: course.learningPathOrder ?? '',
   targetOutcome: course.targetOutcome ?? '',
-  recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? '',
   duration: course.duration ?? '',
   studyMode: course.studyMode ?? 'Online',
   price: course.price ?? '0',
@@ -75,6 +69,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState([]);
+  const [versions, setVersions] = useState([]);
+  const [versionBusy, setVersionBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +101,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         setCourseId(course.id);
         setCourseSlug(course.slug || '');
         setForm(mapCourseToForm(course));
+        const versionItems = await courseApi.getOnlineCourseVersions(course.id);
+        if (active) setVersions(versionItems);
       } catch {
         if (active) setError('Không tải được chi tiết khóa học.');
       } finally {
@@ -121,6 +119,10 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
 
   const hasNoStructure = useMemo(() => !form.modules?.length && Number(form.totalLessons || 0) === 0, [form.modules, form.totalLessons]);
   const flashcardOverview = useMemo(() => getFlashcardOverview(form.modules), [form.modules]);
+  const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
+  const hasPublishedVersion = useMemo(() => versions.some((version) => version.status === 'PUBLISHED'), [versions]);
+  const versionPendingReview = useMemo(() => versions.some((version) => version.status === 'PENDING_REVIEW'), [versions]);
+  const canEdit = !editMode || Boolean(editableVersion) || (!hasPublishedVersion && !versionPendingReview);
   const categoryOptions = useMemo(() => {
     const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE'];
     const available = categories
@@ -135,8 +137,9 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   };
 
   const handleSubmit = async (nextStatus = null) => {
-    const targetStatus = nextStatus ?? form.status;
-    const validationMessage = validateCourseForm(form, targetStatus, hasNoStructure);
+    const submittingVersion = nextStatus === 'SUBMIT_REVIEW';
+    const targetStatus = submittingVersion ? form.status : nextStatus ?? form.status;
+    const validationMessage = validateCourseForm(form, submittingVersion ? 'PUBLISHED' : targetStatus, hasNoStructure);
     if (validationMessage) {
       setError(validationMessage);
       setSuccess('');
@@ -144,21 +147,27 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
     }
 
     setSaving(true);
-    setSavingAction(targetStatus === 'PUBLISHED' && nextStatus === 'PUBLISHED' ? 'publish' : 'save');
+    setSavingAction(submittingVersion ? 'submit-review' : 'save');
     setError('');
     setSuccess('');
 
     const payload = {
-      ...form,
+      title: form.title,
+      shortDescription: form.shortDescription,
+      description: form.description,
+      category: form.category,
+      level: form.level,
+      targetScore: form.targetScore,
+      targetOutcome: form.targetOutcome,
+      duration: form.duration,
+      studyMode: form.studyMode,
+      thumbnailUrl: form.thumbnailUrl,
+      featured: form.featured,
       price: Number(form.price || 0),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
       recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      learningPathCode: form.learningPathCode.trim() || null,
-      learningPathName: form.learningPathName.trim() || null,
-      learningPathOrder: form.learningPathOrder === '' ? null : Number(form.learningPathOrder),
-      recommendedNextCourseSlug: form.recommendedNextCourseSlug.trim() || null,
       totalLessons: Number(form.totalLessons || 0),
       totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
@@ -169,15 +178,32 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       if (editMode && !courseId) {
         throw new Error('Missing course id');
       }
+      if (editMode && !canEdit) {
+        throw new Error('Hãy tạo phiên bản nháp mới trước khi chỉnh sửa khóa học đã xuất bản.');
+      }
 
-      const response = editMode
-        ? await courseApi.updateOnlineCourse(courseId, payload)
-        : await courseApi.createOnlineCourse(payload);
+      let response;
+      if (editMode && editableVersion) {
+        const updatedVersion = await courseApi.updateOnlineCourseVersion(courseId, editableVersion.id, payload);
+        response = updatedVersion.content;
+      } else {
+        response = editMode
+          ? await courseApi.updateOnlineCourse(courseId, payload)
+          : await courseApi.createOnlineCourse(payload);
+      }
+
+      if (!response) throw new Error('Dữ liệu phiên bản trả về không hợp lệ.');
+
+      if (submittingVersion && editableVersion) {
+        await courseApi.submitOnlineCourseVersion(courseId, editableVersion.id);
+        setVersions(await courseApi.getOnlineCourseVersions(courseId));
+        response = await courseApi.getManagedOnlineCourse(courseId);
+      }
 
       setCourseId(response.id);
       setCourseSlug(response.slug || '');
       setForm(mapCourseToForm(response));
-      setSuccess(targetStatus === 'PUBLISHED' ? 'Khóa học đã được lưu và chuyển sang trạng thái đã xuất bản.' : 'Khóa học đã được lưu thành công.');
+      setSuccess(submittingVersion ? 'Đã lưu và gửi phiên bản cho Manager duyệt.' : 'Khóa học đã được lưu thành công.');
 
       if (!editMode && !onClose) {
         navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
@@ -186,10 +212,30 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         onSave(response);
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được khóa học.');
+      setError(err?.response?.data?.message || err?.message || 'Không lưu được khóa học.');
     } finally {
       setSaving(false);
       setSavingAction('');
+    }
+  };
+
+  const handleCreateVersion = async (changeNote = '') => {
+    if (!courseId) return;
+    setVersionBusy(true);
+    setError('');
+    setSuccess('');
+    try {
+      await courseApi.createOnlineCourseVersion(
+        courseId,
+        changeNote || 'Cập nhật nội dung từ phiên bản đang xuất bản.',
+      );
+      const versionItems = await courseApi.getOnlineCourseVersions(courseId);
+      setVersions(versionItems);
+      setSuccess('Đã tạo bản nháp mới. Các thay đổi từ đây không ảnh hưởng học viên hiện tại.');
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Không thể tạo phiên bản mới.');
+    } finally {
+      setVersionBusy(false);
     }
   };
 
@@ -220,10 +266,26 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             Mở khu vực biên soạn
           </Link>
         ) : null}
+        {editMode && form.title ? (
+          <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#730014] bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${slugOrId}/preview`}>
+            <Eye className="h-4 w-4" />
+            Xem trước
+          </Link>
+        ) : null}
       </div>
       <div className="space-y-6">
         {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
         {success ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700">{success}</div> : null}
+
+        {editMode ? (
+          <CourseVersionPanel
+            busy={saving || versionBusy}
+            onCreateDraft={handleCreateVersion}
+            onSubmitReview={() => handleSubmit('SUBMIT_REVIEW')}
+            previewBasePath={`/content-manager/courses/${courseSlug || slugOrId}/preview`}
+            versions={versions}
+          />
+        ) : null}
 
         <Panel className="p-6">
           <div className="grid gap-4 md:grid-cols-2">
@@ -235,16 +297,12 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <TextField label="Band đầu vào tối thiểu" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
             <TextField label="Band đầu vào tối đa" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
             <TextField label="Band mục tiêu" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
-            <TextField label="Mã lộ trình học" onChange={handleChange('learningPathCode')} value={form.learningPathCode} />
-            <TextField label="Tên lộ trình học" onChange={handleChange('learningPathName')} value={form.learningPathName} />
-            <TextField label="Thứ tự trong lộ trình" onChange={handleChange('learningPathOrder')} value={String(form.learningPathOrder)} />
-            <TextField label="Slug khóa học gợi ý tiếp theo" onChange={handleChange('recommendedNextCourseSlug')} value={form.recommendedNextCourseSlug} />
             <TextField label="Thời lượng ước tính" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Hình thức học" onChange={handleChange('studyMode')} value={form.studyMode} />
             <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
             <TextField label="Giá ưu đãi hệ thống" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
             <TextField label="Liên kết ảnh bìa" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
-            <SelectField label="Trạng thái" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
+            <SelectField disabled label="Trạng thái khóa học" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
             <TextField label="Tổng số bài học" onChange={handleChange('totalLessons')} value={String(form.totalLessons)} />
             <TextField label="Tổng số giờ học" onChange={handleChange('totalHours')} value={String(form.totalHours)} />
           </div>
@@ -282,14 +340,17 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         <Panel className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-xs text-[#8b706e] leading-relaxed max-w-xl">
-              {hasNoStructure && (
+              {!editMode ? (
+                <p className="text-[#584140] font-semibold">
+                  Tạo khóa học ở trạng thái nháp trước. Sau đó mở khu vực biên soạn để thêm mô-đun, bài học và tài nguyên.
+                </p>
+              ) : hasNoStructure ? (
                 <p className="text-[#730014] font-semibold">
                   ⚠️ Khóa học này hiện chưa có mô-đun hoặc bài học. Hãy kiểm tra cẩn thận trước khi xuất bản.
                 </p>
-              )}
-              {!hasNoStructure && (
+              ) : (
                 <p>
-                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra của khóa học. Nhấn Lưu thay đổi hoặc Xuất bản để áp dụng.
+                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra. Phiên bản cần được gửi Manager duyệt trước khi áp dụng cho enrollment mới.
                 </p>
               )}
             </div>
@@ -297,20 +358,20 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <div className="flex items-center gap-3">
               <button
                 className="rounded-2xl border border-[#4b0009] bg-white px-6 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
-                disabled={saving}
+                disabled={saving || !canEdit}
                 onClick={() => handleSubmit()}
                 type="button"
               >
-                {saving && savingAction === 'save' ? 'Đang lưu...' : 'Lưu thay đổi'}
+                {saving && savingAction === 'save' ? (editMode ? 'Đang lưu...' : 'Đang tạo...') : (editMode ? 'Lưu thay đổi' : 'Tạo khóa học')}
               </button>
-              {form.status !== 'PUBLISHED' && form.status !== 'ARCHIVED' ? (
+              {editMode && editableVersion ? (
                 <button
-                  className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 active:scale-95"
-                  disabled={saving}
-                  onClick={() => handleSubmit('PUBLISHED')}
+                  className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95 disabled:opacity-60"
+                  disabled={saving || versionBusy}
+                  onClick={() => handleSubmit('SUBMIT_REVIEW')}
                   type="button"
                 >
-                  {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Xuất bản'}
+                  {saving && savingAction === 'submit-review' ? 'Đang gửi duyệt...' : 'Lưu và gửi duyệt'}
                 </button>
               ) : null}
             </div>
@@ -321,11 +382,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   );
 }
 
-function SelectField({ label, value, onChange, options }) {
+function SelectField({ label, value, onChange, options, disabled = false }) {
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
-      <BrandedSelect onChange={onChange} options={options} value={value} />
+      <BrandedSelect disabled={disabled} onChange={onChange} options={options} value={value} />
     </label>
   );
 }
@@ -342,15 +403,6 @@ function validateCourseForm(form, targetStatus, hasNoStructure) {
   }
   if (minBand != null && maxBand != null && minBand > maxBand) {
     return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
-  }
-
-  const pathCode = form.learningPathCode.trim();
-  const pathName = form.learningPathName.trim();
-  if ((pathCode && !pathName) || (!pathCode && pathName)) {
-    return 'Mã và tên lộ trình học phải được nhập cùng nhau.';
-  }
-  if (pathCode && form.learningPathOrder === '') {
-    return 'Hãy nhập thứ tự của khóa học trong lộ trình.';
   }
   if (targetStatus === 'PUBLISHED' && hasNoStructure) {
     return 'Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.';
