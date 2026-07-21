@@ -36,6 +36,10 @@ public class PackageEnrollment {
     @JoinColumn(name = "package_id", nullable = false)
     private LearningPackage learningPackage;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_version_id")
+    private OnlineCourseVersion courseVersion;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default

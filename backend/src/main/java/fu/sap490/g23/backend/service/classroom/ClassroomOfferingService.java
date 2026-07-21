@@ -42,7 +42,7 @@ public interface ClassroomOfferingService {
     ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request);
 
     /**
-     * Tạo buổi học sau khi Training Manager đã duyệt yêu cầu thay đổi.
+     * Tạo buổi học sau khi Nhân viên đào tạo đã duyệt yêu cầu thay đổi.
      * Khi {@code enforceConflictCheck} = false, bỏ qua kiểm tra xung đột vì TM đã ghi đè.
      */
     ClassroomSessionResponse createSession(

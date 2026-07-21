@@ -24,6 +24,9 @@ public class Lesson {
     @JoinColumn(name = "module_id", nullable = false)
     private CourseModule module;
 
+    @Column(name = "lesson_key", length = 120)
+    private String lessonKey;
+
     @Column(nullable = false, length = 180)
     private String title;
 

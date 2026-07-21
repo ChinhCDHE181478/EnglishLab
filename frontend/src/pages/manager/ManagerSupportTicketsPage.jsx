@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Inbox, MessageSquarePlus, RefreshCw, Search, Send, UserCheck } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import supportApi from '../../api/supportApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
@@ -26,6 +27,8 @@ const allPriorityOptions = [{ value: 'ALL', label: 'Tất cả ưu tiên' }, ...
 const PAGE_SIZE = 8;
 
 export default function ManagerSupportTicketsPage() {
+  const location = useLocation();
+  const apiScope = location.pathname.startsWith('/manager/') ? 'manager' : 'staff';
   const [tickets, setTickets] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -46,7 +49,7 @@ export default function ManagerSupportTicketsPage() {
       const data = await supportApi.listQueue({
         status: status === 'ALL' ? undefined : status,
         priority: priority === 'ALL' ? undefined : priority,
-      });
+      }, apiScope);
       const items = Array.isArray(data) ? data : [];
       setTickets(items);
       const nextId = preferredId ?? selectedId ?? null;
@@ -65,7 +68,7 @@ export default function ManagerSupportTicketsPage() {
     setDetailLoading(true);
     setError('');
     try {
-      setDetail(await supportApi.getForStaff(ticketId));
+      setDetail(await supportApi.getForStaff(ticketId, apiScope));
     } catch (err) {
       setError(supportApiError(err, 'Không tải được chi tiết ticket.'));
     } finally {
@@ -73,7 +76,7 @@ export default function ManagerSupportTicketsPage() {
     }
   };
 
-  useEffect(() => { loadQueue(); }, [status, priority]);
+  useEffect(() => { loadQueue(); }, [apiScope, status, priority]);
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
     else setDetail(null);
@@ -103,7 +106,7 @@ export default function ManagerSupportTicketsPage() {
     setWorking(true);
     setError('');
     try {
-      await refresh(await supportApi.claim(detail.id));
+      await refresh(await supportApi.claim(detail.id, apiScope));
       setSuccess('Đã nhận xử lý ticket.');
     } catch (err) {
       setError(supportApiError(err, 'Không thể nhận xử lý ticket.'));
@@ -118,7 +121,7 @@ export default function ManagerSupportTicketsPage() {
     setError('');
     setSuccess('');
     try {
-      await refresh(await supportApi.updateAsStaff(detail.id, data));
+      await refresh(await supportApi.updateAsStaff(detail.id, data, apiScope));
       setSuccess('Đã cập nhật ticket.');
     } catch (err) {
       setError(supportApiError(err, 'Không thể cập nhật ticket.'));
@@ -133,7 +136,7 @@ export default function ManagerSupportTicketsPage() {
     setWorking(true);
     setError('');
     try {
-      const updated = await supportApi.replyAsStaff(detail.id, comment.trim());
+      const updated = await supportApi.replyAsStaff(detail.id, comment.trim(), apiScope);
       setComment('');
       await refresh(updated);
       setSuccess('Đã thêm comment cho học viên.');

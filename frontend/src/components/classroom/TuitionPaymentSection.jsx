@@ -136,7 +136,7 @@ export default function TuitionPaymentSection({
         paymentKind: form.paymentKind,
         note: form.note || undefined,
       });
-      setMessage('Đã gửi minh chứng thanh toán. Training Manager sẽ xác nhận trong thời gian sớm nhất.');
+      setMessage('Đã gửi minh chứng thanh toán. Nhân viên đào tạo sẽ xác nhận trong thời gian sớm nhất.');
       setSuccess(true);
       setForm({ file: null, amount: '', paymentKind: 'PARTIAL', note: '' });
       await loadData();
@@ -205,7 +205,7 @@ export default function TuitionPaymentSection({
             {canPayOnline ? 'Hoặc gửi minh chứng chuyển khoản' : 'Gửi minh chứng chuyển khoản'}
           </p>
           <p className="text-[11px] text-[#8b706e] leading-4">
-            Phương án dự phòng khi không dùng được PayOS. Training Manager sẽ xác nhận minh chứng thủ công.
+            Phương án dự phòng khi không dùng được PayOS. Nhân viên đào tạo sẽ xác nhận minh chứng thủ công.
           </p>
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#dfc4c2]/60 bg-white px-4 py-6 text-center transition hover:border-[#730014]/40 hover:bg-[#fff7f7]">
             {form.file ? (

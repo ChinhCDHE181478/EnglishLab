@@ -1,0 +1,14 @@
+package fu.sap490.g23.backend.repository.classroom;
+
+import fu.sap490.g23.backend.entity.classroom.ClassroomProposalMember;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Collection;
+
+public interface ClassroomProposalMemberRepository extends JpaRepository<ClassroomProposalMember, Long> {
+    boolean existsByEnrollmentRequestIdAndProposalApprovalStatusIn(
+            Long enrollmentRequestId,
+            Collection<ClassroomApprovalStatus> statuses
+    );
+}

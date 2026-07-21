@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.entity.assessment.enums.*;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
@@ -23,6 +24,7 @@ import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
 import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
 import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
@@ -65,6 +67,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
+    private final OnlineCourseVersionService onlineCourseVersionService;
     private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -73,8 +76,14 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
-        ensureEnrolled(student, course);
-        return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+        PackageEnrollment enrollment = ensureEnrolled(student, course);
+        List<CourseAssessment> assessments = enrollment.getCourseVersion() == null
+                ? courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                : courseAssessmentRepository.findAllById(onlineCourseVersionService.getEnrollmentAssessmentIds(enrollment)).stream()
+                        .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
+                        .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
+                        .toList();
+        return assessments
                 .stream()
                 .map(assessment -> toResponse(assessment, student))
                 .toList();
@@ -85,8 +94,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
         applyAssessmentBankSnapshot(assessment);
-        ensureEnrolled(student, assessment.getOnlineCourse());
-        courseProgressionGuard.ensureAssessmentCanBeSubmitted(student, assessment);
+        PackageEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
+        if (enrollment.getCourseVersion() != null) {
+            onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
+        } else {
+            courseProgressionGuard.ensureAssessmentCanBeSubmitted(student, assessment);
+        }
 
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
             throw new RuntimeException("Bài đánh giá này chưa bật phản hồi tự động.");
@@ -138,12 +151,16 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
         AssessmentSubmission savedSubmission = submissionRepository.save(submission);
         enrollmentRepository.findByStudentAndLearningPackage(student, assessment.getOnlineCourse().getLearningPackage())
-                .ifPresent(enrollment -> courseProgressService.refreshEnrollmentProgress(enrollment, assessment.getOnlineCourse(), student));
+                .ifPresent(activeEnrollment -> courseProgressService.refreshEnrollmentProgress(
+                        activeEnrollment,
+                        assessment.getOnlineCourse(),
+                        student
+                ));
         return toSubmissionResponse(savedSubmission);
     }
 
-    private void ensureEnrolled(User student, OnlineCourse course) {
-        courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course);
+    private PackageEnrollment ensureEnrolled(User student, OnlineCourse course) {
+        return courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course);
     }
 
     private void validateSkillAssessmentConfiguration(CourseAssessment assessment) {

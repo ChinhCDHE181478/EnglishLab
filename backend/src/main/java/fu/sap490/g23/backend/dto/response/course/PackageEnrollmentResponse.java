@@ -18,6 +18,8 @@ public class PackageEnrollmentResponse {
     private Long id;
     private Long packageId;
     private Long courseId;
+    private Long courseVersionId;
+    private Integer courseVersionNumber;
     private String courseTitle;
     private String courseSlug;
     private String thumbnailUrl;

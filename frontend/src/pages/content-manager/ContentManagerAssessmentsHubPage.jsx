@@ -266,7 +266,11 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   }, [items, filters, keyword, pageConfig, isSkillLocked]);
 
   const sortedItems = useMemo(
-    () => [...filteredItems].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.title).localeCompare(String(b.title), 'vi')),
+    () => [...filteredItems].sort((a, b) => (
+      (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+      || new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
+      || String(a.title).localeCompare(String(b.title), 'vi')
+    )),
     [filteredItems],
   );
 
@@ -378,6 +382,9 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setEditingId(saved.id);
       setForm(lockFormToPage(toForm(saved, pageConfig)));
       setEditorOpen(false);
+      setKeyword('');
+      setFilters({ type: 'ALL', status: 'ALL' });
+      setPage(1);
       setSuccess(editingId ? `Đã cập nhật ${pageConfig.successNoun}.` : `Đã tạo ${pageConfig.successNoun}.`);
     } catch (err) {
       setError(err?.response?.data?.message || `Không lưu được ${pageConfig.successNoun}.`);
@@ -629,7 +636,6 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       {editorOpen && (
         <AssessmentHubModal onClose={closeEditor}>
           <section className="space-y-5" ref={editorRef}>
-            {isSkillLocked ? <SkillPracticeTabs activeSkill={pageConfig.skill} /> : null}
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
@@ -802,34 +808,6 @@ function AssessmentStatusBadge({ status }) {
       ? 'warning'
       : 'neutral';
   return <ManagerStatusBadge tone={tone}>{formatLabel(status)}</ManagerStatusBadge>;
-}
-
-function SkillPracticeTabs({ activeSkill }) {
-  const tabs = [
-    { skill: 'LISTENING', label: 'Nghe' },
-    { skill: 'READING', label: 'Đọc' },
-    { skill: 'WRITING', label: 'Viết' },
-    { skill: 'SPEAKING', label: 'Nói' },
-  ];
-  return (
-    <div className="flex border-b border-slate-100 pb-1">
-      {tabs.map((tab) => {
-        const isActive = tab.skill === activeSkill;
-        return (
-          <span
-            key={tab.skill}
-            className={`mr-4 pb-2 text-sm font-bold border-b-2 transition ${
-              isActive
-                ? 'border-[#4b0009] text-[#4b0009]'
-                : 'border-transparent text-slate-400'
-            }`}
-          >
-            Luyện {tab.label.toLowerCase()}
-          </span>
-        );
-      })}
-    </div>
-  );
 }
 
 function AssessmentHubModal({ children, onClose }) {

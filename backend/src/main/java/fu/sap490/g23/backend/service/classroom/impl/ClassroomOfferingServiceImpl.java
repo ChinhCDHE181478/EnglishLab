@@ -736,7 +736,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
         if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
-            throw new RuntimeException("Bạn đã được xếp lớp. Vui lòng gửi yêu cầu hủy để Training Manager xử lý.");
+            throw new RuntimeException("Bạn đã được xếp lớp. Vui lòng gửi yêu cầu hủy để Nhân viên đào tạo xử lý.");
         }
 
         ClassroomOffering offering = enrollment.getClassroomOffering();

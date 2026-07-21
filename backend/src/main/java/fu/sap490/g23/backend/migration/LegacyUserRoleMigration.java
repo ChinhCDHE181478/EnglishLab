@@ -24,6 +24,14 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
     }
 
     private void seedRoles() {
+        // Hibernate không tự mở rộng CHECK constraint cũ khi enum Java có thêm giá trị.
+        jdbcTemplate.execute("alter table roles drop constraint if exists roles_code_check");
+        jdbcTemplate.execute("""
+                alter table roles add constraint roles_code_check check (code in (
+                    'LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER',
+                    'STAFF', 'TRAINING_MANAGER', 'ADMIN'
+                ))
+                """);
         jdbcTemplate.update("""
                 insert into roles (code, name, description, active)
                 values
@@ -31,6 +39,7 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
                     ('TEACHER', 'Giáo viên', 'Giảng dạy và quản lý hoạt động lớp được phân công.', true),
                     ('MANAGER', 'Quản lý', 'Quản lý vận hành chung của hệ thống.', true),
                     ('CONTENT_MANAGER', 'Quản lý nội dung', 'Quản lý khóa học và nội dung học tập.', true),
+                    ('STAFF', 'Nhân viên đào tạo', 'Tiếp nhận đăng ký, phân lớp và chuẩn bị đề xuất mở lớp.', true),
                     ('TRAINING_MANAGER', 'Quản lý đào tạo', 'Quản lý đăng ký, lớp học và hoạt động đào tạo.', true),
                     ('ADMIN', 'Quản trị viên', 'Có quyền quản trị cao nhất trong hệ thống.', true)
                 on conflict (code) do update

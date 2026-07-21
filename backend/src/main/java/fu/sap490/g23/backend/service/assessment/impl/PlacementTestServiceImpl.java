@@ -9,6 +9,8 @@ import fu.sap490.g23.backend.dto.request.assessment.PlacementTestSubmissionReque
 import fu.sap490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sap490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
+import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
@@ -137,7 +139,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(reading.correct())
                 .aiFeedbackJson(aiResult == null ? fallbackFeedback() : aiResult.getFeedbackJson())
                 .status(status)
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
+                .recommendedLevel(null)
                 .submittedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(180))
                 .build();
         PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
         student.setCurrentBand(overall == null ? null : overall.doubleValue());
@@ -180,7 +185,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(reading.correct())
                 .aiFeedbackJson("{\"examType\":\"TOEIC\",\"message\":\"Đã chấm khách quan TOEIC Listening & Reading theo answer key.\"}")
                 .status("COMPLETED")
+                .evaluationStatus(PlacementEvaluationStatus.ELIGIBLE)
+                .recommendedLevel(toeicLevel(overall))
                 .submittedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(180))
                 .build();
         PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
         student.setCurrentBand(null);
@@ -637,6 +645,9 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 : resolveStoredExamType(attempt);
         return PlacementTestAttemptResponse.builder()
                 .id(attempt.getId())
+                .learnerId(attempt.getStudent().getId())
+                .learnerName(attempt.getStudent().getFullName())
+                .learnerEmail(attempt.getStudent().getEmail())
                 .testCode(attempt.getTestCode())
                 .examType(resolvedExamType)
                 .listeningScore(attempt.getListeningScore())
@@ -648,8 +659,25 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(attempt.getCorrectReading())
                 .aiFeedbackJson(attempt.getAiFeedbackJson())
                 .status(attempt.getStatus())
+                .evaluationStatus(attempt.getEvaluationStatus())
+                .recommendedLevel(attempt.getRecommendedLevel())
+                .expiresAt(attempt.getExpiresAt())
+                .reviewerId(attempt.getReviewer() == null ? null : attempt.getReviewer().getId())
+                .reviewerName(attempt.getReviewer() == null ? null : attempt.getReviewer().getFullName())
+                .reviewedAt(attempt.getReviewedAt())
+                .reviewNote(attempt.getReviewNote())
                 .submittedAt(attempt.getSubmittedAt())
                 .build();
+    }
+
+    private PlacementLevel toeicLevel(BigDecimal score) {
+        if (score == null || score.compareTo(BigDecimal.valueOf(450)) < 0) {
+            return PlacementLevel.BEGINNER;
+        }
+        if (score.compareTo(BigDecimal.valueOf(700)) < 0) {
+            return PlacementLevel.INTERMEDIATE;
+        }
+        return PlacementLevel.ADVANCED;
     }
 
     private String resolveStoredExamType(PlacementTestAttempt attempt) {

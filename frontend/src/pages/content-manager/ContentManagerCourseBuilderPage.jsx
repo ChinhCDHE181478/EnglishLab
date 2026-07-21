@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, GripVertical, Play, Plus, Trash2, Upload, X, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, Eye, GripVertical, Play, Plus, Trash2, Upload, X, XCircle } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import CourseVersionPanel from '../../components/content-manager/CourseVersionPanel';
+import { formatModuleTitle, stripModuleOrdinal } from '../../utils/courseModuleTitle';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -13,6 +15,9 @@ import {
   normalizeAssessmentPassingScore,
   usesBandScale,
 } from '../../utils/ieltsBandScale';
+import { persistOptimisticReorder, reorderItems } from '../../utils/courseReorder';
+import { findEditableCourseVersion } from '../../utils/courseVersionUi';
+import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -21,14 +26,6 @@ const ASSESSMENT_SKILL_OPTIONS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING',
 const AI_MODE_OPTIONS = ['NONE', 'EXPLAIN_ONLY', 'RUBRIC_FEEDBACK', 'ESTIMATED_BAND'];
 
 const createTempId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-const reorder = (items, fromIndex, toIndex) => {
-  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return items;
-  const next = [...items];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next.map((item, index) => ({ ...item, displayOrder: index + 1 }));
-};
 
 const resolveModuleKey = (module) => String(module?.id ?? module?.tempId ?? COURSE_LEVEL_KEY);
 
@@ -171,7 +168,10 @@ export default function ContentManagerCourseBuilderPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [versions, setVersions] = useState([]);
+  const [versionBusy, setVersionBusy] = useState(false);
   const handledRouteTargetRef = useRef('');
 
   const pushToast = (message, type = 'success') => {
@@ -210,9 +210,13 @@ export default function ContentManagerCourseBuilderPage() {
           return;
         }
 
-        const assessmentItems = await courseApi.getManagedCourseAssessments(normalizedCourse.id);
+        const [assessmentItems, versionItems] = await Promise.all([
+          courseApi.getManagedCourseAssessments(normalizedCourse.id),
+          courseApi.getOnlineCourseVersions(normalizedCourse.id),
+        ]);
         if (!active) return;
         setAssessments(normalizeAssessmentStructure(assessmentItems, normalizedCourse.modules));
+        setVersions(versionItems);
       } catch {
         if (active) setError('Không tải được dữ liệu builder.');
       }
@@ -224,6 +228,12 @@ export default function ContentManagerCourseBuilderPage() {
       active = false;
     };
   }, [slugOrId]);
+
+  const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
+  const courseRequiresNewVersion = useMemo(
+    () => versions.some((version) => version.status === 'PUBLISHED') && !editableVersion,
+    [editableVersion, versions],
+  );
 
   useEffect(() => {
     if (!course) return;
@@ -339,7 +349,7 @@ export default function ContentManagerCourseBuilderPage() {
           ...current.modules,
           {
             tempId: createTempId('module'),
-            title: `Mô-đun ${current.modules.length + 1}`,
+            title: '',
             description: '',
             displayOrder: current.modules.length + 1,
             lessons: [],
@@ -532,26 +542,93 @@ export default function ContentManagerCourseBuilderPage() {
     pushToast('Đã xóa mô-đun khỏi bản chỉnh sửa. Bấm Lưu thay đổi để ghi vào hệ thống.', 'warning');
   };
 
-  const moveModule = (fromIndex, toIndex) => {
-    setCourse((current) => {
-      if (!current) return current;
-      return { ...current, modules: reorder(current.modules, fromIndex, toIndex) };
-    });
+  const moveModule = async (fromIndex, toIndex) => {
+    if (!course || reordering || fromIndex === toIndex) return;
+    const previousModules = course.modules || [];
+    const canPersistImmediately = Boolean(course.id) && previousModules.every((module) => module.id);
     setActiveModuleIndex(toIndex);
     setActiveLessonIndex(0);
+
+    if (!canPersistImmediately) {
+      setCourse((current) => current
+        ? { ...current, modules: reorderItems(current.modules || [], fromIndex, toIndex) }
+        : current);
+      pushToast('Đã đổi vị trí trong bản chỉnh sửa. Hãy lưu nội dung mới trước khi đồng bộ reorder riêng.', 'warning');
+      return;
+    }
+
+    setReordering(true);
+    try {
+      const savedModules = await persistOptimisticReorder({
+        items: previousModules,
+        fromIndex,
+        toIndex,
+        onOptimistic: (items) => setCourse((current) => (current ? { ...current, modules: items } : current)),
+        onRollback: (items) => {
+          setCourse((current) => (current ? { ...current, modules: items } : current));
+          setActiveModuleIndex(fromIndex);
+        },
+        persist: (items) => courseApi.reorderOnlineCourseModules(course.id, items.map((module) => ({
+          moduleId: module.id,
+          orderIndex: module.displayOrder,
+        }))),
+      });
+      setCourse((current) => (current ? { ...current, modules: savedModules } : current));
+      pushToast('Đã cập nhật thứ tự mô-đun.');
+    } catch (err) {
+      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự mô-đun. Hệ thống đã khôi phục vị trí cũ.', 'error');
+    } finally {
+      setReordering(false);
+    }
   };
 
-  const moveLesson = (fromIndex, toIndex) => {
-    setCourse((current) => {
+  const moveLesson = async (fromIndex, toIndex) => {
+    if (!course || reordering || fromIndex === toIndex) return;
+    const module = course.modules?.[activeModuleIndex];
+    if (!module) return;
+    const previousLessons = module.lessons || [];
+    const canPersistImmediately = Boolean(course.id && module.id) && previousLessons.every((lesson) => lesson.id);
+    setActiveLessonIndex(toIndex);
+
+    const replaceLessons = (items) => setCourse((current) => {
       if (!current) return current;
       return {
         ...current,
-        modules: current.modules.map((module, moduleIndex) => (
-          moduleIndex !== activeModuleIndex ? module : { ...module, lessons: reorder(module.lessons || [], fromIndex, toIndex) }
+        modules: current.modules.map((currentModule, moduleIndex) => (
+          moduleIndex === activeModuleIndex ? { ...currentModule, lessons: items } : currentModule
         )),
       };
     });
-    setActiveLessonIndex(toIndex);
+
+    if (!canPersistImmediately) {
+      replaceLessons(reorderItems(previousLessons, fromIndex, toIndex));
+      pushToast('Đã đổi vị trí bài học trong bản chỉnh sửa. Hãy lưu bài mới trước khi đồng bộ reorder riêng.', 'warning');
+      return;
+    }
+
+    setReordering(true);
+    try {
+      const savedLessons = await persistOptimisticReorder({
+        items: previousLessons,
+        fromIndex,
+        toIndex,
+        onOptimistic: replaceLessons,
+        onRollback: (items) => {
+          replaceLessons(items);
+          setActiveLessonIndex(fromIndex);
+        },
+        persist: (items) => courseApi.reorderOnlineCourseLessons(course.id, module.id, items.map((lesson) => ({
+          lessonId: lesson.id,
+          orderIndex: lesson.displayOrder,
+        }))),
+      });
+      replaceLessons(savedLessons);
+      pushToast('Đã cập nhật thứ tự bài học.');
+    } catch (err) {
+      pushToast(err?.response?.data?.message || 'Không thể đổi thứ tự bài học. Hệ thống đã khôi phục vị trí cũ.', 'error');
+    } finally {
+      setReordering(false);
+    }
   };
 
   const deleteLesson = (lessonIndex) => {
@@ -651,14 +728,32 @@ export default function ContentManagerCourseBuilderPage() {
   };
 
   const handleSave = async () => {
-    if (!course?.id) return;
+    if (!course?.id) return false;
+
+    if (courseRequiresNewVersion) {
+      setError('Hãy tạo phiên bản nháp mới trước khi thay đổi nội dung khóa học đã xuất bản.');
+      return false;
+    }
 
     setError('');
-    const validationMessage = validateBuilderState(modules, assessments);
+    const inputValidationMessage = validateBuilderState(modules, assessments, { allowTranscriptOverlap: true });
+    if (inputValidationMessage) {
+      setError(inputValidationMessage);
+      pushToast(inputValidationMessage, 'error');
+      return false;
+    }
+    const modulesForSave = modules.map((module) => ({
+      ...module,
+      lessons: (module.lessons || []).map((lesson) => ({
+        ...lesson,
+        transcriptSegments: normalizeTranscriptTimeline(lesson.transcriptSegments),
+      })),
+    }));
+    const validationMessage = validateBuilderState(modulesForSave, assessments);
     if (validationMessage) {
       setError(validationMessage);
       pushToast(validationMessage, 'error');
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -688,9 +783,9 @@ export default function ContentManagerCourseBuilderPage() {
         totalHours,
         displayOrder: Number(course.displayOrder || 0),
         featured: Boolean(course.featured),
-        modules: modules.map((module, moduleIndex) => ({
+        modules: modulesForSave.map((module, moduleIndex) => ({
           id: module.id,
-          title: module.title,
+          title: stripModuleOrdinal(module.title),
           description: module.description,
           displayOrder: moduleIndex + 1,
           lessons: (module.lessons || []).map((lesson, lessonIndex) => ({
@@ -712,18 +807,61 @@ export default function ContentManagerCourseBuilderPage() {
 
       const updatedCourse = await courseApi.updateOnlineCourse(course.id, payload);
       const normalizedCourse = normalizeCourseStructure(updatedCourse);
-      const assessmentPayload = buildAssessmentPayload(assessments, modules, normalizedCourse.modules);
+      const assessmentPayload = buildAssessmentPayload(assessments, modulesForSave, normalizedCourse.modules);
       const updatedAssessments = await courseApi.saveManagedCourseAssessments(normalizedCourse.id, assessmentPayload);
 
       setCourse(normalizedCourse);
       setAssessments(normalizeAssessmentStructure(updatedAssessments, normalizedCourse.modules));
       pushToast('Đã lưu thay đổi nội dung khóa học.');
+      return true;
     } catch (err) {
       const message = err?.response?.data?.message || 'Không lưu được thay đổi nội dung khóa học.';
       setError(message);
       pushToast(message, 'error');
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCreateVersion = async (changeNote = '') => {
+    if (!course?.id) return;
+    setVersionBusy(true);
+    setError('');
+    try {
+      await courseApi.createOnlineCourseVersion(
+        course.id,
+        changeNote || 'Cập nhật cấu trúc và nội dung khóa học.',
+      );
+      setVersions(await courseApi.getOnlineCourseVersions(course.id));
+      pushToast('Đã tạo bản nháp mới. Học viên hiện tại vẫn tiếp tục học phiên bản cũ.');
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Không thể tạo phiên bản mới.';
+      setError(message);
+      pushToast(message, 'error');
+    } finally {
+      setVersionBusy(false);
+    }
+  };
+
+  const handleSubmitVersion = async () => {
+    if (!course?.id || !editableVersion) return;
+
+    const saved = await handleSave();
+    if (!saved) return;
+
+    setVersionBusy(true);
+    setError('');
+    try {
+      await courseApi.submitOnlineCourseVersion(course.id, editableVersion.id);
+      setVersions(await courseApi.getOnlineCourseVersions(course.id));
+      pushToast(`Đã gửi phiên bản v${editableVersion.versionNumber} cho Manager duyệt.`);
+    } catch (err) {
+      const message = err?.response?.data?.message || 'Không thể gửi phiên bản cho Manager duyệt.';
+      setError(message);
+      pushToast(message, 'error');
+    } finally {
+      setVersionBusy(false);
     }
   };
 
@@ -740,14 +878,30 @@ export default function ContentManagerCourseBuilderPage() {
             Chỉnh sửa thông tin khóa học
           </Link>
         ) : null}
+        {course?.slug ? (
+          <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#730014] bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/preview`}>
+            <Eye className="h-4 w-4" />
+            Xem trước
+          </Link>
+        ) : null}
         {course ? (
-          <button className="ml-auto rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" disabled={saving} onClick={handleSave} type="button">
-            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+          <button className="ml-auto rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={saving || reordering || versionBusy || courseRequiresNewVersion} onClick={handleSave} type="button">
+            {reordering ? 'Đang đồng bộ thứ tự...' : saving ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         ) : null}
       </div>
 
       {error ? <div className="rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">{error}</div> : null}
+
+      {course ? (
+        <CourseVersionPanel
+          busy={saving || reordering || versionBusy}
+          onCreateDraft={handleCreateVersion}
+          onSubmitReview={handleSubmitVersion}
+          previewBasePath={`/content-manager/courses/${course.slug}/preview`}
+          versions={versions}
+        />
+      ) : null}
 
       {!course ? (
         <div className="rounded-2xl border border-[#dfbfbd]/55 bg-white px-5 py-8 text-sm text-[#584140]">Đang tải khu vực biên soạn...</div>
@@ -765,7 +919,7 @@ export default function ContentManagerCourseBuilderPage() {
                 <div
                   key={module.id || module.tempId}
                   className={`block w-full cursor-grab rounded-2xl border p-4 text-left transition active:cursor-grabbing ${index === activeModuleIndex ? 'border-[#4b0009] bg-[#fff7f7]' : 'border-[#eadcdc] bg-white hover:border-[#730014]/30'}`}
-                  draggable
+                  draggable={!reordering}
                   onClick={() => {
                     setActiveModuleIndex(index);
                     setActiveLessonIndex(0);
@@ -785,7 +939,7 @@ export default function ContentManagerCourseBuilderPage() {
                       <GripVertical className="h-4 w-4 text-[#730014]" />
                       <button
                         className="rounded-lg p-1 text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-35"
-                        disabled={index === 0}
+                        disabled={reordering || index === 0}
                         onClick={(event) => {
                           event.stopPropagation();
                           moveModule(index, index - 1);
@@ -797,7 +951,7 @@ export default function ContentManagerCourseBuilderPage() {
                       </button>
                       <button
                         className="rounded-lg p-1 text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-35"
-                        disabled={index === modules.length - 1}
+                        disabled={reordering || index === modules.length - 1}
                         onClick={(event) => {
                           event.stopPropagation();
                           moveModule(index, index + 1);
@@ -809,7 +963,7 @@ export default function ContentManagerCourseBuilderPage() {
                       </button>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-[#1a1c1c]">{module.title}</p>
+                      <p className="font-semibold text-[#1a1c1c]">{formatModuleTitle(module.title, index)}</p>
                       <p className="mt-1 text-sm text-[#584140]">
                         {module.lessons?.length ?? 0} bài học • {assessments.filter((item) => item.moduleKey === resolveModuleKey(module)).length} bài kiểm tra
                       </p>
@@ -837,7 +991,10 @@ export default function ContentManagerCourseBuilderPage() {
           <div className="space-y-4">
             <Panel className="p-6" id="course-assessments">
               <div className="grid gap-4 md:grid-cols-2">
-                <TextField label="Tên mô-đun" onChange={updateModule('title')} value={activeModule?.title || ''} />
+                <div>
+                  <TextField label="Tên mô-đun (không nhập số thứ tự)" onChange={updateModule('title')} value={activeModule?.title || ''} />
+                  <p className="mt-1.5 text-xs text-[#8b706e]">Hệ thống tự gắn “Module {activeModuleIndex + 1}” và cập nhật ngay khi đổi thứ tự.</p>
+                </div>
                 <TextField label="Mô tả mô-đun" onChange={updateModule('description')} value={activeModule?.description || ''} />
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -939,7 +1096,7 @@ export default function ContentManagerCourseBuilderPage() {
                 <Panel
                   key={lesson.id || lesson.tempId}
                   className={`cursor-grab p-4 transition active:cursor-grabbing ${index === activeLessonIndex ? 'border-[#4b0009] bg-[#fff7f7]' : 'hover:border-[#730014]/30'}`}
-                  draggable
+                  draggable={!reordering}
                   onDragStart={() => setDragState({ type: 'lesson', index })}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
@@ -953,7 +1110,7 @@ export default function ContentManagerCourseBuilderPage() {
                       <GripVertical className="h-4 w-4 text-[#730014]" />
                       <button
                         className="rounded-lg p-1 text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-35"
-                        disabled={index === 0}
+                        disabled={reordering || index === 0}
                         onClick={() => moveLesson(index, index - 1)}
                         title="Đưa bài học lên"
                         type="button"
@@ -962,7 +1119,7 @@ export default function ContentManagerCourseBuilderPage() {
                       </button>
                       <button
                         className="rounded-lg p-1 text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-35"
-                        disabled={index === lessons.length - 1}
+                        disabled={reordering || index === lessons.length - 1}
                         onClick={() => moveLesson(index, index + 1)}
                         title="Đưa bài học xuống"
                         type="button"
@@ -1130,6 +1287,7 @@ function normalizeCourseStructure(course) {
     ...course,
     modules: (course.modules || []).map((module, moduleIndex) => ({
       ...module,
+      title: stripModuleOrdinal(module.title),
       tempId: module.tempId || createTempId('module'),
       displayOrder: module.displayOrder ?? moduleIndex + 1,
       lessons: (module.lessons || []).map((lesson, lessonIndex) => ({
@@ -1143,7 +1301,7 @@ function normalizeCourseStructure(course) {
   };
 }
 
-function validateBuilderState(modules, assessments) {
+function validateBuilderState(modules, assessments, { allowTranscriptOverlap = false } = {}) {
   for (let moduleIndex = 0; moduleIndex < modules.length; moduleIndex += 1) {
     const module = modules[moduleIndex];
     if (!String(module.title || '').trim()) {
@@ -1171,7 +1329,7 @@ function validateBuilderState(modules, assessments) {
         if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds < 0 || endSeconds <= startSeconds) {
           return `Mốc thời gian của đoạn chép lời ${segmentIndex + 1} trong bài học "${lesson.title}" không hợp lệ.`;
         }
-        if (segmentIndex > 0 && startSeconds < Number(transcriptSegments[segmentIndex - 1]?.endSeconds)) {
+        if (!allowTranscriptOverlap && segmentIndex > 0 && startSeconds < Number(transcriptSegments[segmentIndex - 1]?.endSeconds)) {
           return `Các đoạn chép lời trong bài học "${lesson.title}" đang bị chồng thời gian.`;
         }
       }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login, loginWithFacebook, loginWithGoogle } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { hasAnyUserRole, isContentManagerUser, needsPlacementTest, needsProfileCompletion } from '../utils/auth';
@@ -28,6 +28,7 @@ const FacebookIcon = () => (
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { saveSession } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
@@ -40,11 +41,14 @@ const Login = () => {
 
   const resolvePostLoginPath = (user) => {
     if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
-    if (isContentManagerUser(user)) return '/content-manager/dashboard';
-    if (hasAnyUserRole(user, ['TRAINING_MANAGER'])) return '/training-manager';
+    if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/course-approvals';
+    if (hasAnyUserRole(user, ['CONTENT_MANAGER']) || isContentManagerUser(user)) return '/content-manager/dashboard';
+    if (hasAnyUserRole(user, ['STAFF', 'TRAINING_MANAGER'])) return '/staff';
     if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
     if (needsPlacementTest(user)) return '/placement-test';
     if (needsProfileCompletion(user)) return '/complete-profile';
+    const requestedPath = location.state?.from;
+    if (typeof requestedPath === 'string' && requestedPath.startsWith('/')) return requestedPath;
     return '/home';
   };
 

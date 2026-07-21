@@ -15,13 +15,13 @@ import {
 
 const modeConfig = {
   OFFLINE: {
-    title: 'Danh sách chương trình',
-    subtitle: 'Lọc, theo dõi trạng thái và thao tác nhanh trên chương trình đào tạo.',
+    title: 'Khóa học Offline',
+    subtitle: 'Quản lý các khóa học tại trung tâm dùng để tiếp nhận nhu cầu và đề xuất mở lớp.',
     deliveryMode: 'OFFLINE',
   },
   VIRTUAL: {
-    title: 'Danh sách chương trình',
-    subtitle: 'Lọc, theo dõi trạng thái và thao tác nhanh trên chương trình đào tạo.',
+    title: 'Khóa học Virtual',
+    subtitle: 'Quản lý các khóa học trực tuyến có lịch và giảng viên, tách biệt với khóa online tự học.',
     deliveryMode: 'VIRTUAL',
   },
 };
@@ -61,11 +61,11 @@ const platformOptions = [
   { label: 'Liên kết thủ công', value: 'MANUAL' },
 ];
 
-const toUpdatePayload = (program, deliveryMode, status) => ({
+const toUpdatePayload = (program, deliveryType, status) => ({
   title: program.title,
   code: program.code,
   slug: program.slug,
-  deliveryMode,
+  deliveryType,
   curriculumProgramId: Number(program.curriculumProgramId),
   shortDescription: program.shortDescription || null,
   description: program.description || null,
@@ -73,6 +73,9 @@ const toUpdatePayload = (program, deliveryMode, status) => ({
   salePrice: program.salePrice ?? null,
   duration: program.duration || null,
   studyMode: program.studyMode || null,
+  capacity: program.capacity ?? program.maxCapacity ?? 30,
+  plannedStartDate: program.plannedStartDate || null,
+  plannedSchedule: program.plannedSchedule || null,
   thumbnailUrl: program.thumbnailUrl || null,
   status,
   displayOrder: Number(program.displayOrder || 0),
@@ -105,7 +108,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       const programData = await classroomApi.getContentManagerPrograms(config.deliveryMode);
       setPrograms(programData);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được danh sách chương trình.');
+      setError(err?.response?.data?.message || 'Không tải được danh sách khóa học.');
     } finally {
       setLoading(false);
     }
@@ -192,7 +195,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       const clone = await classroomApi.cloneContentManagerProgram(program.id);
       navigate(`${detailBasePath}/${clone.id}/builder`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không nhân bản được chương trình.');
+      setError(err?.response?.data?.message || 'Không nhân bản được khóa học.');
     } finally {
       setWorking(false);
     }
@@ -200,10 +203,10 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
 
   const archiveProgram = async (program) => {
     if (program.activeClassroomCount > 0) {
-      setError(`Chương trình đang được ${program.activeClassroomCount} lớp sắp khai giảng / đang diễn ra sử dụng, không thể lưu trữ.`);
+      setError(`Khóa học đang được ${program.activeClassroomCount} lớp sắp khai giảng / đang diễn ra sử dụng, không thể lưu trữ.`);
       return;
     }
-    if (!window.confirm(`Lưu trữ chương trình "${program.title}"?`)) return;
+    if (!window.confirm(`Lưu trữ khóa học "${program.title}"?`)) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -212,9 +215,9 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       setPrograms((current) => current.map((item) => (
         String(item.id) === String(program.id) ? { ...item, status: 'ARCHIVED' } : item
       )));
-      setSuccess('Đã lưu trữ chương trình.');
+      setSuccess('Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu trữ được chương trình.');
+      setError(err?.response?.data?.message || 'Không lưu trữ được khóa học.');
     } finally {
       setWorking(false);
     }
@@ -231,9 +234,9 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         toUpdatePayload(detail, config.deliveryMode, 'PUBLISHED'),
       );
       setPrograms((current) => current.map((item) => (String(item.id) === String(saved.id) ? saved : item)));
-      setSuccess('Đã xuất bản chương trình. Training Manager có thể dùng chương trình này để mở lớp.');
+      setSuccess('Đã xuất bản khóa học theo lịch. Nhân viên đào tạo có thể dùng khóa học này để đề xuất mở lớp.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể xuất bản chương trình.');
+      setError(err?.response?.data?.message || 'Không thể xuất bản khóa học.');
     } finally {
       setWorking(false);
     }
@@ -247,7 +250,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       <ProgramPageHero
         mode={config.deliveryMode}
         stats={[
-          { label: 'Tổng chương trình', value: programs.length },
+          { label: 'Tổng khóa học', value: programs.length },
           { label: 'Đã xuất bản', value: publishedCount },
           { label: 'Lớp đang dùng', value: activeUsageCount },
         ]}
@@ -257,7 +260,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
           <>
             <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={openCreate} type="button">
               <Plus className="h-4 w-4" />
-              Tạo chương trình
+              Tạo khóa học
             </button>
             <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dcc0bf]/40 bg-white px-5 py-3 text-sm font-bold text-[#4b0009] shadow-sm transition hover:bg-[#eff4ff] active:scale-[0.98]" onClick={loadPrograms} type="button">
               <RefreshCw className="h-4 w-4" />

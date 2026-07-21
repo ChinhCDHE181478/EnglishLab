@@ -4,48 +4,65 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
 
-const trainingManagerNav = [
+const trainingOperationsNav = [
   {
     title: 'Vận hành đào tạo',
     items: [
-      { label: 'Bảng điều khiển', href: '/training-manager', icon: LayoutDashboard, end: true },
-      { label: 'Lớp học', href: '/training-manager/classrooms', icon: CalendarDays },
-      { label: 'Hàng đợi đăng ký', href: '/training-manager/registrations', icon: ClipboardList },
-      { label: 'Duyệt yêu cầu', href: '/training-manager/requests', icon: CheckSquare },
-      { label: 'Hạ tầng lớp học', href: '/training-manager/infrastructure', icon: Settings2 },
-      { label: 'Quản lý ghi hình', href: '/training-manager/recordings', icon: Video },
-      { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList },
-      { label: 'Support ticket', href: '/training-manager/support-tickets', icon: LifeBuoy, trainingManagerOnly: true },
+      { label: 'Bảng điều khiển', href: '/staff', icon: LayoutDashboard, end: true, staffOnly: true },
+      { label: 'Lớp học', href: '/staff/classrooms', icon: CalendarDays, staffOnly: true },
+      { label: 'Yêu cầu đăng ký', href: '/staff/enrollment-requests', icon: ClipboardList, staffOnly: true },
+      { label: 'Đề xuất mở lớp', href: '/staff/classroom-proposals', icon: CalendarDays, staffOnly: true },
+      { label: 'Hàng đợi đăng ký', href: '/staff/registrations', icon: ClipboardList, staffOnly: true },
+      { label: 'Duyệt yêu cầu', href: '/staff/requests', icon: CheckSquare, staffOnly: true },
+      { label: 'Hạ tầng lớp học', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
+      { label: 'Quản lý ghi hình', href: '/staff/recordings', icon: Video, staffOnly: true },
+      { label: 'Duyệt đề xuất lớp', href: '/manager/classroom-proposals', icon: CalendarDays, managerOnly: true },
+      { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: CheckSquare, managerOnly: true },
+      { label: 'Duyệt nội dung', href: '/manager/content-approvals', icon: CheckSquare, managerOnly: true },
+      { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList, managerOnly: true },
+      { label: 'Support ticket', href: '/staff/support-tickets', managerHref: '/manager/support-tickets', icon: LifeBuoy },
     ],
   },
 ];
 
 function resolvePageMeta(pathname) {
-  if (pathname === '/training-manager' || pathname === '/training-manager/') {
+  if (pathname === '/staff' || pathname === '/staff/') {
     return {
       title: 'Việc cần làm hôm nay',
       subtitle: 'Tổng hợp đăng ký chờ xử lý, yêu cầu thay đổi và lớp cần can thiệp trước khai giảng.',
     };
   }
-  if (pathname.startsWith('/training-manager/classrooms/') && pathname !== '/training-manager/classrooms') {
+  if (pathname.startsWith('/staff/classrooms/') && pathname !== '/staff/classrooms') {
     return {
       title: 'Quản lý lớp học',
       subtitle: 'Xử lý hàng đợi đăng ký, học viên, lịch học và công bố khai giảng theo từng cohort.',
     };
   }
-  if (pathname.startsWith('/training-manager/registrations') || pathname.startsWith('/training-manager/classroom-registrations')) {
+  if (pathname.startsWith('/staff/registrations') || pathname.startsWith('/staff/classroom-registrations')) {
     return {
       title: 'Hàng đợi đăng ký và học phí',
       subtitle: 'Xác nhận ghi danh, ghi nhận học phí, xếp lớp — mặc định chỉ hiển thị hồ sơ cần xử lý.',
     };
   }
-  if (pathname.startsWith('/training-manager/requests')) {
+  if (pathname.startsWith('/staff/enrollment-requests')) {
+    return {
+      title: 'Yêu cầu đăng ký và phân lớp',
+      subtitle: 'Kiểm tra placement eligibility, chốt trình độ và quản lý waiting pool trước khi đề xuất lớp.',
+    };
+  }
+  if (pathname.startsWith('/staff/classroom-proposals')) {
+    return {
+      title: 'Đề xuất mở lớp',
+      subtitle: 'Gom waiting pool thành bản nháp, kiểm tra lịch và gửi Manager duyệt trước khi tạo lớp chính thức.',
+    };
+  }
+  if (pathname.startsWith('/staff/requests')) {
     return {
       title: 'Duyệt yêu cầu thay đổi',
       subtitle: 'Xem diff thay đổi, kiểm tra trùng lịch và phê duyệt đề xuất từ giảng viên.',
     };
   }
-  if (pathname.startsWith('/training-manager/infrastructure')) {
+  if (pathname.startsWith('/staff/infrastructure')) {
     return {
       title: 'Hạ tầng lớp học',
       subtitle: 'Quản lý cơ sở, phòng học và mẫu lịch để mở lớp không bị trùng lịch hoặc thiếu dữ liệu vận hành.',
@@ -53,11 +70,23 @@ function resolvePageMeta(pathname) {
   }
   if (pathname.startsWith('/manager/course-approvals')) {
     return {
-      title: 'Duyệt khóa học online',
-      subtitle: 'Rà soát nội dung đã gửi duyệt trước khi xuất bản cho học viên.',
+      title: 'Duyệt khóa học và phiên bản',
+      subtitle: 'Rà soát lần xuất bản đầu tiên cùng các phiên bản cập nhật v2, v3.',
     };
   }
-  if (pathname.startsWith('/training-manager/support-tickets') || pathname.startsWith('/manager/support-tickets')) {
+  if (pathname.startsWith('/manager/content-approvals')) {
+    return {
+      title: 'Duyệt nội dung và phiên bản',
+      subtitle: 'Kiểm duyệt v2, v3 cùng tài liệu và giáo trình do Content Manager gửi lên.',
+    };
+  }
+  if (pathname.startsWith('/manager/classroom-proposals')) {
+    return {
+      title: 'Duyệt đề xuất mở lớp',
+      subtitle: 'Kiểm tra học viên, lịch và nguồn lực trước khi tạo classroom chính thức trong một transaction.',
+    };
+  }
+  if (pathname.startsWith('/staff/support-tickets') || pathname.startsWith('/manager/support-tickets')) {
     return {
       title: 'Support Ticket',
       subtitle: 'Theo dõi và xử lý yêu cầu hỗ trợ từ học viên.',
@@ -79,23 +108,25 @@ export default function TrainingManagerLayout() {
   const meta = resolvePageMeta(location.pathname);
   const role = String(currentUser?.role || '').toUpperCase();
   const isManager = ['MANAGER', 'ADMIN'].includes(role);
-  const isTrainingManager = ['TRAINING_MANAGER', 'ADMIN'].includes(role);
-  const visibleTrainingManagerNav = trainingManagerNav.map((section) => ({
+  const isStaff = ['STAFF', 'TRAINING_MANAGER', 'ADMIN'].includes(role);
+  const visibleTrainingManagerNav = trainingOperationsNav.map((section) => ({
     ...section,
-    items: section.items.filter((item) => {
-      if (item.managerOnly && !isManager) return false;
-      if (item.trainingManagerOnly && !isTrainingManager) return false;
-      return true;
-    }),
+    items: section.items
+      .filter((item) => {
+        if (item.managerOnly && !isManager) return false;
+        if (item.staffOnly && !isStaff) return false;
+        return true;
+      })
+      .map((item) => (isManager && item.managerHref ? { ...item, href: item.managerHref } : item)),
   }));
-  const crumbs = location.pathname.replace('/training-manager/', '').split('/').filter(Boolean);
+  const crumbs = location.pathname.replace(/^\/(staff|manager)\/?/, '').split('/').filter(Boolean);
   const mobileNavOptions = visibleTrainingManagerNav.flatMap((section) => section.items.map((item) => ({
     label: item.label,
     value: item.href,
   })));
   const mobileNavValue = mobileNavOptions.find((option) => option.value === location.pathname)?.value
     || mobileNavOptions.find((option) => location.pathname.startsWith(`${option.value}/`))?.value
-    || '/training-manager';
+    || (isManager ? '/manager/course-approvals' : '/staff');
 
   useEffect(() => {
     setCurrentUser(getStoredUser());
@@ -121,9 +152,11 @@ export default function TrainingManagerLayout() {
     navigate('/login', { replace: true });
   };
 
-  const displayName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Quản lý đào tạo';
+  const displayName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Nhân viên đào tạo';
   const avatarLetter = displayName.charAt(0).toUpperCase();
-  const hidePageShell = /^\/training-manager\/classrooms\/\d+/.test(location.pathname);
+  const hidePageShell = /^\/staff\/classrooms\/\d+/.test(location.pathname);
+  const homeHref = isManager ? '/manager/course-approvals' : '/staff';
+  const roleLabel = isManager ? 'Quản lý' : 'Nhân viên đào tạo';
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Inter'] text-slate-800 antialiased">
@@ -193,7 +226,7 @@ export default function TrainingManagerLayout() {
           <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500">
-                <Link className="transition hover:text-[#730014]" to="/training-manager">
+                <Link className="transition hover:text-[#730014]" to={homeHref}>
                   Vận hành đào tạo
                 </Link>
                 {crumbs.map((crumb, index) => (
@@ -220,7 +253,7 @@ export default function TrainingManagerLayout() {
                   </div>
                   <div className="hidden text-left md:block">
                     <p className="text-xs font-semibold leading-tight text-slate-800">{displayName}</p>
-                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">Training Manager</p>
+                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">{roleLabel}</p>
                   </div>
                   <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${accountMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -292,7 +325,9 @@ function formatCrumbLabel(value) {
     'classroom-registrations': 'Hàng đợi',
     requests: 'Yêu cầu',
     infrastructure: 'Hạ tầng',
+    'classroom-proposals': 'Đề xuất lớp',
     'course-approvals': 'Duyệt khóa học',
+    'content-approvals': 'Duyệt nội dung',
   };
   if (/^\d+$/.test(value)) {
     return `Lớp #${value}`;

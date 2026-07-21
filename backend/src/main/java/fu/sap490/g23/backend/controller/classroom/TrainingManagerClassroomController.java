@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/training-manager/classrooms")
+@RequestMapping({"/api/staff/classrooms", "/api/training-manager/classrooms"})
 public class TrainingManagerClassroomController {
 
     private final ClassroomOfferingService classroomOfferingService;
@@ -114,7 +114,7 @@ public class TrainingManagerClassroomController {
         return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
     }
 
-    @GetMapping("/training-programs")
+    @GetMapping({"/course-offerings", "/training-programs"})
     public ResponseEntity<List<TrainingProgramResponse>> listPublishedTrainingPrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {

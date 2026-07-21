@@ -242,7 +242,7 @@ export default function ManagerClassroomsPage() {
       setClassroomForm(initialClassroomForm);
       setMessage(editingId ? 'Đã cập nhật thông tin lớp.' : 'Đã tạo lớp khai giảng.');
       await loadClassrooms();
-      if (!editingId) navigate(`/training-manager/classrooms/${saved.id}?tab=schedule`);
+      if (!editingId) navigate(`/staff/classrooms/${saved.id}?tab=schedule`);
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, 'Không thể lưu lớp học.'));
     } finally {
@@ -306,7 +306,7 @@ export default function ManagerClassroomsPage() {
                     <td className="px-5 py-4">{formatClassroomDate(item.startDate)}</td>
                     <td className="px-5 py-4 font-bold">{formatClassroomPrice(item.salePrice ?? item.price ?? 0)}</td>
                     <td className="px-5 py-4"><span className="rounded-lg bg-[#fff0f1] px-3 py-1.5 text-xs font-extrabold text-[#730014]">{formatOfferingStatus(item.classroomStatus)}</span></td>
-                    <td className="px-5 py-4"><div className="flex justify-end gap-2"><button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014]" disabled={working} onClick={() => openEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button><button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white" onClick={() => navigate(`/training-manager/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>
+                    <td className="px-5 py-4"><div className="flex justify-end gap-2"><button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014]" disabled={working} onClick={() => openEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button><button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white" onClick={() => navigate(`/staff/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>
                   </tr>
                 ))}
               </tbody>
@@ -322,7 +322,7 @@ export default function ManagerClassroomsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
           <button aria-label="Đóng cửa sổ" className="absolute inset-0" onClick={() => setEditorOpen(false)} type="button" />
           <form className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onSubmit={saveClassroom}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{editingId ? 'Chỉnh sửa lớp học' : 'Tạo lớp khai giảng'}</h3><p className="mt-1 text-xs text-[#8b706e]">Chọn chương trình đã xuất bản, giáo viên và thông tin vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140]" onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{editingId ? 'Chỉnh sửa lớp học' : 'Tạo đề xuất lớp'}</h3><p className="mt-1 text-xs text-[#8b706e]">Chọn khóa học đã xuất bản, giáo viên dự kiến và thông tin vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140]" onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
             <div className="min-h-0 flex-1 overflow-y-auto p-6"><ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} teacherOptions={teacherOptions} trainingProgramOptions={trainingProgramOptions} /></div>
             <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4"><button className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140]" onClick={() => setEditorOpen(false)} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : editingId ? 'Lưu thay đổi' : 'Tạo lớp'}</button></div>
           </form>
@@ -336,7 +336,7 @@ function ClassroomFormFields({ form, onChange, roomOptions, teacherOptions, trai
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Field label="Tên lớp"><input className={inputClass} onChange={(event) => onChange('title', event.target.value)} required value={form.title} /></Field>
-      <Field label="Chương trình đào tạo"><BrandedSelect onChange={(event) => onChange('trainingProgramId', event.target.value)} options={trainingProgramOptions} required value={form.trainingProgramId} /></Field>
+      <Field label="Khóa học theo lịch"><BrandedSelect onChange={(event) => onChange('trainingProgramId', event.target.value)} options={trainingProgramOptions} required value={form.trainingProgramId} /></Field>
       <Field label="Hình thức"><BrandedSelect onChange={(event) => onChange('deliveryMode', event.target.value)} options={deliveryModeOptions} value={form.deliveryMode} /></Field>
       <Field label="Trạng thái"><BrandedSelect onChange={(event) => onChange('classroomStatus', event.target.value)} options={statusOptions} value={form.classroomStatus} /></Field>
       <Field label="Level đầu vào"><BrandedSelect onChange={(event) => onChange('entryLevel', event.target.value)} options={levelOptions} value={form.entryLevel} /></Field>

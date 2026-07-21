@@ -688,7 +688,7 @@ function NotificationPreferencesTab() {
   );
 }
 
-const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 // ── Main page ───────────────────────────────────────────────────────────────
 const CompleteProfile = () => {

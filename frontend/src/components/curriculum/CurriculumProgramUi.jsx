@@ -104,7 +104,7 @@ export function ProgramFilterBar({
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#dcc0bf]/20 pt-3">
         <p className="text-sm text-[#564241]">
-          <strong className="font-extrabold text-[#0b1c30]">{resultCount}</strong> chương trình phù hợp
+          <strong className="font-extrabold text-[#0b1c30]">{resultCount}</strong> khóa học phù hợp
         </p>
         <button className="text-xs font-bold text-[#730014] hover:underline" onClick={onReset} type="button">
           Xóa bộ lọc
@@ -169,7 +169,7 @@ export function ProgramTable({
         <table className="min-w-[980px] w-full text-left">
           <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
             <tr>
-              {['Chương trình', 'Giáo trình gốc', 'Cấp độ', 'Lớp đang dùng', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
+              {['Khóa học', 'Chương trình đào tạo', 'Cấp độ', 'Kế hoạch mở lớp', 'Trạng thái', 'Lớp đang dùng', 'Thao tác'].map((heading) => (
                 <th className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
               ))}
             </tr>
@@ -192,25 +192,31 @@ export function ProgramTable({
                     <div className="flex min-w-[240px] items-center">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-extrabold text-[#4b0009]">{program.title}</p>
-                        <p className="text-xs text-[#564241]">{program.code}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-xs text-[#564241]">{program.code}</p>
+                          <span className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${program.deliveryType === 'VIRTUAL' || program.deliveryMode === 'VIRTUAL' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-800'}`}>
+                            {program.deliveryModeLabel || (program.deliveryType === 'VIRTUAL' ? 'Virtual' : 'Offline')}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-5 py-5 text-sm text-[#0b1c30]">
                     <p className="max-w-[220px] truncate font-semibold text-[#0b1c30]">{program.curriculumProgramTitle || 'Chưa gắn'}</p>
-                    <p className="mt-1 text-xs text-[#584140]">{program.curriculumProgramCode || program.curriculumProgramExamCategory || 'Giáo trình'}</p>
+                    <p className="mt-1 text-xs text-[#584140]">{program.curriculumProgramCode || program.curriculumProgramExamCategory || 'Chương trình đào tạo'}</p>
                   </td>
                   <td className="px-5 py-5 text-sm text-[#0b1c30]">{program.entryLevel || '—'}</td>
-                  <td className="px-5 py-5">
-                    <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold ${program.activeClassroomCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-[#dce9ff] text-[#564241]'}`}>
-                      {program.activeClassroomCount > 0 ? program.activeClassroomCount : (program.classroomCount || 0)}
-                    </span>
+                  <td className="px-5 py-5 text-sm text-[#0b1c30]">
+                    <p className="font-semibold">{program.plannedStartDate ? new Date(`${program.plannedStartDate}T00:00:00`).toLocaleDateString('vi-VN') : 'Chưa chốt ngày'}</p>
+                    <p className="mt-1 max-w-[180px] truncate text-xs text-[#584140]">{program.plannedSchedule || `${program.capacity ?? program.maxCapacity ?? 30} học viên`}</p>
                   </td>
                   <td className="px-5 py-5">
                     <ProgramStatusPill label={program.statusLabel || program.status} status={program.status} />
                   </td>
-                  <td className="px-5 py-5 text-sm text-[#564241]">
-                    {program.updatedAt ? new Date(program.updatedAt).toLocaleDateString('vi-VN') : '—'}
+                  <td className="px-5 py-5">
+                    <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold ${program.activeClassroomCount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-[#dce9ff] text-[#564241]'}`}>
+                      {program.activeClassroomCount > 0 ? program.activeClassroomCount : (program.classroomCount || 0)}
+                    </span>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1.5">
@@ -251,7 +257,7 @@ export function ProgramTable({
             ) : (
               <tr>
                 <td className="px-5 py-14 text-center text-sm text-[#564241]" colSpan={7}>
-                  Không có chương trình phù hợp với bộ lọc hiện tại.
+                  Không có khóa học phù hợp với bộ lọc hiện tại.
                 </td>
               </tr>
             )}
@@ -263,7 +269,7 @@ export function ProgramTable({
         <p className="text-sm text-[#564241]">
           Trang <span className="font-bold text-[#0b1c30]">{page}</span> / {totalPages}
           {' · '}
-          <span className="font-bold text-[#0b1c30]">{totalItems}</span> chương trình
+          <span className="font-bold text-[#0b1c30]">{totalItems}</span> khóa học
         </p>
         <Pagination
           page={page}

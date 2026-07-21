@@ -8,7 +8,7 @@ export const getStoredUser = () => {
 
 export const hasAccessToken = () => Boolean(localStorage.getItem('accessToken'));
 
-const STAFF_ROLES = ['TEACHER', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 export const getUserRoles = (user) => {
   const roles = Array.isArray(user?.roles) ? user.roles : [];

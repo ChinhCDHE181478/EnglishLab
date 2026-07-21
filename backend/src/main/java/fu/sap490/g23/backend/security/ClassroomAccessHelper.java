@@ -13,8 +13,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ClassroomAccessHelper {
 
-    private static final Set<RoleEnum> TRAINING_MANAGER_ROLES = EnumSet.of(RoleEnum.TRAINING_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
-    private static final Set<RoleEnum> MANAGER_ROLES = EnumSet.of(RoleEnum.MANAGER, RoleEnum.TRAINING_MANAGER, RoleEnum.ADMIN);
+    private static final Set<RoleEnum> MANAGER_ROLES = EnumSet.of(RoleEnum.STAFF, RoleEnum.MANAGER, RoleEnum.TRAINING_MANAGER, RoleEnum.ADMIN);
     private static final Set<RoleEnum> TEACHER_ROLES = EnumSet.of(RoleEnum.TEACHER, RoleEnum.TRAINING_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
     private static final Set<RoleEnum> CONTENT_MANAGER_ROLES = EnumSet.of(RoleEnum.CONTENT_MANAGER, RoleEnum.MANAGER, RoleEnum.ADMIN);
 
@@ -34,16 +33,16 @@ public class ClassroomAccessHelper {
     }
 
     public boolean canApproveRequests(User user) {
-        return user.hasAnyRole(TRAINING_MANAGER_ROLES);
+        return TrainingRolePolicy.canOperate(user);
     }
 
     public boolean canManageTrainingOperations(User user) {
-        return user.hasAnyRole(TRAINING_MANAGER_ROLES);
+        return TrainingRolePolicy.canOperate(user);
     }
 
     public void assertTrainingManager(User user) {
         if (!canManageTrainingOperations(user)) {
-            throw new RuntimeException("Bạn không có quyền Training Manager.");
+            throw new RuntimeException("Bạn không có quyền vận hành đào tạo.");
         }
     }
 

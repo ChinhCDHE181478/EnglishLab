@@ -9,6 +9,10 @@ import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessme
 import fu.sap490.g23.backend.dto.request.course.LessonRequest;
 import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
 import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sap490.g23.backend.dto.request.course.LessonOrderItemRequest;
+import fu.sap490.g23.backend.dto.request.course.ModuleOrderItemRequest;
+import fu.sap490.g23.backend.dto.request.course.ReorderLessonsRequest;
+import fu.sap490.g23.backend.dto.request.course.ReorderModulesRequest;
 import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
 import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
 import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
@@ -21,6 +25,7 @@ import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sap490.g23.backend.dto.response.course.LessonResponse;
 import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
 import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
@@ -39,6 +44,7 @@ import fu.sap490.g23.backend.entity.course.enums.*;
 import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sap490.g23.backend.exception.CourseUnavailableException;
+import fu.sap490.g23.backend.security.ContentManagementRolePolicy;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
@@ -88,6 +94,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private static final Pattern BAND_NUMBER_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)");
 
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final CourseCategoryRepository courseCategoryRepository;
@@ -104,6 +111,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
+    private final OnlineCourseVersionService onlineCourseVersionService;
+    private final OnlineCoursePreviewValidator previewValidator;
     private final BunnyStreamService bunnyStreamService;
     private final CourseProgressService courseProgressService;
     private final CourseProgressionGuard courseProgressionGuard;
@@ -117,13 +126,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
         return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
-                .map(mapper::toPublicResponse);
+                .map(course -> onlineCourseVersionService.readPublishedSnapshot(course, false));
     }
 
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse getPublicCourse(String slugOrId) {
-        return mapper.toPublicResponse(findPublicCourse(slugOrId));
+        return onlineCourseVersionService.readPublishedSnapshot(findPublicCourse(slugOrId), false);
     }
 
     @Override
@@ -157,6 +166,85 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
+    public OnlineCoursePreviewResponse getManagerCoursePreview(String slugOrId) {
+        OnlineCourse course = findManagerCourse(slugOrId);
+        OnlineCourseResponse courseResponse = mapper.toResponse(course);
+        List<CourseAssessmentResponse> assessments = courseAssessmentRepository
+                .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
+                .map(this::toManagerAssessmentResponse)
+                .toList();
+        List<fu.sap490.g23.backend.dto.response.course.ModuleResponse> modules = List.copyOf(courseResponse.getModules());
+        var warnings = previewValidator.validate(courseResponse, assessments);
+        courseResponse.setModules(List.of());
+
+        return OnlineCoursePreviewResponse.builder()
+                .course(courseResponse)
+                .modules(modules)
+                .assessments(assessments)
+                .validationWarnings(warnings)
+                .previewMode(true)
+                .build();
+    }
+
+    @Override
+    public List<fu.sap490.g23.backend.dto.response.course.ModuleResponse> reorderModules(
+            Long courseId,
+            ReorderModulesRequest request,
+            String actorEmail
+    ) {
+        assertCanEditCourseContent(actorEmail);
+        OnlineCourse course = findCourse(courseId);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
+        List<CourseModule> modules = new ArrayList<>(course.getModules());
+        validateModuleOrder(modules, request.getItems());
+
+        moveModuleOrdersToTemporaryRange(modules);
+        onlineCourseRepository.flush();
+        Map<Long, CourseModule> modulesById = modules.stream()
+                .collect(java.util.stream.Collectors.toMap(CourseModule::getId, module -> module));
+        request.getItems().forEach(item -> modulesById.get(item.getModuleId()).setDisplayOrder(item.getOrderIndex()));
+        onlineCourseRepository.flush();
+        onlineCourseVersionService.synchronizeDraftSnapshot(course);
+
+        return mapper.toResponse(course).getModules();
+    }
+
+    @Override
+    public List<LessonResponse> reorderLessons(
+            Long courseId,
+            Long moduleId,
+            ReorderLessonsRequest request,
+            String actorEmail
+    ) {
+        assertCanEditCourseContent(actorEmail);
+        OnlineCourse course = findCourse(courseId);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
+        CourseModule module = course.getModules().stream()
+                .filter(item -> moduleId.equals(item.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Mô-đun không thuộc khóa học này."));
+        List<Lesson> lessons = new ArrayList<>(module.getLessons());
+        validateLessonOrder(lessons, request.getItems());
+
+        for (int index = 0; index < lessons.size(); index++) {
+            lessons.get(index).setDisplayOrder(-(index + 1));
+        }
+        onlineCourseRepository.flush();
+        Map<Long, Lesson> lessonsById = lessons.stream()
+                .collect(java.util.stream.Collectors.toMap(Lesson::getId, lesson -> lesson));
+        request.getItems().forEach(item -> lessonsById.get(item.getLessonId()).setDisplayOrder(item.getOrderIndex()));
+        onlineCourseRepository.flush();
+        onlineCourseVersionService.synchronizeDraftSnapshot(course);
+
+        return mapper.toResponse(course).getModules().stream()
+                .filter(item -> moduleId.equals(item.getId()))
+                .findFirst()
+                .map(fu.sap490.g23.backend.dto.response.course.ModuleResponse::getLessons)
+                .orElseThrow(() -> new IllegalStateException("Không thể đọc lại thứ tự bài học."));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<CourseAssessmentResponse> getManagerCourseAssessments(Long courseId) {
         OnlineCourse course = findCourse(courseId);
         return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
@@ -178,10 +266,21 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     public List<CourseAssessmentResponse> saveManagerCourseAssessments(Long courseId, List<ContentManagerCourseAssessmentRequest> requests) {
+        return saveManagerCourseAssessments(courseId, requests, null);
+    }
+
+    @Override
+    public List<CourseAssessmentResponse> saveManagerCourseAssessments(
+            Long courseId,
+            List<ContentManagerCourseAssessmentRequest> requests,
+            String actorEmail
+    ) {
         OnlineCourse course = findCourse(courseId);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
         synchronizeAssessments(course, requests == null ? List.of() : requests);
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         courseProgressService.refreshCourseEnrollments(savedCourse);
+        onlineCourseVersionService.synchronizeDraftSnapshot(savedCourse);
         return courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
                 .map(this::toManagerAssessmentResponse)
                 .toList();
@@ -225,7 +324,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .price(defaultBigDecimal(request.getPrice()))
                 .salePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()))
                 .thumbnailUrl(request.getThumbnailUrl())
-                .status(request.getStatus() == null ? PackageStatus.DRAFT : request.getStatus())
+                .status(PackageStatus.DRAFT)
                 .displayOrder(defaultInt(request.getDisplayOrder()))
                 .featured(Boolean.TRUE.equals(request.getFeatured()))
                 .createdBy(creator)
@@ -248,13 +347,21 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .totalHours(defaultInt(request.getTotalHours()))
                 .build();
         rebuildModules(course, request.getModules());
-        return mapper.toResponse(onlineCourseRepository.save(course));
+        OnlineCourse savedCourse = onlineCourseRepository.save(course);
+        onlineCourseVersionService.createDraft(savedCourse.getId(), null, creatorEmail);
+        return mapper.toResponse(savedCourse);
     }
 
     @Override
     public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request) {
+        return updateCourse(id, request, null);
+    }
+
+    @Override
+    public OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail) {
         validateCourseRequest(request);
         OnlineCourse course = findCourse(id);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
         LearningPackage learningPackage = course.getLearningPackage();
 
         CourseCategory category = courseCategoryRepository.findByCode(normalizeCategoryCode(request.getCategory()))
@@ -273,7 +380,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         learningPackage.setPrice(defaultBigDecimal(request.getPrice()));
         learningPackage.setSalePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()));
         learningPackage.setThumbnailUrl(request.getThumbnailUrl());
-        learningPackage.setStatus(request.getStatus() == null ? learningPackage.getStatus() : request.getStatus());
         learningPackage.setDisplayOrder(defaultInt(request.getDisplayOrder()));
         learningPackage.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
 
@@ -289,31 +395,52 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setRecommendedNextCourseSlug(request.getRecommendedNextCourseSlug());
         course.setTotalLessons(defaultInt(request.getTotalLessons()));
         course.setTotalHours(defaultInt(request.getTotalHours()));
+        moveContentOrdersToTemporaryRange(course);
+        onlineCourseRepository.flush();
         synchronizeModules(course, request.getModules());
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         courseProgressService.refreshCourseEnrollments(savedCourse);
+        onlineCourseVersionService.synchronizeDraftSnapshot(savedCourse);
         return mapper.toResponse(savedCourse);
     }
 
     @Override
     public OnlineCourseResponse publishCourse(Long id) {
+        return publishCourse(id, null);
+    }
+
+    @Override
+    public OnlineCourseResponse publishCourse(Long id, String actorEmail) {
         OnlineCourse course = findCourse(id);
-        validatePublishableCourse(course);
-        LearningPackage learningPackage = course.getLearningPackage();
-        if (learningPackage.getStatus() != PackageStatus.DRAFT
-                && learningPackage.getStatus() != PackageStatus.PENDING_REVIEW
-                && learningPackage.getStatus() != PackageStatus.REJECTED) {
-            throw new IllegalArgumentException("Khóa học không ở trạng thái có thể xuất bản.");
+        User actor = actorEmail == null ? null : userRepository.findByEmail(actorEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người duyệt."));
+        if (!ContentManagementRolePolicy.canApprove(actor)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Chỉ Manager hoặc Admin mới được xuất bản phiên bản khóa học."
+            );
         }
-        learningPackage.setStatus(PackageStatus.PUBLISHED);
-        learningPackage.setReviewNote(null);
-        learningPackage.setReviewedAt(LocalDateTime.now());
+        OnlineCourseVersion pendingVersion = onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PENDING_REVIEW)
+                .orElseThrow(() -> new IllegalStateException("Khóa học chưa có phiên bản đang chờ duyệt."));
+        onlineCourseVersionService.publish(course.getId(), pendingVersion.getId(), actorEmail);
         return mapper.toResponse(course);
     }
 
     @Override
     public OnlineCourseResponse submitForReview(Long id) {
+        return submitForReview(id, null);
+    }
+
+    @Override
+    public OnlineCourseResponse submitForReview(Long id, String actorEmail) {
         OnlineCourse course = findCourse(id);
+        OnlineCourseVersion draftVersion = onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElse(null);
+        if (draftVersion != null && actorEmail != null) {
+            onlineCourseVersionService.submitForReview(course.getId(), draftVersion.getId(), actorEmail);
+            return mapper.toResponse(course);
+        }
         validatePublishableCourse(course);
         LearningPackage learningPackage = course.getLearningPackage();
         if (learningPackage.getStatus() != PackageStatus.DRAFT
@@ -329,6 +456,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Override
     public OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote) {
         OnlineCourse course = findCourse(id);
+        OnlineCourseVersion pendingVersion = onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PENDING_REVIEW)
+                .orElse(null);
+        if (pendingVersion != null) {
+            onlineCourseVersionService.publish(course.getId(), pendingVersion.getId(), reviewerEmail);
+            return mapper.toResponse(course);
+        }
         validatePublishableCourse(course);
         LearningPackage learningPackage = course.getLearningPackage();
         if (learningPackage.getStatus() != PackageStatus.PENDING_REVIEW) {
@@ -340,6 +474,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         learningPackage.setReviewNote(reviewNote);
         learningPackage.setReviewedAt(LocalDateTime.now());
         learningPackage.setReviewedBy(reviewer);
+        onlineCourseVersionService.requirePublishedVersion(course);
         return mapper.toResponse(course);
     }
 
@@ -378,7 +513,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     public BunnyVideoUploadResponse uploadLessonVideo(Long courseId, Long lessonId, String title, MultipartFile file) {
+        return uploadLessonVideo(courseId, lessonId, title, file, null);
+    }
+
+    @Override
+    public BunnyVideoUploadResponse uploadLessonVideo(
+            Long courseId,
+            Long lessonId,
+            String title,
+            MultipartFile file,
+            String actorEmail
+    ) {
         OnlineCourse course = findCourse(courseId);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
@@ -397,13 +544,20 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         lesson.setTranscriptSegmentsJson(null);
 
         Lesson savedLesson = lessonRepository.save(lesson);
+        onlineCourseVersionService.synchronizeDraftSnapshot(course);
         upload.setLesson(toLessonResponse(savedLesson));
         return upload;
     }
 
     @Override
     public OnlineCourseResponse refreshLessonTranscript(Long courseId, Long lessonId) {
+        return refreshLessonTranscript(courseId, lessonId, null);
+    }
+
+    @Override
+    public OnlineCourseResponse refreshLessonTranscript(Long courseId, Long lessonId, String actorEmail) {
         OnlineCourse course = findCourse(courseId);
+        onlineCourseVersionService.assertEditableDraft(course, actorEmail);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học."));
 
@@ -419,6 +573,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
         lesson.setTranscriptSegmentsJson(writeTranscriptSegments(segments));
         lessonRepository.save(lesson);
+        onlineCourseVersionService.synchronizeDraftSnapshot(course);
         return mapper.toResponse(findCourse(courseId));
     }
 
@@ -440,7 +595,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findPublishedCourseForEnrollment(courseId);
         PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
-        return mapper.toResponse(course, true, enrollment.getProgressPercent(), enrollment.getId());
+        return onlineCourseVersionService.readEnrollmentSnapshot(enrollment, course);
     }
 
     @Override
@@ -474,6 +629,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         var existingEnrollment = enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage);
         if (existingEnrollment.isPresent()) {
             PackageEnrollment enrollment = existingEnrollment.get();
+            if (enrollment.getCourseVersion() == null) {
+                enrollment.setCourseVersion(onlineCourseVersionService.requirePublishedVersion(course));
+                enrollment = enrollmentRepository.save(enrollment);
+            }
             if (!courseEnrollmentAccessPolicy.hasLearningAccess(enrollment)) {
                 enrollment = courseEnrollmentAccessPolicy.reactivateCancelledEnrollment(enrollment);
                 courseEnrollmentMailService.sendEnrollmentSuccessEmail(student, course, enrollment);
@@ -484,6 +643,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         PackageEnrollment enrollment = enrollmentRepository.save(PackageEnrollment.builder()
                 .student(student)
                 .learningPackage(learningPackage)
+                .courseVersion(onlineCourseVersionService.requirePublishedVersion(course))
                 .status(EnrollmentStatus.ACTIVE)
                 .progressPercent(0)
                 .build());
@@ -887,6 +1047,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = findCourse(courseId);
         PackageEnrollment enrollment = courseEnrollmentAccessPolicy.requireLearningAccess(student, course);
+        onlineCourseVersionService.assertLessonBelongsToEnrollment(enrollment, lessonId);
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
@@ -901,18 +1062,34 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         .student(student)
                         .lesson(lesson)
                         .enrollment(enrollment)
+                        .courseVersion(enrollment.getCourseVersion())
+                        .lessonKey(lesson.getLessonKey())
                         .build());
+        if (progress.getCourseVersion() == null) {
+            progress.setCourseVersion(enrollment.getCourseVersion());
+        }
+        if (progress.getLessonKey() == null || progress.getLessonKey().isBlank()) {
+            progress.setLessonKey(lesson.getLessonKey());
+        }
 
         progress.setLastAccessedAt(LocalDateTime.now());
         if (completed) {
-            courseProgressionGuard.ensureLessonCanBeCompleted(student, course, lesson);
+            if (enrollment.getCourseVersion() == null) {
+                courseProgressionGuard.ensureLessonCanBeCompleted(student, course, lesson);
+            } else {
+                onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, true);
+            }
             progress.setStatus(LessonProgressStatus.COMPLETED);
             progress.setProgressPercent(100);
             if (progress.getCompletedAt() == null) {
                 progress.setCompletedAt(LocalDateTime.now());
             }
         } else {
-            courseProgressionGuard.ensureLessonCanBeMarkedIncomplete(student, course, lesson);
+            if (enrollment.getCourseVersion() == null) {
+                courseProgressionGuard.ensureLessonCanBeMarkedIncomplete(student, course, lesson);
+            } else {
+                onlineCourseVersionService.assertLessonProgressTransitionAllowed(enrollment, lessonId, false);
+            }
             progress.setStatus(LessonProgressStatus.IN_PROGRESS);
             progress.setProgressPercent(0);
             progress.setCompletedAt(null);
@@ -1147,6 +1324,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return value == null ? "" : value.replace("**", "").replaceAll("^['\"]|['\"]$", "").trim();
     }
 
+    private String normalizeModuleTitle(String value) {
+        if (value == null) return null;
+        return value.replaceFirst(
+                "(?iu)^\\s*(?:module|m[oô]\\s*[-–—]?\\s*đun)\\s*\\d+\\s*(?::|[-–—])?\\s*",
+                ""
+        ).trim();
+    }
+
     private String firstNonBlank(String first, String second) {
         return first != null && !first.isBlank() ? first : second;
     }
@@ -1157,14 +1342,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     private void rebuildModules(OnlineCourse course, List<ModuleRequest> modules) {
         if (modules == null) return;
-        for (ModuleRequest moduleRequest : modules) {
+        for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
+            ModuleRequest moduleRequest = modules.get(moduleIndex);
             CourseModule module = CourseModule.builder()
-                    .title(moduleRequest.getTitle())
+                    .title(normalizeModuleTitle(moduleRequest.getTitle()))
                     .description(moduleRequest.getDescription())
-                    .displayOrder(defaultInt(moduleRequest.getDisplayOrder()))
+                    .displayOrder(moduleIndex + 1)
                     .build();
             if (moduleRequest.getLessons() != null) {
-                for (LessonRequest lessonRequest : moduleRequest.getLessons()) {
+                for (int lessonIndex = 0; lessonIndex < moduleRequest.getLessons().size(); lessonIndex++) {
+                    LessonRequest lessonRequest = moduleRequest.getLessons().get(lessonIndex);
                     Lesson lesson = Lesson.builder()
                             .title(lessonRequest.getTitle())
                             .description(lessonRequest.getDescription())
@@ -1173,8 +1360,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                             .videoUrl(lessonRequest.getVideoUrl())
                             .materialUrl(lessonRequest.getMaterialUrl())
                             .durationMinutes(defaultInt(lessonRequest.getDurationMinutes()))
-                            .displayOrder(defaultInt(lessonRequest.getDisplayOrder()))
+                            .displayOrder(lessonIndex + 1)
                             .preview(Boolean.TRUE.equals(lessonRequest.getPreview()))
+                            .lessonKey("LESSON-" + java.util.UUID.randomUUID())
                             .build();
                     applyLessonTranscript(lesson, lessonRequest, null);
                     synchronizeLessonFlashcardRefs(lesson, lessonRequest.getFlashcardSetIds());
@@ -1205,9 +1393,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 incomingModuleIds.add(module.getId());
             }
 
-            module.setTitle(moduleRequest.getTitle());
+            module.setTitle(normalizeModuleTitle(moduleRequest.getTitle()));
             module.setDescription(moduleRequest.getDescription());
-            module.setDisplayOrder(defaultInt(moduleRequest.getDisplayOrder()));
+            module.setDisplayOrder(moduleIndex + 1);
             synchronizeLessons(module, moduleRequest.getLessons());
             nextModules.add(module);
         }
@@ -1228,12 +1416,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         List<Lesson> nextLessons = new ArrayList<>();
 
         if (lessons != null) {
-            for (LessonRequest lessonRequest : lessons) {
+            for (int lessonIndex = 0; lessonIndex < lessons.size(); lessonIndex++) {
+                LessonRequest lessonRequest = lessons.get(lessonIndex);
                 Lesson lesson = findExistingLesson(existingLessons, lessonRequest.getId());
 
                 if (lesson == null) {
                     lesson = Lesson.builder().build();
                     lesson.setModule(module);
+                    lesson.setLessonKey("LESSON-" + java.util.UUID.randomUUID());
                 } else if (lesson.getId() != null) {
                     incomingLessonIds.add(lesson.getId());
                 }
@@ -1246,7 +1436,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 lesson.setVideoUrl(lessonRequest.getVideoUrl());
                 lesson.setMaterialUrl(lessonRequest.getMaterialUrl());
                 lesson.setDurationMinutes(defaultInt(lessonRequest.getDurationMinutes()));
-                lesson.setDisplayOrder(defaultInt(lessonRequest.getDisplayOrder()));
+                lesson.setDisplayOrder(lessonIndex + 1);
                 lesson.setPreview(Boolean.TRUE.equals(lessonRequest.getPreview()));
                 applyLessonTranscript(lesson, lessonRequest, previousVideoUrl);
                 synchronizeLessonFlashcardRefs(lesson, lessonRequest.getFlashcardSetIds());
@@ -1476,6 +1666,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void ensureLessonCanBeRemoved(Lesson lesson) {
+        if (lesson.getId() != null && lesson.getModule() != null && lesson.getModule().getOnlineCourse() != null) {
+            onlineCourseVersionService.assertLessonCanBeRemoved(
+                    lesson.getModule().getOnlineCourse(),
+                    lesson.getId()
+            );
+        }
         if (lesson.getId() != null && lessonProgressRepository.existsByLessonId(lesson.getId())) {
             throw new RuntimeException(
                     "Không thể xóa bài học \"" + lesson.getTitle() + "\" vì đã có tiến độ học viên."
@@ -1557,6 +1753,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private LessonResponse toLessonResponse(Lesson lesson) {
         return LessonResponse.builder()
                 .id(lesson.getId())
+                .lessonKey(lesson.getLessonKey())
                 .title(lesson.getTitle())
                 .description(lesson.getDescription())
                 .contentType(lesson.getContentType())
@@ -1659,7 +1856,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private String writeTranscriptSegments(List<TranscriptSegmentResponse> segments) {
-        List<TranscriptSegmentResponse> safeSegments = segments == null ? List.of() : segments;
+        List<TranscriptSegmentResponse> safeSegments = TranscriptSegmentNormalizer.normalize(segments);
         try {
             return objectMapper.writeValueAsString(safeSegments);
         } catch (JsonProcessingException ex) {
@@ -1747,6 +1944,75 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             }
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    private void assertCanEditCourseContent(String actorEmail) {
+        User actor = userRepository.findByEmail(actorEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+        if (!ContentManagementRolePolicy.canEdit(actor)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Bạn không có quyền thay đổi cấu trúc khóa học."
+            );
+        }
+    }
+
+    private void validateModuleOrder(List<CourseModule> modules, List<ModuleOrderItemRequest> items) {
+        if (items == null || items.size() != modules.size()) {
+            throw new IllegalArgumentException("Danh sách reorder phải chứa đầy đủ mô-đun của khóa học.");
+        }
+        Set<Long> expectedIds = modules.stream().map(CourseModule::getId).collect(java.util.stream.Collectors.toSet());
+        Set<Long> actualIds = items.stream().map(ModuleOrderItemRequest::getModuleId).collect(java.util.stream.Collectors.toSet());
+        if (actualIds.size() != items.size()) {
+            throw new IllegalArgumentException("Danh sách reorder có moduleId trùng nhau.");
+        }
+        if (!actualIds.equals(expectedIds)) {
+            throw new IllegalArgumentException("Có mô-đun không thuộc khóa học hoặc bị thiếu trong payload.");
+        }
+        validateContinuousOrder(items.stream().map(ModuleOrderItemRequest::getOrderIndex).toList(), "mô-đun");
+    }
+
+    private void validateLessonOrder(List<Lesson> lessons, List<LessonOrderItemRequest> items) {
+        if (items == null || items.size() != lessons.size()) {
+            throw new IllegalArgumentException("Danh sách reorder phải chứa đầy đủ bài học của mô-đun.");
+        }
+        Set<Long> expectedIds = lessons.stream().map(Lesson::getId).collect(java.util.stream.Collectors.toSet());
+        Set<Long> actualIds = items.stream().map(LessonOrderItemRequest::getLessonId).collect(java.util.stream.Collectors.toSet());
+        if (actualIds.size() != items.size()) {
+            throw new IllegalArgumentException("Danh sách reorder có lessonId trùng nhau.");
+        }
+        if (!actualIds.equals(expectedIds)) {
+            throw new IllegalArgumentException("Có bài học không thuộc mô-đun hoặc bị thiếu trong payload.");
+        }
+        validateContinuousOrder(items.stream().map(LessonOrderItemRequest::getOrderIndex).toList(), "bài học");
+    }
+
+    private void validateContinuousOrder(List<Integer> orderIndexes, String itemLabel) {
+        Set<Integer> uniqueIndexes = new HashSet<>(orderIndexes);
+        if (uniqueIndexes.size() != orderIndexes.size()) {
+            throw new IllegalArgumentException("Thứ tự " + itemLabel + " không được trùng nhau.");
+        }
+        for (int expected = 1; expected <= orderIndexes.size(); expected++) {
+            if (!uniqueIndexes.contains(expected)) {
+                throw new IllegalArgumentException("Thứ tự " + itemLabel + " phải liên tục từ 1 đến " + orderIndexes.size() + ".");
+            }
+        }
+    }
+
+    private void moveModuleOrdersToTemporaryRange(List<CourseModule> modules) {
+        for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
+            modules.get(moduleIndex).setDisplayOrder(-(moduleIndex + 1));
+        }
+    }
+
+    private void moveContentOrdersToTemporaryRange(OnlineCourse course) {
+        List<CourseModule> modules = course.getModules();
+        moveModuleOrdersToTemporaryRange(modules);
+        for (CourseModule module : modules) {
+            List<Lesson> lessons = module.getLessons();
+            for (int lessonIndex = 0; lessonIndex < lessons.size(); lessonIndex++) {
+                lessons.get(lessonIndex).setDisplayOrder(-(lessonIndex + 1));
+            }
+        }
     }
 
     private void validateCourseRequest(OnlineCourseRequest request) {

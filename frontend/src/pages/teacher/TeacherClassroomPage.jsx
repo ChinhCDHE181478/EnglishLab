@@ -677,7 +677,7 @@ function TeacherCurriculumPanel({ curriculum }) {
   if (!curriculum) {
     return (
       <ClassroomEmptyState
-        description="Lớp này chưa được gắn giáo trình. Training Manager cần chọn giáo trình khi mở hoặc cập nhật lớp."
+        description="Lớp này chưa được gắn chương trình đào tạo. Nhân viên đào tạo cần chọn chương trình khi chuẩn bị hoặc cập nhật lớp."
         title="Chưa có giáo trình"
       />
     );

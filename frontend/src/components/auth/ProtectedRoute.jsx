@@ -51,7 +51,9 @@ const ProtectedRoute = ({ requireCompleteProfile = true, requirePlacementTest = 
     const role = String(u?.role || '').toUpperCase();
     if (role === 'ADMIN') return '/admin';
     if (role === 'CONTENT_MANAGER') return '/content-manager';
-    if (['TEACHER', 'TRAINING_MANAGER', 'MANAGER'].includes(role)) return '/teacher';
+    if (['STAFF', 'TRAINING_MANAGER'].includes(role)) return '/staff';
+    if (role === 'MANAGER') return '/manager/course-approvals';
+    if (role === 'TEACHER') return '/teacher';
     return '/home';
   };
 

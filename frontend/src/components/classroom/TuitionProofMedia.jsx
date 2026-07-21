@@ -114,7 +114,7 @@ export function LocalFilePreview({ file, className = '' }) {
       <div className="min-w-0">
         <p className="truncate text-xs font-bold text-[#584140]">{file.name}</p>
         <p className="text-[10px] text-[#8b706e]">
-          {isPdf ? 'PDF đã chọn — gửi để Training Manager xem.' : 'Tệp đã chọn.'}
+          {isPdf ? 'PDF đã chọn — gửi để Nhân viên đào tạo xem.' : 'Tệp đã chọn.'}
         </p>
       </div>
     </div>

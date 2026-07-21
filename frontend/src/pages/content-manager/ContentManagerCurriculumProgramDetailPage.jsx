@@ -68,7 +68,7 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
   }, [loadProgram]);
 
   const handleSubmitReview = async () => {
-    if (!window.confirm('Gửi giáo trình này cho Training Manager duyệt?')) return;
+    if (!window.confirm('Gửi chương trình đào tạo này cho Nhân viên đào tạo rà soát?')) return;
     setWorking(true);
     setError('');
     setSuccess('');
