@@ -14,13 +14,14 @@ import {
 } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { looksLikeRichTextHtml, sanitizeLessonHtml } from '../../utils/lessonRichText';
 import { formatModuleTitle } from '../../utils/courseModuleTitle';
 
 const statusMeta = {
   DRAFT: { label: 'Bản nháp', banner: 'border-amber-200 bg-amber-50 text-amber-900', badge: 'bg-amber-100 text-amber-800' },
-  PENDING_REVIEW: { label: 'Chờ duyệt', banner: 'border-sky-200 bg-sky-50 text-sky-900', badge: 'bg-sky-100 text-sky-800' },
+  PENDING_REVIEW: { label: 'Sẵn sàng xuất bản', banner: 'border-sky-200 bg-sky-50 text-sky-900', badge: 'bg-sky-100 text-sky-800' },
   PUBLISHED: { label: 'Đã xuất bản', banner: 'border-emerald-200 bg-emerald-50 text-emerald-900', badge: 'bg-emerald-100 text-emerald-800' },
   REJECTED: { label: 'Bị từ chối', banner: 'border-rose-200 bg-rose-50 text-rose-900', badge: 'bg-rose-100 text-rose-800' },
   ARCHIVED: { label: 'Đã lưu trữ', banner: 'border-slate-300 bg-slate-100 text-slate-800', badge: 'bg-slate-200 text-slate-700' },
@@ -176,7 +177,7 @@ function CourseHero({ course, moduleCount, status }) {
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{course.studyMode || 'Online'}</span>
           </div>
           <h1 className="mt-4 font-['Manrope'] text-3xl font-black leading-tight text-[#0b1c30] md:text-4xl">{course.title}</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600">{course.description || course.shortDescription || 'Khóa học chưa có mô tả.'}</p>
+          <RichTextHtml className="mt-3 text-sm leading-7 text-slate-600" value={course.description || course.shortDescription || 'Khóa học chưa có mô tả.'} />
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             <HeroMetric icon={Layers3} label="Mô-đun" value={moduleCount} />
             <HeroMetric icon={BookOpen} label="Bài học" value={course.totalLessons || 0} />

@@ -6,8 +6,9 @@ import { COURSE_VERSION_STATUS_META, getCourseVersionLabel } from '../../utils/c
 export default function CourseVersionPanel({
   versions = [],
   busy = false,
+  hasUnsavedChanges = false,
   onCreateDraft,
-  onSubmitReview,
+  onPublish,
   previewBasePath,
 }) {
   const [changeNote, setChangeNote] = useState('');
@@ -15,25 +16,26 @@ export default function CourseVersionPanel({
   const pending = versions.find((v) => v.status === 'PENDING_REVIEW');
   const published = versions.find((v) => v.status === 'PUBLISHED');
   const canCreate = Boolean(published) && !draft && !pending;
+  const publishableVersion = draft || pending;
 
   /* State-specific info */
   const info = draft ? {
     icon: AlertCircle,
     iconClass: 'text-[#730014]',
     title: `Bản nháp v${draft.versionNumber} đang chỉnh sửa`,
-    sub: 'Học viên hiện tại không bị ảnh hưởng. Gửi duyệt khi đã hoàn chỉnh.',
+    sub: 'Bản nháp chưa hiển thị cho học viên. Sau khi xuất bản, mọi học viên nhận nội dung mới nhất và vẫn giữ tiến độ đã học.',
     note: draft.reviewNote ? `Phản hồi: ${draft.reviewNote}` : null,
   } : pending ? {
     icon: Clock4,
     iconClass: 'text-amber-600',
-    title: `v${pending.versionNumber} đang chờ Manager duyệt`,
-    sub: 'Nội dung tạm khóa chỉnh sửa trong quá trình kiểm tra.',
+    title: `Bản nháp v${pending.versionNumber} từ dữ liệu cũ`,
+    sub: 'Bạn có thể tiếp tục chỉnh sửa hoặc xuất bản trực tiếp phiên bản này.',
     note: null,
   } : published ? {
     icon: CheckCircle2,
     iconClass: 'text-emerald-600',
     title: `${getCourseVersionLabel(published)} đang phát hành`,
-    sub: 'Tạo phiên bản mới trước khi thay đổi cấu trúc hoặc nội dung.',
+    sub: 'Mọi học viên đang học phiên bản xuất bản mới nhất; tiến độ từng bài được giữ độc lập.',
     note: null,
   } : {
     icon: GitBranch,
@@ -120,14 +122,14 @@ export default function CourseVersionPanel({
             </div>
           ) : null}
 
-          {draft && onSubmitReview ? (
+          {publishableVersion && onPublish ? (
             <button
-              className="inline-flex items-center gap-2 rounded-xl border border-[#730014] bg-white px-4 py-2.5 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff2f3] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
               disabled={busy}
-              onClick={onSubmitReview}
+              onClick={() => onPublish(publishableVersion)}
               type="button"
             >
-              Gửi duyệt v{draft.versionNumber}
+              {hasUnsavedChanges ? 'Lưu và xuất bản' : 'Xuất bản'} v{publishableVersion.versionNumber}
             </button>
           ) : null}
         </div>

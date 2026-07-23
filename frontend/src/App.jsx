@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AppDialogProvider } from './components/ui/AppDialog';
 import { AuthProvider } from './context/AuthContext';
 import { LearnerExperienceProvider } from './context/LearnerExperienceContext';
 import CartPage from './pages/CartPage';
@@ -45,13 +46,10 @@ import TrainingManagerLayout from './components/training-manager/TrainingManager
 import TrainingManagerDashboardPage from './pages/training-manager/TrainingManagerDashboardPage';
 import TrainingManagerClassroomDetailPage from './pages/training-manager/TrainingManagerClassroomDetailPage';
 import TrainingManagerRequestsPage from './pages/training-manager/TrainingManagerRequestsPage';
-import TrainingManagerClassroomRegistrationsPage from './pages/training-manager/TrainingManagerClassroomRegistrationsPage';
 import TrainingManagerInfrastructurePage from './pages/training-manager/TrainingManagerInfrastructurePage';
 import TrainingManagerRecordingsPage from './pages/training-manager/TrainingManagerRecordingsPage';
 import ManagerClassroomsPage from './pages/manager/ManagerClassroomsPage';
 import ManagerClassroomProposalsPage from './pages/manager/ManagerClassroomProposalsPage';
-import ManagerCourseApprovalPage from './pages/manager/ManagerCourseApprovalPage';
-import ManagerContentApprovalPage from './pages/manager/ManagerContentApprovalPage';
 import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmentsPage';
 import ManagerSupportTicketsPage from './pages/manager/ManagerSupportTicketsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
@@ -150,14 +148,14 @@ function AppRoutes() {
           <Route path="/staff" element={<TrainingManagerDashboardPage />} />
           <Route path="/staff/classrooms" element={<ManagerClassroomsPage />} />
           <Route path="/staff/classrooms/:id" element={<TrainingManagerClassroomDetailPage />} />
-          <Route path="/staff/registrations" element={<TrainingManagerClassroomRegistrationsPage />} />
+          <Route path="/staff/registrations" element={<Navigate to="/staff/enrollment-requests" replace />} />
           <Route path="/staff/enrollment-requests" element={<StaffEnrollmentRequestsPage />} />
           <Route path="/staff/classroom-proposals" element={<StaffClassroomProposalsPage />} />
           <Route path="/staff/requests" element={<TrainingManagerRequestsPage />} />
           <Route path="/staff/infrastructure" element={<TrainingManagerInfrastructurePage />} />
           <Route path="/staff/recordings" element={<TrainingManagerRecordingsPage />} />
           <Route path="/staff/support-tickets" element={<ManagerSupportTicketsPage />} />
-          <Route path="/staff/classroom-registrations" element={<Navigate to="/staff/registrations" replace />} />
+          <Route path="/staff/classroom-registrations" element={<Navigate to="/staff/enrollment-requests" replace />} />
         </Route>
         <Route path="/training-manager/*" element={<LegacyTrainingManagerRedirect />} />
       </Route>
@@ -166,8 +164,8 @@ function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']} />}>
         <Route element={<TrainingManagerLayout />}>
           <Route path="/manager/classroom-proposals" element={<ManagerClassroomProposalsPage />} />
-          <Route path="/manager/course-approvals" element={<ManagerCourseApprovalPage />} />
-          <Route path="/manager/content-approvals" element={<ManagerContentApprovalPage />} />
+          <Route path="/manager/course-approvals" element={<Navigate to="/manager/classroom-proposals" replace />} />
+          <Route path="/manager/content-approvals" element={<Navigate to="/manager/classroom-proposals" replace />} />
           <Route path="/manager/online-enrollments" element={<ManagerOnlineEnrollmentsPage />} />
           <Route path="/manager/support-tickets" element={<ManagerSupportTicketsPage />} />
         </Route>
@@ -192,11 +190,13 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <LearnerExperienceProvider>
-          <AppRoutes />
-        </LearnerExperienceProvider>
-      </AuthProvider>
+      <AppDialogProvider>
+        <AuthProvider>
+          <LearnerExperienceProvider>
+            <AppRoutes />
+          </LearnerExperienceProvider>
+        </AuthProvider>
+      </AppDialogProvider>
     </BrowserRouter>
   );
 }

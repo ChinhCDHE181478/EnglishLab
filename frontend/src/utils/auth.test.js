@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getUserRoles, hasAnyUserRole, needsPlacementTest, needsProfileCompletion } from './auth';
+import {
+  canUseLearnerStudyTools,
+  getUserRoles,
+  hasAnyUserRole,
+  needsPlacementTest,
+  needsProfileCompletion,
+} from './auth';
 
 describe('role helpers', () => {
   it('normalizes primary and assigned roles without duplicates', () => {
@@ -23,5 +29,14 @@ describe('role helpers', () => {
 
     expect(needsProfileCompletion(staff)).toBe(false);
     expect(needsPlacementTest(staff)).toBe(false);
+  });
+
+  it('only syncs learner study tools for roles accepted by the student API', () => {
+    expect(canUseLearnerStudyTools({ role: 'LEARNER' })).toBe(true);
+    expect(canUseLearnerStudyTools({ roles: ['STAFF', 'LEARNER'] })).toBe(true);
+    expect(canUseLearnerStudyTools({ role: 'CONTENT_MANAGER' })).toBe(true);
+    expect(canUseLearnerStudyTools({ role: 'STAFF' })).toBe(false);
+    expect(canUseLearnerStudyTools({ role: 'TEACHER' })).toBe(false);
+    expect(canUseLearnerStudyTools({ role: 'TRAINING_MANAGER' })).toBe(false);
   });
 });

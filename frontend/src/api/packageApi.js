@@ -70,11 +70,6 @@ export const packageApi = {
     return unwrapData(response);
   },
 
-  async submitBundleForReview(id) {
-    const response = await axiosClient.patch(`/api/content-manager/packages/${id}/submit-review`);
-    return unwrapData(response);
-  },
-
   async archiveBundle(id) {
     const response = await axiosClient.patch(`/api/content-manager/packages/${id}/archive`);
     return unwrapData(response);

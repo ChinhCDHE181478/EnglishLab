@@ -12,6 +12,7 @@ import {
   removeCourseFromWishlist,
 } from '../utils/commerceStore';
 import { formatCoursePrice } from '../components/course/courseFormatters';
+import { stripRichTextToPlain } from '../utils/lessonRichText';
 
 const WishlistPage = () => {
   const { addNotification } = useLearnerExperience();
@@ -119,7 +120,7 @@ const WishlistPage = () => {
                         Đã lưu yêu thích
                       </p>
                       <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{course.title}</h2>
-                      <p className="mt-2 text-sm leading-7 text-[#584140]">{course.shortDescription || 'Khóa học đang được cập nhật mô tả.'}</p>
+                      <p className="mt-2 text-sm leading-7 text-[#584140]">{stripRichTextToPlain(course.shortDescription) || 'Khóa học đang được cập nhật mô tả.'}</p>
                     </div>
                     <p className="text-2xl font-extrabold text-[#4b0009]">{formatCoursePrice(course.salePrice || course.price)}</p>
                   </div>

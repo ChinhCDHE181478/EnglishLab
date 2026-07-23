@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, Clock, Megaphone, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Megaphone, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -9,7 +9,7 @@ import {
   ClassroomTabBar,
 } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
-import TrainingManagerRegistrationPanel from '../../components/training-manager/TrainingManagerRegistrationPanel';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
@@ -22,7 +22,6 @@ import {
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
-  { id: 'queue', label: 'Hàng đợi' },
   { id: 'students', label: 'Học viên' },
   { id: 'schedule', label: 'Lịch học' },
 ];
@@ -46,11 +45,12 @@ const initialSessionForm = {
 const inputClass = 'w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white';
 
 export default function TrainingManagerClassroomDetailPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
-  const initialEnrollmentId = searchParams.get('enrollmentId') || '';
+  const requestedTab = searchParams.get('tab') || 'overview';
+  const activeTab = detailTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'overview';
 
   const [classroom, setClassroom] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -144,9 +144,7 @@ export default function TrainingManagerClassroomDetailPage() {
   const setTab = (tabId) => {
     const next = new URLSearchParams(searchParams);
     next.set('tab', tabId);
-    if (tabId !== 'queue') {
-      next.delete('enrollmentId');
-    }
+    next.delete('enrollmentId');
     setSearchParams(next, { replace: true });
   };
 
@@ -183,7 +181,11 @@ export default function TrainingManagerClassroomDetailPage() {
   };
 
   const handleCloseClass = async () => {
-    if (!window.confirm('Đóng lớp sẽ chuyển lớp sang trạng thái CLOSED và ẩn khỏi quy trình mở đăng ký. Bạn chắc chắn muốn tiếp tục?')) {
+    if (!await confirmDialog('Lớp sẽ chuyển sang trạng thái đã đóng và bị ẩn khỏi quy trình mở đăng ký.', {
+      title: 'Đóng lớp học',
+      confirmLabel: 'Đóng lớp',
+      tone: 'danger',
+    })) {
       return;
     }
     setClosingClass(true);
@@ -200,7 +202,11 @@ export default function TrainingManagerClassroomDetailPage() {
   };
 
   const handleRemoveStudent = async (enrollment) => {
-    if (!window.confirm(`Loại ${enrollment.studentName || enrollment.studentEmail} khỏi danh sách lớp hiện tại?`)) return;
+    if (!await confirmDialog(`Loại ${enrollment.studentName || enrollment.studentEmail} khỏi danh sách lớp hiện tại?`, {
+      title: 'Loại học viên khỏi lớp',
+      confirmLabel: 'Loại khỏi lớp',
+      tone: 'danger',
+    })) return;
     setStudentActionId(enrollment.id);
     setActionMessage('');
     try {
@@ -261,21 +267,6 @@ export default function TrainingManagerClassroomDetailPage() {
   }
 
   if (error || !classroom) {
-    if (initialEnrollmentId) {
-      return (
-        <div className="space-y-4">
-          <ClassroomErrorState
-            message={error || 'Không tải được thông tin lớp. Bạn vẫn có thể xử lý hồ sơ đăng ký bên dưới.'}
-            onRetry={loadClassroom}
-          />
-          <TrainingManagerRegistrationPanel
-            classroomOfferingId={Number(id)}
-            initialEnrollmentId={initialEnrollmentId}
-            initialTab="WAITLIST"
-          />
-        </div>
-      );
-    }
     return (
       <div className="space-y-4">
         <ClassroomErrorState message={error || 'Không tìm thấy lớp học.'} onRetry={loadClassroom} />
@@ -338,8 +329,6 @@ export default function TrainingManagerClassroomDetailPage() {
           {' · '}
           Sĩ số: <strong>{classroom.enrolledCount ?? 0}/{classroom.maxCapacity ?? '-'}</strong>
           {' · '}
-          Chờ xếp lớp: <strong>{classroom.waitlistCount ?? 0}</strong>
-          {' · '}
           Học phí: <strong>{formatClassroomPrice(classroom.salePrice ?? classroom.price ?? 0)}</strong>
         </p>
       </section>
@@ -348,20 +337,13 @@ export default function TrainingManagerClassroomDetailPage() {
 
       {activeTab === 'overview' ? (
         <>
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-2">
             <OverviewCard
               description="Học viên đã được xếp lớp chính thức"
               icon={Users}
               label="Đã xếp lớp"
               onClick={() => setTab('students')}
               value={classroom.enrolledCount ?? 0}
-            />
-            <OverviewCard
-              description="Hồ sơ đăng ký cần xác nhận, học phí hoặc xếp lớp"
-              icon={Clock}
-              label="Hàng đợi"
-              onClick={() => setTab('queue')}
-              value={classroom.waitlistCount ?? 0}
             />
             <OverviewCard
               description="Số buổi học đã lên lịch"
@@ -373,14 +355,6 @@ export default function TrainingManagerClassroomDetailPage() {
           </section>
           <CurriculumOverview curriculum={classroom.curriculumProgram} />
         </>
-      ) : null}
-
-      {activeTab === 'queue' ? (
-        <TrainingManagerRegistrationPanel
-          classroomOfferingId={Number(id)}
-          initialEnrollmentId={initialEnrollmentId}
-          onUpdated={loadClassroom}
-        />
       ) : null}
 
       {activeTab === 'students' ? (
@@ -397,7 +371,7 @@ export default function TrainingManagerClassroomDetailPage() {
             </div>
           ) : (
             <ClassroomEmptyState
-              description="Chưa có học viên nào được xếp lớp chính thức. Xử lý hàng đợi đăng ký để đưa học viên vào lớp."
+              description="Chưa có học viên nào được Staff tư vấn và xếp vào lớp này."
               title="Chưa có học viên"
             />
           )}

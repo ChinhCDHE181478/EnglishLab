@@ -71,7 +71,9 @@ export default function ReadingExamMode({
   const [violations, setViolations] = useState([]);
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
+  const submissionInFlightRef = useRef(false);
   const intentionalExitRef = useRef(false);
+  const fullscreenSessionStartedRef = useRef(false);
 
   const activePart = parts.find((part) => part.key === activePartKey) || parts[0] || null;
   const allQuestionNumbers = useMemo(() => flattenQuestionNumbers(parts), [parts]);
@@ -103,7 +105,7 @@ export default function ReadingExamMode({
 
   useEffect(() => {
     intentionalExitRef.current = false;
-    document.documentElement?.requestFullscreen?.().catch(() => {});
+    fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
     return () => {
       if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
@@ -134,8 +136,12 @@ export default function ReadingExamMode({
       warn('Không thể quay lại trang khác trong lúc đang làm bài Reading.');
     };
     const handleFullscreen = () => {
-      if (!document.fullscreenElement && !intentionalExitRef.current) {
-        void restoreFullscreen();
+      if (document.fullscreenElement) {
+        fullscreenSessionStartedRef.current = true;
+        return;
+      }
+      if (fullscreenSessionStartedRef.current && !intentionalExitRef.current) {
+        fullscreenSessionStartedRef.current = false;
         warn('Không thể thoát toàn màn hình trong lúc đang thi Reading.');
       }
     };
@@ -178,7 +184,12 @@ export default function ReadingExamMode({
 
   const restoreFullscreen = async () => {
     if (document.fullscreenElement) return;
-    await document.documentElement?.requestFullscreen?.().catch(() => {});
+    try {
+      await document.documentElement?.requestFullscreen?.();
+      fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
+    } catch {
+      // Do not count a browser capability/permission failure as a violation.
+    }
   };
 
   const handleCloseExam = async () => {
@@ -249,11 +260,15 @@ export default function ReadingExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting || submissionPending) return;
+    if (isLocked || submitting || submissionPending || submissionInFlightRef.current) return;
+    submissionInFlightRef.current = true;
     setSubmissionPending(true);
     try {
       await onSubmit(buildPayload(autoSubmitted));
+    } catch {
+      // The parent panel renders the actionable API error.
     } finally {
+      submissionInFlightRef.current = false;
       setSubmissionPending(false);
     }
   };

@@ -44,12 +44,7 @@ public interface OnlineCourseService {
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request);
     OnlineCourseResponse updateCourse(Long id, OnlineCourseRequest request, String actorEmail);
     List<OnlineCourseResponse> updateLearningPathOrder(LearningPathOrderRequest request);
-    OnlineCourseResponse publishCourse(Long id);
     OnlineCourseResponse publishCourse(Long id, String actorEmail);
-    OnlineCourseResponse submitForReview(Long id);
-    OnlineCourseResponse submitForReview(Long id, String actorEmail);
-    OnlineCourseResponse approveCourse(Long id, String reviewerEmail, String reviewNote);
-    OnlineCourseResponse rejectCourse(Long id, String reviewerEmail, String reviewNote);
     OnlineCourseResponse archiveCourse(Long id);
     void deleteCourse(Long id);
     OnlineCourseResponse registerCourse(Long courseId, String studentEmail);

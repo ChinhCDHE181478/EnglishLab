@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, Plus, RefreshCw, Search, Users, X } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -251,17 +252,7 @@ export default function ManagerClassroomsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-['Manrope'] text-2xl font-black text-slate-900">Danh sách lớp học</h2>
-          <p className="mt-1 text-sm text-slate-500">Mở lớp từ chương trình đã duyệt và theo dõi toàn bộ cohort tại một nơi.</p>
-        </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white hover:bg-[#730014]" onClick={openCreate} type="button">
-          <Plus className="h-4 w-4" /> Tạo lớp mới
-        </button>
-      </div>
-
+    <div className="space-y-5">
       {message ? <div className="rounded-xl border border-[#dfbfbd]/50 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014]">{message}</div> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -271,10 +262,10 @@ export default function ManagerClassroomsPage() {
         <MetricCard icon={CalendarDays} label="Chương trình đang mở" value={stats.programs} />
       </section>
 
-      <section className="flex flex-wrap items-center gap-3 rounded-xl border border-[#dfbfbd]/40 bg-white p-4 shadow-sm">
+      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="relative min-w-[240px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input className={`${inputClass} pl-10`} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm lớp, chương trình hoặc giáo viên..." value={keyword} />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input className={`${inputClass} h-11 pl-10`} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm lớp, chương trình hoặc giáo viên..." value={keyword} />
         </div>
         <div className="w-full sm:w-56">
           <BrandedSelect onChange={(event) => setProgramFilter(event.target.value)} options={programFilterOptions} value={programFilter} />
@@ -282,7 +273,15 @@ export default function ManagerClassroomsPage() {
         <div className="w-full sm:w-48">
           <BrandedSelect onChange={(event) => setStatusFilter(event.target.value)} options={[{ label: 'Tất cả trạng thái', value: 'ALL' }, ...statusOptions]} value={statusFilter} />
         </div>
-        <button aria-label="Làm mới danh sách lớp" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#dfbfbd]/50 text-[#730014]" onClick={loadClassrooms} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /></button>
+        <div className="flex items-center gap-2">
+          <button aria-label="Làm mới danh sách lớp" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-[#730014] hover:bg-slate-50 transition" onClick={loadClassrooms} type="button">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 text-xs font-extrabold text-white hover:bg-[#730014] transition active:scale-95 whitespace-nowrap shadow-sm" onClick={openCreate} type="button">
+            <Plus className="h-4 w-4" />
+            Tạo lớp mới
+          </button>
+        </div>
       </section>
 
       {loading ? <ClassroomLoadingState message="Đang tải danh sách lớp..." /> : null}
@@ -348,7 +347,15 @@ function ClassroomFormFields({ form, onChange, roomOptions, teacherOptions, trai
       <Field label="Học phí"><input className={inputClass} min="0" onChange={(event) => onChange('price', event.target.value)} type="number" value={form.price} /></Field>
       <Field label="Giá ưu đãi"><input className={inputClass} min="0" onChange={(event) => onChange('salePrice', event.target.value)} type="number" value={form.salePrice} /></Field>
       {form.deliveryMode === 'OFFLINE' ? <Field label="Địa điểm học"><input className={inputClass} onChange={(event) => onChange('offlineAddress', event.target.value)} value={form.offlineAddress} /></Field> : null}
-      <Field label="Mô tả ngắn" wide><textarea className={`${inputClass} min-h-24`} onChange={(event) => onChange('shortDescription', event.target.value)} value={form.shortDescription} /></Field>
+      <Field label="Mô tả ngắn" wide>
+        <RichTextEditor
+          helperText=""
+          onChange={(html) => onChange('shortDescription', html)}
+          placeholder="Mô tả ngắn về lớp học..."
+          size="compact"
+          value={form.shortDescription}
+        />
+      </Field>
     </div>
   );
 }

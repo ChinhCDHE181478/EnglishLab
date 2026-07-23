@@ -32,7 +32,6 @@ const getNavItemsByRole = (user) => {
       { label: 'Bảng điều khiển', to: '/staff' },
       { label: 'Lớp học', to: '/staff/classrooms' },
       { label: 'Yêu cầu đăng ký', to: '/staff/enrollment-requests' },
-      { label: 'Hàng đợi đăng ký', to: '/staff/registrations' },
       { label: 'Duyệt yêu cầu', to: '/staff/requests' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
     ];
@@ -40,8 +39,6 @@ const getNavItemsByRole = (user) => {
   if (role === 'MANAGER' || role === 'ADMIN') {
     return [
       { label: 'Duyệt đề xuất lớp', to: '/manager/classroom-proposals' },
-      { label: 'Duyệt khóa học', to: '/manager/course-approvals' },
-      { label: 'Duyệt nội dung', to: '/manager/content-approvals' },
       { label: 'Ghi danh online', to: '/manager/online-enrollments' },
       { label: 'Lịch khai giảng', to: '/opening-schedule' },
     ];

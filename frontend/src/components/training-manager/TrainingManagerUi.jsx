@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, CheckSquare, ChevronDown, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, LogOut, Settings2, Video } from 'lucide-react';
+import {
+  CalendarDays,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  LayoutDashboard,
+  LifeBuoy,
+  LogOut,
+  Settings2,
+  Video,
+} from 'lucide-react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import BrandedSelect from '../ui/BrandedSelect';
@@ -12,13 +23,10 @@ const trainingOperationsNav = [
       { label: 'Lớp học', href: '/staff/classrooms', icon: CalendarDays, staffOnly: true },
       { label: 'Yêu cầu đăng ký', href: '/staff/enrollment-requests', icon: ClipboardList, staffOnly: true },
       { label: 'Đề xuất mở lớp', href: '/staff/classroom-proposals', icon: CalendarDays, staffOnly: true },
-      { label: 'Hàng đợi đăng ký', href: '/staff/registrations', icon: ClipboardList, staffOnly: true },
       { label: 'Duyệt yêu cầu', href: '/staff/requests', icon: CheckSquare, staffOnly: true },
       { label: 'Hạ tầng lớp học', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
       { label: 'Quản lý ghi hình', href: '/staff/recordings', icon: Video, staffOnly: true },
       { label: 'Duyệt đề xuất lớp', href: '/manager/classroom-proposals', icon: CalendarDays, managerOnly: true },
-      { label: 'Duyệt khóa học', href: '/manager/course-approvals', icon: CheckSquare, managerOnly: true },
-      { label: 'Duyệt nội dung', href: '/manager/content-approvals', icon: CheckSquare, managerOnly: true },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList, managerOnly: true },
       { label: 'Support ticket', href: '/staff/support-tickets', managerHref: '/manager/support-tickets', icon: LifeBuoy },
     ],
@@ -29,86 +37,90 @@ function resolvePageMeta(pathname) {
   if (pathname === '/staff' || pathname === '/staff/') {
     return {
       title: 'Việc cần làm hôm nay',
-      subtitle: 'Tổng hợp đăng ký chờ xử lý, yêu cầu thay đổi và lớp cần can thiệp trước khai giảng.',
+      subtitle: 'Tổng hợp hồ sơ đăng ký chờ xử lý, yêu cầu thay đổi và các lớp học cần lưu ý.',
+    };
+  }
+  if (pathname === '/staff/classrooms' || pathname === '/staff/classrooms/') {
+    return {
+      title: 'Danh sách lớp học',
+      subtitle: 'Mở lớp từ chương trình đã duyệt và theo dõi các cohort đào tạo.',
     };
   }
   if (pathname.startsWith('/staff/classrooms/') && pathname !== '/staff/classrooms') {
     return {
-      title: 'Quản lý lớp học',
-      subtitle: 'Xử lý hàng đợi đăng ký, học viên, lịch học và công bố khai giảng theo từng cohort.',
-    };
-  }
-  if (pathname.startsWith('/staff/registrations') || pathname.startsWith('/staff/classroom-registrations')) {
-    return {
-      title: 'Hàng đợi đăng ký và học phí',
-      subtitle: 'Xác nhận ghi danh, ghi nhận học phí, xếp lớp — mặc định chỉ hiển thị hồ sơ cần xử lý.',
+      title: 'Quản lý chi tiết lớp học',
+      subtitle: 'Theo dõi học viên, thời khóa biểu và lịch trình học tập.',
     };
   }
   if (pathname.startsWith('/staff/enrollment-requests')) {
     return {
-      title: 'Yêu cầu đăng ký và phân lớp',
-      subtitle: 'Kiểm tra placement eligibility, chốt trình độ và quản lý waiting pool trước khi đề xuất lớp.',
+      title: 'Yêu cầu đăng ký và xếp lớp',
+      subtitle: 'Thông tin học viên đăng ký tư vấn từ lịch khai giảng và danh sách chờ xếp lớp.',
     };
   }
   if (pathname.startsWith('/staff/classroom-proposals')) {
     return {
       title: 'Đề xuất mở lớp',
-      subtitle: 'Gom waiting pool thành bản nháp, kiểm tra lịch và gửi Manager duyệt trước khi tạo lớp chính thức.',
+      subtitle: 'Kế hoạch dự kiến mở lớp mới của nhân viên vận hành trước khi gửi phê duyệt.',
     };
   }
   if (pathname.startsWith('/staff/requests')) {
     return {
       title: 'Duyệt yêu cầu thay đổi',
-      subtitle: 'Xem diff thay đổi, kiểm tra trùng lịch và phê duyệt đề xuất từ giảng viên.',
+      subtitle: 'Thông tin và phê duyệt các đề xuất thay đổi buổi học từ giáo viên.',
     };
   }
   if (pathname.startsWith('/staff/infrastructure')) {
     return {
-      title: 'Hạ tầng lớp học',
-      subtitle: 'Quản lý cơ sở, phòng học và mẫu lịch để mở lớp không bị trùng lịch hoặc thiếu dữ liệu vận hành.',
+      title: 'Hạ tầng cơ sở vật chất',
+      subtitle: 'Quản lý hệ thống phòng học offline và thông tin phòng trực tuyến.',
     };
   }
-  if (pathname.startsWith('/manager/course-approvals')) {
+  if (pathname.startsWith('/staff/recordings')) {
     return {
-      title: 'Duyệt khóa học và phiên bản',
-      subtitle: 'Rà soát lần xuất bản đầu tiên cùng các phiên bản cập nhật v2, v3.',
-    };
-  }
-  if (pathname.startsWith('/manager/content-approvals')) {
-    return {
-      title: 'Duyệt nội dung và phiên bản',
-      subtitle: 'Kiểm duyệt v2, v3 cùng tài liệu và giáo trình do Content Manager gửi lên.',
+      title: 'Quản lý ghi hình buổi học',
+      subtitle: 'Danh sách video record các buổi học trực tuyến đồng bộ từ hệ thống.',
     };
   }
   if (pathname.startsWith('/manager/classroom-proposals')) {
     return {
       title: 'Duyệt đề xuất mở lớp',
-      subtitle: 'Kiểm tra học viên, lịch và nguồn lực trước khi tạo classroom chính thức trong một transaction.',
+      subtitle: 'Manager phê duyệt kế hoạch đề xuất lớp học mới từ đội ngũ nhân viên vận hành.',
+    };
+  }
+  if (pathname.startsWith('/manager/online-enrollments')) {
+    return {
+      title: 'Ghi danh online',
+      subtitle: 'Danh sách học viên đăng ký mua khóa học trực tuyến qua hệ thống.',
     };
   }
   if (pathname.startsWith('/staff/support-tickets') || pathname.startsWith('/manager/support-tickets')) {
     return {
-      title: 'Support Ticket',
-      subtitle: 'Theo dõi và xử lý yêu cầu hỗ trợ từ học viên.',
+      title: 'Yêu cầu hỗ trợ (Support Ticket)',
+      subtitle: 'Theo dõi, phản hồi và giải quyết các khiếu nại, hỗ trợ kỹ thuật của học viên.',
     };
   }
   return {
-    title: 'Mở lớp và lịch khai giảng',
-    subtitle: 'Tạo cohort mới và mở trang quản lý từng lớp để vận hành.',
+    title: 'Vận hành đào tạo',
+    subtitle: 'Hệ thống quản lý, giám sát và vận hành các hoạt động đào tạo tại EnglishLab.',
   };
 }
 
 export default function TrainingManagerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [bootLoading, setBootLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const sidebarNavRef = useRef(null);
   const sidebarScrollTopRef = useRef(0);
+
   const meta = resolvePageMeta(location.pathname);
   const role = String(currentUser?.role || '').toUpperCase();
   const isManager = ['MANAGER', 'ADMIN'].includes(role);
   const isStaff = ['STAFF', 'TRAINING_MANAGER', 'ADMIN'].includes(role);
+  const rolePrefix = location.pathname.startsWith('/manager') ? 'manager' : 'staff';
+
   const visibleTrainingManagerNav = trainingOperationsNav.map((section) => ({
     ...section,
     items: section.items
@@ -119,14 +131,26 @@ export default function TrainingManagerLayout() {
       })
       .map((item) => (isManager && item.managerHref ? { ...item, href: item.managerHref } : item)),
   }));
+
   const crumbs = location.pathname.replace(/^\/(staff|manager)\/?/, '').split('/').filter(Boolean);
   const mobileNavOptions = visibleTrainingManagerNav.flatMap((section) => section.items.map((item) => ({
     label: item.label,
     value: item.href,
   })));
+  
   const mobileNavValue = mobileNavOptions.find((option) => option.value === location.pathname)?.value
     || mobileNavOptions.find((option) => location.pathname.startsWith(`${option.value}/`))?.value
-    || (isManager ? '/manager/course-approvals' : '/staff');
+    || (isManager ? '/manager/classroom-proposals' : '/staff');
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setBootLoading(false);
+    }, 650);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, []);
 
   useEffect(() => {
     setCurrentUser(getStoredUser());
@@ -155,11 +179,12 @@ export default function TrainingManagerLayout() {
   const displayName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Nhân viên đào tạo';
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const hidePageShell = /^\/staff\/classrooms\/\d+/.test(location.pathname);
-  const homeHref = isManager ? '/manager/course-approvals' : '/staff';
+  const homeHref = isManager ? '/manager/classroom-proposals' : '/staff';
   const roleLabel = isManager ? 'Quản lý' : 'Nhân viên đào tạo';
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-['Inter'] text-slate-800 antialiased">
+      {/* Radial grid pattern matching Content Manager */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.02]"
         style={{ backgroundImage: 'radial-gradient(#4b0009 1px, transparent 1px)', backgroundSize: '24px 24px' }}
@@ -229,14 +254,23 @@ export default function TrainingManagerLayout() {
                 <Link className="transition hover:text-[#730014]" to={homeHref}>
                   Vận hành đào tạo
                 </Link>
-                {crumbs.map((crumb, index) => (
-                  <span className="inline-flex items-center gap-1.5 capitalize" key={`${crumb}-${index}`}>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                    <span className={index === crumbs.length - 1 ? 'font-semibold text-slate-800' : ''}>
-                      {formatCrumbLabel(crumb)}
+                {crumbs.map((crumb, index) => {
+                  const href = resolveCrumbHref(rolePrefix, crumbs, index);
+                  const label = formatCrumbLabel(crumbs, index);
+                  const isLast = index === crumbs.length - 1;
+                  return (
+                    <span className="inline-flex items-center gap-1.5 capitalize" key={`${crumb}-${index}`}>
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      {isLast || !href ? (
+                        <span className="font-semibold text-slate-800">{label}</span>
+                      ) : (
+                        <Link className="transition hover:text-[#730014]" to={href}>
+                          {label}
+                        </Link>
+                      )}
                     </span>
-                  </span>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -296,41 +330,75 @@ export default function TrainingManagerLayout() {
         </header>
 
         <main className="mx-auto max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8">
-          {!hidePageShell ? (
-            <div className="mb-6">
-              <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                {meta.title}
-              </h1>
-              {meta.subtitle ? (
-                <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
-                  {meta.subtitle}
-                </p>
+          {bootLoading ? (
+            <section className="space-y-8">
+              <div>
+                <div className="h-10 w-72 animate-pulse rounded-2xl bg-[#f1e3e4]" />
+                <div className="mt-3 h-5 w-full max-w-3xl animate-pulse rounded-2xl bg-[#f6ecec]" />
+              </div>
+              <TrainingManagerLoadingState message="Đang tải dữ liệu vận hành..." />
+            </section>
+          ) : (
+            <>
+              {!hidePageShell ? (
+                <div className="mb-6">
+                  <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                    {meta.title}
+                  </h1>
+                  {meta.subtitle ? (
+                    <p className="mt-2 max-w-4xl text-sm leading-relaxed text-slate-500">
+                      {meta.subtitle}
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
-            </div>
-          ) : null}
 
-          <div className={hidePageShell ? '' : 'min-h-[500px]'}>
-            <Outlet />
-          </div>
+              <div className={hidePageShell ? '' : 'min-h-[500px]'}>
+                <Outlet />
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>
   );
 }
 
-function formatCrumbLabel(value) {
+function resolveCrumbHref(rolePrefix, crumbs, index) {
+  const current = crumbs[index];
+  const fullPath = crumbs.slice(0, index + 1);
+  if (/^\d+$/.test(current)) return null;
+  return `/${rolePrefix}/${fullPath.join('/')}`;
+}
+
+function formatCrumbLabel(crumbs, index) {
+  const value = crumbs[index];
   const dictionary = {
     classrooms: 'Lớp học',
-    registrations: 'Hàng đợi',
-    'classroom-registrations': 'Hàng đợi',
     requests: 'Yêu cầu',
     infrastructure: 'Hạ tầng',
     'classroom-proposals': 'Đề xuất lớp',
-    'course-approvals': 'Duyệt khóa học',
-    'content-approvals': 'Duyệt nội dung',
+    'enrollment-requests': 'Yêu cầu đăng ký',
+    recordings: 'Quản lý ghi hình',
+    'support-tickets': 'Support ticket',
+    'online-enrollments': 'Ghi danh online',
   };
   if (/^\d+$/.test(value)) {
-    return `Lớp #${value}`;
+    return `Chi tiết #${value}`;
   }
   return dictionary[value] || value.replace(/-/g, ' ');
+}
+
+export function TrainingManagerLoadingState({ message = 'Đang tải dữ liệu...' }) {
+  return (
+    <div className="flex min-h-[400px] flex-1 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
+      <div className="relative flex h-16 w-16 items-center justify-center">
+        <div className="absolute h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-[#730014]" />
+        <div className="h-6 w-6 rounded-full bg-[#4b0009]/10" />
+      </div>
+      <p className="mt-6 animate-pulse font-['Manrope'] text-base font-extrabold text-slate-700">
+        {message}
+      </p>
+    </div>
+  );
 }

@@ -9,12 +9,6 @@ import java.util.Set;
 public final class ContentManagementRolePolicy {
     public static final Set<RoleEnum> EDITOR_ROLES = Set.copyOf(EnumSet.of(
             RoleEnum.CONTENT_MANAGER,
-            RoleEnum.MANAGER,
-            RoleEnum.ADMIN
-    ));
-
-    public static final Set<RoleEnum> APPROVAL_ROLES = Set.copyOf(EnumSet.of(
-            RoleEnum.MANAGER,
             RoleEnum.ADMIN
     ));
 
@@ -25,7 +19,4 @@ public final class ContentManagementRolePolicy {
         return user != null && user.hasAnyRole(EDITOR_ROLES);
     }
 
-    public static boolean canApprove(User user) {
-        return user != null && user.hasAnyRole(APPROVAL_ROLES);
-    }
 }

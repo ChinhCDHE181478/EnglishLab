@@ -83,29 +83,28 @@ export default function ManagerOnlineEnrollmentsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="font-['Manrope'] text-2xl font-extrabold text-slate-900">Quản lý ghi danh khóa online</h2>
-          <p className="mt-1 text-sm text-slate-600">Theo dõi học viên đã mua/ghi danh khóa học tự học trên nền tảng.</p>
-        </div>
-        <button type="button" onClick={loadEnrollments} className={SECONDARY_BUTTON_CLASS}>
-          <RefreshCw className="h-4 w-4" /> Tải lại
-        </button>
-      </div>
-
+    <div className="space-y-5">
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm học viên hoặc khóa học..." className={SEARCH_INPUT_CLASS} />
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="Tìm học viên hoặc khóa học..." className={`${SEARCH_INPUT_CLASS} h-11 pl-10`} />
+          </div>
+          <div className="w-48">
+            <BrandedSelect value={status} onChange={(event) => setStatus(event.target.value)} options={statusOptions} />
+          </div>
         </div>
-        <div className="w-48">
-          <BrandedSelect value={status} onChange={(event) => setStatus(event.target.value)} options={statusOptions} />
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={loadEnrollments}
+          className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Tải lại
+        </button>
+      </section>
 
       {loading ? (
         <p className="text-sm font-semibold text-slate-500">Đang tải...</p>

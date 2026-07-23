@@ -1,24 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import {
   BookOpen,
   Calendar,
-  Clock,
   User,
   DollarSign,
   Award,
-  ArrowRight,
   ChevronRight,
-  Info,
-  CheckCircle2,
   Lock,
   MapPin,
   Video,
   TrendingUp,
   RefreshCw,
-  ShieldCheck,
   Building,
   Search
 } from 'lucide-react';
@@ -37,13 +32,13 @@ import {
   formatTuitionSettlement,
 } from '../../utils/classroomHelpers';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
+import { onlyAssignedClassrooms } from '../../utils/learnerClassroomAccess';
 
 // ─── Tab definitions ────────────────────────────────────────────────────────
 const learnerTabs = [
   { id: 'all', label: 'Tất cả lớp học' },
   { id: 'active', label: 'Đang diễn ra' },
   { id: 'upcoming', label: 'Sắp khai giảng' },
-  { id: 'pending', label: 'Chờ xếp lớp' },
   { id: 'completed', label: 'Đã hoàn thành' },
 ];
 
@@ -75,20 +70,10 @@ const isUpcomingClass = (item) => {
   return false;
 };
 const isCompletedClass = (item) => ['COMPLETED', 'CANCELLED', 'CLOSED'].includes(item.classroomStatus);
-const isPendingClass = (item) =>
-  ['PENDING_CONFIRMATION', 'PENDING_TUITION_PAYMENT', 'WAITLIST', 'DEPOSIT_PAID', 'PARTIALLY_PAID'].includes(item.registrationStatus);
 
 // ─── Custom Minimalist Status configuration ───────────────────────────────────
 const getMinimalistStatusInfo = (classroom) => {
   const days = daysUntil(classroom.startDate);
-  if (classroom.registrationStatus === 'WAITLIST') {
-    return {
-      text: 'Danh sách chờ',
-      dotColor: 'bg-blue-500',
-      textColor: 'text-blue-700',
-      badgeBg: 'bg-blue-50 border-blue-100',
-    };
-  }
   if (isActiveClass(classroom)) {
     const end = daysUntil(classroom.endDate);
     if (end != null && end > 0) return { text: `Còn ${end} ngày`, dotColor: 'bg-emerald-500', textColor: 'text-emerald-700', badgeBg: 'bg-emerald-50 border-emerald-100' };
@@ -99,7 +84,6 @@ const getMinimalistStatusInfo = (classroom) => {
     if (days === 0) return { text: 'Khai giảng hôm nay!', dotColor: 'bg-rose-500 animate-ping', textColor: 'text-[#730014]', badgeBg: 'bg-rose-50 border-rose-100' };
   }
   if (isCompletedClass(classroom)) return { text: 'Đã hoàn thành', dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
-  if (isPendingClass(classroom)) return { text: 'Chờ xếp lớp', dotColor: 'bg-blue-500', textColor: 'text-blue-700', badgeBg: 'bg-blue-50 border-blue-100' };
   return { text: formatClassroomDate(classroom.startDate), dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
 };
 
@@ -110,8 +94,6 @@ export default function MyClassroomsPage() {
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [cancellingId, setCancellingId] = useState(null);
-  const [cancelMessage, setCancelMessage] = useState('');
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
 
   const loadClassrooms = async () => {
@@ -119,7 +101,7 @@ export default function MyClassroomsPage() {
     setError('');
     try {
       const data = await classroomApi.getMyClassrooms();
-      setClassrooms(data);
+      setClassrooms(onlyAssignedClassrooms(data));
     } catch (err) {
       setClassrooms([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải danh sách lớp của bạn.'));
@@ -133,35 +115,19 @@ export default function MyClassroomsPage() {
     loadClassrooms();
   }, [isAuthenticated]);
 
-  const handleCancelRegistration = async (classroom) => {
-    const confirmed = window.confirm(`Bạn có chắc chắn muốn hủy đăng ký lớp "${classroom.title}"?`);
-    if (!confirmed) return;
-    setCancellingId(classroom.id);
-    setCancelMessage('');
-    try {
-      await classroomApi.cancelClassRegistration(classroom.id);
-      setCancelMessage(`Đã hủy đăng ký lớp "${classroom.title}".`);
-      await loadClassrooms();
-    } catch (err) {
-      setCancelMessage(getClassroomErrorMessage(err, 'Không thể hủy đăng ký.'));
-    } finally {
-      setCancellingId(null);
-    }
-  };
-
-  const filteredClassrooms = useMemo(() => {
+  const assignedClassrooms = onlyAssignedClassrooms(classrooms);
+  const filteredClassrooms = (() => {
     const query = searchQuery.trim().toLowerCase();
-    return classrooms.filter((item) => {
+    return assignedClassrooms.filter((item) => {
       if (activeTab === 'active' && !isActiveClass(item)) return false;
       if (activeTab === 'upcoming' && !isUpcomingClass(item)) return false;
       if (activeTab === 'completed' && !isCompletedClass(item)) return false;
-      if (activeTab === 'pending' && !isPendingClass(item)) return false;
       if (!query) return true;
       return String(item.title || item.classroomTitle || '').toLowerCase().includes(query) ||
         String(item.code || '').toLowerCase().includes(query) ||
         String(item.courseTitle || '').toLowerCase().includes(query);
     });
-  }, [activeTab, classrooms, searchQuery]);
+  })();
 
   const { page, setPage, totalPages, pageItems: paginatedClassrooms, totalItems } = usePagination(
     filteredClassrooms,
@@ -169,20 +135,17 @@ export default function MyClassroomsPage() {
     `${activeTab}-${searchQuery}`
   );
 
-  const counts = useMemo(() => ({
-    all: classrooms.length,
-    active: classrooms.filter(isActiveClass).length,
-    upcoming: classrooms.filter(isUpcomingClass).length,
-    pending: classrooms.filter(isPendingClass).length,
-    completed: classrooms.filter(isCompletedClass).length,
-  }), [classrooms]);
+  const counts = {
+    all: assignedClassrooms.length,
+    active: assignedClassrooms.filter(isActiveClass).length,
+    upcoming: assignedClassrooms.filter(isUpcomingClass).length,
+    completed: assignedClassrooms.filter(isCompletedClass).length,
+  };
 
-  const learnerTabOptions = useMemo(() => (
-    learnerTabs.map((tab) => ({
-      label: `${tab.label} (${counts[tab.id] ?? 0})`,
-      value: tab.id,
-    }))
-  ), [counts]);
+  const learnerTabOptions = learnerTabs.map((tab) => ({
+    label: `${tab.label} (${counts[tab.id] ?? 0})`,
+    value: tab.id,
+  }));
 
   return (
     <LearnerPageShell
@@ -195,7 +158,7 @@ export default function MyClassroomsPage() {
             icon={Lock}
             actionLabel="Đăng nhập hệ thống"
             actionTo="/login"
-            description="Bạn phải đăng nhập để xem thông tin chi tiết các lớp đã ghi danh."
+            description="Bạn phải đăng nhập để xem các lớp đã được Nhân viên đào tạo xếp cho mình."
             title="Quyền truy cập bị giới hạn"
           />
         </div>
@@ -216,20 +179,19 @@ export default function MyClassroomsPage() {
         <div className="flex flex-1 flex-col items-center justify-center py-16">
           <ClassroomEmptyState
             icon={BookOpen}
-            actionLabel="Tìm lớp mới mở"
-            actionTo="/opening-schedule"
-            description="Hiện bạn chưa đăng ký lớp học nào tại EnglishLab. Hãy tham khảo lịch khai giảng để chọn lớp học phù hợp với trình độ mục tiêu."
-            title="Chưa tham gia lớp nào"
+            actionLabel="Đăng ký học và nhận tư vấn"
+            actionTo="/opening-schedule#dang-ky-tu-van"
+            description="Bạn chưa được xếp vào lớp học nào. Hãy gửi form đăng ký để Nhân viên đào tạo liên hệ, tư vấn và xếp lớp phù hợp."
+            title="Chưa được xếp lớp"
           />
         </div>
       ) : (
         <div className="space-y-8 flex-1">
           
           {/* Flat Minimal Counter Cards */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <GlassCounterCard label="Đang tham gia" value={counts.active} dotColor="bg-emerald-500" icon={<BookOpen className="h-5 w-5" />} />
             <GlassCounterCard label="Sắp diễn ra" value={counts.upcoming} dotColor="bg-amber-500" icon={<Calendar className="h-5 w-5" />} />
-            <GlassCounterCard label="Chờ xếp lớp" value={counts.pending} dotColor="bg-blue-500" icon={<Clock className="h-5 w-5" />} />
             <GlassCounterCard label="Đã kết thúc" value={counts.completed} dotColor="bg-gray-400" icon={<Award className="h-5 w-5" />} />
           </div>
 
@@ -260,18 +222,6 @@ export default function MyClassroomsPage() {
             </button>
           </section>
 
-          {cancelMessage && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 flex items-center gap-1.5"
-            >
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              {cancelMessage}
-            </motion.div>
-          )}
-
           {/* Clean Minimalist Cards Grid */}
           <div className="space-y-6">
             <AnimatePresence mode="popLayout">
@@ -288,9 +238,7 @@ export default function MyClassroomsPage() {
                       className="h-full"
                     >
                       <MinimalistClassroomCard
-                        cancelling={cancellingId === classroom.id}
                         classroom={classroom}
-                        onCancel={handleCancelRegistration}
                       />
                     </motion.div>
                   ))}
@@ -347,12 +295,9 @@ function GlassCounterCard({ label, value, dotColor, icon }) {
 }
 
 // ─── Minimalist Classroom card component ────────────────────────────────────────
-function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
+function MinimalistClassroomCard({ classroom }) {
   const isClassActive = isActiveClass(classroom);
-  const isClassCompleted = isCompletedClass(classroom);
-  const isWaiting = !classroom.hasClassAccess;
   const isVirtual = classroom.deliveryMode === 'VIRTUAL';
-  const canCancel = isPendingClass(classroom) && !classroom.hasClassAccess;
 
   const tuitionDue = classroom.tuitionAmountDue ?? 0;
   const tuitionPaid = classroom.tuitionAmountPaid ?? 0;
@@ -411,7 +356,7 @@ function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
         </div>
 
         {/* Progress bar for active courses */}
-        {isClassActive && classroom.hasClassAccess && classroom.progressPercent != null && (
+        {isClassActive && classroom.progressPercent != null && (
           <div className="pt-2 space-y-1.5">
             <div className="flex items-center justify-between text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">
               <span className="flex items-center gap-1"><TrendingUp className="h-3.5 w-3.5 text-[#730014]" /> Tiến độ hoàn thành</span>
@@ -426,13 +371,6 @@ function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
           </div>
         )}
 
-        {/* Access message info box */}
-        {isWaiting && !isClassCompleted && (
-          <div className="rounded-2xl border border-amber-100 bg-amber-50/30 p-3 text-[11px] font-semibold text-amber-800 leading-normal flex items-start gap-2">
-            <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-            <span>Ban đào tạo đang thực hiện xếp lịch học. Bạn sẽ sớm có quyền truy cập đầy đủ bài học.</span>
-          </div>
-        )}
       </div>
 
       {/* Tuition details & navigation */}
@@ -464,47 +402,13 @@ function MinimalistClassroomCard({ classroom, onCancel, cancelling = false }) {
 
         {/* Action CTAs */}
         <div className="flex gap-2 w-full">
-          {classroom.hasClassAccess ? (
-            <Link
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#730014] to-[#4b0009] py-3 text-xs font-bold text-white shadow-sm transition hover:shadow-md active:scale-95 btn-hover"
-              to={`/my-classrooms/${classroom.id}`}
-            >
-              Vào học
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          ) : isClassCompleted ? (
-            <Link
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-3 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95"
-              to={`/opening-schedule/${classroom.slug || classroom.id}`}
-            >
-              Xem chi tiết
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          ) : (
-            <Link
-              className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white py-3 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
-              to={`/opening-schedule/${classroom.slug || classroom.id}`}
-            >
-              Đăng ký học
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-
-          {canCancel && (
-            <button
-              className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-3 text-xs font-bold text-rose-700 transition hover:bg-rose-50 active:scale-95 disabled:opacity-60 shrink-0"
-              disabled={cancelling}
-              onClick={() => onCancel?.(classroom)}
-              type="button"
-              title="Hủy đăng ký lớp học này"
-            >
-              {cancelling ? (
-                <RefreshCw className="h-4 w-4 animate-spin text-rose-700" />
-              ) : (
-                'Hủy'
-              )}
-            </button>
-          )}
+          <Link
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#730014] to-[#4b0009] py-3 text-xs font-bold text-white shadow-sm transition hover:shadow-md active:scale-95 btn-hover"
+            to={`/my-classrooms/${classroom.id}`}
+          >
+            Vào học
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
 
       </div>

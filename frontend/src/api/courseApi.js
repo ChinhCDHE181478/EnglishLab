@@ -374,25 +374,9 @@ export const courseApi = {
     return unwrapData(response);
   },
 
-  async submitOnlineCourseVersion(courseId, versionId) {
-    const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/versions/${versionId}/submit-review`);
-    return unwrapData(response);
-  },
-
   async publishOnlineCourseVersion(courseId, versionId) {
-    const response = await axiosClient.patch(`/api/manager/online-courses/${courseId}/versions/${versionId}/publish`);
+    const response = await axiosClient.patch(`/api/content-manager/online-courses/${courseId}/versions/${versionId}/publish`);
     return unwrapData(response);
-  },
-
-  async rejectOnlineCourseVersion(courseId, versionId, reviewNote) {
-    const response = await axiosClient.patch(`/api/manager/online-courses/${courseId}/versions/${versionId}/reject`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async getPendingOnlineCourseVersions() {
-    const response = await axiosClient.get('/api/manager/online-course-versions/pending');
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : data?.items || [];
   },
 
   async reorderOnlineCourseModules(courseId, items) {
@@ -490,26 +474,17 @@ export const courseApi = {
     return unwrapData(response);
   },
 
-  async submitOnlineCourseForReview(id) {
+  async publishOnlineCourseDraft(id) {
     const versionsResponse = await axiosClient.get(`/api/content-manager/online-courses/${id}/versions`);
     const versions = unwrapData(versionsResponse) || [];
-    const draft = versions.find((version) => version.status === 'DRAFT');
+    const draft = versions.find((version) => version.status === 'DRAFT')
+      || versions.find((version) => version.status === 'PENDING_REVIEW');
     if (!draft) {
-      throw new Error('Khóa học chưa có phiên bản nháp để gửi duyệt.');
+      throw new Error('Khóa học chưa có phiên bản nháp để xuất bản.');
     }
-    await axiosClient.patch(`/api/content-manager/online-courses/${id}/versions/${draft.id}/submit-review`);
+    await axiosClient.patch(`/api/content-manager/online-courses/${id}/versions/${draft.id}/publish`);
     const courseResponse = await axiosClient.get(`/api/content-manager/online-courses/${id}`);
     return unwrapData(courseResponse);
-  },
-
-  async approveOnlineCourse(id, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/courses/${id}/approve`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async rejectOnlineCourse(id, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/courses/${id}/reject`, { reviewNote });
-    return unwrapData(response);
   },
 
   async archiveOnlineCourse(id) {

@@ -43,7 +43,6 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
-import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,7 +54,6 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 @Service
@@ -78,7 +76,6 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final ClassroomAccessHelper accessHelper;
-    private final ClassroomNotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -237,96 +234,20 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     @Override
-    public CurriculumProgramResponse submitForReview(Long id, String actorEmail) {
+    public CurriculumProgramResponse publishProgram(Long id, String actorEmail) {
         CurriculumProgram program = findProgram(id);
         if ("PUBLISHED".equals(program.getStatus())) {
-            throw new RuntimeException("Giáo trình đã được xuất bản, không cần gửi duyệt.");
-        }
-        if ("PENDING_REVIEW".equals(program.getStatus())) {
-            throw new RuntimeException("Giáo trình đang chờ duyệt.");
+            throw new RuntimeException("Giáo trình đã được xuất bản.");
         }
         validateReadyForPublish(program);
         User actor = accessHelper.requireUser(actorEmail);
-        program.setStatus("PENDING_REVIEW");
+        program.setStatus("PUBLISHED");
         program.setReviewNote(null);
         program.setSubmittedBy(actor);
         program.setSubmittedAt(LocalDateTime.now());
-        program = programRepository.save(program);
-
-        notificationService.notifyTrainingManagers(
-                "CURRICULUM_REVIEW_REQUESTED",
-                "Giáo trình chờ duyệt",
-                actor.getFullName() + " vừa gửi duyệt giáo trình \"" + program.getTitle() + "\" (" + program.getCode() + ").",
-                Map.of("curriculumProgramId", program.getId())
-        );
-        return toProgramResponse(program, true);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<CurriculumProgramResponse> listPendingReview() {
-        return programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc().stream()
-                .filter(program -> "PENDING_REVIEW".equals(program.getStatus()))
-                .sorted(Comparator.comparing(
-                        CurriculumProgram::getSubmittedAt,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(program -> toProgramResponse(program, true))
-                .toList();
-    }
-
-    @Override
-    public CurriculumProgramResponse approveProgram(Long id, String actorEmail) {
-        User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
-        CurriculumProgram program = findProgram(id);
-        if (!"PENDING_REVIEW".equals(program.getStatus())) {
-            throw new RuntimeException("Giáo trình không ở trạng thái chờ duyệt.");
-        }
-        validateReadyForPublish(program);
-        program.setStatus("PUBLISHED");
-        program.setReviewNote(null);
         program.setReviewedBy(actor);
         program.setReviewedAt(LocalDateTime.now());
         program = programRepository.save(program);
-
-        if (program.getSubmittedBy() != null) {
-            notificationService.notifyUser(
-                    program.getSubmittedBy(),
-                    "CURRICULUM_APPROVED",
-                    "Giáo trình được duyệt",
-                    "Giáo trình \"" + program.getTitle() + "\" đã được duyệt và xuất bản.",
-                    Map.of("curriculumProgramId", program.getId())
-            );
-        }
-        return toProgramResponse(program, true);
-    }
-
-    @Override
-    public CurriculumProgramResponse rejectProgram(Long id, String reason, String actorEmail) {
-        User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
-        if (!StringUtils.hasText(reason)) {
-            throw new RuntimeException("Vui lòng nhập lý do từ chối giáo trình.");
-        }
-        CurriculumProgram program = findProgram(id);
-        if (!"PENDING_REVIEW".equals(program.getStatus())) {
-            throw new RuntimeException("Giáo trình không ở trạng thái chờ duyệt.");
-        }
-        program.setStatus("REJECTED");
-        program.setReviewNote(reason.trim());
-        program.setReviewedBy(actor);
-        program.setReviewedAt(LocalDateTime.now());
-        program = programRepository.save(program);
-
-        if (program.getSubmittedBy() != null) {
-            notificationService.notifyUser(
-                    program.getSubmittedBy(),
-                    "CURRICULUM_REJECTED",
-                    "Giáo trình bị từ chối",
-                    "Giáo trình \"" + program.getTitle() + "\" bị từ chối: " + reason.trim(),
-                    Map.of("curriculumProgramId", program.getId())
-            );
-        }
         return toProgramResponse(program, true);
     }
 
@@ -702,7 +623,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         }
         return switch (status) {
             case "DRAFT" -> "Bản nháp";
-            case "PENDING_REVIEW" -> "Chờ duyệt";
+            case "PENDING_REVIEW" -> "Sẵn sàng xuất bản";
             case "PUBLISHED" -> "Đã xuất bản";
             case "REJECTED" -> "Bị từ chối";
             case "ARCHIVED" -> "Đã lưu trữ";

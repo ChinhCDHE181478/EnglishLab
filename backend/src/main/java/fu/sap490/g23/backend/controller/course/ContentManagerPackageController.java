@@ -91,13 +91,11 @@ public class ContentManagerPackageController {
     }
 
     @PatchMapping("/{id}/publish")
-    public ResponseEntity<LearningPackageResponse> publishBundle(@PathVariable Long id) {
-        return ResponseEntity.ok(packageManagementService.publishBundle(id));
-    }
-
-    @PatchMapping("/{id}/submit-review")
-    public ResponseEntity<LearningPackageResponse> submitBundleForReview(@PathVariable Long id) {
-        return ResponseEntity.ok(packageManagementService.submitBundleForReview(id));
+    public ResponseEntity<LearningPackageResponse> publishBundle(
+            @PathVariable Long id,
+            org.springframework.security.core.Authentication authentication
+    ) {
+        return ResponseEntity.ok(packageManagementService.publishBundle(id, authentication.getName()));
     }
 
     @PatchMapping("/{id}/archive")

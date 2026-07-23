@@ -9,10 +9,12 @@ import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
 import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
@@ -20,8 +22,8 @@ import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sap490.g23.backend.service.course.CourseProgressService;
-import fu.sap490.g23.backend.service.course.CourseProgressionGuard;
 import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +51,7 @@ class SubmitAssessmentTest {
     private PackageEnrollmentRepository enrollmentRepository;
 
     @Mock
-    private CourseProgressionGuard courseProgressionGuard;
+    private OnlineCourseVersionService onlineCourseVersionService;
 
     @Mock
     private CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
@@ -138,7 +140,8 @@ class SubmitAssessmentTest {
         // Assert
         assertNotNull(result);
         assertEquals(999L, result.getId());
-        verify(courseProgressionGuard, times(1)).ensureAssessmentCanBeSubmitted(student, assessment);
+        verify(onlineCourseVersionService, times(1))
+                .assertAssessmentBelongsToEnrollment(enrollment, assessment.getId());
         verify(submissionRepository, times(1)).save(any(AssessmentSubmission.class));
         verify(courseProgressService, times(1)).refreshEnrollmentProgress(enrollment, course, student);
     }
@@ -201,5 +204,45 @@ class SubmitAssessmentTest {
             aiAssessmentService.submitAssessment(assessment.getId(), request, student.getEmail());
         });
         assertEquals("Bạn cần đăng ký khóa học trước khi làm bài đánh giá.", exception.getMessage());
+    }
+
+    @Test
+    void submitAssessment_ObjectiveSnapshot_ClearsStaleWritingRubricWithoutLiveBankRefresh() {
+        AssessmentBankItem bankItem = AssessmentBankItem.builder()
+                .title("Ngân hàng đề đã được chỉnh sửa sau khi xuất bản")
+                .type(AssessmentType.MODULE_TEST)
+                .skill(AssessmentSkill.LISTENING)
+                .aiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND)
+                .instructions("Làm đủ các câu Listening.")
+                .timeLimitMinutes(40)
+                .build();
+        assessment.setAssessmentBankItem(bankItem);
+        assessment.setTitle("Snapshot đề Listening đã xuất bản");
+        assessment.setSkill(AssessmentSkill.LISTENING);
+        assessment.setAiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND);
+        request.setSubmittedText(null);
+        request.setObjectiveAnswersJson("{\"responses\":[]}");
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
+            AssessmentSubmission saved = invocation.getArgument(0);
+            saved.setId(1000L);
+            return saved;
+        });
+
+        AiAssessmentSubmissionResponse result = aiAssessmentService.submitAssessment(
+                assessment.getId(),
+                request,
+                student.getEmail()
+        );
+
+        assertNotNull(result);
+        assertEquals(AssessmentSkill.LISTENING, assessment.getSkill());
+        assertEquals("Snapshot đề Listening đã xuất bản", assessment.getTitle());
+        assertNull(assessment.getRubric());
+        verify(aiEvaluationClient, never()).evaluate(anyString());
     }
 }

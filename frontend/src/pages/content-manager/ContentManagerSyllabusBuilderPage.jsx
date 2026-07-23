@@ -6,7 +6,9 @@ import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
@@ -180,6 +182,7 @@ const toProgramPayload = (form, forceDraft = false) => ({
 });
 
 export default function ContentManagerSyllabusBuilderPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedProgramId = searchParams.get('programId') || '';
   const requestedUnitId = searchParams.get('unitId');
@@ -610,7 +613,11 @@ export default function ContentManagerSyllabusBuilderPage() {
   };
 
   const deleteUnit = async (unit) => {
-    if (!window.confirm(`Xóa unit "${unit.title}" khỏi giáo trình?`)) return;
+    if (!await confirmDialog(`Xóa unit “${unit.title}” khỏi giáo trình?`, {
+      title: 'Xóa unit',
+      confirmLabel: 'Xóa unit',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     try {
@@ -670,7 +677,11 @@ export default function ContentManagerSyllabusBuilderPage() {
   };
 
   const detachResource = async (ref) => {
-    if (!window.confirm(`Gỡ "${ref.title}" khỏi unit này?`)) return;
+    if (!await confirmDialog(`Gỡ “${ref.title}” khỏi unit này?`, {
+      title: 'Gỡ tài nguyên',
+      confirmLabel: 'Gỡ tài nguyên',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     try {
@@ -798,13 +809,27 @@ export default function ContentManagerSyllabusBuilderPage() {
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự</span>
                 <input type="number" min="0" value={unitForm.displayOrder} onChange={(event) => setUnitForm({ ...unitForm, displayOrder: event.target.value })} className={FIELD_CLASS} />
               </label>
+            </div>
+            <div className="mt-4 space-y-4">
               <label className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Mô tả</span>
-                <textarea value={unitForm.description} onChange={(event) => setUnitForm({ ...unitForm, description: event.target.value })} rows={4} className={TEXTAREA_CLASS} />
+                <RichTextEditor
+                  helperText=""
+                  onChange={(value) => setUnitForm({ ...unitForm, description: value })}
+                  placeholder="Mô tả unit..."
+                  size="compact"
+                  value={unitForm.description}
+                />
               </label>
               <label className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Kế hoạch buổi học</span>
-                <textarea value={unitForm.sessionPlan} onChange={(event) => setUnitForm({ ...unitForm, sessionPlan: event.target.value })} rows={4} className={TEXTAREA_CLASS} />
+                <RichTextEditor
+                  helperText=""
+                  onChange={(value) => setUnitForm({ ...unitForm, sessionPlan: value })}
+                  placeholder="Kế hoạch buổi học..."
+                  size="form"
+                  value={unitForm.sessionPlan}
+                />
               </label>
             </div>
             <div className="mt-5 flex flex-wrap gap-2 border-t border-[#dcc0bf]/20 pt-4">
@@ -1075,7 +1100,13 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
             </div>
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Chuẩn đầu ra</span>
-              <textarea className={TEXTAREA_CLASS} onChange={(event) => onChange({ outcomes: event.target.value })} rows={4} value={form.outcomes} />
+              <RichTextEditor
+                helperText=""
+                onChange={(value) => onChange({ outcomes: value })}
+                placeholder="Chuẩn đầu ra của chương trình..."
+                size="form"
+                value={form.outcomes}
+              />
             </label>
           </div>
 

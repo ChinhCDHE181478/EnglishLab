@@ -2,6 +2,7 @@ import CourseActionButton, { detailCourseButtonClassName } from './CourseActionB
 import MaterialIcon from './MaterialIcon';
 import { categoryLabels, levelLabels } from './courseConstants';
 import { formatCoursePrice } from './courseFormatters';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const PopularCourseCard = ({ course }) => (
   <div className="course-card flex flex-col overflow-hidden rounded-xl border border-[#dfbfbd]/20 bg-white shadow-sm">
@@ -18,7 +19,7 @@ const PopularCourseCard = ({ course }) => (
         <MaterialIcon name="signal_cellular_alt" className="text-[14px]" /> {course.targetScore || levelLabels[course.level]}
       </div>
       <h4 className="font-headline-md mb-2 text-[24px] font-semibold leading-tight">{course.title}</h4>
-      <p className="mb-4 line-clamp-2 text-sm text-[#584140]">{course.shortDescription}</p>
+      <p className="mb-4 line-clamp-2 text-sm text-[#584140]">{stripRichTextToPlain(course.shortDescription)}</p>
       <div className="mt-auto border-t border-[#dfbfbd]/10 pt-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <span className="font-bold text-[#4b0009]">{course.duration}</span>

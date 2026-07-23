@@ -17,8 +17,10 @@ import {
   TextField,
 } from "../../components/content-manager/ContentManagerUi";
 import Pagination, { usePagination } from "../../components/ui/Pagination";
+import { useAppDialog } from "../../components/ui/AppDialog";
 
 export default function ContentManagerLearningPathsPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [courses, setCourses] = useState([]);
   const [paths, setPaths] = useState([]);
   const [expanded, setExpanded] = useState({});
@@ -148,8 +150,13 @@ export default function ContentManagerLearningPathsPage() {
 
   const deletePath = async (group) => {
     if (
-      !window.confirm(
+      !await confirmDialog(
         `Xóa lộ trình “${group.name}”? Các khóa học sẽ không bị xóa.`,
+        {
+          title: 'Xóa lộ trình',
+          confirmLabel: 'Xóa lộ trình',
+          tone: 'danger',
+        },
       )
     )
       return;

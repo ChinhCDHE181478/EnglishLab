@@ -22,6 +22,7 @@ import ContentManagerPackagesPage from './ContentManagerPackagesPage';
 import ContentManagerSettingsPage from './ContentManagerSettingsPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
+import ContentManagerClassroomContentApprovalPage from './ContentManagerClassroomContentApprovalPage';
 
 export default function ContentManagerRoutes() {
   return (
@@ -63,6 +64,7 @@ export default function ContentManagerRoutes() {
         <Route path="syllabus" element={<Navigate replace to="../learning-paths" />} />
         <Route path="mock-exams" element={<ContentManagerAssessmentsHubPage pageKey="mockExams" />} />
         <Route path="publication" element={<ContentManagerPublicationPage />} />
+        <Route path="classroom-content-approvals" element={<ContentManagerClassroomContentApprovalPage />} />
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
         <Route path="packages" element={<ContentManagerPackagesPage />} />
         <Route path="settings" element={<ContentManagerSettingsPage />} />

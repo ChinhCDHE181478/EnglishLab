@@ -4,6 +4,7 @@ import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../../components/ui/AppDialog';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -39,6 +40,7 @@ const COLUMNS = [
 ];
 
 export default function ContentManagerDiscussionModerationPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [status, setStatus] = useState('PENDING');
   const [category, setCategory] = useState('');
   const [reports, setReports] = useState([]);
@@ -72,10 +74,15 @@ export default function ContentManagerDiscussionModerationPage() {
 
   const handleAction = async (report, action) => {
     const isHide = action === 'hide';
-    const confirmed = window.confirm(
+    const confirmed = await confirmDialog(
       isHide
         ? 'Ẩn nội dung này khỏi phần thảo luận của học viên?'
-        : 'Bỏ qua báo cáo này và giữ nguyên nội dung?'
+        : 'Bỏ qua báo cáo này và giữ nguyên nội dung?',
+      {
+        title: isHide ? 'Ẩn nội dung thảo luận' : 'Bỏ qua báo cáo',
+        confirmLabel: isHide ? 'Ẩn nội dung' : 'Bỏ qua báo cáo',
+        tone: isHide ? 'danger' : 'primary',
+      },
     );
     if (!confirmed) return;
     setProcessingId(report.reportId);

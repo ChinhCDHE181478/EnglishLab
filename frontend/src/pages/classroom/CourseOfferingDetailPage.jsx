@@ -9,6 +9,7 @@ import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
 import { useAuth } from '../../context/AuthContext';
 import { hasAnyUserRole } from '../../utils/auth';
 import { PAGE_BODY_CLASS, PAGE_CONTAINER_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
+import { useAppDialog } from '../../components/ui/AppDialog';
 
 const terminalStatuses = new Set(['REJECTED', 'CANCELLED', 'CLASS_ASSIGNED']);
 
@@ -23,6 +24,7 @@ const formatPrice = (value) => new Intl.NumberFormat('vi-VN', {
 }).format(Number(value || 0));
 
 export default function CourseOfferingDetailPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const { slugOrId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,7 +113,11 @@ export default function CourseOfferingDetailPage() {
   };
 
   const cancelRequest = async () => {
-    if (!activeRequest || !window.confirm('Bạn có chắc muốn hủy yêu cầu đăng ký này?')) return;
+    if (!activeRequest || !await confirmDialog('Yêu cầu đăng ký này sẽ được hủy.', {
+      title: 'Hủy yêu cầu đăng ký',
+      confirmLabel: 'Hủy yêu cầu',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     try {

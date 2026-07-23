@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 import CourseVersionPanel from '../../components/content-manager/CourseVersionPanel';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 
 const emptyForm = {
@@ -56,6 +58,7 @@ const mapCourseToForm = (course = {}) => ({
 });
 
 export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId, onClose, onSave }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const { slugOrId: paramSlugOrId } = useParams();
   const slugOrId = propSlugOrId !== undefined ? propSlugOrId : paramSlugOrId;
   const navigate = useNavigate();
@@ -121,8 +124,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   const flashcardOverview = useMemo(() => getFlashcardOverview(form.modules), [form.modules]);
   const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
   const hasPublishedVersion = useMemo(() => versions.some((version) => version.status === 'PUBLISHED'), [versions]);
-  const versionPendingReview = useMemo(() => versions.some((version) => version.status === 'PENDING_REVIEW'), [versions]);
-  const canEdit = !editMode || Boolean(editableVersion) || (!hasPublishedVersion && !versionPendingReview);
+  const legacyPendingVersion = useMemo(
+    () => versions.find((version) => version.status === 'PENDING_REVIEW') || null,
+    [versions],
+  );
+  const canEdit = !editMode || Boolean(editableVersion) || (!hasPublishedVersion && !legacyPendingVersion);
   const categoryOptions = useMemo(() => {
     const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE'];
     const available = categories
@@ -137,17 +143,25 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   };
 
   const handleSubmit = async (nextStatus = null) => {
-    const submittingVersion = nextStatus === 'SUBMIT_REVIEW';
-    const targetStatus = submittingVersion ? form.status : nextStatus ?? form.status;
-    const validationMessage = validateCourseForm(form, submittingVersion ? 'PUBLISHED' : targetStatus, hasNoStructure);
+    const publishingVersion = nextStatus === 'PUBLISH';
+    const targetStatus = publishingVersion ? form.status : nextStatus ?? form.status;
+    const validationMessage = validateCourseForm(form, publishingVersion ? 'PUBLISHED' : targetStatus, hasNoStructure);
     if (validationMessage) {
       setError(validationMessage);
       setSuccess('');
       return;
     }
 
+    if (publishingVersion && !await confirmDialog(
+      `Mọi học viên sẽ nhận nội dung v${editableVersion?.versionNumber} sau khi xuất bản; các bài đã hoàn thành vẫn được giữ nguyên.`,
+      {
+        title: `Xuất bản phiên bản v${editableVersion?.versionNumber}`,
+        confirmLabel: 'Xuất bản',
+      },
+    )) return;
+
     setSaving(true);
-    setSavingAction(submittingVersion ? 'submit-review' : 'save');
+    setSavingAction(publishingVersion ? 'publish' : 'save');
     setError('');
     setSuccess('');
 
@@ -194,8 +208,8 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
 
       if (!response) throw new Error('Dữ liệu phiên bản trả về không hợp lệ.');
 
-      if (submittingVersion && editableVersion) {
-        await courseApi.submitOnlineCourseVersion(courseId, editableVersion.id);
+      if (publishingVersion && editableVersion) {
+        await courseApi.publishOnlineCourseVersion(courseId, editableVersion.id);
         setVersions(await courseApi.getOnlineCourseVersions(courseId));
         response = await courseApi.getManagedOnlineCourse(courseId);
       }
@@ -203,7 +217,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       setCourseId(response.id);
       setCourseSlug(response.slug || '');
       setForm(mapCourseToForm(response));
-      setSuccess(submittingVersion ? 'Đã lưu và gửi phiên bản cho Manager duyệt.' : 'Khóa học đã được lưu thành công.');
+      setSuccess(publishingVersion ? 'Đã lưu và xuất bản phiên bản.' : 'Khóa học đã được lưu thành công.');
 
       if (!editMode && !onClose) {
         navigate(`/content-manager/courses/${response.slug}/edit`, { replace: true });
@@ -291,7 +305,6 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
           <div className="grid gap-4 md:grid-cols-2">
             <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
             <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
-            <TextField label="Mô tả ngắn" onChange={handleChange('shortDescription')} value={form.shortDescription} />
             <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
             <TextField label="Nhãn mục tiêu hiển thị" onChange={handleChange('targetScore')} value={form.targetScore} />
             <TextField label="Band đầu vào tối thiểu" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
@@ -307,8 +320,27 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <TextField label="Tổng số giờ học" onChange={handleChange('totalHours')} value={String(form.totalHours)} />
           </div>
           <div className="mt-4 grid gap-4">
-            <TextField label="Mô tả đầy đủ" onChange={handleChange('description')} rows={5} textarea value={form.description} />
-            <TextField label="Đầu ra / kết quả hoàn thành khóa học" onChange={handleChange('targetOutcome')} rows={3} textarea value={form.targetOutcome} />
+            <RichTextEditor
+              label="Mô tả ngắn"
+              onChange={(html) => setForm((current) => ({ ...current, shortDescription: html }))}
+              placeholder="Tóm tắt hấp dẫn về khóa học (hiển thị trên thẻ/catalog)..."
+              size="compact"
+              value={form.shortDescription}
+            />
+            <RichTextEditor
+              label="Mô tả đầy đủ"
+              onChange={(html) => setForm((current) => ({ ...current, description: html }))}
+              placeholder="Mô tả chi tiết nội dung, đối tượng học viên, lộ trình..."
+              size="form"
+              value={form.description}
+            />
+            <RichTextEditor
+              label="Đầu ra / kết quả hoàn thành khóa học"
+              onChange={(html) => setForm((current) => ({ ...current, targetOutcome: html }))}
+              placeholder="Học viên đạt được gì sau khi hoàn thành khóa..."
+              size="compact"
+              value={form.targetOutcome}
+            />
           </div>
           
           <div className="mt-5 border-t border-[#f4eeee] pt-4">
@@ -350,7 +382,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
                 </p>
               ) : (
                 <p>
-                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra. Phiên bản cần được gửi Manager duyệt trước khi áp dụng cho enrollment mới.
+                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra. Khi Content Manager xuất bản, phiên bản mới sẽ áp dụng cho lượt ghi danh mới.
                 </p>
               )}
             </div>
@@ -368,10 +400,10 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
                 <button
                   className="rounded-2xl bg-[#4b0009] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95 disabled:opacity-60"
                   disabled={saving || versionBusy}
-                  onClick={() => handleSubmit('SUBMIT_REVIEW')}
+                  onClick={() => handleSubmit('PUBLISH')}
                   type="button"
                 >
-                  {saving && savingAction === 'submit-review' ? 'Đang gửi duyệt...' : 'Lưu và gửi duyệt'}
+                  {saving && savingAction === 'publish' ? 'Đang xuất bản...' : 'Lưu và xuất bản'}
                 </button>
               ) : null}
             </div>

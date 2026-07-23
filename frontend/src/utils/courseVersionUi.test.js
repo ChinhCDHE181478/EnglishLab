@@ -8,9 +8,9 @@ describe('course version badges', () => {
       { id: 1, versionNumber: 1, status: 'PUBLISHED' },
     ];
 
-    expect(getCourseVersionLabel(versions[0])).toBe('Bản nháp v2 — chưa gửi');
+    expect(getCourseVersionLabel(versions[0])).toBe('Bản nháp v2');
     expect(getCourseVersionLabel(versions[1])).toBe('Đang xuất bản v1');
     expect(findEditableCourseVersion(versions)).toEqual(versions[0]);
-    expect(findEditableCourseVersion([{ id: 3, status: 'PENDING_REVIEW' }])).toBeNull();
+    expect(findEditableCourseVersion([{ id: 3, status: 'PENDING_REVIEW' }])).toEqual({ id: 3, status: 'PENDING_REVIEW' });
   });
 });

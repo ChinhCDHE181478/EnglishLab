@@ -147,11 +147,6 @@ public class ContentManagerOnlineCourseController {
         return ResponseEntity.ok(onlineCourseService.publishCourse(id, authentication.getName()));
     }
 
-    @PatchMapping("/{id}/submit-review")
-    public ResponseEntity<OnlineCourseResponse> submitForReview(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(onlineCourseService.submitForReview(id, authentication.getName()));
-    }
-
     @PatchMapping("/{id}/archive")
     public ResponseEntity<OnlineCourseResponse> archiveCourse(@PathVariable Long id) {
         return ResponseEntity.ok(onlineCourseService.archiveCourse(id));

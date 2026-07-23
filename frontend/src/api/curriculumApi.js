@@ -34,8 +34,8 @@ export const curriculumApi = {
     return unwrapData(response);
   },
 
-  async submitCurriculumProgramForReview(id) {
-    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/submit-review`);
+  async publishCurriculumProgram(id) {
+    const response = await axiosClient.post(`/api/content-manager/curriculum-programs/${id}/publish`);
     return unwrapData(response);
   },
 

@@ -5,6 +5,7 @@ import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination from '../../components/ui/Pagination';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
@@ -20,6 +21,7 @@ const sortOptions = [
 ];
 
 export default function ContentManagerCoursesPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -120,19 +122,26 @@ export default function ContentManagerCoursesPage() {
   const updateFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }));
 
   const changeCourseStatus = async (course, action) => {
-    const submitting = action === 'SUBMIT_REVIEW';
-    if (!submitting && !window.confirm(`Lưu trữ khóa học "${course.title}"?`)) return;
+    const publishing = action === 'PUBLISH';
+    const prompt = publishing
+      ? `Xuất bản khóa học "${course.title}"?`
+      : `Lưu trữ khóa học "${course.title}"?`;
+    if (!await confirmDialog(prompt, {
+      title: publishing ? 'Xuất bản khóa học' : 'Lưu trữ khóa học',
+      confirmLabel: publishing ? 'Xuất bản' : 'Lưu trữ',
+      tone: publishing ? 'primary' : 'danger',
+    })) return;
     setWorkingId(course.id);
     setError('');
     setSuccess('');
     try {
-      const updated = submitting
-        ? await courseApi.submitOnlineCourseForReview(course.id)
+      const updated = publishing
+        ? await courseApi.publishOnlineCourseDraft(course.id)
         : await courseApi.archiveOnlineCourse(course.id);
       setCourses((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      setSuccess(submitting ? 'Đã gửi phiên bản khóa học cho Manager duyệt.' : 'Đã lưu trữ khóa học.');
+      setSuccess(publishing ? 'Đã xuất bản khóa học.' : 'Đã lưu trữ khóa học.');
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || (submitting ? 'Không thể gửi duyệt khóa học.' : 'Không thể lưu trữ khóa học.'));
+      setError(err?.response?.data?.message || err?.message || (publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
     } finally {
       setWorkingId(null);
     }
@@ -240,9 +249,9 @@ export default function ContentManagerCoursesPage() {
                         <Link className="rounded-lg bg-[#4b0009] px-4 py-2 text-xs font-bold leading-4 text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/builder`}>
                           Biên soạn
                         </Link>
-                        {course.status === 'DRAFT' || course.status === 'REJECTED' ? (
-                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'SUBMIT_REVIEW')} type="button">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Gửi duyệt
+                        {course.status === 'DRAFT' || course.status === 'REJECTED' || course.status === 'PENDING_REVIEW' ? (
+                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
                           </button>
                         ) : null}
                         {course.status === 'PUBLISHED' ? (
