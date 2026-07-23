@@ -121,32 +121,6 @@ public class TrainingManagerClassroomController {
         return ResponseEntity.ok(trainingProgramService.listPublishedPrograms(deliveryMode));
     }
 
-    @GetMapping("/curriculum-programs/pending-review")
-    public ResponseEntity<List<CurriculumProgramResponse>> listPendingCurriculumPrograms() {
-        return ResponseEntity.ok(curriculumProgramService.listPendingReview());
-    }
-
-    @PostMapping("/curriculum-programs/{id}/approve")
-    public ResponseEntity<CurriculumProgramResponse> approveCurriculumProgram(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(curriculumProgramService.approveProgram(id, authentication.getName()));
-    }
-
-    @PostMapping("/curriculum-programs/{id}/reject")
-    public ResponseEntity<CurriculumProgramResponse> rejectCurriculumProgram(
-            @PathVariable Long id,
-            @RequestBody(required = false) RejectRegistrationRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(curriculumProgramService.rejectProgram(
-                id,
-                request == null ? null : request.getReason(),
-                authentication.getName()
-        ));
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> getOffering(@PathVariable Long id) {
         return ResponseEntity.ok(classroomOfferingService.getManagerOffering(id));

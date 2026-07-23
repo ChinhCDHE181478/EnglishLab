@@ -237,15 +237,20 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         User staff = requireUser(staffEmail);
         assertStaff(staff);
         EnrollmentRequest request = requireRequest(requestId);
-        if (TERMINAL_STATUSES.contains(request.getStatus())
-                || request.getStatus() == EnrollmentRequestStatus.CLASS_PROPOSED) {
-            throw new IllegalArgumentException("Form không còn có thể xếp lớp ở trạng thái hiện tại.");
+        if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể xếp lớp sau khi Staff đã hoàn tất tư vấn và form đang ở trạng thái chờ xếp lớp."
+            );
         }
         ClassroomOffering target = classroomOfferingRepository.findById(payload.getClassroomId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
         if (target.getStatus() != ClassroomOfferingStatus.UPCOMING
-                && target.getStatus() != ClassroomOfferingStatus.ACTIVE) {
-            throw new IllegalArgumentException("Chỉ có thể xếp vào lớp sắp khai giảng hoặc đang hoạt động.");
+                || target.getStartDate() == null
+                || !target.getStartDate().isAfter(LocalDate.now())
+                || target.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
+            );
         }
         ClassroomEnrollmentResponse enrollment = classroomOfferingService.enrollStudent(
                 target.getId(),
@@ -435,7 +440,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
 
     private String statusLabel(EnrollmentRequestStatus status) {
         return switch (status) {
-            case SUBMITTED -> "Mới đăng ký - chờ Staff liên hệ";
+            case SUBMITTED -> "Mới đăng ký - chờ nhân viên liên hệ";
             case AWAITING_PLACEMENT_TEST -> "Chờ placement test";
             case PLACEMENT_TEST_COMPLETED -> "Đã hoàn thành placement test";
             case UNDER_STAFF_REVIEW -> "Nhân viên đang rà soát";

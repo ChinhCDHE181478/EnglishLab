@@ -55,6 +55,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT;
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
+    private static final Set<ClassroomRegistrationStatus> HAS_LEARNING_ACCESS = ClassroomRegistrationSupport.HAS_LEARNING_ACCESS;
     private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
 
     private final ClassroomOfferingRepository offeringRepository;
@@ -99,7 +100,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Transactional(readOnly = true)
     public List<ClassroomOfferingResponse> getMyClasses(String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), ACTIVE_REGISTRATIONS).stream()
+        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
                 .map(ClassroomEnrollment::getClassroomOffering)
                 .map(offering -> mapper.toOfferingResponse(
                         offering,
@@ -154,15 +155,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     @Transactional(readOnly = true)
     public ClassroomOfferingResponse getLearnerOffering(Long id, String learnerEmail) {
-        assertLearnerPortalAccess(id, learnerEmail);
-        return getOffering(id, true);
-    }
-
-    private void assertLearnerPortalAccess(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
-                .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
+        ClassroomEnrollment enrollment = enrollmentRepository
+                .findByStudentIdAndClassroomOfferingId(learner.getId(), id)
+                .filter(ClassroomEnrollment::hasClassAccess)
                 .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
+        ClassroomOffering offering = findOffering(id);
+        return mapper.toOfferingResponse(offering, true, learner.getId(), enrollment, true);
     }
 
     @Override
@@ -639,132 +638,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return mapper.toEnrollmentResponse(targetEnrollment);
     }
 
-    @Override
-    public ClassroomEnrollmentResponse registerForClass(Long offeringId, RegisterClassRequest request, String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomOffering offering = findPublicOffering(String.valueOf(offeringId));
-        assertOpenForRegistration(offering);
-
-        if (enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
-                learner.getId(), offeringId, ACTIVE_REGISTRATIONS)) {
-            throw new RuntimeException("Bạn đã có đăng ký cho lớp này.");
-        }
-
-        ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
-                .classroomOfferingId(offeringId)
-                .learnerIds(List.of(learner.getId()))
-                .checkCapacity(false)
-                .build();
-        conflictService.assertNoBlockingConflict(conflictRequest);
-        // Chặn ngay từ lúc đăng ký nếu học viên đang học lớp khác trùng lịch với các buổi của lớp này.
-        assertLearnerScheduleForOffering(offering, learner.getId());
-
-        BigDecimal tuitionDue = resolveTuitionDue(offering);
-        ClassroomRegistrationStatus initialStatus = isClassFull(offering)
-                ? ClassroomRegistrationStatus.WAITLIST
-                : ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT;
-
-        var existingEnrollment = enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId);
-        ClassroomEnrollment enrollment;
-        if (existingEnrollment.isPresent()) {
-            enrollment = existingEnrollment.get();
-            ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
-            enrollment.setHoldSpot(false);
-            enrollment.setRegistrationStatus(initialStatus);
-            enrollment.setTuitionAmountDue(tuitionDue);
-            enrollment.setTuitionAmountPaid(BigDecimal.ZERO);
-            enrollment.setTuitionDepositPaid(BigDecimal.ZERO);
-            ClassroomRegistrationSupport.clearOpenSettlement(enrollment);
-            enrollment.setNote(request == null ? null : request.getNote());
-            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
-        } else {
-            enrollment = ClassroomEnrollment.builder()
-                    .student(learner)
-                    .classroomOffering(offering)
-                    .registrationStatus(initialStatus)
-                    .holdSpot(false)
-                    .tuitionAmountDue(tuitionDue)
-                    .tuitionAmountPaid(BigDecimal.ZERO)
-                    .tuitionDepositPaid(BigDecimal.ZERO)
-                    .tuitionSettlementType(TuitionSettlementType.NONE)
-                    .tuitionSettlementStatus(TuitionSettlementStatus.NONE)
-                    .note(request == null ? null : request.getNote())
-                    .build();
-            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, null);
-        }
-
-        if (initialStatus == ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT
-                && tuitionDue.compareTo(BigDecimal.ZERO) <= 0) {
-            ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
-            assignEnrollmentToClass(enrollment, offering, learner, null, "Lớp miễn phí");
-            ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-            enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
-        }
-
-        String classTitle = offering.getLearningPackage().getTitle();
-        notificationService.notifyTrainingManagers(
-                "CLASSROOM_REGISTRATION_CREATED",
-                "Đăng ký lớp mới",
-                learner.getFullName() + " vừa đăng ký lớp " + classTitle + ".",
-                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId(), "studentId", learner.getId())
-        );
-        notificationService.notifyUser(
-                learner,
-                "CLASSROOM_REGISTRATION_SUBMITTED",
-                initialStatus == ClassroomRegistrationStatus.WAITLIST
-                        ? "Đã tham gia danh sách chờ"
-                        : enrollment.hasClassAccess()
-                                ? "Đăng ký lớp thành công"
-                                : "Hoàn tất thanh toán để đăng ký lớp",
-                initialStatus == ClassroomRegistrationStatus.WAITLIST
-                        ? "Lớp " + classTitle + " hiện đã đủ chỗ. Bạn đã được thêm vào danh sách chờ và chưa cần thanh toán."
-                        : enrollment.hasClassAccess()
-                                ? "Bạn đã được đăng ký vào lớp miễn phí " + classTitle + "."
-                                : "Hồ sơ tạm cho lớp " + classTitle + " đã được tạo. Vui lòng thanh toán học phí để hoàn tất đăng ký.",
-                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
-        );
-        return mapper.toEnrollmentResponse(enrollment);
-    }
-
-    @Override
-    public ClassroomEnrollmentResponse cancelMyRegistration(Long offeringId, String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = enrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
-                .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
-                .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
-        if (enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.ASSIGNED) {
-            throw new RuntimeException("Bạn đã được xếp lớp. Vui lòng gửi yêu cầu hủy để Nhân viên đào tạo xử lý.");
-        }
-
-        ClassroomOffering offering = enrollment.getClassroomOffering();
-        ClassroomRegistrationStatus previousStatus = enrollment.getRegistrationStatus();
-        enrollment.setRegistrationStatus(ClassroomRegistrationStatus.CANCELLED);
-        enrollment.setHoldSpot(false);
-        ClassroomRegistrationSupport.markNeedRefundForExit(enrollment, "Cần xử lý hoàn tiền do học viên hủy đăng ký");
-        ClassroomRegistrationSupport.syncLegacyStatus(enrollment);
-        enrollment = saveEnrollmentWithWaitlistOrder(enrollment, previousStatus);
-
-        String classTitle = offering.getLearningPackage().getTitle();
-        notificationService.notifyTrainingManagers(
-                "CLASSROOM_REGISTRATION_CANCELLED",
-                "Học viên hủy đăng ký lớp",
-                learner.getFullName() + " đã hủy đăng ký lớp " + classTitle + ".",
-                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId(), "studentId", learner.getId())
-        );
-        notificationService.notifyUser(
-                learner,
-                "CLASSROOM_REGISTRATION_CANCELLED",
-                "Đã hủy đăng ký lớp",
-                "Bạn đã hủy đăng ký lớp " + classTitle + ".",
-                Map.of("enrollmentId", enrollment.getId(), "classroomId", offering.getId())
-        );
-        notifyWaitlistIfSlotAvailable(offering);
-        return mapper.toEnrollmentResponse(enrollment);
-    }
-
     /**
      * Báo cho học viên trong danh sách chờ khi lớp vừa trống chỗ (sau khi có người hủy/bị từ chối).
      */
@@ -793,25 +666,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     Map.of("enrollmentId", waiting.getId(), "classroomId", offering.getId())
             );
         }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ClassroomEnrollmentResponse getMyRegistration(Long offeringId, String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        ClassroomEnrollment enrollment = enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
-                .filter(item -> ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
-                .orElseThrow(() -> new RuntimeException("Bạn chưa đăng ký lớp này."));
-        return mapper.toEnrollmentResponse(enrollment);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ClassroomEnrollmentResponse> getMyRegistrations(String learnerEmail) {
-        User learner = accessHelper.requireUser(learnerEmail);
-        return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), ACTIVE_REGISTRATIONS).stream()
-                .map(mapper::toEnrollmentResponse)
-                .toList();
     }
 
     @Override
@@ -1815,17 +1669,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         long assigned = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), OCCUPIES_CLASS_SLOT);
         return assigned >= maxCapacity;
-    }
-
-    private void assertOpenForRegistration(ClassroomOffering offering) {
-        if (offering.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
-            throw new RuntimeException("Lớp học chưa mở đăng ký.");
-        }
-        if (offering.getStatus() != ClassroomOfferingStatus.UPCOMING
-                || offering.getStartDate() == null
-                || !offering.getStartDate().isAfter(LocalDate.now())) {
-            throw new RuntimeException("Lớp học không còn nhận đăng ký.");
-        }
     }
 
     private PackageEnrollment ensurePackageEnrollment(User student, ClassroomOffering offering) {

@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -53,41 +52,6 @@ public class CourseProgressionGuard {
         OrderedLesson previousLesson = orderedLessons.get(lessonIndex - 1);
         if (!isLessonCompleted(student, previousLesson.lesson().getId())) {
             throw new RuntimeException("Bạn cần hoàn thành bài học trước đó trước khi tiếp tục.");
-        }
-    }
-
-    public void ensureLessonCanBeMarkedIncomplete(User student, OnlineCourse course, Lesson lesson) {
-        List<OrderedLesson> orderedLessons = orderedLessons(course);
-        int lessonIndex = indexOfLesson(orderedLessons, lesson.getId());
-        if (lessonIndex < 0) {
-            throw new RuntimeException("Bài học không thuộc khóa học hiện tại.");
-        }
-
-        Set<Long> laterLessonIds = new HashSet<>();
-        Set<Long> affectedModuleIds = new HashSet<>();
-        for (int index = lessonIndex + 1; index < orderedLessons.size(); index++) {
-            OrderedLesson laterLesson = orderedLessons.get(index);
-            laterLessonIds.add(laterLesson.lesson().getId());
-            affectedModuleIds.add(laterLesson.module().getId());
-        }
-        affectedModuleIds.add(orderedLessons.get(lessonIndex).module().getId());
-
-        if (!laterLessonIds.isEmpty()) {
-            List<LessonProgress> completedLaterLessons = lessonProgressRepository.findByStudentAndLessonIdInAndStatus(
-                    student,
-                    laterLessonIds,
-                    LessonProgressStatus.COMPLETED
-            );
-            if (!completedLaterLessons.isEmpty()) {
-                throw new RuntimeException("Không thể bỏ hoàn thành bài này vì bạn đã học xong các bài phía sau.");
-            }
-        }
-
-        List<CourseAssessment> dependentAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
-                .filter(assessment -> assessment.getModule() == null || affectedModuleIds.contains(assessment.getModule().getId()))
-                .toList();
-        if (!dependentAssessments.isEmpty() && assessmentSubmissionRepository.existsByAssessmentInAndStudent(dependentAssessments, student)) {
-            throw new RuntimeException("Không thể bỏ hoàn thành bài này vì đã có bài đánh giá liên quan được nộp.");
         }
     }
 
@@ -133,7 +97,13 @@ public class CourseProgressionGuard {
     }
 
     public boolean isAssessmentPassed(User student, CourseAssessment assessment) {
-        return assessmentSubmissionRepository.findTopByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)
+        var latestSubmission = assessment.getProgressKey() == null || assessment.getProgressKey().isBlank()
+                ? assessmentSubmissionRepository.findTopByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)
+                : assessmentSubmissionRepository.findTopByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+                        assessment.getProgressKey(),
+                        student
+                );
+        return latestSubmission
                 .map(submission -> {
                     SubmissionStatus status = submission.getStatus();
                     if (status == SubmissionStatus.PASSED) {

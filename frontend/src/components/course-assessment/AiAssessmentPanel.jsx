@@ -8,6 +8,7 @@ import ReadingExamMode from './ReadingExamMode';
 import SpeakingExamMode from './SpeakingExamMode';
 import WritingExamMode from './WritingExamMode';
 import ExamDeviceCheck from './ExamDeviceCheck';
+import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
 
 const statusLabels = {
   PASSED: 'Hoàn thành',
@@ -660,14 +661,7 @@ const SkillFeedbackDashboard = ({
 };
 
 const buildFriendlyError = (error) => {
-  const message = error?.response?.data?.message || error?.message || 'Không thể gửi bài để chấm.';
-  if (/Bài (Writing|Speaking)|bộ tiêu chí|đáp án chuẩn|bản nháp/i.test(message)) {
-    return message;
-  }
-  if (/AI|API key|GEMINI|OPENAI|Gemini|OpenAI|provider|quota|rate limit|internal server|disabled|timeout|network|fetch|500|502|503|504/i.test(message)) {
-    return 'Hiện chưa thể hoàn tất việc gửi bài. Bài làm đã được lưu an toàn và sẽ được gửi lại khi hệ thống sẵn sàng.';
-  }
-  return 'Hiện chưa thể hoàn tất việc gửi bài. Vui lòng kiểm tra lại nội dung rồi thử lại.';
+  return getAssessmentSubmissionErrorMessage(error);
 };
 
 const speakingAudioRecoveryKey = (assessmentId) => (
@@ -779,6 +773,7 @@ export default function AiAssessmentPanel({
   const headphoneTestAudioRef = useRef(null);
   const examViolationLockRef = useRef(false);
   const examIntentionalExitRef = useRef(false);
+  const examFullscreenSessionRef = useRef(false);
 
   const restoreAssessmentAttemptState = () => {
     const latestSubmission = selected?.latestSubmission;
@@ -842,6 +837,7 @@ export default function AiAssessmentPanel({
     if (!document?.documentElement?.requestFullscreen) return false;
     try {
       await document.documentElement.requestFullscreen();
+      examFullscreenSessionRef.current = Boolean(document.fullscreenElement);
       return true;
     } catch {
       return false;
@@ -1267,6 +1263,7 @@ export default function AiAssessmentPanel({
 
     examViolationLockRef.current = false;
     examIntentionalExitRef.current = false;
+    examFullscreenSessionRef.current = Boolean(document.fullscreenElement);
     const pushExamState = () => {
       window.history.pushState({ englishlabExamMode: true }, '', window.location.href);
     };
@@ -1318,8 +1315,12 @@ export default function AiAssessmentPanel({
       );
     };
     const handleFullScreenChange = () => {
-      if (!document.fullscreenElement) {
-        if (examIntentionalExitRef.current) return;
+      if (document.fullscreenElement) {
+        examFullscreenSessionRef.current = true;
+        return;
+      }
+      if (examFullscreenSessionRef.current && !examIntentionalExitRef.current) {
+        examFullscreenSessionRef.current = false;
         recordViolation('Bạn không thể thoát chế độ toàn màn hình trong khi đang thi.');
       }
     };
@@ -1330,8 +1331,6 @@ export default function AiAssessmentPanel({
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('keydown', handleKeyDown, true);
-    requestExamFullscreen();
-
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
@@ -1541,6 +1540,7 @@ export default function AiAssessmentPanel({
       }
     } catch (submissionError) {
       setError(buildFriendlyError(submissionError));
+      throw submissionError;
     } finally {
       setSubmitting(false);
     }

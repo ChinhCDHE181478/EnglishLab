@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, X } from 'lucide-react';
 import curriculumApi from '../../api/curriculumApi';
 import { ContentManagerLoadingState, Panel } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
   ERROR_NOTICE_CLASS,
@@ -10,7 +11,6 @@ import {
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
-  TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
 const examOptions = [
@@ -167,9 +167,11 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
             </div>
           </div>
           <TextInput label="Thứ tự hiển thị" type="number" value={form.displayOrder} onChange={(value) => updateForm({ displayOrder: value })} />
-          <TextArea label="Chuẩn đầu ra" value={form.outcomes} onChange={(value) => updateForm({ outcomes: value })} />
-          <TextArea label="Hướng dẫn giảng viên" value={form.teacherGuide} onChange={(value) => updateForm({ teacherGuide: value })} />
-          <TextArea label="Hoạt động tương tác" value={form.interactionActivities} onChange={(value) => updateForm({ interactionActivities: value })} />
+        </div>
+        <div className="mt-5 space-y-4">
+          <RichTextEditor label="Chuẩn đầu ra" onChange={(value) => updateForm({ outcomes: value })} placeholder="Chuẩn đầu ra của chương trình..." size="form" value={form.outcomes} />
+          <RichTextEditor label="Hướng dẫn giảng viên" onChange={(value) => updateForm({ teacherGuide: value })} placeholder="Gợi ý giảng dạy, lưu ý buổi học..." size="form" value={form.teacherGuide} />
+          <RichTextEditor label="Hoạt động tương tác" onChange={(value) => updateForm({ interactionActivities: value })} placeholder="Hoạt động tương tác trong lớp..." size="form" value={form.interactionActivities} />
         </div>
 
         {isVirtual ? (
@@ -210,10 +212,10 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
 
 function formatProgramStatus(status) {
   const labels = {
-    DRAFT: 'Bản nháp — dùng nút “Gửi duyệt” ở trang chi tiết để xuất bản',
-    PENDING_REVIEW: 'Đang chờ duyệt',
+    DRAFT: 'Bản nháp — dùng nút “Xuất bản giáo trình” ở trang chi tiết',
+    PENDING_REVIEW: 'Sẵn sàng xuất bản — trạng thái từ luồng cũ',
     PUBLISHED: 'Đã xuất bản',
-    REJECTED: 'Bị từ chối — chỉnh sửa rồi gửi duyệt lại',
+    REJECTED: 'Cần chỉnh sửa — hoàn thiện rồi xuất bản lại',
     ARCHIVED: 'Đã lưu trữ',
   };
   return labels[String(status || '').toUpperCase()] || status || 'Bản nháp';
@@ -228,15 +230,6 @@ function TextInput({ label, value, onChange, type = 'text' }) {
     <label className="block">
       <FieldLabel>{label}</FieldLabel>
       <input className={FIELD_CLASS} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  );
-}
-
-function TextArea({ label, value, onChange }) {
-  return (
-    <label className="block xl:col-span-2">
-      <FieldLabel>{label}</FieldLabel>
-      <textarea className={TEXTAREA_CLASS} rows={4} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
 }

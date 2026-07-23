@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, Package, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import packageApi from '../../api/packageApi';
 import { ContentManagerLoadingState, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../../components/ui/AppDialog';
 
 const emptyForm = {
   title: '',
@@ -22,7 +24,7 @@ const emptyForm = {
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
   { value: 'DRAFT', label: 'Nháp' },
-  { value: 'PENDING_REVIEW', label: 'Chờ duyệt' },
+  { value: 'PENDING_REVIEW', label: 'Sẵn sàng xuất bản (dữ liệu cũ)' },
   { value: 'PUBLISHED', label: 'Đã xuất bản' },
   { value: 'REJECTED', label: 'Từ chối' },
   { value: 'ARCHIVED', label: 'Lưu trữ' },
@@ -45,6 +47,7 @@ const money = (value) => {
 };
 
 export default function ContentManagerPackagesPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [packages, setPackages] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [packageTypes, setPackageTypes] = useState([]);
@@ -203,10 +206,13 @@ export default function ContentManagerPackagesPage() {
     setSuccess('');
     try {
       if (action === 'publish') await packageApi.publishBundle(item.id);
-      if (action === 'submit') await packageApi.submitBundleForReview(item.id);
       if (action === 'archive') await packageApi.archiveBundle(item.id);
       if (action === 'delete') {
-        if (!window.confirm(`Xóa gói “${item.title}”?`)) return;
+        if (!await confirmDialog(`Xóa gói “${item.title}”?`, {
+          title: 'Xóa gói học',
+          confirmLabel: 'Xóa gói',
+          tone: 'danger',
+        })) return;
         await packageApi.deleteBundle(item.id);
       }
       setSuccess('Đã cập nhật trạng thái gói.');
@@ -301,11 +307,6 @@ export default function ContentManagerPackagesPage() {
               value={form.title}
             />
             <TextField
-              label="Mô tả ngắn"
-              onChange={(event) => setForm((current) => ({ ...current, shortDescription: event.target.value }))}
-              value={form.shortDescription}
-            />
-            <TextField
               label="Giá (VND)"
               onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
               type="number"
@@ -355,12 +356,19 @@ export default function ContentManagerPackagesPage() {
             </Field>
           </div>
 
-          <div className="mt-4">
-            <TextField
+          <div className="mt-4 grid gap-4">
+            <RichTextEditor
+              label="Mô tả ngắn"
+              onChange={(html) => setForm((current) => ({ ...current, shortDescription: html }))}
+              placeholder="Tóm tắt gói học..."
+              size="compact"
+              value={form.shortDescription}
+            />
+            <RichTextEditor
               label="Mô tả chi tiết"
-              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              rows={4}
-              textarea
+              onChange={(html) => setForm((current) => ({ ...current, description: html }))}
+              placeholder="Mô tả chi tiết nội dung gói, thành phần, lợi ích..."
+              size="form"
               value={form.description}
             />
           </div>
@@ -504,11 +512,6 @@ export default function ContentManagerPackagesPage() {
                             <IconButton label="Sửa" onClick={() => openEdit(item)}>
                               <Pencil className="h-4 w-4" />
                             </IconButton>
-                            {(item.status === 'DRAFT' || item.status === 'REJECTED') && (
-                              <button className="rounded-xl border border-[#dfbfbd]/70 px-3 py-1.5 text-xs font-bold" onClick={() => runLifecycle(item, 'submit')} type="button">
-                                Gửi duyệt
-                              </button>
-                            )}
                             {(item.status === 'DRAFT' || item.status === 'PENDING_REVIEW' || item.status === 'REJECTED') && (
                               <button className="rounded-xl border border-[#dfbfbd]/70 px-3 py-1.5 text-xs font-bold" onClick={() => runLifecycle(item, 'publish')} type="button">
                                 Xuất bản

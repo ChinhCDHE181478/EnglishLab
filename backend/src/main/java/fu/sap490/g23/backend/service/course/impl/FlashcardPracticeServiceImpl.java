@@ -79,7 +79,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
                     || (courseId != null && !course.getId().equals(courseId))) {
                 continue;
             }
-            OnlineCourseResponse snapshot = onlineCourseVersionService.readEnrollmentSnapshot(enrollment, course);
+            OnlineCourseResponse snapshot = onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course);
             List<VocabularyProgress> progress = progressRepository.findByStudentAndCourse(student, course);
             for (VocabularyTermResponse term : extractTerms(snapshot)) {
                 applyProgress(term, progress);

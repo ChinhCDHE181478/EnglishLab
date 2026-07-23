@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import {
   ERROR_NOTICE_CLASS,
   PRIMARY_BUTTON_CLASS,
@@ -80,6 +81,12 @@ export default function ManagerClassroomProposalsPage() {
   }, []);
 
   const visibleProposals = proposalsByStatus[activeStatus] || [];
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    visibleProposals,
+    8,
+    activeStatus,
+  );
+
   const stats = useMemo(() => ({
     pending: proposalsByStatus.PENDING_APPROVAL.length,
     approved: proposalsByStatus.APPROVED.length,
@@ -150,54 +157,72 @@ export default function ManagerClassroomProposalsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-[#4b0009] via-[#730014] to-[#a6122a] p-6 text-white shadow-xl">
-        <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr] xl:items-end">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.16em] text-white/80">
-              <ShieldCheck className="h-4 w-4" />
-              Manager approval gate
+    <div className="space-y-5">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <ShieldCheck className="h-5 w-5" />
             </div>
-            <h1 className="mt-5 font-['Manrope'] text-3xl font-black tracking-tight md:text-4xl">
-              Duyệt đề xuất mở lớp
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-white/75">
-              Rà soát lịch học, sức chứa và nguồn lực. Chỉ khi được duyệt, hệ thống mới tạo lớp,
-              sinh các buổi học và công khai lớp trên Lịch khai giảng.
-            </p>
+            <span className="font-['Manrope'] text-2xl font-black text-[#2b2828]">{stats.pending}</span>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-2">
-            <HeroStat label="Chờ duyệt" value={stats.pending} />
-            <HeroStat label="Tổng sức chứa" value={stats.capacity} />
-            <HeroStat label="Đã duyệt" value={stats.approved} />
-            <HeroStat label="Đã từ chối" value={stats.rejected} />
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Chờ duyệt</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Users className="h-5 w-5" />
+            </div>
+            <span className="font-['Manrope'] text-2xl font-black text-[#2b2828]">{stats.capacity}</span>
           </div>
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Tổng sức chứa</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <span className="font-['Manrope'] text-2xl font-black text-[#2b2828]">{stats.approved}</span>
+          </div>
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Đã duyệt</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+              <XCircle className="h-5 w-5" />
+            </div>
+            <span className="font-['Manrope'] text-2xl font-black text-[#2b2828]">{stats.rejected}</span>
+          </div>
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Đã từ chối</p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
-          <div className="flex gap-2 overflow-x-auto">
-            {statusTabs.map((tab) => (
-              <button
-                className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-extrabold transition ${
-                  activeStatus === tab.value
-                    ? 'bg-[#730014] text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
-                key={tab.value}
-                onClick={() => setActiveStatus(tab.value)}
-                type="button"
-              >
-                {tab.label} ({proposalsByStatus[tab.value].length})
-              </button>
-            ))}
-          </div>
-          <button className={SECONDARY_BUTTON_CLASS} disabled={loading} onClick={load} type="button">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </button>
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex gap-1.5 overflow-x-auto">
+          {statusTabs.map((tab) => (
+            <button
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${
+                activeStatus === tab.value
+                  ? 'bg-[#4b0009] text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}
+              key={tab.value}
+              onClick={() => setActiveStatus(tab.value)}
+              type="button"
+            >
+              {tab.label} ({proposalsByStatus[tab.value]?.length || 0})
+            </button>
+          ))}
         </div>
+        <button
+          className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          disabled={loading}
+          onClick={load}
+          type="button"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Làm mới
+        </button>
       </section>
 
       {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}
@@ -211,7 +236,7 @@ export default function ManagerClassroomProposalsPage() {
         </div>
       ) : null}
 
-      {!loading && !visibleProposals.length ? (
+      {!loading && !pageItems.length ? (
         <section className="flex min-h-[380px] flex-col items-center justify-center rounded-[28px] border border-dashed border-slate-300 bg-white px-6 text-center">
           <ShieldCheck className="h-14 w-14 text-slate-300" />
           <h2 className="mt-4 font-['Manrope'] text-2xl font-black text-[#0b1c30]">
@@ -224,11 +249,16 @@ export default function ManagerClassroomProposalsPage() {
         </section>
       ) : null}
 
-      {!loading && visibleProposals.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {visibleProposals.map((proposal) => (
-            <ProposalCard key={proposal.id} onOpen={() => openDetails(proposal)} proposal={proposal} />
-          ))}
+      {!loading && pageItems.length ? (
+        <div className="space-y-4">
+          <div className="grid gap-4 xl:grid-cols-2">
+            {pageItems.map((proposal) => (
+              <ProposalCard key={proposal.id} onOpen={() => openDetails(proposal)} proposal={proposal} />
+            ))}
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <Pagination onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+          </div>
         </div>
       ) : null}
 

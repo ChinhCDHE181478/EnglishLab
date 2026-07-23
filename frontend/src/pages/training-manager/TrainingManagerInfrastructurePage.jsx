@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Building2, Clock3, DoorOpen, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 
 const tabs = [
@@ -261,44 +262,37 @@ export default function TrainingManagerInfrastructurePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        <div className="grid gap-4 border-b border-slate-100 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#730014]">Classroom infrastructure</p>
-            <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-slate-900">Dữ liệu nền để mở lớp không bị lỗi</h2>
-            <p className="mt-2 text-sm leading-7 text-slate-500">
-              Cơ sở, phòng và mẫu lịch là dữ liệu bắt buộc cho xếp phòng, kiểm tra trùng lịch và sinh buổi học hàng loạt.
-            </p>
-          </div>
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-extrabold text-[#730014] transition hover:bg-[#fff4f5]"
-            onClick={loadAll}
-            type="button"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </button>
-        </div>
-        <div className="grid gap-3 p-4 md:grid-cols-3">
+    <div className="space-y-5">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex gap-1.5 overflow-x-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
               <button
-                className={`rounded-2xl border px-4 py-4 text-left transition ${
-                  active ? 'border-[#730014] bg-[#fff4f5] text-[#4b0009] shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
+                className={`flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${
+                  active
+                    ? 'bg-[#4b0009] text-white shadow-sm'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                 }`}
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 type="button"
               >
-                <Icon className="h-5 w-5" />
-                <p className="mt-3 font-['Manrope'] text-lg font-extrabold">{tab.label}</p>
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
+        <button
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+          onClick={loadAll}
+          type="button"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Làm mới
+        </button>
       </section>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
@@ -467,10 +461,34 @@ function TemplateForm({ editing, form, onAddSlot, onCancel, onChange, onRemoveSl
       working={working}
     >
       <TextField label="Tên mẫu" onChange={(value) => onChange({ ...form, name: value })} value={form.name} />
-      <TextField label="Mô tả" onChange={(value) => onChange({ ...form, description: value })} textarea value={form.description} />
-      <TextField label="Hướng dẫn giảng viên" onChange={(value) => onChange({ ...form, teacherGuide: value })} textarea value={form.teacherGuide} />
-      <TextField label="Hoạt động tương tác" onChange={(value) => onChange({ ...form, interactionActivities: value })} textarea value={form.interactionActivities} />
-      <TextField label="Bài tập sau buổi học" onChange={(value) => onChange({ ...form, postSessionHomework: value })} textarea value={form.postSessionHomework} />
+      <RichTextEditor
+        label="Mô tả"
+        onChange={(value) => onChange({ ...form, description: value })}
+        placeholder="Mô tả mẫu lịch..."
+        size="compact"
+        value={form.description}
+      />
+      <RichTextEditor
+        label="Hướng dẫn giảng viên"
+        onChange={(value) => onChange({ ...form, teacherGuide: value })}
+        placeholder="Hướng dẫn giảng viên..."
+        size="form"
+        value={form.teacherGuide}
+      />
+      <RichTextEditor
+        label="Hoạt động tương tác"
+        onChange={(value) => onChange({ ...form, interactionActivities: value })}
+        placeholder="Hoạt động tương tác..."
+        size="form"
+        value={form.interactionActivities}
+      />
+      <RichTextEditor
+        label="Bài tập sau buổi học"
+        onChange={(value) => onChange({ ...form, postSessionHomework: value })}
+        placeholder="Bài tập sau buổi học..."
+        size="form"
+        value={form.postSessionHomework}
+      />
       <TextField label="Thời lượng mặc định (phút)" onChange={(value) => onChange({ ...form, defaultDurationMinutes: value })} type="number" value={form.defaultDurationMinutes} />
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">

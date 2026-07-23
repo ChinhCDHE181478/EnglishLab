@@ -41,7 +41,7 @@ const Login = () => {
 
   const resolvePostLoginPath = (user) => {
     if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
-    if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/course-approvals';
+    if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/classroom-proposals';
     if (hasAnyUserRole(user, ['CONTENT_MANAGER']) || isContentManagerUser(user)) return '/content-manager/dashboard';
     if (hasAnyUserRole(user, ['STAFF', 'TRAINING_MANAGER'])) return '/staff';
     if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';

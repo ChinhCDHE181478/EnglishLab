@@ -15,6 +15,7 @@ import {
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDateTime,
@@ -94,6 +95,7 @@ export default function TeacherHomeworkSection({
   onCreateFormOpened,
   curriculumUnits = [],
 }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const [formOpen, setFormOpen] = useState(false);
   const [editingHomework, setEditingHomework] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -309,7 +311,11 @@ export default function TeacherHomeworkSection({
   };
 
   const handleDeleteHomework = async (item) => {
-    if (!window.confirm(`Xóa bài tập "${item.title}"? Hành động này không thể hoàn tác.`)) {
+    if (!await confirmDialog(`Xóa bài tập “${item.title}”? Hành động này không thể hoàn tác.`, {
+      title: 'Xóa bài tập',
+      confirmLabel: 'Xóa bài tập',
+      tone: 'danger',
+    })) {
       return;
     }
     onMessage?.('');

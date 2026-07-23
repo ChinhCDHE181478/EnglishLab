@@ -10,12 +10,14 @@ import {
   Users,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
+import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomDateTime } from '../../utils/classroomHelpers';
 
 export default function TrainingManagerDashboardPage() {
   const [dashboard, setDashboard] = useState(null);
+  const [enrollmentRequests, setEnrollmentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -23,10 +25,15 @@ export default function TrainingManagerDashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getTrainingManagerDashboard();
+      const [data, requestData] = await Promise.all([
+        classroomApi.getTrainingManagerDashboard(),
+        enrollmentRequestApi.listForStaff('ALL'),
+      ]);
       setDashboard(data);
+      setEnrollmentRequests(requestData);
     } catch (err) {
       setDashboard(null);
+      setEnrollmentRequests([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải bảng điều khiển vận hành.'));
     } finally {
       setLoading(false);
@@ -45,7 +52,16 @@ export default function TrainingManagerDashboardPage() {
     return <ClassroomErrorState message={error} onRetry={loadDashboard} />;
   }
 
-  const hasWork = (dashboard?.pendingRegistrationCount || 0) + (dashboard?.pendingChangeRequestCount || 0) > 0;
+  const newRequestCount = enrollmentRequests.filter((item) => (
+    ['SUBMITTED', 'UNDER_STAFF_REVIEW'].includes(item.status)
+  )).length;
+  const waitingForClassCount = enrollmentRequests.filter((item) => item.status === 'WAITING_FOR_CLASS').length;
+  const assignedCount = enrollmentRequests.filter((item) => item.status === 'CLASS_ASSIGNED').length;
+  const actionableRequests = enrollmentRequests.filter((item) => (
+    ['SUBMITTED', 'UNDER_STAFF_REVIEW', 'WAITING_FOR_CLASS'].includes(item.status)
+  ));
+  const changeActionItems = (dashboard?.actionItems || []).filter((item) => item.changeRequestId);
+  const hasWork = actionableRequests.length + changeActionItems.length > 0;
 
   return (
     <motion.div
@@ -56,28 +72,28 @@ export default function TrainingManagerDashboardPage() {
     >
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
-          href="/staff/registrations"
+          href="/staff/enrollment-requests"
           icon={ClipboardList}
-          label="Đăng ký cần xử lý"
-          value={dashboard?.pendingRegistrationCount ?? 0}
+          label="Yêu cầu mới"
+          value={newRequestCount}
+        />
+        <SummaryCard
+          href="/staff/enrollment-requests"
+          icon={Users}
+          label="Chờ xếp lớp"
+          value={waitingForClassCount}
+        />
+        <SummaryCard
+          href="/staff/enrollment-requests"
+          icon={CalendarDays}
+          label="Đã xếp lớp"
+          value={assignedCount}
         />
         <SummaryCard
           href="/staff/requests"
           icon={CheckSquare}
-          label="Yêu cầu chờ duyệt"
+          label="Yêu cầu vận hành"
           value={dashboard?.pendingChangeRequestCount ?? 0}
-        />
-        <SummaryCard
-          href="/staff/registrations?tab=PENDING_TUITION_PAYMENT"
-          icon={Users}
-          label="Chờ thanh toán"
-          value={dashboard?.pendingTuitionCount ?? 0}
-        />
-        <SummaryCard
-          href="/staff/registrations?tab=NEEDS_ACTION"
-          icon={CalendarDays}
-          label="Sẵn sàng xếp lớp"
-          value={dashboard?.readyToAssignCount ?? 0}
         />
       </section>
 
@@ -85,19 +101,37 @@ export default function TrainingManagerDashboardPage() {
         <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Việc cần làm</h2>
-            <Link className="text-xs font-bold text-[#730014] hover:underline" to="/staff/registrations">
-              Xem hàng đợi đăng ký
+            <Link className="text-xs font-bold text-[#730014] hover:underline" to="/staff/enrollment-requests">
+              Xem yêu cầu đăng ký
             </Link>
           </div>
 
           {!hasWork ? (
             <ClassroomEmptyState
-              description="Không có đăng ký hay yêu cầu thay đổi nào đang chờ. Bạn có thể kiểm tra lớp sắp khai giảng bên dưới."
+              description="Không có học viên chờ tư vấn, chờ xếp lớp hoặc yêu cầu vận hành cần xử lý."
               title="Hôm nay không có việc khẩn"
             />
           ) : (
             <div className="space-y-2">
-              {(dashboard?.actionItems || []).map((item) => (
+              {actionableRequests.slice(0, 12).map((item) => (
+                <Link
+                  className="flex items-start justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
+                  key={`enrollment-request-${item.id}`}
+                  to="/staff/enrollment-requests"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-extrabold text-[#2b2828]">
+                      {item.contactName || item.learnerName || item.contactEmail || item.learnerEmail}
+                    </p>
+                    <p className="mt-0.5 text-xs text-[#8b706e]">{item.statusLabel || 'Yêu cầu đăng ký'}</p>
+                    {item.createdAt ? (
+                      <p className="mt-1 text-[10px] text-gray-400">{formatClassroomDateTime(item.createdAt)}</p>
+                    ) : null}
+                  </div>
+                  <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[#730014]" />
+                </Link>
+              ))}
+              {changeActionItems.map((item) => (
                 <Link
                   className="flex items-start justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
                   key={`${item.kind}-${item.enrollmentId || item.changeRequestId}`}

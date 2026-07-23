@@ -1,10 +1,31 @@
 import { useEffect, useRef } from 'react';
 import { Link2, List, ListOrdered, Redo2, RemoveFormatting, Undo2, Unlink2 } from 'lucide-react';
 import { sanitizeLessonHtml } from '../../utils/lessonRichText';
+import { useAppDialog } from '../ui/AppDialog';
 
 const TOOL_BUTTON_CLASS = 'inline-flex h-9 min-w-9 items-center justify-center rounded-lg border border-transparent px-2 text-xs font-extrabold text-[#4b0009] transition hover:border-[#dfbfbd] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#730014]/20';
 
-export default function RichTextEditor({ label, onChange, value = '' }) {
+const SIZE_CLASS = {
+  compact: 'min-h-[120px]',
+  form: 'min-h-[180px]',
+  lesson: 'min-h-[420px]',
+};
+
+/**
+ * Rich text editor dùng chung cho Content Manager / Manager / Staff.
+ * @param {'compact'|'form'|'lesson'} [size='form']
+ * @param {(html: string) => void} onChange
+ */
+export default function RichTextEditor({
+  label,
+  onChange,
+  value = '',
+  placeholder = 'Soạn nội dung tại đây...',
+  helperText = 'Nội dung được lưu kèm định dạng (đậm, danh sách, liên kết...).',
+  size = 'form',
+  className = '',
+}) {
+  const { alert: alertDialog, prompt: promptDialog } = useAppDialog();
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -28,14 +49,29 @@ export default function RichTextEditor({ label, onChange, value = '' }) {
     emitChange();
   };
 
-  const addLink = () => {
+  const addLink = async () => {
     const selection = window.getSelection?.();
     if (!selection?.toString().trim()) {
-      window.alert('Hãy bôi đen đoạn văn bản cần gắn liên kết.');
+      await alertDialog('Hãy bôi đen đoạn văn bản cần gắn liên kết.', {
+        title: 'Chưa chọn văn bản',
+      });
       return;
     }
-    const href = window.prompt('Nhập liên kết (https://...):', 'https://');
+    const savedRange = selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    const href = await promptDialog('Nhập địa chỉ liên kết muốn gắn vào đoạn văn bản đã chọn.', 'https://', {
+      title: 'Gắn liên kết',
+      inputLabel: 'Địa chỉ liên kết',
+      inputType: 'url',
+      placeholder: 'https://example.com',
+      confirmLabel: 'Gắn liên kết',
+      required: true,
+    });
     if (!href) return;
+    if (savedRange) {
+      const currentSelection = window.getSelection?.();
+      currentSelection?.removeAllRanges();
+      currentSelection?.addRange(savedRange);
+    }
     runCommand('createLink', href.trim());
   };
 
@@ -54,9 +90,11 @@ export default function RichTextEditor({ label, onChange, value = '' }) {
     emitChange();
   };
 
+  const heightClass = SIZE_CLASS[size] || SIZE_CLASS.form;
+
   return (
-    <label className="block space-y-2">
-      <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b7d99]">{label}</span>
+    <label className={`block space-y-2 ${className}`}>
+      {label ? <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b7d99]">{label}</span> : null}
       <div className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-[#f8faff] focus-within:border-[#730014] focus-within:ring-2 focus-within:ring-[#730014]/10">
         <div className="flex flex-wrap items-center gap-1 border-b border-[#d8e0eb] bg-[#fffafb] p-2" role="toolbar" aria-label="Công cụ định dạng nội dung">
           <ToolbarButton label="Đoạn văn" onClick={() => runCommand('formatBlock', 'p')}>P</ToolbarButton>
@@ -84,15 +122,15 @@ export default function RichTextEditor({ label, onChange, value = '' }) {
         </div>
         <div
           ref={editorRef}
-          className="min-h-[420px] overflow-y-auto bg-white px-5 py-4 text-sm leading-7 text-[#2b2828] outline-none empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)] [&_a]:font-semibold [&_a]:text-[#730014] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fffafb] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-extrabold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
+          className={`${heightClass} overflow-y-auto bg-white px-5 py-4 text-sm leading-7 text-[#2b2828] outline-none empty:before:pointer-events-none empty:before:text-slate-400 empty:before:content-[attr(data-placeholder)] [&_a]:font-semibold [&_a]:text-[#730014] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fffafb] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h3]:mb-2 [&_h3]:mt-4 [&_h3]:text-lg [&_h3]:font-extrabold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6`}
           contentEditable
-          data-placeholder="Soạn nội dung bài học tại đây..."
+          data-placeholder={placeholder}
           onBlur={emitChange}
           onInput={emitChange}
           suppressContentEditableWarning
         />
       </div>
-      <p className="text-xs leading-5 text-[#8b706e]">Nội dung được lưu kèm định dạng và hiển thị tương ứng trong khu vực học bài.</p>
+      {helperText ? <p className="text-xs leading-5 text-[#8b706e]">{helperText}</p> : null}
     </label>
   );
 }

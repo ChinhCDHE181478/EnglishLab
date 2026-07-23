@@ -73,6 +73,8 @@ export default function ListeningExamMode({
   const audioStartedRef = useRef(false);
   const audioEndedRef = useRef(false);
   const intentionalExitRef = useRef(false);
+  const fullscreenSessionStartedRef = useRef(false);
+  const submissionInFlightRef = useRef(false);
 
   const activePart = parts.find((part) => part.key === activePartKey) || parts[0] || null;
   const allQuestionNumbers = useMemo(() => flattenQuestionNumbers(parts), [parts]);
@@ -127,7 +129,10 @@ export default function ListeningExamMode({
 
   useEffect(() => {
     intentionalExitRef.current = false;
-    document.documentElement?.requestFullscreen?.().catch(() => {});
+    // Fullscreen was already requested by ExamDeviceCheck from the learner's
+    // click. Calling requestFullscreen here is no longer a user gesture and is
+    // rejected by browsers, so only observe the established session here.
+    fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
     return () => {
       if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
@@ -247,8 +252,12 @@ export default function ListeningExamMode({
       warn('Không thể quay lại trang khác trong lúc đang làm bài Listening.');
     };
     const handleFullscreen = () => {
-      if (!document.fullscreenElement && !intentionalExitRef.current) {
-        void restoreFullscreen();
+      if (document.fullscreenElement) {
+        fullscreenSessionStartedRef.current = true;
+        return;
+      }
+      if (fullscreenSessionStartedRef.current && !intentionalExitRef.current) {
+        fullscreenSessionStartedRef.current = false;
         warn('Không thể thoát toàn màn hình trong lúc đang thi Listening.');
       }
     };
@@ -288,7 +297,13 @@ export default function ListeningExamMode({
 
   const restoreFullscreen = async () => {
     if (document.fullscreenElement) return;
-    await document.documentElement?.requestFullscreen?.().catch(() => {});
+    try {
+      await document.documentElement?.requestFullscreen?.();
+      fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
+    } catch {
+      // The learner can continue without a false violation when the browser
+      // does not support or does not allow Fullscreen API.
+    }
   };
 
   const playSampleAudio = async () => {
@@ -397,11 +412,16 @@ export default function ListeningExamMode({
   };
 
   const handleSubmitExam = async (autoSubmitted = false) => {
-    if (isLocked || submitting || submissionPending) return;
+    if (isLocked || submitting || submissionPending || submissionInFlightRef.current) return;
+    submissionInFlightRef.current = true;
     setSubmissionPending(true);
     try {
       await onSubmit(buildPayload(autoSubmitted));
+    } catch {
+      // AiAssessmentPanel owns the visible error. Swallow the rejected promise
+      // here so a failed request does not become an unhandled event error.
     } finally {
+      submissionInFlightRef.current = false;
       setSubmissionPending(false);
     }
   };

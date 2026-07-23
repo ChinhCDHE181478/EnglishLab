@@ -13,6 +13,7 @@ import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../ui/Pagination';
+import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomDateTime, formatClassroomTime } from '../../utils/classroomHelpers';
 
@@ -48,6 +49,7 @@ export default function TeacherMaterialsSection({
   onMaterialsChange,
   onMessage,
 }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const [formOpen, setFormOpen] = useState(false);
   const [uploadForm, setUploadForm] = useState(uploadFormInitial);
   const [attachmentFile, setAttachmentFile] = useState(null);
@@ -141,7 +143,11 @@ export default function TeacherMaterialsSection({
       onMessage?.('Học liệu bắt buộc phải được cập nhật từ chương trình, không thể xóa trực tiếp trong lớp.');
       return;
     }
-    if (!window.confirm(`Xóa tài liệu bổ trợ "${material.title}" khỏi lớp này?`)) return;
+    if (!await confirmDialog(`Xóa tài liệu bổ trợ “${material.title}” khỏi lớp này?`, {
+      title: 'Xóa tài liệu bổ trợ',
+      confirmLabel: 'Xóa tài liệu',
+      tone: 'danger',
+    })) return;
 
     setDeletingId(material.id);
     onMessage?.('');

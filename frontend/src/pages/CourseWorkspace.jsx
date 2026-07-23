@@ -15,15 +15,15 @@ import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
 import { isAssessmentPassed } from '../utils/selfPacedHelpers';
+import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
+import {
+  getAssessmentSubmissionErrorMessage,
+  isTemporaryAssessmentSubmissionError,
+} from '../utils/assessmentSubmissionError';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
 const isAssessmentStepId = (itemId) => String(itemId || '').startsWith('__ai_assessment__:');
-
-const isTemporaryAssessmentError = (error) => {
-  const status = error?.response?.status;
-  return !status || status === 408 || status === 429 || status >= 500;
-};
 
 const CourseWorkspace = () => {
   const { slugOrId } = useParams();
@@ -101,6 +101,12 @@ const CourseWorkspace = () => {
     const modules = course?.modules || [];
     const progressByModule = new Map();
     let canEnterCurrentModule = true;
+    const furthestReachedModuleIndex = findFurthestReachedModuleIndex({
+      modules,
+      completedLessonIds,
+      assessmentsByModule,
+      getLessonId,
+    });
 
     modules.forEach((module, moduleIndex) => {
       const lessons = module.lessons || [];
@@ -117,15 +123,20 @@ const CourseWorkspace = () => {
       const moduleAssessmentsPassed = moduleAssessments.every((assessment) => isAssessmentPassed(assessment, course));
       const readyForNextModule = lessonsCompleted && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
 
+      const moduleUnlocked = isReachedModuleUnlocked({
+        sequentiallyUnlocked: canEnterCurrentModule,
+        moduleIndex,
+        furthestReachedModuleIndex,
+      });
       progressByModule.set(String(module.id), {
-        moduleUnlocked: canEnterCurrentModule,
+        moduleUnlocked,
         lessonsCompleted,
         moduleAssessmentsPassed,
         readyForNextModule,
         lessonItems: lessonItemsForModule,
       });
 
-      canEnterCurrentModule = readyForNextModule;
+      canEnterCurrentModule = moduleUnlocked && readyForNextModule;
     });
 
     return progressByModule;
@@ -141,7 +152,9 @@ const CourseWorkspace = () => {
 
       return moduleLessonItems.map((item, lessonIndex) => {
         const previousLessonId = lessonIndex > 0 ? moduleLessonItems[lessonIndex - 1]?.id : null;
-        const isLocked = !moduleUnlocked || (lessonIndex > 0 && !completedLessonIds.has(previousLessonId));
+        const isCompleted = completedLessonIds.has(item.id);
+        const isLocked = !isCompleted
+          && (!moduleUnlocked || (lessonIndex > 0 && !completedLessonIds.has(previousLessonId)));
 
         return {
           ...item,
@@ -568,7 +581,7 @@ const CourseWorkspace = () => {
       });
       return response;
     } catch (submissionError) {
-      if (isTemporaryAssessmentError(submissionError)) {
+      if (isTemporaryAssessmentSubmissionError(submissionError)) {
         enqueueAssessmentSubmission({
           assessmentId,
           courseId: course?.id,
@@ -579,15 +592,16 @@ const CourseWorkspace = () => {
         addNotification({
           type: 'learning',
           title: 'Bài làm đã được lưu tạm thời',
-          message: 'Hệ thống đang xử lý bài làm. Bạn không cần làm lại bài.',
+          message: 'Bài làm vẫn được giữ trên thiết bị. Khi kết nối ổn định, hãy bấm Gửi lại.',
           courseId: course?.id,
           courseTitle: course?.title,
           actionPath: `/courses/${course?.slug}/learn`,
         });
-        throw new Error('Bài làm của bạn đã được lưu tạm thời. Hệ thống sẽ tự động gửi lại sau ít phút.');
+        throw new Error('Bài làm đã được lưu tạm thời. Khi kết nối ổn định, hãy bấm Gửi lại; bạn không cần làm lại bài.');
       }
 
-      throw new Error('Hiện chưa thể hoàn tất việc gửi bài. Vui lòng kiểm tra lại nội dung rồi thử lại.');
+      removeAssessmentQueueItem(assessmentId);
+      throw new Error(getAssessmentSubmissionErrorMessage(submissionError));
     }
   };
 
@@ -610,8 +624,13 @@ const CourseWorkspace = () => {
           actionPath: `/courses/${course?.slug}/learn`,
         });
       }
-    } catch {
-      setError('Bài làm đã được lưu an toàn và vẫn đang chờ gửi lại khi hệ thống sẵn sàng.');
+    } catch (submissionError) {
+      if (isTemporaryAssessmentSubmissionError(submissionError)) {
+        setError('Bài làm đã được lưu an toàn và vẫn đang chờ gửi lại khi hệ thống sẵn sàng.');
+      } else {
+        removeAssessmentQueueItem(item.id);
+        setError(getAssessmentSubmissionErrorMessage(submissionError));
+      }
     } finally {
       setRetryingQueueId('');
     }

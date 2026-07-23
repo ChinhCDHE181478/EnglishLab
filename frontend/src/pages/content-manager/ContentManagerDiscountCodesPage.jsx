@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
@@ -30,6 +31,7 @@ const toApiDateTime = (value) => (value ? new Date(value).toISOString().slice(0,
 const PAGE_SIZE = 8;
 
 export default function ContentManagerDiscountCodesPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -153,7 +155,11 @@ export default function ContentManagerDiscountCodesPage() {
     const prompt = unused
       ? `Xóa vĩnh viễn mã giảm giá “${item.code}”?`
       : `Mã “${item.code}” đã được dùng hoặc giữ chỗ — hệ thống sẽ tắt mã thay vì xóa. Tiếp tục?`;
-    if (item && !window.confirm(prompt)) return;
+    if (item && !await confirmDialog(prompt, {
+      title: unused ? 'Xóa mã giảm giá' : 'Tắt mã giảm giá',
+      confirmLabel: unused ? 'Xóa mã' : 'Tắt mã',
+      tone: 'danger',
+    })) return;
     setSaving(true);
     setError('');
     setMessage('');

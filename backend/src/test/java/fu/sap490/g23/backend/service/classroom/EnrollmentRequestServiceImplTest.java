@@ -131,6 +131,49 @@ class EnrollmentRequestServiceImplTest {
     }
 
     @Test
+    void staffCannotAssignBeforeConsultationIsCompleted() {
+        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.SUBMITTED);
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
+        payload.setClassroomId(requestedClassroom.getId());
+
+        assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("hoàn tất tư vấn");
+    }
+
+    @Test
+    void staffCannotAssignToActiveClass() {
+        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        requestedClassroom.setStatus(ClassroomOfferingStatus.ACTIVE);
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(classroomOfferingRepository.findById(requestedClassroom.getId())).thenReturn(Optional.of(requestedClassroom));
+        AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
+        payload.setClassroomId(requestedClassroom.getId());
+
+        assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ngày khai giảng trong tương lai");
+    }
+
+    @Test
+    void staffCannotAssignToUpcomingClassWhoseStartDateHasPassed() {
+        EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        requestedClassroom.setStartDate(LocalDate.now().minusDays(1));
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(requestRepository.findById(request.getId())).thenReturn(Optional.of(request));
+        when(classroomOfferingRepository.findById(requestedClassroom.getId())).thenReturn(Optional.of(requestedClassroom));
+        AssignEnrollmentClassRequest payload = new AssignEnrollmentClassRequest();
+        payload.setClassroomId(requestedClassroom.getId());
+
+        assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ngày khai giảng trong tương lai");
+    }
+
+    @Test
     void rejectsFormForClassThatIsNotUpcoming() {
         requestedClassroom.setStatus(ClassroomOfferingStatus.CLOSED);
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));

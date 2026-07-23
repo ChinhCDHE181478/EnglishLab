@@ -2,11 +2,15 @@ package fu.sap490.g23.backend.dto.response.curriculum;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FlashcardSetResponse {
     private Long id;
     private String title;

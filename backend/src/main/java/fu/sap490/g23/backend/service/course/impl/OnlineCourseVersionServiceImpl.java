@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.service.course.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.dto.request.course.CreateCourseVersionRequest;
 import fu.sap490.g23.backend.dto.response.course.LessonResponse;
@@ -28,11 +29,17 @@ import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +57,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final OnlineCoursePreviewValidator previewValidator;
-    private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .findAndRegisterModules()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Override
     @Transactional(readOnly = true)
@@ -59,15 +68,6 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         OnlineCourse course = findCourse(courseId);
         return versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course).stream()
                 .map(version -> toResponse(version, false))
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<OnlineCourseVersionResponse> getPendingReviews(String actorEmail) {
-        requireApprover(actorEmail);
-        return versionRepository.findByStatusOrderBySubmittedAtAsc(CourseVersionStatus.PENDING_REVIEW).stream()
-                .map(version -> toResponse(version, true))
                 .toList();
     }
 
@@ -115,7 +115,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         User actor = requireEditor(actorEmail);
         OnlineCourse course = findCourse(courseId);
         if (versionRepository.existsByOnlineCourseAndStatusIn(course, OPEN_STATUSES)) {
-            throw new IllegalStateException("Khóa học đã có một phiên bản nháp hoặc đang chờ duyệt.");
+            throw new IllegalStateException("Khóa học đã có một phiên bản chưa xuất bản.");
         }
 
         List<OnlineCourseVersion> versions = versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course);
@@ -163,36 +163,15 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     @Override
-    public OnlineCourseVersionResponse submitForReview(Long courseId, Long versionId, String actorEmail) {
-        requireEditor(actorEmail);
-        OnlineCourse course = findCourse(courseId);
-        OnlineCourseVersion version = findVersion(course, versionId);
-        if (version.getStatus() != CourseVersionStatus.DRAFT) {
-            throw new IllegalStateException("Chỉ phiên bản nháp mới có thể gửi duyệt.");
-        }
-        synchronizeSnapshot(version, course);
-        version.setStatus(CourseVersionStatus.PENDING_REVIEW);
-        version.setSubmittedAt(LocalDateTime.now());
-        version.setReviewNote(null);
-        boolean hasPublishedVersion = versionRepository
-                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
-                .isPresent();
-        if (!hasPublishedVersion) {
-            course.getLearningPackage().setStatus(PackageStatus.PENDING_REVIEW);
-            course.getLearningPackage().setSubmittedForReviewAt(version.getSubmittedAt());
-            course.getLearningPackage().setReviewNote(null);
-        }
-        return toResponse(version, true);
-    }
-
-    @Override
     public OnlineCourseVersionResponse publish(Long courseId, Long versionId, String actorEmail) {
-        User reviewer = requireApprover(actorEmail);
+        User publisher = requireEditor(actorEmail);
         OnlineCourse course = findCourse(courseId);
         OnlineCourseVersion version = findVersion(course, versionId);
-        if (version.getStatus() != CourseVersionStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Phiên bản khóa học chưa ở trạng thái chờ duyệt.");
+        if (version.getStatus() != CourseVersionStatus.DRAFT
+                && version.getStatus() != CourseVersionStatus.PENDING_REVIEW) {
+            throw new IllegalStateException("Chỉ phiên bản nháp mới có thể xuất bản.");
         }
+        validateReadyToPublish(course);
 
         versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
                 course,
@@ -206,44 +185,14 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
         synchronizeSnapshot(version, course);
         version.setStatus(CourseVersionStatus.PUBLISHED);
-        version.setReviewedBy(reviewer);
+        version.setReviewedBy(publisher);
         version.setReviewNote(null);
         version.setPublishedAt(LocalDateTime.now());
         course.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
-        course.getLearningPackage().setReviewedBy(reviewer);
+        course.getLearningPackage().setSubmittedForReviewAt(null);
+        course.getLearningPackage().setReviewedBy(publisher);
         course.getLearningPackage().setReviewedAt(LocalDateTime.now());
         course.getLearningPackage().setReviewNote(null);
-        return toResponse(version, true);
-    }
-
-    @Override
-    public OnlineCourseVersionResponse reject(
-            Long courseId,
-            Long versionId,
-            String reviewNote,
-            String actorEmail
-    ) {
-        if (reviewNote == null || reviewNote.isBlank()) {
-            throw new IllegalArgumentException("Vui lòng nhập lý do từ chối phiên bản.");
-        }
-        User reviewer = requireApprover(actorEmail);
-        OnlineCourse course = findCourse(courseId);
-        OnlineCourseVersion version = findVersion(course, versionId);
-        if (version.getStatus() != CourseVersionStatus.PENDING_REVIEW) {
-            throw new IllegalStateException("Phiên bản khóa học chưa ở trạng thái chờ duyệt.");
-        }
-        version.setStatus(CourseVersionStatus.DRAFT);
-        version.setReviewedBy(reviewer);
-        version.setReviewNote(reviewNote.trim());
-        boolean hasPublishedVersion = versionRepository
-                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
-                .isPresent();
-        if (!hasPublishedVersion) {
-            course.getLearningPackage().setStatus(PackageStatus.REJECTED);
-            course.getLearningPackage().setReviewedBy(reviewer);
-            course.getLearningPackage().setReviewedAt(LocalDateTime.now());
-            course.getLearningPackage().setReviewNote(reviewNote.trim());
-        }
         return toResponse(version, true);
     }
 
@@ -262,7 +211,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PENDING_REVIEW)
                 .orElse(null);
         if (pending != null) {
-            throw new IllegalStateException("Phiên bản đang chờ duyệt nên không thể tiếp tục chỉnh sửa.");
+            return;
         }
         OnlineCourseVersion published = versionRepository
                 .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
@@ -278,10 +227,16 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     public void synchronizeDraftSnapshot(OnlineCourse course) {
-        versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+        OnlineCourseVersion editableVersion = versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
                 course,
                 CourseVersionStatus.DRAFT
-        ).ifPresent(version -> synchronizeSnapshot(version, course));
+        ).orElseGet(() -> versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PENDING_REVIEW
+        ).orElse(null));
+        if (editableVersion != null) {
+            synchronizeSnapshot(editableVersion, course);
+        }
     }
 
     @Override
@@ -316,8 +271,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     @Override
     @Transactional(readOnly = true)
-    public OnlineCourseResponse readEnrollmentSnapshot(PackageEnrollment enrollment, OnlineCourse liveCourse) {
-        OnlineCourseResponse response = readSnapshot(enrollment.getCourseVersion(), liveCourse);
+    public OnlineCourseResponse readLatestPublishedForEnrollment(PackageEnrollment enrollment, OnlineCourse liveCourse) {
+        OnlineCourseVersion published = findLatestPublishedVersion(liveCourse);
+        OnlineCourseResponse response = readSnapshot(published, liveCourse);
         response.setRegistered(true);
         response.setProgressPercent(enrollment.getProgressPercent());
         response.setEnrollmentId(enrollment.getId());
@@ -327,9 +283,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readPublishedSnapshot(OnlineCourse course, boolean includeLessonContent) {
-        OnlineCourseVersion published = versionRepository
-                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
-                .orElse(null);
+        OnlineCourseVersion published = findLatestPublishedVersion(course);
         OnlineCourseResponse response = readSnapshot(published, course);
         response.setStatus(PackageStatus.PUBLISHED);
         response.setRegistered(false);
@@ -342,11 +296,17 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<Long> getEnrollmentAssessmentIds(PackageEnrollment enrollment) {
-        OnlineCourseVersion version = enrollment == null ? null : enrollment.getCourseVersion();
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Long> getLatestPublishedAssessmentIds(PackageEnrollment enrollment) {
+        OnlineCourse course = resolveEnrollmentCourse(enrollment);
+        normalizeAssessmentProgressKeys(course);
+        OnlineCourseVersion version = findLatestPublishedVersion(course);
         if (version == null) {
-            return List.of();
+            return courseAssessmentRepository
+                    .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                    .stream()
+                    .map(CourseAssessment::getId)
+                    .toList();
         }
         try {
             List<Long> ids = objectMapper.readValue(
@@ -366,6 +326,25 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         }
     }
 
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<Long> getProgressBaselineAssessmentIds(PackageEnrollment enrollment) {
+        OnlineCourse course = resolveEnrollmentCourse(enrollment);
+        normalizeAssessmentProgressKeys(course);
+        OnlineCourseVersion baselineVersion = enrollment.getCourseVersion();
+        if (baselineVersion == null) {
+            baselineVersion = findLatestPublishedVersion(course);
+        }
+        if (baselineVersion == null) {
+            return courseAssessmentRepository
+                    .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                    .stream()
+                    .map(CourseAssessment::getId)
+                    .toList();
+        }
+        return readAssessmentIds(baselineVersion);
+    }
+
     private List<Long> readAssessmentIds(OnlineCourseVersion version) {
         try {
             return objectMapper.readValue(
@@ -374,6 +353,24 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             );
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Snapshot bài đánh giá của phiên bản không hợp lệ.", ex);
+        }
+    }
+
+    private void validateReadyToPublish(OnlineCourse course) {
+        List<CourseAssessmentResponse> assessments = courseAssessmentRepository
+                .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                .stream()
+                .map(this::toPreviewAssessmentResponse)
+                .toList();
+        List<String> blockingErrors = previewValidator.validate(mapper.toResponse(course), assessments).stream()
+                .filter(warning -> "ERROR".equalsIgnoreCase(warning.getSeverity()))
+                .map(warning -> warning.getMessage())
+                .distinct()
+                .toList();
+        if (!blockingErrors.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Không thể xuất bản vì nội dung chưa hợp lệ: " + String.join(" ", blockingErrors)
+            );
         }
     }
 
@@ -403,29 +400,23 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public void assertAssessmentBelongsToEnrollment(PackageEnrollment enrollment, Long assessmentId) {
-        if (enrollment.getCourseVersion() != null
-                && !getEnrollmentAssessmentIds(enrollment).contains(assessmentId)) {
-            throw new IllegalArgumentException("Bài đánh giá không thuộc phiên bản khóa học của enrollment này.");
+        if (!getLatestPublishedAssessmentIds(enrollment).contains(assessmentId)) {
+            throw new IllegalArgumentException("Bài đánh giá không thuộc phiên bản mới nhất của khóa học này.");
         }
     }
 
     @Override
     @Transactional(readOnly = true)
     public void assertLessonBelongsToEnrollment(PackageEnrollment enrollment, Long lessonId) {
-        if (enrollment.getCourseVersion() == null) {
-            return;
-        }
-        OnlineCourseResponse snapshot = readSnapshot(
-                enrollment.getCourseVersion(),
-                enrollment.getCourseVersion().getOnlineCourse()
-        );
+        OnlineCourse course = resolveEnrollmentCourse(enrollment);
+        OnlineCourseResponse snapshot = readSnapshot(findLatestPublishedVersion(course), course);
         boolean found = snapshot.getModules() != null && snapshot.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .anyMatch(lesson -> lessonId.equals(lesson.getId()));
         if (!found) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản khóa học của enrollment này.");
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
         }
     }
 
@@ -436,33 +427,193 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             Long lessonId,
             boolean completed
     ) {
-        if (enrollment.getCourseVersion() == null) {
-            return;
-        }
-        OnlineCourseResponse snapshot = readSnapshot(
-                enrollment.getCourseVersion(),
-                enrollment.getCourseVersion().getOnlineCourse()
-        );
+        OnlineCourse course = resolveEnrollmentCourse(enrollment);
+        OnlineCourseResponse snapshot = readSnapshot(findLatestPublishedVersion(course), course);
         List<Long> orderedLessonIds = snapshot.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .map(LessonResponse::getId)
                 .toList();
         int lessonIndex = orderedLessonIds.indexOf(lessonId);
         if (lessonIndex < 0) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản khóa học của enrollment này.");
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
+        }
+        if (!completed) {
+            return;
         }
         var completedLessonIds = lessonProgressRepository
                 .findByEnrollmentAndStatusOrderByCompletedAtDesc(enrollment, LessonProgressStatus.COMPLETED)
                 .stream()
                 .map(progress -> progress.getLesson().getId())
                 .collect(java.util.stream.Collectors.toSet());
-        if (completed && lessonIndex > 0 && !completedLessonIds.contains(orderedLessonIds.get(lessonIndex - 1))) {
+        int furthestCompletedIndex = completedLessonIds.stream()
+                .mapToInt(orderedLessonIds::indexOf)
+                .max()
+                .orElse(-1);
+        if (lessonIndex <= furthestCompletedIndex) {
+            return;
+        }
+        if (lessonIndex > 0 && !completedLessonIds.contains(orderedLessonIds.get(lessonIndex - 1))) {
             throw new IllegalStateException("Bạn cần hoàn thành bài học trước đó trong phiên bản này trước khi tiếp tục.");
         }
-        if (!completed && orderedLessonIds.subList(lessonIndex + 1, orderedLessonIds.size()).stream()
-                .anyMatch(completedLessonIds::contains)) {
-            throw new IllegalStateException("Không thể bỏ hoàn thành vì bạn đã học xong bài phía sau trong phiên bản này.");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isAssessmentReferencedByPublishedHistory(OnlineCourse course, Long assessmentId) {
+        if (course == null || assessmentId == null) {
+            return false;
         }
+        return versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course).stream()
+                .filter(version -> version.getStatus() == CourseVersionStatus.PUBLISHED
+                        || version.getStatus() == CourseVersionStatus.RETIRED)
+                .anyMatch(version -> readAssessmentIds(version).contains(assessmentId));
+    }
+
+    private void normalizeAssessmentProgressKeys(OnlineCourse course) {
+        List<OnlineCourseVersion> history = versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course)
+                .stream()
+                .filter(version -> version.getStatus() == CourseVersionStatus.PUBLISHED
+                        || version.getStatus() == CourseVersionStatus.RETIRED)
+                .sorted(Comparator.comparing(OnlineCourseVersion::getVersionNumber))
+                .toList();
+        if (history.isEmpty()) {
+            return;
+        }
+
+        List<CourseAssessment> changed = new ArrayList<>();
+        List<CourseAssessment> previousAssessments = List.of();
+        for (OnlineCourseVersion version : history) {
+            List<Long> assessmentIds = readAssessmentIds(version);
+            List<CourseAssessment> assessments = orderAssessmentsBySnapshotIds(assessmentIds);
+            Set<String> usedProgressKeys = new HashSet<>();
+
+            for (int index = 0; index < assessments.size(); index++) {
+                CourseAssessment assessment = assessments.get(index);
+                if (assessment.getProgressKey() == null || assessment.getProgressKey().isBlank()) {
+                    CourseAssessment predecessor = findAssessmentPredecessor(
+                            assessment,
+                            previousAssessments,
+                            usedProgressKeys,
+                            index
+                    );
+                    String progressKey = predecessor == null ? null : predecessor.getProgressKey();
+                    if (progressKey == null || progressKey.isBlank()) {
+                        progressKey = UUID.randomUUID().toString();
+                    }
+                    assessment.setProgressKey(progressKey);
+                    changed.add(assessment);
+                }
+                usedProgressKeys.add(assessment.getProgressKey());
+            }
+            previousAssessments = assessments;
+        }
+
+        if (!changed.isEmpty()) {
+            courseAssessmentRepository.saveAll(changed);
+        }
+    }
+
+    private List<CourseAssessment> orderAssessmentsBySnapshotIds(List<Long> assessmentIds) {
+        if (assessmentIds == null || assessmentIds.isEmpty()) {
+            return List.of();
+        }
+        var assessmentsById = courseAssessmentRepository.findAllById(assessmentIds).stream()
+                .collect(java.util.stream.Collectors.toMap(CourseAssessment::getId, assessment -> assessment));
+        return assessmentIds.stream()
+                .map(assessmentsById::get)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private CourseAssessment findAssessmentPredecessor(
+            CourseAssessment assessment,
+            List<CourseAssessment> previousAssessments,
+            Set<String> usedProgressKeys,
+            int snapshotIndex
+    ) {
+        if (previousAssessments.isEmpty()) {
+            return null;
+        }
+
+        CourseAssessment sameId = previousAssessments.stream()
+                .filter(candidate -> Objects.equals(candidate.getId(), assessment.getId()))
+                .findFirst()
+                .orElse(null);
+        if (sameId != null) {
+            return sameId;
+        }
+
+        List<CourseAssessment> available = previousAssessments.stream()
+                .filter(candidate -> candidate.getProgressKey() != null)
+                .filter(candidate -> !usedProgressKeys.contains(candidate.getProgressKey()))
+                .toList();
+        if (assessment.getAssessmentBankItem() != null) {
+            CourseAssessment sameBankItem = available.stream()
+                    .filter(candidate -> candidate.getAssessmentBankItem() != null)
+                    .filter(candidate -> Objects.equals(
+                            candidate.getAssessmentBankItem().getId(),
+                            assessment.getAssessmentBankItem().getId()
+                    ))
+                    .findFirst()
+                    .orElse(null);
+            if (sameBankItem != null) {
+                return sameBankItem;
+            }
+        }
+
+        List<CourseAssessment> sameSlot = available.stream()
+                .filter(candidate -> sameAssessmentModule(candidate, assessment))
+                .filter(candidate -> Objects.equals(candidate.getDisplayOrder(), assessment.getDisplayOrder()))
+                .filter(candidate -> candidate.getType() == assessment.getType())
+                .filter(candidate -> candidate.getSkill() == assessment.getSkill())
+                .toList();
+        if (sameSlot.size() == 1) {
+            return sameSlot.get(0);
+        }
+
+        List<CourseAssessment> sameModuleAndKind = available.stream()
+                .filter(candidate -> sameAssessmentModule(candidate, assessment))
+                .filter(candidate -> candidate.getType() == assessment.getType())
+                .filter(candidate -> candidate.getSkill() == assessment.getSkill())
+                .toList();
+        if (sameModuleAndKind.size() == 1) {
+            return sameModuleAndKind.get(0);
+        }
+
+        if (snapshotIndex < previousAssessments.size()) {
+            CourseAssessment samePosition = previousAssessments.get(snapshotIndex);
+            if (samePosition.getProgressKey() != null
+                    && !usedProgressKeys.contains(samePosition.getProgressKey())) {
+                return samePosition;
+            }
+        }
+        return null;
+    }
+
+    private boolean sameAssessmentModule(CourseAssessment left, CourseAssessment right) {
+        Long leftModuleId = left.getModule() == null ? null : left.getModule().getId();
+        Long rightModuleId = right.getModule() == null ? null : right.getModule().getId();
+        return Objects.equals(leftModuleId, rightModuleId);
+    }
+
+    private OnlineCourseVersion findLatestPublishedVersion(OnlineCourse course) {
+        if (course == null) {
+            return null;
+        }
+        return versionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PUBLISHED)
+                .orElse(null);
+    }
+
+    private OnlineCourse resolveEnrollmentCourse(PackageEnrollment enrollment) {
+        if (enrollment == null) {
+            throw new IllegalArgumentException("Không tìm thấy enrollment khóa học.");
+        }
+        if (enrollment.getCourseVersion() != null && enrollment.getCourseVersion().getOnlineCourse() != null) {
+            return enrollment.getCourseVersion().getOnlineCourse();
+        }
+        return onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khóa học của enrollment này."));
     }
 
     @Override
@@ -491,7 +642,16 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         try {
             return objectMapper.readValue(version.getContentSnapshotJson(), OnlineCourseResponse.class);
         } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("Snapshot phiên bản khóa học không hợp lệ.", ex);
+            if (version.getStatus() == CourseVersionStatus.DRAFT
+                    || version.getStatus() == CourseVersionStatus.PENDING_REVIEW) {
+                return mapper.toResponse(fallbackCourse);
+            }
+            throw new IllegalStateException(
+                    "Không thể đọc snapshot v" + version.getVersionNumber()
+                            + " của khóa học " + version.getOnlineCourse().getId()
+                            + ". Dữ liệu phiên bản đã xuất bản cần được kiểm tra trước khi tiếp tục.",
+                    ex
+            );
         }
     }
 
@@ -520,7 +680,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
 
     private String writeSnapshot(OnlineCourse course) {
         try {
-            return objectMapper.writeValueAsString(mapper.toResponse(course));
+            String snapshot = objectMapper.writeValueAsString(mapper.toResponse(course));
+            objectMapper.readValue(snapshot, OnlineCourseResponse.class);
+            return snapshot;
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Không thể tạo snapshot cho phiên bản khóa học.", ex);
         }
@@ -552,12 +714,18 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         List<CourseAssessment> clones = source.stream()
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .map(assessment -> {
+                    String progressKey = assessment.getProgressKey();
+                    if (progressKey == null || progressKey.isBlank()) {
+                        progressKey = UUID.randomUUID().toString();
+                        assessment.setProgressKey(progressKey);
+                    }
                     assessment.setActive(false);
                     return CourseAssessment.builder()
                             .onlineCourse(assessment.getOnlineCourse())
                             .module(assessment.getModule())
                             .rubric(assessment.getRubric())
                             .assessmentBankItem(assessment.getAssessmentBankItem())
+                            .progressKey(progressKey)
                             .title(assessment.getTitle())
                             .description(assessment.getDescription())
                             .type(assessment.getType())
@@ -615,14 +783,6 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         User actor = requireUser(email);
         if (!ContentManagementRolePolicy.canEdit(actor)) {
             throw new AccessDeniedException("Bạn không có quyền chỉnh sửa phiên bản khóa học.");
-        }
-        return actor;
-    }
-
-    private User requireApprover(String email) {
-        User actor = requireUser(email);
-        if (!ContentManagementRolePolicy.canApprove(actor)) {
-            throw new AccessDeniedException("Bạn không có quyền duyệt phiên bản khóa học.");
         }
         return actor;
     }

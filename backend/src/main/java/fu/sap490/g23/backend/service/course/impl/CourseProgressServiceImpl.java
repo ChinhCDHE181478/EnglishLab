@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.service.course.*;
 import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
 import fu.sap490.g23.backend.dto.response.course.CourseCompletionStatus;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sap490.g23.backend.entity.course.LessonProgress;
@@ -33,6 +34,7 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
+    private final OnlineCourseVersionService onlineCourseVersionService;
 
     public PackageEnrollment refreshEnrollmentProgress(PackageEnrollment enrollment, OnlineCourse course, User student) {
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
@@ -44,15 +46,6 @@ public class CourseProgressServiceImpl implements CourseProgressService {
             enrollment.setStatus(snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE);
         }
         return enrollmentRepository.save(enrollment);
-    }
-
-    public void refreshCourseEnrollments(OnlineCourse course) {
-        List<PackageEnrollment> enrollments = enrollmentRepository.findByLearningPackage(course.getLearningPackage());
-        for (PackageEnrollment enrollment : enrollments) {
-            if (enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
-                refreshEnrollmentProgress(enrollment, course, enrollment.getStudent());
-            }
-        }
     }
 
     public CourseCompletionResponse buildCompletionResponse(PackageEnrollment enrollment, OnlineCourse course, User student) {
@@ -99,10 +92,12 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 totalLessons,
                 Math.toIntExact(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
         );
-        int completedAssessments = Math.min(
-                totalAssessments,
-                Math.toIntExact(assessmentSubmissionRepository.countCompletedAssessments(student, course, COMPLETED_ASSESSMENT_STATUSES))
+        List<CourseAssessment> baselineAssessments = courseAssessmentRepository.findAllById(
+                onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)
         );
+        int completedAssessments = Math.min(totalAssessments, (int) baselineAssessments.stream()
+                .filter(assessment -> hasCompletedSubmission(assessment, student))
+                .count());
         boolean completedRequiredLessons = totalLessons > 0 && completedLessons >= totalLessons;
         boolean completedRequiredAssessments = totalAssessments == 0 || completedAssessments >= totalAssessments;
         boolean hasEnoughDataForCertificate = totalLessons > 0;
@@ -125,6 +120,26 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 latestProgress == null ? null : latestProgress.getLesson().getId(),
                 latestProgress == null ? null : latestProgress.getLesson().getTitle(),
                 latestProgress == null ? null : resolveLatestAccessTime(latestProgress)
+        );
+    }
+
+    private boolean hasCompletedSubmission(CourseAssessment assessment, User student) {
+        if (assessment.getProgressKey() == null || assessment.getProgressKey().isBlank()) {
+            return assessmentSubmissionRepository.existsByAssessmentAndStudentAndStatusIn(
+                    assessment,
+                    student,
+                    COMPLETED_ASSESSMENT_STATUSES
+            );
+        }
+        boolean completedInLineage = assessmentSubmissionRepository.existsByAssessmentProgressKeyAndStudentAndStatusIn(
+                assessment.getProgressKey(),
+                student,
+                COMPLETED_ASSESSMENT_STATUSES
+        );
+        return completedInLineage || assessmentSubmissionRepository.existsByAssessmentAndStudentAndStatusIn(
+                assessment,
+                student,
+                COMPLETED_ASSESSMENT_STATUSES
         );
     }
 

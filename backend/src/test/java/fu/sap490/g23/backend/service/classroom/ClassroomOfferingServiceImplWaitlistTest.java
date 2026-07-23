@@ -1,18 +1,16 @@
 package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.AssignToClassRequest;
-import fu.sap490.g23.backend.dto.request.classroom.RegisterClassRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ReorderWaitlistRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
@@ -29,7 +27,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,6 +63,103 @@ class ClassroomOfferingServiceImplWaitlistTest {
 
     @InjectMocks
     private ClassroomOfferingServiceImpl service;
+
+    @Test
+    void getMyClasses_ReturnsOnlyStaffAssignedClassrooms() {
+        long learnerId = 7L;
+        long offeringId = 10L;
+        User learner = User.builder().id(learnerId).email("learner@example.com").build();
+        ClassroomOffering offering = ClassroomOffering.builder()
+                .id(offeringId)
+                .learningPackage(LearningPackage.builder().id(20L).build())
+                .build();
+        ClassroomEnrollment assigned = ClassroomEnrollment.builder()
+                .id(30L)
+                .student(learner)
+                .classroomOffering(offering)
+                .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                .build();
+        ClassroomOfferingResponse mapped = ClassroomOfferingResponse.builder()
+                .id(offeringId)
+                .hasClassAccess(true)
+                .build();
+
+        when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
+        when(enrollmentRepository.findByStudentIdAndRegistrationStatusIn(
+                learnerId,
+                ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
+        )).thenReturn(List.of(assigned));
+        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+                .thenReturn(Optional.of(assigned));
+        when(mapper.toOfferingResponse(offering, false, learnerId, assigned, false)).thenReturn(mapped);
+
+        List<ClassroomOfferingResponse> result = service.getMyClasses(learner.getEmail());
+
+        assertEquals(List.of(mapped), result);
+        verify(enrollmentRepository).findByStudentIdAndRegistrationStatusIn(
+                learnerId,
+                ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
+        );
+    }
+
+    @Test
+    void getLearnerOffering_RejectsLegacyPendingEnrollment() {
+        long learnerId = 7L;
+        long offeringId = 10L;
+        User learner = User.builder().id(learnerId).email("learner@example.com").build();
+        ClassroomEnrollment pending = ClassroomEnrollment.builder()
+                .student(learner)
+                .classroomOffering(ClassroomOffering.builder().id(offeringId).build())
+                .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
+                .build();
+
+        when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
+        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+                .thenReturn(Optional.of(pending));
+
+        RuntimeException error = assertThrows(
+                RuntimeException.class,
+                () -> service.getLearnerOffering(offeringId, learner.getEmail())
+        );
+
+        assertTrue(error.getMessage().contains("không có quyền"));
+        verify(offeringRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void getLearnerOffering_IncludesAssignedEnrollmentAccess() {
+        long learnerId = 7L;
+        long offeringId = 10L;
+        User learner = User.builder().id(learnerId).email("learner@example.com").build();
+        ClassroomOffering offering = ClassroomOffering.builder()
+                .id(offeringId)
+                .learningPackage(LearningPackage.builder().id(20L).build())
+                .build();
+        ClassroomEnrollment assigned = ClassroomEnrollment.builder()
+                .id(30L)
+                .student(learner)
+                .classroomOffering(offering)
+                .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                .build();
+        ClassroomOfferingResponse mapped = ClassroomOfferingResponse.builder()
+                .id(offeringId)
+                .enrollmentId(assigned.getId())
+                .hasClassAccess(true)
+                .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
+                .build();
+
+        when(accessHelper.requireUser(learner.getEmail())).thenReturn(learner);
+        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learnerId, offeringId))
+                .thenReturn(Optional.of(assigned));
+        when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
+        when(mapper.toOfferingResponse(offering, true, learnerId, assigned, true)).thenReturn(mapped);
+
+        ClassroomOfferingResponse result = service.getLearnerOffering(offeringId, learner.getEmail());
+
+        assertEquals(assigned.getId(), result.getEnrollmentId());
+        assertTrue(result.isHasClassAccess());
+        assertEquals(ClassroomRegistrationStatus.ASSIGNED, result.getRegistrationStatus());
+    }
 
     @Test
     void reorderWaitlist_UpdatesEveryPositionInRequestedOrder() {
@@ -145,116 +239,6 @@ class ClassroomOfferingServiceImplWaitlistTest {
     }
 
     @Test
-    void registerForClass_AppendsLearnerToEndOfWaitlist() {
-        long offeringId = 10L;
-        User learner = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(20L)
-                .status(PackageStatus.PUBLISHED)
-                .build();
-        ClassroomOffering offering = ClassroomOffering.builder()
-                .id(offeringId)
-                .learningPackage(learningPackage)
-                .status(ClassroomOfferingStatus.UPCOMING)
-                .startDate(LocalDate.now().plusDays(10))
-                .maxCapacity(1)
-                .build();
-        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
-        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
-                eq(learner.getId()),
-                eq(offeringId),
-                anyCollection()
-        )).thenReturn(false);
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId))
-                .thenReturn(List.of());
-        when(enrollmentRepository.countByOfferingAndRegistrationStatuses(eq(offeringId), anyCollection()))
-                .thenReturn(1L);
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId))
-                .thenReturn(Optional.empty());
-        when(offeringRepository.findByIdForUpdate(offeringId)).thenReturn(Optional.of(offering));
-        when(enrollmentRepository.findMaxWaitlistPriority(offeringId, ClassroomRegistrationStatus.WAITLIST))
-                .thenReturn(2);
-        when(enrollmentRepository.saveAndFlush(any(ClassroomEnrollment.class)))
-                .thenAnswer(invocation -> {
-                    ClassroomEnrollment saved = invocation.getArgument(0);
-                    saved.setId(30L);
-                    return saved;
-                });
-        when(mapper.toEnrollmentResponse(any(ClassroomEnrollment.class)))
-                .thenAnswer(invocation -> {
-                    ClassroomEnrollment saved = invocation.getArgument(0);
-                    return ClassroomEnrollmentResponse.builder()
-                            .waitlistPosition(saved.getWaitlistPriority())
-                            .build();
-                });
-
-        ClassroomEnrollmentResponse response =
-                service.registerForClass(offeringId, new RegisterClassRequest(), "learner@example.com");
-
-        assertEquals(3, response.getWaitlistPosition());
-        verify(enrollmentRepository).saveAndFlush(argThat(enrollment ->
-                enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST
-                        && enrollment.getWaitlistPriority() == 3
-        ));
-        verifyNoInteractions(packageEnrollmentRepository);
-        verifyNoInteractions(gradebookEntryRepository);
-    }
-
-    @Test
-    void registerForClass_WhenSeatAvailable_WaitsForPaymentWithoutLearningAccess() {
-        long offeringId = 10L;
-        User learner = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
-        LearningPackage learningPackage = LearningPackage.builder()
-                .id(20L)
-                .status(PackageStatus.PUBLISHED)
-                .price(java.math.BigDecimal.valueOf(5_000_000L))
-                .build();
-        ClassroomOffering offering = ClassroomOffering.builder()
-                .id(offeringId)
-                .learningPackage(learningPackage)
-                .status(ClassroomOfferingStatus.UPCOMING)
-                .startDate(LocalDate.now().plusDays(10))
-                .maxCapacity(20)
-                .build();
-
-        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(offeringRepository.findById(offeringId)).thenReturn(Optional.of(offering));
-        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
-                eq(learner.getId()), eq(offeringId), anyCollection()
-        )).thenReturn(false);
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId))
-                .thenReturn(List.of());
-        when(enrollmentRepository.countByOfferingAndRegistrationStatuses(eq(offeringId), anyCollection()))
-                .thenReturn(0L);
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId))
-                .thenReturn(Optional.empty());
-        when(enrollmentRepository.saveAndFlush(any(ClassroomEnrollment.class)))
-                .thenAnswer(invocation -> {
-                    ClassroomEnrollment saved = invocation.getArgument(0);
-                    saved.setId(31L);
-                    return saved;
-                });
-        when(mapper.toEnrollmentResponse(any(ClassroomEnrollment.class)))
-                .thenAnswer(invocation -> {
-                    ClassroomEnrollment saved = invocation.getArgument(0);
-                    return ClassroomEnrollmentResponse.builder()
-                            .id(saved.getId())
-                            .registrationStatus(saved.getRegistrationStatus())
-                            .hasClassAccess(saved.hasClassAccess())
-                            .build();
-                });
-
-        ClassroomEnrollmentResponse response =
-                service.registerForClass(offeringId, new RegisterClassRequest(), "learner@example.com");
-
-        assertEquals(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT, response.getRegistrationStatus());
-        assertEquals(false, response.isHasClassAccess());
-        verifyNoInteractions(packageEnrollmentRepository);
-        verifyNoInteractions(gradebookEntryRepository);
-    }
-
-    @Test
     void assignToClass_RejectsEnrollmentBeforeFullPayment() {
         User manager = User.builder().id(99L).email("manager@example.com").build();
         User learner = User.builder().id(7L).email("learner@example.com").build();
@@ -301,44 +285,6 @@ class ClassroomOfferingServiceImplWaitlistTest {
 
         assertTrue(ex.getMessage().contains("danh sách chờ"));
         verifyNoInteractions(tuitionPaymentRepository);
-    }
-
-    @Test
-    void cancelMyRegistration_CompactsRemainingWaitlist() {
-        long offeringId = 10L;
-        User learner = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
-        LearningPackage learningPackage = LearningPackage.builder().title("TOEIC").build();
-        ClassroomOffering offering = ClassroomOffering.builder()
-                .id(offeringId)
-                .learningPackage(learningPackage)
-                .maxCapacity(1)
-                .build();
-        ClassroomEnrollment cancelled = waitlistedEnrollment(1L, offering, 1);
-        cancelled.setStudent(learner);
-        ClassroomEnrollment second = waitlistedEnrollment(2L, offering, 2);
-        ClassroomEnrollment third = waitlistedEnrollment(3L, offering, 3);
-
-        when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId))
-                .thenReturn(Optional.of(cancelled));
-        when(enrollmentRepository.saveAndFlush(cancelled)).thenReturn(cancelled);
-        when(offeringRepository.findByIdForUpdate(offeringId)).thenReturn(Optional.of(offering));
-        when(enrollmentRepository
-                .findByClassroomOfferingIdAndRegistrationStatusOrderByWaitlistPriorityAscEnrolledAtAscIdAsc(
-                        offeringId,
-                        ClassroomRegistrationStatus.WAITLIST
-                ))
-                .thenReturn(List.of(second, third));
-        when(enrollmentRepository.countByOfferingAndRegistrationStatuses(eq(offeringId), anyCollection()))
-                .thenReturn(1L);
-        when(mapper.toEnrollmentResponse(cancelled))
-                .thenReturn(ClassroomEnrollmentResponse.builder().id(cancelled.getId()).build());
-
-        service.cancelMyRegistration(offeringId, "learner@example.com");
-
-        assertEquals(1, second.getWaitlistPriority());
-        assertEquals(2, third.getWaitlistPriority());
-        verify(enrollmentRepository).saveAll(List.of(second, third));
     }
 
     private ClassroomEnrollment waitlistedEnrollment(

@@ -7,8 +7,10 @@ import AssessmentExamBuilder from '../../components/content-manager/AssessmentEx
 import CourseVersionPanel from '../../components/content-manager/CourseVersionPanel';
 import { formatModuleTitle, stripModuleOrdinal } from '../../utils/courseModuleTitle';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   IELTS_MAX_BAND,
   normalizeAssessmentMaxScore,
@@ -16,6 +18,7 @@ import {
   usesBandScale,
 } from '../../utils/ieltsBandScale';
 import { persistOptimisticReorder, reorderItems } from '../../utils/courseReorder';
+import { createCourseBuilderFingerprint } from '../../utils/courseBuilderState';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
 
@@ -148,6 +151,7 @@ const buildAssessmentPayload = (items, localModules, persistedModules) => {
 };
 
 export default function ContentManagerCourseBuilderPage() {
+  const { alert: alertDialog, confirm: confirmDialog } = useAppDialog();
   const { slugOrId } = useParams();
   const [searchParams] = useSearchParams();
   const [course, setCourse] = useState(null);
@@ -172,6 +176,8 @@ export default function ContentManagerCourseBuilderPage() {
   const [toasts, setToasts] = useState([]);
   const [versions, setVersions] = useState([]);
   const [versionBusy, setVersionBusy] = useState(false);
+  const [savedBuilderFingerprint, setSavedBuilderFingerprint] = useState('');
+  const [validationIssue, setValidationIssue] = useState(null);
   const handledRouteTargetRef = useRef('');
 
   const pushToast = (message, type = 'success') => {
@@ -207,6 +213,7 @@ export default function ContentManagerCourseBuilderPage() {
 
         if (!normalizedCourse.id) {
           setAssessments([]);
+          setSavedBuilderFingerprint(createCourseBuilderFingerprint(normalizedCourse, []));
           return;
         }
 
@@ -215,8 +222,10 @@ export default function ContentManagerCourseBuilderPage() {
           courseApi.getOnlineCourseVersions(normalizedCourse.id),
         ]);
         if (!active) return;
-        setAssessments(normalizeAssessmentStructure(assessmentItems, normalizedCourse.modules));
+        const normalizedAssessments = normalizeAssessmentStructure(assessmentItems, normalizedCourse.modules);
+        setAssessments(normalizedAssessments);
         setVersions(versionItems);
+        setSavedBuilderFingerprint(createCourseBuilderFingerprint(normalizedCourse, normalizedAssessments));
       } catch {
         if (active) setError('Không tải được dữ liệu builder.');
       }
@@ -230,10 +239,23 @@ export default function ContentManagerCourseBuilderPage() {
   }, [slugOrId]);
 
   const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
+  const publishableVersion = useMemo(
+    () => versions.find((version) => version.status === 'DRAFT')
+      || versions.find((version) => version.status === 'PENDING_REVIEW')
+      || null,
+    [versions],
+  );
   const courseRequiresNewVersion = useMemo(
     () => versions.some((version) => version.status === 'PUBLISHED') && !editableVersion,
     [editableVersion, versions],
   );
+  const currentBuilderFingerprint = useMemo(
+    () => createCourseBuilderFingerprint(course, assessments),
+    [assessments, course],
+  );
+  const hasUnsavedChanges = Boolean(savedBuilderFingerprint)
+    && currentBuilderFingerprint !== savedBuilderFingerprint;
+  const editorLocked = Boolean(course && !editableVersion);
 
   useEffect(() => {
     if (!course) return;
@@ -271,6 +293,34 @@ export default function ContentManagerCourseBuilderPage() {
   const activeModuleKey = resolveModuleKey(activeModule);
   const moduleAssessments = assessments.filter((assessment) => assessment.moduleKey === activeModuleKey);
   const courseLevelAssessments = assessments.filter((assessment) => assessment.moduleKey === COURSE_LEVEL_KEY);
+
+  const showValidationIssue = async (issue) => {
+    if (!issue) return;
+
+    setError(issue.message);
+    setValidationIssue(issue);
+    pushToast(issue.message, 'error');
+
+    await alertDialog(issue.message, {
+      title: 'Nội dung chưa hợp lệ',
+      confirmLabel: issue.assessmentKey ? 'Đi đến bài kiểm tra' : 'Đã hiểu',
+      tone: 'danger',
+    });
+
+    if (!issue.assessmentKey) return;
+
+    if (issue.moduleKey && issue.moduleKey !== COURSE_LEVEL_KEY) {
+      const targetModuleIndex = modules.findIndex((module) => resolveModuleKey(module) === issue.moduleKey);
+      if (targetModuleIndex >= 0) {
+        setActiveModuleIndex(targetModuleIndex);
+        setActiveLessonIndex(0);
+      }
+    }
+    setLessonModalOpen(false);
+    window.setTimeout(() => {
+      document.getElementById(getAssessmentEditorId(issue))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 180);
+  };
   const assessmentBankOptions = useMemo(
     () => buildAssessmentBankOptions(assessmentBankItems),
     [assessmentBankItems],
@@ -510,17 +560,22 @@ export default function ContentManagerCourseBuilderPage() {
     pushToast('Đã gỡ bài kiểm tra khỏi nội dung khóa học.', 'warning');
   };
 
-  const deleteModule = (moduleIndex) => {
+  const deleteModule = async (moduleIndex) => {
     const module = modules[moduleIndex];
     if (!module) return;
 
     const assessmentCount = assessments.filter(
       (assessment) => assessment.moduleKey === resolveModuleKey(module),
     ).length;
-    const confirmed = window.confirm(
+    const confirmed = await confirmDialog(
       `Xóa mô-đun "${module.title}" cùng ${module.lessons?.length || 0} bài học`
       + `${assessmentCount ? ` và ${assessmentCount} bài kiểm tra` : ''}? `
       + 'Thay đổi sẽ được ghi nhận khi bạn bấm Lưu thay đổi.',
+      {
+        title: 'Xóa mô-đun',
+        confirmLabel: 'Xóa mô-đun',
+        tone: 'danger',
+      },
     );
     if (!confirmed) return;
 
@@ -631,11 +686,18 @@ export default function ContentManagerCourseBuilderPage() {
     }
   };
 
-  const deleteLesson = (lessonIndex) => {
+  const deleteLesson = async (lessonIndex) => {
     const lesson = lessons[lessonIndex];
     if (!lesson) return;
 
-    const confirmed = !lesson.id || window.confirm(`Xóa bài học "${lesson.title}"? Thay đổi sẽ được ghi nhận khi bạn bấm Lưu thay đổi.`);
+    const confirmed = !lesson.id || await confirmDialog(
+      `Xóa bài học “${lesson.title}”? Thay đổi sẽ được ghi nhận khi bạn bấm Lưu thay đổi.`,
+      {
+        title: 'Xóa bài học',
+        confirmLabel: 'Xóa bài học',
+        tone: 'danger',
+      },
+    );
     if (!confirmed) return;
 
     setCourse((current) => {
@@ -735,11 +797,12 @@ export default function ContentManagerCourseBuilderPage() {
       return false;
     }
 
+    if (!hasUnsavedChanges) return true;
+
     setError('');
-    const inputValidationMessage = validateBuilderState(modules, assessments, { allowTranscriptOverlap: true });
-    if (inputValidationMessage) {
-      setError(inputValidationMessage);
-      pushToast(inputValidationMessage, 'error');
+    const inputValidationIssue = validateBuilderState(modules, assessments, { allowTranscriptOverlap: true });
+    if (inputValidationIssue) {
+      await showValidationIssue(inputValidationIssue);
       return false;
     }
     const modulesForSave = modules.map((module) => ({
@@ -749,10 +812,9 @@ export default function ContentManagerCourseBuilderPage() {
         transcriptSegments: normalizeTranscriptTimeline(lesson.transcriptSegments),
       })),
     }));
-    const validationMessage = validateBuilderState(modulesForSave, assessments);
-    if (validationMessage) {
-      setError(validationMessage);
-      pushToast(validationMessage, 'error');
+    const normalizedValidationIssue = validateBuilderState(modulesForSave, assessments);
+    if (normalizedValidationIssue) {
+      await showValidationIssue(normalizedValidationIssue);
       return false;
     }
 
@@ -810,8 +872,11 @@ export default function ContentManagerCourseBuilderPage() {
       const assessmentPayload = buildAssessmentPayload(assessments, modulesForSave, normalizedCourse.modules);
       const updatedAssessments = await courseApi.saveManagedCourseAssessments(normalizedCourse.id, assessmentPayload);
 
+      const normalizedAssessments = normalizeAssessmentStructure(updatedAssessments, normalizedCourse.modules);
       setCourse(normalizedCourse);
-      setAssessments(normalizeAssessmentStructure(updatedAssessments, normalizedCourse.modules));
+      setAssessments(normalizedAssessments);
+      setSavedBuilderFingerprint(createCourseBuilderFingerprint(normalizedCourse, normalizedAssessments));
+      setValidationIssue(null);
       pushToast('Đã lưu thay đổi nội dung khóa học.');
       return true;
     } catch (err) {
@@ -834,7 +899,7 @@ export default function ContentManagerCourseBuilderPage() {
         changeNote || 'Cập nhật cấu trúc và nội dung khóa học.',
       );
       setVersions(await courseApi.getOnlineCourseVersions(course.id));
-      pushToast('Đã tạo bản nháp mới. Học viên hiện tại vẫn tiếp tục học phiên bản cũ.');
+      pushToast('Đã tạo bản nháp mới. Học viên vẫn học bản đang xuất bản cho đến khi bản nháp mới được xuất bản.');
     } catch (err) {
       const message = err?.response?.data?.message || 'Không thể tạo phiên bản mới.';
       setError(message);
@@ -844,20 +909,32 @@ export default function ContentManagerCourseBuilderPage() {
     }
   };
 
-  const handleSubmitVersion = async () => {
-    if (!course?.id || !editableVersion) return;
+  const handlePublishVersion = async (version = publishableVersion) => {
+    if (!course?.id || !version) return;
 
-    const saved = await handleSave();
-    if (!saved) return;
+    const confirmed = await confirmDialog(
+      'Sau khi xuất bản, mọi học viên sẽ nhận nội dung phiên bản này; các bài đã hoàn thành vẫn được giữ nguyên.',
+      {
+        title: `Xuất bản phiên bản v${version.versionNumber}`,
+        confirmLabel: 'Xuất bản',
+      },
+    );
+    if (!confirmed) return;
+
+    if (hasUnsavedChanges) {
+      const saved = await handleSave();
+      if (!saved) return;
+    }
 
     setVersionBusy(true);
     setError('');
     try {
-      await courseApi.submitOnlineCourseVersion(course.id, editableVersion.id);
+      await courseApi.publishOnlineCourseVersion(course.id, version.id);
       setVersions(await courseApi.getOnlineCourseVersions(course.id));
-      pushToast(`Đã gửi phiên bản v${editableVersion.versionNumber} cho Manager duyệt.`);
+      setLessonModalOpen(false);
+      pushToast(`Đã xuất bản phiên bản v${version.versionNumber}.`);
     } catch (err) {
-      const message = err?.response?.data?.message || 'Không thể gửi phiên bản cho Manager duyệt.';
+      const message = err?.response?.data?.message || 'Không thể xuất bản phiên bản.';
       setError(message);
       pushToast(message, 'error');
     } finally {
@@ -885,8 +962,24 @@ export default function ContentManagerCourseBuilderPage() {
           </Link>
         ) : null}
         {course ? (
-          <button className="ml-auto rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={saving || reordering || versionBusy || courseRequiresNewVersion} onClick={handleSave} type="button">
-            {reordering ? 'Đang đồng bộ thứ tự...' : saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+          <button
+            className={`ml-auto rounded-2xl px-4 py-3 text-sm font-semibold transition ${hasUnsavedChanges && !editorLocked
+              ? 'bg-[#8a0018] text-white shadow-[0_8px_24px_rgba(138,0,24,0.22)] hover:bg-[#6f0013]'
+              : 'cursor-not-allowed bg-slate-200 text-slate-500'}`}
+            disabled={saving || reordering || versionBusy || editorLocked || !hasUnsavedChanges}
+            onClick={handleSave}
+            title={editorLocked ? 'Tạo phiên bản mới trước khi chỉnh sửa.' : hasUnsavedChanges ? 'Lưu nội dung đang chỉnh sửa.' : 'Không có thay đổi chưa lưu.'}
+            type="button"
+          >
+            {reordering
+              ? 'Đang đồng bộ thứ tự...'
+              : saving
+                ? 'Đang lưu...'
+                : editorLocked
+                  ? 'Nội dung đã khóa'
+                  : hasUnsavedChanges
+                    ? 'Lưu thay đổi'
+                    : 'Đã lưu'}
           </button>
         ) : null}
       </div>
@@ -896,17 +989,31 @@ export default function ContentManagerCourseBuilderPage() {
       {course ? (
         <CourseVersionPanel
           busy={saving || reordering || versionBusy}
+          hasUnsavedChanges={hasUnsavedChanges}
           onCreateDraft={handleCreateVersion}
-          onSubmitReview={handleSubmitVersion}
+          onPublish={handlePublishVersion}
           previewBasePath={`/content-manager/courses/${course.slug}/preview`}
           versions={versions}
         />
       ) : null}
 
+      {courseRequiresNewVersion ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-extrabold">Nội dung đang xuất bản đã được khóa.</p>
+            <p className="mt-1 leading-6">Bấm <strong>Tạo phiên bản</strong> ở khu vực phía trên để tạo bản nháp mới rồi mới thêm, sửa hoặc xóa module.</p>
+          </div>
+        </div>
+      ) : null}
+
       {!course ? (
         <div className="rounded-2xl border border-[#dfbfbd]/55 bg-white px-5 py-8 text-sm text-[#584140]">Đang tải khu vực biên soạn...</div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div
+          aria-disabled={editorLocked}
+          className={`grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)] ${editorLocked ? 'pointer-events-none select-none opacity-55 grayscale-[0.15]' : ''}`}
+        >
           <Panel className="overflow-hidden p-0">
             <div className="flex items-center justify-between border-b border-[#f0e3e4] px-5 py-4">
               <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Mô-đun</h2>
@@ -990,12 +1097,18 @@ export default function ContentManagerCourseBuilderPage() {
 
           <div className="space-y-4">
             <Panel className="p-6" id="course-assessments">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <TextField label="Tên mô-đun (không nhập số thứ tự)" onChange={updateModule('title')} value={activeModule?.title || ''} />
-                  <p className="mt-1.5 text-xs text-[#8b706e]">Hệ thống tự gắn “Module {activeModuleIndex + 1}” và cập nhật ngay khi đổi thứ tự.</p>
+              <div className="space-y-4">
+                <div className="max-w-xl">
+                  <TextField label="Tên mô-đun" onChange={updateModule('title')} value={activeModule?.title || ''} />
+                  {/* <p className="mt-1.5 text-xs text-[#8b706e]">Hệ thống tự gắn “Module {activeModuleIndex + 1}” và cập nhật ngay khi đổi thứ tự.</p> */}
                 </div>
-                <TextField label="Mô tả mô-đun" onChange={updateModule('description')} value={activeModule?.description || ''} />
+                <RichTextEditor
+                  label="Mô tả mô-đun"
+                  onChange={(html) => updateModule('description')({ target: { value: html } })}
+                  placeholder="Mô tả mô-đun..."
+                  size="compact"
+                  value={activeModule?.description || ''}
+                />
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={addLesson} type="button">
@@ -1017,7 +1130,9 @@ export default function ContentManagerCourseBuilderPage() {
                   {activeLesson ? (
                     <>
                       <h3 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c]">{activeLesson.title}</h3>
-                      <p className="mt-2 max-w-4xl text-sm leading-6 text-[#584140]">{activeLesson.description || 'Chưa có mô tả cho bài học này.'}</p>
+                      {activeLesson.description
+                        ? <RichTextHtml className="mt-2 max-w-4xl text-sm leading-6 text-[#584140]" value={activeLesson.description} />
+                        : <p className="mt-2 max-w-4xl text-sm leading-6 text-[#584140]">Chưa có mô tả cho bài học này.</p>}
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
                         <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-3 text-sm">
                           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8b706e]">Loại nội dung</p>
@@ -1191,6 +1306,7 @@ export default function ContentManagerCourseBuilderPage() {
                     <AssessmentEditorCard
                       key={assessment.localKey}
                       assessment={assessment}
+                      validationMessage={validationIssue?.assessmentKey === assessment.localKey ? validationIssue.message : ''}
                       rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
                       onDelete={() => deleteAssessment(assessment.localKey)}
                       onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
@@ -1224,6 +1340,7 @@ export default function ContentManagerCourseBuilderPage() {
                     <AssessmentEditorCard
                       key={assessment.localKey}
                       assessment={assessment}
+                      validationMessage={validationIssue?.assessmentKey === assessment.localKey ? validationIssue.message : ''}
                       rubricOptions={buildRubricOptions(rubrics, assessment.skill)}
                       onDelete={() => deleteAssessment(assessment.localKey)}
                       onFieldChange={(field, value) => updateAssessment(assessment.localKey, field, value)}
@@ -1301,22 +1418,23 @@ function normalizeCourseStructure(course) {
   };
 }
 
-function validateBuilderState(modules, assessments, { allowTranscriptOverlap = false } = {}) {
+export function validateBuilderState(modules, assessments, { allowTranscriptOverlap = false } = {}) {
   for (let moduleIndex = 0; moduleIndex < modules.length; moduleIndex += 1) {
     const module = modules[moduleIndex];
+    const moduleKey = resolveModuleKey(module);
     if (!String(module.title || '').trim()) {
-      return `Mô-đun ${moduleIndex + 1} chưa có tên.`;
+      return { message: `Mô-đun ${moduleIndex + 1} chưa có tên.`, moduleKey };
     }
     for (let lessonIndex = 0; lessonIndex < (module.lessons || []).length; lessonIndex += 1) {
       const lesson = module.lessons[lessonIndex];
       if (!String(lesson.title || '').trim()) {
-        return `Bài học ${lessonIndex + 1} trong mô-đun "${module.title}" chưa có tên.`;
+        return { message: `Bài học ${lessonIndex + 1} trong mô-đun "${module.title}" chưa có tên.`, moduleKey };
       }
       const duration = lesson.durationMinutes === '' || lesson.durationMinutes == null
         ? 0
         : Number(lesson.durationMinutes);
       if (!Number.isFinite(duration) || duration < 0) {
-        return `Thời lượng của bài học "${lesson.title}" không hợp lệ.`;
+        return { message: `Thời lượng của bài học "${lesson.title}" không hợp lệ.`, moduleKey };
       }
       const transcriptSegments = Array.isArray(lesson.transcriptSegments) ? lesson.transcriptSegments : [];
       for (let segmentIndex = 0; segmentIndex < transcriptSegments.length; segmentIndex += 1) {
@@ -1324,13 +1442,13 @@ function validateBuilderState(modules, assessments, { allowTranscriptOverlap = f
         const startSeconds = Number(segment?.startSeconds);
         const endSeconds = Number(segment?.endSeconds);
         if (!String(segment?.text || '').trim()) {
-          return `Đoạn chép lời ${segmentIndex + 1} của bài học "${lesson.title}" chưa có nội dung.`;
+          return { message: `Đoạn chép lời ${segmentIndex + 1} của bài học "${lesson.title}" chưa có nội dung.`, moduleKey };
         }
         if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || startSeconds < 0 || endSeconds <= startSeconds) {
-          return `Mốc thời gian của đoạn chép lời ${segmentIndex + 1} trong bài học "${lesson.title}" không hợp lệ.`;
+          return { message: `Mốc thời gian của đoạn chép lời ${segmentIndex + 1} trong bài học "${lesson.title}" không hợp lệ.`, moduleKey };
         }
         if (!allowTranscriptOverlap && segmentIndex > 0 && startSeconds < Number(transcriptSegments[segmentIndex - 1]?.endSeconds)) {
-          return `Các đoạn chép lời trong bài học "${lesson.title}" đang bị chồng thời gian.`;
+          return { message: `Các đoạn chép lời trong bài học "${lesson.title}" đang bị chồng thời gian.`, moduleKey };
         }
       }
     }
@@ -1339,42 +1457,76 @@ function validateBuilderState(modules, assessments, { allowTranscriptOverlap = f
   for (let index = 0; index < assessments.length; index += 1) {
     const assessment = assessments[index];
     if (!String(assessment.title || '').trim()) {
-      return `Bài kiểm tra ${index + 1} chưa có tên.`;
+      return createAssessmentValidationIssue(assessment, modules, index, 'chưa có tên.');
     }
     const maxScore = Number(assessment.maxScore);
     const passingScore = assessment.passingScore === '' || assessment.passingScore == null
       ? null
       : Number(assessment.passingScore);
     if (!Number.isFinite(maxScore) || maxScore <= 0) {
-      return `Điểm tối đa của bài kiểm tra "${assessment.title}" phải lớn hơn 0.`;
+      return createAssessmentValidationIssue(assessment, modules, index, 'điểm tối đa phải lớn hơn 0.');
     }
     if (usesBandScale(assessment) && maxScore > IELTS_MAX_BAND) {
-      return `Điểm tối đa của bài kiểm tra "${assessment.title}" không được vượt quá band ${IELTS_MAX_BAND}.`;
+      return createAssessmentValidationIssue(assessment, modules, index, `điểm tối đa không được vượt quá band ${IELTS_MAX_BAND}.`);
     }
     if (passingScore != null && (!Number.isFinite(passingScore) || passingScore < 0 || passingScore > maxScore)) {
-      return `Điểm đạt của bài kiểm tra "${assessment.title}" phải nằm trong khoảng từ 0 đến điểm tối đa.`;
+      return createAssessmentValidationIssue(assessment, modules, index, 'điểm đạt phải nằm trong khoảng từ 0 đến điểm tối đa.');
     }
     if (assessment.aiEvaluationMode !== 'NONE' && !assessment.rubricId) {
-      return `Bài kiểm tra "${assessment.title}" cần chọn tiêu chí chấm.`;
+      return createAssessmentValidationIssue(assessment, modules, index, 'chưa chọn tiêu chí chấm.');
     }
-    const isStructuredObjectiveExam = ['LISTENING', 'READING'].includes(String(assessment.skill || '').toUpperCase())
-      && ['MODULE_TEST', 'MOCK_TEST'].includes(String(assessment.type || '').toUpperCase());
-    if (isStructuredObjectiveExam) {
+
+    const uiConfigJson = String(assessment.uiConfigJson || '').trim();
+    if (uiConfigJson) {
       try {
-        const uiConfig = JSON.parse(String(assessment.uiConfigJson || ''));
-        const answerKey = JSON.parse(String(assessment.objectiveAnswerKey || ''));
-        if (!Array.isArray(uiConfig.parts) || !uiConfig.parts.length) {
-          return `Bài kiểm tra "${assessment.title}" chưa có cấu trúc đề thi.`;
+        const uiConfig = JSON.parse(uiConfigJson);
+        if (!uiConfig || typeof uiConfig !== 'object' || Array.isArray(uiConfig)) {
+          return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề thi phải là một JSON object.');
         }
-        if (!answerKey || typeof answerKey !== 'object' || Array.isArray(answerKey)) {
-          return `Bài kiểm tra "${assessment.title}" chưa có đáp án hợp lệ.`;
+
+        const skill = String(assessment.skill || '').toUpperCase();
+        if (['LISTENING', 'READING'].includes(skill)) {
+          const answerKey = JSON.parse(String(assessment.objectiveAnswerKey || ''));
+          if (!Array.isArray(uiConfig.parts) || !uiConfig.parts.length) {
+            return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề thi phải có ít nhất một phần.');
+          }
+          if (!answerKey || typeof answerKey !== 'object' || Array.isArray(answerKey)) {
+            return createAssessmentValidationIssue(assessment, modules, index, 'đáp án tham chiếu của đề thi không hợp lệ.');
+          }
+        }
+        if (skill === 'WRITING' && (!Array.isArray(uiConfig.tasks) || !uiConfig.tasks.length)) {
+          return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề Writing phải có ít nhất một task.');
+        }
+        if (skill === 'SPEAKING' && (!Array.isArray(uiConfig.variants) || !uiConfig.variants.length)) {
+          return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề Speaking phải có ít nhất một đề.');
         }
       } catch {
-        return `Bài kiểm tra "${assessment.title}" có cấu hình đề hoặc đáp án chưa hợp lệ.`;
+        return createAssessmentValidationIssue(assessment, modules, index, 'cấu hình đề thi hoặc đáp án tham chiếu không phải JSON hợp lệ.');
       }
     }
   }
-  return '';
+  return null;
+}
+
+function createAssessmentValidationIssue(assessment, modules, assessmentIndex, detail) {
+  const assessmentName = String(assessment.title || '').trim() || `Bài kiểm tra ${assessmentIndex + 1}`;
+  const moduleIndex = modules.findIndex((module) => resolveModuleKey(module) === assessment.moduleKey);
+  const location = moduleIndex >= 0
+    ? `trong ${formatModuleTitle(modules[moduleIndex].title, moduleIndex)}`
+    : 'ở phần bài kiểm tra cuối khóa';
+
+  return {
+    message: `Bài kiểm tra "${assessmentName}" ${location}: ${detail}`,
+    assessmentId: assessment.id ?? null,
+    assessmentKey: assessment.localKey,
+    moduleKey: assessment.moduleKey,
+  };
+}
+
+function getAssessmentEditorId(issue) {
+  return issue.assessmentId
+    ? `assessment-editor-${issue.assessmentId}`
+    : `assessment-editor-${issue.assessmentKey}`;
 }
 
 function AssessmentBankAttachBar({ disabled = false, onAdd, onChange, options, value }) {
@@ -1400,7 +1552,7 @@ function AssessmentBankAttachBar({ disabled = false, onAdd, onChange, options, v
   );
 }
 
-function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title }) {
+function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChange, title, validationMessage = '' }) {
   const isBankLinked = Boolean(assessment.assessmentBankItemId);
   const scoreLabel = usesBandScale(assessment)
     ? `Điểm tối đa (band IELTS, tối đa ${IELTS_MAX_BAND})`
@@ -1408,9 +1560,18 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
 
   return (
     <div
-      className="scroll-mt-32 rounded-3xl border border-[#eadcdc] bg-[#fffafb] p-5"
-      id={assessment.id ? `assessment-editor-${assessment.id}` : undefined}
+      className={`scroll-mt-32 rounded-3xl border bg-[#fffafb] p-5 transition ${validationMessage ? 'border-[#ba1a1a] ring-4 ring-[#ffdad6]' : 'border-[#eadcdc]'}`}
+      id={assessment.id ? `assessment-editor-${assessment.id}` : `assessment-editor-${assessment.localKey}`}
     >
+      {validationMessage ? (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl bg-[#ffdad6] px-4 py-3 text-sm font-semibold leading-6 text-[#93000a]" role="alert">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <span>
+            <span className="block text-xs uppercase tracking-[0.14em]">Cần sửa tại đây</span>
+            {validationMessage}
+          </span>
+        </div>
+      ) : null}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{title}</p>
@@ -1438,7 +1599,6 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         {!isBankLinked ? (
           <>
             <TextField label="Tên bài kiểm tra" onChange={(event) => onFieldChange('title', event.target.value)} value={assessment.title} />
-            <TextField label="Mô tả" onChange={(event) => onFieldChange('description', event.target.value)} value={assessment.description} />
             <SelectField label="Loại bài kiểm tra" onChange={(event) => onFieldChange('type', event.target.value)} options={toSelectOptions(ASSESSMENT_TYPE_OPTIONS, getAssessmentTypeLabel)} value={assessment.type} />
             <SelectField label="Kỹ năng" onChange={(event) => onFieldChange('skill', event.target.value)} options={toSelectOptions(ASSESSMENT_SKILL_OPTIONS, getSkillLabel)} value={assessment.skill} />
             <SelectField label="Chế độ chấm" onChange={(event) => onFieldChange('aiEvaluationMode', event.target.value)} options={toSelectOptions(AI_MODE_OPTIONS, getAiModeLabel)} value={assessment.aiEvaluationMode} />
@@ -1454,6 +1614,17 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         ) : null}
         <TextField label="Thứ tự hiển thị" onChange={(event) => onFieldChange('displayOrder', event.target.value)} value={String(assessment.displayOrder || '')} />
       </div>
+      {!isBankLinked ? (
+        <div className="mt-4">
+          <RichTextEditor
+            label="Mô tả"
+            onChange={(html) => onFieldChange('description', html)}
+            placeholder="Mô tả bài kiểm tra..."
+            size="compact"
+            value={assessment.description}
+          />
+        </div>
+      ) : null}
 
       {!isBankLinked ? (
         <>
@@ -1527,10 +1698,20 @@ function LessonEditorModal({
         </div>
 
         <div className="overflow-y-auto px-6 py-6">
-          <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
-            <div className="space-y-4">
+          <div className="space-y-4">
+            <div className="max-w-xl">
               <TextField label="Tên bài học" onChange={onChangeLesson('title')} value={activeLesson.title || ''} />
-              <TextField label="Mô tả" onChange={onChangeLesson('description')} rows={4} textarea value={activeLesson.description || ''} />
+            </div>
+            <RichTextEditor
+              label="Mô tả"
+              onChange={(html) => onPatchLesson({ description: html })}
+              placeholder="Mô tả ngắn về bài học..."
+              size="compact"
+              value={activeLesson.description || ''}
+            />
+          </div>
+          <div className="mt-6 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="space-y-4">
               <SelectField label="Loại nội dung" onChange={onChangeLesson('contentType')} options={toSelectOptions(CONTENT_TYPE_OPTIONS)} value={contentType} />
               {isVideo ? (
                 <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3">
@@ -1652,8 +1833,11 @@ function LessonEditorModal({
 
               {isArticle ? (
                 <RichTextEditor
+                  helperText="Nội dung được lưu kèm định dạng và hiển thị tương ứng trong khu vực học bài."
                   label={contentLabel}
                   onChange={(contentText) => onPatchLesson({ contentText })}
+                  placeholder="Soạn nội dung bài học tại đây..."
+                  size="lesson"
                   value={activeLesson.contentText || ''}
                 />
               ) : (

@@ -4,11 +4,12 @@ import { categoryLabels } from './courseConstants';
 import { formatCoursePrice } from './courseFormatters';
 import CourseCommerceActions from '../learner/CourseCommerceActions';
 import { formatBandRangeText, formatBandValue } from '../../utils/selfPacedHelpers';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const GIOI_HAN_TU_MO_TA = 22;
 
 const rutGonMoTa = (value, maxWords = GIOI_HAN_TU_MO_TA) => {
-  const text = String(value || '').trim();
+  const text = stripRichTextToPlain(value);
   if (!text) return 'Khóa học đang được cập nhật mô tả ngắn gọn.';
 
   const words = text.split(/\s+/);

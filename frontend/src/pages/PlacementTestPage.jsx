@@ -11,6 +11,7 @@ import ExamSectionChangeDialog from '../components/course-assessment/ExamSection
 import ExamDeviceCheck from '../components/course-assessment/ExamDeviceCheck';
 import CourseFooter from '../components/course/CourseFooter';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
+import { useAppDialog } from '../components/ui/AppDialog';
 import { formatBandValue } from '../utils/selfPacedHelpers';
 
 const SKILLS = [
@@ -269,6 +270,7 @@ const toToeicExamSection = (toeicConfig = {}, sectionKey = '') => {
 };
 
 function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChange, onAudioReady }) {
+  const { alert: alertDialog } = useAppDialog();
   const [recording, setRecording] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -315,7 +317,9 @@ function SpeakingWorkspace({ config = {}, transcript, audioUrl, onTranscriptChan
       recorder.start();
       setRecording(true);
     } catch {
-      window.alert('Không thể truy cập microphone. Hãy kiểm tra quyền của trình duyệt.');
+      await alertDialog('Không thể truy cập microphone. Hãy kiểm tra quyền của trình duyệt rồi thử lại.', {
+        title: 'Không truy cập được microphone',
+      });
     }
   };
 

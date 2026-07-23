@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import curriculumApi from '../../api/curriculumApi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
   ERROR_NOTICE_CLASS,
@@ -11,7 +12,6 @@ import {
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
-  TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
 const emptyForm = (mode) => ({
@@ -230,7 +230,13 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
           <BuilderSection number="03" title="Thông tin giới thiệu">
             <div className="grid gap-4">
               <TextInput label="Mô tả ngắn" value={form.shortDescription} onChange={(value) => updateForm({ shortDescription: value })} />
-              <TextArea label="Mô tả khóa học" value={form.description} onChange={(value) => updateForm({ description: value })} />
+              <RichTextEditor
+                label="Mô tả khóa học"
+                onChange={(value) => updateForm({ description: value })}
+                placeholder="Mô tả chi tiết chương trình đào tạo..."
+                size="form"
+                value={form.description}
+              />
               <TextInput label="Ảnh đại diện" placeholder="URL ảnh đại diện khóa học" value={form.thumbnailUrl} onChange={(value) => updateForm({ thumbnailUrl: value })} />
             </div>
           </BuilderSection>
@@ -260,10 +266,6 @@ function FieldLabel({ children }) {
 
 function TextInput({ label, value, onChange, type = 'text', min, placeholder }) {
   return <label className="block"><FieldLabel>{label}</FieldLabel><input className={FIELD_CLASS} min={min} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} type={type} value={value} /></label>;
-}
-
-function TextArea({ label, value, onChange }) {
-  return <label className="block"><FieldLabel>{label}</FieldLabel><textarea className={TEXTAREA_CLASS} onChange={(event) => onChange(event.target.value)} rows={5} value={value} /></label>;
 }
 
 function ReadOnlyField({ label, value }) {

@@ -8,11 +8,13 @@ import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import CourseDiscussionSection from '../components/course-detail/CourseDiscussionSection';
 import CourseHomeLessonDiscussion from '../components/course-home/CourseHomeLessonDiscussion';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
+import RichTextHtml from '../components/content-manager/RichTextHtml';
 import { hasAccessToken } from '../utils/auth';
 import { normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 import { isActiveOnlineEnrollment } from '../utils/enrollmentAccess';
 import { isAssessmentPassed } from '../utils/selfPacedHelpers';
 import { resolveScoreCap } from '../utils/ieltsBandScale';
+import { findFurthestReachedModuleIndex, isReachedModuleUnlocked } from '../utils/courseProgressAccess';
 
 const getLessonId = (module, lesson, lessonIndex) => lesson.id ?? `${module.id ?? module.title}-${lesson.title}-${lessonIndex}`;
 const getAssessmentStepId = (moduleId) => `__ai_assessment__:${moduleId ?? 'course'}`;
@@ -197,6 +199,12 @@ const CourseHome = () => {
     const modules = course?.modules || [];
     const result = new Map();
     let previousModulesReady = true;
+    const furthestReachedModuleIndex = findFurthestReachedModuleIndex({
+      modules,
+      completedLessonIds,
+      assessmentsByModule,
+      getLessonId,
+    });
 
     modules.forEach((module, moduleIndex) => {
       const lessons = module.lessons || [];
@@ -206,7 +214,11 @@ const CourseHome = () => {
       ];
       const lessonsCompleted = lessons.length > 0 && lessons.every((lesson, lessonIndex) => completedLessonIds.has(getLessonId(module, lesson, lessonIndex)));
       const assessmentsPassed = moduleAssessments.length === 0 || moduleAssessments.every(isAssessmentPassed);
-      const unlocked = previousModulesReady;
+      const unlocked = isReachedModuleUnlocked({
+        sequentiallyUnlocked: previousModulesReady,
+        moduleIndex,
+        furthestReachedModuleIndex,
+      });
 
       result.set(String(module.id ?? module.title ?? moduleIndex), {
         unlocked,
@@ -216,7 +228,7 @@ const CourseHome = () => {
         readyForNextModule: lessonsCompleted && assessmentsPassed,
       });
 
-      previousModulesReady = previousModulesReady && lessonsCompleted && assessmentsPassed;
+      previousModulesReady = unlocked && lessonsCompleted && assessmentsPassed;
     });
 
     return result;
@@ -275,7 +287,7 @@ const CourseHome = () => {
       <div className="mb-6 rounded-lg border border-[#f1dfb8] bg-[#f2e8cf] p-6">
         <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#9e001f]">EnglishLab course home</p>
         <h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#730014]">{course.title}</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-7 text-[#1a1c1c]">{course.shortDescription || course.description}</p>
+        <RichTextHtml className="mt-2 max-w-3xl text-sm leading-7 text-[#1a1c1c]" value={course.shortDescription || course.description} />
         <div className="mt-5 flex flex-wrap gap-3">
           <button
             className="rounded bg-[#730014] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#9e001f] disabled:cursor-not-allowed disabled:opacity-50"
@@ -364,7 +376,9 @@ const CourseHome = () => {
                     const completed = completedLessonIds.has(lessonId);
                     const previousLesson = lessons[lessonIndex - 1];
                     const previousLessonId = previousLesson ? getLessonId(module, previousLesson, lessonIndex - 1) : null;
-                    const locked = !moduleState.unlocked || Boolean(previousLessonId && !completedLessonIds.has(previousLessonId));
+                    const locked = !completed && (
+                      !moduleState.unlocked || Boolean(previousLessonId && !completedLessonIds.has(previousLessonId))
+                    );
                     return (
                       <button
                         className={`flex w-full items-center justify-between gap-4 border-b border-[#f3f4f6] px-3 py-4 text-left transition last:border-b-0 ${
@@ -400,7 +414,8 @@ const CourseHome = () => {
                   })}
                   {moduleAssessments.map((assessment, assessmentIndex) => {
                     const passed = isAssessmentPassed(assessment);
-                    const locked = !moduleState.unlocked || !moduleState.lessonsCompleted;
+                    const hasSubmission = Boolean(assessment.latestSubmission?.id);
+                    const locked = !hasSubmission && (!moduleState.unlocked || !moduleState.lessonsCompleted);
                     return (
                       <button
                         className={`flex w-full items-center justify-between gap-4 border-b border-[#f3f4f6] px-3 py-4 text-left transition last:border-b-0 ${
@@ -546,7 +561,7 @@ const CourseHome = () => {
       <div className="max-w-4xl">
         <h1 className="font-['Manrope'] text-3xl font-extrabold text-[#730014]">{course.title}</h1>
         <p className="mt-2 text-[#6b7280]">EnglishLab</p>
-        <p className="mt-6 text-sm leading-7 text-[#1a1c1c]">{course.description}</p>
+        <RichTextHtml className="mt-6 text-sm leading-7 text-[#1a1c1c]" value={course.description} />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

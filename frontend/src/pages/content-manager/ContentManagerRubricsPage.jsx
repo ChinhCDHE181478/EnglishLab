@@ -9,8 +9,10 @@ import {
   ManagerTable,
   ManagerTablePagination,
 } from '../../components/content-manager/ManagerListUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { usePagination } from '../../components/ui/Pagination';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: 'ALL' },
@@ -335,7 +337,13 @@ export default function ContentManagerRubricsPage() {
                 <span className="text-sm font-bold text-slate-700">Cho phép sử dụng rubric này</span>
               </label>
             </div>
-            <TextField label="Mô tả" onChange={(value) => setForm((current) => ({ ...current, description: value }))} textarea value={form.description} />
+            <RichTextEditor
+              label="Mô tả"
+              onChange={(value) => setForm((current) => ({ ...current, description: value }))}
+              placeholder="Mô tả rubric..."
+              size="compact"
+              value={form.description}
+            />
 
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -504,9 +512,21 @@ function CriterionEditor({ criterion, index, onChange, onRemove, removable }) {
         <TextField label="Weight" onChange={(value) => onChange({ weight: value })} type="number" value={criterion.weight} />
         <TextField label="Thứ tự" onChange={(value) => onChange({ displayOrder: value })} type="number" value={criterion.displayOrder} />
       </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        <TextField label="Mô tả rule" onChange={(value) => onChange({ description: value })} textarea value={criterion.description} />
-        <TextField label="Band descriptors / rule chi tiết" onChange={(value) => onChange({ bandDescriptors: value })} textarea value={criterion.bandDescriptors} />
+      <div className="mt-3 space-y-4">
+        <RichTextEditor
+          label="Mô tả rule"
+          onChange={(value) => onChange({ description: value })}
+          placeholder="Mô tả tiêu chí..."
+          size="compact"
+          value={criterion.description}
+        />
+        <RichTextEditor
+          label="Band descriptors / rule chi tiết"
+          onChange={(value) => onChange({ bandDescriptors: value })}
+          placeholder="Mô tả band / rule chi tiết..."
+          size="form"
+          value={criterion.bandDescriptors}
+        />
       </div>
     </div>
   );
@@ -527,7 +547,7 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
           <p className="mt-1 text-sm font-semibold text-slate-500">
             {rubric.taskType || 'Chưa gắn task'} · {rubric.scoringScale || 'Chưa gắn thang điểm'} · Tổng weight {totalWeight}%
           </p>
-          {rubric.description ? <p className="mt-3 text-sm leading-7 text-slate-600">{rubric.description}</p> : null}
+          {rubric.description ? <p className="mt-3 text-sm leading-7 text-slate-600">{stripRichTextToPlain(rubric.description)}</p> : null}
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <button
@@ -559,7 +579,7 @@ function RubricCard({ onEdit, onToggleActive, rubric, working }) {
               <p className="font-bold text-slate-900">{criterion.name}</p>
               <span className="rounded-full bg-white px-2.5 py-1 text-xs font-extrabold text-[#730014]">{criterion.weight ?? 0}%</span>
             </div>
-            {criterion.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{criterion.description}</p> : null}
+            {criterion.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{stripRichTextToPlain(criterion.description)}</p> : null}
             {criterion.bandDescriptors ? <p className="mt-2 text-xs leading-5 text-slate-500">{criterion.bandDescriptors}</p> : null}
           </div>
         ))}

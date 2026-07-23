@@ -11,6 +11,7 @@ import fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sap490.g23.backend.security.ClassroomAccessHelper;
+import fu.sap490.g23.backend.security.ContentManagementRolePolicy;
 import fu.sap490.g23.backend.service.classroom.ClassroomContentApprovalService;
 import fu.sap490.g23.backend.service.classroom.ClassroomMapper;
 import lombok.RequiredArgsConstructor;
@@ -100,7 +101,7 @@ public class ClassroomContentApprovalServiceImpl implements ClassroomContentAppr
 
     @Override
     public ClassroomMaterialResponse approveMaterial(Long materialId, String reviewerEmail, ContentReviewRequest request) {
-        User reviewer = requireManager(reviewerEmail);
+        User reviewer = requireContentManager(reviewerEmail);
         ClassroomMaterial material = findMaterial(materialId);
         if (material.getReviewStatus() != ContentReviewStatus.PENDING_REVIEW) {
             throw new IllegalArgumentException("Tài liệu không ở trạng thái chờ duyệt.");
@@ -114,7 +115,7 @@ public class ClassroomContentApprovalServiceImpl implements ClassroomContentAppr
 
     @Override
     public ClassroomMaterialResponse rejectMaterial(Long materialId, String reviewerEmail, ContentReviewRequest request) {
-        User reviewer = requireManager(reviewerEmail);
+        User reviewer = requireContentManager(reviewerEmail);
         ClassroomMaterial material = findMaterial(materialId);
         if (material.getReviewStatus() != ContentReviewStatus.PENDING_REVIEW) {
             throw new IllegalArgumentException("Tài liệu không ở trạng thái chờ duyệt.");
@@ -131,7 +132,7 @@ public class ClassroomContentApprovalServiceImpl implements ClassroomContentAppr
 
     @Override
     public ClassroomSyllabusItemResponse approveSyllabus(Long itemId, String reviewerEmail, ContentReviewRequest request) {
-        User reviewer = requireManager(reviewerEmail);
+        User reviewer = requireContentManager(reviewerEmail);
         ClassroomSyllabusItem item = findSyllabusItem(itemId);
         if (item.getReviewStatus() != ContentReviewStatus.PENDING_REVIEW) {
             throw new IllegalArgumentException("Mục giáo trình không ở trạng thái chờ duyệt.");
@@ -146,7 +147,7 @@ public class ClassroomContentApprovalServiceImpl implements ClassroomContentAppr
 
     @Override
     public ClassroomSyllabusItemResponse rejectSyllabus(Long itemId, String reviewerEmail, ContentReviewRequest request) {
-        User reviewer = requireManager(reviewerEmail);
+        User reviewer = requireContentManager(reviewerEmail);
         ClassroomSyllabusItem item = findSyllabusItem(itemId);
         if (item.getReviewStatus() != ContentReviewStatus.PENDING_REVIEW) {
             throw new IllegalArgumentException("Mục giáo trình không ở trạng thái chờ duyệt.");
@@ -161,9 +162,11 @@ public class ClassroomContentApprovalServiceImpl implements ClassroomContentAppr
         return mapper.toSyllabusItemResponse(syllabusItemRepository.save(item));
     }
 
-    private User requireManager(String email) {
+    private User requireContentManager(String email) {
         User user = accessHelper.requireUser(email);
-        accessHelper.assertManager(user);
+        if (!ContentManagementRolePolicy.canEdit(user)) {
+            throw new IllegalArgumentException("Chỉ Content Manager mới có quyền duyệt học liệu lớp học.");
+        }
         return user;
     }
 
