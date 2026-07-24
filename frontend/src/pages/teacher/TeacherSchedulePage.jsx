@@ -23,6 +23,7 @@ import Header from '../../components/ai-learning/Header';
 import CourseFooter from '../../components/course/CourseFooter';
 import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
@@ -972,12 +973,11 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
       {/* New date */}
       <div className="space-y-1.5">
         <label className="text-xs font-bold uppercase tracking-wider text-[#8b706e]">Ngày mới</label>
-        <input
-          type="date"
-          min={todayStr}
-          value={newDate}
-          onChange={(e) => setNewDate(e.target.value)}
+        <VietnameseDateInput
           className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-2.5 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
+          min={todayStr}
+          onChange={setNewDate}
+          value={newDate}
         />
       </div>
 

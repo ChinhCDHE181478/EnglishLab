@@ -401,18 +401,8 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
-  async createManagerClassroom(payload) {
-    const response = await axiosClient.post('/api/staff/classrooms', payload);
-    return unwrapData(response);
-  },
-
   async updateManagerClassroom(id, payload) {
     const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async publishManagerClassroom(id) {
-    const response = await axiosClient.post(`/api/staff/classrooms/${id}/publish`);
     return unwrapData(response);
   },
 
@@ -714,31 +704,6 @@ export const classroomApi = {
 
   async archiveContentManagerProgram(id) {
     const response = await axiosClient.delete(`/api/content-manager/scheduled-course-offerings/${id}`);
-    return unwrapData(response);
-  },
-
-  async getContentManagerPendingClassroomContent() {
-    const response = await axiosClient.get('/api/content-manager/classroom-content-approvals/pending');
-    return asList(unwrapData(response));
-  },
-
-  async approveClassroomMaterialContent(materialId, reviewNote) {
-    const response = await axiosClient.post(`/api/content-manager/classroom-content-approvals/materials/${materialId}/approve`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async rejectClassroomMaterialContent(materialId, reviewNote) {
-    const response = await axiosClient.post(`/api/content-manager/classroom-content-approvals/materials/${materialId}/reject`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async approveClassroomSyllabusContent(itemId, reviewNote) {
-    const response = await axiosClient.post(`/api/content-manager/classroom-content-approvals/syllabus/${itemId}/approve`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async rejectClassroomSyllabusContent(itemId, reviewNote) {
-    const response = await axiosClient.post(`/api/content-manager/classroom-content-approvals/syllabus/${itemId}/reject`, { reviewNote });
     return unwrapData(response);
   },
 

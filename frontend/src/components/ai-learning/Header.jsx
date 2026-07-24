@@ -11,7 +11,7 @@ const studentNavItems = [
   { label: 'Khóa học', to: '/courses' },
   { label: 'IELTS', href: '/#courses' },
   { label: 'TOEIC', href: '/#courses' },
-  { label: 'Lịch khai giảng', to: '/opening-schedule' },
+  { label: 'Đăng ký học', to: '/opening-schedule' },
   { label: 'Về EnglishLab', href: '/#testimonials' },
 ];
 
@@ -33,20 +33,20 @@ const getNavItemsByRole = (user) => {
       { label: 'Lớp học', to: '/staff/classrooms' },
       { label: 'Yêu cầu đăng ký', to: '/staff/enrollment-requests' },
       { label: 'Duyệt yêu cầu', to: '/staff/requests' },
-      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+      { label: 'Đăng ký học', to: '/opening-schedule' },
     ];
   }
   if (role === 'MANAGER' || role === 'ADMIN') {
     return [
       { label: 'Duyệt đề xuất lớp', to: '/manager/classroom-proposals' },
       { label: 'Ghi danh online', to: '/manager/online-enrollments' },
-      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+      { label: 'Đăng ký học', to: '/opening-schedule' },
     ];
   }
   if (role === 'CONTENT_MANAGER') {
     return [
       { label: 'Quản lý nội dung', to: '/content-manager' },
-      { label: 'Lịch khai giảng', to: '/opening-schedule' },
+      { label: 'Đăng ký học', to: '/opening-schedule' },
     ];
   }
   return studentNavItems;

@@ -30,11 +30,6 @@ const enrollmentRequestApi = {
     return Array.isArray(data) ? data : [];
   },
 
-  async refreshPlacement(requestId) {
-    const response = await axiosClient.patch(`/api/student/course-enrollment-requests/${requestId}/refresh-placement`);
-    return unwrapData(response);
-  },
-
   async cancel(requestId) {
     const response = await axiosClient.patch(`/api/student/course-enrollment-requests/${requestId}/cancel`);
     return unwrapData(response);
@@ -48,15 +43,18 @@ const enrollmentRequestApi = {
     return Array.isArray(data) ? data : [];
   },
 
-  async confirmPlacementLevel(requestId, payload) {
-    const response = await axiosClient.patch(`/api/staff/enrollment-requests/${requestId}/placement-level`, payload);
+  async scheduleTest(requestId, payload) {
+    const response = await axiosClient.patch(
+      `/api/staff/enrollment-requests/${requestId}/schedule-test`,
+      payload,
+    );
     return unwrapData(response);
   },
 
-  async completeConsultation(requestId, note = '') {
+  async completeTest(requestId, payload) {
     const response = await axiosClient.patch(
-      `/api/staff/enrollment-requests/${requestId}/consultation-complete`,
-      { note },
+      `/api/staff/enrollment-requests/${requestId}/complete-test`,
+      payload,
     );
     return unwrapData(response);
   },
@@ -112,6 +110,12 @@ const enrollmentRequestApi = {
     const response = await axiosClient.get('/api/manager/classroom-proposals', {
       params: { status },
     });
+    const data = unwrapData(response);
+    return Array.isArray(data) ? data : [];
+  },
+
+  async getManagerEnrollmentDemand() {
+    const response = await axiosClient.get('/api/manager/enrollment-demand');
     const data = unwrapData(response);
     return Array.isArray(data) ? data : [];
   },

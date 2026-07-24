@@ -18,13 +18,11 @@ export const isAssignableClassroom = (classroom, today = new Date()) => {
 };
 
 export const getEnrollmentRequestActions = (status) => {
-  const canCompleteConsultation = ['SUBMITTED', 'UNDER_STAFF_REVIEW'].includes(status);
-  const canAssign = status === 'WAITING_FOR_CLASS';
-
   return {
-    canCompleteConsultation,
-    canAssign,
-    canReject: canCompleteConsultation || canAssign,
+    canSchedule: ['SUBMITTED', 'INVITATION_SENT'].includes(status),
+    canCompleteTest: status === 'TEST_SCHEDULED',
+    canAssign: status === 'WAITING_FOR_CLASS',
+    canReject: ['SUBMITTED', 'INVITATION_SENT', 'TEST_SCHEDULED', 'WAITING_FOR_CLASS'].includes(status),
   };
 };
 

@@ -76,6 +76,39 @@ public class EnrollmentRequestSchemaMigration implements CommandLineRunner {
                     ADD COLUMN IF NOT EXISTS study_work_goal VARCHAR(500);
                 CREATE INDEX IF NOT EXISTS idx_enrollment_request_requested_classroom
                     ON course_enrollment_requests(requested_classroom_id, status);
+
+                ALTER TABLE course_enrollment_requests
+                    DROP CONSTRAINT IF EXISTS course_enrollment_requests_status_check;
+                ALTER TABLE course_enrollment_requests
+                    ADD CONSTRAINT course_enrollment_requests_status_check
+                    CHECK (status IN (
+                        'SUBMITTED', 'INVITATION_SENT', 'TEST_SCHEDULED',
+                        'AWAITING_PLACEMENT_TEST', 'PLACEMENT_TEST_COMPLETED',
+                        'UNDER_STAFF_REVIEW', 'WAITING_FOR_CLASS', 'CLASS_PROPOSED',
+                        'CLASS_ASSIGNED', 'REJECTED', 'CANCELLED'
+                    ));
+
+                ALTER TABLE course_enrollment_request_history
+                    DROP CONSTRAINT IF EXISTS course_enrollment_request_history_from_status_check;
+                ALTER TABLE course_enrollment_request_history
+                    ADD CONSTRAINT course_enrollment_request_history_from_status_check
+                    CHECK (from_status IS NULL OR from_status IN (
+                        'SUBMITTED', 'INVITATION_SENT', 'TEST_SCHEDULED',
+                        'AWAITING_PLACEMENT_TEST', 'PLACEMENT_TEST_COMPLETED',
+                        'UNDER_STAFF_REVIEW', 'WAITING_FOR_CLASS', 'CLASS_PROPOSED',
+                        'CLASS_ASSIGNED', 'REJECTED', 'CANCELLED'
+                    ));
+
+                ALTER TABLE course_enrollment_request_history
+                    DROP CONSTRAINT IF EXISTS course_enrollment_request_history_to_status_check;
+                ALTER TABLE course_enrollment_request_history
+                    ADD CONSTRAINT course_enrollment_request_history_to_status_check
+                    CHECK (to_status IN (
+                        'SUBMITTED', 'INVITATION_SENT', 'TEST_SCHEDULED',
+                        'AWAITING_PLACEMENT_TEST', 'PLACEMENT_TEST_COMPLETED',
+                        'UNDER_STAFF_REVIEW', 'WAITING_FOR_CLASS', 'CLASS_PROPOSED',
+                        'CLASS_ASSIGNED', 'REJECTED', 'CANCELLED'
+                    ));
                 """);
     }
 }

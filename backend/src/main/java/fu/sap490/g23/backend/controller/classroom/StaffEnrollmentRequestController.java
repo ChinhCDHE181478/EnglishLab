@@ -1,8 +1,8 @@
 package fu.sap490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.ConfirmEnrollmentPlacementRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentConsultationRequest;
+import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sap490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
@@ -35,13 +35,26 @@ public class StaffEnrollmentRequestController {
         return ResponseEntity.ok(enrollmentRequestService.listForStaff(status, authentication.getName()));
     }
 
-    @PatchMapping("/{requestId}/placement-level")
-    public ResponseEntity<CourseEnrollmentRequestResponse> confirmPlacementLevel(
+    @PatchMapping("/{requestId}/schedule-test")
+    public ResponseEntity<CourseEnrollmentRequestResponse> scheduleTest(
             @PathVariable Long requestId,
-            @Valid @RequestBody ConfirmEnrollmentPlacementRequest request,
+            @Valid @RequestBody ScheduleEnrollmentTestRequest request,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(enrollmentRequestService.confirmPlacementLevel(
+        return ResponseEntity.ok(enrollmentRequestService.scheduleTest(
+                requestId,
+                request,
+                authentication.getName()
+        ));
+    }
+
+    @PatchMapping("/{requestId}/complete-test")
+    public ResponseEntity<CourseEnrollmentRequestResponse> completeTest(
+            @PathVariable Long requestId,
+            @Valid @RequestBody CompleteEnrollmentTestRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.completeTest(
                 requestId,
                 request,
                 authentication.getName()
@@ -55,19 +68,6 @@ public class StaffEnrollmentRequestController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(enrollmentRequestService.reject(
-                requestId,
-                request,
-                authentication.getName()
-        ));
-    }
-
-    @PatchMapping("/{requestId}/consultation-complete")
-    public ResponseEntity<CourseEnrollmentRequestResponse> completeConsultation(
-            @PathVariable Long requestId,
-            @Valid @RequestBody CompleteEnrollmentConsultationRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(enrollmentRequestService.completeConsultation(
                 requestId,
                 request,
                 authentication.getName()

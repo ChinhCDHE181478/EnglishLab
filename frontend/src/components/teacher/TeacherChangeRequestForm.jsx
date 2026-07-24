@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import BrandedSelect from '../ui/BrandedSelect';
+import VietnameseDateInput from '../ui/VietnameseDateInput';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
@@ -347,16 +348,15 @@ export default function TeacherChangeRequestForm({
             <label className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">
               {isMakeup ? 'Ngày học bù *' : 'Ngày học mới *'}
             </label>
-            <input
+            <VietnameseDateInput
               className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
               min={todayDateInputValue()}
-              onChange={(event) => setForm((current) => ({
+              onChange={(value) => setForm((current) => ({
                 ...current,
-                newDate: event.target.value,
+                newDate: value,
                 slotIndex: '',
                 roomId: '',
               }))}
-              type="date"
               value={form.newDate}
             />
           </div>

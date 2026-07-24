@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, Megaphone, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -9,6 +9,7 @@ import {
   ClassroomTabBar,
 } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
@@ -146,17 +147,6 @@ export default function TrainingManagerClassroomDetailPage() {
     next.set('tab', tabId);
     next.delete('enrollmentId');
     setSearchParams(next, { replace: true });
-  };
-
-  const handlePublish = async () => {
-    setActionMessage('');
-    try {
-      await classroomApi.publishManagerClassroom(id);
-      setActionMessage('Đã công bố lớp trên lịch khai giảng.');
-      await loadClassroom();
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố lớp.'));
-    }
   };
 
   const handleCreateSession = async (event) => {
@@ -299,14 +289,6 @@ export default function TrainingManagerClassroomDetailPage() {
               {closingClass ? 'Đang đóng...' : 'Đóng lớp'}
             </button>
           ) : null}
-          <button
-            className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014]"
-            onClick={handlePublish}
-            type="button"
-          >
-            <Megaphone className="h-4 w-4" />
-            Công bố lịch khai giảng
-          </button>
         </div>
       </div>
 
@@ -378,7 +360,7 @@ export default function TrainingManagerClassroomDetailPage() {
         </section>
       ) : null}
 
-      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Sau khi chuyển, học viên biến mất khỏi danh sách lớp nguồn và xuất hiện ở lớp đích.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${item.startDate || 'Chưa có ngày'} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
+      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Sau khi chuyển, học viên biến mất khỏi danh sách lớp nguồn và xuất hiện ở lớp đích.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
 
       {activeTab === 'schedule' ? (
         <div className="space-y-5">
@@ -397,7 +379,7 @@ export default function TrainingManagerClassroomDetailPage() {
                 <BrandedSelect onChange={(e) => setTemplateForm((c) => ({ ...c, templateId: e.target.value }))} options={templateOptions} value={templateForm.templateId} />
               </Field>
               <Field label="Ngày bắt đầu">
-                <input className={inputClass} onChange={(e) => setTemplateForm((c) => ({ ...c, startDate: e.target.value }))} type="date" value={templateForm.startDate} />
+                <VietnameseDateInput className={inputClass} onChange={(value) => setTemplateForm((current) => ({ ...current, startDate: value }))} value={templateForm.startDate} />
               </Field>
               <Field label="Số tuần">
                 <input className={inputClass} min="1" onChange={(e) => setTemplateForm((c) => ({ ...c, weeks: e.target.value }))} type="number" value={templateForm.weeks} />
@@ -413,7 +395,7 @@ export default function TrainingManagerClassroomDetailPage() {
             <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Thêm buổi học</h3>
             <div className="grid gap-4 md:grid-cols-4">
               <Field label="Ngày học">
-                <input className={inputClass} onChange={(e) => setSessionForm((c) => ({ ...c, sessionDate: e.target.value }))} required type="date" value={sessionForm.sessionDate} />
+                <VietnameseDateInput className={inputClass} onChange={(value) => setSessionForm((current) => ({ ...current, sessionDate: value }))} required value={sessionForm.sessionDate} />
               </Field>
               <Field label="Bắt đầu">
                 <input className={inputClass} onChange={(e) => setSessionForm((c) => ({ ...c, startTime: e.target.value }))} required type="time" value={sessionForm.startTime} />
