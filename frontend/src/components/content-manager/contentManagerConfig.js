@@ -59,7 +59,6 @@ export const contentManagerNav = [
     title: 'Quản trị',
     items: [
       { label: 'Hàng chờ xuất bản', href: '/content-manager/publication', icon: FileCheck2 },
-      { label: 'Duyệt học liệu lớp', href: '/content-manager/classroom-content-approvals', icon: ShieldAlert },
       { label: 'Phân tích nội dung', href: '/content-manager/analytics', icon: BarChart3 },
       { label: 'Cài đặt', href: '/content-manager/settings', icon: Settings2 },
       { label: 'Báo cáo hỏi đáp', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
@@ -172,11 +171,6 @@ export const contentManagerPageMeta = {
     title: 'Kiểm soát xuất bản',
     subtitle: 'Rà soát bản nháp và trực tiếp xuất bản nội dung do Content Manager phụ trách.',
     searchPlaceholder: 'Tìm loại nội dung hoặc người phụ trách...',
-  },
-  '/content-manager/classroom-content-approvals': {
-    title: 'Duyệt học liệu lớp học',
-    subtitle: 'Rà soát tài liệu và giáo trình được bổ sung riêng cho từng lớp.',
-    searchPlaceholder: 'Tìm học liệu lớp học...',
   },
   '/content-manager/analytics': {
     title: 'Phân tích nội dung',

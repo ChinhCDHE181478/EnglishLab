@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  Calendar,
-  CalendarDays,
+  ArrowRight,
   CheckCircle2,
-  Clock,
+  GraduationCap,
   MapPin,
   MessageSquare,
   Phone,
@@ -13,14 +12,12 @@ import {
   Video,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import classroomApi from '../../api/classroomApi';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import Header from '../../components/ai-learning/Header';
 import CourseFooter from '../../components/course/CourseFooter';
 import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
-import { formatClassroomDate } from '../../utils/classroomHelpers';
 import {
   PAGE_BODY_CLASS,
   PAGE_HEADER_CLASS,
@@ -30,6 +27,8 @@ import {
 
 const ACTIVE_REQUEST_STATUSES = new Set([
   'SUBMITTED',
+  'INVITATION_SENT',
+  'TEST_SCHEDULED',
   'AWAITING_PLACEMENT_TEST',
   'PLACEMENT_TEST_COMPLETED',
   'UNDER_STAFF_REVIEW',
@@ -38,21 +37,39 @@ const ACTIVE_REQUEST_STATUSES = new Set([
 ]);
 
 const CONSULTATION_OPTIONS = [
-  { value: 'IELTS_4_SKILLS', label: 'Luyện thi IELTS 4 kỹ năng' },
-  { value: 'TOEIC_2_SKILLS', label: 'Luyện thi TOEIC 2 kỹ năng (Listening & Reading)' },
-  { value: 'TOEIC_4_SKILLS', label: 'Luyện thi TOEIC 4 kỹ năng (Nghe, Đọc, Nói, Viết)' },
-  { value: 'ENGLISH_FOUNDATION', label: 'Tiếng Anh nền tảng & Giao tiếp' },
+  { value: 'IELTS_4_SKILLS', label: 'IELTS 4 kỹ năng' },
+  { value: 'TOEIC_2_SKILLS', label: 'TOEIC Listening & Reading' },
+  { value: 'TOEIC_4_SKILLS', label: 'TOEIC 4 kỹ năng' },
+  { value: 'ENGLISH_FOUNDATION', label: 'Tiếng Anh nền tảng & giao tiếp' },
 ];
 
-const DRAFT_STORAGE_KEY = 'englishlab-opening-schedule-consultation-draft';
+const PREFERRED_DAYS = [
+  { label: 'Thứ 2', value: 'MONDAY' },
+  { label: 'Thứ 3', value: 'TUESDAY' },
+  { label: 'Thứ 4', value: 'WEDNESDAY' },
+  { label: 'Thứ 5', value: 'THURSDAY' },
+  { label: 'Thứ 6', value: 'FRIDAY' },
+  { label: 'Thứ 7', value: 'SATURDAY' },
+  { label: 'Chủ nhật', value: 'SUNDAY' },
+];
 
-const isUpcomingOffering = (offering) => {
-  if (offering?.classroomStatus !== 'UPCOMING' || !offering?.startDate) return false;
-  const startDate = new Date(`${offering.startDate}T00:00:00`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return !Number.isNaN(startDate.getTime()) && startDate > today;
-};
+const PREFERRED_SHIFTS = [
+  { label: 'Sáng', time: '08:00–11:30', value: 'MORNING' },
+  { label: 'Chiều', time: '13:30–17:30', value: 'AFTERNOON' },
+  { label: 'Tối', time: '18:00–21:30', value: 'EVENING' },
+];
+
+const DRAFT_STORAGE_KEY = 'englishlab-course-consultation-draft';
+
+const serializePreferredSchedule = (slots) => PREFERRED_DAYS
+  .map((day) => {
+    const shifts = PREFERRED_SHIFTS
+      .filter((shift) => slots.includes(`${day.value}_${shift.value}`))
+      .map((shift) => shift.label);
+    return shifts.length ? `${day.label}: ${shifts.join(', ')}` : '';
+  })
+  .filter(Boolean)
+  .join(' · ');
 
 const readSavedDraft = () => {
   try {
@@ -63,46 +80,26 @@ const readSavedDraft = () => {
 };
 
 const createInitialForm = (user) => ({
+  courseOfferingId: '',
   contactName: user?.fullName || '',
   contactPhone: user?.phoneNumber || '',
   contactEmail: user?.email || '',
+  consultationTrack: 'IELTS_4_SKILLS',
   schoolOrCompany: '',
   scoreGoal: user?.studyGoal || '',
-  desiredClassCode: '',
-  consultationTrack: 'IELTS_4_SKILLS',
   facebookUrl: '',
+  preferredSchedule: '',
+  preferredScheduleSlots: [],
   notes: '',
   ...readSavedDraft(),
 });
 
-const getLocationDisplay = (offering) => {
-  if (offering.deliveryMode === 'VIRTUAL') {
-    return {
-      isVirtual: true,
-      label: 'Online (Lớp ảo)',
-    };
-  }
-  const rawRoom = (offering.roomName || '').trim();
-  const room = rawRoom ? (/^phòng/i.test(rawRoom) ? rawRoom : `Phòng ${rawRoom}`) : '';
-  const addr = (offering.offlineAddress || '').trim();
-  const detail = [room, addr].filter(Boolean).join(' - ');
-  return {
-    isVirtual: false,
-    label: detail ? `EnglishLab - ${detail}` : 'EnglishLab (Hà Nội)',
-  };
+const suggestedTrack = (program) => {
+  const category = String(program?.curriculumProgramExamCategory || program?.code || '').toUpperCase();
+  if (category.includes('TOEIC')) return 'TOEIC_2_SKILLS';
+  if (category.includes('IELTS')) return 'IELTS_4_SKILLS';
+  return 'ENGLISH_FOUNDATION';
 };
-
-const getClassCode = (offering) => (
-  offering.trainingProgramCode || offering.curriculumProgramCode || offering.title || `Lớp #${offering.id}`
-);
-
-const getScheduleText = (offering) => (
-  offering.scheduleSummary || (
-    offering.scheduleDaysOfWeek?.length && offering.typicalStartTime && offering.typicalEndTime
-      ? `${offering.scheduleDaysOfWeek.map((day) => (day === 7 ? 'CN' : `T${day + 1}`)).join(', ')} (${String(offering.typicalStartTime).slice(0, 5)} - ${String(offering.typicalEndTime).slice(0, 5)})`
-      : 'Cập nhật khi xếp lớp'
-  )
-);
 
 export default function ClassroomsCatalogPage() {
   const navigate = useNavigate();
@@ -110,7 +107,7 @@ export default function ClassroomsCatalogPage() {
   const currentUser = getStoredUser();
   const isAuthenticated = Boolean(hasAccessToken() && currentUser);
 
-  const [offerings, setOfferings] = useState([]);
+  const [programs, setPrograms] = useState([]);
   const [existingRequest, setExistingRequest] = useState(null);
   const [form, setForm] = useState(() => createInitialForm(currentUser));
   const [loading, setLoading] = useState(true);
@@ -118,15 +115,15 @@ export default function ClassroomsCatalogPage() {
   const [error, setError] = useState('');
   const [formError, setFormError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState('ALL');
+  const [deliveryFilter, setDeliveryFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const page = await classroomApi.getClassroomOfferings({ page: 0, size: 200 });
-      setOfferings((page.content || []).filter(isUpcomingOffering));
+      const programData = await enrollmentRequestApi.getCourseOfferings();
+      setPrograms(programData);
       if (isAuthenticated) {
         try {
           const mine = await enrollmentRequestApi.listMine();
@@ -136,8 +133,8 @@ export default function ClassroomsCatalogPage() {
         }
       }
     } catch (loadError) {
-      setOfferings([]);
-      setError(loadError?.response?.data?.message || 'Không thể tải danh sách lịch khai giảng.');
+      setPrograms([]);
+      setError(loadError?.response?.data?.message || 'Không thể tải danh sách khóa học đang nhận đăng ký.');
     } finally {
       setLoading(false);
     }
@@ -149,48 +146,78 @@ export default function ClassroomsCatalogPage() {
 
   useEffect(() => {
     if (location.hash !== '#dang-ky-tu-van') return;
-    const frame = window.requestAnimationFrame(() => {
+    const frameId = window.requestAnimationFrame(() => {
       document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-    return () => window.cancelAnimationFrame(frame);
+    return () => window.cancelAnimationFrame(frameId);
   }, [location.hash]);
 
-  const filteredOfferings = useMemo(() => {
-    return offerings.filter((item) => {
-      if (activeTab === 'OFFLINE' && item.deliveryMode !== 'OFFLINE') return false;
-      if (activeTab === 'VIRTUAL' && item.deliveryMode !== 'VIRTUAL') return false;
+  const filteredPrograms = useMemo(() => {
+    const normalized = searchQuery.trim().toLocaleLowerCase('vi-VN');
+    return programs.filter((program) => {
+      const deliveryMode = program.deliveryMode || program.deliveryType;
+      if (deliveryFilter !== 'ALL' && deliveryMode !== deliveryFilter) return false;
+      if (!normalized) return true;
+      return [
+        program.title,
+        program.code,
+        program.shortDescription,
+        program.entryLevel,
+        program.targetScore,
+      ].filter(Boolean).join(' ').toLocaleLowerCase('vi-VN').includes(normalized);
+    });
+  }, [deliveryFilter, programs, searchQuery]);
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const code = getClassCode(item).toLowerCase();
-        const title = (item.title || '').toLowerCase();
-        const teacher = (item.primaryTeacherName || '').toLowerCase();
-        return code.includes(q) || title.includes(q) || teacher.includes(q);
-      }
-      return true;
-    }).sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
-  }, [offerings, activeTab, searchQuery]);
+  const programOptions = useMemo(() => programs.map((program) => ({
+    value: String(program.id),
+    label: program.title,
+    description: [
+      program.deliveryMode === 'VIRTUAL' ? 'Trực tuyến' : 'Tại trung tâm',
+      program.entryLevel ? `Đầu vào ${program.entryLevel}` : null,
+      program.targetScore ? `Mục tiêu ${program.targetScore}` : null,
+    ].filter(Boolean).join(' · '),
+  })), [programs]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
     setFormError('');
   };
 
-  const handleSelectClass = (classCode) => {
-    updateField('desiredClassCode', classCode);
+  const togglePreferredSchedule = (slot) => {
+    setForm((current) => {
+      const selected = new Set(
+        Array.isArray(current.preferredScheduleSlots) ? current.preferredScheduleSlots : [],
+      );
+      if (selected.has(slot)) selected.delete(slot);
+      else selected.add(slot);
+      const preferredScheduleSlots = [...selected];
+      return {
+        ...current,
+        preferredSchedule: serializePreferredSchedule(preferredScheduleSlots),
+        preferredScheduleSlots,
+      };
+    });
+    setFormError('');
+  };
+
+  const selectProgram = (program) => {
+    setForm((current) => ({
+      ...current,
+      courseOfferingId: String(program.id),
+      consultationTrack: suggestedTrack(program),
+    }));
     document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const validateForm = () => {
+    if (!form.courseOfferingId) return 'Vui lòng chọn khóa học bạn quan tâm.';
     if (!form.contactName.trim() || !form.contactPhone.trim() || !form.contactEmail.trim()) {
       return 'Vui lòng điền Họ tên, Số điện thoại và Email.';
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail.trim())) {
       return 'Email chưa đúng định dạng.';
     }
-    if (form.contactPhone.replace(/\D/g, '').length < 9) {
-      return 'Số điện thoại không hợp lệ.';
-    }
+    if (form.contactPhone.replace(/\D/g, '').length < 9) return 'Số điện thoại không hợp lệ.';
     return '';
   };
 
@@ -210,26 +237,26 @@ export default function ClassroomsCatalogPage() {
     setSubmitting(true);
     setFormError('');
     setSuccess('');
-
-    const studyWorkGoalCombined = [
+    const studyWorkGoal = [
       form.schoolOrCompany.trim() ? `Trường/Nơi làm: ${form.schoolOrCompany.trim()}` : '',
-      form.scoreGoal.trim() ? `Mục tiêu điểm: ${form.scoreGoal.trim()}` : '',
+      form.scoreGoal.trim() ? `Mục tiêu: ${form.scoreGoal.trim()}` : '',
       form.notes.trim() ? `Ghi chú: ${form.notes.trim()}` : '',
     ].filter(Boolean).join(' | ');
 
     try {
       const saved = await enrollmentRequestApi.submit({
+        courseOfferingId: Number(form.courseOfferingId),
         contactName: form.contactName.trim(),
         contactPhone: form.contactPhone.trim(),
         contactEmail: form.contactEmail.trim(),
         facebookUrl: form.facebookUrl.trim() || null,
-        desiredClassCode: form.desiredClassCode.trim() || null,
-        consultationTrack: form.consultationTrack || 'IELTS_4_SKILLS',
-        studyWorkGoal: studyWorkGoalCombined || null,
+        consultationTrack: form.consultationTrack,
+        studyWorkGoal: studyWorkGoal || null,
+        preferredSchedule: form.preferredSchedule.trim() || null,
       });
       sessionStorage.removeItem(DRAFT_STORAGE_KEY);
       setExistingRequest(saved);
-      setSuccess('Đã gửi thông tin đăng ký tư vấn. Đội ngũ tư vấn sẽ liên hệ lại với bạn sớm nhất!');
+      setSuccess('Đã gửi đăng ký. Staff sẽ gửi email mời và gọi điện để chốt lịch tư vấn, test đầu vào tại trung tâm.');
     } catch (submitError) {
       setFormError(submitError?.response?.data?.message || 'Không thể gửi form đăng ký. Vui lòng thử lại.');
     } finally {
@@ -243,275 +270,139 @@ export default function ClassroomsCatalogPage() {
       <div className={PAGE_HEADER_CLASS}><Header /></div>
       <div className={PAGE_BODY_CLASS}>
         <main className={`${PAGE_MAIN_STACK_CLASS} gap-8 py-6`}>
-
-          {/* ── HEADER HERO ── */}
           <section className="rounded-3xl border border-[#dfbfbd]/50 bg-[#4b0009] px-6 py-8 text-white shadow-md md:px-10 md:py-10">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-[#ffcdd2]">TRUNG TÂM ENGLISHLAB</p>
-                <h1 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-white md:text-3xl">
-                  Lịch Khai Giảng Các Khóa Học
+                <p className="text-xs font-bold uppercase tracking-widest text-[#ffcdd2]">ĐĂNG KÝ HỌC TẠI ENGLISHLAB</p>
+                <h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-white">
+                  Chọn khóa học, EnglishLab sẽ tư vấn lớp phù hợp
                 </h1>
-                <p className="mt-2 max-w-2xl text-xs leading-6 text-white/80 md:text-sm">
-                  Cập nhật các lớp luyện thi IELTS và TOEIC mới nhất. Đăng ký ngay để nhận tư vấn lộ trình và làm bài kiểm tra trình độ miễn phí.
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
+                  Bạn không cần đoán lớp nào phù hợp. Hãy chọn khóa học mong muốn; Staff sẽ liên hệ,
+                  hẹn lịch test đầu vào và xếp lớp dựa trên kết quả thực tế.
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-xs text-white backdrop-blur-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-[#ffcdd2]" />
-                  <span className="font-bold">Hotline: 0988.123.456</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-[#ffcdd2]" />
-                  <span>Cơ sở: EnglishLab Campus (Hà Nội)</span>
-                </div>
+              <div className="grid shrink-0 gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-xs backdrop-blur-sm">
+                <span className="flex items-center gap-2"><Phone className="h-4 w-4 text-[#ffcdd2]" />Hotline: 0988.123.456</span>
+                <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[#ffcdd2]" />EnglishLab Campus, Hà Nội</span>
               </div>
             </div>
           </section>
 
-          {/* ── SCHEDULE SECTION ── */}
           <section className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { id: 'ALL', label: 'Tất cả các lớp' },
-                  { id: 'OFFLINE', label: 'Lớp tại Trung tâm' },
-                  { id: 'VIRTUAL', label: 'Lớp Trực tuyến (Online)' },
-                ].map((tab) => (
-                  <button
-                    className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-                      activeTab === tab.id
-                        ? 'bg-[#4b0009] text-white shadow-sm'
-                        : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                    }`}
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    type="button"
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="font-['Manrope'] text-2xl font-black text-slate-900">Khóa học đang nhận đăng ký</h2>
+                <p className="mt-1 text-sm text-slate-500">Số lớp sẽ được mở dựa trên nhu cầu đăng ký và phê duyệt của Manager.</p>
               </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  className="h-9 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs outline-none focus:border-[#730014]"
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm lớp, giảng viên..."
-                  type="text"
-                  value={searchQuery}
-                />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="w-full sm:w-48">
+                  <BrandedSelect
+                    onChange={(event) => setDeliveryFilter(event.target.value)}
+                    options={[
+                      { label: 'Tất cả hình thức', value: 'ALL' },
+                      { label: 'Tại trung tâm', value: 'OFFLINE' },
+                      { label: 'Trực tuyến', value: 'VIRTUAL' },
+                    ]}
+                    value={deliveryFilter}
+                  />
+                </div>
+                <label className="relative w-full sm:w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-[#730014]"
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Tìm khóa học..."
+                    value={searchQuery}
+                  />
+                </label>
               </div>
             </div>
 
-            {loading ? <ScheduleLoading /> : null}
-            {!loading && error ? <ScheduleError message={error} onRetry={load} /> : null}
-            {!loading && !error && !filteredOfferings.length ? (
-              <ScheduleEmpty activeTab={activeTab} searchQuery={searchQuery} />
-            ) : null}
-
-            {!loading && !error && filteredOfferings.length ? (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-[#dfbfbd]/40 bg-[#4b0009] text-white">
-                        <th className="px-4 py-3.5 font-bold uppercase tracking-wider">Mã Lớp / Khóa Học</th>
-                        <th className="px-4 py-3.5 font-bold uppercase tracking-wider">Lịch Học</th>
-                        <th className="px-4 py-3.5 text-center font-bold uppercase tracking-wider">Ngày Khai Giảng</th>
-                        <th className="px-4 py-3.5 font-bold uppercase tracking-wider">Giảng Viên</th>
-                        <th className="px-4 py-3.5 font-bold uppercase tracking-wider">Địa Điểm / Hình Thức</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredOfferings.map((offering, idx) => {
-                        const loc = getLocationDisplay(offering);
-                        const code = getClassCode(offering);
-
-                        return (
-                          <tr className={`transition hover:bg-[#fff9fa] ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}`} key={offering.id}>
-                            <td className="px-4 py-3.5">
-                              <span className="font-extrabold text-[#730014]">{code}</span>
-                              <p className="mt-0.5 font-semibold text-slate-800">{offering.title}</p>
-                            </td>
-                            <td className="px-4 py-3.5 font-medium text-slate-700">
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-3.5 w-3.5 text-slate-400" />
-                                {getScheduleText(offering)}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5 text-center">
-                              <span className="inline-flex items-center gap-1 rounded-md bg-[#fff0f2] px-2.5 py-1 font-extrabold text-[#730014]">
-                                <Calendar className="h-3 w-3" />
-                                {formatClassroomDate(offering.startDate)}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5 text-slate-700 font-medium">
-                              {offering.primaryTeacherName || 'Đang cập nhật'}
-                            </td>
-                            <td className="px-4 py-3.5">
-                              {loc.isVirtual ? (
-                                <span className="inline-flex items-center gap-1 font-semibold text-blue-600">
-                                  <Video className="h-3.5 w-3.5" />
-                                  Online (Lớp ảo)
-                                </span>
-                              ) : (
-                                <span className="font-medium text-slate-700">{loc.label}</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            {loading ? <CourseLoading /> : null}
+            {!loading && error ? <CourseError message={error} onRetry={load} /> : null}
+            {!loading && !error && !filteredPrograms.length ? <CourseEmpty /> : null}
+            {!loading && !error && filteredPrograms.length ? (
+              <ProgramList
+                onSelect={selectProgram}
+                programs={filteredPrograms}
+                selectedProgramId={form.courseOfferingId}
+              />
             ) : null}
           </section>
 
-          {/* ── CONSULTATION FORM ── */}
           <section className="scroll-mt-24" id="dang-ky-tu-van">
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
               <div className="mb-6 border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#730014]">
-                  <MessageSquare className="h-4 w-4" />
-                  Đăng ký tư vấn lịch học
+                  <MessageSquare className="h-4 w-4" />Đăng ký học & nhận tư vấn
                 </div>
-                <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-slate-900 md:text-2xl">
-                  Form Nhận Tư Vấn & Đăng Ký Xếp Lớp
-                </h2>
+                <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-slate-900">Thông tin đăng ký</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Điền thông tin của bạn bên dưới. Tư vấn viên EnglishLab sẽ liên hệ lại trong thời gian sớm nhất.
+                  Sau khi tiếp nhận, Staff sẽ gửi email mời và gọi điện để chốt ngày giờ bạn đến trung tâm.
                 </p>
               </div>
 
               {existingRequest ? (
                 <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-8 text-center">
                   <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-                  <h3 className="mt-3 font-['Manrope'] text-lg font-bold text-slate-900">
-                    Đã gửi thông tin đăng ký!
-                  </h3>
-                  <p className="mt-1 max-w-md text-xs text-slate-600">
-                    {success || existingRequest.statusLabel || 'Chúng tôi đã nhận thông tin và sẽ sớm liên hệ theo số điện thoại của bạn.'}
+                  <h3 className="mt-3 text-lg font-bold text-slate-900">Hồ sơ đăng ký đã được tiếp nhận</h3>
+                  <p className="mt-1 max-w-xl text-sm text-slate-600">
+                    {success || existingRequest.statusLabel || 'Staff sẽ sớm liên hệ với bạn.'}
                   </p>
-                  <button
-                    className="mt-4 rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-bold text-white"
-                    onClick={() => navigate('/my-enrollment-requests')}
-                    type="button"
-                  >
-                    Xem yêu cầu đã gửi
+                  <button className="mt-4 rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-bold text-white" onClick={() => navigate('/my-enrollment-requests')} type="button">
+                    Theo dõi hồ sơ
                   </button>
                 </div>
               ) : (
                 <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-                  <FormField
-                    label="Họ và tên *"
-                    maxLength={100}
-                    onChange={(v) => updateField('contactName', v)}
-                    placeholder="Nguyễn Văn A"
-                    required
-                    value={form.contactName}
-                  />
-
-                  <FormField
-                    label="Số điện thoại *"
-                    maxLength={30}
-                    onChange={(v) => updateField('contactPhone', v)}
-                    placeholder="0912 345 678"
-                    required
-                    type="tel"
-                    value={form.contactPhone}
-                  />
-
-                  <FormField
-                    label="Email liên hệ *"
-                    maxLength={150}
-                    onChange={(v) => updateField('contactEmail', v)}
-                    placeholder="nguyenvana@gmail.com"
-                    required
-                    type="email"
-                    value={form.contactEmail}
-                  />
-
-                  <div>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-bold text-slate-800">Khóa học quan tâm *</span>
-                      <BrandedSelect
-                        buttonClassName="h-10 rounded-xl border-slate-200 bg-white text-xs shadow-none"
-                        onChange={(e) => updateField('consultationTrack', e.target.value)}
-                        options={CONSULTATION_OPTIONS}
-                        value={form.consultationTrack}
-                      />
-                    </label>
-                  </div>
-
-                  <FormField
-                    label="Trường học / Nơi làm việc"
-                    maxLength={200}
-                    onChange={(v) => updateField('schoolOrCompany', v)}
-                    placeholder="ĐH FPT, Người đi làm..."
-                    value={form.schoolOrCompany}
-                  />
-
-                  <FormField
-                    label="Mục tiêu điểm số"
-                    maxLength={200}
-                    onChange={(v) => updateField('scoreGoal', v)}
-                    placeholder="IELTS 6.5, TOEIC 750..."
-                    value={form.scoreGoal}
-                  />
-
-                  <FormField
-                    helper="Có thể để trống nếu bạn muốn tư vấn xếp lớp"
-                    label="Mã lớp ưu tiên (nếu có)"
-                    maxLength={120}
-                    onChange={(v) => updateField('desiredClassCode', v)}
-                    placeholder="Mã lớp chọn từ bảng trên"
-                    value={form.desiredClassCode}
-                  />
-
-                  <FormField
-                    helper="Link Facebook hoặc Zalo để tư vấn viên liên hệ"
-                    label="Link Facebook / Zalo (tùy chọn)"
-                    maxLength={500}
-                    onChange={(v) => updateField('facebookUrl', v)}
-                    placeholder="https://facebook.com/..."
-                    value={form.facebookUrl}
-                  />
-
                   <div className="md:col-span-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-bold text-slate-800">Ghi chú thêm (khung giờ rảnh, yêu cầu khác)</span>
-                      <textarea
-                        className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs outline-none focus:border-[#730014]"
-                        onChange={(e) => updateField('notes', e.target.value)}
-                        placeholder="Có thể học vào các tối Thứ 2 - 4 - 6..."
-                        rows={2}
-                        value={form.notes}
-                      />
-                    </label>
+                    <FieldLabel>Khóa học quan tâm *</FieldLabel>
+                    <BrandedSelect
+                      onChange={(event) => {
+                        const program = programs.find((item) => String(item.id) === event.target.value);
+                        setForm((current) => ({
+                          ...current,
+                          courseOfferingId: event.target.value,
+                          consultationTrack: suggestedTrack(program),
+                        }));
+                        setFormError('');
+                      }}
+                      options={programOptions}
+                      placeholder="Chọn một khóa học"
+                      searchable
+                      value={form.courseOfferingId}
+                    />
                   </div>
-
+                  <FormField label="Họ và tên *" maxLength={100} onChange={(value) => updateField('contactName', value)} placeholder="Nguyễn Văn A" required value={form.contactName} />
+                  <FormField label="Số điện thoại *" maxLength={30} onChange={(value) => updateField('contactPhone', value)} placeholder="0912 345 678" required type="tel" value={form.contactPhone} />
+                  <FormField label="Email liên hệ *" maxLength={150} onChange={(value) => updateField('contactEmail', value)} placeholder="nguyenvana@gmail.com" required type="email" value={form.contactEmail} />
+                  <div>
+                    <FieldLabel>Nhu cầu tư vấn *</FieldLabel>
+                    <BrandedSelect onChange={(event) => updateField('consultationTrack', event.target.value)} options={CONSULTATION_OPTIONS} value={form.consultationTrack} />
+                  </div>
+                  <FormField label="Trường học / Nơi làm việc" maxLength={200} onChange={(value) => updateField('schoolOrCompany', value)} placeholder="ĐH FPT, người đi làm..." value={form.schoolOrCompany} />
+                  <FormField label="Mục tiêu điểm số" maxLength={200} onChange={(value) => updateField('scoreGoal', value)} placeholder="IELTS 6.5, TOEIC 750..." value={form.scoreGoal} />
+                  <PreferredScheduleField
+                    onToggle={togglePreferredSchedule}
+                    value={form.preferredScheduleSlots}
+                  />
+                  <FormField label="Facebook / Zalo" maxLength={500} onChange={(value) => updateField('facebookUrl', value)} placeholder="https://facebook.com/..." value={form.facebookUrl} />
+                  <label className="block md:col-span-2">
+                    <FieldLabel>Ghi chú thêm</FieldLabel>
+                    <textarea className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-[#730014]" onChange={(event) => updateField('notes', event.target.value)} placeholder="Nhu cầu tư vấn hoặc lưu ý khác..." rows={3} value={form.notes} />
+                  </label>
                   {formError ? <div className="md:col-span-2"><FormNotice message={formError} /></div> : null}
-
-                  <div className="md:col-span-2 pt-2 flex flex-col items-center justify-center text-center">
-                    <button
-                      className="inline-flex items-center justify-center rounded-xl bg-[#4b0009] px-7 py-3 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-60"
-                      disabled={submitting}
-                      type="submit"
-                    >
-                      {submitting ? 'Đang gửi...' : isAuthenticated ? 'Gửi đăng ký tư vấn' : 'Đăng nhập để đăng ký'}
+                  <div className="flex flex-col items-center pt-2 text-center md:col-span-2">
+                    <button className="inline-flex items-center justify-center rounded-xl bg-[#4b0009] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={submitting} type="submit">
+                      {submitting ? 'Đang gửi...' : isAuthenticated ? 'Gửi đăng ký' : 'Đăng nhập để đăng ký'}
                     </button>
-                    <span className="mt-2 text-[11px] text-slate-500">
-                      Thông tin của bạn sẽ được bảo mật tuyệt đối.
-                    </span>
+                    <span className="mt-2 text-[11px] text-slate-500">Thông tin chỉ được dùng cho tư vấn và xếp lớp.</span>
                   </div>
                 </form>
               )}
             </div>
           </section>
-
         </main>
         <CourseFooter />
       </div>
@@ -519,72 +410,212 @@ export default function ClassroomsCatalogPage() {
   );
 }
 
-function FormField({ helper, label, maxLength, onChange, placeholder, required = false, type = 'text', value }) {
+function ProgramList({ onSelect, programs, selectedProgramId }) {
+  return (
+    <>
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] border-collapse text-left">
+            <thead className="bg-[#3d3d3d] text-xs font-extrabold uppercase tracking-wide text-white">
+              <tr>
+                <th className="px-4 py-3">Mã khóa học</th>
+                <th className="px-4 py-3">Khóa học</th>
+                <th className="px-4 py-3">Hình thức</th>
+                <th className="px-4 py-3">Đầu vào</th>
+                <th className="px-4 py-3">Mục tiêu</th>
+                <th className="px-4 py-3">Thời lượng</th>
+                <th className="px-4 py-3">Sĩ số dự kiến</th>
+                <th className="w-28 px-4 py-3 text-center">Đăng ký</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {programs.map((program) => {
+                const selected = String(program.id) === String(selectedProgramId);
+                return (
+                  <ProgramTableRow
+                    key={program.id}
+                    onSelect={() => onSelect(program)}
+                    program={program}
+                    selected={selected}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:hidden">
+        {programs.map((program) => (
+          <ProgramMobileRow
+            key={program.id}
+            onSelect={() => onSelect(program)}
+            program={program}
+            selected={String(program.id) === String(selectedProgramId)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function ProgramTableRow({ onSelect, program, selected }) {
+  const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
+  return (
+    <tr className={`text-sm transition ${selected ? 'bg-[#fff3f4]' : 'odd:bg-white even:bg-slate-50/70 hover:bg-[#fff8f8]'}`}>
+      <td className="px-4 py-3 align-top">
+        <span className="font-extrabold text-[#a0001c]">{program.code}</span>
+      </td>
+      <td className="max-w-xs px-4 py-3 align-top">
+        <p className="font-extrabold text-slate-900">{program.title}</p>
+        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+          {program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
+        </p>
+      </td>
+      <td className="px-4 py-3 align-top">
+        <DeliveryBadge virtual={virtual} />
+      </td>
+      <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.entryLevel || 'Test đầu vào'}</td>
+      <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.targetScore || 'Theo lộ trình'}</td>
+      <td className="px-4 py-3 align-top text-slate-600">{program.duration || 'Đang cập nhật'}</td>
+      <td className="px-4 py-3 align-top text-slate-600">{program.maxCapacity || program.capacity || 30} học viên/lớp</td>
+      <td className="px-4 py-3 text-center align-middle">
+        <SelectProgramButton onSelect={onSelect} selected={selected} />
+      </td>
+    </tr>
+  );
+}
+
+function ProgramMobileRow({ onSelect, program, selected }) {
+  const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
+  return (
+    <article className={selected ? 'bg-[#fff3f4] p-4' : 'bg-white p-4'}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold text-[#a0001c]">{program.code}</p>
+          <h3 className="mt-1 font-['Manrope'] text-base font-black text-slate-900">{program.title}</h3>
+        </div>
+        <DeliveryBadge virtual={virtual} />
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+        <ProgramDetail label="Đầu vào" value={program.entryLevel || 'Test đầu vào'} />
+        <ProgramDetail label="Mục tiêu" value={program.targetScore || 'Theo lộ trình'} />
+        <ProgramDetail label="Thời lượng" value={program.duration || 'Đang cập nhật'} />
+        <ProgramDetail label="Sĩ số" value={`${program.maxCapacity || program.capacity || 30} học viên/lớp`} />
+      </dl>
+      <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} selected={selected} />
+    </article>
+  );
+}
+
+function DeliveryBadge({ virtual }) {
+  return (
+    <span className={`inline-flex whitespace-nowrap items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${virtual ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'}`}>
+      {virtual ? <Video className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+      {virtual ? 'Trực tuyến' : 'Tại trung tâm'}
+    </span>
+  );
+}
+
+function ProgramDetail({ label, value }) {
+  return <div><dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-0.5 font-semibold text-slate-700">{value}</dd></div>;
+}
+
+function SelectProgramButton({ className = '', onSelect, selected }) {
+  return (
+    <button
+      className={`${className} inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-extrabold transition ${
+        selected
+          ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'bg-[#4b0009] text-white hover:bg-[#730014]'
+      }`}
+      onClick={onSelect}
+      type="button"
+    >
+      {selected ? <><CheckCircle2 className="h-3.5 w-3.5" />Đã chọn</> : <>Chọn <ArrowRight className="h-3.5 w-3.5" /></>}
+    </button>
+  );
+}
+
+function FormField({ label, maxLength, onChange, placeholder, required = false, type = 'text', value }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-bold text-slate-800">
-        {label}
-      </span>
-      <input
-        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs outline-none transition focus:border-[#730014]"
-        maxLength={maxLength}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        required={required}
-        type={type}
-        value={value}
-      />
-      {helper ? <span className="mt-1 block text-[11px] text-slate-400">{helper}</span> : null}
+      <FieldLabel>{label}</FieldLabel>
+      <input className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-[#730014]" maxLength={maxLength} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} type={type} value={value} />
     </label>
   );
 }
 
+function PreferredScheduleField({ onToggle, value }) {
+  const selected = new Set(Array.isArray(value) ? value : []);
+  return (
+    <fieldset className="md:col-span-2">
+      <legend className="mb-1.5 text-xs font-bold text-slate-800">
+        Khung giờ học mong muốn <span className="font-medium text-slate-400">(tích các ca có thể học)</span>
+      </legend>
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full min-w-[540px] border-collapse text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="w-32 border-b border-r border-slate-200 px-3 py-3 text-left font-extrabold text-slate-700">
+                Ngày
+              </th>
+              {PREFERRED_SHIFTS.map((shift) => (
+                <th className="border-b border-slate-200 px-3 py-3 text-center" key={shift.value}>
+                  <span className="block font-extrabold text-slate-700">{shift.label}</span>
+                  <span className="mt-0.5 block text-[10px] font-medium text-slate-400">{shift.time}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {PREFERRED_DAYS.map((day) => (
+              <tr className="odd:bg-white even:bg-slate-50/60" key={day.value}>
+                <th className="border-r border-slate-200 px-3 py-3 text-left font-bold text-slate-700">
+                  {day.label}
+                </th>
+                {PREFERRED_SHIFTS.map((shift) => {
+                  const slot = `${day.value}_${shift.value}`;
+                  const checked = selected.has(slot);
+                  return (
+                    <td className={checked ? 'bg-[#fff3f4] px-3 py-3 text-center' : 'px-3 py-3 text-center'} key={shift.value}>
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-lg p-1.5">
+                        <input
+                          aria-label={`${day.label} ca ${shift.label}`}
+                          checked={checked}
+                          className="h-5 w-5 cursor-pointer accent-[#730014]"
+                          onChange={() => onToggle(slot)}
+                          type="checkbox"
+                        />
+                      </label>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+  );
+}
+
+function FieldLabel({ children }) {
+  return <span className="mb-1.5 block text-xs font-bold text-slate-800">{children}</span>;
+}
+
 function FormNotice({ message }) {
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700">
-      <AlertCircle className="h-4 w-4 shrink-0" />
-      {message}
-    </div>
-  );
+  return <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-semibold text-rose-700"><AlertCircle className="h-4 w-4 shrink-0" />{message}</div>;
 }
 
-function ScheduleLoading() {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div className="h-16 animate-pulse rounded-xl bg-slate-100" key={index} />
-      ))}
-    </div>
-  );
+function CourseLoading() {
+  return <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">{Array.from({ length: 6 }).map((_, index) => <div className="h-16 animate-pulse border-b border-slate-100 bg-slate-50 last:border-b-0" key={index} />)}</div>;
 }
 
-function ScheduleError({ message, onRetry }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-rose-200 bg-white p-6 text-center">
-      <AlertCircle className="h-8 w-8 text-rose-400" />
-      <p className="mt-2 text-xs text-slate-600">{message}</p>
-      <button
-        className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-bold text-white"
-        onClick={onRetry}
-        type="button"
-      >
-        <RefreshCw className="h-3.5 w-3.5" />
-        Thử lại
-      </button>
-    </div>
-  );
+function CourseError({ message, onRetry }) {
+  return <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-rose-200 bg-white p-6 text-center"><AlertCircle className="h-9 w-9 text-rose-400" /><p className="mt-3 text-sm text-slate-600">{message}</p><button className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2 text-sm font-bold text-white" onClick={onRetry} type="button"><RefreshCw className="h-4 w-4" />Thử lại</button></div>;
 }
 
-function ScheduleEmpty({ activeTab, searchQuery }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-      <CalendarDays className="h-8 w-8 text-slate-300" />
-      <p className="mt-2 text-xs font-bold text-slate-600">
-        {searchQuery ? 'Không tìm thấy lớp phù hợp với từ khóa' : 'Chưa có lớp khai giảng mới trong danh mục này'}
-      </p>
-      <p className="mt-1 text-[11px] text-slate-400">
-        Bạn có thể gửi thông tin vào form bên dưới để nhận thông báo khi có lớp mới.
-      </p>
-    </div>
-  );
+function CourseEmpty() {
+  return <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center"><GraduationCap className="h-10 w-10 text-slate-300" /><p className="mt-3 font-bold text-slate-700">Không tìm thấy khóa học phù hợp</p><p className="mt-1 text-sm text-slate-400">Hãy đổi từ khóa hoặc hình thức học.</p></div>;
 }

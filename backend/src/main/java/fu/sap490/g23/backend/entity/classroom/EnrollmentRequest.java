@@ -113,6 +113,18 @@ public class EnrollmentRequest {
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
+    @Column(name = "invitation_sent_at")
+    private LocalDateTime invitationSentAt;
+
+    @Column(name = "test_appointment_at")
+    private LocalDateTime testAppointmentAt;
+
+    @Column(name = "test_location", length = 300)
+    private String testLocation;
+
+    @Column(name = "test_completed_at")
+    private LocalDateTime testCompletedAt;
+
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 

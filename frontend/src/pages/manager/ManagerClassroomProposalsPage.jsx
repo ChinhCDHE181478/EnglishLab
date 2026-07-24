@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  BarChart3,
   Building2,
   CalendarDays,
   CheckCircle2,
@@ -54,21 +55,24 @@ export default function ManagerClassroomProposalsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [demandReport, setDemandReport] = useState([]);
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const [pending, approved, rejected] = await Promise.all([
+      const [pending, approved, rejected, demand] = await Promise.all([
         enrollmentRequestApi.listManagerClassroomProposals('PENDING_APPROVAL'),
         enrollmentRequestApi.listManagerClassroomProposals('APPROVED'),
         enrollmentRequestApi.listManagerClassroomProposals('REJECTED'),
+        enrollmentRequestApi.getManagerEnrollmentDemand(),
       ]);
       setProposalsByStatus({
         PENDING_APPROVAL: pending,
         APPROVED: approved,
         REJECTED: rejected,
       });
+      setDemandReport(demand);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể tải hàng chờ duyệt đề xuất lớp.');
     } finally {
@@ -195,6 +199,43 @@ export default function ManagerClassroomProposalsPage() {
           </div>
           <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Đã từ chối</p>
         </div>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-[#730014]" />
+              <h2 className="font-['Manrope'] text-lg font-black text-[#0b1c30]">Báo cáo nhu cầu mở lớp</h2>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Tổng hợp trực tiếp từ hồ sơ học viên đăng ký từng khóa học.</p>
+          </div>
+          <span className="rounded-full bg-[#fff0f2] px-3 py-1 text-xs font-extrabold text-[#730014]">{demandReport.length} khóa học có nhu cầu</span>
+        </div>
+        {demandReport.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-left text-sm">
+              <thead className="bg-slate-50 text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                <tr><th className="px-5 py-3">Khóa học</th><th className="px-5 py-3 text-center">Tổng đăng ký</th><th className="px-5 py-3 text-center">Chờ liên hệ</th><th className="px-5 py-3 text-center">Đã hẹn test</th><th className="px-5 py-3 text-center">Đủ điều kiện</th><th className="px-5 py-3 text-center">Đã xếp lớp</th><th className="px-5 py-3 text-center">Ước tính lớp cần mở</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {demandReport.map((item) => (
+                  <tr key={item.courseOfferingId}>
+                    <td className="px-5 py-4"><p className="font-extrabold text-slate-800">{item.courseOfferingTitle}</p><p className="mt-1 text-xs text-slate-400">{item.courseOfferingCode} · {deliveryLabels[item.deliveryMode] || item.deliveryMode}</p></td>
+                    <td className="px-5 py-4 text-center font-black text-[#730014]">{item.totalRegistrations}</td>
+                    <td className="px-5 py-4 text-center">{item.awaitingContact}</td>
+                    <td className="px-5 py-4 text-center">{item.testsScheduled}</td>
+                    <td className="px-5 py-4 text-center font-bold text-emerald-700">{item.qualifiedForClass}</td>
+                    <td className="px-5 py-4 text-center">{item.assigned}</td>
+                    <td className="px-5 py-4 text-center"><span className="rounded-lg bg-blue-50 px-3 py-1.5 font-extrabold text-blue-700">{item.suggestedClassCount} lớp</span><p className="mt-1 text-[10px] text-slate-400">{item.classCapacity} học viên/lớp</p></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="px-5 py-8 text-center text-sm text-slate-500">Chưa có hồ sơ đăng ký theo khóa học để tổng hợp.</div>
+        )}
       </section>
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -404,7 +445,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
                   <div>
                     <div className={`rounded-2xl border p-4 text-sm font-bold ${action === 'approve' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>
                       {action === 'approve'
-                        ? 'Xác nhận tạo lớp chính thức và lịch học; lớp sẽ xuất hiện trên Lịch khai giảng.'
+                        ? 'Xác nhận tạo lớp chính thức và lịch học; Staff mới có thể xếp học viên đủ điều kiện vào lớp.'
                         : 'Đề xuất sẽ quay lại Staff để chỉnh sửa và gửi duyệt lại.'}
                     </div>
                     {action === 'reject' ? (

@@ -37,19 +37,28 @@ describe('staff enrollment assignment', () => {
     expect(isAssignableClassroom({ ...upcoming, enrolledCount: 20 }, today)).toBe(false);
   });
 
-  it('shows consultation and assignment as two consecutive steps', () => {
+  it('requires an appointment before test result and assignment', () => {
     expect(getEnrollmentRequestActions('SUBMITTED')).toEqual({
-      canCompleteConsultation: true,
+      canSchedule: true,
+      canCompleteTest: false,
       canAssign: false,
       canReject: true,
     });
-    expect(getEnrollmentRequestActions('UNDER_STAFF_REVIEW')).toEqual({
-      canCompleteConsultation: true,
+    expect(getEnrollmentRequestActions('INVITATION_SENT')).toEqual({
+      canSchedule: true,
+      canCompleteTest: false,
+      canAssign: false,
+      canReject: true,
+    });
+    expect(getEnrollmentRequestActions('TEST_SCHEDULED')).toEqual({
+      canSchedule: false,
+      canCompleteTest: true,
       canAssign: false,
       canReject: true,
     });
     expect(getEnrollmentRequestActions('WAITING_FOR_CLASS')).toEqual({
-      canCompleteConsultation: false,
+      canSchedule: false,
+      canCompleteTest: false,
       canAssign: true,
       canReject: true,
     });

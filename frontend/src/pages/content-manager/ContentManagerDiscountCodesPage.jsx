@@ -6,6 +6,7 @@ import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import { formatCoursePrice } from '../../components/course/courseFormatters';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
 
 const emptyForm = {
   id: null,
@@ -225,8 +226,8 @@ export default function ContentManagerDiscountCodesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <DateTimeField label="Bắt đầu từ" onChange={handleChange('startsAt')} value={form.startsAt} />
-              <DateTimeField label="Hết hạn lúc" onChange={handleChange('expiresAt')} value={form.expiresAt} />
+              <DateTimeField label="Bắt đầu từ" onChange={(value) => setForm((current) => ({ ...current, startsAt: value }))} value={form.startsAt} />
+              <DateTimeField label="Hết hạn lúc" onChange={(value) => setForm((current) => ({ ...current, expiresAt: value }))} value={form.expiresAt} />
             </div>
 
             <label className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
@@ -373,10 +374,9 @@ function DateTimeField({ label, value, onChange }) {
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
-      <input
+      <VietnameseDateTimeInput
         className="w-full rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm text-[#1a1c1c] outline-none focus:border-[#730014]"
         onChange={onChange}
-        type="datetime-local"
         value={value}
       />
     </label>

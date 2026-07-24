@@ -36,14 +36,6 @@ public class StudentEnrollmentRequestController {
         return ResponseEntity.ok(enrollmentRequestService.listMine(authentication.getName()));
     }
 
-    @PatchMapping("/{requestId}/refresh-placement")
-    public ResponseEntity<CourseEnrollmentRequestResponse> refreshPlacement(
-            @PathVariable Long requestId,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(enrollmentRequestService.refreshPlacement(requestId, authentication.getName()));
-    }
-
     @PatchMapping("/{requestId}/cancel")
     public ResponseEntity<CourseEnrollmentRequestResponse> cancel(
             @PathVariable Long requestId,

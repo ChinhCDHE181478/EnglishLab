@@ -6,6 +6,7 @@ import curriculumApi from '../../api/curriculumApi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
@@ -217,7 +218,14 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
               <TextInput label="Thời lượng triển khai" placeholder="Ví dụ: 12 tuần" value={form.duration} onChange={(value) => updateForm({ duration: value })} />
               <TextInput label="Cách tổ chức học" placeholder="Ví dụ: 3 buổi/tuần" value={form.studyMode} onChange={(value) => updateForm({ studyMode: value })} />
               <TextInput label="Sức chứa dự kiến" min="1" type="number" value={form.capacity} onChange={(value) => updateForm({ capacity: value })} />
-              <TextInput label="Ngày khai giảng dự kiến" type="date" value={form.plannedStartDate} onChange={(value) => updateForm({ plannedStartDate: value })} />
+              <label className="block">
+                <FieldLabel>Ngày khai giảng dự kiến</FieldLabel>
+                <VietnameseDateInput
+                  className={FIELD_CLASS}
+                  onChange={(value) => updateForm({ plannedStartDate: value })}
+                  value={form.plannedStartDate}
+                />
+              </label>
               <TextInput label="Lịch học dự kiến" placeholder="Ví dụ: Thứ 2, 4, 6 · 18:30–20:30" value={form.plannedSchedule} onChange={(value) => updateForm({ plannedSchedule: value })} />
               <TextInput label="Học phí" min="0" type="number" value={form.price} onChange={(value) => updateForm({ price: value })} />
               <TextInput label="Giá ưu đãi" min="0" type="number" value={form.salePrice} onChange={(value) => updateForm({ salePrice: value })} />

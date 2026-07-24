@@ -2,15 +2,17 @@ package fu.sap490.g23.backend.dto.request.classroom;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
 public class CreateCourseEnrollmentRequest {
-    /** Giữ để tương thích dữ liệu cũ; form tư vấn chung không bắt buộc chọn chương trình. */
+    /** Khóa học học viên quan tâm; lớp cụ thể chỉ được chọn sau khi test và tư vấn. */
+    @NotNull(message = "Vui lòng chọn khóa học bạn quan tâm")
     private Long courseOfferingId;
 
-    /** Giữ để tương thích liên kết cũ từ trang chi tiết lớp. */
+    /** Giữ để đọc dữ liệu cũ; form mới không đăng ký trực tiếp vào từng lớp. */
     private Long classroomId;
 
     private Long placementAttemptId;

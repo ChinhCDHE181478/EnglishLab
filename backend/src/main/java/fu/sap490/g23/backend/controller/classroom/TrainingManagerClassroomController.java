@@ -126,14 +126,6 @@ public class TrainingManagerClassroomController {
         return ResponseEntity.ok(classroomOfferingService.getManagerOffering(id));
     }
 
-    @PostMapping
-    public ResponseEntity<ClassroomOfferingResponse> createOffering(
-            @Valid @RequestBody CreateClassroomOfferingRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.createOffering(request, authentication.getName()));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<ClassroomOfferingResponse> updateOffering(
             @PathVariable Long id,
@@ -141,11 +133,6 @@ public class TrainingManagerClassroomController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomOfferingService.updateOffering(id, request, authentication.getName()));
-    }
-
-    @PostMapping("/{id}/publish")
-    public ResponseEntity<ClassroomOfferingResponse> publishOffering(@PathVariable Long id) {
-        return ResponseEntity.ok(classroomOfferingService.publishOffering(id));
     }
 
     @PostMapping("/{id}/close")
