@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, Download, Edit3, FileUp, Layers3, Plus, RefreshCw, Save, Search, SquareStack, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import curriculumApi from '../../api/curriculumApi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { usePagination } from '../../components/ui/Pagination';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   DANGER_BUTTON_CLASS,
   EMPTY_STATE_CLASS,
@@ -228,6 +230,7 @@ const parseSpreadsheetRows = (rows) => {
 };
 
 export default function ContentManagerFlashcardsPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sets, setSets] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -518,7 +521,11 @@ export default function ContentManagerFlashcardsPage() {
   };
 
   const archiveSet = async (set) => {
-    if (!window.confirm(`Lưu trữ bộ flashcard "${set.title}"?`)) return;
+    if (!await confirmDialog(`Lưu trữ bộ flashcard “${set.title}”?`, {
+      title: 'Lưu trữ bộ flashcard',
+      confirmLabel: 'Lưu trữ',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -539,7 +546,10 @@ export default function ContentManagerFlashcardsPage() {
   };
 
   const restoreSet = async (set) => {
-    if (!window.confirm(`Khôi phục bộ flashcard "${set.title}" về bản nháp?`)) return;
+    if (!await confirmDialog(`Khôi phục bộ flashcard “${set.title}” về bản nháp?`, {
+      title: 'Khôi phục bộ flashcard',
+      confirmLabel: 'Khôi phục',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -608,7 +618,13 @@ export default function ContentManagerFlashcardsPage() {
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                  <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => setForm({ ...form, description: value })}
+                    placeholder="Mô tả bộ flashcard..."
+                    size="compact"
+                    value={form.description}
+                  />
                 </label>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>

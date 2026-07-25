@@ -48,7 +48,7 @@ class FlashcardPracticeVersionSnapshotTest {
     private FlashcardPracticeServiceImpl service;
 
     @Test
-    void enrolledPracticeReadsVocabularyFromEnrollmentVersionSnapshot() {
+    void enrolledPracticeReadsVocabularyFromLatestPublishedVersion() {
         User learner = User.builder().id(1L).email("learner@test.com").build();
         LearningPackage learningPackage = LearningPackage.builder().id(2L).title("IELTS v1").deleted(false).build();
         OnlineCourse course = OnlineCourse.builder().id(3L).learningPackage(learningPackage).build();
@@ -84,7 +84,7 @@ class FlashcardPracticeVersionSnapshotTest {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(enrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner)).thenReturn(List.of(enrollment));
         when(onlineCourseRepository.findByLearningPackage(learningPackage)).thenReturn(Optional.of(course));
-        when(onlineCourseVersionService.readEnrollmentSnapshot(enrollment, course)).thenReturn(snapshot);
+        when(onlineCourseVersionService.readLatestPublishedForEnrollment(enrollment, course)).thenReturn(snapshot);
         when(progressRepository.findByStudentAndCourse(learner, course)).thenReturn(List.of());
 
         List<VocabularyTermResponse> terms = service.getPracticeTerms(

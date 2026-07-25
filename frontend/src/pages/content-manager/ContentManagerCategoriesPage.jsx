@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { ContentManagerLoadingState, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const emptyForm = {
   code: '',
@@ -14,6 +17,7 @@ const emptyForm = {
 };
 
 export default function ContentManagerCategoriesPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -116,7 +120,11 @@ export default function ContentManagerCategoriesPage() {
   };
 
   const deleteCategory = async (category) => {
-    if (!window.confirm(`Xóa danh mục “${category.name}”?`)) return;
+    if (!await confirmDialog(`Xóa danh mục “${category.name}”?`, {
+      title: 'Xóa danh mục',
+      confirmLabel: 'Xóa danh mục',
+      tone: 'danger',
+    })) return;
     setError('');
     setSuccess('');
     try {
@@ -206,11 +214,11 @@ export default function ContentManagerCategoriesPage() {
               />
             </Field>
             <div className="md:col-span-2">
-              <TextField
+              <RichTextEditor
                 label="Mô tả"
-                onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                rows={3}
-                textarea
+                onChange={(html) => setForm((current) => ({ ...current, description: html }))}
+                placeholder="Mô tả danh mục khóa học..."
+                size="compact"
                 value={form.description}
               />
             </div>
@@ -248,7 +256,7 @@ export default function ContentManagerCategoriesPage() {
                   <td className="px-5 py-4 text-sm">{category.displayOrder}</td>
                   <td className="px-5 py-4 text-sm font-bold text-[#4b0009]">{category.code}</td>
                   <td className="px-5 py-4 font-semibold">{category.name}</td>
-                  <td className="max-w-md px-5 py-4 text-sm text-[#584140]">{category.description || 'Chưa có mô tả'}</td>
+                  <td className="max-w-md px-5 py-4 text-sm text-[#584140]">{stripRichTextToPlain(category.description) || 'Chưa có mô tả'}</td>
                   <td className="px-5 py-4 text-sm font-bold">{category.courseCount}</td>
                   <td className="px-5 py-4"><StatusBadge label={category.active ? 'Đang hoạt động' : 'Tạm ngừng'} /></td>
                   <td className="px-5 py-4">

@@ -4,7 +4,9 @@ import fu.sap490.g23.backend.service.assessment.impl.AiAssessmentServiceImpl;
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sap490.g23.backend.entity.assessment.AssessmentSubmission;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.OnlineCourseVersion;
@@ -89,6 +91,7 @@ class GetCourseAssessmentsTest {
         assessment.setOnlineCourse(course);
         assessment.setActive(true);
         assessment.setType(AssessmentType.MODULE_TEST);
+        assessment.setProgressKey("assessment-100");
     }
 
     /**
@@ -101,8 +104,12 @@ class GetCourseAssessmentsTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)).thenReturn(List.of(assessment));
-        when(submissionRepository.findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)).thenReturn(List.of());
+        when(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).thenReturn(List.of(assessment.getId()));
+        when(courseAssessmentRepository.findAllById(List.of(assessment.getId()))).thenReturn(List.of(assessment));
+        when(submissionRepository.findTop2ByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+                assessment.getProgressKey(),
+                student
+        )).thenReturn(List.of());
 
         // Act
         List<CourseAssessmentResponse> result = aiAssessmentService.getCourseAssessments(course.getId(), student.getEmail());
@@ -114,7 +121,7 @@ class GetCourseAssessmentsTest {
     }
 
     @Test
-    void getCourseAssessments_UsesEnrollmentVersionSnapshotInsteadOfCurrentActiveSet() {
+    void getCourseAssessments_UsesLatestPublishedVersionInsteadOfEnrollmentPurchaseVersion() {
         OnlineCourseVersion versionOne = OnlineCourseVersion.builder()
                 .id(20L)
                 .onlineCourse(course)
@@ -128,10 +135,12 @@ class GetCourseAssessmentsTest {
         when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
         when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
         when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
-        when(onlineCourseVersionService.getEnrollmentAssessmentIds(enrollment)).thenReturn(List.of(assessment.getId()));
+        when(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).thenReturn(List.of(assessment.getId()));
         when(courseAssessmentRepository.findAllById(List.of(assessment.getId()))).thenReturn(List.of(assessment));
-        when(submissionRepository.findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student))
-                .thenReturn(List.of());
+        when(submissionRepository.findTop2ByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+                assessment.getProgressKey(),
+                student
+        )).thenReturn(List.of());
 
         List<CourseAssessmentResponse> result = aiAssessmentService.getCourseAssessments(
                 course.getId(),
@@ -141,6 +150,43 @@ class GetCourseAssessmentsTest {
         assertEquals(List.of(assessment.getId()), result.stream().map(CourseAssessmentResponse::getId).toList());
         verify(courseAssessmentRepository, never())
                 .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
+    }
+
+    @Test
+    void getCourseAssessments_CarriesSubmissionAcrossAssessmentVersions() {
+        assessment.setProgressKey("module-1-writing");
+        CourseAssessment previousAssessment = new CourseAssessment();
+        previousAssessment.setId(90L);
+        previousAssessment.setOnlineCourse(course);
+        previousAssessment.setProgressKey(assessment.getProgressKey());
+        previousAssessment.setType(AssessmentType.MODULE_TEST);
+        AssessmentSubmission historicalSubmission = AssessmentSubmission.builder()
+                .id(901L)
+                .assessment(previousAssessment)
+                .student(student)
+                .status(SubmissionStatus.PASSED)
+                .build();
+
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(onlineCourseRepository.findById(course.getId())).thenReturn(Optional.of(course));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment))
+                .thenReturn(List.of(assessment.getId()));
+        when(courseAssessmentRepository.findAllById(List.of(assessment.getId())))
+                .thenReturn(List.of(assessment));
+        when(submissionRepository.findTop2ByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+                assessment.getProgressKey(),
+                student
+        )).thenReturn(List.of(historicalSubmission));
+
+        List<CourseAssessmentResponse> result = aiAssessmentService.getCourseAssessments(
+                course.getId(),
+                student.getEmail()
+        );
+
+        assertEquals(901L, result.get(0).getLatestSubmission().getId());
+        assertEquals(90L, result.get(0).getLatestSubmission().getAssessmentId());
+        assertEquals(SubmissionStatus.PASSED, result.get(0).getLatestSubmission().getStatus());
     }
 
     /**

@@ -20,9 +20,12 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ContentManagerLoadingState, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const PAGE_SIZE = 8;
 
@@ -90,6 +93,7 @@ const toRequestPayload = (form) => ({
 });
 
 export default function ContentManagerMaterialsPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -264,7 +268,11 @@ export default function ContentManagerMaterialsPage() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa học liệu "${item.title}" khỏi thư viện trung tâm?`)) {
+    if (!await confirmDialog(`Xóa học liệu “${item.title}” khỏi thư viện trung tâm?`, {
+      title: 'Xóa học liệu',
+      confirmLabel: 'Xóa học liệu',
+      tone: 'danger',
+    })) {
       return;
     }
     setMessage('');
@@ -281,7 +289,11 @@ export default function ContentManagerMaterialsPage() {
   };
 
   const changeMaterialStatus = async (item, status) => {
-    if (status === 'ARCHIVED' && !window.confirm(`Lưu trữ học liệu "${item.title}"?`)) return;
+    if (status === 'ARCHIVED' && !await confirmDialog(`Lưu trữ học liệu “${item.title}”?`, {
+      title: 'Lưu trữ học liệu',
+      confirmLabel: 'Lưu trữ',
+      tone: 'danger',
+    })) return;
     setMessage('');
     try {
       const saved = await classroomApi.updateContentManagerMaterialLibraryItem(item.id, toPayload({
@@ -368,11 +380,12 @@ export default function ContentManagerMaterialsPage() {
               onChange={(value) => setForm((current) => ({ ...current, title: value }))}
               placeholder="Ví dụ: Bộ từ vựng IELTS Writing Band 6.5"
             />
-            <TextArea
+            <RichTextEditor
               label="Mô tả"
-              value={form.description}
               onChange={(value) => setForm((current) => ({ ...current, description: value }))}
               placeholder="Mô tả ngắn cách giáo viên nên dùng học liệu này trong lớp hoặc giao cho học viên."
+              size="compact"
+              value={form.description}
             />
 
             <div className="space-y-2">
@@ -524,7 +537,7 @@ export default function ContentManagerMaterialsPage() {
                       <td className="px-6 py-5">
                         <p className="max-w-[320px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
                         <p className="mt-1 max-w-[360px] overflow-hidden text-xs leading-5 text-[#584140] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                          {item.description || item.tags || 'Chưa có mô tả'}
+                          {stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả'}
                         </p>
                       </td>
                       <td className="px-6 py-5 text-sm font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
@@ -648,20 +661,6 @@ function TextInput({ label, value, onChange, placeholder }) {
       <span className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</span>
       <input
         className="w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fcfbfb] px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-      />
-    </label>
-  );
-}
-
-function TextArea({ label, value, onChange, placeholder }) {
-  return (
-    <label className="block space-y-2">
-      <span className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">{label}</span>
-      <textarea
-        className="min-h-[128px] w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fcfbfb] px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}

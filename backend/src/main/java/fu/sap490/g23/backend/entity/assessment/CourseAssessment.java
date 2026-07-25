@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -37,6 +38,15 @@ public class CourseAssessment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assessment_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
+
+    /**
+     * Stable identity used to carry learner submissions across published course versions.
+     * Different immutable assessment rows may share this key when one is a new version
+     * of the same logical assessment.
+     */
+    @Column(name = "progress_key", length = 80)
+    @Builder.Default
+    private String progressKey = UUID.randomUUID().toString();
 
     @Column(nullable = false, length = 180)
     private String title;

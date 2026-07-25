@@ -2,12 +2,14 @@ import { Check, Circle, Clock3 } from 'lucide-react';
 
 export const enrollmentStatusMeta = {
   SUBMITTED: { label: 'Đã gửi', tone: 'bg-slate-100 text-slate-700' },
+  INVITATION_SENT: { label: 'Đã gửi lời mời', tone: 'bg-violet-50 text-violet-700' },
+  TEST_SCHEDULED: { label: 'Đã hẹn lịch test', tone: 'bg-sky-50 text-sky-700' },
   AWAITING_PLACEMENT_TEST: { label: 'Chờ placement test', tone: 'bg-amber-50 text-amber-800' },
   PLACEMENT_TEST_COMPLETED: { label: 'Đã hoàn thành placement test', tone: 'bg-sky-50 text-sky-700' },
   UNDER_STAFF_REVIEW: { label: 'Nhân viên đang rà soát', tone: 'bg-violet-50 text-violet-700' },
-  WAITING_FOR_CLASS: { label: 'Đang chờ xếp lớp', tone: 'bg-blue-50 text-blue-700' },
+  WAITING_FOR_CLASS: { label: 'Đủ điều kiện - chờ xếp lớp', tone: 'bg-blue-50 text-blue-700' },
   CLASS_PROPOSED: { label: 'Đã có đề xuất lớp', tone: 'bg-indigo-50 text-indigo-700' },
-  CLASS_ASSIGNED: { label: 'Đã xếp lớp', tone: 'bg-emerald-50 text-emerald-700' },
+  CLASS_ASSIGNED: { label: 'Hoàn tất - Đã xếp lớp', tone: 'bg-emerald-50 text-emerald-700' },
   REJECTED: { label: 'Đã từ chối', tone: 'bg-rose-50 text-rose-700' },
   CANCELLED: { label: 'Đã hủy', tone: 'bg-slate-100 text-slate-600' },
 };
@@ -30,11 +32,12 @@ export function EnrollmentRequestTimeline({ history = [] }) {
     <ol className="space-y-0">
       {history.map((item, index) => {
         const isLatest = index === history.length - 1;
+        const isComplete = ['CLASS_ASSIGNED', 'REJECTED', 'CANCELLED'].includes(item.toStatus);
         return (
           <li className="relative grid grid-cols-[28px_minmax(0,1fr)] gap-3 pb-5 last:pb-0" key={item.id || `${item.toStatus}-${index}`}>
             {index < history.length - 1 ? <span className="absolute left-[13px] top-7 h-[calc(100%-16px)] w-px bg-slate-200" /> : null}
-            <span className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full ${isLatest ? 'bg-[#730014] text-white' : 'bg-emerald-50 text-emerald-700'}`}>
-              {isLatest ? <Clock3 className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+            <span className={`relative z-10 flex h-7 w-7 items-center justify-center rounded-full ${isLatest && !isComplete ? 'bg-[#730014] text-white' : 'bg-emerald-50 text-emerald-700'}`}>
+              {isLatest && !isComplete ? <Clock3 className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
             </span>
             <div className="pt-0.5">
               <div className="flex flex-wrap items-center justify-between gap-2">

@@ -15,6 +15,8 @@ import {
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
+import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDateTime,
@@ -94,6 +96,7 @@ export default function TeacherHomeworkSection({
   onCreateFormOpened,
   curriculumUnits = [],
 }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const [formOpen, setFormOpen] = useState(false);
   const [editingHomework, setEditingHomework] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -309,7 +312,11 @@ export default function TeacherHomeworkSection({
   };
 
   const handleDeleteHomework = async (item) => {
-    if (!window.confirm(`Xóa bài tập "${item.title}"? Hành động này không thể hoàn tác.`)) {
+    if (!await confirmDialog(`Xóa bài tập “${item.title}”? Hành động này không thể hoàn tác.`, {
+      title: 'Xóa bài tập',
+      confirmLabel: 'Xóa bài tập',
+      tone: 'danger',
+    })) {
       return;
     }
     onMessage?.('');
@@ -500,10 +507,9 @@ export default function TeacherHomeworkSection({
 
             <label className="block space-y-2">
               <span className="text-xs font-bold text-[#8b706e]">Hạn nộp</span>
-              <input
+              <VietnameseDateTimeInput
                 className="w-full rounded-xl border border-[#e5e7eb] px-4 py-3 text-sm outline-none focus:border-[#730014]"
-                onChange={(event) => setForm((current) => ({ ...current, deadline: event.target.value }))}
-                type="datetime-local"
+                onChange={(value) => setForm((current) => ({ ...current, deadline: value }))}
                 value={form.deadline}
               />
             </label>

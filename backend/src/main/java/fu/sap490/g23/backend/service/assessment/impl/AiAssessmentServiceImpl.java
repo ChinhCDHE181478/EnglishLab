@@ -17,7 +17,6 @@ import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
 import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
@@ -65,24 +64,22 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     private final AiEvaluationClient aiEvaluationClient;
     private final AssessmentAudioStorageService assessmentAudioStorageService;
     private final CourseProgressService courseProgressService;
-    private final CourseProgressionGuard courseProgressionGuard;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final OnlineCourseVersionService onlineCourseVersionService;
     private final AssessmentPassingThresholdResolver passingThresholdResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CourseAssessmentResponse> getCourseAssessments(Long courseId, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         OnlineCourse course = onlineCourseRepository.findById(courseId).orElseThrow(() -> new RuntimeException("Course not found"));
         PackageEnrollment enrollment = ensureEnrolled(student, course);
-        List<CourseAssessment> assessments = enrollment.getCourseVersion() == null
-                ? courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
-                : courseAssessmentRepository.findAllById(onlineCourseVersionService.getEnrollmentAssessmentIds(enrollment)).stream()
-                        .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
-                        .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
-                        .toList();
+        List<CourseAssessment> assessments = courseAssessmentRepository
+                .findAllById(onlineCourseVersionService.getLatestPublishedAssessmentIds(enrollment)).stream()
+                .filter(assessment -> assessment.getOnlineCourse().getId().equals(course.getId()))
+                .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
+                .toList();
         return assessments
                 .stream()
                 .map(assessment -> toResponse(assessment, student))
@@ -93,13 +90,9 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     public AiAssessmentSubmissionResponse submitAssessment(Long assessmentId, AssessmentSubmissionRequest request, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail).orElseThrow(() -> new RuntimeException("Student not found"));
         CourseAssessment assessment = courseAssessmentRepository.findById(assessmentId).orElseThrow(() -> new RuntimeException("Assessment not found"));
-        applyAssessmentBankSnapshot(assessment);
+        normalizeAssessmentRubricCompatibility(assessment);
         PackageEnrollment enrollment = ensureEnrolled(student, assessment.getOnlineCourse());
-        if (enrollment.getCourseVersion() != null) {
-            onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
-        } else {
-            courseProgressionGuard.ensureAssessmentCanBeSubmitted(student, assessment);
-        }
+        onlineCourseVersionService.assertAssessmentBelongsToEnrollment(enrollment, assessmentId);
 
         if (assessment.getAiEvaluationMode() == AiEvaluationMode.NONE) {
             throw new RuntimeException("Bài đánh giá này chưa bật phản hồi tự động.");
@@ -1283,9 +1276,14 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
     }
 
     private CourseAssessmentResponse toResponse(CourseAssessment assessment, User student) {
-        applyAssessmentBankSnapshot(assessment);
-        List<AiAssessmentSubmissionResponse> recentSubmissions = submissionRepository
-                .findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)
+        List<AssessmentSubmission> submissionHistory = assessment.getProgressKey() == null
+                || assessment.getProgressKey().isBlank()
+                ? submissionRepository.findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(assessment, student)
+                : submissionRepository.findTop2ByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+                        assessment.getProgressKey(),
+                        student
+                );
+        List<AiAssessmentSubmissionResponse> recentSubmissions = submissionHistory
                 .stream()
                 .map(this::toSubmissionResponse)
                 .toList();
@@ -1323,30 +1321,16 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 .build();
     }
 
-    private void applyAssessmentBankSnapshot(CourseAssessment assessment) {
+    private void normalizeAssessmentRubricCompatibility(CourseAssessment assessment) {
         if (assessment == null) {
             return;
         }
-        AssessmentBankItem bankItem = assessment.getAssessmentBankItem();
-        if (bankItem == null) {
-            return;
+        if (assessment.getSkill() == AssessmentSkill.LISTENING
+                || assessment.getSkill() == AssessmentSkill.READING) {
+            // Older snapshots could retain a Writing rubric after switching to
+            // an objective bank item. Objective scoring never uses a rubric.
+            assessment.setRubric(null);
         }
-        assessment.setTitle(bankItem.getTitle());
-        assessment.setDescription(bankItem.getDescription());
-        assessment.setType(bankItem.getType());
-        assessment.setSkill(bankItem.getSkill());
-        assessment.setAiEvaluationMode(bankItem.getAiEvaluationMode());
-        assessment.setInstructions(bankItem.getInstructions());
-        assessment.setObjectiveAnswerKey(bankItem.getObjectiveAnswerKey());
-        assessment.setUiConfigJson(bankItem.getUiConfigJson());
-        assessment.setPassingScore(bankItem.getPassingScore());
-        assessment.setMaxScore(IeltsBandScale.normalizeConfiguredMaxScore(
-                bankItem.getMaxScore(),
-                bankItem.getType(),
-                bankItem.getSkill(),
-                bankItem.getAiEvaluationMode()
-        ));
-        assessment.setTimeLimitMinutes(bankItem.getTimeLimitMinutes());
     }
 
     private String extractTargetVocabulary(CourseModule module) {

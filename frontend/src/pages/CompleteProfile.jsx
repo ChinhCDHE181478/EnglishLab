@@ -27,6 +27,7 @@ import {
 import CourseFooter from '../components/course/CourseFooter';
 import Header from '../components/ai-learning/Header';
 import BrandedSelect from '../components/ui/BrandedSelect';
+import { useAppDialog } from '../components/ui/AppDialog';
 import { useAuth } from '../context/AuthContext';
 import { getStoredUser, hasAnyUserRole } from '../utils/auth';
 
@@ -157,6 +158,7 @@ function SaveBtn({ loading, label = 'Lưu thay đổi' }) {
 
 // ── Tab: Tài khoản ──────────────────────────────────────────────────────────
 function AccountTab({ user, onUserUpdate, onboarding }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const navigate = useNavigate();
   const { updateUser } = useAuth();
   const [formData, setFormData] = useState({
@@ -276,7 +278,11 @@ function AccountTab({ user, onUserUpdate, onboarding }) {
   };
 
   const handleAvatarDelete = async () => {
-    if (!window.confirm('Bạn có chắc muốn xóa ảnh hồ sơ hiện tại?')) return;
+    if (!await confirmDialog('Ảnh hồ sơ hiện tại sẽ bị xóa khỏi tài khoản.', {
+      title: 'Xóa ảnh hồ sơ',
+      confirmLabel: 'Xóa ảnh',
+      tone: 'danger',
+    })) return;
     setAvatarLoading(true);
     setAvatarMsg({ type: '', text: '' });
     try {

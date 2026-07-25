@@ -46,6 +46,10 @@ public class CourseEnrollmentRequestResponse {
     private String learnerNote;
     private String staffNote;
     private String rejectionReason;
+    private LocalDateTime invitationSentAt;
+    private LocalDateTime testAppointmentAt;
+    private String testLocation;
+    private LocalDateTime testCompletedAt;
     private Long placementAttemptId;
     private PlacementEligibilityResult placementEligibility;
     private Long assignedClassroomId;

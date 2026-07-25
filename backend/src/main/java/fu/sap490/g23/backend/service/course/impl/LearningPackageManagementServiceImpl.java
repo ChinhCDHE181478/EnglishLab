@@ -191,7 +191,7 @@ public class LearningPackageManagementServiceImpl implements LearningPackageMana
     }
 
     @Override
-    public LearningPackageResponse publishBundle(Long id) {
+    public LearningPackageResponse publishBundle(Long id, String actorEmail) {
         LearningPackage bundle = requireBundle(findActivePackage(id));
         assertBundlePublishable(bundle);
         if (bundle.getStatus() != PackageStatus.DRAFT
@@ -199,22 +199,12 @@ public class LearningPackageManagementServiceImpl implements LearningPackageMana
                 && bundle.getStatus() != PackageStatus.REJECTED) {
             throw new IllegalArgumentException("Gói không ở trạng thái có thể xuất bản.");
         }
+        User publisher = userRepository.findByEmail(actorEmail)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người xuất bản."));
         bundle.setStatus(PackageStatus.PUBLISHED);
         bundle.setReviewNote(null);
-        learningPackageRepository.save(bundle);
-        return reloadResponse(id);
-    }
-
-    @Override
-    public LearningPackageResponse submitBundleForReview(Long id) {
-        LearningPackage bundle = requireBundle(findActivePackage(id));
-        assertBundlePublishable(bundle);
-        if (bundle.getStatus() != PackageStatus.DRAFT && bundle.getStatus() != PackageStatus.REJECTED) {
-            throw new IllegalArgumentException("Chỉ gói nháp hoặc bị từ chối mới có thể gửi duyệt.");
-        }
-        bundle.setStatus(PackageStatus.PENDING_REVIEW);
-        bundle.setSubmittedForReviewAt(java.time.LocalDateTime.now());
-        bundle.setReviewNote(null);
+        bundle.setReviewedBy(publisher);
+        bundle.setReviewedAt(java.time.LocalDateTime.now());
         learningPackageRepository.save(bundle);
         return reloadResponse(id);
     }
@@ -286,7 +276,7 @@ public class LearningPackageManagementServiceImpl implements LearningPackageMana
 
     private void assertBundlePublishable(LearningPackage bundle) {
         if (packageBundleItemRepository.countByBundlePackageId(bundle.getId()) <= 0) {
-            throw new IllegalArgumentException("Gói bundle cần ít nhất một sản phẩm con trước khi xuất bản/gửi duyệt.");
+            throw new IllegalArgumentException("Gói bundle cần ít nhất một sản phẩm con trước khi xuất bản.");
         }
     }
 

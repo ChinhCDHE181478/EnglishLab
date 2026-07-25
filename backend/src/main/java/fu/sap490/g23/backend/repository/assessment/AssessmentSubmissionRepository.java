@@ -15,6 +15,24 @@ import java.util.Set;
 public interface AssessmentSubmissionRepository extends JpaRepository<AssessmentSubmission, Long> {
     Optional<AssessmentSubmission> findTopByAssessmentAndStudentOrderBySubmittedAtDesc(CourseAssessment assessment, User student);
     List<AssessmentSubmission> findTop2ByAssessmentAndStudentOrderBySubmittedAtDesc(CourseAssessment assessment, User student);
+    Optional<AssessmentSubmission> findTopByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+            String progressKey,
+            User student
+    );
+    List<AssessmentSubmission> findTop2ByAssessmentProgressKeyAndStudentOrderBySubmittedAtDesc(
+            String progressKey,
+            User student
+    );
+    boolean existsByAssessmentProgressKeyAndStudentAndStatusIn(
+            String progressKey,
+            User student,
+            Set<SubmissionStatus> statuses
+    );
+    boolean existsByAssessmentAndStudentAndStatusIn(
+            CourseAssessment assessment,
+            User student,
+            Set<SubmissionStatus> statuses
+    );
     List<AssessmentSubmission> findByStudentOrderBySubmittedAtDesc(User student);
     boolean existsByAssessmentId(Long assessmentId);
     boolean existsByAssessmentInAndStudent(List<CourseAssessment> assessments, User student);

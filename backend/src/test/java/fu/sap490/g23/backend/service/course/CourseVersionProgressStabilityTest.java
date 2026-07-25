@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.service.course;
 
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sap490.g23.backend.entity.course.CourseModule;
 import fu.sap490.g23.backend.entity.course.Lesson;
 import fu.sap490.g23.backend.entity.course.OnlineCourse;
@@ -40,6 +41,9 @@ class CourseVersionProgressStabilityTest {
     @Mock
     private PackageEnrollmentRepository enrollmentRepository;
 
+    @Mock
+    private OnlineCourseVersionService onlineCourseVersionService;
+
     @InjectMocks
     private CourseProgressServiceImpl progressService;
 
@@ -71,11 +75,6 @@ class CourseVersionProgressStabilityTest {
 
         when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(courseWithTwentyLiveLessons)).thenReturn(0L);
         when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED)).thenReturn(8L);
-        when(assessmentSubmissionRepository.countCompletedAssessments(
-                org.mockito.ArgumentMatchers.eq(learner),
-                org.mockito.ArgumentMatchers.eq(courseWithTwentyLiveLessons),
-                org.mockito.ArgumentMatchers.anySet()
-        )).thenReturn(0L);
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
         when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
@@ -87,5 +86,53 @@ class CourseVersionProgressStabilityTest {
 
         assertThat(refreshed.getProgressPercent()).isEqualTo(80);
         assertThat(refreshed.getCourseVersion().getVersionNumber()).isEqualTo(1);
+    }
+
+    @Test
+    void historicalAssessmentSubmissionStillCountsAfterAssessmentRowIsVersioned() {
+        User learner = User.builder().id(8L).email("learner2@englishlab.vn").build();
+        Lesson lesson = Lesson.builder().id(1L).build();
+        OnlineCourse course = OnlineCourse.builder()
+                .id(2L)
+                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                        .lessons(new ArrayList<>(List.of(lesson)))
+                        .build())))
+                .build();
+        OnlineCourseVersion baselineVersion = OnlineCourseVersion.builder()
+                .id(102L)
+                .onlineCourse(course)
+                .versionNumber(1)
+                .totalRequiredLessons(1)
+                .totalRequiredAssessments(1)
+                .build();
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .id(56L)
+                .student(learner)
+                .courseVersion(baselineVersion)
+                .status(EnrollmentStatus.ACTIVE)
+                .build();
+        CourseAssessment baselineAssessment = CourseAssessment.builder()
+                .id(100L)
+                .onlineCourse(course)
+                .progressKey("module-1-writing")
+                .build();
+
+        when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course)).thenReturn(1L);
+        when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
+                .thenReturn(1L);
+        when(onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)).thenReturn(List.of(100L));
+        when(courseAssessmentRepository.findAllById(List.of(100L))).thenReturn(List.of(baselineAssessment));
+        when(assessmentSubmissionRepository.existsByAssessmentProgressKeyAndStudentAndStatusIn(
+                org.mockito.ArgumentMatchers.eq(baselineAssessment.getProgressKey()),
+                org.mockito.ArgumentMatchers.eq(learner),
+                org.mockito.ArgumentMatchers.anySet()
+        )).thenReturn(true);
+        when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
+        when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
+
+        PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(enrollment, course, learner);
+
+        assertThat(refreshed.getProgressPercent()).isEqualTo(100);
+        assertThat(refreshed.getStatus()).isEqualTo(EnrollmentStatus.COMPLETED);
     }
 }

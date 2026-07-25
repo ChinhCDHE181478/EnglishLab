@@ -11,7 +11,9 @@ import {
 } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import { usePagination } from '../../components/ui/Pagination';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
@@ -57,6 +59,7 @@ const emptyForm = {
 };
 
 export default function ContentManagerExerciseBankPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -178,7 +181,11 @@ export default function ContentManagerExerciseBankPage() {
   };
 
   const deactivateItem = async (id) => {
-    if (!window.confirm('Tạm ngưng bài tập này?')) return;
+    if (!await confirmDialog('Bài tập sẽ không còn khả dụng cho nội dung mới.', {
+      title: 'Tạm ngưng bài tập',
+      confirmLabel: 'Tạm ngưng',
+      tone: 'danger',
+    })) return;
     await courseApi.deleteExerciseBankItem(id);
     await loadItems();
   };
@@ -192,7 +199,10 @@ export default function ContentManagerExerciseBankPage() {
   };
 
   const restoreItem = async (item) => {
-    if (!window.confirm(`Khôi phục bài tập "${item.title}"?`)) return;
+    if (!await confirmDialog(`Khôi phục bài tập “${item.title}”?`, {
+      title: 'Khôi phục bài tập',
+      confirmLabel: 'Khôi phục',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -252,11 +262,25 @@ export default function ContentManagerExerciseBankPage() {
               </div>
             ) : (
               <>
-                <textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} placeholder="Đề bài" rows={4} className={TEXTAREA_CLASS} />
+                <RichTextEditor
+                  helperText=""
+                  label="Đề bài"
+                  onChange={(value) => setForm({ ...form, prompt: value })}
+                  placeholder="Đề bài"
+                  size="form"
+                  value={form.prompt}
+                />
                 <textarea value={form.answerKey} onChange={(e) => setForm({ ...form, answerKey: e.target.value })} placeholder="Đáp án / rubric" rows={3} className={TEXTAREA_CLASS} />
               </>
             )}
-            <textarea value={form.explanation} onChange={(e) => setForm({ ...form, explanation: e.target.value })} placeholder="Giải thích" rows={3} className={TEXTAREA_CLASS} />
+            <RichTextEditor
+              helperText=""
+              label="Giải thích"
+              onChange={(value) => setForm({ ...form, explanation: value })}
+              placeholder="Giải thích"
+              size="compact"
+              value={form.explanation}
+            />
             <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="Thẻ (cách nhau bởi dấu phẩy)" className={FIELD_CLASS} />
             <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <button type="button" onClick={saveItem} disabled={working} className={PRIMARY_BUTTON_CLASS}>

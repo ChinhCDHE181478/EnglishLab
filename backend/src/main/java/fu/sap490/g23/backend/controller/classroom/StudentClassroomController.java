@@ -34,36 +34,6 @@ public class StudentClassroomController {
         return ResponseEntity.ok(classroomOfferingService.getMyClasses(authentication.getName()));
     }
 
-    @PostMapping("/{id}/register")
-    public ResponseEntity<ClassroomEnrollmentResponse> registerForClass(
-            @PathVariable Long id,
-            @RequestBody(required = false) RegisterClassRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.registerForClass(id, request, authentication.getName()));
-    }
-
-    @GetMapping("/{id}/registration/me")
-    public ResponseEntity<ClassroomEnrollmentResponse> getMyRegistration(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.getMyRegistration(id, authentication.getName()));
-    }
-
-    @GetMapping("/registrations/me")
-    public ResponseEntity<List<ClassroomEnrollmentResponse>> getMyRegistrations(Authentication authentication) {
-        return ResponseEntity.ok(classroomOfferingService.getMyRegistrations(authentication.getName()));
-    }
-
-    @PostMapping("/{id}/registration/cancel")
-    public ResponseEntity<ClassroomEnrollmentResponse> cancelMyRegistration(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(classroomOfferingService.cancelMyRegistration(id, authentication.getName()));
-    }
-
     @PostMapping(value = "/{id}/tuition-proofs", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TuitionProofResponse> submitTuitionProof(
             @PathVariable Long id,

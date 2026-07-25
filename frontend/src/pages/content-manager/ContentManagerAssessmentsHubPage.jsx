@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import {
   Archive,
   BookOpen,
@@ -19,6 +20,7 @@ import {
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import {
   ManagerEmptyState,
   ManagerFilterBar,
@@ -211,6 +213,7 @@ const toForm = (item = {}, pageConfig) => ({
 const supportedBuilderSkills = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
 
 export default function ContentManagerAssessmentsHubPage({ pageKey }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const pageConfig = pageMap[pageKey] || pageMap.listening;
   const isSkillLocked = Boolean(pageConfig.lockedSkill);
   const [items, setItems] = useState([]);
@@ -399,7 +402,11 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setSuccess('');
       return;
     }
-    if (!window.confirm(`Lưu trữ ${pageConfig.successNoun} "${item.title}"?`)) return;
+    if (!await confirmDialog(`Lưu trữ ${pageConfig.successNoun} “${item.title}”?`, {
+      title: `Lưu trữ ${pageConfig.successNoun}`,
+      confirmLabel: 'Lưu trữ',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -423,7 +430,10 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       setSuccess('');
       return;
     }
-    if (!window.confirm(`Khôi phục ${pageConfig.successNoun} "${item.title}" về bản nháp?`)) return;
+    if (!await confirmDialog(`Khôi phục ${pageConfig.successNoun} “${item.title}” về bản nháp?`, {
+      title: `Khôi phục ${pageConfig.successNoun}`,
+      confirmLabel: 'Khôi phục',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -660,7 +670,13 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                 </label>
                 <label className="block">
                   <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                  <textarea value={form.description} onChange={(event) => updateForm('description', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => updateForm('description', value)}
+                    placeholder="Mô tả đề luyện tập..."
+                    size="compact"
+                    value={form.description}
+                  />
                 </label>
                 {isSkillLocked ? (
                   <div className="grid gap-3 md:grid-cols-2">
@@ -691,7 +707,13 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                 </div>
                 <label className="block">
                   <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Hướng dẫn làm bài</span>
-                  <textarea value={form.instructions} onChange={(event) => updateForm('instructions', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
+                  <RichTextEditor
+                    helperText=""
+                    onChange={(value) => updateForm('instructions', value)}
+                    placeholder="Hướng dẫn học viên làm bài..."
+                    size="compact"
+                    value={form.instructions}
+                  />
                 </label>
                 <div className="grid gap-3 md:grid-cols-3">
                   <label className="block">

@@ -182,28 +182,28 @@ export default function TrainingManagerRecordingsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Ghi hình buổi học trực tuyến</h2>
-          <p className="text-sm text-slate-600">Theo dõi quá trình ghi hình, duyệt và công bố từng buổi cho học viên.</p>
-        </div>
-        <button type="button" onClick={() => loadDetails(selectedId)} className={SECONDARY_BUTTON_CLASS}>
-          <RefreshCw className="h-4 w-4" /> Làm mới trạng thái
-        </button>
-      </div>
-
+    <div className="space-y-5">
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <BrandedSelect
-          label="Lớp học"
-          value={selectedId}
-          onChange={(event) => setSelectedId(event.target.value)}
-          options={classroomOptions}
-        />
-      </div>
+      <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="w-full sm:w-85">
+          <BrandedSelect
+            label="Chọn lớp học"
+            value={selectedId}
+            onChange={(event) => setSelectedId(event.target.value)}
+            options={classroomOptions}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => loadDetails(selectedId)}
+          className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />
+          Làm mới trạng thái
+        </button>
+      </section>
 
       {loading || loadingSessions ? (
         <div className="flex min-h-48 items-center justify-center text-sm font-semibold text-slate-500">

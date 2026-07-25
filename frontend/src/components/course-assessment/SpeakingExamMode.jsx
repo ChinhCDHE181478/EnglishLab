@@ -66,6 +66,7 @@ export default function SpeakingExamMode({
   const hasVoiceSignalRef = useRef(false);
   const pendingSubmitRef = useRef(false);
   const intentionalExitRef = useRef(false);
+  const fullscreenSessionStartedRef = useRef(false);
   const violationLockRef = useRef(false);
 
   const activePart = parts[partIndex] || parts[0];
@@ -273,7 +274,7 @@ export default function SpeakingExamMode({
 
   useEffect(() => {
     intentionalExitRef.current = false;
-    document.documentElement?.requestFullscreen?.().catch(() => { });
+    fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
     const recordViolation = (reason) => {
       if (violationLockRef.current) return;
       violationLockRef.current = true;
@@ -287,7 +288,12 @@ export default function SpeakingExamMode({
     const visibility = () => document.hidden && recordViolation('Hệ thống ghi nhận bạn đã rời khỏi trang làm bài.');
     const blur = () => recordViolation('Cửa sổ làm bài đã mất focus.');
     const fullscreen = () => {
-      if (!document.fullscreenElement && !intentionalExitRef.current) {
+      if (document.fullscreenElement) {
+        fullscreenSessionStartedRef.current = true;
+        return;
+      }
+      if (fullscreenSessionStartedRef.current && !intentionalExitRef.current) {
+        fullscreenSessionStartedRef.current = false;
         recordViolation('Bạn không thể thoát chế độ toàn màn hình trong khi đang thi.');
       }
     };
@@ -437,7 +443,12 @@ export default function SpeakingExamMode({
             <h2 className="mt-2 text-2xl font-black">Hệ thống đã ghi nhận vi phạm</h2>
             <p className="mt-3 text-sm leading-7 text-[#584140]">{warning.reason}</p>
             <button className="mt-5 w-full rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white" onClick={async () => {
-              await document.documentElement?.requestFullscreen?.().catch(() => { });
+              try {
+                await document.documentElement?.requestFullscreen?.();
+                fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
+              } catch {
+                // Do not turn an unsupported/denied fullscreen request into another violation.
+              }
               setWarning(null);
             }} type="button">Quay lại toàn màn hình và tiếp tục làm bài</button>
           </div>

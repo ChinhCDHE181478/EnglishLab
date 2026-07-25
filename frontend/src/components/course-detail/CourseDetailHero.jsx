@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import LearnerCourseActions from '../learner/LearnerCourseActions';
 import CourseCommerceActions from '../learner/CourseCommerceActions';
+import RichTextHtml from '../content-manager/RichTextHtml';
 import { formatCoursePrice } from '../course/courseFormatters';
 import { formatBandRangeText, formatBandValue, getBandFitInfo } from '../../utils/selfPacedHelpers';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const formatLevelLabel = (level) => {
   const normalized = String(level || '').trim().toUpperCase();
@@ -102,11 +104,11 @@ const buildTabItems = ({ course, bandFit, focusSkills, prerequisites }) => [
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex gap-3 text-base leading-8 text-[#584140]">
           <span className="mt-1 text-lg font-black text-[#8a0018]">✓</span>
-          <p>{course.targetOutcome || 'Đang cập nhật mục tiêu đầu ra cho khóa học này.'}</p>
+          <p>{stripRichTextToPlain(course.targetOutcome) || 'Đang cập nhật mục tiêu đầu ra cho khóa học này.'}</p>
         </div>
         <div className="flex gap-3 text-base leading-8 text-[#584140]">
           <span className="mt-1 text-lg font-black text-[#8a0018]">✓</span>
-          <p>{course.description || course.shortDescription || 'Khóa học đang được cập nhật thêm mô tả chi tiết.'}</p>
+          <p>{stripRichTextToPlain(course.description || course.shortDescription) || 'Khóa học đang được cập nhật thêm mô tả chi tiết.'}</p>
         </div>
       </div>
     ),
@@ -216,9 +218,10 @@ const CourseDetailHero = ({ course, currentBand = null }) => {
           </h1>
 
           {/* Mô tả ngắn */}
-          <p className="mt-4 max-w-[720px] text-base leading-7 text-[#584140] opacity-90 md:text-lg md:leading-8">
-            {course.description || course.shortDescription}
-          </p>
+          <RichTextHtml
+            className="mt-4 max-w-[720px] text-base leading-7 text-[#584140] opacity-90 md:text-lg md:leading-8"
+            value={course.shortDescription || course.description}
+          />
 
           {/* Giá và Ưu đãi */}
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">

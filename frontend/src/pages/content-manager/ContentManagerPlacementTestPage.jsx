@@ -4,6 +4,7 @@ import placementTestApi from '../../api/placementTestApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import { ManagerFilterBar, ManagerStatsGrid } from '../../components/content-manager/ManagerListUi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 
 const TABS = [
@@ -213,7 +214,15 @@ function Overview({ definition, onChange }) {
         value={definition.examType || 'IELTS'}
       />
     </label>
-    <div className="lg:col-span-2"><TextField label="Mô tả" onChange={(event) => onChange('description', event.target.value)} rows={3} textarea value={definition.description} /></div>
+    <div className="lg:col-span-2">
+      <RichTextEditor
+        label="Mô tả"
+        onChange={(html) => onChange('description', html)}
+        placeholder="Mô tả bài đánh giá đầu vào..."
+        size="compact"
+        value={definition.description}
+      />
+    </div>
   </div><label className="mt-5 flex items-center gap-3 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]"><input checked={definition.active} className="h-4 w-4 accent-[#4b0009]" onChange={(event) => onChange('active', event.target.checked)} type="checkbox" /> Cho phép học viên làm bài đánh giá đầu vào</label>
   </Panel>;
 }

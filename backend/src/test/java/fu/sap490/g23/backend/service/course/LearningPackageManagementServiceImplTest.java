@@ -113,7 +113,7 @@ class LearningPackageManagementServiceImplTest {
         when(learningPackageRepository.findByIdAndDeletedFalse(99L)).thenReturn(Optional.of(bundle));
         when(packageBundleItemRepository.countByBundlePackageId(99L)).thenReturn(0L);
 
-        assertThrows(IllegalArgumentException.class, () -> service.publishBundle(99L));
+        assertThrows(IllegalArgumentException.class, () -> service.publishBundle(99L, "content@test.com"));
     }
 
     @Test

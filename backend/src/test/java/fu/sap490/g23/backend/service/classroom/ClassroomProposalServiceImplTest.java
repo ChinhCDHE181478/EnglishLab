@@ -3,7 +3,6 @@ package fu.sap490.g23.backend.service.classroom;
 import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
-import fu.sap490.g23.backend.dto.request.classroom.RegisterClassRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectClassroomProposalRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
@@ -145,7 +144,7 @@ class ClassroomProposalServiceImplTest {
                 any(),
                 any(CreateClassroomSessionRequest.class)
         );
-        verify(classroomOfferingService, never()).registerForClass(any(), any(), any());
+        verify(classroomOfferingService, never()).enrollStudent(any(), any());
     }
 
     @Test

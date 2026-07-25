@@ -4,14 +4,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import curriculumApi from '../../api/curriculumApi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
+import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
-  TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
 const emptyForm = (mode) => ({
@@ -217,7 +218,14 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
               <TextInput label="Thời lượng triển khai" placeholder="Ví dụ: 12 tuần" value={form.duration} onChange={(value) => updateForm({ duration: value })} />
               <TextInput label="Cách tổ chức học" placeholder="Ví dụ: 3 buổi/tuần" value={form.studyMode} onChange={(value) => updateForm({ studyMode: value })} />
               <TextInput label="Sức chứa dự kiến" min="1" type="number" value={form.capacity} onChange={(value) => updateForm({ capacity: value })} />
-              <TextInput label="Ngày khai giảng dự kiến" type="date" value={form.plannedStartDate} onChange={(value) => updateForm({ plannedStartDate: value })} />
+              <label className="block">
+                <FieldLabel>Ngày khai giảng dự kiến</FieldLabel>
+                <VietnameseDateInput
+                  className={FIELD_CLASS}
+                  onChange={(value) => updateForm({ plannedStartDate: value })}
+                  value={form.plannedStartDate}
+                />
+              </label>
               <TextInput label="Lịch học dự kiến" placeholder="Ví dụ: Thứ 2, 4, 6 · 18:30–20:30" value={form.plannedSchedule} onChange={(value) => updateForm({ plannedSchedule: value })} />
               <TextInput label="Học phí" min="0" type="number" value={form.price} onChange={(value) => updateForm({ price: value })} />
               <TextInput label="Giá ưu đãi" min="0" type="number" value={form.salePrice} onChange={(value) => updateForm({ salePrice: value })} />
@@ -230,7 +238,13 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
           <BuilderSection number="03" title="Thông tin giới thiệu">
             <div className="grid gap-4">
               <TextInput label="Mô tả ngắn" value={form.shortDescription} onChange={(value) => updateForm({ shortDescription: value })} />
-              <TextArea label="Mô tả khóa học" value={form.description} onChange={(value) => updateForm({ description: value })} />
+              <RichTextEditor
+                label="Mô tả khóa học"
+                onChange={(value) => updateForm({ description: value })}
+                placeholder="Mô tả chi tiết chương trình đào tạo..."
+                size="form"
+                value={form.description}
+              />
               <TextInput label="Ảnh đại diện" placeholder="URL ảnh đại diện khóa học" value={form.thumbnailUrl} onChange={(value) => updateForm({ thumbnailUrl: value })} />
             </div>
           </BuilderSection>
@@ -260,10 +274,6 @@ function FieldLabel({ children }) {
 
 function TextInput({ label, value, onChange, type = 'text', min, placeholder }) {
   return <label className="block"><FieldLabel>{label}</FieldLabel><input className={FIELD_CLASS} min={min} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} type={type} value={value} /></label>;
-}
-
-function TextArea({ label, value, onChange }) {
-  return <label className="block"><FieldLabel>{label}</FieldLabel><textarea className={TEXTAREA_CLASS} onChange={(event) => onChange(event.target.value)} rows={5} value={value} /></label>;
 }
 
 function ReadOnlyField({ label, value }) {

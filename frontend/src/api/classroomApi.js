@@ -56,26 +56,6 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async registerForClass(classroomId, payload = {}) {
-    const response = await axiosClient.post(`/api/student/classrooms/${classroomId}/register`, payload);
-    return unwrapData(response);
-  },
-
-  async getMyClassRegistration(classroomId) {
-    const response = await axiosClient.get(`/api/student/classrooms/${classroomId}/registration/me`);
-    return unwrapData(response);
-  },
-
-  async getMyClassRegistrations() {
-    const response = await axiosClient.get('/api/student/classrooms/registrations/me');
-    return asList(unwrapData(response));
-  },
-
-  async cancelClassRegistration(classroomId) {
-    const response = await axiosClient.post(`/api/student/classrooms/${classroomId}/registration/cancel`);
-    return unwrapData(response);
-  },
-
   async submitTuitionProof(classroomId, { file, amount, paymentKind, note }) {
     const formData = new FormData();
     formData.append('file', file);
@@ -421,18 +401,8 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
-  async createManagerClassroom(payload) {
-    const response = await axiosClient.post('/api/staff/classrooms', payload);
-    return unwrapData(response);
-  },
-
   async updateManagerClassroom(id, payload) {
     const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async publishManagerClassroom(id) {
-    const response = await axiosClient.post(`/api/staff/classrooms/${id}/publish`);
     return unwrapData(response);
   },
 
@@ -508,21 +478,6 @@ export const classroomApi = {
 
   async rejectTuitionProof(proofId, payload = {}) {
     const response = await axiosClient.post(`/api/staff/classrooms/tuition-proofs/${proofId}/reject`, payload);
-    return unwrapData(response);
-  },
-
-  async getTrainingManagerPendingCurriculum() {
-    const response = await axiosClient.get('/api/staff/classrooms/curriculum-programs/pending-review');
-    return asList(unwrapData(response));
-  },
-
-  async approveCurriculumProgram(programId) {
-    const response = await axiosClient.post(`/api/staff/classrooms/curriculum-programs/${programId}/approve`);
-    return unwrapData(response);
-  },
-
-  async rejectCurriculumProgram(programId, payload = {}) {
-    const response = await axiosClient.post(`/api/staff/classrooms/curriculum-programs/${programId}/reject`, payload);
     return unwrapData(response);
   },
 
@@ -749,31 +704,6 @@ export const classroomApi = {
 
   async archiveContentManagerProgram(id) {
     const response = await axiosClient.delete(`/api/content-manager/scheduled-course-offerings/${id}`);
-    return unwrapData(response);
-  },
-
-  async getManagerPendingContentApprovals() {
-    const response = await axiosClient.get('/api/manager/content-approvals/pending');
-    return asList(unwrapData(response));
-  },
-
-  async approveManagerMaterial(materialId, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/approve`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async rejectManagerMaterial(materialId, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/content-approvals/materials/${materialId}/reject`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async approveManagerSyllabus(itemId, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/approve`, { reviewNote });
-    return unwrapData(response);
-  },
-
-  async rejectManagerSyllabus(itemId, reviewNote) {
-    const response = await axiosClient.post(`/api/manager/content-approvals/syllabus/${itemId}/reject`, { reviewNote });
     return unwrapData(response);
   },
 

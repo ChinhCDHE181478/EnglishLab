@@ -85,12 +85,12 @@ public class ContentManagerCourseVersionController {
         return ResponseEntity.ok(versionService.getVersion(courseId, versionId, authentication.getName()));
     }
 
-    @PatchMapping("/{versionId}/submit-review")
-    public ResponseEntity<OnlineCourseVersionResponse> submitForReview(
+    @PatchMapping("/{versionId}/publish")
+    public ResponseEntity<OnlineCourseVersionResponse> publish(
             @PathVariable Long courseId,
             @PathVariable Long versionId,
             Authentication authentication
     ) {
-        return ResponseEntity.ok(versionService.submitForReview(courseId, versionId, authentication.getName()));
+        return ResponseEntity.ok(versionService.publish(courseId, versionId, authentication.getName()));
     }
 }

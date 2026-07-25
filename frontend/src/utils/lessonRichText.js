@@ -12,6 +12,21 @@ const hasSafeHref = (value = '') => {
 
 export const looksLikeRichTextHtml = (value = '') => /<\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i.test(String(value));
 
+/** Strip HTML tags for card/list previews that expect plain text. */
+export const stripRichTextToPlain = (value = '') => String(value || '')
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, '\n')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&amp;/gi, '&')
+  .replace(/&lt;/gi, '<')
+  .replace(/&gt;/gi, '>')
+  .replace(/&quot;/gi, '"')
+  .replace(/\s+\n/g, '\n')
+  .replace(/\n{3,}/g, '\n\n')
+  .replace(/[ \t]{2,}/g, ' ')
+  .trim();
+
 export const sanitizeLessonHtml = (value = '') => {
   if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') return '';
   const documentNode = new window.DOMParser().parseFromString(String(value), 'text/html');

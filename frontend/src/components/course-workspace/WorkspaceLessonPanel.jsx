@@ -357,4 +357,3 @@ const WorkspaceLessonPanel = ({
 };
 
 export default WorkspaceLessonPanel;
-

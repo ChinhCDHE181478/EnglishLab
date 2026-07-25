@@ -8,6 +8,5 @@ import fu.sap490.g23.backend.entity.User;
 public interface CourseProgressService {
 
     PackageEnrollment refreshEnrollmentProgress(PackageEnrollment enrollment, OnlineCourse course, User student);
-    void refreshCourseEnrollments(OnlineCourse course);
     CourseCompletionResponse buildCompletionResponse(PackageEnrollment enrollment, OnlineCourse course, User student);
 }

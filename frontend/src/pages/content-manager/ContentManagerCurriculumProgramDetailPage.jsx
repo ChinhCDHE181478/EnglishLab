@@ -28,6 +28,7 @@ import {
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
 import { formatClassroomDate } from '../../utils/classroomHelpers';
+import { useAppDialog } from '../../components/ui/AppDialog';
 
 const refTypeLabel = {
   MATERIAL: 'Tài liệu',
@@ -37,6 +38,7 @@ const refTypeLabel = {
 };
 
 export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFLINE' }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const { id } = useParams();
   const navigate = useNavigate();
   const isVirtual = mode === 'VIRTUAL';
@@ -67,17 +69,20 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
     loadProgram();
   }, [loadProgram]);
 
-  const handleSubmitReview = async () => {
-    if (!window.confirm('Gửi chương trình đào tạo này cho Nhân viên đào tạo rà soát?')) return;
+  const handlePublish = async () => {
+    if (!await confirmDialog('Các lớp mới có thể sử dụng chương trình ngay sau khi xuất bản.', {
+      title: 'Xuất bản chương trình đào tạo',
+      confirmLabel: 'Xuất bản',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
     try {
-      const updated = await curriculumApi.submitCurriculumProgramForReview(id);
+      const updated = await curriculumApi.publishCurriculumProgram(id);
       setProgram(updated);
-      setSuccess('Đã gửi duyệt giáo trình.');
+      setSuccess('Đã xuất bản giáo trình.');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể gửi duyệt giáo trình.');
+      setError(err?.response?.data?.message || 'Không thể xuất bản giáo trình.');
     } finally {
       setWorking(false);
     }
@@ -103,7 +108,11 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
       setError(`Giáo trình đang được ${program.activeClassroomCount} lớp sắp khai giảng / đang diễn ra sử dụng.`);
       return;
     }
-    if (!window.confirm(`Lưu trữ giáo trình "${program?.title}"?`)) return;
+    if (!await confirmDialog(`Lưu trữ giáo trình “${program?.title}”?`, {
+      title: 'Lưu trữ giáo trình',
+      confirmLabel: 'Lưu trữ',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');
@@ -133,7 +142,7 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
 
   const activeClassrooms = (program.usingClassrooms || []).filter((c) => ['UPCOMING', 'ACTIVE'].includes(c.status));
   const pastClassrooms = (program.usingClassrooms || []).filter((c) => !['UPCOMING', 'ACTIVE'].includes(c.status));
-  const canSubmitReview = ['DRAFT', 'REJECTED'].includes(program.status);
+  const canPublish = ['DRAFT', 'PENDING_REVIEW', 'REJECTED'].includes(program.status);
   const canEditUnits = program.status !== 'ARCHIVED';
 
   return (
@@ -158,10 +167,10 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
               <Copy className="h-4 w-4" />
               Nhân bản
             </button>
-            {canSubmitReview ? (
-              <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={handleSubmitReview} type="button">
+            {canPublish ? (
+              <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={handlePublish} type="button">
                 <Send className="h-4 w-4" />
-                Gửi duyệt để xuất bản
+                Xuất bản giáo trình
               </button>
             ) : null}
             {program.status === 'PUBLISHED' ? (
@@ -180,7 +189,7 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
       {program.status === 'PUBLISHED' ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-extrabold flex items-center gap-2"><AlertTriangle className="h-4 w-4" /> Giáo trình đã xuất bản</p>
-          <p className="mt-1 text-xs leading-6">Nhân bản để tạo bản nháp mới, chỉnh sửa rồi gửi duyệt lại — không sửa trực tiếp bản published.</p>
+          <p className="mt-1 text-xs leading-6">Nhân bản để tạo bản nháp mới, chỉnh sửa rồi tự xuất bản — không sửa trực tiếp bản đang phát hành.</p>
         </div>
       ) : null}
 
@@ -259,11 +268,11 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
         </div>
 
         <aside className="space-y-5">
-          <ProgramSection title="Trạng thái duyệt">
+          <ProgramSection title="Trạng thái xuất bản">
             <div className="space-y-3 text-sm">
               <ProgramStatusPill label={program.statusLabel || program.status} status={program.status} />
-              {program.submittedAt ? <p className="text-[#69778a]">Gửi duyệt: {formatClassroomDate(program.submittedAt)}</p> : null}
-              {program.reviewedAt ? <p className="text-[#69778a]">Duyệt lúc: {formatClassroomDate(program.reviewedAt)}</p> : null}
+              {program.submittedAt ? <p className="text-[#69778a]">Xuất bản: {formatClassroomDate(program.submittedAt)}</p> : null}
+              {program.reviewedAt ? <p className="text-[#69778a]">Ghi nhận lúc: {formatClassroomDate(program.reviewedAt)}</p> : null}
               {program.reviewNote ? <p className="rounded-lg bg-rose-50 p-3 text-xs text-rose-800">Lý do: {program.reviewNote}</p> : null}
             </div>
           </ProgramSection>

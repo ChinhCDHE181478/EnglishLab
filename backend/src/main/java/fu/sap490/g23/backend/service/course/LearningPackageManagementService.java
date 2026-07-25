@@ -33,9 +33,7 @@ public interface LearningPackageManagementService {
 
     LearningPackageResponse replaceBundleItems(Long id, UpdatePackageBundleItemsRequest request);
 
-    LearningPackageResponse publishBundle(Long id);
-
-    LearningPackageResponse submitBundleForReview(Long id);
+    LearningPackageResponse publishBundle(Long id, String actorEmail);
 
     LearningPackageResponse archiveBundle(Long id);
 

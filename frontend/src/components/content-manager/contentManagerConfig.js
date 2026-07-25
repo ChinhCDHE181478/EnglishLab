@@ -169,7 +169,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/publication': {
     title: 'Kiểm soát xuất bản',
-    subtitle: 'Rà soát nội dung ở trạng thái nháp, chờ duyệt, đã xuất bản hoặc lưu trữ.',
+    subtitle: 'Rà soát bản nháp và trực tiếp xuất bản nội dung do Content Manager phụ trách.',
     searchPlaceholder: 'Tìm loại nội dung hoặc người phụ trách...',
   },
   '/content-manager/analytics': {

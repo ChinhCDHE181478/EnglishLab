@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import { formatCoursePrice } from '../../components/course/courseFormatters';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
 
 const emptyForm = {
   id: null,
@@ -30,6 +32,7 @@ const toApiDateTime = (value) => (value ? new Date(value).toISOString().slice(0,
 const PAGE_SIZE = 8;
 
 export default function ContentManagerDiscountCodesPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -153,7 +156,11 @@ export default function ContentManagerDiscountCodesPage() {
     const prompt = unused
       ? `Xóa vĩnh viễn mã giảm giá “${item.code}”?`
       : `Mã “${item.code}” đã được dùng hoặc giữ chỗ — hệ thống sẽ tắt mã thay vì xóa. Tiếp tục?`;
-    if (item && !window.confirm(prompt)) return;
+    if (item && !await confirmDialog(prompt, {
+      title: unused ? 'Xóa mã giảm giá' : 'Tắt mã giảm giá',
+      confirmLabel: unused ? 'Xóa mã' : 'Tắt mã',
+      tone: 'danger',
+    })) return;
     setSaving(true);
     setError('');
     setMessage('');
@@ -219,8 +226,8 @@ export default function ContentManagerDiscountCodesPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <DateTimeField label="Bắt đầu từ" onChange={handleChange('startsAt')} value={form.startsAt} />
-              <DateTimeField label="Hết hạn lúc" onChange={handleChange('expiresAt')} value={form.expiresAt} />
+              <DateTimeField label="Bắt đầu từ" onChange={(value) => setForm((current) => ({ ...current, startsAt: value }))} value={form.startsAt} />
+              <DateTimeField label="Hết hạn lúc" onChange={(value) => setForm((current) => ({ ...current, expiresAt: value }))} value={form.expiresAt} />
             </div>
 
             <label className="flex items-center gap-3 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#1a1c1c]">
@@ -367,10 +374,9 @@ function DateTimeField({ label, value, onChange }) {
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
-      <input
+      <VietnameseDateTimeInput
         className="w-full rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm text-[#1a1c1c] outline-none focus:border-[#730014]"
         onChange={onChange}
-        type="datetime-local"
         value={value}
       />
     </label>

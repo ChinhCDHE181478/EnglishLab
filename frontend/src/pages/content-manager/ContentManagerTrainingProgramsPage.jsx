@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
@@ -34,7 +35,7 @@ const examOptions = [
 
 const statusOptions = [
   { label: 'Nháp', value: 'DRAFT' },
-  { label: 'Chờ duyệt', value: 'PENDING_REVIEW' },
+  { label: 'Sẵn sàng xuất bản (cũ)', value: 'PENDING_REVIEW' },
   { label: 'Đã xuất bản', value: 'PUBLISHED' },
   { label: 'Từ chối', value: 'REJECTED' },
   { label: 'Lưu trữ', value: 'ARCHIVED' },
@@ -83,6 +84,7 @@ const toUpdatePayload = (program, deliveryType, status) => ({
 });
 
 export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' }) {
+  const { confirm: confirmDialog } = useAppDialog();
   const location = useLocation();
   const navigate = useNavigate();
   const resolvedMode = location.pathname.includes('virtual') ? 'VIRTUAL' : mode;
@@ -206,7 +208,11 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       setError(`Khóa học đang được ${program.activeClassroomCount} lớp sắp khai giảng / đang diễn ra sử dụng, không thể lưu trữ.`);
       return;
     }
-    if (!window.confirm(`Lưu trữ khóa học "${program.title}"?`)) return;
+    if (!await confirmDialog(`Lưu trữ khóa học “${program.title}”?`, {
+      title: 'Lưu trữ khóa học',
+      confirmLabel: 'Lưu trữ',
+      tone: 'danger',
+    })) return;
     setWorking(true);
     setError('');
     setSuccess('');

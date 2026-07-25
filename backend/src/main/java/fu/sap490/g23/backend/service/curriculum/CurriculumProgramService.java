@@ -28,13 +28,7 @@ public interface CurriculumProgramService {
 
     CurriculumProgramResponse cloneProgram(Long id);
 
-    CurriculumProgramResponse submitForReview(Long id, String actorEmail);
-
-    List<CurriculumProgramResponse> listPendingReview();
-
-    CurriculumProgramResponse approveProgram(Long id, String actorEmail);
-
-    CurriculumProgramResponse rejectProgram(Long id, String reason, String actorEmail);
+    CurriculumProgramResponse publishProgram(Long id, String actorEmail);
 
     CurriculumUnitResponse createUnit(Long programId, CurriculumUnitRequest request);
 

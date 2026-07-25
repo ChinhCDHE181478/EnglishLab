@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { hasAccessToken } from '../utils/auth';
+import { canUseLearnerStudyTools, hasAccessToken } from '../utils/auth';
 import courseApi from '../api/courseApi';
 import { useAuth } from './AuthContext';
 import {
@@ -63,6 +63,7 @@ export const LearnerExperienceProvider = ({ children }) => {
   const [studyToolsSyncError, setStudyToolsSyncError] = useState('');
   const toastTimers = useRef(new Map());
   const authenticated = Boolean(user && hasAccessToken());
+  const canSyncStudyTools = authenticated && canUseLearnerStudyTools(user);
 
   useEffect(() => { if (!authenticated) writeLessonNotes(lessonNotes); }, [authenticated, lessonNotes]);
   useEffect(() => { if (!authenticated) writeLessonFlags(lessonFlags); }, [authenticated, lessonFlags]);
@@ -92,10 +93,11 @@ export const LearnerExperienceProvider = ({ children }) => {
     let cancelled = false;
 
     const loadStudyTools = async () => {
-      if (!authenticated) {
-        setLessonNotes(readLessonNotes());
-        setLessonFlags(readLessonFlags());
+      if (!canSyncStudyTools) {
+        setLessonNotes(authenticated ? [] : readLessonNotes());
+        setLessonFlags(authenticated ? [] : readLessonFlags());
         setStudyToolsSyncError('');
+        setStudyToolsSyncing(false);
         return;
       }
       setStudyToolsSyncing(true);
@@ -118,7 +120,7 @@ export const LearnerExperienceProvider = ({ children }) => {
 
     loadStudyTools();
     return () => { cancelled = true; };
-  }, [authenticated, user?.id]);
+  }, [authenticated, canSyncStudyTools, user?.id]);
 
   useEffect(() => () => {
     toastTimers.current.forEach((timeoutId) => window.clearTimeout(timeoutId));

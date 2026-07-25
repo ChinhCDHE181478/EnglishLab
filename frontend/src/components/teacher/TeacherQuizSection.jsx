@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, FileQuestion, Plus, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
+import VietnameseDateTimeInput from '../ui/VietnameseDateTimeInput';
 
 const emptyQuestion = { prompt: '', options: ['A', 'B', 'C', 'D'], correctAnswer: '', explanation: '' };
 const emptyForm = {
@@ -161,7 +162,7 @@ export default function TeacherQuizSection({ classroomId }) {
               <input className={inputClass} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} value={form.title} />
             </Field>
             <Field label="Hạn nộp">
-              <input className={inputClass} onChange={(event) => setForm((current) => ({ ...current, dueAt: event.target.value }))} type="datetime-local" value={form.dueAt} />
+              <VietnameseDateTimeInput className={inputClass} onChange={(value) => setForm((current) => ({ ...current, dueAt: value }))} value={form.dueAt} />
             </Field>
             <Field label="Thời lượng (phút)">
               <input className={inputClass} min="1" onChange={(event) => setForm((current) => ({ ...current, timeLimitMinutes: event.target.value }))} type="number" value={form.timeLimitMinutes} />

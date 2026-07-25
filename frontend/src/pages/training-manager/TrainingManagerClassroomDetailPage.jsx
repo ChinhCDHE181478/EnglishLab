@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, Clock, Megaphone, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Plus, Trash2, Users, Wand2, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -9,7 +9,8 @@ import {
   ClassroomTabBar,
 } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
-import TrainingManagerRegistrationPanel from '../../components/training-manager/TrainingManagerRegistrationPanel';
+import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
+import { useAppDialog } from '../../components/ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
@@ -22,7 +23,6 @@ import {
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
-  { id: 'queue', label: 'Hàng đợi' },
   { id: 'students', label: 'Học viên' },
   { id: 'schedule', label: 'Lịch học' },
 ];
@@ -46,11 +46,12 @@ const initialSessionForm = {
 const inputClass = 'w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white';
 
 export default function TrainingManagerClassroomDetailPage() {
+  const { confirm: confirmDialog } = useAppDialog();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
-  const initialEnrollmentId = searchParams.get('enrollmentId') || '';
+  const requestedTab = searchParams.get('tab') || 'overview';
+  const activeTab = detailTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'overview';
 
   const [classroom, setClassroom] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -144,21 +145,8 @@ export default function TrainingManagerClassroomDetailPage() {
   const setTab = (tabId) => {
     const next = new URLSearchParams(searchParams);
     next.set('tab', tabId);
-    if (tabId !== 'queue') {
-      next.delete('enrollmentId');
-    }
+    next.delete('enrollmentId');
     setSearchParams(next, { replace: true });
-  };
-
-  const handlePublish = async () => {
-    setActionMessage('');
-    try {
-      await classroomApi.publishManagerClassroom(id);
-      setActionMessage('Đã công bố lớp trên lịch khai giảng.');
-      await loadClassroom();
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố lớp.'));
-    }
   };
 
   const handleCreateSession = async (event) => {
@@ -183,7 +171,11 @@ export default function TrainingManagerClassroomDetailPage() {
   };
 
   const handleCloseClass = async () => {
-    if (!window.confirm('Đóng lớp sẽ chuyển lớp sang trạng thái CLOSED và ẩn khỏi quy trình mở đăng ký. Bạn chắc chắn muốn tiếp tục?')) {
+    if (!await confirmDialog('Lớp sẽ chuyển sang trạng thái đã đóng và bị ẩn khỏi quy trình mở đăng ký.', {
+      title: 'Đóng lớp học',
+      confirmLabel: 'Đóng lớp',
+      tone: 'danger',
+    })) {
       return;
     }
     setClosingClass(true);
@@ -200,7 +192,11 @@ export default function TrainingManagerClassroomDetailPage() {
   };
 
   const handleRemoveStudent = async (enrollment) => {
-    if (!window.confirm(`Loại ${enrollment.studentName || enrollment.studentEmail} khỏi danh sách lớp hiện tại?`)) return;
+    if (!await confirmDialog(`Loại ${enrollment.studentName || enrollment.studentEmail} khỏi danh sách lớp hiện tại?`, {
+      title: 'Loại học viên khỏi lớp',
+      confirmLabel: 'Loại khỏi lớp',
+      tone: 'danger',
+    })) return;
     setStudentActionId(enrollment.id);
     setActionMessage('');
     try {
@@ -261,21 +257,6 @@ export default function TrainingManagerClassroomDetailPage() {
   }
 
   if (error || !classroom) {
-    if (initialEnrollmentId) {
-      return (
-        <div className="space-y-4">
-          <ClassroomErrorState
-            message={error || 'Không tải được thông tin lớp. Bạn vẫn có thể xử lý hồ sơ đăng ký bên dưới.'}
-            onRetry={loadClassroom}
-          />
-          <TrainingManagerRegistrationPanel
-            classroomOfferingId={Number(id)}
-            initialEnrollmentId={initialEnrollmentId}
-            initialTab="WAITLIST"
-          />
-        </div>
-      );
-    }
     return (
       <div className="space-y-4">
         <ClassroomErrorState message={error || 'Không tìm thấy lớp học.'} onRetry={loadClassroom} />
@@ -308,14 +289,6 @@ export default function TrainingManagerClassroomDetailPage() {
               {closingClass ? 'Đang đóng...' : 'Đóng lớp'}
             </button>
           ) : null}
-          <button
-            className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014]"
-            onClick={handlePublish}
-            type="button"
-          >
-            <Megaphone className="h-4 w-4" />
-            Công bố lịch khai giảng
-          </button>
         </div>
       </div>
 
@@ -338,8 +311,6 @@ export default function TrainingManagerClassroomDetailPage() {
           {' · '}
           Sĩ số: <strong>{classroom.enrolledCount ?? 0}/{classroom.maxCapacity ?? '-'}</strong>
           {' · '}
-          Chờ xếp lớp: <strong>{classroom.waitlistCount ?? 0}</strong>
-          {' · '}
           Học phí: <strong>{formatClassroomPrice(classroom.salePrice ?? classroom.price ?? 0)}</strong>
         </p>
       </section>
@@ -348,20 +319,13 @@ export default function TrainingManagerClassroomDetailPage() {
 
       {activeTab === 'overview' ? (
         <>
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-2">
             <OverviewCard
               description="Học viên đã được xếp lớp chính thức"
               icon={Users}
               label="Đã xếp lớp"
               onClick={() => setTab('students')}
               value={classroom.enrolledCount ?? 0}
-            />
-            <OverviewCard
-              description="Hồ sơ đăng ký cần xác nhận, học phí hoặc xếp lớp"
-              icon={Clock}
-              label="Hàng đợi"
-              onClick={() => setTab('queue')}
-              value={classroom.waitlistCount ?? 0}
             />
             <OverviewCard
               description="Số buổi học đã lên lịch"
@@ -373,14 +337,6 @@ export default function TrainingManagerClassroomDetailPage() {
           </section>
           <CurriculumOverview curriculum={classroom.curriculumProgram} />
         </>
-      ) : null}
-
-      {activeTab === 'queue' ? (
-        <TrainingManagerRegistrationPanel
-          classroomOfferingId={Number(id)}
-          initialEnrollmentId={initialEnrollmentId}
-          onUpdated={loadClassroom}
-        />
       ) : null}
 
       {activeTab === 'students' ? (
@@ -397,14 +353,14 @@ export default function TrainingManagerClassroomDetailPage() {
             </div>
           ) : (
             <ClassroomEmptyState
-              description="Chưa có học viên nào được xếp lớp chính thức. Xử lý hàng đợi đăng ký để đưa học viên vào lớp."
+              description="Chưa có học viên nào được Staff tư vấn và xếp vào lớp này."
               title="Chưa có học viên"
             />
           )}
         </section>
       ) : null}
 
-      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Sau khi chuyển, học viên biến mất khỏi danh sách lớp nguồn và xuất hiện ở lớp đích.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${item.startDate || 'Chưa có ngày'} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
+      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Sau khi chuyển, học viên biến mất khỏi danh sách lớp nguồn và xuất hiện ở lớp đích.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
 
       {activeTab === 'schedule' ? (
         <div className="space-y-5">
@@ -423,7 +379,7 @@ export default function TrainingManagerClassroomDetailPage() {
                 <BrandedSelect onChange={(e) => setTemplateForm((c) => ({ ...c, templateId: e.target.value }))} options={templateOptions} value={templateForm.templateId} />
               </Field>
               <Field label="Ngày bắt đầu">
-                <input className={inputClass} onChange={(e) => setTemplateForm((c) => ({ ...c, startDate: e.target.value }))} type="date" value={templateForm.startDate} />
+                <VietnameseDateInput className={inputClass} onChange={(value) => setTemplateForm((current) => ({ ...current, startDate: value }))} value={templateForm.startDate} />
               </Field>
               <Field label="Số tuần">
                 <input className={inputClass} min="1" onChange={(e) => setTemplateForm((c) => ({ ...c, weeks: e.target.value }))} type="number" value={templateForm.weeks} />
@@ -439,7 +395,7 @@ export default function TrainingManagerClassroomDetailPage() {
             <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Thêm buổi học</h3>
             <div className="grid gap-4 md:grid-cols-4">
               <Field label="Ngày học">
-                <input className={inputClass} onChange={(e) => setSessionForm((c) => ({ ...c, sessionDate: e.target.value }))} required type="date" value={sessionForm.sessionDate} />
+                <VietnameseDateInput className={inputClass} onChange={(value) => setSessionForm((current) => ({ ...current, sessionDate: value }))} required value={sessionForm.sessionDate} />
               </Field>
               <Field label="Bắt đầu">
                 <input className={inputClass} onChange={(e) => setSessionForm((c) => ({ ...c, startTime: e.target.value }))} required type="time" value={sessionForm.startTime} />
