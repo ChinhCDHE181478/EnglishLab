@@ -14,6 +14,7 @@ import {
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
+import { englishTrackLabel } from '../../utils/englishProgramProfile';
 
 const emptyForm = (mode) => ({
   title: '',
@@ -253,7 +254,7 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
         <aside className="h-fit space-y-4 xl:sticky xl:top-24">
           <section className="rounded-2xl border border-[#dcc0bf]/35 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3 border-b border-[#f0e4e5] pb-4"><BookOpenCheck className="h-5 w-5 text-[#730014]" /><div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8b706e]">Nguồn nội dung</p><h2 className="mt-1 font-['Manrope'] text-lg font-black text-[#0b1c30]">Chương trình đào tạo áp dụng</h2></div></div>
-            {selectedCurriculum ? <div className="mt-4 space-y-3"><p className="font-extrabold text-[#0b1c30]">{selectedCurriculum.title}</p><SummaryRow label="Nhóm thi" value={selectedCurriculum.examCategory || '—'} /><SummaryRow label="Đầu vào" value={selectedCurriculum.entryLevel || '—'} /><SummaryRow label="Mục tiêu" value={formatTarget(selectedCurriculum)} /><SummaryRow label="Cấu trúc" value={`${selectedCurriculum.totalUnits || 0} unit · ${selectedCurriculum.totalSessions || 0} buổi`} /><SummaryRow label="Trạng thái" value={selectedCurriculum.statusLabel || selectedCurriculum.status || '—'} /></div> : <p className="mt-4 text-sm leading-6 text-[#806765]">Chọn chương trình đào tạo để khóa học kế thừa Unit, học liệu, Practice, Module Test và Flashcard.</p>}
+            {selectedCurriculum ? <div className="mt-4 space-y-3"><p className="font-extrabold text-[#0b1c30]">{selectedCurriculum.title}</p><SummaryRow label="Nhóm thi" value={selectedCurriculum.examCategory || '—'} /><SummaryRow label="Chương trình" value={englishTrackLabel(selectedCurriculum.programTrack)} /><SummaryRow label="Kỹ năng" value={String(selectedCurriculum.focusSkills || '').split(',').filter(Boolean).join(', ') || '—'} /><SummaryRow label="Đầu vào" value={selectedCurriculum.entryLevel || '—'} /><SummaryRow label="Mục tiêu" value={formatTarget(selectedCurriculum)} /><SummaryRow label="Cấu trúc" value={`${selectedCurriculum.totalUnits || 0} unit · ${selectedCurriculum.totalSessions || 0} buổi`} /><SummaryRow label="Trạng thái" value={selectedCurriculum.statusLabel || selectedCurriculum.status || '—'} /></div> : <p className="mt-4 text-sm leading-6 text-[#806765]">Chọn chương trình đào tạo để khóa học kế thừa Unit, học liệu, Practice, Module Test và Flashcard.</p>}
           </section>
 
           <button className={`${PRIMARY_BUTTON_CLASS} w-full justify-center`} disabled={saving} onClick={save} type="button"><Save className="h-4 w-4" />{saving ? 'Đang lưu...' : 'Lưu khóa học'}</button>

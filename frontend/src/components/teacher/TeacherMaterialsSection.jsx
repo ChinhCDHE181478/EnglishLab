@@ -213,12 +213,12 @@ export default function TeacherMaterialsSection({
       <section className="space-y-4">
         <div>
           <h5 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Học liệu bắt buộc của chương trình</h5>
-          <p className="mt-1 text-sm text-[#584140]">Nội dung này do Content Manager chuẩn hóa và tự động áp dụng cho lớp.</p>
+          <p className="mt-1 text-sm text-[#584140]">Đây là học liệu chuẩn được áp dụng cho lớp.</p>
         </div>
 
         {!mandatoryMaterials.length ? (
           <ClassroomEmptyState
-            description="Chương trình của lớp chưa được cấu hình học liệu bắt buộc. Vui lòng liên hệ Content Manager; giáo viên không cần chọn lại từ kho trung tâm."
+            description="Chương trình của lớp chưa được cấu hình học liệu bắt buộc. Vui lòng liên hệ bộ phận nội dung để được cập nhật."
             title="Chương trình chưa có học liệu"
           />
         ) : (

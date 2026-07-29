@@ -29,6 +29,7 @@ public class ClassroomSessionResponse {
     private String roomName;
     private String offlineAddress;
     private String larkMeetingUrl;
+    private String larkMeetingNo;
     private LarkMeetingStatus larkMeetingStatus;
     private boolean larkJoinable;
     private String larkPlatformName;

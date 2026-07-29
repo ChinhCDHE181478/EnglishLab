@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.dto.response.assessment.MockTestAttemptResponse;
 import fu.sap490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sap490.g23.backend.service.assessment.MockTestService;
 import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -41,7 +42,7 @@ public class StudentMockTestController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<MockTestAttemptResponse> submitMockTest(
             @PathVariable Long id,
-            @RequestBody MockTestSubmissionRequest request,
+            @Valid @RequestBody MockTestSubmissionRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(mockTestService.submitMockTest(id, request, authentication.getName()));

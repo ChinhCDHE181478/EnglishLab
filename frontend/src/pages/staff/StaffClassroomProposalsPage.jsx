@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Check, Clock3, Edit3, Plus, RefreshCw, Send, X } from 'lucide-react';
+import {
+  AlertCircle,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Edit3,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Send,
+  X,
+} from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
@@ -8,10 +20,11 @@ import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '../../utils/formStyles';
 import { formatClassroomDate } from '../../utils/classroomHelpers';
+import { getClassroomErrorMessage, getConflictSummary } from '../../utils/classroomErrorMessages';
 
 const statusTabs = [
   { label: 'Bản nháp', value: 'DRAFT' },
-  { label: 'Chờ Manager duyệt', value: 'PENDING_APPROVAL' },
+  { label: 'Chờ duyệt', value: 'PENDING_APPROVAL' },
   { label: 'Bị từ chối', value: 'REJECTED' },
   { label: 'Đã duyệt', value: 'APPROVED' },
 ];
@@ -25,8 +38,25 @@ const emptyForm = {
   title: '', courseOfferingId: '', enrollmentRequestIds: [], capacity: 20,
   plannedStartDate: '', plannedEndDate: '', weekdays: [], sessionStartTime: '18:30',
   sessionEndTime: '20:30', primaryTeacherId: '', roomId: '', offlineAddress: '',
-  virtualMeetingUrl: '', note: '',
+  note: '',
 };
+
+const toLocalDateKey = (date = new Date()) => [
+  date.getFullYear(),
+  String(date.getMonth() + 1).padStart(2, '0'),
+  String(date.getDate()).padStart(2, '0'),
+].join('-');
+
+const buildProposalPayload = (form) => ({
+  ...form,
+  title: form.title.trim(),
+  courseOfferingId: form.courseOfferingId ? Number(form.courseOfferingId) : null,
+  capacity: form.capacity === '' ? null : Number(form.capacity),
+  primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
+  roomId: form.roomId ? Number(form.roomId) : null,
+  offlineAddress: form.offlineAddress.trim() || null,
+  note: form.note.trim() || null,
+});
 
 export default function StaffClassroomProposalsPage() {
   const [status, setStatus] = useState('DRAFT');
@@ -48,9 +78,9 @@ export default function StaffClassroomProposalsPage() {
     try {
       const [proposalData, offeringData, teacherData, roomData] = await Promise.all([
         enrollmentRequestApi.listStaffClassroomProposals(status),
-        classroomApi.getTrainingManagerPrograms(),
-        classroomApi.getTrainingManagerTeachers(),
-        classroomApi.getTrainingManagerRooms(),
+        classroomApi.getStaffPrograms(),
+        classroomApi.getStaffTeachers(),
+        classroomApi.getStaffRooms(),
       ]);
       setProposals(proposalData);
       setCourseOfferings(offeringData);
@@ -99,7 +129,6 @@ export default function StaffClassroomProposalsPage() {
       primaryTeacherId: proposal.primaryTeacherId ? String(proposal.primaryTeacherId) : '',
       roomId: proposal.roomId ? String(proposal.roomId) : '',
       offlineAddress: proposal.offlineAddress || '',
-      virtualMeetingUrl: proposal.virtualMeetingUrl || '',
       note: proposal.staffNote || '',
     });
     setError('');
@@ -124,20 +153,26 @@ export default function StaffClassroomProposalsPage() {
       setError('Cần nhập khoảng ngày và ít nhất một thứ học trong tuần.');
       return;
     }
+    if (!Number.isInteger(Number(form.capacity)) || Number(form.capacity) < 1) {
+      setError('Sức chứa phải là số nguyên lớn hơn 0.');
+      return;
+    }
+    if (form.plannedStartDate < toLocalDateKey()) {
+      setError('Ngày bắt đầu lớp không được ở trong quá khứ.');
+      return;
+    }
+    if (form.plannedEndDate < form.plannedStartDate) {
+      setError('Ngày kết thúc phải từ ngày bắt đầu trở đi.');
+      return;
+    }
+    if (!form.sessionStartTime || !form.sessionEndTime || form.sessionEndTime <= form.sessionStartTime) {
+      setError('Giờ kết thúc phải sau giờ bắt đầu.');
+      return;
+    }
     setWorking(true);
     setError('');
     try {
-      const payload = {
-        ...form,
-        title: form.title.trim(),
-        courseOfferingId: Number(form.courseOfferingId),
-        capacity: Number(form.capacity),
-        primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
-        roomId: form.roomId ? Number(form.roomId) : null,
-        offlineAddress: form.offlineAddress.trim() || null,
-        virtualMeetingUrl: form.virtualMeetingUrl.trim() || null,
-        note: form.note.trim() || null,
-      };
+      const payload = buildProposalPayload(form);
       const saved = editingProposal
         ? await enrollmentRequestApi.updateClassroomProposal(editingProposal.id, payload)
         : await enrollmentRequestApi.createClassroomProposal(payload);
@@ -146,7 +181,7 @@ export default function StaffClassroomProposalsPage() {
       setEditingProposal(null);
       await load();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể lưu đề xuất lớp.');
+      setError(getClassroomErrorMessage(err, 'Không thể lưu đề xuất lớp.'));
     } finally {
       setWorking(false);
     }
@@ -158,9 +193,9 @@ export default function StaffClassroomProposalsPage() {
     try {
       const submitted = await enrollmentRequestApi.submitClassroomProposal(proposal.id);
       setProposals((current) => current.filter((item) => item.id !== submitted.id));
-      setSuccess(`${submitted.proposalCode} đã chuyển sang tab Chờ Manager duyệt.`);
+      setSuccess(`${submitted.proposalCode} đã được gửi xét duyệt.`);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không thể gửi đề xuất để duyệt.');
+      setError(getClassroomErrorMessage(err, 'Không thể gửi đề xuất để duyệt.'));
     } finally {
       setWorking(false);
     }
@@ -229,7 +264,7 @@ export default function StaffClassroomProposalsPage() {
         </div>
       ) : null}
 
-      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} rooms={rooms} selectedOffering={selectedOffering} teachers={teachers} working={working} /> : null}
+      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} editingProposalId={editingProposal?.id} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} rooms={rooms} selectedOffering={selectedOffering} teachers={teachers} working={working} /> : null}
     </div>
   );
 }
@@ -237,12 +272,220 @@ export default function StaffClassroomProposalsPage() {
 function ProposalCard({ proposal, onEdit, onSubmit, working }) {
   const canEdit = ['DRAFT', 'REJECTED'].includes(proposal.approvalStatus);
   const canSubmit = ['DRAFT', 'REJECTED'].includes(proposal.approvalStatus);
-  return <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-3 py-1 text-xs font-extrabold ${proposal.approvalStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : proposal.approvalStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700' : proposal.approvalStatus === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>{proposal.approvalStatusLabel}</span><p className="mt-3 text-xs font-bold text-slate-400">{proposal.proposalCode}</p><h2 className="mt-1 font-['Manrope'] text-lg font-black text-[#0b1c30]">{proposal.title}</h2><p className="mt-1 text-sm text-slate-500">{proposal.courseOfferingTitle}</p></div><span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-extrabold">{proposal.deliveryType}</span></div><div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-sm"><Info icon={Check} label="Sức chứa" value={`${proposal.capacity} học viên`} /><Info icon={CalendarDays} label="Thời gian" value={`${formatClassroomDate(proposal.plannedStartDate)} → ${formatClassroomDate(proposal.plannedEndDate)}`} /><Info icon={Clock3} label="Lịch" value={`${(proposal.weekdays || []).join(', ')} · ${String(proposal.sessionStartTime).slice(0, 5)}`} /><Info icon={Check} label="Nguồn lực" value={proposal.primaryTeacherName || 'Chưa chọn giáo viên'} /></div>{proposal.reviewNote ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Manager: {proposal.reviewNote}</p> : null}{canEdit || canSubmit ? <div className="mt-4 flex justify-end gap-2">{canEdit ? <button className={SECONDARY_BUTTON_CLASS} onClick={onEdit} type="button"><Edit3 className="h-4 w-4" />Chỉnh sửa</button> : null}{canSubmit ? <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={onSubmit} type="button"><Send className="h-4 w-4" />Gửi duyệt</button> : null}</div> : null}</article>;
+  return <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div><span className={`rounded-full px-3 py-1 text-xs font-extrabold ${proposal.approvalStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700' : proposal.approvalStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700' : proposal.approvalStatus === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-800' : 'bg-slate-100 text-slate-700'}`}>{proposal.approvalStatusLabel}</span><p className="mt-3 text-xs font-bold text-slate-400">{proposal.proposalCode}</p><h2 className="mt-1 font-['Manrope'] text-lg font-black text-[#0b1c30]">{proposal.title}</h2><p className="mt-1 text-sm text-slate-500">{proposal.courseOfferingTitle}</p></div><span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-extrabold">{proposal.deliveryType}</span></div><div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-4 text-sm"><Info icon={Check} label="Sức chứa" value={`${proposal.capacity} học viên`} /><Info icon={CalendarDays} label="Thời gian" value={`${formatClassroomDate(proposal.plannedStartDate)} → ${formatClassroomDate(proposal.plannedEndDate)}`} /><Info icon={Clock3} label="Lịch" value={`${(proposal.weekdays || []).join(', ')} · ${String(proposal.sessionStartTime).slice(0, 5)}`} /><Info icon={Check} label="Nguồn lực" value={proposal.primaryTeacherName || 'Chưa chọn giáo viên'} /></div>{proposal.reviewNote ? <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">Phản hồi xét duyệt: {proposal.reviewNote}</p> : null}{canEdit || canSubmit ? <div className="mt-4 flex justify-end gap-2">{canEdit ? <button className={SECONDARY_BUTTON_CLASS} onClick={onEdit} type="button"><Edit3 className="h-4 w-4" />Chỉnh sửa</button> : null}{canSubmit ? <button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={onSubmit} type="button"><Send className="h-4 w-4" />Gửi duyệt</button> : null}</div> : null}</article>;
 }
 
-function ProposalModal({ courseOfferings, editing, form, onClose, onSave, onToggleWeekday, onUpdate, rooms, selectedOffering, teachers, working }) {
+function ProposalModal({
+  courseOfferings,
+  editing,
+  editingProposalId,
+  form,
+  onClose,
+  onSave,
+  onToggleWeekday,
+  onUpdate,
+  rooms,
+  selectedOffering,
+  teachers,
+  working,
+}) {
   const isVirtual = (selectedOffering?.deliveryType || selectedOffering?.deliveryMode) === 'VIRTUAL';
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"><section aria-modal="true" className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog"><div className="flex items-start justify-between"><div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">{editing ? 'Chỉnh sửa bản nháp mở lớp' : 'Lập kế hoạch lớp trước khai giảng'}</p><h2 className="mt-2 text-2xl font-black text-[#0b1c30]">{editing ? form.title : 'Đề xuất lớp mới'}</h2><p className="mt-2 max-w-2xl text-sm text-slate-500">Bước này chỉ tạo kế hoạch lớp để Manager duyệt, chưa chọn hay xếp học viên.</p></div><button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose} type="button"><X className="h-5 w-5" /></button></div><div className="mt-6 grid gap-5 lg:grid-cols-2"><div className="space-y-4"><TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} /><div><FieldLabel>Khóa học nền</FieldLabel><BrandedSelect disabled={editing} onChange={(event) => onUpdate({ courseOfferingId: event.target.value, enrollmentRequestIds: [] })} options={courseOfferings.map((item) => ({ label: item.title, value: String(item.id), description: `${item.deliveryType || item.deliveryMode} · ${item.entryLevel || 'Mọi trình độ'}` }))} placeholder="Chọn khóa học" searchable value={form.courseOfferingId} /></div><div className="grid grid-cols-2 gap-3"><TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value })} type="number" value={form.capacity} /><div><FieldLabel>Giáo viên dự kiến</FieldLabel><BrandedSelect onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })} options={teachers.map((item) => ({ label: item.fullName || item.email, value: String(item.id) }))} placeholder="Chọn giáo viên" searchable value={form.primaryTeacherId} /></div></div><div className="grid grid-cols-2 gap-3"><DateField label="Ngày bắt đầu" onChange={(value) => onUpdate({ plannedStartDate: value })} value={form.plannedStartDate} /><DateField label="Ngày kết thúc" onChange={(value) => onUpdate({ plannedEndDate: value })} value={form.plannedEndDate} /></div><div><FieldLabel>Ngày học trong tuần</FieldLabel><div className="flex flex-wrap gap-2">{weekdayOptions.map(([value, label]) => <button className={`h-9 min-w-10 rounded-lg px-3 text-xs font-extrabold ${form.weekdays.includes(value) ? 'bg-[#730014] text-white' : 'bg-slate-100 text-slate-600'}`} key={value} onClick={() => onToggleWeekday(value)} type="button">{label}</button>)}</div></div><div className="grid grid-cols-2 gap-3"><TextField label="Giờ bắt đầu" onChange={(value) => onUpdate({ sessionStartTime: value })} type="time" value={form.sessionStartTime} /><TextField label="Giờ kết thúc" onChange={(value) => onUpdate({ sessionEndTime: value })} type="time" value={form.sessionEndTime} /></div></div><div className="space-y-4">{isVirtual ? <TextField label="Link phòng học Virtual" onChange={(value) => onUpdate({ virtualMeetingUrl: value })} value={form.virtualMeetingUrl} /> : <><div><FieldLabel>Phòng học</FieldLabel><BrandedSelect onChange={(event) => onUpdate({ roomId: event.target.value })} options={rooms.map((item) => ({ label: item.name, value: String(item.id), description: `${item.capacity || 0} chỗ` }))} placeholder="Chọn phòng" searchable value={form.roomId} /></div><TextField label="Địa chỉ/cơ sở" onChange={(value) => onUpdate({ offlineAddress: value })} value={form.offlineAddress} /></>}<label className="block"><FieldLabel>Ghi chú cho Manager</FieldLabel><RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} /></label><div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900"><strong>Sau khi Manager duyệt:</strong> hệ thống mới tạo lớp chính thức để Staff xếp các học viên đã test và đủ điều kiện.</div></div></div><div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-5"><button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button><button className={PRIMARY_BUTTON_CLASS} disabled={working} onClick={onSave} type="button">{working ? 'Đang lưu...' : editing ? 'Lưu chỉnh sửa' : 'Tạo bản nháp'}</button></div></section></div>;
+  const [scheduleValidation, setScheduleValidation] = useState({ status: 'idle', message: '' });
+  const validationPayload = useMemo(() => buildProposalPayload(form), [form]);
+  const readyToValidate = Boolean(
+    validationPayload.title
+      && validationPayload.courseOfferingId
+      && validationPayload.capacity
+      && validationPayload.plannedStartDate
+      && validationPayload.plannedEndDate
+      && validationPayload.weekdays.length
+      && validationPayload.sessionStartTime
+      && validationPayload.sessionEndTime
+      && validationPayload.primaryTeacherId
+      && (isVirtual || (validationPayload.roomId && validationPayload.offlineAddress)),
+  );
+
+  useEffect(() => {
+    if (!readyToValidate) {
+      setScheduleValidation({
+        status: 'idle',
+        message: 'Chọn đủ giáo viên, ngày, giờ và phòng học để hệ thống kiểm tra lịch.',
+      });
+      return undefined;
+    }
+
+    let active = true;
+    setScheduleValidation({ status: 'checking', message: 'Đang kiểm tra lịch giáo viên và phòng học...' });
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await enrollmentRequestApi.validateClassroomProposalSchedule(
+          validationPayload,
+          editingProposalId,
+        );
+        if (!active) return;
+        if (result?.hasBlockingConflict) {
+          setScheduleValidation({
+            status: 'invalid',
+            message: getConflictSummary(result) || 'Lịch dự kiến đang bị trùng.',
+          });
+          return;
+        }
+        setScheduleValidation({
+          status: 'valid',
+          message: 'Giáo viên và phòng học đang trống trong toàn bộ lịch dự kiến.',
+        });
+      } catch (err) {
+        if (!active) return;
+        setScheduleValidation({
+          status: 'invalid',
+          message: getClassroomErrorMessage(err, 'Không thể kiểm tra lịch dự kiến.'),
+        });
+      }
+    }, 450);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [editingProposalId, readyToValidate, validationPayload]);
+
+  const validationStyle = {
+    idle: 'border-slate-200 bg-slate-50 text-slate-600',
+    checking: 'border-blue-200 bg-blue-50 text-blue-700',
+    valid: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    invalid: 'border-rose-200 bg-rose-50 text-rose-700',
+  }[scheduleValidation.status];
+  const ValidationIcon = scheduleValidation.status === 'checking'
+    ? Loader2
+    : scheduleValidation.status === 'valid'
+      ? CheckCircle2
+      : AlertCircle;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+      <section aria-modal="true" className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">
+              {editing ? 'Chỉnh sửa bản nháp mở lớp' : 'Lập kế hoạch lớp trước khai giảng'}
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-[#0b1c30]">{editing ? form.title : 'Đề xuất lớp mới'}</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500">Thiết lập lịch học, giáo viên, phòng học và sức chứa dự kiến.</p>
+          </div>
+          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose} type="button">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <div className="space-y-4">
+            <TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} />
+            <div>
+              <FieldLabel>Khóa học nền</FieldLabel>
+              <BrandedSelect
+                disabled={editing}
+                onChange={(event) => onUpdate({ courseOfferingId: event.target.value, enrollmentRequestIds: [] })}
+                options={courseOfferings.map((item) => ({
+                  label: item.title,
+                  value: String(item.id),
+                  description: `${item.deliveryType || item.deliveryMode} · ${item.entryLevel || 'Mọi trình độ'}`,
+                }))}
+                placeholder="Chọn khóa học"
+                searchable
+                value={form.courseOfferingId}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value })} type="number" value={form.capacity} />
+              <div>
+                <FieldLabel>Giáo viên dự kiến</FieldLabel>
+                <BrandedSelect
+                  onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })}
+                  options={teachers.map((item) => ({ label: item.label || item.fullName || item.email, value: String(item.id) }))}
+                  placeholder="Chọn giáo viên"
+                  searchable
+                  value={form.primaryTeacherId}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={(value) => onUpdate({ plannedStartDate: value })} type="date" value={form.plannedStartDate} />
+              <TextField label="Ngày kết thúc" min={form.plannedStartDate || toLocalDateKey()} onChange={(value) => onUpdate({ plannedEndDate: value })} type="date" value={form.plannedEndDate} />
+            </div>
+            <div>
+              <FieldLabel>Ngày học trong tuần</FieldLabel>
+              <div className="flex flex-wrap gap-2">
+                {weekdayOptions.map(([value, label]) => (
+                  <button
+                    className={`h-9 min-w-10 rounded-lg px-3 text-xs font-extrabold ${form.weekdays.includes(value) ? 'bg-[#730014] text-white' : 'bg-slate-100 text-slate-600'}`}
+                    key={value}
+                    onClick={() => onToggleWeekday(value)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <TextField label="Giờ bắt đầu" onChange={(value) => onUpdate({ sessionStartTime: value })} type="time" value={form.sessionStartTime} />
+              <TextField label="Giờ kết thúc" onChange={(value) => onUpdate({ sessionEndTime: value })} type="time" value={form.sessionEndTime} />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {isVirtual ? (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                <p className="font-extrabold">Phòng học Virtual được tạo tự động</p>
+                <p className="mt-1 leading-6">
+                  Mỗi buổi học trực tuyến sử dụng một phòng Lark riêng
+                  và hiển thị trạng thái đồng bộ trong chi tiết lớp.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <FieldLabel>Phòng học</FieldLabel>
+                  <BrandedSelect
+                    onChange={(event) => onUpdate({ roomId: event.target.value })}
+                    options={rooms.map((item) => ({
+                      label: item.label || item.name,
+                      value: String(item.id),
+                      description: `${item.capacity || 0} chỗ`,
+                    }))}
+                    placeholder="Chọn phòng"
+                    searchable
+                    value={form.roomId}
+                  />
+                </div>
+                <TextField label="Địa chỉ/cơ sở" onChange={(value) => onUpdate({ offlineAddress: value })} value={form.offlineAddress} />
+              </>
+            )}
+            <div className={`flex items-start gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${validationStyle}`}>
+              <ValidationIcon className={`mt-0.5 h-4 w-4 shrink-0 ${scheduleValidation.status === 'checking' ? 'animate-spin' : ''}`} />
+              <span>{scheduleValidation.message}</span>
+            </div>
+            <label className="block">
+              <FieldLabel>Ghi chú xét duyệt</FieldLabel>
+              <RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} />
+            </label>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-5">
+          <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
+          <button
+            className={PRIMARY_BUTTON_CLASS}
+            disabled={working || scheduleValidation.status === 'checking' || scheduleValidation.status === 'invalid'}
+            onClick={onSave}
+            type="button"
+          >
+            {working ? 'Đang lưu...' : editing ? 'Lưu chỉnh sửa' : 'Tạo bản nháp'}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function FieldLabel({ children }) { return <span className="mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-slate-500">{children}</span>; }

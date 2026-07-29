@@ -26,7 +26,7 @@ const mapApiNotification = (notification) => ({
   message: notification.body,
   read: notification.read,
   createdAt: notification.createdAt,
-  actionPath: null,
+  actionPath: notification.actionPath || null,
 });
 
 export default function NotificationsPage() {

@@ -23,7 +23,7 @@ export default function CourseVersionPanel({
     icon: AlertCircle,
     iconClass: 'text-[#730014]',
     title: `Bản nháp v${draft.versionNumber} đang chỉnh sửa`,
-    sub: 'Bản nháp chưa hiển thị cho học viên. Sau khi xuất bản, mọi học viên nhận nội dung mới nhất và vẫn giữ tiến độ đã học.',
+    sub: 'Bản nháp chỉ hiển thị trong khu vực biên soạn. Bản xuất bản mới nhất được dùng cho học viên và không làm thay đổi tiến độ đã ghi nhận.',
     note: draft.reviewNote ? `Phản hồi: ${draft.reviewNote}` : null,
   } : pending ? {
     icon: Clock4,

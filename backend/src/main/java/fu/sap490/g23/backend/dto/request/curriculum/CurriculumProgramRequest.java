@@ -32,6 +32,12 @@ public class CurriculumProgramRequest {
     @Size(max = 30)
     private String examCategory;
 
+    @Size(max = 60)
+    private String programTrack;
+
+    @Size(max = 240)
+    private String focusSkills;
+
     @DecimalMin(value = "0.0", message = "Band mục tiêu không hợp lệ.")
     @DecimalMax(value = "9.0", message = "Band mục tiêu không hợp lệ.")
     private BigDecimal targetBand;

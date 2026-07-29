@@ -24,6 +24,8 @@ public class TrainingProgramResponse {
     private String curriculumProgramTitle;
     private String curriculumProgramCode;
     private String curriculumProgramExamCategory;
+    private String programTrack;
+    private String focusSkills;
     private String curriculumProgramStatus;
     private String shortDescription;
     private String description;

@@ -5,10 +5,14 @@ import fu.sap490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ReorderWaitlistRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -63,6 +67,43 @@ class ClassroomOfferingServiceImplWaitlistTest {
 
     @InjectMocks
     private ClassroomOfferingServiceImpl service;
+
+    @Test
+    void syncVirtualSessionMeetingCreatesManagedLarkRoomForStaff() {
+        User staff = User.builder().id(1L).email("staff@example.com").fullName("Staff").build();
+        ClassroomSession session = ClassroomSession.builder()
+                .id(9L)
+                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                .status(ClassroomSessionStatus.SCHEDULED)
+                .larkSyncStatus("PENDING")
+                .build();
+        ClassroomSessionResponse expected = ClassroomSessionResponse.builder()
+                .id(session.getId())
+                .larkMeetingUrl("https://meet.larksuite.com/room/automatic")
+                .larkMeetingNo("123456789")
+                .larkSyncStatus("SYNCED")
+                .build();
+        when(accessHelper.requireUser(staff.getEmail())).thenReturn(staff);
+        when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
+        when(larkMeetingService.isEnabled()).thenReturn(true);
+        doAnswer(invocation -> {
+            ClassroomSession target = invocation.getArgument(0);
+            target.setLarkMeetingUrl(expected.getLarkMeetingUrl());
+            target.setLarkMeetingNo(expected.getLarkMeetingNo());
+            target.setLarkSyncStatus("SYNCED");
+            return null;
+        }).when(larkMeetingService).syncMeeting(session);
+        when(sessionRepository.save(session)).thenReturn(session);
+        when(mapper.toSessionResponse(session)).thenReturn(expected);
+
+        ClassroomSessionResponse response =
+                service.syncVirtualSessionMeeting(session.getId(), staff.getEmail());
+
+        assertEquals("SYNCED", response.getLarkSyncStatus());
+        assertEquals("123456789", response.getLarkMeetingNo());
+        verify(accessHelper).assertStaffOperator(staff);
+        verify(larkMeetingService).syncMeeting(session);
+    }
 
     @Test
     void getMyClasses_ReturnsOnlyStaffAssignedClassrooms() {
@@ -220,15 +261,15 @@ class ClassroomOfferingServiceImplWaitlistTest {
     }
 
     @Test
-    void reorderWaitlist_RejectsUserWithoutTrainingManagerRole() {
+    void reorderWaitlistRejectsUserWithoutStaffOperatorRole() {
         User actor = new User();
         ReorderWaitlistRequest request = new ReorderWaitlistRequest();
         request.setEnrollmentIds(List.of(1L));
 
         when(accessHelper.requireUser("learner@example.com")).thenReturn(actor);
-        doThrow(new RuntimeException("Bạn không có quyền Training Manager."))
+        doThrow(new RuntimeException("Bạn không có quyền vận hành đào tạo."))
                 .when(accessHelper)
-                .assertTrainingManager(actor);
+                .assertStaffOperator(actor);
 
         assertThrows(
                 RuntimeException.class,

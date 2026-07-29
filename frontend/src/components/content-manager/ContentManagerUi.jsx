@@ -53,7 +53,7 @@ export function ContentManagerLayout({ children }) {
   };
 
   const displayName =
-    currentUser?.fullName || currentUser?.username || currentUser?.email || 'EnglishLab Admin';
+    currentUser?.fullName || currentUser?.username || currentUser?.email || 'EnglishLab';
   const displayRole = formatRoleLabel(currentUser?.role || 'CONTENT_MANAGER');
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const mobileNavOptions = contentManagerNav.flatMap((section) =>
@@ -319,12 +319,15 @@ function resolveMeta(pathname) {
 }
 
 function formatRoleLabel(role) {
-  return String(role || '')
-    .toLowerCase()
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+  const normalizedRole = String(role || '').toUpperCase();
+  return {
+    CONTENT_MANAGER: 'Quản lý nội dung',
+    MANAGER: 'Quản lý đào tạo',
+    STAFF: 'Nhân viên đào tạo',
+    ADMIN: 'Quản trị viên',
+    TEACHER: 'Giáo viên',
+    LEARNER: 'Học viên',
+  }[normalizedRole] || 'Quản lý nội dung';
 }
 
 function resolveCrumbHref(crumbs, index) {

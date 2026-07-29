@@ -161,10 +161,9 @@ public class User implements UserDetails {
             case ADMIN -> 0;
             case MANAGER -> 1;
             case STAFF -> 2;
-            case TRAINING_MANAGER -> 3;
-            case CONTENT_MANAGER -> 4;
-            case TEACHER -> 5;
-            case LEARNER -> 6;
+            case CONTENT_MANAGER -> 3;
+            case TEACHER -> 4;
+            case LEARNER -> 5;
         };
     }
 

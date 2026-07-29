@@ -9,4 +9,6 @@ public interface AppNotificationRepository extends JpaRepository<AppNotification
     List<AppNotification> findByUserIdOrderByCreatedAtDesc(Long userId);
 
     long countByUserIdAndReadFalse(Long userId);
+
+    boolean existsByUserIdAndDeduplicationKey(Long userId, String deduplicationKey);
 }

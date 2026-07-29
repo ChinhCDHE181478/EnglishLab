@@ -359,7 +359,7 @@ export function ApprovalProgramCard({ program, workingId, rejectingId, rejectRea
             <p className="text-sm text-[#564241]">{program.code} · {program.examCategory} · {program.totalSessions || 0} buổi</p>
             {program.outcomes ? <p className="line-clamp-3 text-sm leading-7 text-[#584140]">{program.outcomes}</p> : null}
             <p className="text-xs text-[#8b706e]">
-              Gửi bởi {program.submittedByName || 'Content Manager'}
+              Gửi bởi {program.submittedByName || 'Bộ phận nội dung'}
               {program.submittedAt ? ` · ${new Date(program.submittedAt).toLocaleDateString('vi-VN')}` : ''}
             </p>
           </div>
@@ -382,7 +382,7 @@ export function ApprovalProgramCard({ program, workingId, rejectingId, rejectRea
             <textarea
               className="min-h-24 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-400"
               onChange={(event) => onRejectReasonChange(event.target.value)}
-              placeholder="Mô tả lý do để Content Manager chỉnh sửa..."
+              placeholder="Nêu rõ nội dung cần chỉnh sửa..."
               value={rejectReason}
             />
             <button className="mt-3 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-rose-800 disabled:opacity-60" disabled={workingId === program.id} onClick={() => onReject(program.id)} type="button">

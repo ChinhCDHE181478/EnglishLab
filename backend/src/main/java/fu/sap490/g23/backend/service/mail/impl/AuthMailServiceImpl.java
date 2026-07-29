@@ -13,6 +13,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -37,6 +38,9 @@ public class AuthMailServiceImpl implements AuthMailService {
     @Value("${englishlab.mail.support-email:support@englishlab.vn}")
     private String supportEmail;
 
+    @Value("${englishlab.mail.base-url:http://localhost:5173}")
+    private String baseUrl;
+
     public void sendVerificationEmail(User user, String code) {
         sendCodeEmail(
                 user,
@@ -44,7 +48,9 @@ public class AuthMailServiceImpl implements AuthMailService {
                 "Xác thực tài khoản của bạn",
                 "Cảm ơn bạn đã đăng ký EnglishLab. Nhập mã dưới đây trên trang xác thực để kích hoạt tài khoản và bắt đầu học.",
                 "Mã xác thực của bạn",
-                code
+                code,
+                "/verify-email?email=" + encodedEmail(user),
+                "Xác thực tài khoản"
         );
     }
 
@@ -55,7 +61,23 @@ public class AuthMailServiceImpl implements AuthMailService {
                 "Mã đặt lại mật khẩu của bạn",
                 "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu. Nhập mã dưới đây trên trang đặt lại mật khẩu để tiếp tục.",
                 "Mã OTP của bạn",
-                code
+                code,
+                "/reset-password?email=" + encodedEmail(user),
+                "Đặt lại mật khẩu"
+        );
+    }
+
+    @Override
+    public void sendStaffCreatedAccountEmail(User user, String code) {
+        sendCodeEmail(
+                user,
+                "Thiết lập mật khẩu tài khoản EnglishLab",
+                "Tài khoản học viên của bạn đã sẵn sàng",
+                "EnglishLab đã tạo tài khoản theo thông tin bạn cung cấp tại trung tâm. Dùng mã dưới đây tại trang đặt lại mật khẩu để tự thiết lập mật khẩu đăng nhập.",
+                "Mã thiết lập mật khẩu",
+                code,
+                "/reset-password?email=" + encodedEmail(user),
+                "Thiết lập mật khẩu"
         );
     }
 
@@ -65,7 +87,9 @@ public class AuthMailServiceImpl implements AuthMailService {
             String heading,
             String description,
             String codeLabel,
-            String code
+            String code,
+            String actionPath,
+            String actionLabel
     ) {
         if (!enabled) {
             log.debug("Auth mail is disabled.");
@@ -86,7 +110,7 @@ public class AuthMailServiceImpl implements AuthMailService {
             helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(user.getEmail());
             helper.setSubject(subject);
-            helper.setText(renderCodeHtml(user, heading, description, codeLabel, code), true);
+            helper.setText(renderCodeHtml(user, heading, description, codeLabel, code, actionPath, actionLabel), true);
             mailSender.send(message);
             log.info("Sent auth email '{}' to {}", subject, user.getEmail());
         } catch (Exception ex) {
@@ -94,12 +118,22 @@ public class AuthMailServiceImpl implements AuthMailService {
         }
     }
 
-    private String renderCodeHtml(User user, String heading, String description, String codeLabel, String code) {
+    private String renderCodeHtml(
+            User user,
+            String heading,
+            String description,
+            String codeLabel,
+            String code,
+            String actionPath,
+            String actionLabel
+    ) {
         String safeName = escapeHtml(valueOrDefault(user.getFullName(), "bạn"));
         String safeHeading = escapeHtml(heading);
         String safeDescription = escapeHtml(description);
         String safeCodeLabel = escapeHtml(codeLabel);
         String safeCode = escapeHtml(code);
+        String safeActionUrl = escapeHtml(normalizedBaseUrl() + actionPath);
+        String safeActionLabel = escapeHtml(actionLabel);
         String safeSupportEmail = escapeHtml(valueOrDefault(supportEmail, "support@englishlab.vn"));
         String year = String.valueOf(LocalDateTime.now().getYear());
 
@@ -136,6 +170,9 @@ public class AuthMailServiceImpl implements AuthMailService {
                                 <p style="margin:0 0 8px;font-size:13px;line-height:20px;color:#7a5c59;font-weight:700;">%s</p>
                                 <p style="margin:0;font-size:36px;line-height:44px;letter-spacing:10px;color:#730014;font-weight:800;font-family:Arial,sans-serif;">%s</p>
                               </div>
+                              <p style="margin:22px 0 0;text-align:center;">
+                                <a href="%s" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#730014;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">%s</a>
+                              </p>
                               <p style="margin:18px 0 0;font-size:13px;line-height:22px;color:#7a5c59;">Mã này chỉ có hiệu lực trong thời gian ngắn. Nếu bạn không yêu cầu thao tác này, hãy bỏ qua email.</p>
                             </td>
                           </tr>
@@ -159,10 +196,22 @@ public class AuthMailServiceImpl implements AuthMailService {
                 safeDescription,
                 safeCodeLabel,
                 safeCode,
+                safeActionUrl,
+                safeActionLabel,
                 safeSupportEmail,
                 safeSupportEmail,
                 year
         );
+    }
+
+    private String encodedEmail(User user) {
+        String email = user == null ? "" : valueOrDefault(user.getEmail(), "");
+        return URLEncoder.encode(email, StandardCharsets.UTF_8);
+    }
+
+    private String normalizedBaseUrl() {
+        String value = valueOrDefault(baseUrl, "http://localhost:5173");
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 
     private String valueOrDefault(String value, String fallback) {

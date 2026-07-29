@@ -127,16 +127,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassroomOfferingResponse> getManagerOfferings() {
+    public List<ClassroomOfferingResponse> getStaffOfferings() {
         return offeringRepository.findAll().stream()
-                .filter(this::isVisibleToTrainingManager)
+                .filter(this::isVisibleToStaff)
                 .map(offering -> mapper.toOfferingResponse(offering, true, null, null, true))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ClassroomOfferingResponse getManagerOffering(Long id) {
+    public ClassroomOfferingResponse getStaffOffering(Long id) {
         ClassroomOffering offering = offeringRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
         if (offering.getLearningPackage() == null) {
@@ -239,7 +239,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomOffering offering = findOffering(id);
         LearningPackage learningPackage = offering.getLearningPackage();
         CurriculumProgram curriculumProgram = resolveCurriculumProgram(
@@ -318,17 +318,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     @Override
-    public ClassroomOfferingResponse publishOffering(Long id) {
-        ClassroomOffering offering = findOffering(id);
-        validatePublishableOffering(offering);
-        offering.getLearningPackage().setStatus(PackageStatus.PUBLISHED);
-        if (offering.getStatus() == ClassroomOfferingStatus.DRAFT) {
-            offering.setStatus(ClassroomOfferingStatus.UPCOMING);
-        }
-        return mapper.toOfferingResponse(offering);
-    }
-
-    @Override
     public ClassroomOfferingResponse closeOffering(Long id, String actorEmail) {
         accessHelper.requireUser(actorEmail);
         ClassroomOffering offering = findOffering(id);
@@ -339,19 +328,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         offering.setStatus(ClassroomOfferingStatus.CLOSED);
         offering.getLearningPackage().setStatus(PackageStatus.ARCHIVED);
         return mapper.toOfferingResponse(offeringRepository.save(offering));
-    }
-
-    private void validatePublishableOffering(ClassroomOffering offering) {
-        if (offering.getStartDate() == null) {
-            throw new RuntimeException("Lớp học cần có ngày khai giảng trước khi xuất bản.");
-        }
-        if (offering.getMaxCapacity() == null || offering.getMaxCapacity() <= 0) {
-            throw new RuntimeException("Lớp học cần có sĩ số tối đa hợp lệ trước khi xuất bản.");
-        }
-        long sessionCount = sessionRepository.countByClassroomOfferingId(offering.getId());
-        if (sessionCount <= 0) {
-            throw new RuntimeException("Lớp học cần có ít nhất một buổi học trước khi xuất bản.");
-        }
     }
 
     @Override
@@ -422,6 +398,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             session = sessionRepository.save(session);
         }
         return mapper.toSessionResponse(session);
+    }
+
+    @Override
+    public ClassroomSessionResponse syncVirtualSessionMeeting(Long sessionId, String actorEmail) {
+        User actor = accessHelper.requireUser(actorEmail);
+        accessHelper.assertStaffOperator(actor);
+        ClassroomSession session = findSession(sessionId);
+        if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
+            throw new IllegalArgumentException("Chỉ buổi học Virtual mới có phòng Lark để đồng bộ.");
+        }
+        if (session.getStatus() == ClassroomSessionStatus.COMPLETED
+                || session.getStatus() == ClassroomSessionStatus.CANCELLED) {
+            throw new IllegalArgumentException("Không thể tạo lại phòng Lark cho buổi học đã kết thúc hoặc đã hủy.");
+        }
+        syncLarkMeetingSafely(session);
+        return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
     @Override
@@ -671,7 +663,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomEnrollmentResponse confirmRegistration(Long enrollmentId, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
         ClassroomOffering offering = enrollment.getClassroomOffering();
         User learner = enrollment.getStudent();
@@ -713,7 +705,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String actorEmail
     ) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
         ClassroomOffering offering = enrollment.getClassroomOffering();
         User learner = enrollment.getStudent();
@@ -747,7 +739,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String actorEmail
     ) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         return applyTuitionPaymentInternal(
                 findEnrollment(enrollmentId),
                 request.getAmount(),
@@ -765,7 +757,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String actorEmail
     ) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
 
         if (enrollment.getTuitionSettlementType() != TuitionSettlementType.NEED_REFUND) {
@@ -981,7 +973,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     @Override
     public ClassroomEnrollmentResponse assignToClass(Long enrollmentId, AssignToClassRequest request, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
         ClassroomOffering offering = enrollment.getClassroomOffering();
         User learner = enrollment.getStudent();
@@ -1059,7 +1051,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String actorEmail
     ) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         offeringRepository.findByIdForUpdate(classroomOfferingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lớp học không tồn tại."));
 
@@ -1118,7 +1110,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String actorEmail
     ) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomEnrollment enrollment = findEnrollment(enrollmentId);
         TransferStudentRequest transferRequest = new TransferStudentRequest();
         transferRequest.setStudentId(enrollment.getStudent().getId());
@@ -1756,7 +1748,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 
-    private boolean isVisibleToTrainingManager(ClassroomOffering offering) {
+    private boolean isVisibleToStaff(ClassroomOffering offering) {
         if (offering.getLearningPackage() == null) {
             return false;
         }

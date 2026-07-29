@@ -76,8 +76,6 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         ClassroomOffering offering = findOffering(offeringId);
         classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
         return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
-                .filter(material -> material.getReviewStatus() == null
-                        || material.getReviewStatus() == fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .map(mapper::toMaterialResponse)
                 .toList();
     }
@@ -202,8 +200,6 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     public List<ClassroomSyllabusItemResponse> getLearnerSyllabus(Long offeringId, String learnerEmail) {
         assertLearnerPortalAccess(offeringId, learnerEmail);
         return syllabusItemRepository.findByClassroomOfferingIdOrderByDisplayOrderAsc(offeringId).stream()
-                .filter(item -> item.getReviewStatus() == null
-                        || item.getReviewStatus() == fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .map(mapper::toSyllabusItemResponse)
                 .toList();
     }
@@ -223,7 +219,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .sessionNumber(request.getSessionNumber())
                 .linkedSessionId(request.getLinkedSessionId())
                 .status(request.getStatus() == null ? "DRAFT" : request.getStatus())
-                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.DRAFT)
+                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .build();
         return mapper.toSyllabusItemResponse(syllabusItemRepository.save(item));
     }

@@ -37,6 +37,12 @@ public class AppNotification {
     @Column(name = "metadata_json", columnDefinition = "text")
     private String metadataJson;
 
+    @Column(name = "action_path", length = 500)
+    private String actionPath;
+
+    @Column(name = "deduplication_key", length = 220)
+    private String deduplicationKey;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean read = false;

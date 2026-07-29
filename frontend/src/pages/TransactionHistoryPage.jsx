@@ -90,7 +90,7 @@ const TransactionHistoryPage = () => {
       ) : !orders.length ? (
         <section className="flex min-h-[420px] flex-1 flex-col items-center justify-center rounded-[28px] border border-dashed border-[#dfbfbd] bg-white px-6 py-16 text-center">
           <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn chưa có giao dịch nào.</h2>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-[#584140]">Các đơn thanh toán qua PayOS sẽ xuất hiện tại đây sau khi bạn mua khóa học.</p>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-[#584140]">Các đơn thanh toán sẽ xuất hiện tại đây sau khi bạn mua khóa học.</p>
           <div className="mt-6">
             <Link className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/courses">
               Xem khóa học

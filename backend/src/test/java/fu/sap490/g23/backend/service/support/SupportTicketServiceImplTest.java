@@ -54,7 +54,7 @@ class SupportTicketServiceImplTest {
         );
         learner = user(1L, "learner@test.vn", "Learner", RoleEnum.LEARNER);
         otherLearner = user(2L, "other@test.vn", "Other", RoleEnum.LEARNER);
-        manager = user(3L, "training.manager@test.vn", "Training Manager", RoleEnum.TRAINING_MANAGER);
+        manager = user(3L, "staff@test.vn", "Nhân viên đào tạo", RoleEnum.STAFF);
     }
 
     @Test

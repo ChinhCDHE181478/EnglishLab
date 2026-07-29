@@ -12,13 +12,6 @@ const enrollmentRequestApi = {
     return Array.isArray(data) ? data : data?.content || [];
   },
 
-  async getCourseOffering(slugOrId) {
-    const response = await axiosClient.get(`/api/course-offerings/${slugOrId}`, {
-      skipAuthRedirect: true,
-    });
-    return unwrapData(response);
-  },
-
   async submit(payload) {
     const response = await axiosClient.post('/api/student/course-enrollment-requests', payload);
     return unwrapData(response);
@@ -30,17 +23,17 @@ const enrollmentRequestApi = {
     return Array.isArray(data) ? data : [];
   },
 
-  async cancel(requestId) {
-    const response = await axiosClient.patch(`/api/student/course-enrollment-requests/${requestId}/cancel`);
-    return unwrapData(response);
-  },
-
   async listForStaff(status) {
     const response = await axiosClient.get('/api/staff/enrollment-requests', {
       params: status && status !== 'ALL' ? { status } : undefined,
     });
     const data = unwrapData(response);
     return Array.isArray(data) ? data : [];
+  },
+
+  async createAtCenter(payload) {
+    const response = await axiosClient.post('/api/staff/enrollment-requests/center', payload);
+    return unwrapData(response);
   },
 
   async scheduleTest(requestId, payload) {
@@ -72,17 +65,6 @@ const enrollmentRequestApi = {
     return unwrapData(response);
   },
 
-  async listPlacementReviews() {
-    const response = await axiosClient.get('/api/staff/placement-reviews');
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : [];
-  },
-
-  async confirmPlacementReview(attemptId, payload) {
-    const response = await axiosClient.patch(`/api/staff/placement-reviews/${attemptId}/review`, payload);
-    return unwrapData(response);
-  },
-
   async listStaffClassroomProposals(status) {
     const response = await axiosClient.get('/api/staff/classroom-proposals', {
       params: status && status !== 'ALL' ? { status } : undefined,
@@ -93,6 +75,13 @@ const enrollmentRequestApi = {
 
   async createClassroomProposal(payload) {
     const response = await axiosClient.post('/api/staff/classroom-proposals', payload);
+    return unwrapData(response);
+  },
+
+  async validateClassroomProposalSchedule(payload, excludeProposalId) {
+    const response = await axiosClient.post('/api/staff/classroom-proposals/validate-schedule', payload, {
+      params: excludeProposalId ? { excludeProposalId } : undefined,
+    });
     return unwrapData(response);
   },
 

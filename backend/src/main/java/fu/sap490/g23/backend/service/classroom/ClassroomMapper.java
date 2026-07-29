@@ -229,6 +229,7 @@ public class ClassroomMapper {
                 .larkMeetingUrl(larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())
                         ? null
                         : session.getLarkMeetingUrl())
+                .larkMeetingNo(session.getLarkMeetingNo())
                 .larkMeetingStatus(larkStatus)
                 .larkJoinable(larkMeetingService.isJoinable(session.getLarkMeetingUrl(), larkStatus))
                 .larkPlatformName(larkMeetingService.getPlatformName())
@@ -517,6 +518,7 @@ public class ClassroomMapper {
                 .type(notification.getType())
                 .title(notification.getTitle())
                 .body(notification.getBody())
+                .actionPath(notification.getActionPath())
                 .read(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
