@@ -6,6 +6,7 @@ import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionRespo
 import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sap490.g23.backend.service.assessment.AssessmentAudioStorageService;
 import fu.sap490.g23.backend.service.assessment.AiAssessmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -34,7 +35,7 @@ public class StudentAssessmentController {
     @PostMapping("/assessments/{assessmentId}/submit")
     public ResponseEntity<AiAssessmentSubmissionResponse> submitAssessment(
             @PathVariable Long assessmentId,
-            @RequestBody AssessmentSubmissionRequest request,
+            @Valid @RequestBody AssessmentSubmissionRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(aiAssessmentService.submitAssessment(assessmentId, request, authentication.getName()));

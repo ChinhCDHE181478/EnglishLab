@@ -18,10 +18,12 @@ import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
 
 const PAGE_SIZE = 100;
+const ENGLISH_CATEGORY_CODES = new Set(['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION']);
 const defaultFilters = {
   category: '',
   currentBand: '',
   targetBand: '',
+  toeicTarget: '',
   skill: '',
   promotion: '',
 };
@@ -76,7 +78,7 @@ const Courses = () => {
     const loadCategories = async () => {
       try {
         const items = await courseApi.getOnlineCourseCategories();
-        if (active) setCategories(items);
+        if (active) setCategories(items.filter((item) => ENGLISH_CATEGORY_CODES.has(item.code)));
       } catch {
         if (active) setCategories([]);
       }
@@ -171,15 +173,12 @@ const Courses = () => {
     loadCourses();
   }, [loadCourses]);
 
-  const visibleCourses = useMemo(() => {
-    if (filters.promotion === 'promotion') {
-      return allCourses.filter((course) => Number(course.discountPercent || 0) > 0);
-    }
-    if (filters.promotion === 'standard') {
-      return allCourses.filter((course) => Number(course.discountPercent || 0) <= 0);
-    }
-    return allCourses;
-  }, [allCourses, filters.promotion]);
+  const visibleCourses = useMemo(() => allCourses.filter((course) => {
+    if (filters.promotion === 'promotion' && Number(course.discountPercent || 0) <= 0) return false;
+    if (filters.promotion === 'standard' && Number(course.discountPercent || 0) > 0) return false;
+    if (filters.toeicTarget && Number.parseInt(course.targetScore, 10) < Number(filters.toeicTarget)) return false;
+    return true;
+  }), [allCourses, filters.promotion, filters.toeicTarget]);
 
   const featuredCourses = useMemo(() => {
     const featured = visibleCourses.filter((course) => course.featured);
@@ -203,7 +202,16 @@ const Courses = () => {
 
   const handleFilterChange = ({ target }) => {
     const { name, value } = target;
-    setFilters((current) => ({ ...current, [name]: value }));
+    setFilters((current) => (
+      name === 'category'
+        ? { ...current, category: value, currentBand: '', targetBand: '', toeicTarget: '' }
+        : { ...current, [name]: value }
+    ));
+  };
+
+  const handleCategoryChange = (value) => {
+    setActiveCategory(value);
+    setFilters((current) => ({ ...current, category: '', currentBand: '', targetBand: '', toeicTarget: '' }));
   };
 
   return (
@@ -216,7 +224,7 @@ const Courses = () => {
       ) : (
         <>
           <CourseHero user={user} registeredCount={myEnrollments.length} />
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={setActiveCategory} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
           {error ? (
             <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
@@ -259,6 +267,7 @@ const Courses = () => {
             loading={coursesLoading}
             currentBand={user?.currentBand ?? null}
             categories={categories}
+            selectedCategory={activeCategory || filters.category}
           />
         </>
       )}

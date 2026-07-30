@@ -2015,10 +2015,10 @@ export default function AiAssessmentPanel({
             <div className="mt-5 rounded-[28px] border border-[#dfbfbd]/25 bg-[linear-gradient(135deg,#fff8f8,#ffffff)] p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Exam workspace</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Bài kiểm tra</p>
                   <h4 className="mt-2 font-['Manrope'] text-2xl font-black text-[#2b2828]">{formatAssessmentTitle(selected)}</h4>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">
-                    Khi bắt đầu, bài kiểm tra sẽ chuyển sang chế độ toàn màn hình để người học chỉ tập trung vào phần làm bài. Sau khi nộp thành công, hệ thống sẽ quay lại màn hình tổng quan khóa học.
+                    Bài kiểm tra sử dụng chế độ toàn màn hình. Hãy hoàn thành và nộp bài trước khi rời khỏi trang.
                   </p>
                 </div>
                 <button
@@ -2398,7 +2398,7 @@ export default function AiAssessmentPanel({
                             <div>
                               <p className={`text-2xl font-extrabold ${headphoneCheckPlayed && micCheckPassed ? 'text-[#8a0018]' : 'text-[#a9b4c2]'}`}>
                                 <span className={`mr-2 ${headphoneCheckPlayed && micCheckPassed ? 'text-[#8a0018]/60' : 'text-[#a9b4c2]/70'}`}>3.</span>
-                                Waiting room
+                                Sẵn sàng vào thi
                               </p>
                               <p className={`mt-3 text-sm leading-7 ${headphoneCheckPlayed && micCheckPassed ? 'text-[#584140]' : 'text-[#b2a6a7]'}`}>
                                 Khi thiết bị đã sẵn sàng, bạn có thể vào phòng thi mô phỏng để bắt đầu từng phần của bài Speaking.
@@ -2414,7 +2414,7 @@ export default function AiAssessmentPanel({
                             onClick={handleConfirmMicCheck}
                             disabled={!headphoneCheckPlayed || micPermissionState !== 'granted' || !micCheckPassed}
                           >
-                            Continue to test
+                            Tiếp tục
                           </button>
                         </div>
                       </div>
@@ -2422,7 +2422,7 @@ export default function AiAssessmentPanel({
 
                     {speakingStage === 'briefing' ? (
                       <div className="rounded-[28px] border border-[#dfbfbd]/30 bg-white p-5">
-                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Bước 2</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8c716f]">Hướng dẫn</p>
                         <h4 className="mt-2 text-xl font-extrabold text-[#2b2828]">
                           {speakingExperience?.briefing?.title || 'Hướng dẫn làm bài Speaking'}
                         </h4>

@@ -13,4 +13,8 @@ public interface NotificationPreferenceService {
     boolean isEmailEnabled(User user);
 
     boolean isInAppEnabled(User user);
+
+    boolean isClassReminderEnabled(User user);
+
+    boolean isStudyAlertEnabled(User user);
 }

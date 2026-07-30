@@ -19,9 +19,9 @@ public interface ClassroomOfferingService {
 
     List<ClassroomOfferingResponse> getAssignedClasses(String teacherEmail);
 
-    List<ClassroomOfferingResponse> getManagerOfferings();
+    List<ClassroomOfferingResponse> getStaffOfferings();
 
-    ClassroomOfferingResponse getManagerOffering(Long id);
+    ClassroomOfferingResponse getStaffOffering(Long id);
 
     ClassroomOfferingResponse getOffering(Long id, boolean full);
 
@@ -30,8 +30,6 @@ public interface ClassroomOfferingService {
     ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail);
 
     ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail);
-
-    ClassroomOfferingResponse publishOffering(Long id);
 
     ClassroomOfferingResponse closeOffering(Long id, String actorEmail);
 
@@ -50,6 +48,8 @@ public interface ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             boolean enforceConflictCheck
     );
+
+    ClassroomSessionResponse syncVirtualSessionMeeting(Long sessionId, String actorEmail);
 
     ClassroomSessionResponse updateSession(Long sessionId, CreateClassroomSessionRequest request);
 

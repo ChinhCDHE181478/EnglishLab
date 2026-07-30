@@ -45,6 +45,8 @@ class NotificationPreferenceServiceImplTest {
 
         assertTrue(response.isEmailEnabled());
         assertTrue(response.isInAppEnabled());
+        assertTrue(response.isClassReminderEnabled());
+        assertTrue(response.isStudyAlertEnabled());
     }
 
     @Test
@@ -61,6 +63,8 @@ class NotificationPreferenceServiceImplTest {
 
         assertFalse(response.isEmailEnabled());
         assertFalse(response.isInAppEnabled());
+        assertTrue(response.isClassReminderEnabled());
+        assertTrue(response.isStudyAlertEnabled());
         verify(preferenceRepository).save(any(NotificationPreference.class));
     }
 

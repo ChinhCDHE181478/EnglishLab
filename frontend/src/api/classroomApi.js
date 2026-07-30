@@ -89,6 +89,19 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getMyTeacherFeedback(classroomId) {
+    const response = await axiosClient.get(`/api/student/classrooms/${classroomId}/teacher-feedback`);
+    return asList(unwrapData(response));
+  },
+
+  async saveMyTeacherFeedback(classroomId, teacherId, payload) {
+    const response = await axiosClient.put(
+      `/api/student/classrooms/${classroomId}/teacher-feedback/${teacherId}`,
+      payload,
+    );
+    return unwrapData(response);
+  },
+
   async getMyClassroomSessions(id) {
     const response = await axiosClient.get(`/api/student/classrooms/${id}/sessions`);
     return asList(unwrapData(response));
@@ -352,7 +365,7 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async getTrainingManagerDashboard() {
+  async getStaffDashboard() {
     const response = await axiosClient.get('/api/staff/dashboard');
     return unwrapData(response);
   },
@@ -367,57 +380,45 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async getManagerClassrooms() {
+  async getStaffClassrooms() {
     const response = await axiosClient.get('/api/staff/classrooms');
     return asList(unwrapData(response));
   },
 
-  async getManagerClassroom(id) {
+  async getStaffClassroom(id) {
     const response = await axiosClient.get(`/api/staff/classrooms/${id}`);
     return unwrapData(response);
   },
 
-  async getTrainingManagerTeachers() {
+  async getStaffTeachers() {
     const response = await axiosClient.get('/api/staff/classrooms/teachers');
     return asList(unwrapData(response));
   },
 
-  async getTrainingManagerRooms() {
+  async getStaffRooms() {
     const response = await axiosClient.get('/api/staff/classrooms/rooms');
     return asList(unwrapData(response));
   },
 
-  async getTrainingManagerCurriculumPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/staff/classrooms/curriculum-programs', {
+  async getStaffPrograms(deliveryMode) {
+    const response = await axiosClient.get('/api/staff/classrooms/training-programs', {
       params: deliveryMode ? { deliveryMode } : undefined,
     });
     return asList(unwrapData(response));
   },
 
-  async getTrainingManagerPrograms(deliveryMode) {
-    const response = await axiosClient.get('/api/staff/classrooms/course-offerings', {
-      params: deliveryMode ? { deliveryMode } : undefined,
-    });
-    return asList(unwrapData(response));
-  },
-
-  async updateManagerClassroom(id, payload) {
+  async updateStaffClassroom(id, payload) {
     const response = await axiosClient.put(`/api/staff/classrooms/${id}`, payload);
     return unwrapData(response);
   },
 
-  async getTrainingManagerClassroomSessions(id) {
-    const response = await axiosClient.get(`/api/staff/classrooms/${id}/sessions`);
-    return asList(unwrapData(response));
-  },
-
-  async createTrainingManagerClassroomSession(id, payload) {
+  async createStaffClassroomSession(id, payload) {
     const response = await axiosClient.post(`/api/staff/classrooms/${id}/sessions`, payload);
     return unwrapData(response);
   },
 
-  async updateTrainingManagerClassroomSession(sessionId, payload) {
-    const response = await axiosClient.put(`/api/staff/classrooms/sessions/${sessionId}`, payload);
+  async syncStaffVirtualSessionMeeting(sessionId) {
+    const response = await axiosClient.post(`/api/staff/classrooms/sessions/${sessionId}/sync-lark-meeting`);
     return unwrapData(response);
   },
 
@@ -493,21 +494,6 @@ export const classroomApi = {
 
   async checkEnrollmentConflict(enrollmentId) {
     const response = await axiosClient.post(`/api/staff/classrooms/enrollments/${enrollmentId}/conflict-check`);
-    return unwrapData(response);
-  },
-
-  async getTrainingManagerClassrooms() {
-    const response = await axiosClient.get('/api/staff/classrooms');
-    return asList(unwrapData(response));
-  },
-
-  async getTrainingManagerRegistrations(params = {}) {
-    const response = await axiosClient.get('/api/staff/classrooms/registrations', { params });
-    return asList(unwrapData(response));
-  },
-
-  async getTrainingManagerEnrollment(enrollmentId) {
-    const response = await axiosClient.get(`/api/staff/classrooms/enrollments/${enrollmentId}`);
     return unwrapData(response);
   },
 
@@ -676,34 +662,34 @@ export const classroomApi = {
   },
 
   async getContentManagerPrograms(deliveryType) {
-    const response = await axiosClient.get('/api/content-manager/scheduled-course-offerings', {
+    const response = await axiosClient.get('/api/content-manager/training-programs', {
       params: deliveryType ? { deliveryType } : undefined,
     });
     return asList(unwrapData(response));
   },
 
   async getContentManagerProgram(id) {
-    const response = await axiosClient.get(`/api/content-manager/scheduled-course-offerings/${id}`);
+    const response = await axiosClient.get(`/api/content-manager/training-programs/${id}`);
     return unwrapData(response);
   },
 
   async createContentManagerProgram(payload) {
-    const response = await axiosClient.post('/api/content-manager/scheduled-course-offerings', payload);
+    const response = await axiosClient.post('/api/content-manager/training-programs', payload);
     return unwrapData(response);
   },
 
   async updateContentManagerProgram(id, payload) {
-    const response = await axiosClient.put(`/api/content-manager/scheduled-course-offerings/${id}`, payload);
+    const response = await axiosClient.put(`/api/content-manager/training-programs/${id}`, payload);
     return unwrapData(response);
   },
 
   async cloneContentManagerProgram(id) {
-    const response = await axiosClient.post(`/api/content-manager/scheduled-course-offerings/${id}/clone`);
+    const response = await axiosClient.post(`/api/content-manager/training-programs/${id}/clone`);
     return unwrapData(response);
   },
 
   async archiveContentManagerProgram(id) {
-    const response = await axiosClient.delete(`/api/content-manager/scheduled-course-offerings/${id}`);
+    const response = await axiosClient.delete(`/api/content-manager/training-programs/${id}`);
     return unwrapData(response);
   },
 

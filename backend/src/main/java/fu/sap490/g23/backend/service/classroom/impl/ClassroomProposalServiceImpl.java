@@ -8,6 +8,8 @@ import fu.sap490.g23.backend.dto.request.classroom.RejectClassroomProposalReques
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalMemberResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
@@ -20,8 +22,10 @@ import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sap490.g23.backend.exception.ClassroomConflictException;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomProposalRepository;
@@ -39,6 +43,7 @@ import org.springframework.util.StringUtils;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -73,6 +78,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
                 .build();
         applyProposalFields(proposal, payload, 0);
+        assertNoScheduleConflicts(proposal, null);
         proposalRepository.save(proposal);
         return toResponse(proposal);
     }
@@ -93,6 +99,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Không thể đổi khóa học của đề xuất đã tạo.");
         }
         applyProposalFields(proposal, payload, 0);
+        assertNoScheduleConflicts(proposal, proposal.getId());
         proposal.setStaffNote(trimOrNull(payload.getNote()));
         proposal.setReviewedBy(null);
         proposal.setReviewedAt(null);
@@ -104,6 +111,24 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     }
 
     @Override
+    public ConflictCheckResultResponse validateSchedule(
+            CreateClassroomProposalRequest payload,
+            Long excludeProposalId,
+            String staffEmail
+    ) {
+        requireStaff(staffEmail);
+        TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
+        ClassroomProposal proposal = ClassroomProposal.builder()
+                .courseOffering(courseOffering)
+                .deliveryType(courseOffering.getDeliveryMode())
+                .approvalStatus(ClassroomApprovalStatus.DRAFT)
+                .build();
+        applyProposalFields(proposal, payload, 0);
+        validateProposal(proposal, true);
+        return checkScheduleConflicts(proposal, excludeProposalId);
+    }
+
+    @Override
     public ClassroomProposalResponse submit(Long proposalId, String staffEmail) {
         User staff = requireStaff(staffEmail);
         ClassroomProposal proposal = requireProposal(proposalId);
@@ -112,7 +137,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Chỉ có thể gửi duyệt đề xuất nháp hoặc bị từ chối.");
         }
         validateProposal(proposal, true);
-        assertNoScheduleConflicts(proposal);
+        assertNoScheduleConflicts(proposal, proposal.getId());
         proposal.setApprovalStatus(ClassroomApprovalStatus.PENDING_APPROVAL);
         proposal.setSubmittedBy(staff);
         proposal.setSubmittedAt(LocalDateTime.now());
@@ -151,7 +176,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Đề xuất không ở trạng thái chờ duyệt.");
         }
         validateProposal(proposal, true);
-        assertNoScheduleConflicts(proposal);
+        assertNoScheduleConflicts(proposal, proposal.getId());
 
         ClassroomOfferingResponse created = classroomOfferingService.createOffering(
                 toOfferingRequest(proposal),
@@ -166,7 +191,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .status(ClassroomSessionStatus.SCHEDULED)
                     .deliveryMode(proposal.getDeliveryType())
                     .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
-                    .larkMeetingUrl(proposal.getVirtualMeetingUrl())
+                    .larkMeetingUrl(null)
                     .sessionContent(proposal.getCourseOffering().getTitle())
                     .note("Sinh từ đề xuất " + proposal.getProposalCode())
                     .build());
@@ -225,9 +250,10 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         proposal.setSessionStartTime(payload.getSessionStartTime());
         proposal.setSessionEndTime(payload.getSessionEndTime());
         proposal.setPrimaryTeacher(resolveTeacher(payload.getPrimaryTeacherId()));
-        proposal.setRoom(resolveRoom(payload.getRoomId()));
-        proposal.setOfflineAddress(trimOrNull(payload.getOfflineAddress()));
-        proposal.setVirtualMeetingUrl(trimOrNull(payload.getVirtualMeetingUrl()));
+        boolean offline = proposal.getDeliveryType() == ClassroomDeliveryMode.OFFLINE;
+        proposal.setRoom(offline ? resolveRoom(payload.getRoomId()) : null);
+        proposal.setOfflineAddress(offline ? trimOrNull(payload.getOfflineAddress()) : null);
+        proposal.setVirtualMeetingUrl(null);
         proposal.setStaffNote(trimOrNull(payload.getNote()));
         validateProposal(proposal, false);
         if (proposal.getCapacity() < learnerCount) {
@@ -236,6 +262,12 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     }
 
     private void validateProposal(ClassroomProposal proposal, boolean requireResources) {
+        if (proposal.getCapacity() == null || proposal.getCapacity() < 1) {
+            throw new IllegalArgumentException("Sức chứa phải lớn hơn 0.");
+        }
+        if (proposal.getPlannedStartDate().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Ngày bắt đầu lớp không được ở trong quá khứ.");
+        }
         if (proposal.getPlannedEndDate().isBefore(proposal.getPlannedStartDate())) {
             throw new IllegalArgumentException("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
         }
@@ -251,6 +283,11 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (sessionDates(proposal).isEmpty()) {
             throw new IllegalArgumentException("Khoảng ngày không chứa ngày học đã chọn.");
         }
+        if (proposal.getRoom() != null
+                && proposal.getRoom().getCapacity() != null
+                && proposal.getRoom().getCapacity() < proposal.getCapacity()) {
+            throw new IllegalArgumentException("Sức chứa phòng nhỏ hơn sức chứa đề xuất.");
+        }
         if (!requireResources) return;
         if (proposal.getPrimaryTeacher() == null) {
             throw new IllegalArgumentException("Cần chọn giáo viên dự kiến trước khi gửi duyệt.");
@@ -259,18 +296,26 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             if (proposal.getRoom() == null) {
                 throw new IllegalArgumentException("Khóa Offline cần chọn phòng học.");
             }
-            if (proposal.getRoom().getCapacity() != null
-                    && proposal.getRoom().getCapacity() < proposal.getCapacity()) {
-                throw new IllegalArgumentException("Sức chứa phòng nhỏ hơn sức chứa đề xuất.");
+            if (!StringUtils.hasText(proposal.getOfflineAddress())) {
+                throw new IllegalArgumentException("Khóa Offline cần có địa chỉ hoặc cơ sở học.");
             }
-        } else if (!StringUtils.hasText(proposal.getVirtualMeetingUrl())) {
-            throw new IllegalArgumentException("Khóa Virtual cần có link phòng học trực tuyến.");
         }
     }
 
-    private void assertNoScheduleConflicts(ClassroomProposal proposal) {
+    private void assertNoScheduleConflicts(ClassroomProposal proposal, Long excludeProposalId) {
+        ConflictCheckResultResponse result = checkScheduleConflicts(proposal, excludeProposalId);
+        if (result.isHasBlockingConflict()) {
+            throw new ClassroomConflictException("Lịch dự kiến đang trùng với lớp hoặc đề xuất khác.", result);
+        }
+    }
+
+    private ConflictCheckResultResponse checkScheduleConflicts(
+            ClassroomProposal proposal,
+            Long excludeProposalId
+    ) {
+        List<ConflictItemResponse> conflicts = new ArrayList<>();
         for (LocalDate date : sessionDates(proposal)) {
-            conflictService.assertNoBlockingConflict(ConflictCheckRequest.builder()
+            ConflictCheckResultResponse sessionResult = conflictService.check(ConflictCheckRequest.builder()
                     .teacherId(proposal.getPrimaryTeacher() == null ? null : proposal.getPrimaryTeacher().getId())
                     .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                     .sessionDate(date)
@@ -280,7 +325,94 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .checkCapacity(false)
                     .larkMeetingUrl(proposal.getVirtualMeetingUrl())
                     .build());
+            if (sessionResult != null && sessionResult.getConflicts() != null) {
+                sessionResult.getConflicts().stream()
+                        .map(item -> withConflictDate(item, date))
+                        .forEach(conflicts::add);
+            }
         }
+        conflicts.addAll(findPendingProposalConflicts(proposal, excludeProposalId));
+        return ConflictCheckResultResponse.builder()
+                .hasBlockingConflict(!conflicts.isEmpty())
+                .canOverride(false)
+                .conflicts(conflicts)
+                .build();
+    }
+
+    private ConflictItemResponse withConflictDate(ConflictItemResponse item, LocalDate date) {
+        String message = StringUtils.hasText(item.getMessage())
+                ? item.getMessage()
+                : "Phát hiện xung đột lịch.";
+        return ConflictItemResponse.builder()
+                .type(item.getType())
+                .message(message + " Ngày " + date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + ".")
+                .details(item.getDetails())
+                .build();
+    }
+
+    private List<ConflictItemResponse> findPendingProposalConflicts(
+            ClassroomProposal proposal,
+            Long excludeProposalId
+    ) {
+        List<ClassroomProposal> pending = proposalRepository.findByApprovalStatusOrderByCreatedAtAsc(
+                ClassroomApprovalStatus.PENDING_APPROVAL
+        );
+        if (pending == null || pending.isEmpty()) return List.of();
+
+        List<ConflictItemResponse> conflicts = new ArrayList<>();
+        for (ClassroomProposal other : pending) {
+            if (other.getId() != null && other.getId().equals(excludeProposalId)) continue;
+            if (!timeRangesOverlap(proposal, other)) continue;
+            LocalDate overlapDate = firstSharedSessionDate(proposal, other);
+            if (overlapDate == null) continue;
+
+            if (proposal.getPrimaryTeacher() != null
+                    && other.getPrimaryTeacher() != null
+                    && proposal.getPrimaryTeacher().getId().equals(other.getPrimaryTeacher().getId())) {
+                conflicts.add(ConflictItemResponse.builder()
+                        .type(ConflictType.TEACHER_SCHEDULE)
+                        .message("Giáo viên đã được xếp trong đề xuất "
+                                + other.getProposalCode() + " vào ngày " + overlapDate + ".")
+                        .details(Map.of(
+                                "proposalId", other.getId(),
+                                "proposalCode", other.getProposalCode(),
+                                "overlapDate", overlapDate.toString(),
+                                "overlapStart", other.getSessionStartTime().toString(),
+                                "overlapEnd", other.getSessionEndTime().toString()
+                        ))
+                        .build());
+            }
+            if (proposal.getRoom() != null
+                    && other.getRoom() != null
+                    && proposal.getRoom().getId().equals(other.getRoom().getId())) {
+                conflicts.add(ConflictItemResponse.builder()
+                        .type(ConflictType.ROOM_SCHEDULE)
+                        .message("Phòng học đã được giữ trong đề xuất "
+                                + other.getProposalCode() + " vào ngày " + overlapDate + ".")
+                        .details(Map.of(
+                                "proposalId", other.getId(),
+                                "proposalCode", other.getProposalCode(),
+                                "overlapDate", overlapDate.toString(),
+                                "overlapStart", other.getSessionStartTime().toString(),
+                                "overlapEnd", other.getSessionEndTime().toString()
+                        ))
+                        .build());
+            }
+        }
+        return conflicts;
+    }
+
+    private boolean timeRangesOverlap(ClassroomProposal left, ClassroomProposal right) {
+        return left.getSessionStartTime().isBefore(right.getSessionEndTime())
+                && left.getSessionEndTime().isAfter(right.getSessionStartTime());
+    }
+
+    private LocalDate firstSharedSessionDate(ClassroomProposal left, ClassroomProposal right) {
+        Set<LocalDate> rightDates = Set.copyOf(sessionDates(right));
+        return sessionDates(left).stream()
+                .filter(rightDates::contains)
+                .findFirst()
+                .orElse(null);
     }
 
     private List<LocalDate> sessionDates(ClassroomProposal proposal) {
@@ -321,7 +453,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .defaultRoomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                 .offlineAddress(proposal.getOfflineAddress())
                 .locationNote(scheduleLabel(proposal))
-                .defaultLarkMeetingUrl(proposal.getVirtualMeetingUrl())
+                .defaultLarkMeetingUrl(null)
                 .studyMode(scheduleLabel(proposal))
                 .build();
     }

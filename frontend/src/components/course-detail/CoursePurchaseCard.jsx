@@ -23,7 +23,7 @@ const CoursePurchaseCard = ({ course, isAuthenticated, purchasing, onPurchase })
         </div>
         <div className="flex items-start justify-between gap-4">
           <span>Truy cập</span>
-          <strong className="text-right text-[#2b2828]">Ngày sau khi mua</strong>
+          <strong className="text-right text-[#2b2828]">Ngay sau khi mua</strong>
         </div>
         <div className="flex items-start justify-between gap-4">
           <span>Tài liệu</span>

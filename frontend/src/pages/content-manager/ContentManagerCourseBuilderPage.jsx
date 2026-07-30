@@ -913,7 +913,7 @@ export default function ContentManagerCourseBuilderPage() {
     if (!course?.id || !version) return;
 
     const confirmed = await confirmDialog(
-      'Sau khi xuất bản, mọi học viên sẽ nhận nội dung phiên bản này; các bài đã hoàn thành vẫn được giữ nguyên.',
+      'Xuất bản phiên bản này cho toàn bộ học viên? Nội dung mới được áp dụng ngay; tiến độ đã ghi nhận vẫn được giữ nguyên.',
       {
         title: `Xuất bản phiên bản v${version.versionNumber}`,
         confirmLabel: 'Xuất bản',

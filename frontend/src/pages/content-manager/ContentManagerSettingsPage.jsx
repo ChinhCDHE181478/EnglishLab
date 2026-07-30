@@ -26,7 +26,7 @@ export default function ContentManagerSettingsPage() {
   }, []);
 
   if (loading && !types.length) {
-    return <ContentManagerLoadingState message="Đang tải cài đặt Content Manager..." />;
+    return <ContentManagerLoadingState message="Đang tải cài đặt nội dung..." />;
   }
 
   return (
@@ -36,7 +36,7 @@ export default function ContentManagerSettingsPage() {
           <div>
             <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Cài đặt gói học</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#8b706e]">
-              Loại gói do hệ thống quản lý (seed/enum). Content Manager tạo và ghép sản phẩm thương mại tại trang Quản lý gói / Bundle.
+              Loại gói được cấu hình sẵn. Sản phẩm thương mại được tạo và liên kết tại trang Quản lý gói.
             </p>
           </div>
           <div className="flex gap-3">

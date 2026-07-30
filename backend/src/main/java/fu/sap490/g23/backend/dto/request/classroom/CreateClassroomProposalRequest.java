@@ -23,6 +23,7 @@ public class CreateClassroomProposalRequest {
     /** Trường tương thích dữ liệu cũ; đề xuất mở lớp không phụ thuộc danh sách học viên. */
     private List<Long> enrollmentRequestIds = List.of();
 
+    @NotNull(message = "Sức chứa không được để trống")
     @Min(value = 1, message = "Sức chứa phải lớn hơn 0")
     private Integer capacity;
 

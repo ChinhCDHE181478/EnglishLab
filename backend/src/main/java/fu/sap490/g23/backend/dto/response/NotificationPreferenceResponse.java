@@ -13,4 +13,6 @@ public class NotificationPreferenceResponse {
 
     private boolean emailEnabled;
     private boolean inAppEnabled;
+    private boolean classReminderEnabled;
+    private boolean studyAlertEnabled;
 }

@@ -1,5 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Menu, ShoppingCart, UserRound } from 'lucide-react';
+import {
+  Bell,
+  BookCheck,
+  BookOpenText,
+  CalendarDays,
+  ChevronDown,
+  ClipboardList,
+  CreditCard,
+  GraduationCap,
+  LifeBuoy,
+  Layers3,
+  LogOut,
+  Menu,
+  NotebookPen,
+  School,
+  ShoppingCart,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
@@ -9,8 +27,8 @@ import { commerceEventName, readCart } from '../../utils/commerceStore';
 
 const studentNavItems = [
   { label: 'Khóa học', to: '/courses' },
-  { label: 'IELTS', href: '/#courses' },
-  { label: 'TOEIC', href: '/#courses' },
+  { label: 'Lộ trình học', to: '/learning-paths' },
+  { label: 'Thi thử', to: '/mock-tests' },
   { label: 'Đăng ký học', to: '/opening-schedule' },
   { label: 'Về EnglishLab', href: '/#testimonials' },
 ];
@@ -25,9 +43,10 @@ const getNavItemsByRole = (user) => {
       { label: 'Giảng dạy', to: '/teacher' },
       { label: 'Lịch dạy', to: '/teacher/schedule' },
       { label: 'Theo dõi yêu cầu', to: '/teacher/requests' },
+      { label: 'Hồ sơ chuyên môn', to: '/teacher/professional-profile' },
     ];
   }
-  if (role === 'STAFF' || role === 'TRAINING_MANAGER') {
+  if (role === 'STAFF') {
     return [
       { label: 'Bảng điều khiển', to: '/staff' },
       { label: 'Lớp học', to: '/staff/classrooms' },
@@ -56,21 +75,22 @@ const getProfileItemsByRole = (user) => {
   if (!user) return [];
   const role = String(user.role || '').toUpperCase();
   // Staff roles already have primary navigation in the header; keep the avatar menu for account actions only.
-  if (['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
+  if (['TEACHER', 'STAFF', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
     return [];
   }
   // Student
   return [
-    { label: 'Khóa học của tôi', to: '/my-courses' },
-    { label: 'Yêu cầu đăng ký', to: '/my-enrollment-requests' },
-    { label: 'Luyện flashcard', to: '/flashcards/practice' },
-    { label: 'Lớp của tôi', to: '/my-classrooms' },
-    { label: 'Lịch học', to: '/my-schedule' },
-    { label: 'Luyện tập', to: '/my-practice' },
-    { label: 'Bài tập', to: '/my-homework' },
-    { label: 'Hồ sơ', to: '/profile' },
-    { label: 'Lịch sử giao dịch', to: '/transaction-history' },
-    { label: 'Trung tâm hỗ trợ', to: '/support' },
+    { label: 'Khóa học', to: '/my-courses', icon: GraduationCap, group: 'learning' },
+    { label: 'Lớp học', to: '/my-classrooms', icon: School, group: 'learning' },
+    { label: 'Đăng ký', to: '/my-enrollment-requests', icon: ClipboardList, group: 'learning' },
+    { label: 'Lịch học', to: '/my-schedule', icon: CalendarDays, group: 'learning' },
+    { label: 'Flashcard', to: '/flashcards/practice', icon: Layers3, group: 'learning' },
+    { label: 'Từ điển', to: '/dictionary', icon: BookOpenText, group: 'learning' },
+    { label: 'Luyện tập', to: '/my-practice', icon: NotebookPen, group: 'learning' },
+    { label: 'Bài tập', to: '/my-homework', icon: BookCheck, group: 'learning' },
+    { label: 'Hồ sơ', to: '/profile', icon: UserRound, group: 'account' },
+    { label: 'Giao dịch', to: '/transaction-history', icon: CreditCard, group: 'account' },
+    { label: 'Hỗ trợ', to: '/support', icon: LifeBuoy, group: 'account' },
   ];
 };
 
@@ -79,13 +99,12 @@ const getRoleLabel = (user) => {
   const role = String(user.role || '').toUpperCase();
   if (role === 'TEACHER') return 'Giáo viên';
   if (role === 'STAFF') return 'Nhân viên đào tạo';
-  if (role === 'TRAINING_MANAGER') return 'Quản lý đào tạo';
   if (role === 'MANAGER' || role === 'ADMIN') return 'Quản lý';
   if (role === 'CONTENT_MANAGER') return 'Quản lý nội dung';
   return user.targetExam || 'Học viên EnglishLab';
 };
 
-const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 const Header = () => {
   const location = useLocation();
@@ -94,6 +113,7 @@ const Header = () => {
   const { markAllNotificationsRead, unreadNotificationCount } = useLearnerExperience();
   const menuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(() => readCart().length);
   const [apiUnreadCount, setApiUnreadCount] = useState(0);
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
@@ -114,6 +134,7 @@ const Header = () => {
 
   useEffect(() => {
     setIsProfileMenuOpen(false);
+    setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -179,6 +200,8 @@ const Header = () => {
 
   const navItems = useMemo(() => getNavItemsByRole(user), [user]);
   const profileMenuItems = useMemo(() => getProfileItemsByRole(user), [user]);
+  const learningMenuItems = profileMenuItems.filter((item) => item.group === 'learning');
+  const accountMenuItems = profileMenuItems.filter((item) => item.group === 'account');
   const isStaff = user && hasAnyUserRole(user, STAFF_ROLES);
 
   return (
@@ -292,14 +315,60 @@ const Header = () => {
               </button>
 
               {isProfileMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-[70] w-[240px] overflow-hidden rounded-[28px] border border-[#dfbfbd]/70 bg-white shadow-[0_20px_45px_rgba(75,0,9,0.15)]">
+                <div className="absolute right-0 top-[calc(100%+12px)] z-[70] max-h-[calc(100dvh-104px)] w-[min(360px,calc(100vw-24px))] overflow-y-auto overscroll-contain rounded-[28px] border border-[#dfbfbd]/70 bg-white shadow-[0_20px_45px_rgba(75,0,9,0.15)]">
                   <div className="border-b border-[#f1e4e5] px-5 py-4">
                     <p className="truncate text-sm font-extrabold text-[#2b2828]">{user.fullName || user.email}</p>
                     <p className="mt-1 truncate text-xs font-semibold text-[#6a5553]">{getRoleLabel(user)}</p>
                   </div>
 
-                  <div className="p-2">
-                    {profileMenuItems.map((item) => (
+                  <div className="p-3">
+                    {learningMenuItems.length ? (
+                      <>
+                        <p className="px-2 pb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9b8582]">Học tập</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {learningMenuItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <Link
+                                key={item.to}
+                                className="flex min-w-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm font-bold text-[#2b2828] transition hover:bg-[#fff3f4] hover:text-[#730014]"
+                                to={item.to}
+                                reloadDocument={shouldReloadWhenLeavingWorkspace}
+                              >
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#fff1f3] text-[#8a0018]">
+                                  <Icon className="h-4 w-4" />
+                                </span>
+                                <span className="truncate">{item.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : null}
+
+                    {accountMenuItems.length ? (
+                      <div className="mt-3 border-t border-[#f1e4e5] pt-3">
+                        <p className="px-2 pb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9b8582]">Tài khoản</p>
+                        <div className="grid grid-cols-3 gap-1">
+                          {accountMenuItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <Link
+                                key={item.to}
+                                className="flex min-w-0 flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 text-center text-xs font-bold text-[#2b2828] transition hover:bg-[#fff3f4] hover:text-[#730014]"
+                                to={item.to}
+                                reloadDocument={shouldReloadWhenLeavingWorkspace}
+                              >
+                                <Icon className="h-4 w-4" />
+                                <span className="truncate">{item.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!learningMenuItems.length && !accountMenuItems.length ? profileMenuItems.map((item) => (
                       <Link
                         key={item.to}
                         className="flex w-full items-center rounded-2xl px-4 py-3 text-sm font-bold text-[#2b2828] transition hover:bg-[#fff3f4] hover:text-[#730014]"
@@ -308,9 +377,9 @@ const Header = () => {
                       >
                         {item.label}
                       </Link>
-                    ))}
+                    )) : null}
                     <button
-                      className="flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm font-bold text-[#2b2828] transition hover:bg-[#fff3f4] hover:text-[#730014]"
+                      className="mt-2 flex w-full items-center justify-center gap-2 border-t border-[#f1e4e5] px-4 pt-3 text-sm font-bold text-[#6a5553] transition hover:text-[#730014]"
                       onClick={handleLogout}
                       type="button"
                     >
@@ -332,15 +401,53 @@ const Header = () => {
               to="/register"
               reloadDocument={shouldReloadWhenLeavingWorkspace}
             >
-              Đăng ký tư vấn
+              Tạo tài khoản
             </Link>
           </div>
         )}
 
-        <button className="ml-3 inline-flex text-[#1a1c1c] xl:hidden" type="button" aria-label="Mở menu">
-          <Menu size={30} />
+        <button
+          aria-expanded={isMobileMenuOpen}
+          aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+          className="ml-3 inline-flex text-[#1a1c1c] xl:hidden"
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          type="button"
+        >
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={30} />}
         </button>
       </div>
+      {isMobileMenuOpen ? (
+        <nav className="border-t border-[#dfbfbd]/30 bg-white px-5 py-4 xl:hidden" aria-label="Điều hướng trên thiết bị di động">
+          <div className="mx-auto grid max-w-[1280px] gap-1 sm:grid-cols-2">
+            {navItems.map((item) => (
+              item.to ? (
+                <Link
+                  className="rounded-xl px-4 py-3 text-sm font-extrabold text-[#584140] hover:bg-[#fff3f4] hover:text-[#730014]"
+                  key={item.label}
+                  reloadDocument={shouldReloadWhenLeavingWorkspace}
+                  to={item.to}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a className="rounded-xl px-4 py-3 text-sm font-extrabold text-[#584140] hover:bg-[#fff3f4] hover:text-[#730014]" href={item.href} key={item.label}>
+                  {item.label}
+                </a>
+              )
+            ))}
+            {!user ? (
+              <>
+                <Link className="rounded-xl px-4 py-3 text-sm font-extrabold text-[#730014] hover:bg-[#fff3f4]" to="/login">
+                  Đăng nhập
+                </Link>
+                <Link className="rounded-xl bg-[#8a0018] px-4 py-3 text-center text-sm font-extrabold text-white hover:bg-[#650012]" to="/register">
+                  Tạo tài khoản
+                </Link>
+              </>
+            ) : null}
+          </div>
+        </nav>
+      ) : null}
     </header>
   );
 };

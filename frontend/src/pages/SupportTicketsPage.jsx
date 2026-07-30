@@ -40,7 +40,7 @@ export default function SupportTicketsPage() {
       setSelectedId(nextId && items.some((item) => item.id === nextId) ? nextId : null);
       if (!nextId || !items.some((item) => item.id === nextId)) setDetail(null);
     } catch (err) {
-      setError(supportApiError(err, 'Không tải được danh sách ticket.'));
+      setError(supportApiError(err, 'Không tải được danh sách yêu cầu hỗ trợ.'));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function SupportTicketsPage() {
     try {
       setDetail(await supportApi.getMyTicket(ticketId));
     } catch (err) {
-      setError(supportApiError(err, 'Không tải được chi tiết ticket.'));
+      setError(supportApiError(err, 'Không tải được chi tiết yêu cầu.'));
     } finally {
       setDetailLoading(false);
     }
@@ -77,12 +77,12 @@ export default function SupportTicketsPage() {
       const created = await supportApi.createTicket(form);
       setForm(emptyForm);
       setShowForm(false);
-      setSuccess(`Đã tạo ticket #${created.id}. Bạn có thể theo dõi trạng thái trong danh sách bên dưới.`);
+      setSuccess(`Đã gửi yêu cầu #${created.id}.`);
       await loadTickets(created.id);
       setSelectedId(created.id);
       setDetail(created);
     } catch (err) {
-      setError(supportApiError(err, 'Không thể tạo ticket.'));
+      setError(supportApiError(err, 'Không thể gửi yêu cầu hỗ trợ.'));
     } finally {
       setWorking(false);
     }
@@ -98,9 +98,9 @@ export default function SupportTicketsPage() {
       setComment('');
       setDetail(updated);
       await loadTickets(updated.id);
-      setSuccess('Đã thêm comment vào ticket.');
+      setSuccess('Đã gửi phản hồi.');
     } catch (err) {
-      setError(supportApiError(err, 'Không thể thêm comment.'));
+      setError(supportApiError(err, 'Không thể gửi phản hồi.'));
     } finally {
       setWorking(false);
     }
@@ -113,10 +113,10 @@ export default function SupportTicketsPage() {
     try {
       const updated = await supportApi.updateMyTicketStatus(detail.id, status);
       setDetail(updated);
-      setSuccess('Đã đóng ticket.');
+      setSuccess('Đã đóng yêu cầu.');
       await loadTickets(updated.id);
     } catch (err) {
-      setError(supportApiError(err, 'Không thể cập nhật trạng thái ticket.'));
+      setError(supportApiError(err, 'Không thể cập nhật trạng thái yêu cầu.'));
     } finally {
       setWorking(false);
     }
@@ -128,8 +128,8 @@ export default function SupportTicketsPage() {
 
   return (
     <LearnerPageShell
-      title="Support Ticket"
-      description="Tạo ticket bằng form, theo dõi trạng thái và trao đổi qua comment (không chat realtime)."
+      title="Trung tâm hỗ trợ"
+      description="Gửi yêu cầu, theo dõi trạng thái và trao đổi với bộ phận hỗ trợ."
       actions={(
         <button
           className="inline-flex items-center gap-2 rounded-2xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white"
@@ -140,7 +140,7 @@ export default function SupportTicketsPage() {
           type="button"
         >
           {showForm ? <XCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {showForm ? 'Ẩn form tạo' : 'Tạo ticket mới'}
+          {showForm ? 'Đóng biểu mẫu' : 'Gửi yêu cầu mới'}
         </button>
       )}
     >
@@ -153,14 +153,14 @@ export default function SupportTicketsPage() {
           <form className="rounded-[28px] border border-[#dfbfbd]/50 bg-white p-5 shadow-sm md:p-7" onSubmit={createTicket}>
             <div className="flex items-center gap-2">
               <LifeBuoy className="h-5 w-5 text-[#730014]" />
-              <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Tạo Support Ticket</h2>
+              <h2 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Gửi yêu cầu hỗ trợ</h2>
             </div>
             <p className="mt-2 text-sm text-[#8b706e]">
-              Điền form bên dưới. Sau khi gửi, ticket sẽ xuất hiện trong danh sách để bạn theo dõi trạng thái.
+              Mô tả vấn đề và cung cấp thông tin cần thiết để được hỗ trợ.
             </p>
             <div className="mt-5 grid gap-4 md:grid-cols-[1fr_240px]">
               <label className="space-y-2 text-sm font-bold text-[#584140]">
-                Tiêu đề ticket
+                Tiêu đề
                 <input
                   className="w-full rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 font-medium outline-none focus:border-[#730014]"
                   maxLength={160}
@@ -196,7 +196,7 @@ export default function SupportTicketsPage() {
                 type="submit"
               >
                 <Send className="h-4 w-4" />
-                {working ? 'Đang tạo...' : 'Gửi ticket'}
+                {working ? 'Đang gửi...' : 'Gửi yêu cầu'}
               </button>
             </div>
           </form>
@@ -207,9 +207,9 @@ export default function SupportTicketsPage() {
           <div className="flex items-center justify-between border-b border-[#f0e4e2] px-5 py-4">
             <div className="flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-[#730014]" />
-              <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Ticket của tôi</h2>
+              <h2 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Yêu cầu của tôi</h2>
             </div>
-            <span className="text-xs font-bold text-[#8b706e]">{tickets.length} ticket</span>
+            <span className="text-xs font-bold text-[#8b706e]">{tickets.length} yêu cầu</span>
           </div>
 
           {loading ? (
@@ -217,7 +217,7 @@ export default function SupportTicketsPage() {
           ) : tickets.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-[#8b706e]">
               <LifeBuoy className="mx-auto mb-3 h-8 w-8 opacity-60" />
-              Chưa có ticket. Hãy tạo ticket bằng form phía trên.
+              Bạn chưa gửi yêu cầu hỗ trợ nào.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -261,13 +261,13 @@ export default function SupportTicketsPage() {
         {/* 3. Chi tiết + theo dõi trạng thái + comment */}
         {selectedId ? (
           <section className="rounded-[28px] border border-[#dfbfbd]/40 bg-white p-5 shadow-sm md:p-7">
-            {detailLoading ? <p className="text-sm text-[#8b706e]">Đang tải chi tiết ticket...</p> : null}
+            {detailLoading ? <p className="text-sm text-[#8b706e]">Đang tải chi tiết yêu cầu...</p> : null}
             {!detailLoading && detail ? (
               <div className="space-y-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#f0e4e2] pb-5">
                   <div>
                     <p className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
-                      Ticket #{detail.id} · {supportCategoryLabels[detail.category]}
+                      Yêu cầu #{detail.id} · {supportCategoryLabels[detail.category]}
                     </p>
                     <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{detail.subject}</h2>
                     <p className="mt-2 text-xs text-[#8b706e]">
@@ -286,7 +286,7 @@ export default function SupportTicketsPage() {
                         onClick={() => changeStatus('CLOSED')}
                         type="button"
                       >
-                        Đóng ticket
+                        Đóng yêu cầu
                       </button>
                     ) : null}
                   </div>
@@ -294,7 +294,7 @@ export default function SupportTicketsPage() {
 
                 {/* Mô tả ban đầu từ form */}
                 <div className="rounded-2xl border border-[#f0e4e2] bg-[#fffafa] p-4">
-                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">Nội dung ticket</p>
+                  <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">Nội dung yêu cầu</p>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#2b2828]">
                     {opening?.body || 'Không có mô tả.'}
                   </p>
@@ -331,13 +331,13 @@ export default function SupportTicketsPage() {
                 <div>
                   <div className="mb-3 flex items-center gap-2">
                     <MessageSquarePlus className="h-4 w-4 text-[#730014]" />
-                    <h3 className="text-sm font-extrabold text-[#2b2828]">Comment trên ticket</h3>
+                    <h3 className="text-sm font-extrabold text-[#2b2828]">Trao đổi</h3>
                     <span className="text-xs text-[#8b706e]">({comments.length})</span>
                   </div>
 
                   {comments.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-[#dfbfbd] px-4 py-6 text-center text-sm text-[#8b706e]">
-                      Chưa có comment. Support sẽ phản hồi tại đây; bạn cũng có thể bổ sung thông tin.
+                      Chưa có phản hồi. Bạn có thể bổ sung thông tin tại đây.
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -345,7 +345,7 @@ export default function SupportTicketsPage() {
                         <article key={item.id} className="rounded-2xl border border-[#f0e4e2] bg-white p-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-xs font-extrabold text-[#2b2828]">
-                              {item.staffMessage ? `Support · ${item.authorName}` : 'Bạn'}
+                              {item.staffMessage ? `Bộ phận hỗ trợ · ${item.authorName}` : 'Bạn'}
                               {item.staffMessage ? (
                                 <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
                                   Đội hỗ trợ
@@ -367,12 +367,12 @@ export default function SupportTicketsPage() {
                   {!isSupportTicketTerminal(detail.status) ? (
                     <form className="mt-4 space-y-3" onSubmit={addComment}>
                       <label className="block space-y-2 text-sm font-bold text-[#584140]">
-                        Thêm comment
+                        Phản hồi
                         <textarea
                           className="min-h-24 w-full resize-y rounded-2xl border border-[#dfbfbd] bg-[#fffafa] px-4 py-3 text-sm leading-6 outline-none focus:border-[#730014]"
                           maxLength={5000}
                           onChange={(event) => setComment(event.target.value)}
-                          placeholder="Bổ sung thông tin hoặc phản hồi cho Support..."
+                          placeholder="Bổ sung thông tin hoặc gửi phản hồi..."
                           value={comment}
                         />
                       </label>
@@ -383,13 +383,13 @@ export default function SupportTicketsPage() {
                           type="submit"
                         >
                           <Send className="h-4 w-4" />
-                          {working ? 'Đang gửi...' : 'Gửi comment'}
+                          {working ? 'Đang gửi...' : 'Gửi phản hồi'}
                         </button>
                       </div>
                     </form>
                   ) : (
                     <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-                      Ticket đã đóng/giải quyết. Bạn không thể mở lại — vui lòng tạo ticket mới nếu cần hỗ trợ thêm.
+                      Yêu cầu đã được đóng. Hãy gửi yêu cầu mới nếu bạn cần hỗ trợ thêm.
                     </p>
                   )}
                 </div>

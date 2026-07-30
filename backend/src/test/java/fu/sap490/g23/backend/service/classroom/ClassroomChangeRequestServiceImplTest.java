@@ -64,7 +64,7 @@ class ClassroomChangeRequestServiceImplTest {
     private ClassroomOffering offering;
     private ClassroomSession sourceSession;
     private User teacher;
-    private User trainingManager;
+    private User staff;
 
     @BeforeEach
     void setUp() {
@@ -98,10 +98,10 @@ class ClassroomChangeRequestServiceImplTest {
                 .fullName("Teacher Test")
                 .role(RoleEnum.TEACHER)
                 .build();
-        trainingManager = User.builder()
+        staff = User.builder()
                 .id(99L)
-                .fullName("Training Manager")
-                .role(RoleEnum.TRAINING_MANAGER)
+                .fullName("Nhân viên đào tạo")
+                .role(RoleEnum.STAFF)
                 .build();
     }
 
@@ -176,7 +176,7 @@ class ClassroomChangeRequestServiceImplTest {
     @Test
     void approveMakeupRequest_CreatesMakeupSessionWithoutSessionLockedGate() {
         ClassroomChangeRequest pending = pendingMakeupRequest();
-        when(accessHelper.requireUser("tm@example.com")).thenReturn(trainingManager);
+        when(accessHelper.requireUser("tm@example.com")).thenReturn(staff);
         when(changeRequestRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(pending));
         when(changeRequestRepository.save(any(ClassroomChangeRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(mapper.changeRequestTypeLabel(ClassroomChangeRequestType.CREATE_MAKEUP_SESSION))
@@ -206,7 +206,7 @@ class ClassroomChangeRequestServiceImplTest {
     void approveRequest_RejectsRequestThatWasAlreadyReviewedUnderRowLock() {
         ClassroomChangeRequest reviewed = pendingMakeupRequest();
         reviewed.setStatus(ClassroomChangeRequestStatus.APPLIED);
-        when(accessHelper.requireUser("tm@example.com")).thenReturn(trainingManager);
+        when(accessHelper.requireUser("tm@example.com")).thenReturn(staff);
         when(changeRequestRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(reviewed));
 
         assertThatThrownBy(() -> service.approve(1L, new ReviewChangeRequestRequest(), "tm@example.com"))

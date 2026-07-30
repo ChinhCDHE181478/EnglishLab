@@ -12,6 +12,7 @@ public class AppNotificationResponse {
     private String type;
     private String title;
     private String body;
+    private String actionPath;
     private boolean read;
     private LocalDateTime createdAt;
 }

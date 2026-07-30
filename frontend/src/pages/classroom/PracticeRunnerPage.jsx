@@ -162,7 +162,7 @@ export default function PracticeRunnerPage() {
           ) : (
             <section className="rounded-[28px] border border-amber-200 bg-amber-50 p-7">
               <h2 className="text-lg font-black text-amber-900">Bài luyện tập chưa được biên soạn theo định dạng hệ thống</h2>
-              <p className="mt-3 text-sm leading-7 text-amber-800">Bài này đang chứa đề bài dạng văn bản cũ nên hệ thống không cho nộp bằng textarea. Content Manager cần biên soạn câu hỏi và đáp án theo cấu trúc đề thi trước khi học viên làm bài.</p>
+              <p className="mt-3 text-sm leading-7 text-amber-800">Bài luyện tập này chưa có cấu trúc câu hỏi và đáp án hợp lệ. Vui lòng quay lại sau khi nội dung được cập nhật.</p>
             </section>
           )}
 

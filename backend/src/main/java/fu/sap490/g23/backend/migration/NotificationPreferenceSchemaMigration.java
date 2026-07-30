@@ -27,6 +27,19 @@ public class NotificationPreferenceSchemaMigration {
 
                 CREATE UNIQUE INDEX IF NOT EXISTS uk_notification_preferences_user
                     ON notification_preferences (user_id);
+
+                ALTER TABLE notification_preferences
+                    ADD COLUMN IF NOT EXISTS class_reminder_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+                ALTER TABLE notification_preferences
+                    ADD COLUMN IF NOT EXISTS study_alert_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+
+                ALTER TABLE app_notifications
+                    ADD COLUMN IF NOT EXISTS action_path VARCHAR(500);
+                ALTER TABLE app_notifications
+                    ADD COLUMN IF NOT EXISTS deduplication_key VARCHAR(220);
+                CREATE UNIQUE INDEX IF NOT EXISTS uk_app_notification_user_deduplication
+                    ON app_notifications(user_id, deduplication_key)
+                    WHERE deduplication_key IS NOT NULL;
                 """);
     }
 }

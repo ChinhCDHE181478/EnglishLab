@@ -44,6 +44,12 @@ public class CurriculumProgram {
     @Builder.Default
     private String examCategory = "IELTS";
 
+    @Column(name = "program_track", length = 60)
+    private String programTrack;
+
+    @Column(name = "focus_skills", length = 240)
+    private String focusSkills;
+
     @Column(precision = 3, scale = 1)
     private BigDecimal targetBand;
 

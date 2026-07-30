@@ -93,6 +93,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private static final Pattern VOCABULARY_HEADING = Pattern.compile("(?m)^###\\s+\\d+\\.\\s+(.+)$");
     private static final Pattern CERTIFICATE_CODE_PATTERN = Pattern.compile("^ELC-(\\d+)-(\\d+)-([A-F0-9]+)$");
     private static final Pattern BAND_NUMBER_PATTERN = Pattern.compile("(\\d+(?:\\.\\d+)?)");
+    private static final Set<String> ENGLISH_COURSE_CATEGORIES = Set.of(
+            "IELTS",
+            "TOEIC",
+            "COMMUNICATION",
+            "FOUNDATION"
+    );
 
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
@@ -1989,11 +1995,24 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void validateCourseRequest(OnlineCourseRequest request) {
+        String category = normalizeCategoryCode(request.getCategory());
+        if (!ENGLISH_COURSE_CATEGORIES.contains(category)) {
+            throw new IllegalArgumentException(
+                    "EnglishLab chỉ cho phép khóa IELTS, TOEIC, tiếng Anh giao tiếp hoặc tiếng Anh nền tảng."
+            );
+        }
         Double minBand = request.getRecommendedCurrentBandMin();
         Double maxBand = request.getRecommendedCurrentBandMax();
         if (minBand != null && maxBand != null && minBand > maxBand) {
             throw new IllegalArgumentException("Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.");
         }
+        validateCourseScoreProfile(
+                category,
+                request.getTargetScore(),
+                minBand,
+                maxBand,
+                request.getTargetBand()
+        );
 
         boolean hasPathCode = request.getLearningPathCode() != null && !request.getLearningPathCode().isBlank();
         boolean hasPathName = request.getLearningPathName() != null && !request.getLearningPathName().isBlank();
@@ -2009,6 +2028,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 || request.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty()))) {
             throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
         }
+        if (request.getStatus() == PackageStatus.PUBLISHED
+                && (request.getTargetOutcome() == null || request.getTargetOutcome().isBlank())) {
+            throw new IllegalArgumentException("Khóa học phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
+        }
     }
 
     private void validatePublishableCourse(OnlineCourse course) {
@@ -2016,6 +2039,55 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 || course.getModules().isEmpty()
                 || course.getModules().stream().allMatch(module -> module.getLessons() == null || module.getLessons().isEmpty())) {
             throw new IllegalArgumentException("Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.");
+        }
+        String category = course.getCategory() == null ? "" : normalizeCategoryCode(course.getCategory().getCode());
+        validateCourseScoreProfile(
+                category,
+                course.getLearningPackage().getTargetScore(),
+                course.getRecommendedCurrentBandMin(),
+                course.getRecommendedCurrentBandMax(),
+                course.getTargetBand()
+        );
+        if (course.getTargetOutcome() == null || course.getTargetOutcome().isBlank()) {
+            throw new IllegalArgumentException("Khóa học phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
+        }
+        if (courseAssessmentRepository
+                .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                .isEmpty()) {
+            throw new IllegalArgumentException("Khóa học tiếng Anh phải có ít nhất một bài đánh giá kỹ năng trước khi xuất bản.");
+        }
+    }
+
+    private void validateCourseScoreProfile(
+            String category,
+            String targetScoreLabel,
+            Double minBand,
+            Double maxBand,
+            Double targetBand
+    ) {
+        if ("IELTS".equals(category)) {
+            if (targetBand == null || targetBand < 0 || targetBand > 9 || Math.rint(targetBand * 2) != targetBand * 2) {
+                throw new IllegalArgumentException("Khóa IELTS phải có band mục tiêu từ 0 đến 9, tăng theo bước 0.5.");
+            }
+            return;
+        }
+        if ("TOEIC".equals(category)) {
+            if (minBand != null || maxBand != null || targetBand != null) {
+                throw new IllegalArgumentException("Khóa TOEIC không sử dụng thang band IELTS.");
+            }
+            int score;
+            try {
+                score = Integer.parseInt(targetScoreLabel == null ? "" : targetScoreLabel.trim());
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("Khóa TOEIC phải có điểm mục tiêu dạng số.");
+            }
+            if (score < 10 || score > 990 || score % 5 != 0) {
+                throw new IllegalArgumentException("Điểm mục tiêu TOEIC phải từ 10 đến 990 và tăng theo bước 5.");
+            }
+            return;
+        }
+        if (minBand != null || maxBand != null || targetBand != null) {
+            throw new IllegalArgumentException("Khóa tiếng Anh giao tiếp/nền tảng không sử dụng band IELTS.");
         }
     }
 

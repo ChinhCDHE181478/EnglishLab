@@ -21,6 +21,10 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     long countByClassroomOfferingId(Long classroomOfferingId);
 
+    long countByTeacherId(Long teacherId);
+
+    long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);
+
     List<ClassroomSession> findByDeliveryModeAndStatusIn(
             ClassroomDeliveryMode deliveryMode,
             Collection<ClassroomSessionStatus> statuses
@@ -28,6 +32,12 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     List<ClassroomSession> findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
             ClassroomDeliveryMode deliveryMode,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
+    List<ClassroomSession> findByStatusInAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
+            Collection<ClassroomSessionStatus> statuses,
             LocalDate fromDate,
             LocalDate toDate
     );

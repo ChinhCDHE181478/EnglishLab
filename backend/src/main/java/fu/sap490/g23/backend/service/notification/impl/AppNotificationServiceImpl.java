@@ -80,8 +80,25 @@ public class AppNotificationServiceImpl implements AppNotificationService {
             String body,
             Map<String, Object> metadata
     ) {
+        createForUserOnce(user, type, title, body, null, null, metadata);
+    }
+
+    @Override
+    public boolean createForUserOnce(
+            User user,
+            String type,
+            String title,
+            String body,
+            String actionPath,
+            String deduplicationKey,
+            Map<String, Object> metadata
+    ) {
         if (user == null || !preferenceService.isInAppEnabled(user)) {
-            return;
+            return false;
+        }
+        if (deduplicationKey != null
+                && notificationRepository.existsByUserIdAndDeduplicationKey(user.getId(), deduplicationKey)) {
+            return false;
         }
         try {
             String metadataJson = metadata == null ? null : objectMapper.writeValueAsString(metadata);
@@ -91,9 +108,13 @@ public class AppNotificationServiceImpl implements AppNotificationService {
                     .title(title)
                     .body(body)
                     .metadataJson(metadataJson)
+                    .actionPath(actionPath)
+                    .deduplicationKey(deduplicationKey)
                     .build());
+            return true;
         } catch (JsonProcessingException exception) {
             log.warn("Không thể tạo thông báo cho user {}: {}", user.getId(), exception.getMessage());
+            return false;
         }
     }
 }

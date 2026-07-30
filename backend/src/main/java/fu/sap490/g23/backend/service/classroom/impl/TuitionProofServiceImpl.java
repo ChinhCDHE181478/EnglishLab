@@ -83,7 +83,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
                 .build());
 
         String classTitle = enrollment.getClassroomOffering().getLearningPackage().getTitle();
-        notificationService.notifyTrainingManagers(
+        notificationService.notifyTrainingStaff(
                 "CLASSROOM_TUITION_PROOF_SUBMITTED",
                 "Minh chứng thanh toán mới",
                 learner.getFullName() + " vừa nộp minh chứng chuyển khoản " + amount.toPlainString()
@@ -165,7 +165,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     @Override
     public TuitionProofResponse confirmProof(Long proofId, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         ClassroomTuitionPaymentProof proof = findPendingProof(proofId);
         ClassroomEnrollment enrollment = proof.getEnrollment();
 
@@ -196,7 +196,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
     @Override
     public TuitionProofResponse rejectProof(Long proofId, String reason, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
-        accessHelper.assertTrainingManager(actor);
+        accessHelper.assertStaffOperator(actor);
         if (!StringUtils.hasText(reason)) {
             throw new RuntimeException("Vui lòng nhập lý do từ chối minh chứng.");
         }

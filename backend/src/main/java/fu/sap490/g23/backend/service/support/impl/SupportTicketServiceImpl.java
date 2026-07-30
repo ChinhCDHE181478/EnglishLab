@@ -31,10 +31,8 @@ import java.util.Set;
 @Transactional
 public class SupportTicketServiceImpl implements SupportTicketService {
 
-    /** Support queue is handled by Staff; TRAINING_MANAGER remains a temporary compatibility role. */
     private static final Set<RoleEnum> SUPPORT_STAFF_ROLES = Set.of(
             RoleEnum.STAFF,
-            RoleEnum.TRAINING_MANAGER,
             RoleEnum.MANAGER,
             RoleEnum.ADMIN
     );
@@ -94,7 +92,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
                     "SUPPORT_TICKET_REPLY",
                     "Học viên đã phản hồi ticket #" + ticket.getId(),
                     ticket.getSubject(),
-                    Map.of("ticketId", ticket.getId(), "path", "/training-manager/support-tickets")
+                    Map.of("ticketId", ticket.getId(), "path", "/staff/support-tickets")
             );
         }
         return toResponse(ticket, true);

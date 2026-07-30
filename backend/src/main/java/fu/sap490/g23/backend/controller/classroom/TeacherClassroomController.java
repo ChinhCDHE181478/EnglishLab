@@ -35,6 +35,7 @@ public class TeacherClassroomController {
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
+    private final TeacherClassroomAuthorizationService authorizationService;
 
     @GetMapping("/assigned")
     public ResponseEntity<List<ClassroomOfferingResponse>> getAssignedClasses(Authentication authentication) {
@@ -42,33 +43,49 @@ public class TeacherClassroomController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ClassroomOfferingResponse> getClassroom(@PathVariable Long id) {
+    public ResponseEntity<ClassroomOfferingResponse> getClassroom(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.getOffering(id, true));
     }
 
     @GetMapping("/{id}/sessions")
-    public ResponseEntity<List<ClassroomSessionResponse>> getSessions(@PathVariable Long id) {
+    public ResponseEntity<List<ClassroomSessionResponse>> getSessions(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.getSessions(id));
     }
 
     @PostMapping("/{id}/sessions")
     public ResponseEntity<ClassroomSessionResponse> createSession(
             @PathVariable Long id,
-            @Valid @RequestBody CreateClassroomSessionRequest request
+            @Valid @RequestBody CreateClassroomSessionRequest request,
+            Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.createSession(id, request));
     }
 
     @PutMapping("/sessions/{sessionId}")
     public ResponseEntity<ClassroomSessionResponse> updateSession(
             @PathVariable Long sessionId,
-            @Valid @RequestBody CreateClassroomSessionRequest request
+            @Valid @RequestBody CreateClassroomSessionRequest request,
+            Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.updateSession(sessionId, request));
     }
 
     @DeleteMapping("/sessions/{sessionId}")
-    public ResponseEntity<Void> deleteSession(@PathVariable Long sessionId) {
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         classroomOfferingService.deleteSession(sessionId);
         return ResponseEntity.noContent().build();
     }
@@ -78,6 +95,7 @@ public class TeacherClassroomController {
             @PathVariable Long sessionId,
             Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.openVirtualSession(sessionId, authentication.getName()));
     }
 
@@ -86,19 +104,26 @@ public class TeacherClassroomController {
             @PathVariable Long sessionId,
             Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.closeVirtualSession(sessionId, authentication.getName()));
     }
 
     @PatchMapping("/sessions/{sessionId}/lark-link")
     public ResponseEntity<ClassroomSessionResponse> updateLarkLink(
             @PathVariable Long sessionId,
-            @Valid @RequestBody UpdateLarkLinkRequest request
+            @Valid @RequestBody UpdateLarkLinkRequest request,
+            Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.updateSessionLarkLink(sessionId, request));
     }
 
     @GetMapping("/sessions/{sessionId}/attendance")
-    public ResponseEntity<List<ClassroomAttendanceResponse>> getSessionAttendance(@PathVariable Long sessionId) {
+    public ResponseEntity<List<ClassroomAttendanceResponse>> getSessionAttendance(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         return ResponseEntity.ok(attendanceService.getBySession(sessionId));
     }
 
@@ -107,6 +132,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody SaveAttendanceRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(request.getSessionId(), authentication.getName());
         return ResponseEntity.ok(attendanceService.saveBulk(request, authentication.getName()));
     }
 
@@ -115,6 +141,7 @@ public class TeacherClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(homeworkService.listForClass(id, authentication.getName()));
     }
 
@@ -124,6 +151,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody CreateHomeworkRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(homeworkService.create(id, request, authentication.getName()));
     }
 
@@ -158,13 +186,19 @@ public class TeacherClassroomController {
     @PutMapping("/homework/{homeworkId}")
     public ResponseEntity<ClassroomHomeworkResponse> updateHomework(
             @PathVariable Long homeworkId,
-            @Valid @RequestBody CreateHomeworkRequest request
+            @Valid @RequestBody CreateHomeworkRequest request,
+            Authentication authentication
     ) {
+        authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
         return ResponseEntity.ok(homeworkService.update(homeworkId, request));
     }
 
     @DeleteMapping("/homework/{homeworkId}")
-    public ResponseEntity<Void> deleteHomework(@PathVariable Long homeworkId) {
+    public ResponseEntity<Void> deleteHomework(
+            @PathVariable Long homeworkId,
+            Authentication authentication
+    ) {
+        authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
         homeworkService.delete(homeworkId);
         return ResponseEntity.noContent().build();
     }
@@ -173,9 +207,10 @@ public class TeacherClassroomController {
     public ResponseEntity<ClassroomHomeworkSubmissionResponse> gradeHomework(
             @PathVariable Long homeworkId,
             @PathVariable Long studentId,
-            @RequestBody GradeHomeworkRequest request,
+            @Valid @RequestBody GradeHomeworkRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
         return ResponseEntity.ok(homeworkService.grade(homeworkId, studentId, request, authentication.getName()));
     }
 
@@ -184,11 +219,16 @@ public class TeacherClassroomController {
             @PathVariable Long homeworkId,
             Authentication authentication
     ) {
+        authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
         return ResponseEntity.ok(homeworkService.listSubmissions(homeworkId, authentication.getName()));
     }
 
     @GetMapping("/{id}/gradebook")
-    public ResponseEntity<List<ClassroomGradebookResponse>> getGradebook(@PathVariable Long id) {
+    public ResponseEntity<List<ClassroomGradebookResponse>> getGradebook(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(gradebookService.getClassGradebook(id));
     }
 
@@ -198,6 +238,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody UpdateGradebookRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(gradebookService.updateEntry(id, request, authentication.getName()));
     }
 
@@ -206,6 +247,7 @@ public class TeacherClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(gradebookService.publishGradebook(id, authentication.getName()));
     }
 
@@ -214,6 +256,7 @@ public class TeacherClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(gradebookService.unpublishGradebook(id, authentication.getName()));
     }
 
@@ -222,6 +265,7 @@ public class TeacherClassroomController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(contentService.getTeacherMaterials(id, authentication.getName()));
     }
 
@@ -231,6 +275,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody CreateMaterialRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(contentService.createMaterial(id, request, authentication.getName()));
     }
 
@@ -239,20 +284,26 @@ public class TeacherClassroomController {
             @PathVariable Long materialId,
             Authentication authentication
     ) {
+        authorizationService.assertMaterialAccess(materialId, authentication.getName());
         contentService.deleteMaterial(materialId, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/announcements")
-    public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(@PathVariable Long id) {
+    public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(contentService.getAnnouncements(id));
     }
 
     @PostMapping("/requests/check-conflict")
     public ResponseEntity<ConflictCheckResultResponse> checkChangeConflict(
-            @RequestBody CreateChangeRequestRequest request,
+            @Valid @RequestBody CreateChangeRequestRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(request.getClassroomOfferingId(), authentication.getName());
         return ResponseEntity.ok(changeRequestService.checkConflict(request, authentication.getName()));
     }
 
@@ -261,8 +312,10 @@ public class TeacherClassroomController {
             @PathVariable Long sessionId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime,
+            Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         var session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         LocalDate resolvedDate = sessionDate != null ? sessionDate : session.getSessionDate();
@@ -278,8 +331,10 @@ public class TeacherClassroomController {
             @PathVariable Long sessionId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime,
+            Authentication authentication
     ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
         var session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         LocalDate resolvedDate = sessionDate != null ? sessionDate : session.getSessionDate();
@@ -295,6 +350,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody CreateChangeRequestRequest request,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(request.getClassroomOfferingId(), authentication.getName());
         return ResponseEntity.ok(changeRequestService.create(request, authentication.getName()));
     }
 

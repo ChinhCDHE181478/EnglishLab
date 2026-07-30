@@ -101,7 +101,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
         User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", RoleEnum.LEARNER);
         User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
-        User trainingManager = ensureUser("training.manager@englishlab.vn", "Quản Lý Đào Tạo", RoleEnum.TRAINING_MANAGER);
+        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleEnum.STAFF);
         User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
         User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
 

@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  UserPlus,
   UserRoundCheck,
   X,
   XCircle,
@@ -75,6 +76,7 @@ export default function StaffEnrollmentRequestsPage() {
   const [classroomLoadError, setClassroomLoadError] = useState('');
   const [success, setSuccess] = useState('');
   const [action, setAction] = useState(initialAction);
+  const [centerEnrollmentOpen, setCenterEnrollmentOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -82,7 +84,7 @@ export default function StaffEnrollmentRequestsPage() {
     setClassroomLoadError('');
     const result = await loadStaffEnrollmentData(
       () => enrollmentRequestApi.listForStaff(view),
-      () => classroomApi.getManagerClassrooms(),
+      () => classroomApi.getStaffClassrooms(),
     );
     if (result.requestError) {
       setRequests([]);
@@ -151,6 +153,15 @@ export default function StaffEnrollmentRequestsPage() {
     }
   };
 
+  const openAction = (type, item) => {
+    setAction({
+      ...initialAction,
+      type,
+      item,
+      note: item.staffNote || '',
+    });
+  };
+
   const scheduleTest = () => {
     const appointmentAt = combineLocalDateTime(action.appointmentDate, action.appointmentTime);
     if (!appointmentAt || !action.location.trim()) {
@@ -184,7 +195,7 @@ export default function StaffEnrollmentRequestsPage() {
         note: action.note.trim() || null,
       }),
       (updated) => updated.status === 'WAITING_FOR_CLASS'
-        ? `Đã xác nhận ${updated.contactName || updated.learnerName} đủ điều kiện và chuyển sang chờ xếp lớp.`
+        ? `Đã xác nhận ${updated.contactName || updated.learnerName} đủ điều kiện học.`
         : `Đã hoàn tất hồ sơ test của ${updated.contactName || updated.learnerName}.`,
       'Không thể ghi nhận kết quả test.',
     );
@@ -217,6 +228,25 @@ export default function StaffEnrollmentRequestsPage() {
     );
   };
 
+  const createAtCenter = async (payload) => {
+    setWorking(true);
+    setError('');
+    try {
+      const created = await enrollmentRequestApi.createAtCenter(payload);
+      setCenterEnrollmentOpen(false);
+      await load();
+      setSuccess(
+        created.learnerAccountCreated
+          ? `Đã tạo tài khoản, gửi email thiết lập mật khẩu và xếp ${created.learnerName} vào lớp.`
+          : `Đã dùng tài khoản hiện có và xếp ${created.learnerName} vào lớp.`,
+      );
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || 'Không thể ghi danh học viên tại trung tâm.');
+    } finally {
+      setWorking(false);
+    }
+  };
+
   const confirmHandlers = {
     SCHEDULE: scheduleTest,
     COMPLETE_TEST: completeTest,
@@ -234,7 +264,10 @@ export default function StaffEnrollmentRequestsPage() {
             </button>
           ))}
         </div>
-        <div className="flex w-full items-center gap-3 md:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-3 md:w-auto">
+          <button className={`${PRIMARY_BUTTON_CLASS} h-11 shrink-0`} onClick={() => setCenterEnrollmentOpen(true)} type="button">
+            <UserPlus className="h-4 w-4" /> Ghi danh tại trung tâm
+          </button>
           <label className="relative flex-1 md:w-80">
             <span className="sr-only">Tìm hồ sơ</span>
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -271,7 +304,10 @@ export default function StaffEnrollmentRequestsPage() {
                   const actions = getEnrollmentRequestActions(item.status);
                   return (
                     <tr className="transition hover:bg-[#fffafb]" key={item.id}>
-                      <td className="px-5 py-4 font-bold text-slate-400">#{item.id}</td>
+                      <td className="px-5 py-4 font-bold text-slate-400">
+                        <span>#{item.id}</span>
+                        {item.requestSource === 'CENTER' ? <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-wide text-[#8a0018]">Tại trung tâm</span> : null}
+                      </td>
                       <td className="px-5 py-4">
                         <p className="font-extrabold text-[#2b2828]">{item.contactName || item.learnerName || 'Học viên'}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{item.contactEmail || item.learnerEmail}</p>
@@ -287,15 +323,20 @@ export default function StaffEnrollmentRequestsPage() {
                         ) : <p className="font-semibold text-slate-400">Chưa chốt lịch test</p>}
                         {item.testLocation ? <p>{item.testLocation}</p> : null}
                         {item.preferredSchedule ? <p className="mt-1">Giờ học mong muốn: {item.preferredSchedule}</p> : null}
+                        {item.staffNote ? (
+                          <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-2 text-amber-900">
+                            <span className="font-extrabold">Ghi chú xử lý:</span> {item.staffNote}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-500">{formatClassroomDateTime(item.createdAt)}</td>
                       <td className="px-5 py-4 text-center"><EnrollmentStatusBadge label={item.statusLabel} status={item.status} /></td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap justify-end gap-1.5">
-                          {actions.canSchedule ? <ActionButton icon={CalendarClock} label="Xếp lịch & gửi email" onClick={() => setAction({ ...initialAction, type: 'SCHEDULE', item })} /> : null}
-                          {actions.canCompleteTest ? <ActionButton icon={CheckCircle2} label="Ghi kết quả" onClick={() => setAction({ ...initialAction, type: 'COMPLETE_TEST', item })} /> : null}
-                          {actions.canAssign ? <ActionButton icon={UserRoundCheck} label="Xếp lớp" onClick={() => setAction({ ...initialAction, type: 'ASSIGN', item })} success /> : null}
-                          {actions.canReject ? <ActionButton danger icon={XCircle} label="Kết thúc" onClick={() => setAction({ ...initialAction, type: 'REJECT', item })} /> : null}
+                          {actions.canSchedule ? <ActionButton icon={CalendarClock} label="Xếp lịch & gửi email" onClick={() => openAction('SCHEDULE', item)} /> : null}
+                          {actions.canCompleteTest ? <ActionButton icon={CheckCircle2} label="Ghi kết quả" onClick={() => openAction('COMPLETE_TEST', item)} /> : null}
+                          {actions.canAssign ? <ActionButton icon={UserRoundCheck} label="Xếp lớp" onClick={() => openAction('ASSIGN', item)} success /> : null}
+                          {actions.canReject ? <ActionButton danger icon={XCircle} label="Kết thúc" onClick={() => openAction('REJECT', item)} /> : null}
                         </div>
                       </td>
                     </tr>
@@ -313,10 +354,19 @@ export default function StaffEnrollmentRequestsPage() {
         <ActionModal
           action={action}
           classroomLoadError={classroomLoadError}
-          classrooms={classrooms.filter((classroom) => !action.item?.courseOfferingId || String(classroom.trainingProgramId) === String(action.item.courseOfferingId))}
+          classrooms={classrooms}
           onChange={setAction}
           onClose={() => setAction(initialAction)}
           onConfirm={confirmHandlers[action.type]}
+          working={working}
+        />
+      ) : null}
+      {centerEnrollmentOpen ? (
+        <CenterEnrollmentModal
+          classroomLoadError={classroomLoadError}
+          classrooms={classrooms}
+          onClose={() => setCenterEnrollmentOpen(false)}
+          onSubmit={createAtCenter}
           working={working}
         />
       ) : null}
@@ -335,9 +385,9 @@ function ActionButton({ danger = false, icon: Icon, label, onClick, success = fa
 
 function ActionModal({ action, classroomLoadError, classrooms, onChange, onClose, onConfirm, working }) {
   const titles = {
-    SCHEDULE: ['Xếp lịch & gửi email', 'Chọn đủ ngày, giờ và địa điểm; email lịch hẹn sẽ được gửi sau khi xác nhận.'],
-    COMPLETE_TEST: ['Ghi nhận kết quả test', 'Chỉ xác nhận sau khi học viên đã hoàn thành buổi test tại trung tâm.'],
-    ASSIGN: ['Xếp lớp chính thức', 'Chỉ hiển thị lớp cùng khóa học, đã được Manager duyệt và chưa khai giảng.'],
+    SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
+    COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá tại trung tâm.'],
+    ASSIGN: ['Xếp lớp chính thức', 'Chọn lớp phù hợp theo kết quả test; khóa học học viên quan tâm ban đầu chỉ dùng để tham khảo.'],
     REJECT: ['Kết thúc hồ sơ', 'Dùng khi học viên từ chối tiếp tục hoặc hồ sơ không thể xử lý.'],
   };
   const [title, description] = titles[action.type];
@@ -359,7 +409,7 @@ function ActionModal({ action, classroomLoadError, classrooms, onChange, onClose
 
         {action.type === 'COMPLETE_TEST' ? (
           <div className="mt-5 space-y-4">
-            <div><FieldLabel>Kết quả *</FieldLabel><BrandedSelect onChange={(event) => onChange({ ...action, eligible: event.target.value })} options={[{ label: 'Đủ điều kiện học', value: 'true' }, { label: 'Chưa đủ điều kiện', value: 'false' }]} value={action.eligible} /></div>
+            <div><FieldLabel>Kết quả *</FieldLabel><BrandedSelect onChange={(event) => onChange({ ...action, eligible: event.target.value, note: event.target.value === 'false' ? '' : action.note })} options={[{ label: 'Đủ điều kiện học', value: 'true' }, { label: 'Chưa đủ điều kiện', value: 'false' }]} value={action.eligible} /></div>
             {action.eligible === 'true' ? <div><FieldLabel>Trình độ phù hợp *</FieldLabel><BrandedSelect onChange={(event) => onChange({ ...action, placementLevel: event.target.value })} options={placementOptions} placeholder="Chọn trình độ" value={action.placementLevel} /></div> : null}
           </div>
         ) : null}
@@ -372,25 +422,117 @@ function ActionModal({ action, classroomLoadError, classrooms, onChange, onClose
               options={classrooms.map((item) => ({
                 value: String(item.id),
                 label: item.title,
-                description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'} · ${item.enrolledCount || 0}/${item.maxCapacity || '∞'} học viên`,
+                description: `${item.trainingProgramTitle || 'Chưa gắn khóa học'} · Đầu vào ${item.entryLevel || 'chưa xác định'} · Mục tiêu ${item.targetScore || 'chưa xác định'} · ${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0}/${item.maxCapacity || '∞'} học viên`,
               }))}
-              placeholder={classrooms.length ? 'Chọn lớp đã được Manager duyệt' : 'Chưa có lớp phù hợp'}
+              placeholder={classrooms.length ? 'Chọn lớp đang tuyển sinh' : 'Chưa có lớp phù hợp'}
               searchable
               value={action.classroomId}
             />
-            {!classrooms.length ? <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{classroomLoadError || 'Chưa có lớp cùng khóa học đã được duyệt, còn chỗ và chưa khai giảng.'}</p> : null}
+            {!classrooms.length ? <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{classroomLoadError || 'Chưa có lớp đang tuyển sinh và còn chỗ.'}</p> : null}
           </div>
         ) : null}
 
         <label className="mt-4 block">
           <FieldLabel>{action.type === 'REJECT' ? 'Lý do kết thúc *' : action.type === 'COMPLETE_TEST' && action.eligible === 'false' ? 'Lý do chưa đủ điều kiện *' : 'Ghi chú nội bộ'}</FieldLabel>
-          <textarea className={TEXTAREA_CLASS} onChange={(event) => onChange({ ...action, [action.type === 'REJECT' ? 'reason' : 'note']: event.target.value })} placeholder="Nhập ghi chú cần lưu trong hồ sơ..." rows={4} value={action.type === 'REJECT' ? action.reason : action.note} />
+          <textarea className={TEXTAREA_CLASS} onChange={(event) => onChange({ ...action, [action.type === 'REJECT' ? 'reason' : 'note']: event.target.value })} placeholder="Nội dung chỉ hiển thị trong khu vực vận hành." rows={4} value={action.type === 'REJECT' ? action.reason : action.note} />
         </label>
 
         <div className="mt-6 flex justify-end gap-2">
           <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Đóng</button>
           <button className={action.type === 'REJECT' ? 'inline-flex items-center gap-2 rounded-xl bg-rose-700 px-5 py-3 text-sm font-extrabold text-white' : PRIMARY_BUTTON_CLASS} disabled={working || (action.type === 'ASSIGN' && !classrooms.length)} onClick={onConfirm} type="button">
             <Send className="h-4 w-4" />{working ? 'Đang xử lý...' : title}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const initialCenterEnrollment = {
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  confirmedLevel: '',
+  classroomId: '',
+  note: '',
+};
+
+function CenterEnrollmentModal({ classroomLoadError, classrooms, onClose, onSubmit, working }) {
+  const [form, setForm] = useState(initialCenterEnrollment);
+  const [validationError, setValidationError] = useState('');
+
+  const update = (field, value) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setValidationError('');
+  };
+
+  const submit = () => {
+    if (!form.fullName.trim() || !form.email.trim() || !form.phoneNumber.trim()) {
+      setValidationError('Vui lòng nhập đầy đủ họ tên, email và số điện thoại.');
+      return;
+    }
+    if (!form.confirmedLevel || !form.classroomId) {
+      setValidationError('Vui lòng chọn trình độ đã xác nhận và lớp học.');
+      return;
+    }
+    onSubmit({
+      fullName: form.fullName.trim(),
+      email: form.email.trim().toLowerCase(),
+      phoneNumber: form.phoneNumber.trim(),
+      confirmedLevel: form.confirmedLevel,
+      classroomId: Number(form.classroomId),
+      note: form.note.trim() || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+      <section aria-labelledby="center-enrollment-title" aria-modal="true" className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Ghi danh tại trung tâm</p>
+            <h2 className="mt-2 text-xl font-black text-[#0b1c30]" id="center-enrollment-title">Tạo tài khoản và xếp lớp</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Nếu email đã có tài khoản học viên, hệ thống sẽ dùng tài khoản đó. Tài khoản mới nhận email để tự thiết lập mật khẩu.</p>
+          </div>
+          <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100" disabled={working} onClick={onClose} type="button"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <label><FieldLabel>Họ và tên *</FieldLabel><input autoFocus className={FIELD_CLASS} maxLength={100} onChange={(event) => update('fullName', event.target.value)} value={form.fullName} /></label>
+          <label><FieldLabel>Số điện thoại *</FieldLabel><input className={FIELD_CLASS} inputMode="tel" maxLength={30} onChange={(event) => update('phoneNumber', event.target.value)} value={form.phoneNumber} /></label>
+          <label className="sm:col-span-2"><FieldLabel>Email đăng nhập *</FieldLabel><input autoComplete="off" className={FIELD_CLASS} maxLength={150} onChange={(event) => update('email', event.target.value)} type="email" value={form.email} /></label>
+          <div>
+            <FieldLabel>Trình độ đã xác nhận *</FieldLabel>
+            <BrandedSelect onChange={(event) => update('confirmedLevel', event.target.value)} options={placementOptions} placeholder="Chọn trình độ" value={form.confirmedLevel} />
+          </div>
+          <div>
+            <FieldLabel>Lớp học *</FieldLabel>
+            <BrandedSelect
+              onChange={(event) => update('classroomId', event.target.value)}
+              options={classrooms.map((item) => ({
+                value: String(item.id),
+                label: item.title,
+                description: `${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0}/${item.maxCapacity || '∞'} học viên`,
+              }))}
+              placeholder={classrooms.length ? 'Chọn lớp đang tuyển sinh' : 'Chưa có lớp còn chỗ'}
+              searchable
+              value={form.classroomId}
+            />
+          </div>
+        </div>
+
+        <label className="mt-4 block">
+          <FieldLabel>Ghi chú</FieldLabel>
+          <textarea className={TEXTAREA_CLASS} maxLength={700} onChange={(event) => update('note', event.target.value)} placeholder="Thông tin cần lưu cùng hồ sơ ghi danh." rows={3} value={form.note} />
+        </label>
+
+        {!classrooms.length ? <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{classroomLoadError || 'Chưa có lớp đang tuyển sinh và còn chỗ.'}</p> : null}
+        {validationError ? <p className={`mt-4 ${ERROR_NOTICE_CLASS}`}>{validationError}</p> : null}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Đóng</button>
+          <button className={PRIMARY_BUTTON_CLASS} disabled={working || !classrooms.length} onClick={submit} type="button">
+            <UserRoundCheck className="h-4 w-4" />{working ? 'Đang ghi danh...' : 'Tạo tài khoản & xếp lớp'}
           </button>
         </div>
       </section>

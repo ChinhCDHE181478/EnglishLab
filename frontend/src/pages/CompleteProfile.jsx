@@ -602,7 +602,12 @@ function PreferenceToggle({ checked, description, disabled, label, onChange }) {
 }
 
 function NotificationPreferencesTab() {
-  const [preferences, setPreferences] = useState({ emailEnabled: true, inAppEnabled: true });
+  const [preferences, setPreferences] = useState({
+    emailEnabled: true,
+    inAppEnabled: true,
+    classReminderEnabled: true,
+    studyAlertEnabled: true,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -683,6 +688,20 @@ function NotificationPreferencesTab() {
               description="Nhận email nghiệp vụ như giao bài tập hoặc đăng ký khóa học thành công. Email bảo mật tài khoản vẫn được gửi khi cần."
               onChange={(value) => updatePreference('emailEnabled', value)}
             />
+            <PreferenceToggle
+              checked={preferences.classReminderEnabled}
+              disabled={saving}
+              label="Nhắc lịch lớp học"
+              description="Nhận nhắc nhở trước các buổi học sắp diễn ra và khi lịch học có thay đổi quan trọng."
+              onChange={(value) => updatePreference('classReminderEnabled', value)}
+            />
+            <PreferenceToggle
+              checked={preferences.studyAlertEnabled}
+              disabled={saving}
+              label="Cảnh báo học tập"
+              description="Nhận cảnh báo bài tập gần hết hạn và gợi ý quay lại học khi tiến độ bị gián đoạn."
+              onChange={(value) => updatePreference('studyAlertEnabled', value)}
+            />
           </div>
         )}
 
@@ -694,7 +713,7 @@ function NotificationPreferencesTab() {
   );
 }
 
-const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 // ── Main page ───────────────────────────────────────────────────────────────
 const CompleteProfile = () => {

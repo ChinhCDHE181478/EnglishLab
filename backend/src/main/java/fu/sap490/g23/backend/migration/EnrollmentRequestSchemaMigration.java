@@ -28,6 +28,7 @@ public class EnrollmentRequestSchemaMigration implements CommandLineRunner {
                     consultation_track VARCHAR(80),
                     study_work_goal VARCHAR(500),
                     status VARCHAR(40) NOT NULL DEFAULT 'SUBMITTED',
+                    request_source VARCHAR(20) NOT NULL DEFAULT 'ONLINE',
                     confirmed_level VARCHAR(30),
                     preferred_schedule VARCHAR(500),
                     campus_preference VARCHAR(255),
@@ -64,6 +65,13 @@ public class EnrollmentRequestSchemaMigration implements CommandLineRunner {
 
                 ALTER TABLE course_enrollment_requests
                     ADD COLUMN IF NOT EXISTS requested_classroom_id BIGINT REFERENCES classroom_offerings(id);
+                ALTER TABLE course_enrollment_requests
+                    ADD COLUMN IF NOT EXISTS request_source VARCHAR(20) NOT NULL DEFAULT 'ONLINE';
+                ALTER TABLE course_enrollment_requests
+                    DROP CONSTRAINT IF EXISTS course_enrollment_requests_source_check;
+                ALTER TABLE course_enrollment_requests
+                    ADD CONSTRAINT course_enrollment_requests_source_check
+                    CHECK (request_source IN ('ONLINE', 'CENTER'));
                 ALTER TABLE course_enrollment_requests
                     ALTER COLUMN course_offering_id DROP NOT NULL;
                 ALTER TABLE course_enrollment_requests
