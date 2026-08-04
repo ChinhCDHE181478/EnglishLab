@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CalendarDays,
@@ -71,30 +71,35 @@ export default function StaffClassroomProposalsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const loadRequestId = useRef(0);
 
-  const load = async () => {
+  const load = async (requestedStatus = status) => {
+    const requestId = loadRequestId.current + 1;
+    loadRequestId.current = requestId;
     setLoading(true);
     setError('');
     try {
       const [proposalData, offeringData, teacherData, roomData] = await Promise.all([
-        enrollmentRequestApi.listStaffClassroomProposals(status),
+        enrollmentRequestApi.listStaffClassroomProposals(requestedStatus),
         classroomApi.getStaffPrograms(),
         classroomApi.getStaffTeachers(),
         classroomApi.getStaffRooms(),
       ]);
+      if (requestId !== loadRequestId.current) return;
       setProposals(proposalData);
       setCourseOfferings(offeringData);
       setTeachers(teacherData);
       setRooms(roomData);
     } catch (err) {
+      if (requestId !== loadRequestId.current) return;
       setError(err?.response?.data?.message || 'Không thể tải danh sách đề xuất lớp.');
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestId.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    load(status);
   }, [status]);
 
   const selectedOffering = useMemo(() => courseOfferings.find(
@@ -179,7 +184,7 @@ export default function StaffClassroomProposalsPage() {
       setSuccess(editingProposal ? `Đã cập nhật ${saved.proposalCode}.` : `Đã tạo bản nháp ${saved.proposalCode}.`);
       setModalOpen(false);
       setEditingProposal(null);
-      await load();
+      await load(status);
     } catch (err) {
       setError(getClassroomErrorMessage(err, 'Không thể lưu đề xuất lớp.'));
     } finally {
@@ -224,7 +229,7 @@ export default function StaffClassroomProposalsPage() {
           <button
             className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             disabled={loading}
-            onClick={load}
+            onClick={() => load(status)}
             type="button"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -241,7 +246,7 @@ export default function StaffClassroomProposalsPage() {
         </div>
       </section>
 
-      {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}
+      {error && !modalOpen ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
       {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{success}</div> : null}
       {loading ? <div className="grid gap-4 xl:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" key={index} />)}</div> : null}
       {!loading && !pageItems.length ? <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center"><CalendarDays className="h-12 w-12 text-slate-300" /><h2 className="mt-4 text-xl font-black text-[#0b1c30]">Không có đề xuất trong tab này</h2><p className="mt-2 text-sm text-slate-500">Draft, Pending và Rejected được tách riêng nên một đề xuất không xuất hiện trùng tab.</p></div> : null}
@@ -264,7 +269,7 @@ export default function StaffClassroomProposalsPage() {
         </div>
       ) : null}
 
-      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} editingProposalId={editingProposal?.id} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} rooms={rooms} selectedOffering={selectedOffering} teachers={teachers} working={working} /> : null}
+      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} editingProposalId={editingProposal?.id} error={error} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} rooms={rooms} selectedOffering={selectedOffering} teachers={teachers} working={working} /> : null}
     </div>
   );
 }
@@ -279,6 +284,7 @@ function ProposalModal({
   courseOfferings,
   editing,
   editingProposalId,
+  error,
   form,
   onClose,
   onSave,
@@ -372,10 +378,12 @@ function ProposalModal({
             <h2 className="mt-2 text-2xl font-black text-[#0b1c30]">{editing ? form.title : 'Đề xuất lớp mới'}</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-500">Thiết lập lịch học, giáo viên, phòng học và sức chứa dự kiến.</p>
           </div>
-          <button className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" onClick={onClose} type="button">
+          <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={working} onClick={onClose} type="button">
             <X className="h-5 w-5" />
           </button>
         </div>
+
+        {error ? <div className={`${ERROR_NOTICE_CLASS} mt-5`} role="alert">{error}</div> : null}
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className="space-y-4">
@@ -438,7 +446,7 @@ function ProposalModal({
               <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
                 <p className="font-extrabold">Phòng học Virtual được tạo tự động</p>
                 <p className="mt-1 leading-6">
-                  Mỗi buổi học trực tuyến sử dụng một phòng Lark riêng
+                  Mỗi buổi học trực tuyến sử dụng một phòng Google Meet riêng
                   và hiển thị trạng thái đồng bộ trong chi tiết lớp.
                 </p>
               </div>

@@ -893,10 +893,10 @@ export const ActionMenu = ({ actions = [] }) => {
 };
 
 // ==========================================
-// 14. LARK JOIN BUTTON (BACKWARD COMPATIBILITY)
+// 14. VIRTUAL MEETING JOIN BUTTON (LEGACY EXPORT NAME)
 // ==========================================
 
-export const LarkJoinButton = ({ url, label = 'Tham gia Lark', className = '', onBlocked, onClick }) => {
+export const LarkJoinButton = ({ url, label = 'Tham gia Google Meet', className = '', onBlocked, onClick }) => {
   const handleClick = () => {
     if (onClick) {
       onClick();

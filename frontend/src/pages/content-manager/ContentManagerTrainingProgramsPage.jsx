@@ -56,7 +56,7 @@ const sortOptions = [
 ];
 
 const platformOptions = [
-  { label: 'Lark', value: 'LARK' },
+  { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Zoom', value: 'ZOOM' },
   { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Liên kết thủ công', value: 'MANUAL' },

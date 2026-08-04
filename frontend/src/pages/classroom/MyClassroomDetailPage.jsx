@@ -824,7 +824,7 @@ export default function MyClassroomDetailPage() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
-                            {isVirtual ? 'LARK Meeting' : 'Tại cơ sở'}
+                            {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
                           </span>
                           <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-150 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-gray-500">
                             {formatSessionStatus(effStatus)}

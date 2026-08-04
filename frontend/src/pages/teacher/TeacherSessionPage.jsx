@@ -142,9 +142,9 @@ export default function TeacherSessionPage() {
     try {
       const session = await classroomApi.updateSessionLarkLink(sessionId, { larkMeetingUrl: larkUrl });
       setSessionMeta((current) => ({ ...current, ...session }));
-      setActionMessage('Đã cập nhật liên kết Lark thành công.');
+      setActionMessage('Đã cập nhật liên kết Google Meet thành công.');
     } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể cập nhật liên kết Lark.'));
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể cập nhật liên kết Google Meet.'));
     }
   };
 
@@ -387,7 +387,7 @@ export default function TeacherSessionPage() {
                   <input
                     className="flex-1 rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white"
                     onChange={(event) => setLarkUrl(event.target.value)}
-                    placeholder="Nhập liên kết phòng học Lark mới..."
+                    placeholder="Nhập liên kết Google Meet mới..."
                     value={larkUrl}
                   />
                   <button
@@ -395,7 +395,7 @@ export default function TeacherSessionPage() {
                     onClick={handleUpdateLark}
                     type="button"
                   >
-                    Cập nhật Lark Link
+                    Cập nhật liên kết
                   </button>
                 </div>
               </section>

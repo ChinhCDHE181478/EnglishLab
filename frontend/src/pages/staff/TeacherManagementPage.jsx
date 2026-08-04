@@ -339,7 +339,7 @@ export default function TeacherManagementPage({ mode = 'STAFF' }) {
         </div>
       </section>
 
-      {error ? <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{error}</p> : null}
+      {error && !modal ? <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700" role="alert">{error}</p> : null}
 
       <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <section className="rounded-[24px] border border-[#ead9db] bg-white p-4 shadow-sm">
@@ -476,6 +476,7 @@ export default function TeacherManagementPage({ mode = 'STAFF' }) {
 
       {modal ? (
         <EditorModal
+          error={error}
           form={form}
           modal={modal}
           onChange={(key, value) => setForm((current) => ({ ...current, [key]: value }))}
@@ -591,7 +592,7 @@ function EvaluationsSection({ detail, onDelete, onEdit, onPublish, working }) {
   );
 }
 
-function EditorModal({ form, modal, onChange, onClose, onSubmit, working }) {
+function EditorModal({ error, form, modal, onChange, onClose, onSubmit, working }) {
   const title = modal.type === 'profile'
     ? 'Cập nhật hồ sơ chuyên môn'
     : modal.type === 'credential'
@@ -605,13 +606,14 @@ function EditorModal({ form, modal, onChange, onClose, onSubmit, working }) {
             <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Quản lý giáo viên</p>
             <h2 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">{title}</h2>
           </div>
-          <button className="rounded-xl p-2 text-[#756361] hover:bg-[#fff1f2]" onClick={onClose} type="button"><XCircle className="h-5 w-5" /></button>
+          <button aria-label="Đóng" className="rounded-xl p-2 text-[#756361] hover:bg-[#fff1f2] disabled:opacity-50" disabled={working} onClick={onClose} type="button"><XCircle className="h-5 w-5" /></button>
         </div>
+        {error ? <p className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700" role="alert">{error}</p> : null}
         {modal.type === 'profile' ? <ProfileFields form={form} onChange={onChange} /> : null}
         {modal.type === 'credential' ? <CredentialFields form={form} onChange={onChange} /> : null}
         {modal.type === 'evaluation' ? <EvaluationFields form={form} onChange={onChange} /> : null}
         <div className="mt-6 flex justify-end gap-3">
-          <button className="rounded-xl border border-[#dfbfbd] px-5 py-2.5 text-sm font-bold text-[#730014]" onClick={onClose} type="button">Hủy</button>
+          <button className="rounded-xl border border-[#dfbfbd] px-5 py-2.5 text-sm font-bold text-[#730014] disabled:opacity-50" disabled={working} onClick={onClose} type="button">Hủy</button>
           <button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : 'Lưu thay đổi'}</button>
         </div>
       </form>

@@ -347,7 +347,7 @@ export default function TeacherDashboardPage() {
                           {isVirtual && classroom.larkMeetingUrl && (
                             <div className="rounded-2xl bg-purple-50/40 border border-purple-100 p-4 text-xs text-purple-800 flex items-center justify-between">
                               <span className="font-bold flex items-center gap-1">
-                                <Video className="h-4 w-4 text-purple-700" /> Lark Meeting Link
+                                <Video className="h-4 w-4 text-purple-700" /> Liên kết Google Meet
                               </span>
                               <a
                                 className="font-extrabold text-purple-900 underline flex items-center gap-1"
@@ -355,7 +355,7 @@ export default function TeacherDashboardPage() {
                                 rel="noreferrer"
                                 target="_blank"
                               >
-                                Mở Lark <ExternalLink className="h-3 w-3" />
+                                Mở Google Meet <ExternalLink className="h-3 w-3" />
                               </a>
                             </div>
                           )}

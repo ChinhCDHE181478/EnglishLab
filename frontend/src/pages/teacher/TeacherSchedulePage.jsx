@@ -132,27 +132,31 @@ export default function TeacherSchedulePage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [partialWarning, setPartialWarning] = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
 
   const loadSchedule = useCallback(async () => {
     setLoading(true);
     setError('');
+    setPartialWarning('');
     try {
       const assigned = await classroomApi.getTeacherAssignedClassrooms();
       const groups = await Promise.allSettled(
         assigned.map(async (cls) => {
-          try {
-            const items = await classroomApi.getTeacherClassroomSessions(cls.id);
-            return items.map((s) => ({
-              ...s,
-              classroomId: cls.id,
-              classroomTitle: cls.offeringTitle || cls.name || 'Lớp học',
-              deliveryMode: s.deliveryMode || cls.deliveryMode,
-            }));
-          } catch { return []; }
+          const items = await classroomApi.getTeacherClassroomSessions(cls.id);
+          return items.map((s) => ({
+            ...s,
+            classroomId: cls.id,
+            classroomTitle: cls.offeringTitle || cls.name || 'Lớp học',
+            deliveryMode: s.deliveryMode || cls.deliveryMode,
+          }));
         }),
       );
       setSessions(groups.filter((r) => r.status === 'fulfilled').flatMap((r) => r.value));
+      const failedCount = groups.filter((result) => result.status === 'rejected').length;
+      if (failedCount) {
+        setPartialWarning(`Chưa tải được lịch của ${failedCount} lớp. Dữ liệu đang hiển thị có thể chưa đầy đủ.`);
+      }
     } catch (err) {
       setError(getClassroomErrorMessage(err, 'Không thể tải lịch dạy.'));
     } finally {
@@ -262,6 +266,7 @@ export default function TeacherSchedulePage() {
             <>
               {/* ── LEFT: Calendar ── */}
               <section className="flex flex-1 min-w-0 flex-col rounded-2xl border border-[#e2e2e2] bg-white shadow-sm" style={{ minHeight: 'calc(100vh - 220px)' }}>
+                {partialWarning ? <div className="m-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" role="alert">{partialWarning}</div> : null}
 
                 {/* Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e2e2] bg-white px-5 py-3 rounded-t-2xl">
@@ -551,7 +556,7 @@ function SessionListRow({ session, onClick }) {
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
           {isVirtual ? (
-            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Lark</span>
+            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Google Meet</span>
           ) : (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{session.roomName || 'Đang xếp phòng'}</span>
           )}
@@ -671,7 +676,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
     }
     if (!canOpenLarkRoom) {
       roomWindow?.close();
-      setLarkMessage('Buổi học đã kết thúc hoặc đã hủy nên không thể tạo phòng Lark.');
+      setLarkMessage('Buổi học đã kết thúc hoặc đã hủy nên không thể tạo phòng Google Meet.');
       return;
     }
 
@@ -687,11 +692,11 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
         }
       } else {
         roomWindow?.close();
-        setLarkMessage('Chưa tạo được link Lark. Vào Quản lý buổi học để nhập link thủ công.');
+        setLarkMessage('Chưa tạo được liên kết Google Meet. Vào Quản lý buổi học để nhập liên kết thủ công.');
       }
     } catch (err) {
       roomWindow?.close();
-      setLarkMessage(getClassroomErrorMessage(err, 'Không thể tạo phòng Lark.'));
+      setLarkMessage(getClassroomErrorMessage(err, 'Không thể tạo phòng Google Meet.'));
     } finally {
       setOpeningLark(false);
     }
@@ -727,7 +732,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
             {isVirtual ? <Video className="h-4 w-4 flex-shrink-0 text-purple-700" /> : <MapPin className="h-4 w-4 flex-shrink-0 text-[#730014]" />}
             <span>
               {isVirtual
-                ? 'Lớp học trực tuyến (Lark)'
+                ? 'Lớp học trực tuyến (Google Meet)'
                 : `${session.roomName || 'Đang xếp phòng'} · ${session.offlineAddress || 'Cơ sở Hà Nội'}`}
             </span>
           </div>
@@ -738,7 +743,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
       {isVirtual && (
         <div className="rounded-2xl border border-purple-100 bg-purple-50/10 p-5 space-y-3">
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-purple-700">
-            <Video className="h-3.5 w-3.5" /> Phòng học Lark
+            <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
           {session.larkMeetingUrl ? (
             <>
@@ -746,7 +751,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
                 Liên kết phòng học đã sẵn sàng. Bạn có thể vào phòng trực tiếp từ đây.
               </p>
               <LarkJoinButton
-                label={effectiveStatus === 'COMPLETED' ? 'Xem lại phòng Lark' : 'Vào phòng Lark'}
+                label={effectiveStatus === 'COMPLETED' ? 'Mở lại Google Meet' : 'Vào Google Meet'}
                 onBlocked={setLarkMessage}
                 onClick={handleOpenLarkRoom}
                 url={session.larkMeetingUrl}
@@ -755,7 +760,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
           ) : (
             <>
               <p className="text-xs leading-6 text-[#8b706e]">
-                Buổi học chưa có link Lark. Bấm nút bên dưới để tạo phòng tự động hoặc vào trang quản lý buổi học để nhập link thủ công.
+                Buổi học chưa có liên kết Google Meet. Bấm nút bên dưới để tạo phòng tự động hoặc vào trang quản lý buổi học để nhập liên kết thủ công.
               </p>
               {canOpenLarkRoom ? (
                 <button
@@ -765,11 +770,11 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
                   type="button"
                 >
                   {openingLark ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-                  {openingLark ? 'Đang tạo phòng...' : 'Tạo và mở phòng Lark'}
+                  {openingLark ? 'Đang tạo phòng...' : 'Tạo và mở Google Meet'}
                 </button>
               ) : (
                 <p className="rounded-xl border border-gray-100 bg-white/70 px-4 py-3 text-xs font-semibold text-[#8b706e]">
-                  Buổi học đã kết thúc mà chưa có link Lark được lưu.
+                  Buổi học đã kết thúc mà chưa có liên kết Google Meet được lưu.
                 </p>
               )}
             </>

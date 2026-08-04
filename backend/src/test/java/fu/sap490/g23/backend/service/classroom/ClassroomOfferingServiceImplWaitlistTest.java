@@ -58,7 +58,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
-    @Mock private LarkMeetingService larkMeetingService;
+    @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
     @Mock private LarkMeetingParticipantRepository larkParticipantRepository;
@@ -85,14 +85,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 .build();
         when(accessHelper.requireUser(staff.getEmail())).thenReturn(staff);
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
-        when(larkMeetingService.isEnabled()).thenReturn(true);
+        when(virtualMeetingService.isEnabled()).thenReturn(true);
         doAnswer(invocation -> {
             ClassroomSession target = invocation.getArgument(0);
             target.setLarkMeetingUrl(expected.getLarkMeetingUrl());
             target.setLarkMeetingNo(expected.getLarkMeetingNo());
             target.setLarkSyncStatus("SYNCED");
             return null;
-        }).when(larkMeetingService).syncMeeting(session);
+        }).when(virtualMeetingService).syncMeeting(session);
         when(sessionRepository.save(session)).thenReturn(session);
         when(mapper.toSessionResponse(session)).thenReturn(expected);
 
@@ -102,7 +102,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
         assertEquals("SYNCED", response.getLarkSyncStatus());
         assertEquals("123456789", response.getLarkMeetingNo());
         verify(accessHelper).assertStaffOperator(staff);
-        verify(larkMeetingService).syncMeeting(session);
+        verify(virtualMeetingService).syncMeeting(session);
     }
 
     @Test

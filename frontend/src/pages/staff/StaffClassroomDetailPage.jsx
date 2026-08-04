@@ -12,6 +12,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { validateClassroomSessionForm } from '../../utils/classroomFormValidation';
 import {
   formatClassroomDate,
   formatClassroomDateTime,
@@ -153,8 +154,14 @@ export default function StaffClassroomDetailPage() {
 
   const handleCreateSession = async (event) => {
     event.preventDefault();
-    setCreatingSession(true);
     setActionMessage('');
+    const validationMessage = validateClassroomSessionForm(sessionForm);
+    if (validationMessage) {
+      setActionTone('error');
+      setActionMessage(validationMessage);
+      return;
+    }
+    setCreatingSession(true);
     try {
       await classroomApi.createStaffClassroomSession(id, {
         ...sessionForm,
@@ -180,15 +187,15 @@ export default function StaffClassroomDetailPage() {
       const updated = await classroomApi.syncStaffVirtualSessionMeeting(session.id);
       if (updated.larkSyncStatus === 'SYNCED') {
         setActionTone('success');
-        setActionMessage(`Đã tạo phòng Lark tự động cho buổi học ngày ${formatClassroomDate(updated.sessionDate)}.`);
+        setActionMessage(`Đã tạo phòng Google Meet tự động cho buổi học ngày ${formatClassroomDate(updated.sessionDate)}.`);
       } else {
         setActionTone('error');
-        setActionMessage(updated.larkSyncError || 'Chưa thể đồng bộ phòng Lark. Vui lòng kiểm tra cấu hình tích hợp.');
+        setActionMessage(updated.larkSyncError || 'Chưa thể đồng bộ phòng Google Meet. Vui lòng kiểm tra cấu hình tích hợp.');
       }
       await loadClassroom();
     } catch (err) {
       setActionTone('error');
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể đồng bộ phòng Lark.'));
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể đồng bộ phòng Google Meet.'));
     } finally {
       setSyncingSessionId(null);
     }
@@ -499,12 +506,12 @@ function VirtualMeetingStatus({ session, syncing, onRetry }) {
   const synced = session.larkSyncStatus === 'SYNCED' && Boolean(session.larkMeetingUrl);
   const terminal = ['COMPLETED', 'CANCELLED'].includes(session.status);
   const statusLabel = {
-    DISABLED: 'Lark chưa được cấu hình',
-    FAILED: 'Tạo phòng Lark thất bại',
-    MANUAL: 'Phòng Lark cũ',
-    PENDING: 'Đang chờ tạo phòng Lark',
-    SYNCED: 'Phòng Lark đã sẵn sàng',
-  }[session.larkSyncStatus] || 'Chưa tạo phòng Lark';
+    DISABLED: 'Google Meet chưa được cấu hình',
+    FAILED: 'Tạo phòng Google Meet thất bại',
+    MANUAL: 'Liên kết Google Meet nhập thủ công',
+    PENDING: 'Đang chờ tạo phòng Google Meet',
+    SYNCED: 'Phòng Google Meet đã sẵn sàng',
+  }[session.larkSyncStatus] || 'Chưa tạo phòng Google Meet';
 
   if (synced) {
     return (

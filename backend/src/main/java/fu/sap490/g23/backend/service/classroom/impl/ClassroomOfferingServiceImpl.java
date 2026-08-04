@@ -6,6 +6,7 @@ import fu.sap490.g23.backend.service.classroom.*;
 import fu.sap490.g23.backend.dto.request.classroom.*;
 import fu.sap490.g23.backend.dto.response.classroom.*;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
 import fu.sap490.g23.backend.entity.course.*;
@@ -75,7 +76,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final ClassroomMapper mapper;
     private final ClassroomConflictService conflictService;
     private final ClassroomScheduleLockService scheduleLockService;
-    private final LarkMeetingService larkMeetingService;
+    private final VirtualMeetingService virtualMeetingService;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomNotificationService notificationService;
     private final LarkMeetingParticipantRepository larkParticipantRepository;
@@ -166,6 +167,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     public ClassroomOfferingResponse createOffering(CreateClassroomOfferingRequest request, String creatorEmail) {
+        validateOfferingRequest(request);
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertManager(creator);
 
@@ -179,6 +181,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (trainingProgram != null) {
             curriculumProgram = trainingProgram.getCurriculumProgram();
         }
+        BigDecimal effectivePrice = request.getPrice() != null
+                ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice();
+        BigDecimal effectiveSalePrice = request.getSalePrice() != null
+                ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice();
+        validatePrices(effectivePrice, effectiveSalePrice);
+        User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
+        ClassroomRoom defaultRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
+                ? resolveRoom(request.getDefaultRoomId()) : null;
+        validateOfferingResources(request, primaryTeacher, defaultRoom);
 
         LearningPackage learningPackage = LearningPackage.builder()
                 .packageType(packageType)
@@ -189,8 +200,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .targetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)))
                 .duration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()))
                 .studyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()))
-                .price(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()))
-                .salePrice(request.getSalePrice() != null ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice())
+                .price(defaultBigDecimal(effectivePrice))
+                .salePrice(effectiveSalePrice)
                 .thumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()))
                 .status(request.getPackageStatus() == null ? PackageStatus.DRAFT : request.getPackageStatus())
                 .displayOrder(defaultInt(request.getDisplayOrder()))
@@ -210,12 +221,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .maxCapacity(request.getMaxCapacity() == null ? 30 : request.getMaxCapacity())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                .primaryTeacher(resolveTeacher(request.getPrimaryTeacherId()))
-                .defaultRoom(resolveRoom(request.getDefaultRoomId()))
+                .primaryTeacher(primaryTeacher)
+                .defaultRoom(defaultRoom)
                 .offlineAddress(request.getOfflineAddress())
                 .locationNote(request.getLocationNote())
                 .defaultLarkMeetingUrl(request.getDefaultLarkMeetingUrl())
-                .larkMeetingStatus(larkMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
+                .larkMeetingStatus(virtualMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()))
                 .recordingUrl(request.getRecordingUrl())
                 .recordingVisible(Boolean.TRUE.equals(request.getRecordingVisible()))
                 .syllabusSummary(defaultText(request.getSyllabusSummary(), curriculumProgram == null ? null : curriculumProgram.getOutcomes()))
@@ -238,6 +249,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     public ClassroomOfferingResponse updateOffering(Long id, CreateClassroomOfferingRequest request, String actorEmail) {
+        validateOfferingRequest(request);
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
         ClassroomOffering offering = findOffering(id);
@@ -250,6 +262,15 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (trainingProgram != null) {
             curriculumProgram = trainingProgram.getCurriculumProgram();
         }
+        BigDecimal effectivePrice = request.getPrice() != null
+                ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice();
+        BigDecimal effectiveSalePrice = request.getSalePrice() != null
+                ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice();
+        validatePrices(effectivePrice, effectiveSalePrice);
+        User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
+        ClassroomRoom defaultRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
+                ? resolveRoom(request.getDefaultRoomId()) : null;
+        validateOfferingResources(request, primaryTeacher, defaultRoom);
 
         if (Set.of(ClassroomOfferingStatus.ACTIVE, ClassroomOfferingStatus.COMPLETED, ClassroomOfferingStatus.CLOSED)
                 .contains(offering.getStatus())) {
@@ -275,8 +296,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         learningPackage.setTargetScore(defaultText(request.getTargetScore(), resolveTargetScore(curriculumProgram)));
         learningPackage.setDuration(defaultText(request.getDuration(), trainingProgram == null ? null : trainingProgram.getDuration()));
         learningPackage.setStudyMode(defaultText(request.getStudyMode(), trainingProgram == null ? null : trainingProgram.getStudyMode()));
-        learningPackage.setPrice(defaultBigDecimal(request.getPrice() != null ? request.getPrice() : trainingProgram == null ? null : trainingProgram.getPrice()));
-        learningPackage.setSalePrice(request.getSalePrice() != null ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice());
+        learningPackage.setPrice(defaultBigDecimal(effectivePrice));
+        learningPackage.setSalePrice(effectiveSalePrice);
         learningPackage.setThumbnailUrl(defaultText(request.getThumbnailUrl(), trainingProgram == null ? null : trainingProgram.getThumbnailUrl()));
         if (request.getPackageStatus() != null) {
             learningPackage.setStatus(request.getPackageStatus());
@@ -297,12 +318,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         offering.setStartDate(request.getStartDate());
         offering.setEndDate(request.getEndDate());
-        offering.setPrimaryTeacher(resolveTeacher(request.getPrimaryTeacherId()));
-        offering.setDefaultRoom(resolveRoom(request.getDefaultRoomId()));
+        offering.setPrimaryTeacher(primaryTeacher);
+        offering.setDefaultRoom(defaultRoom);
         offering.setOfflineAddress(request.getOfflineAddress());
         offering.setLocationNote(request.getLocationNote());
         offering.setDefaultLarkMeetingUrl(request.getDefaultLarkMeetingUrl());
-        offering.setLarkMeetingStatus(larkMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()));
+        offering.setLarkMeetingStatus(virtualMeetingService.resolveStatus(request.getDefaultLarkMeetingUrl()));
         offering.setRecordingUrl(request.getRecordingUrl());
         if (request.getRecordingVisible() != null) {
             offering.setRecordingVisible(request.getRecordingVisible());
@@ -369,17 +390,20 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             boolean enforceConflictCheck
     ) {
+        validateSessionRequest(request);
         scheduleLockService.lockDate(request.getSessionDate());
 
         ClassroomOffering offering = findOffering(offeringId);
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
-        Long roomId = request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering);
+        ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
+        ClassroomRoom room = resolveSessionRoom(request, offering, deliveryMode);
+        validateRoomCapacity(room, offering.getMaxCapacity());
 
         if (enforceConflictCheck) {
             ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
                     .classroomOfferingId(offeringId)
                     .teacherId(teacher == null ? null : teacher.getId())
-                    .roomId(roomId)
+                    .roomId(room == null ? null : room.getId())
                     .sessionDate(request.getSessionDate())
                     .startTime(request.getStartTime())
                     .endTime(request.getEndTime())
@@ -388,13 +412,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             conflictService.assertNoBlockingConflict(conflictRequest);
         }
 
-        ClassroomSession session = buildSession(offering, request, teacher);
+        ClassroomSession session = buildSession(offering, request, teacher, room, deliveryMode);
         session = sessionRepository.save(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
                 && (session.getLarkMeetingUrl() == null
                 || session.getLarkMeetingUrl().isBlank()
-                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl()))) {
-            syncLarkMeetingSafely(session);
+                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl()))) {
+            syncVirtualMeetingSafely(session);
             session = sessionRepository.save(session);
         }
         return mapper.toSessionResponse(session);
@@ -406,18 +430,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         accessHelper.assertStaffOperator(actor);
         ClassroomSession session = findSession(sessionId);
         if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
-            throw new IllegalArgumentException("Chỉ buổi học Virtual mới có phòng Lark để đồng bộ.");
+            throw new IllegalArgumentException("Chỉ buổi học trực tuyến mới có phòng Google Meet để đồng bộ.");
         }
         if (session.getStatus() == ClassroomSessionStatus.COMPLETED
                 || session.getStatus() == ClassroomSessionStatus.CANCELLED) {
-            throw new IllegalArgumentException("Không thể tạo lại phòng Lark cho buổi học đã kết thúc hoặc đã hủy.");
+            throw new IllegalArgumentException("Không thể tạo lại phòng Google Meet cho buổi học đã kết thúc hoặc đã hủy.");
         }
-        syncLarkMeetingSafely(session);
+        syncVirtualMeetingSafely(session);
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
     @Override
     public ClassroomSessionResponse updateSession(Long sessionId, CreateClassroomSessionRequest request) {
+        validateSessionRequest(request);
         ClassroomSession session = findSession(sessionId);
         scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
         if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
@@ -425,14 +450,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassroomOffering()));
-        Long roomId = request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(session.getClassroomOffering());
+        ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassroomOffering());
+        ClassroomRoom room = resolveSessionRoom(request, session.getClassroomOffering(), deliveryMode);
+        validateRoomCapacity(room, session.getClassroomOffering().getMaxCapacity());
 
         ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
                 .classroomOfferingId(session.getClassroomOffering().getId())
                 .sessionId(sessionId)
                 .excludeSessionId(sessionId)
                 .teacherId(teacher == null ? null : teacher.getId())
-                .roomId(roomId)
+                .roomId(room == null ? null : room.getId())
                 .sessionDate(request.getSessionDate())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
@@ -443,21 +470,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
                 && !request.getLarkMeetingUrl().isBlank()
-                && !larkMeetingService.isDemoUrl(request.getLarkMeetingUrl());
-        if (manualLarkLinkProvided && session.getLarkEventId() != null) {
-            deleteLarkMeetingSafely(session);
-            clearManagedLarkData(session);
+                && !virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl());
+        if (manualLarkLinkProvided && session.getLarkMeetingId() != null) {
+            deleteVirtualMeetingSafely(session);
+            clearManagedVirtualMeetingData(session);
         }
 
-        applySessionRequest(session, request, teacher);
+        applySessionRequest(session, request, teacher, room, deliveryMode);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
-            syncLarkMeetingSafely(session);
+            syncVirtualMeetingSafely(session);
         }
         return mapper.toSessionResponse(sessionRepository.save(session));
     }
 
     @Override
     public ClassroomSessionResponse applyApprovedSessionScheduleChange(Long sessionId, CreateClassroomSessionRequest request) {
+        validateSessionRequest(request);
         ClassroomSession session = findSession(sessionId);
         scheduleLockService.lockDates(List.of(session.getSessionDate(), request.getSessionDate()));
         if (session.isLocked() || session.getStatus() == ClassroomSessionStatus.COMPLETED) {
@@ -465,17 +493,20 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassroomOffering()));
+        ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassroomOffering());
+        ClassroomRoom room = resolveSessionRoom(request, session.getClassroomOffering(), deliveryMode);
+        validateRoomCapacity(room, session.getClassroomOffering().getMaxCapacity());
         boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
                 && !request.getLarkMeetingUrl().isBlank()
-                && !larkMeetingService.isDemoUrl(request.getLarkMeetingUrl());
-        if (manualLarkLinkProvided && session.getLarkEventId() != null) {
-            deleteLarkMeetingSafely(session);
-            clearManagedLarkData(session);
+                && !virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl());
+        if (manualLarkLinkProvided && session.getLarkMeetingId() != null) {
+            deleteVirtualMeetingSafely(session);
+            clearManagedVirtualMeetingData(session);
         }
 
-        applySessionRequest(session, request, teacher);
+        applySessionRequest(session, request, teacher, room, deliveryMode);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
-            syncLarkMeetingSafely(session);
+            syncVirtualMeetingSafely(session);
         }
         if (session.getStatus() == ClassroomSessionStatus.RESCHEDULED) {
             session.setStatus(ClassroomSessionStatus.SCHEDULED);
@@ -489,7 +520,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (session.isLocked()) {
             throw new RuntimeException("Buổi học đã khóa nên không thể xóa.");
         }
-        deleteLarkMeetingSafely(session);
+        deleteVirtualMeetingSafely(session);
         sessionRepository.delete(session);
     }
 
@@ -1199,8 +1230,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         if (session.getLarkMeetingUrl() == null
                 || session.getLarkMeetingUrl().isBlank()
-                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())) {
-            if (!syncLarkMeetingSafely(session)) {
+                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
+            if (!syncVirtualMeetingSafely(session)) {
                 sessionRepository.save(session);
                 throw new ResponseStatusException(
                         HttpStatus.SERVICE_UNAVAILABLE,
@@ -1238,21 +1269,21 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         if (session.getLarkMeetingUrl() == null
                 || session.getLarkMeetingUrl().isBlank()
-                || larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())) {
-            if (!syncLarkMeetingSafely(session)) {
+                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
+            if (!syncVirtualMeetingSafely(session)) {
                 sessionRepository.save(session);
                 throw new RuntimeException(
                         session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
-                                ? "Chưa thể tạo phòng Lark cho buổi học này."
+                                ? "Chưa thể tạo phòng Google Meet cho buổi học này."
                                 : session.getLarkSyncError()
                 );
             }
-        } else if (session.getLarkEventId() != null && larkMeetingService.isEnabled()) {
-            if (!syncLarkMeetingSafely(session)) {
+        } else if (session.getLarkMeetingId() != null && virtualMeetingService.isEnabled()) {
+            if (!syncVirtualMeetingSafely(session)) {
                 sessionRepository.save(session);
                 throw new RuntimeException(
                         session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
-                                ? "Chưa thể cập nhật quyền tự tham gia phòng Lark."
+                                ? "Chưa thể cập nhật phòng Google Meet."
                                 : session.getLarkSyncError()
                 );
             }
@@ -1292,9 +1323,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 session.setLarkEmptySince(null);
                 continue;
             }
-            deleteLarkMeetingSafely(session);
+            deleteVirtualMeetingSafely(session);
             larkParticipantRepository.deleteByClassroomSessionId(session.getId());
-            clearManagedLarkData(session);
+            clearManagedVirtualMeetingData(session);
             session.setLarkMeetingUrl(null);
             session.setLarkMeetingId(null);
             session.setLarkMeetingNo(null);
@@ -1310,14 +1341,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     public ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request) {
         ClassroomSession session = findSession(sessionId);
         if (session.isLocked()) {
-            throw new RuntimeException("Buổi học đã khóa nên không thể cập nhật link Lark.");
+            throw new RuntimeException("Buổi học đã khóa nên không thể cập nhật liên kết Google Meet.");
         }
-        if (session.getLarkEventId() != null) {
-            deleteLarkMeetingSafely(session);
-            clearManagedLarkData(session);
+        if (session.getLarkMeetingId() != null) {
+            deleteVirtualMeetingSafely(session);
+            clearManagedVirtualMeetingData(session);
         }
         session.setLarkMeetingUrl(request.getLarkMeetingUrl());
-        session.setLarkMeetingStatus(larkMeetingService.resolveStatus(request.getLarkMeetingUrl()));
+        session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(request.getLarkMeetingUrl()));
         session.setLarkSyncStatus("MANUAL");
         session.setLarkSyncError(null);
         return mapper.toSessionResponse(sessionRepository.save(session));
@@ -1391,8 +1422,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .forEach(session -> {
                     session.setTeacher(newTeacher);
                     if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
-                            && session.getLarkEventId() != null) {
-                        syncLarkMeetingSafely(session);
+                            && session.getLarkMeetingId() != null) {
+                        syncVirtualMeetingSafely(session);
                         inviteTeacherSafely(session, newTeacher);
                     }
                 });
@@ -1439,7 +1470,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             inviteTeacher(session, teacher);
         } catch (RuntimeException ex) {
             log.warn(
-                    "Không thể thêm giáo viên {} vào lịch Lark của buổi học {}: {}",
+                    "Không thể chuẩn bị quyền Google Meet cho giáo viên {} ở buổi học {}: {}",
                     teacher.getId(),
                     session.getId(),
                     ex.getMessage()
@@ -1448,18 +1479,23 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     }
 
     private void inviteTeacher(ClassroomSession session, User teacher) {
-        larkMeetingService.inviteInternalAttendee(session, teacher.getEmail());
+        virtualMeetingService.inviteInternalAttendee(session, teacher.getEmail());
     }
 
-    private ClassroomSession buildSession(ClassroomOffering offering, CreateClassroomSessionRequest request, User teacher) {
-        ClassroomDeliveryMode deliveryMode = request.getDeliveryMode() != null ? request.getDeliveryMode() : offering.getDeliveryMode();
+    private ClassroomSession buildSession(
+            ClassroomOffering offering,
+            CreateClassroomSessionRequest request,
+            User teacher,
+            ClassroomRoom room,
+            ClassroomDeliveryMode deliveryMode
+    ) {
         String larkUrl = request.getLarkMeetingUrl();
-        if (larkMeetingService.isDemoUrl(larkUrl)) {
+        if (virtualMeetingService.isLegacyOrPlaceholderUrl(larkUrl)) {
             larkUrl = null;
         }
         if ((larkUrl == null || larkUrl.isBlank())
                 && deliveryMode == ClassroomDeliveryMode.VIRTUAL
-                && !larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())) {
+                && !virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())) {
             larkUrl = offering.getDefaultLarkMeetingUrl();
         }
         return ClassroomSession.builder()
@@ -1470,16 +1506,22 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .teacher(teacher)
                 .status(request.getStatus() == null ? ClassroomSessionStatus.SCHEDULED : request.getStatus())
                 .deliveryMode(deliveryMode)
-                .room(resolveRoom(request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering)))
+                .room(room)
                 .larkMeetingUrl(larkUrl)
-                .larkMeetingStatus(larkMeetingService.resolveStatus(larkUrl))
+                .larkMeetingStatus(virtualMeetingService.resolveStatus(larkUrl))
                 .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
                 .sessionContent(request.getSessionContent())
                 .note(request.getNote())
                 .build();
     }
 
-    private void applySessionRequest(ClassroomSession session, CreateClassroomSessionRequest request, User teacher) {
+    private void applySessionRequest(
+            ClassroomSession session,
+            CreateClassroomSessionRequest request,
+            User teacher,
+            ClassroomRoom room,
+            ClassroomDeliveryMode deliveryMode
+    ) {
         ClassroomOffering offering = session.getClassroomOffering();
         session.setSessionDate(request.getSessionDate());
         session.setStartTime(request.getStartTime());
@@ -1488,61 +1530,57 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (request.getStatus() != null) {
             session.setStatus(request.getStatus());
         }
-        if (request.getDeliveryMode() != null) {
-            session.setDeliveryMode(request.getDeliveryMode());
-        }
-        if (request.getRoomId() != null) {
-            session.setRoom(resolveRoom(request.getRoomId()));
-        }
+        session.setDeliveryMode(deliveryMode);
+        session.setRoom(room);
         if (request.getLarkMeetingUrl() != null) {
-            String requestedUrl = larkMeetingService.isDemoUrl(request.getLarkMeetingUrl())
+            String requestedUrl = virtualMeetingService.isLegacyOrPlaceholderUrl(request.getLarkMeetingUrl())
                     ? null
                     : request.getLarkMeetingUrl();
             session.setLarkMeetingUrl(requestedUrl);
-            session.setLarkMeetingStatus(larkMeetingService.resolveStatus(requestedUrl));
+            session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(requestedUrl));
             if (requestedUrl != null && !requestedUrl.isBlank()) {
                 session.setLarkSyncStatus("MANUAL");
                 session.setLarkSyncError(null);
             }
         } else if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL) {
-            String defaultUrl = larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())
+            String defaultUrl = virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())
                     ? null
                     : offering.getDefaultLarkMeetingUrl();
-            if (session.getLarkEventId() == null) {
+            if (session.getLarkMeetingId() == null) {
                 session.setLarkMeetingUrl(defaultUrl);
-                session.setLarkMeetingStatus(larkMeetingService.resolveStatus(defaultUrl));
+                session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(defaultUrl));
             }
         }
         session.setSessionContent(request.getSessionContent());
         session.setNote(request.getNote());
     }
 
-    private boolean syncLarkMeetingSafely(ClassroomSession session) {
-        if (!larkMeetingService.isEnabled()) {
+    private boolean syncVirtualMeetingSafely(ClassroomSession session) {
+        if (!virtualMeetingService.isEnabled()) {
             session.setLarkSyncStatus("DISABLED");
-            session.setLarkSyncError("Tích hợp Lark API chưa được bật.");
+            session.setLarkSyncError("Tích hợp Google Meet API chưa được bật.");
             return false;
         }
         try {
-            larkMeetingService.syncMeeting(session);
+            virtualMeetingService.syncMeeting(session);
             return true;
         } catch (RuntimeException ex) {
             session.setLarkSyncStatus("FAILED");
             session.setLarkSyncError(ex.getMessage());
-            log.warn("Không thể đồng bộ buổi học {} với Lark: {}", session.getId(), ex.getMessage());
+            log.warn("Không thể đồng bộ buổi học {} với Google Meet: {}", session.getId(), ex.getMessage());
             return false;
         }
     }
 
-    private void deleteLarkMeetingSafely(ClassroomSession session) {
+    private void deleteVirtualMeetingSafely(ClassroomSession session) {
         try {
-            larkMeetingService.deleteMeeting(session);
+            virtualMeetingService.deleteMeeting(session);
         } catch (RuntimeException ex) {
-            log.warn("Không thể xóa sự kiện Lark của buổi học {}: {}", session.getId(), ex.getMessage());
+            log.warn("Không thể kết thúc phòng Google Meet của buổi học {}: {}", session.getId(), ex.getMessage());
         }
     }
 
-    private void clearManagedLarkData(ClassroomSession session) {
+    private void clearManagedVirtualMeetingData(ClassroomSession session) {
         session.setLarkCalendarId(null);
         session.setLarkEventId(null);
         session.setLarkMeetingId(null);
@@ -1781,20 +1819,128 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
     }
 
+    private void validateOfferingRequest(CreateClassroomOfferingRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu lớp học không được để trống.");
+        }
+        if (!StringUtils.hasText(request.getTitle())) {
+            throw new IllegalArgumentException("Tiêu đề lớp học không được để trống.");
+        }
+        if (request.getDeliveryMode() == null) {
+            throw new IllegalArgumentException("Hình thức đào tạo không được để trống.");
+        }
+        if (request.getMaxCapacity() != null && request.getMaxCapacity() < 1) {
+            throw new IllegalArgumentException("Sĩ số tối đa phải lớn hơn 0.");
+        }
+        if (!request.isDateRangeValid()) {
+            throw new IllegalArgumentException("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
+        }
+        validatePrices(request.getPrice(), request.getSalePrice());
+    }
+
+    private void validateOfferingResources(
+            CreateClassroomOfferingRequest request,
+            User primaryTeacher,
+            ClassroomRoom defaultRoom
+    ) {
+        validateRoomCapacity(defaultRoom, request.getMaxCapacity() == null ? 30 : request.getMaxCapacity());
+        ClassroomOfferingStatus status = request.getClassroomStatus() == null
+                ? ClassroomOfferingStatus.DRAFT : request.getClassroomStatus();
+        if (status != ClassroomOfferingStatus.UPCOMING && status != ClassroomOfferingStatus.ACTIVE) {
+            return;
+        }
+        if (request.getStartDate() == null || request.getEndDate() == null) {
+            throw new IllegalArgumentException("Lớp sắp mở hoặc đang hoạt động phải có đủ ngày bắt đầu và kết thúc.");
+        }
+        if (primaryTeacher == null) {
+            throw new IllegalArgumentException("Lớp sắp mở hoặc đang hoạt động phải có giáo viên chính.");
+        }
+        if (request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
+                && defaultRoom == null
+                && !StringUtils.hasText(request.getOfflineAddress())) {
+            throw new IllegalArgumentException("Lớp học trực tiếp phải có phòng học hoặc địa chỉ học.");
+        }
+    }
+
+    private void validatePrices(BigDecimal price, BigDecimal salePrice) {
+        if (price != null && price.signum() < 0) {
+            throw new IllegalArgumentException("Học phí không được âm.");
+        }
+        if (salePrice != null && salePrice.signum() < 0) {
+            throw new IllegalArgumentException("Giá ưu đãi không được âm.");
+        }
+        if (price != null && salePrice != null && salePrice.compareTo(price) > 0) {
+            throw new IllegalArgumentException("Giá ưu đãi không được lớn hơn học phí gốc.");
+        }
+    }
+
+    private void validateSessionRequest(CreateClassroomSessionRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu buổi học không được để trống.");
+        }
+        if (request.getSessionDate() == null || request.getStartTime() == null || request.getEndTime() == null) {
+            throw new IllegalArgumentException("Ngày học, giờ bắt đầu và giờ kết thúc không được để trống.");
+        }
+        if (!request.isTimeRangeValid()) {
+            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
+        }
+    }
+
+    private ClassroomDeliveryMode resolveSessionDeliveryMode(
+            CreateClassroomSessionRequest request,
+            ClassroomOffering offering
+    ) {
+        ClassroomDeliveryMode deliveryMode = request.getDeliveryMode() != null
+                ? request.getDeliveryMode() : offering.getDeliveryMode();
+        if (deliveryMode == null) {
+            throw new IllegalArgumentException("Hình thức của buổi học không được để trống.");
+        }
+        return deliveryMode;
+    }
+
+    private ClassroomRoom resolveSessionRoom(
+            CreateClassroomSessionRequest request,
+            ClassroomOffering offering,
+            ClassroomDeliveryMode deliveryMode
+    ) {
+        if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
+            return null;
+        }
+        Long roomId = request.getRoomId() != null ? request.getRoomId() : getDefaultRoomId(offering);
+        return resolveRoom(roomId);
+    }
+
+    private void validateRoomCapacity(ClassroomRoom room, Integer expectedCapacity) {
+        if (room != null && room.getCapacity() != null && expectedCapacity != null
+                && expectedCapacity > room.getCapacity()) {
+            throw new IllegalArgumentException(
+                    "Sĩ số tối đa của lớp vượt quá sức chứa " + room.getCapacity() + " của phòng " + room.getName() + "."
+            );
+        }
+    }
+
     private User resolveTeacher(Long teacherId) {
         if (teacherId == null) {
             return null;
         }
-        return userRepository.findById(teacherId)
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên."));
+        if (!teacher.hasRole(RoleEnum.TEACHER)) {
+            throw new IllegalArgumentException("Tài khoản được chọn không có vai trò giáo viên.");
+        }
+        return teacher;
     }
 
     private ClassroomRoom resolveRoom(Long roomId) {
         if (roomId == null) {
             return null;
         }
-        return roomRepository.findById(roomId)
+        ClassroomRoom room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng học."));
+        if (!room.isActive()) {
+            throw new IllegalArgumentException("Phòng học đã ngừng hoạt động.");
+        }
+        return room;
     }
 
     private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId, ClassroomDeliveryMode deliveryMode) {
