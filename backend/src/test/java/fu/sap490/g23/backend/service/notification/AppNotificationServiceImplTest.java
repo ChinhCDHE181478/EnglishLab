@@ -12,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -62,5 +64,24 @@ class AppNotificationServiceImplTest {
         assertEquals("/my-homework", captor.getValue().getActionPath());
         assertEquals("HOMEWORK_6_24H", captor.getValue().getDeduplicationKey());
         assertTrue(captor.getValue().getMetadataJson().contains("\"homeworkId\":6"));
+    }
+
+    @Test
+    void createForUserOnce_UsesAnIndependentTransaction() throws NoSuchMethodException {
+        Transactional annotation = AppNotificationServiceImpl.class
+                .getMethod(
+                        "createForUserOnce",
+                        User.class,
+                        String.class,
+                        String.class,
+                        String.class,
+                        String.class,
+                        String.class,
+                        Map.class
+                )
+                .getAnnotation(Transactional.class);
+
+        assertNotNull(annotation);
+        assertEquals(Propagation.REQUIRES_NEW, annotation.propagation());
     }
 }
