@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -85,7 +86,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         String meetingUri = space.path("meetingUri").asText("");
         String meetingCode = space.path("meetingCode").asText("");
 
-        if (resourceName.isBlank() || meetingUri.isBlank()) {
+        if (resourceName.isBlank() || !isGoogleMeetUrl(meetingUri)) {
             throw new RuntimeException("Google Meet không trả về đầy đủ mã phòng và liên kết tham gia.");
         }
 
@@ -137,20 +138,12 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
 
     private JsonNode sendMeetRequest(String method, String path, String body) {
         try {
-            HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(properties.getApiBaseUrl() + path))
-                    .timeout(REQUEST_TIMEOUT)
-                    .header("Authorization", "Bearer " + getAccessToken())
-                    .header("Content-Type", "application/json; charset=UTF-8");
-            if ("POST".equals(method)) {
-                builder.POST(HttpRequest.BodyPublishers.ofString(body));
-            } else {
-                throw new IllegalArgumentException("Phương thức Google Meet không được hỗ trợ: " + method);
+            String token = getAccessToken();
+            HttpResponse<String> response = sendAuthorizedRequest(method, path, body, token);
+            if (response.statusCode() == 401) {
+                invalidateAccessToken(token);
+                response = sendAuthorizedRequest(method, path, body, getAccessToken());
             }
-
-            HttpResponse<String> response = httpClient.send(
-                    builder.build(),
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
-            );
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw providerError("Google Meet", response);
             }
@@ -162,6 +155,36 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
             throw new RuntimeException("Yêu cầu Google Meet đã bị gián đoạn.", ex);
         } catch (IOException | IllegalArgumentException ex) {
             throw new RuntimeException("Không thể kết nối Google Meet: " + ex.getMessage(), ex);
+        }
+    }
+
+    private HttpResponse<String> sendAuthorizedRequest(
+            String method,
+            String path,
+            String body,
+            String token
+    ) throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(properties.getApiBaseUrl() + path))
+                .timeout(REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json; charset=UTF-8");
+        if ("POST".equals(method)) {
+            builder.POST(HttpRequest.BodyPublishers.ofString(body));
+        } else {
+            throw new IllegalArgumentException("Phương thức Google Meet không được hỗ trợ: " + method);
+        }
+        return httpClient.send(
+                builder.build(),
+                HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+        );
+    }
+
+    private void invalidateAccessToken(String rejectedToken) {
+        synchronized (this) {
+            if (Objects.equals(accessToken, rejectedToken)) {
+                accessToken = null;
+                accessTokenExpiresAt = Instant.EPOCH;
+            }
         }
     }
 

@@ -26,9 +26,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -58,6 +60,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
     private static final Set<ClassroomRegistrationStatus> HAS_LEARNING_ACCESS = ClassroomRegistrationSupport.HAS_LEARNING_ACCESS;
     private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
+    private static final int VIRTUAL_MEETING_RETRY_BATCH_SIZE = 8;
+    private static final Set<ClassroomSessionStatus> VIRTUAL_MEETING_RETRY_SESSION_STATUSES = Set.of(
+            ClassroomSessionStatus.SCHEDULED,
+            ClassroomSessionStatus.OPEN,
+            ClassroomSessionStatus.IN_PROGRESS,
+            ClassroomSessionStatus.RESCHEDULED,
+            ClassroomSessionStatus.MAKEUP
+    );
+    private static final Set<String> VIRTUAL_MEETING_RETRY_SYNC_STATUSES = Set.of(
+            "PENDING",
+            "FAILED",
+            "DISABLED"
+    );
 
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
@@ -1337,6 +1352,48 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         sessionRepository.saveAll(emptyRooms);
     }
 
+    /**
+     * Tự khôi phục các buổi online chưa được cấp phòng do Google Meet tạm lỗi,
+     * hết quota hoặc do tích hợp được bật sau khi buổi học đã được tạo.
+     *
+     * Mỗi lần chỉ xử lý một lô nhỏ để không vượt quota spaces.create theo phút.
+     * Không giữ một transaction dài quanh các HTTP request tới Google.
+     */
+    @Scheduled(
+            fixedDelayString = "${englishlab.google-meet.retry-delay-ms:300000}",
+            initialDelayString = "${englishlab.google-meet.retry-initial-delay-ms:60000}"
+    )
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void retryPendingVirtualMeetings() {
+        if (!virtualMeetingService.isEnabled()) {
+            return;
+        }
+
+        List<ClassroomSession> pendingSessions = sessionRepository.findVirtualMeetingsPendingSync(
+                ClassroomDeliveryMode.VIRTUAL,
+                VIRTUAL_MEETING_RETRY_SESSION_STATUSES,
+                VIRTUAL_MEETING_RETRY_SYNC_STATUSES,
+                LocalDate.now(),
+                PageRequest.of(0, VIRTUAL_MEETING_RETRY_BATCH_SIZE)
+        );
+
+        for (ClassroomSession session : pendingSessions) {
+            if (!requiresManagedVirtualMeeting(session)) {
+                continue;
+            }
+            try {
+                syncVirtualMeetingSafely(session);
+                sessionRepository.save(session);
+            } catch (RuntimeException ex) {
+                log.error(
+                        "Không thể lưu kết quả tự tạo lại Google Meet cho buổi học {}: {}",
+                        session.getId(),
+                        ex.getMessage()
+                );
+            }
+        }
+    }
+
     @Override
     public ClassroomSessionResponse updateSessionLarkLink(Long sessionId, UpdateLarkLinkRequest request) {
         ClassroomSession session = findSession(sessionId);
@@ -1570,6 +1627,13 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             log.warn("Không thể đồng bộ buổi học {} với Google Meet: {}", session.getId(), ex.getMessage());
             return false;
         }
+    }
+
+    private boolean requiresManagedVirtualMeeting(ClassroomSession session) {
+        String meetingUrl = session.getLarkMeetingUrl();
+        return meetingUrl == null
+                || meetingUrl.isBlank()
+                || virtualMeetingService.isLegacyOrPlaceholderUrl(meetingUrl);
     }
 
     private void deleteVirtualMeetingSafely(ClassroomSession session) {

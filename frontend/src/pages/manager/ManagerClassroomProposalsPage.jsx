@@ -144,7 +144,9 @@ export default function ManagerClassroomProposalsPage() {
         ],
       }));
       setSuccess(reviewAction === 'approve'
-        ? `${updated.proposalCode} đã được duyệt và tạo lớp chính thức.`
+        ? selectedProposal.deliveryMode === 'VIRTUAL'
+          ? `${updated.proposalCode} đã được duyệt và tạo lớp chính thức. Phòng Google Meet đang được tạo tự động cho từng buổi học.`
+          : `${updated.proposalCode} đã được duyệt và tạo lớp chính thức.`
         : `${updated.proposalCode} đã được trả lại kèm lý do.`);
       closeDetailsAfterSubmit();
     } catch (err) {

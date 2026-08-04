@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -90,6 +91,49 @@ class GoogleMeetServiceImplTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("GOOGLE_MEET_CLIENT_ID")
                 .hasMessageContaining("GOOGLE_MEET_REFRESH_TOKEN");
+    }
+
+    @Test
+    void refreshesRejectedAccessTokenOnceAndRetriesMeetingCreation() throws IOException {
+        AtomicInteger tokenRequests = new AtomicInteger();
+        AtomicInteger spaceRequests = new AtomicInteger();
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> {
+            int tokenNumber = tokenRequests.incrementAndGet();
+            respond(exchange, 200, "{\"access_token\":\"access-token-" + tokenNumber + "\",\"expires_in\":3600}");
+        });
+        server.createContext("/v2/spaces", exchange -> {
+            int requestNumber = spaceRequests.incrementAndGet();
+            String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+            if (requestNumber == 1) {
+                assertThat(authorization).isEqualTo("Bearer access-token-1");
+                respond(exchange, 401, "{\"error\":{\"message\":\"expired token\"}}");
+                return;
+            }
+            assertThat(authorization).isEqualTo("Bearer access-token-2");
+            respond(
+                    exchange,
+                    200,
+                    """
+                            {
+                              "name":"spaces/retried-space",
+                              "meetingUri":"https://meet.google.com/retry-room-ok",
+                              "meetingCode":"retry-room-ok"
+                            }
+                            """
+            );
+        });
+        server.start();
+
+        VirtualMeetingService service = new GoogleMeetServiceImpl(configuredProperties());
+        ClassroomSession session = new ClassroomSession();
+
+        service.syncMeeting(session);
+
+        assertThat(tokenRequests).hasValue(2);
+        assertThat(spaceRequests).hasValue(2);
+        assertThat(session.getLarkMeetingUrl()).isEqualTo("https://meet.google.com/retry-room-ok");
+        assertThat(session.getLarkSyncStatus()).isEqualTo("SYNCED");
     }
 
     private GoogleMeetProperties configuredProperties() {
