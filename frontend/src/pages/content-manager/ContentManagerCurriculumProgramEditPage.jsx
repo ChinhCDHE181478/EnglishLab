@@ -29,7 +29,7 @@ import {
 } from '../../utils/englishProgramProfile';
 
 const platformOptions = [
-  { label: 'Lark', value: 'LARK' },
+  { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Zoom', value: 'ZOOM' },
   { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Liên kết thủ công', value: 'MANUAL' },
@@ -54,7 +54,7 @@ const toForm = (program = {}) => {
     totalSessions: program.totalSessions ?? 0,
     status: program.status || 'DRAFT',
     displayOrder: program.displayOrder ?? 0,
-    virtualPlatform: program.virtualPlatform || 'LARK',
+    virtualPlatform: program.virtualPlatform || 'GOOGLE_MEET',
     recordingAllowed: program.recordingAllowed ?? true,
     recordingAvailableDays: program.recordingAvailableDays ?? 30,
     materialsDownloadable: program.materialsDownloadable ?? false,

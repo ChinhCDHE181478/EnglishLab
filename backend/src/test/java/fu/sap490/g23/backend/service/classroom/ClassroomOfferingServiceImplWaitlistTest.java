@@ -30,7 +30,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,7 +60,7 @@ class ClassroomOfferingServiceImplWaitlistTest {
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
-    @Mock private LarkMeetingService larkMeetingService;
+    @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
     @Mock private LarkMeetingParticipantRepository larkParticipantRepository;
@@ -85,14 +87,14 @@ class ClassroomOfferingServiceImplWaitlistTest {
                 .build();
         when(accessHelper.requireUser(staff.getEmail())).thenReturn(staff);
         when(sessionRepository.findById(session.getId())).thenReturn(Optional.of(session));
-        when(larkMeetingService.isEnabled()).thenReturn(true);
+        when(virtualMeetingService.isEnabled()).thenReturn(true);
         doAnswer(invocation -> {
             ClassroomSession target = invocation.getArgument(0);
             target.setLarkMeetingUrl(expected.getLarkMeetingUrl());
             target.setLarkMeetingNo(expected.getLarkMeetingNo());
             target.setLarkSyncStatus("SYNCED");
             return null;
-        }).when(larkMeetingService).syncMeeting(session);
+        }).when(virtualMeetingService).syncMeeting(session);
         when(sessionRepository.save(session)).thenReturn(session);
         when(mapper.toSessionResponse(session)).thenReturn(expected);
 
@@ -102,7 +104,50 @@ class ClassroomOfferingServiceImplWaitlistTest {
         assertEquals("SYNCED", response.getLarkSyncStatus());
         assertEquals("123456789", response.getLarkMeetingNo());
         verify(accessHelper).assertStaffOperator(staff);
-        verify(larkMeetingService).syncMeeting(session);
+        verify(virtualMeetingService).syncMeeting(session);
+    }
+
+    @Test
+    void retryPendingVirtualMeetingsAutomaticallyCreatesMissingRoom() {
+        ClassroomSession session = ClassroomSession.builder()
+                .id(10L)
+                .sessionDate(LocalDate.now().plusDays(1))
+                .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                .status(ClassroomSessionStatus.SCHEDULED)
+                .larkSyncStatus("FAILED")
+                .build();
+        when(virtualMeetingService.isEnabled()).thenReturn(true);
+        when(sessionRepository.findVirtualMeetingsPendingSync(
+                eq(ClassroomDeliveryMode.VIRTUAL),
+                anyCollection(),
+                anyCollection(),
+                eq(LocalDate.now()),
+                any(Pageable.class)
+        )).thenReturn(List.of(session));
+        doAnswer(invocation -> {
+            ClassroomSession target = invocation.getArgument(0);
+            target.setLarkMeetingUrl("https://meet.google.com/abc-defg-hij");
+            target.setLarkSyncStatus("SYNCED");
+            target.setLarkSyncError(null);
+            return null;
+        }).when(virtualMeetingService).syncMeeting(session);
+
+        service.retryPendingVirtualMeetings();
+
+        assertEquals("SYNCED", session.getLarkSyncStatus());
+        verify(virtualMeetingService).syncMeeting(session);
+        verify(sessionRepository).save(session);
+    }
+
+    @Test
+    void retryPendingVirtualMeetingsDoesNothingWhileIntegrationIsDisabled() {
+        when(virtualMeetingService.isEnabled()).thenReturn(false);
+
+        service.retryPendingVirtualMeetings();
+
+        verify(sessionRepository, never()).findVirtualMeetingsPendingSync(
+                any(), anyCollection(), anyCollection(), any(), any(Pageable.class)
+        );
     }
 
     @Test

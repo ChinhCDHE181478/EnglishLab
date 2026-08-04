@@ -144,7 +144,10 @@ public class StaffClassroomController {
         return ResponseEntity.ok(classroomOfferingService.createSession(id, request));
     }
 
-    @PostMapping("/sessions/{sessionId}/sync-lark-meeting")
+    @PostMapping({
+            "/sessions/{sessionId}/sync-google-meet",
+            "/sessions/{sessionId}/sync-lark-meeting"
+    })
     public ResponseEntity<ClassroomSessionResponse> syncVirtualSessionMeeting(
             @PathVariable Long sessionId,
             Authentication authentication
@@ -309,7 +312,7 @@ public class StaffClassroomController {
     }
 
     @PostMapping("/conflict-check")
-    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@RequestBody ConflictCheckRequest request) {
+    public ResponseEntity<ConflictCheckResultResponse> checkConflict(@Valid @RequestBody ConflictCheckRequest request) {
         return ResponseEntity.ok(classroomOfferingService.checkConflict(request));
     }
 }

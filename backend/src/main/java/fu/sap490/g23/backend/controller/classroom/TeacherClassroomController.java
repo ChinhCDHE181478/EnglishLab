@@ -108,7 +108,10 @@ public class TeacherClassroomController {
         return ResponseEntity.ok(classroomOfferingService.closeVirtualSession(sessionId, authentication.getName()));
     }
 
-    @PatchMapping("/sessions/{sessionId}/lark-link")
+    @PatchMapping({
+            "/sessions/{sessionId}/meeting-link",
+            "/sessions/{sessionId}/lark-link"
+    })
     public ResponseEntity<ClassroomSessionResponse> updateLarkLink(
             @PathVariable Long sessionId,
             @Valid @RequestBody UpdateLarkLinkRequest request,

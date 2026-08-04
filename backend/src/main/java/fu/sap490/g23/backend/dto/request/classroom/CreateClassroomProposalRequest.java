@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -53,4 +54,14 @@ public class CreateClassroomProposalRequest {
 
     @Size(max = 700)
     private String note;
+
+    @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
+    public boolean isDateRangeValid() {
+        return plannedStartDate == null || plannedEndDate == null || !plannedEndDate.isBefore(plannedStartDate);
+    }
+
+    @AssertTrue(message = "Giờ kết thúc phải sau giờ bắt đầu")
+    public boolean isTimeRangeValid() {
+        return sessionStartTime == null || sessionEndTime == null || sessionEndTime.isAfter(sessionStartTime);
+    }
 }

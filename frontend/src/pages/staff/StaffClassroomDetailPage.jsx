@@ -12,6 +12,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { validateClassroomSessionForm } from '../../utils/classroomFormValidation';
 import {
   formatClassroomDate,
   formatClassroomDateTime,
@@ -153,16 +154,33 @@ export default function StaffClassroomDetailPage() {
 
   const handleCreateSession = async (event) => {
     event.preventDefault();
-    setCreatingSession(true);
     setActionMessage('');
+    const validationMessage = validateClassroomSessionForm(sessionForm);
+    if (validationMessage) {
+      setActionTone('error');
+      setActionMessage(validationMessage);
+      return;
+    }
+    setCreatingSession(true);
     try {
-      await classroomApi.createStaffClassroomSession(id, {
+      const created = await classroomApi.createStaffClassroomSession(id, {
         ...sessionForm,
         teacherId: sessionForm.teacherId ? Number(sessionForm.teacherId) : null,
         roomId: sessionForm.roomId ? Number(sessionForm.roomId) : null,
       });
-      setActionTone('success');
-      setActionMessage('Đã thêm buổi học vào lịch.');
+      const meetingPending = created.deliveryMode === 'VIRTUAL'
+        && !['SYNCED', 'MANUAL'].includes(created.larkSyncStatus);
+      if (meetingPending) {
+        setActionTone('warning');
+        setActionMessage(
+          `Đã thêm buổi học nhưng chưa tạo được Google Meet. ${created.larkSyncError || 'Hệ thống sẽ tự thử lại theo lịch.'}`,
+        );
+      } else {
+        setActionTone('success');
+        setActionMessage(created.deliveryMode === 'VIRTUAL'
+          ? 'Đã thêm buổi học và tạo phòng Google Meet tự động.'
+          : 'Đã thêm buổi học vào lịch.');
+      }
       setSessionForm((current) => ({ ...initialSessionForm, deliveryMode: current.deliveryMode }));
       await loadClassroom();
     } catch (err) {
@@ -180,15 +198,15 @@ export default function StaffClassroomDetailPage() {
       const updated = await classroomApi.syncStaffVirtualSessionMeeting(session.id);
       if (updated.larkSyncStatus === 'SYNCED') {
         setActionTone('success');
-        setActionMessage(`Đã tạo phòng Lark tự động cho buổi học ngày ${formatClassroomDate(updated.sessionDate)}.`);
+        setActionMessage(`Đã tạo phòng Google Meet tự động cho buổi học ngày ${formatClassroomDate(updated.sessionDate)}.`);
       } else {
         setActionTone('error');
-        setActionMessage(updated.larkSyncError || 'Chưa thể đồng bộ phòng Lark. Vui lòng kiểm tra cấu hình tích hợp.');
+        setActionMessage(updated.larkSyncError || 'Chưa thể đồng bộ phòng Google Meet. Vui lòng kiểm tra cấu hình tích hợp.');
       }
       await loadClassroom();
     } catch (err) {
       setActionTone('error');
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể đồng bộ phòng Lark.'));
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể đồng bộ phòng Google Meet.'));
     } finally {
       setSyncingSessionId(null);
     }
@@ -274,8 +292,19 @@ export default function StaffClassroomDetailPage() {
         startDate: templateForm.startDate,
         weeks: Number(templateForm.weeks),
       });
-      setActionTone('success');
-      setActionMessage(`Đã sinh ${created.length} buổi học từ mẫu lịch.`);
+      const pendingMeetingCount = created.filter((session) => (
+        session.deliveryMode === 'VIRTUAL'
+        && !['SYNCED', 'MANUAL'].includes(session.larkSyncStatus)
+      )).length;
+      if (pendingMeetingCount > 0) {
+        setActionTone('warning');
+        setActionMessage(
+          `Đã sinh ${created.length} buổi học; ${pendingMeetingCount} phòng Google Meet đang chờ hệ thống tự tạo lại.`,
+        );
+      } else {
+        setActionTone('success');
+        setActionMessage(`Đã sinh ${created.length} buổi học từ mẫu lịch.`);
+      }
       await loadClassroom();
     } catch (err) {
       setActionTone('error');
@@ -329,7 +358,9 @@ export default function StaffClassroomDetailPage() {
         <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
           actionTone === 'error'
             ? 'border-red-200 bg-red-50 text-red-800'
-            : 'border-emerald-100 bg-emerald-50 text-emerald-800'
+            : actionTone === 'warning'
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-emerald-100 bg-emerald-50 text-emerald-800'
         }`}>
           {actionMessage}
         </div>
@@ -499,12 +530,12 @@ function VirtualMeetingStatus({ session, syncing, onRetry }) {
   const synced = session.larkSyncStatus === 'SYNCED' && Boolean(session.larkMeetingUrl);
   const terminal = ['COMPLETED', 'CANCELLED'].includes(session.status);
   const statusLabel = {
-    DISABLED: 'Lark chưa được cấu hình',
-    FAILED: 'Tạo phòng Lark thất bại',
-    MANUAL: 'Phòng Lark cũ',
-    PENDING: 'Đang chờ tạo phòng Lark',
-    SYNCED: 'Phòng Lark đã sẵn sàng',
-  }[session.larkSyncStatus] || 'Chưa tạo phòng Lark';
+    DISABLED: 'Google Meet chưa được cấu hình',
+    FAILED: 'Tạo phòng Google Meet thất bại',
+    MANUAL: 'Liên kết Google Meet nhập thủ công',
+    PENDING: 'Đang chờ tạo phòng Google Meet',
+    SYNCED: 'Phòng Google Meet đã sẵn sàng',
+  }[session.larkSyncStatus] || 'Chưa tạo phòng Google Meet';
 
   if (synced) {
     return (

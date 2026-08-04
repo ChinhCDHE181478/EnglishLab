@@ -728,11 +728,12 @@ export default function ContentManagerSyllabusBuilderPage() {
 
   return (
     <div className="space-y-6">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
+      {error && !programCreatorOpen && !programEditorOpen ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
       {programCreatorOpen ? (
         <SyllabusProgramCreateModal
+          error={error}
           form={programForm}
           onChange={updateProgramForm}
           onClose={closeProgramCreator}
@@ -743,6 +744,7 @@ export default function ContentManagerSyllabusBuilderPage() {
 
       {programEditorOpen ? (
         <SyllabusProgramCreateModal
+          error={error}
           form={programForm}
           mode="edit"
           onChange={updateProgramForm}
@@ -1061,26 +1063,27 @@ function FieldSelect({ label, value, options, onChange, placeholder, disabled })
   );
 }
 
-function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, onSubmit, saving }) {
+function SyllabusProgramCreateModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && !saving) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, saving]);
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex min-h-0 items-center justify-center overflow-hidden p-4 sm:p-6 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
         className="absolute inset-0 bg-[#1a0004]/55 backdrop-blur-sm"
+        disabled={saving}
         onClick={onClose}
         type="button"
       />
@@ -1097,6 +1100,7 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+            {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tên giáo trình</span>
               <input className={FIELD_CLASS} onChange={(event) => onChange({ title: event.target.value })} value={form.title} />
@@ -1177,7 +1181,7 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
           </div>
 
           <div className="flex flex-wrap justify-end gap-3 border-t border-[#dcc0bf]/20 p-5">
-            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009]" onClick={onClose} type="button">Hủy</button>
+            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009] disabled:opacity-50" disabled={saving} onClick={onClose} type="button">Hủy</button>
             <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
               {editing ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Tạo và biên soạn')}

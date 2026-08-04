@@ -227,7 +227,7 @@ export const classroomApi = {
   },
 
   async updateSessionLarkLink(sessionId, payload) {
-    const response = await axiosClient.patch(`/api/teacher/classrooms/sessions/${sessionId}/lark-link`, payload);
+    const response = await axiosClient.patch(`/api/teacher/classrooms/sessions/${sessionId}/meeting-link`, payload);
     return unwrapData(response);
   },
 
@@ -418,7 +418,7 @@ export const classroomApi = {
   },
 
   async syncStaffVirtualSessionMeeting(sessionId) {
-    const response = await axiosClient.post(`/api/staff/classrooms/sessions/${sessionId}/sync-lark-meeting`);
+    const response = await axiosClient.post(`/api/staff/classrooms/sessions/${sessionId}/sync-google-meet`);
     return unwrapData(response);
   },
 

@@ -67,6 +67,7 @@ class ClassroomProposalServiceImplTest {
     @Mock private ClassroomOfferingRepository offeringRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomConflictService conflictService;
+    @Mock private ClassroomScheduleLockService scheduleLockService;
     @Mock private ClassroomOfferingService classroomOfferingService;
 
     private ClassroomProposalServiceImpl service;
@@ -87,6 +88,7 @@ class ClassroomProposalServiceImplTest {
                 offeringRepository,
                 userRepository,
                 conflictService,
+                scheduleLockService,
                 classroomOfferingService
         );
         learner = user(1L, "learner@example.com", RoleEnum.LEARNER);
@@ -128,6 +130,7 @@ class ClassroomProposalServiceImplTest {
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.DRAFT);
         assertThat(response.getLearnerCount()).isZero();
         assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        verify(scheduleLockService).lockDates(any());
         verify(enrollmentHistoryRepository, never()).save(any());
     }
 
@@ -206,6 +209,7 @@ class ClassroomProposalServiceImplTest {
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.APPROVED);
         assertThat(response.getApprovedClassroomId()).isEqualTo(classroom.getId());
         assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        verify(scheduleLockService).lockDates(any());
         verify(classroomOfferingService, times(2)).createSession(
                 any(),
                 any(CreateClassroomSessionRequest.class)

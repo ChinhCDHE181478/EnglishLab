@@ -8,6 +8,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { validateClassroomOfferingForm } from '../../utils/classroomFormValidation';
 import {
   formatClassroomDate,
   formatClassroomPrice,
@@ -230,6 +231,11 @@ export default function StaffClassroomsPage() {
       setMessage('Vui lòng chọn chương trình đào tạo đã xuất bản trước khi mở lớp.');
       return;
     }
+    const validationMessage = validateClassroomOfferingForm(classroomForm);
+    if (validationMessage) {
+      setMessage(validationMessage);
+      return;
+    }
     setWorking(true);
     setMessage('');
     try {
@@ -248,7 +254,7 @@ export default function StaffClassroomsPage() {
 
   return (
     <div className="space-y-5">
-      {message ? <div className="rounded-xl border border-[#dfbfbd]/50 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014]">{message}</div> : null}
+      {message && !editorOpen ? <div className="rounded-xl border border-[#dfbfbd]/50 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014]" role="alert">{message}</div> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={GraduationCap} label="Tổng lớp" value={stats.total} />
@@ -314,11 +320,14 @@ export default function StaffClassroomsPage() {
 
       {editorOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <button aria-label="Đóng cửa sổ" className="absolute inset-0" onClick={() => setEditorOpen(false)} type="button" />
+          <button aria-label="Đóng cửa sổ" className="absolute inset-0" disabled={working} onClick={() => setEditorOpen(false)} type="button" />
           <form className="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" onSubmit={saveClassroom}>
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Chỉnh sửa thông tin vận hành</h3><p className="mt-1 text-xs text-[#8b706e]">Cập nhật các thông tin phục vụ vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140]" onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-6"><ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} teacherOptions={teacherOptions} trainingProgramOptions={trainingProgramOptions} /></div>
-            <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4"><button className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140]" onClick={() => setEditorOpen(false)} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : 'Lưu thay đổi'}</button></div>
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Chỉnh sửa thông tin vận hành</h3><p className="mt-1 text-xs text-[#8b706e]">Cập nhật các thông tin phục vụ vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140] disabled:opacity-50" disabled={working} onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
+              {message ? <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700" role="alert">{message}</div> : null}
+              <ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} teacherOptions={teacherOptions} trainingProgramOptions={trainingProgramOptions} />
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4"><button className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140] disabled:opacity-50" disabled={working} onClick={() => setEditorOpen(false)} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : 'Lưu thay đổi'}</button></div>
           </form>
         </div>
       ) : null}

@@ -35,6 +35,7 @@ import fu.sap490.g23.backend.security.TrainingRolePolicy;
 import fu.sap490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sap490.g23.backend.service.classroom.ClassroomProposalService;
+import fu.sap490.g23.backend.service.classroom.ClassroomScheduleLockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,10 +64,12 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private final ClassroomOfferingRepository offeringRepository;
     private final UserRepository userRepository;
     private final ClassroomConflictService conflictService;
+    private final ClassroomScheduleLockService scheduleLockService;
     private final ClassroomOfferingService classroomOfferingService;
 
     @Override
     public ClassroomProposalResponse create(CreateClassroomProposalRequest payload, String staffEmail) {
+        validateProposalPayload(payload);
         User staff = requireStaff(staffEmail);
         TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
         ClassroomProposal proposal = ClassroomProposal.builder()
@@ -78,6 +81,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .approvalStatus(ClassroomApprovalStatus.DRAFT)
                 .build();
         applyProposalFields(proposal, payload, 0);
+        scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, null);
         proposalRepository.save(proposal);
         return toResponse(proposal);
@@ -89,6 +93,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             CreateClassroomProposalRequest payload,
             String staffEmail
     ) {
+        validateProposalPayload(payload);
         User staff = requireStaff(staffEmail);
         ClassroomProposal proposal = requireProposal(proposalId);
         if (proposal.getApprovalStatus() != ClassroomApprovalStatus.DRAFT
@@ -99,6 +104,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Không thể đổi khóa học của đề xuất đã tạo.");
         }
         applyProposalFields(proposal, payload, 0);
+        scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
         proposal.setStaffNote(trimOrNull(payload.getNote()));
         proposal.setReviewedBy(null);
@@ -116,6 +122,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             Long excludeProposalId,
             String staffEmail
     ) {
+        validateProposalPayload(payload);
         requireStaff(staffEmail);
         TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
         ClassroomProposal proposal = ClassroomProposal.builder()
@@ -137,6 +144,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Chỉ có thể gửi duyệt đề xuất nháp hoặc bị từ chối.");
         }
         validateProposal(proposal, true);
+        scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
         proposal.setApprovalStatus(ClassroomApprovalStatus.PENDING_APPROVAL);
         proposal.setSubmittedBy(staff);
@@ -176,6 +184,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             throw new IllegalArgumentException("Đề xuất không ở trạng thái chờ duyệt.");
         }
         validateProposal(proposal, true);
+        scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
 
         ClassroomOfferingResponse created = classroomOfferingService.createOffering(
@@ -258,6 +267,36 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         validateProposal(proposal, false);
         if (proposal.getCapacity() < learnerCount) {
             throw new IllegalArgumentException("Sức chứa đề xuất nhỏ hơn số học viên đã chọn.");
+        }
+    }
+
+    private void validateProposalPayload(CreateClassroomProposalRequest payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Dữ liệu đề xuất lớp không được để trống.");
+        }
+        if (!StringUtils.hasText(payload.getTitle())) {
+            throw new IllegalArgumentException("Tên đề xuất lớp không được để trống.");
+        }
+        if (payload.getCourseOfferingId() == null) {
+            throw new IllegalArgumentException("Khóa học không được để trống.");
+        }
+        if (payload.getCapacity() == null || payload.getCapacity() < 1) {
+            throw new IllegalArgumentException("Sức chứa phải lớn hơn 0.");
+        }
+        if (payload.getPlannedStartDate() == null || payload.getPlannedEndDate() == null) {
+            throw new IllegalArgumentException("Ngày bắt đầu và ngày kết thúc không được để trống.");
+        }
+        if (!payload.isDateRangeValid()) {
+            throw new IllegalArgumentException("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
+        }
+        if (payload.getWeekdays() == null || payload.getWeekdays().isEmpty()) {
+            throw new IllegalArgumentException("Cần chọn ít nhất một ngày học trong tuần.");
+        }
+        if (payload.getSessionStartTime() == null || payload.getSessionEndTime() == null) {
+            throw new IllegalArgumentException("Giờ bắt đầu và giờ kết thúc không được để trống.");
+        }
+        if (!payload.isTimeRangeValid()) {
+            throw new IllegalArgumentException("Giờ kết thúc phải sau giờ bắt đầu.");
         }
     }
 
