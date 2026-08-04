@@ -51,9 +51,12 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Service
@@ -63,6 +66,32 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
+    private static final Set<String> EXAM_CATEGORIES = Set.of("IELTS", "TOEIC", "GENERAL_ENGLISH");
+    private static final Set<String> IELTS_TRACKS = Set.of(
+            "IELTS_FOUNDATION",
+            "IELTS_ACADEMIC",
+            "IELTS_SPEAKING_WRITING"
+    );
+    private static final Set<String> TOEIC_TRACKS = Set.of(
+            "TOEIC_LISTENING_READING",
+            "TOEIC_SPEAKING_WRITING",
+            "TOEIC_COMMUNICATION"
+    );
+    private static final Set<String> GENERAL_ENGLISH_TRACKS = Set.of(
+            "GENERAL_ENGLISH_FOUNDATION",
+            "GENERAL_ENGLISH_COMMUNICATION"
+    );
+    private static final Set<String> CEFR_LEVELS = Set.of("A1", "A2", "B1", "B2", "C1", "C2");
+    private static final List<String> SKILL_ORDER = List.of(
+            "LISTENING",
+            "READING",
+            "WRITING",
+            "SPEAKING",
+            "VOCABULARY",
+            "GRAMMAR",
+            "PRONUNCIATION",
+            "COMMUNICATION"
+    );
 
     private final CurriculumProgramRepository programRepository;
     private final CurriculumUnitRepository unitRepository;
@@ -104,10 +133,6 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .code(code)
                 .slug(slug)
                 .deliveryMode(request.getDeliveryMode())
-                .examCategory(defaultText(request.getExamCategory(), "IELTS").toUpperCase(Locale.ROOT))
-                .targetBand(request.getTargetBand())
-                .targetScore(request.getTargetScore())
-                .entryLevel(trimOrNull(request.getEntryLevel()))
                 .outcomes(trimOrNull(request.getOutcomes()))
                 .teacherGuide(trimOrNull(request.getTeacherGuide()))
                 .interactionActivities(trimOrNull(request.getInteractionActivities()))
@@ -115,6 +140,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .status(defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT))
                 .displayOrder(defaultInt(request.getDisplayOrder()))
                 .build();
+        applyEnglishProfile(program, request);
         applyVirtualConfig(program, request);
         if ("PUBLISHED".equals(program.getStatus())) {
             throw new RuntimeException("Giáo trình mới tạo chưa có unit/buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
@@ -133,10 +159,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setCode(code);
         program.setSlug(uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), id));
         program.setDeliveryMode(request.getDeliveryMode());
-        program.setExamCategory(defaultText(request.getExamCategory(), "IELTS").toUpperCase(Locale.ROOT));
-        program.setTargetBand(request.getTargetBand());
-        program.setTargetScore(request.getTargetScore());
-        program.setEntryLevel(trimOrNull(request.getEntryLevel()));
+        applyEnglishProfile(program, request);
         program.setOutcomes(trimOrNull(request.getOutcomes()));
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
         program.setInteractionActivities(trimOrNull(request.getInteractionActivities()));
@@ -174,6 +197,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .slug(uniqueProgramSlug(source.getSlug() + "-copy", null))
                 .deliveryMode(source.getDeliveryMode())
                 .examCategory(source.getExamCategory())
+                .programTrack(source.getProgramTrack())
+                .focusSkills(source.getFocusSkills())
                 .targetBand(source.getTargetBand())
                 .targetScore(source.getTargetScore())
                 .entryLevel(source.getEntryLevel())
@@ -531,6 +556,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .deliveryMode(program.getDeliveryMode())
                 .deliveryModeLabel(deliveryModeLabel(program.getDeliveryMode()))
                 .examCategory(program.getExamCategory())
+                .programTrack(program.getProgramTrack())
+                .focusSkills(program.getFocusSkills())
                 .targetBand(program.getTargetBand())
                 .targetScore(program.getTargetScore())
                 .entryLevel(program.getEntryLevel())
@@ -602,6 +629,17 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     private void validateReadyForPublish(CurriculumProgram program) {
+        validateEnglishProfile(
+                program.getExamCategory(),
+                program.getProgramTrack(),
+                program.getFocusSkills(),
+                program.getTargetBand(),
+                program.getTargetScore(),
+                program.getEntryLevel()
+        );
+        if (!StringUtils.hasText(program.getOutcomes())) {
+            throw new RuntimeException("Giáo trình phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
+        }
         if (program.getUnits() == null || program.getUnits().isEmpty()) {
             throw new RuntimeException("Giáo trình chưa có unit/buổi học nào. Hãy thêm nội dung trước khi xuất bản.");
         }
@@ -615,6 +653,188 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         if (hasUnpublishedMaterial) {
             throw new RuntimeException("Giáo trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
         }
+        validateFocusedSkillAssessments(program);
+    }
+
+    private void applyEnglishProfile(CurriculumProgram program, CurriculumProgramRequest request) {
+        String examCategory = normalizeExamCategory(request.getExamCategory());
+        String programTrack = trimUpperOrNull(request.getProgramTrack());
+        String focusSkills = normalizeFocusSkills(request.getFocusSkills());
+        validateEnglishProfile(
+                examCategory,
+                programTrack,
+                focusSkills,
+                request.getTargetBand(),
+                request.getTargetScore(),
+                request.getEntryLevel()
+        );
+        program.setExamCategory(examCategory);
+        program.setProgramTrack(programTrack);
+        program.setFocusSkills(focusSkills);
+        program.setTargetBand(request.getTargetBand());
+        program.setTargetScore(request.getTargetScore());
+        program.setEntryLevel(request.getEntryLevel().trim());
+    }
+
+    private String normalizeExamCategory(String value) {
+        String normalized = defaultText(value, "IELTS").trim().toUpperCase(Locale.ROOT);
+        if ("GENERAL".equals(normalized) || "COMMUNICATION".equals(normalized) || "FOUNDATION".equals(normalized)) {
+            normalized = "GENERAL_ENGLISH";
+        }
+        if (!EXAM_CATEGORIES.contains(normalized)) {
+            throw new IllegalArgumentException("Chương trình chỉ được thuộc IELTS, TOEIC hoặc General English.");
+        }
+        return normalized;
+    }
+
+    private String normalizeFocusSkills(String value) {
+        LinkedHashSet<String> selected = new LinkedHashSet<>();
+        if (StringUtils.hasText(value)) {
+            Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::hasText)
+                    .map(skill -> skill.toUpperCase(Locale.ROOT))
+                    .forEach(skill -> {
+                        if (!SKILL_ORDER.contains(skill)) {
+                            throw new IllegalArgumentException("Kỹ năng “" + skill + "” không thuộc phạm vi đào tạo tiếng Anh.");
+                        }
+                        selected.add(skill);
+                    });
+        }
+        return SKILL_ORDER.stream().filter(selected::contains).collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private void validateEnglishProfile(
+            String examCategory,
+            String programTrack,
+            String focusSkills,
+            BigDecimal targetBand,
+            Integer targetScore,
+            String entryLevel
+    ) {
+        if (!StringUtils.hasText(entryLevel)) {
+            throw new IllegalArgumentException("Hãy khai báo trình độ đầu vào của chương trình.");
+        }
+        if (!StringUtils.hasText(programTrack) || !tracksFor(examCategory).contains(programTrack)) {
+            throw new IllegalArgumentException("Loại chương trình không phù hợp với nhóm " + examCategoryLabel(examCategory) + ".");
+        }
+        if (!StringUtils.hasText(focusSkills)) {
+            throw new IllegalArgumentException("Hãy chọn ít nhất một kỹ năng tiếng Anh trọng tâm.");
+        }
+        if ("IELTS".equals(examCategory)) {
+            BigDecimal entryBand = parseBand(entryLevel, "Band IELTS đầu vào");
+            if (targetBand == null) {
+                throw new IllegalArgumentException("Chương trình IELTS phải có band mục tiêu.");
+            }
+            validateBand(targetBand, "Band IELTS mục tiêu");
+            if (entryBand.compareTo(targetBand) > 0) {
+                throw new IllegalArgumentException("Band IELTS đầu vào không thể cao hơn band mục tiêu.");
+            }
+            if (targetScore != null) {
+                throw new IllegalArgumentException("Chương trình IELTS không sử dụng thang điểm TOEIC.");
+            }
+            return;
+        }
+        if ("TOEIC".equals(examCategory)) {
+            int entryScore = parseToeicScore(entryLevel, "Điểm TOEIC đầu vào");
+            if (targetScore == null || targetScore < 10 || targetScore > 990 || targetScore % 5 != 0) {
+                throw new IllegalArgumentException("Điểm mục tiêu TOEIC phải từ 10 đến 990 và tăng theo bước 5.");
+            }
+            if (entryScore > targetScore) {
+                throw new IllegalArgumentException("Điểm TOEIC đầu vào không thể cao hơn điểm mục tiêu.");
+            }
+            if (targetBand != null) {
+                throw new IllegalArgumentException("Chương trình TOEIC không sử dụng band IELTS.");
+            }
+            return;
+        }
+        if (!CEFR_LEVELS.contains(entryLevel.trim().toUpperCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("Trình độ đầu vào General English phải theo CEFR từ A1 đến C2.");
+        }
+        if (targetBand != null || targetScore != null) {
+            throw new IllegalArgumentException("General English dùng chuẩn đầu ra mô tả, không dùng band IELTS hoặc điểm TOEIC.");
+        }
+    }
+
+    private BigDecimal parseBand(String value, String label) {
+        try {
+            BigDecimal band = new BigDecimal(value.trim());
+            validateBand(band, label);
+            return band;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(label + " phải là một band hợp lệ.");
+        }
+    }
+
+    private void validateBand(BigDecimal band, String label) {
+        if (band.compareTo(BigDecimal.ZERO) < 0
+                || band.compareTo(BigDecimal.valueOf(9)) > 0
+                || band.multiply(BigDecimal.valueOf(2)).stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException(label + " phải từ 0 đến 9 và tăng theo bước 0.5.");
+        }
+    }
+
+    private int parseToeicScore(String value, String label) {
+        try {
+            int score = Integer.parseInt(value.trim());
+            if (score < 10 || score > 990 || score % 5 != 0) {
+                throw new IllegalArgumentException(label + " phải từ 10 đến 990 và tăng theo bước 5.");
+            }
+            return score;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(label + " phải là một số nguyên hợp lệ.");
+        }
+    }
+
+    private Set<String> tracksFor(String examCategory) {
+        return switch (examCategory) {
+            case "IELTS" -> IELTS_TRACKS;
+            case "TOEIC" -> TOEIC_TRACKS;
+            case "GENERAL_ENGLISH" -> GENERAL_ENGLISH_TRACKS;
+            default -> Set.of();
+        };
+    }
+
+    private String examCategoryLabel(String examCategory) {
+        return "GENERAL_ENGLISH".equals(examCategory) ? "General English" : examCategory;
+    }
+
+    private void validateFocusedSkillAssessments(CurriculumProgram program) {
+        if ("GENERAL_ENGLISH".equals(program.getExamCategory())) {
+            return;
+        }
+        Set<AssessmentSkill> testedSkills = program.getUnits().stream()
+                .flatMap(unit -> unit.getAssessmentRefs().stream())
+                .map(CurriculumAssessmentRef::getAssessment)
+                .map(AssessmentBankItem::getSkill)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        for (String skill : program.getFocusSkills().split(",")) {
+            try {
+                AssessmentSkill assessmentSkill = AssessmentSkill.valueOf(skill);
+                if (!testedSkills.contains(assessmentSkill) && !testedSkills.contains(AssessmentSkill.MIXED)) {
+                    throw new IllegalArgumentException(
+                            "Giáo trình chưa có bài đánh giá cho kỹ năng " + skillLabel(assessmentSkill) + "."
+                    );
+                }
+            } catch (IllegalArgumentException exception) {
+                if (exception.getMessage() != null && exception.getMessage().startsWith("Giáo trình")) {
+                    throw exception;
+                }
+            }
+        }
+    }
+
+    private String skillLabel(AssessmentSkill skill) {
+        return switch (skill) {
+            case LISTENING -> "Listening";
+            case READING -> "Reading";
+            case WRITING -> "Writing";
+            case SPEAKING -> "Speaking";
+            case VOCABULARY -> "Vocabulary";
+            case GRAMMAR -> "Grammar";
+            case MIXED -> "tổng hợp";
+        };
     }
 
     private String programStatusLabel(String status) {

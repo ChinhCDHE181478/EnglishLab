@@ -12,6 +12,7 @@ const CourseCatalog = ({
   loading,
   currentBand = null,
   categories = [],
+  selectedCategory = '',
 }) => (
   <section id="catalog" className="mb-[80px] grid grid-cols-1 gap-6 lg:grid-cols-4">
     <CourseFilters
@@ -21,6 +22,7 @@ const CourseCatalog = ({
       onFilterChange={onFilterChange}
       onClear={onClear}
       categories={categories}
+      selectedCategory={selectedCategory}
     />
     <div className="lg:col-span-3">
       <div className="mb-6 flex flex-col gap-2 rounded-[24px] border border-[#dfbfbd]/25 bg-white px-6 py-5 shadow-sm">

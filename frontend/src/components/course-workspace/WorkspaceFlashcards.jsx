@@ -117,6 +117,7 @@ const Toggle = ({ checked, onChange }) => (
 const WorkspaceFlashcards = ({
   course,
   termsOverride,
+  onPersistTerm,
   emptyStateDescription = 'Khóa học này chưa gắn bộ flashcard nào từ kho.',
 }) => {
   const fallbackTerms = useMemo(() => extractVocabularyTerms(course), [course]);
@@ -362,11 +363,13 @@ const WorkspaceFlashcards = ({
   const persistTerm = async (termKey, payload) => {
     const previousTerm = terms.find((term) => term.termKey === termKey);
     setTerms((current) => current.map((term) => (term.termKey === termKey ? { ...term, ...payload } : term)));
-    if (!course?.id) return;
+    if (!course?.id && !onPersistTerm) return;
 
     setError('');
     try {
-      const updated = await courseApi.updateVocabularyProgress(course.id, termKey, payload);
+      const updated = onPersistTerm
+        ? await onPersistTerm(previousTerm, payload)
+        : await courseApi.updateVocabularyProgress(course.id, termKey, payload);
       setTerms((current) => current.map((term) => (term.termKey === termKey ? { ...term, ...updated } : term)));
     } catch (err) {
       if (previousTerm) {

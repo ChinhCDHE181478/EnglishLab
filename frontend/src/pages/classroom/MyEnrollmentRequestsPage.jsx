@@ -75,7 +75,7 @@ export default function MyEnrollmentRequestsPage() {
             <section className="mt-6 flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 text-center">
               <BookOpenCheck className="h-12 w-12 text-slate-300" />
               <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#0b1c30]">Chưa có yêu cầu phù hợp</h2>
-              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Chọn một khóa học đang nhận đăng ký để Staff liên hệ và hẹn lịch test.</p>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Chọn một khóa học đang nhận đăng ký để được tư vấn và hẹn lịch đánh giá đầu vào.</p>
               <Link className="mt-5 rounded-xl bg-[#730014] px-5 py-3 text-sm font-extrabold text-white" to="/opening-schedule#dang-ky-tu-van">Đăng ký học</Link>
             </section>
           ) : null}
@@ -88,7 +88,7 @@ export default function MyEnrollmentRequestsPage() {
                   <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" key={request.id}>
                     <div className="grid gap-5 p-5 md:grid-cols-[minmax(0,1fr)_auto] md:p-6">
                       <div>
-                        <div className="flex flex-wrap items-center gap-2"><EnrollmentStatusBadge label={request.statusLabel} status={request.status} /><span className="text-xs font-bold text-slate-400">Yêu cầu #{request.id}</span></div>
+                        <div className="flex flex-wrap items-center gap-2"><EnrollmentStatusBadge status={request.status} /><span className="text-xs font-bold text-slate-400">Yêu cầu #{request.id}</span></div>
                         <h2 className="mt-3 font-['Manrope'] text-xl font-black text-[#0b1c30]">{request.courseOfferingTitle || 'Đăng ký học và nhận tư vấn'}</h2>
                         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
                           <span className="font-bold">{formatConsultationTrack(request.consultationTrack)}</span>
@@ -103,10 +103,10 @@ export default function MyEnrollmentRequestsPage() {
                         ) : null}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                        <button className="rounded-xl bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white" onClick={() => setExpandedId(expanded ? null : request.id)} type="button">{expanded ? 'Thu gọn' : 'Xem timeline'}</button>
+                        <button className="rounded-xl bg-[#730014] px-4 py-2.5 text-xs font-extrabold text-white" onClick={() => setExpandedId(expanded ? null : request.id)} type="button">{expanded ? 'Thu gọn' : 'Xem cập nhật'}</button>
                       </div>
                     </div>
-                    <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">{request.staffNote ? `Ghi chú từ Staff: ${request.staffNote}` : 'Staff sẽ gửi email và gọi điện để thống nhất lịch tư vấn, test đầu vào.'}</div>
+                    <div className="border-t border-slate-100 bg-slate-50/70 px-5 py-4 text-sm leading-6 text-slate-600 md:px-6">{requestGuidance(request)}</div>
                     {expanded ? <div className="border-t border-slate-100 p-5 md:p-6"><EnrollmentRequestTimeline history={request.history} /></div> : null}
                   </article>
                 );
@@ -126,5 +126,20 @@ function formatConsultationTrack(value) {
     TOEIC_2_SKILLS: 'TOEIC 2 kỹ năng',
     TOEIC_4_SKILLS: 'TOEIC 4 kỹ năng',
     ENGLISH_FOUNDATION: 'Tiếng Anh nền tảng',
-  }[value] || 'Lộ trình đang được Staff tư vấn';
+  }[value] || 'Lộ trình sẽ được tư vấn theo nhu cầu';
+}
+
+function requestGuidance(request) {
+  return {
+    SUBMITTED: 'Hồ sơ đã được tiếp nhận. Đội ngũ tư vấn sẽ liên hệ qua email hoặc số điện thoại bạn cung cấp.',
+    INVITATION_SENT: 'Lời mời tư vấn và đánh giá đầu vào đã được gửi. Vui lòng kiểm tra email của bạn.',
+    TEST_SCHEDULED: request.testAppointmentAt
+      ? 'Lịch hẹn đã được xác nhận. Vui lòng có mặt đúng địa điểm và mang theo thông tin cần thiết.'
+      : 'Lịch hẹn đã được xác nhận. Vui lòng kiểm tra email để xem chi tiết.',
+    WAITING_FOR_CLASS: 'Kết quả đầu vào đã được ghi nhận. Hồ sơ đang chờ lớp phù hợp.',
+    CLASS_PROPOSED: 'Trung tâm đang hoàn thiện thông tin lớp phù hợp với hồ sơ của bạn.',
+    CLASS_ASSIGNED: 'Bạn đã được xếp lớp. Thông tin lớp học có trong mục Lớp của tôi.',
+    REJECTED: 'Hồ sơ này đã kết thúc. Bạn có thể đăng ký một khóa học khác.',
+    CANCELLED: 'Hồ sơ này đã được hủy.',
+  }[request.status] || 'Các cập nhật mới nhất của hồ sơ sẽ hiển thị tại đây.';
 }

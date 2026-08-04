@@ -134,6 +134,7 @@ export default function MySchedulePage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [partialWarning, setPartialWarning] = useState('');
   const [selectedSession, setSelectedSession] = useState(null);
   const [larkMessage, setLarkMessage] = useState('');
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
@@ -141,22 +142,25 @@ export default function MySchedulePage() {
   const loadSchedule = useCallback(async () => {
     setLoading(true);
     setError('');
+    setPartialWarning('');
     try {
       const myClassrooms = await classroomApi.getMyClassrooms();
-      const groups = await Promise.all(
+      const groups = await Promise.allSettled(
         myClassrooms.map(async (cls) => {
-          try {
-            const items = await classroomApi.getMyClassroomSessions(cls.id);
-            return items.map((s) => ({
-              ...s,
-              classroomId: cls.id,
-              classroomTitle: cls.title,
-              teacherName: cls.primaryTeacherName,
-            }));
-          } catch { return []; }
+          const items = await classroomApi.getMyClassroomSessions(cls.id);
+          return items.map((s) => ({
+            ...s,
+            classroomId: cls.id,
+            classroomTitle: cls.title,
+            teacherName: cls.primaryTeacherName,
+          }));
         }),
       );
-      setSessions(groups.flat());
+      const failedCount = groups.filter((result) => result.status === 'rejected').length;
+      setSessions(groups.filter((result) => result.status === 'fulfilled').flatMap((result) => result.value));
+      if (failedCount) {
+        setPartialWarning(`Chưa tải được lịch của ${failedCount} lớp. Dữ liệu đang hiển thị có thể chưa đầy đủ.`);
+      }
     } catch (err) {
       setError(getClassroomErrorMessage(err, 'Không thể tải lịch học.'));
     } finally {
@@ -263,6 +267,7 @@ export default function MySchedulePage() {
             <>
               {/* ── LEFT: Calendar ── */}
               <section className="flex flex-1 min-w-0 flex-col rounded-2xl border border-[#e2e2e2] bg-white shadow-sm" style={{ minHeight: 'calc(100vh - 220px)' }}>
+                {partialWarning ? <div className="m-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" role="alert">{partialWarning}</div> : null}
 
                 {/* Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e2e2e2] bg-white px-5 py-3 rounded-t-2xl">
@@ -566,7 +571,7 @@ function SessionListRow({ session, onClick, onLark }) {
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
           {isVirtual ? (
-            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Lark</span>
+            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Google Meet</span>
           ) : (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{session.roomName || 'Đang xếp phòng'}</span>
           )}
@@ -645,7 +650,7 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
                   {session.larkMeetingUrl && (
                     <div className="mt-3 flex items-center justify-between rounded-xl bg-white/80 px-3 py-2">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-[#584140]">
-                        <Video className="h-3.5 w-3.5 text-purple-600" /> Lark Meeting
+                        <Video className="h-3.5 w-3.5 text-purple-600" /> Google Meet
                       </span>
                       <button
                         className="rounded-lg bg-[#b81d2e] px-3 py-1 text-[10px] font-extrabold text-white transition hover:bg-[#4b0009] active:scale-95"
@@ -704,7 +709,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       onSessionUpdate?.(updatedSession);
       if (!updatedSession?.larkMeetingUrl) {
         popup?.close();
-        onLark('Chưa thể lấy liên kết phòng học Lark.');
+        onLark('Chưa thể lấy liên kết Google Meet.');
         return;
       }
       if (popup) {
@@ -716,7 +721,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       }
     } catch (error) {
       popup?.close();
-      onLark(getClassroomErrorMessage(error, 'Không thể tham gia phòng học Lark.'));
+      onLark(getClassroomErrorMessage(error, 'Không thể tham gia phòng Google Meet.'));
     } finally {
       setJoining(false);
     }
@@ -776,7 +781,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       {isVirtual && (
         <div className="rounded-2xl border border-purple-100 bg-purple-50/10 p-5 space-y-3">
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-purple-700">
-            <Video className="h-3.5 w-3.5" /> Phòng học Lark
+            <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
           <p className="text-xs leading-6 text-[#8b706e]">
             Bạn có thể vào phòng bất kỳ lúc nào. Người tham gia đầu tiên sẽ tự động mở buổi học,
@@ -812,7 +817,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
             onClick={handleJoinVirtualClass}
             type="button"
           >
-            {joining ? 'Đang mở phòng Lark...' : 'Vào lớp học'}
+            {joining ? 'Đang mở Google Meet...' : 'Vào lớp học'}
             <CheckCircle2 className="h-4 w-4" />
           </button>
         ) : (

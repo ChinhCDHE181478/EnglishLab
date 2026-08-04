@@ -124,7 +124,7 @@ export default function ManagerClassroomProposalsPage() {
   const submitReview = async () => {
     if (!selectedProposal || !reviewAction) return;
     if (reviewAction === 'reject' && !rejectionReason.trim()) {
-      setError('Vui lòng nêu rõ lý do từ chối để Staff có thể chỉnh sửa và gửi lại.');
+      setError('Vui lòng nêu rõ lý do từ chối để người đề xuất có thể chỉnh sửa và gửi lại.');
       return;
     }
 
@@ -144,8 +144,10 @@ export default function ManagerClassroomProposalsPage() {
         ],
       }));
       setSuccess(reviewAction === 'approve'
-        ? `${updated.proposalCode} đã được duyệt và tạo lớp chính thức.`
-        : `${updated.proposalCode} đã được trả lại Staff kèm lý do.`);
+        ? selectedProposal.deliveryMode === 'VIRTUAL'
+          ? `${updated.proposalCode} đã được duyệt và tạo lớp chính thức. Phòng Google Meet đang được tạo tự động cho từng buổi học.`
+          : `${updated.proposalCode} đã được duyệt và tạo lớp chính thức.`
+        : `${updated.proposalCode} đã được trả lại kèm lý do.`);
       closeDetailsAfterSubmit();
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể hoàn tất thao tác duyệt đề xuất lớp.');
@@ -349,7 +351,7 @@ function ProposalCard({ proposal, onOpen }) {
       <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
         <div className="min-w-0 text-xs text-slate-500">
           <p className="truncate font-bold text-slate-700">{proposal.primaryTeacherName || 'Chưa chọn giáo viên'}</p>
-          <p className="mt-1 truncate">Staff: {proposal.createdByName || 'Không rõ'}</p>
+          <p className="mt-1 truncate">Người đề xuất: {proposal.createdByName || 'Không rõ'}</p>
         </div>
         <button className={PRIMARY_BUTTON_CLASS} onClick={onOpen} type="button">
           <Eye className="h-4 w-4" />
@@ -396,7 +398,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
                   icon={isVirtual ? Link2 : Building2}
                   label={isVirtual ? 'Phòng học Virtual' : 'Phòng học Offline'}
                   value={isVirtual
-                    ? proposal.virtualMeetingUrl || 'Chưa có link'
+                    ? 'Tự động tạo theo từng buổi'
                     : [proposal.roomName, proposal.offlineAddress].filter(Boolean).join(' · ') || 'Chưa chọn phòng'}
                 />
               </div>
@@ -407,7 +409,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
             </Section>
 
             <Section title="Phạm vi phê duyệt">
-              <p className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">Đề xuất này chỉ xin duyệt việc mở lớp và nguồn lực. Học viên chưa được gắn vào proposal; sau tư vấn/test bên ngoài, Staff sẽ xếp từng học viên vào lớp phù hợp.</p>
+              <p className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-900">Kiểm tra lịch học, giáo viên, phòng học và sức chứa trước khi phê duyệt.</p>
             </Section>
           </div>
 
@@ -416,7 +418,7 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
               <div className="space-y-3 text-sm">
                 <ReviewRow label="Người tạo" value={proposal.createdByName || 'Không rõ'} />
                 <ReviewRow label="Gửi duyệt lúc" value={formatDateTime(proposal.submittedAt)} />
-                <ReviewRow label="Ghi chú Staff" value={proposal.staffNote || 'Không có ghi chú'} />
+                <ReviewRow label="Ghi chú đề xuất" value={proposal.staffNote || 'Không có ghi chú'} />
                 {proposal.reviewedAt ? <ReviewRow label="Người duyệt" value={proposal.reviewedByName || 'Không rõ'} /> : null}
                 {proposal.reviewedAt ? <ReviewRow label="Duyệt lúc" value={formatDateTime(proposal.reviewedAt)} /> : null}
                 {proposal.reviewNote ? <ReviewRow label="Phản hồi" value={proposal.reviewNote} /> : null}
@@ -445,8 +447,8 @@ function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonC
                   <div>
                     <div className={`rounded-2xl border p-4 text-sm font-bold ${action === 'approve' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>
                       {action === 'approve'
-                        ? 'Xác nhận tạo lớp chính thức và lịch học; Staff mới có thể xếp học viên đủ điều kiện vào lớp.'
-                        : 'Đề xuất sẽ quay lại Staff để chỉnh sửa và gửi duyệt lại.'}
+                        ? 'Xác nhận phê duyệt kế hoạch mở lớp và lịch học.'
+                        : 'Đề xuất sẽ được trả lại để chỉnh sửa.'}
                     </div>
                     {action === 'reject' ? (
                       <label className="mt-4 block">

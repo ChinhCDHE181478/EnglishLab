@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import BrandLoadingState from '../ui/BrandLoadingState';
+import BrandedSelect from '../ui/BrandedSelect';
 import {
   Calendar,
   Clock,
@@ -557,7 +558,7 @@ export const FilterBar = ({ onSearch, searchPlaceholder = 'Tìm kiếm...', filt
   const [query, setQuery] = useState('');
 
   const handleSearchSubmit = (e) => {
-    event.preventDefault();
+    e.preventDefault();
     onSearch?.(query);
   };
 
@@ -585,18 +586,12 @@ export const FilterBar = ({ onSearch, searchPlaceholder = 'Tìm kiếm...', filt
             {filters.map((filter) => (
               <div key={filter.id} className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#8b706e] uppercase tracking-wider">{filter.label}:</span>
-                <select
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#584140] outline-none focus:border-[#730014]"
+                <BrandedSelect
+                  buttonClassName="min-w-36 rounded-xl border-gray-200 px-3 py-2 text-xs font-bold text-[#584140] shadow-none"
                   value={activeFilters[filter.id] || ''}
                   onChange={(e) => onFilterChange?.(filter.id, e.target.value)}
-                >
-                  <option value="">Tất cả</option>
-                  {filter.options.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  options={[{ label: 'Tất cả', value: '' }, ...filter.options]}
+                />
               </div>
             ))}
           </div>
@@ -898,10 +893,10 @@ export const ActionMenu = ({ actions = [] }) => {
 };
 
 // ==========================================
-// 14. LARK JOIN BUTTON (BACKWARD COMPATIBILITY)
+// 14. VIRTUAL MEETING JOIN BUTTON (LEGACY EXPORT NAME)
 // ==========================================
 
-export const LarkJoinButton = ({ url, label = 'Tham gia Lark', className = '', onBlocked, onClick }) => {
+export const LarkJoinButton = ({ url, label = 'Tham gia Google Meet', className = '', onBlocked, onClick }) => {
   const handleClick = () => {
     if (onClick) {
       onClick();

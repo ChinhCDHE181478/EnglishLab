@@ -96,7 +96,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
                 .build();
 
         changeRequest = changeRequestRepository.save(changeRequest);
-        notificationService.notifyTrainingManagers(
+        notificationService.notifyTrainingStaff(
                 "CLASSROOM_CHANGE_REQUEST_PENDING",
                 "Yêu cầu thay đổi lớp học",
                 requester.getFullName() + " gửi yêu cầu " + mapper.changeRequestTypeLabel(request.getRequestType()) + ".",
@@ -132,7 +132,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     @Override
     public ClassroomChangeRequestResponse approve(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail) {
         User reviewer = accessHelper.requireUser(reviewerEmail);
-        accessHelper.assertTrainingManager(reviewer);
+        accessHelper.assertStaffOperator(reviewer);
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
         ConflictCheckRequest conflictRequest = buildConflictRequestFromEntity(changeRequest);
@@ -186,7 +186,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
     @Override
     public ClassroomChangeRequestResponse reject(Long requestId, ReviewChangeRequestRequest request, String reviewerEmail) {
         User reviewer = accessHelper.requireUser(reviewerEmail);
-        accessHelper.assertTrainingManager(reviewer);
+        accessHelper.assertStaffOperator(reviewer);
 
         ClassroomChangeRequest changeRequest = findPendingRequest(requestId);
         changeRequest.setStatus(ClassroomChangeRequestStatus.REJECTED);

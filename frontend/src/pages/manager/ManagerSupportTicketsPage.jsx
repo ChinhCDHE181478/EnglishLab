@@ -57,7 +57,7 @@ export default function ManagerSupportTicketsPage() {
       setSelectedId(valid);
       if (!valid) setDetail(null);
     } catch (err) {
-      setError(supportApiError(err, 'Không tải được danh sách support ticket.'));
+      setError(supportApiError(err, 'Không tải được danh sách yêu cầu hỗ trợ.'));
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export default function ManagerSupportTicketsPage() {
     try {
       setDetail(await supportApi.getForStaff(ticketId, apiScope));
     } catch (err) {
-      setError(supportApiError(err, 'Không tải được chi tiết ticket.'));
+      setError(supportApiError(err, 'Không tải được chi tiết yêu cầu.'));
     } finally {
       setDetailLoading(false);
     }
@@ -107,9 +107,9 @@ export default function ManagerSupportTicketsPage() {
     setError('');
     try {
       await refresh(await supportApi.claim(detail.id, apiScope));
-      setSuccess('Đã nhận xử lý ticket.');
+      setSuccess('Đã nhận xử lý yêu cầu.');
     } catch (err) {
-      setError(supportApiError(err, 'Không thể nhận xử lý ticket.'));
+      setError(supportApiError(err, 'Không thể nhận xử lý yêu cầu.'));
     } finally {
       setWorking(false);
     }
@@ -122,9 +122,9 @@ export default function ManagerSupportTicketsPage() {
     setSuccess('');
     try {
       await refresh(await supportApi.updateAsStaff(detail.id, data, apiScope));
-      setSuccess('Đã cập nhật ticket.');
+      setSuccess('Đã cập nhật yêu cầu.');
     } catch (err) {
-      setError(supportApiError(err, 'Không thể cập nhật ticket.'));
+      setError(supportApiError(err, 'Không thể cập nhật yêu cầu.'));
     } finally {
       setWorking(false);
     }
@@ -139,9 +139,9 @@ export default function ManagerSupportTicketsPage() {
       const updated = await supportApi.replyAsStaff(detail.id, comment.trim(), apiScope);
       setComment('');
       await refresh(updated);
-      setSuccess('Đã thêm comment cho học viên.');
+      setSuccess('Đã gửi phản hồi cho học viên.');
     } catch (err) {
-      setError(supportApiError(err, 'Không thể thêm comment.'));
+      setError(supportApiError(err, 'Không thể gửi phản hồi.'));
     } finally {
       setWorking(false);
     }
@@ -165,9 +165,9 @@ export default function ManagerSupportTicketsPage() {
                 <ClipboardList className="h-4 w-4" />
               </span>
               <div>
-                <h3 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Danh sách ticket</h3>
+                <h3 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">Danh sách yêu cầu</h3>
                 <p className="text-[11px] font-semibold text-[#8b706e]">
-                  {loading ? 'Đang tải...' : `${totalItems} ticket · ${PAGE_SIZE} ticket / trang`}
+                  {loading ? 'Đang tải...' : `${totalItems} yêu cầu · ${PAGE_SIZE} yêu cầu / trang`}
                 </p>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function ManagerSupportTicketsPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fff1f3] text-[#730014]">
               <Inbox className="h-7 w-7" />
             </div>
-            <p className="mt-4 text-sm font-extrabold text-[#2b2828]">Không có ticket phù hợp</p>
+            <p className="mt-4 text-sm font-extrabold text-[#2b2828]">Không có yêu cầu phù hợp</p>
             <p className="mt-1 text-xs text-[#8b706e]">Thử đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
@@ -283,7 +283,7 @@ export default function ManagerSupportTicketsPage() {
       {selectedId ? (
         <section className="overflow-hidden rounded-[24px] border border-[#e8d9d8] bg-white shadow-sm">
           {detailLoading ? (
-            <p className="px-6 py-10 text-sm font-semibold text-[#8b706e]">Đang tải chi tiết ticket...</p>
+            <p className="px-6 py-10 text-sm font-semibold text-[#8b706e]">Đang tải chi tiết yêu cầu...</p>
           ) : null}
           {!detailLoading && detail ? (
             <div>
@@ -346,7 +346,7 @@ export default function ManagerSupportTicketsPage() {
 
                 <div className="rounded-2xl border border-[#f0e4e2] bg-[#fffafa] p-4">
                   <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
-                    Nội dung ticket
+                    Nội dung yêu cầu
                   </p>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[#2b2828]">
                     {opening?.body || 'Không có mô tả.'}
@@ -361,7 +361,7 @@ export default function ManagerSupportTicketsPage() {
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#fff1f3] text-[#730014]">
                       <MessageSquarePlus className="h-4 w-4" />
                     </span>
-                    <h4 className="text-sm font-extrabold text-[#2b2828]">Comment</h4>
+                    <h4 className="text-sm font-extrabold text-[#2b2828]">Trao đổi</h4>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
                       {comments.length}
                     </span>
@@ -369,7 +369,7 @@ export default function ManagerSupportTicketsPage() {
 
                   {comments.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-[#e8d9d8] bg-[#fffbfb] px-4 py-8 text-center text-sm font-semibold text-[#8b706e]">
-                      Chưa có comment. Thêm comment để phản hồi học viên.
+                      Chưa có phản hồi.
                     </p>
                   ) : (
                     <div className="space-y-2.5">
@@ -391,7 +391,7 @@ export default function ManagerSupportTicketsPage() {
                                   : 'bg-white text-slate-600 ring-1 ring-slate-200'
                               }`}
                               >
-                                {item.staffMessage ? 'Support' : 'Học viên'}
+                                {item.staffMessage ? 'Bộ phận hỗ trợ' : 'Học viên'}
                               </span>
                             </p>
                             <p className="text-[11px] font-semibold text-[#8b706e]">
@@ -407,7 +407,7 @@ export default function ManagerSupportTicketsPage() {
                   {!isSupportTicketTerminal(detail.status) ? (
                     <form className="mt-4 space-y-3 rounded-2xl border border-[#f0e4e2] bg-[#fffafa] p-4" onSubmit={addComment}>
                       <label className="block space-y-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
-                        Thêm comment xử lý
+                        Phản hồi học viên
                         <textarea
                           className="min-h-24 w-full resize-y rounded-xl border border-[#e8d9d8] bg-white px-3.5 py-3 text-sm leading-6 text-[#2b2828] outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/10"
                           maxLength={5000}
@@ -419,13 +419,13 @@ export default function ManagerSupportTicketsPage() {
                       <div className="flex justify-end">
                         <button className={PRIMARY_BUTTON_CLASS} disabled={!comment.trim() || working} type="submit">
                           <Send className="h-4 w-4" />
-                          {working ? 'Đang gửi...' : 'Gửi comment'}
+                          {working ? 'Đang gửi...' : 'Gửi phản hồi'}
                         </button>
                       </div>
                     </form>
                   ) : (
                     <p className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-                      Ticket đã hoàn tất. Đổi trạng thái sang Mới gửi hoặc Đang xử lý nếu cần mở lại trao đổi.
+                      Yêu cầu đã hoàn tất. Có thể mở lại bằng cách đổi trạng thái nếu cần tiếp tục trao đổi.
                     </p>
                   )}
                 </div>

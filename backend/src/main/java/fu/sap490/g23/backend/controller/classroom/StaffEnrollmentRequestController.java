@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +35,14 @@ public class StaffEnrollmentRequestController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(enrollmentRequestService.listForStaff(status, authentication.getName()));
+    }
+
+    @PostMapping("/center")
+    public ResponseEntity<CourseEnrollmentRequestResponse> createAtCenter(
+            @Valid @RequestBody CreateCenterEnrollmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.createAtCenter(request, authentication.getName()));
     }
 
     @PatchMapping("/{requestId}/schedule-test")

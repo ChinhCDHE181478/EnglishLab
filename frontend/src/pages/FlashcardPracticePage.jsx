@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import classroomApi from '../api/classroomApi';
 import courseApi from '../api/courseApi';
+import dictionaryApi from '../api/dictionaryApi';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import WorkspaceFlashcards, { extractVocabularyTerms } from '../components/course-workspace/WorkspaceFlashcards';
 import BrandedSelect from '../components/ui/BrandedSelect';
@@ -32,9 +34,25 @@ const toClassroomFlashcardCourse = (classroom) => ({
     })),
 });
 
+export const toPersonalFlashcardTerm = (item) => ({
+  termKey: `personal-${item.id}`,
+  term: item.word,
+  meaning: item.primaryDefinition,
+  example: item.note || '',
+  commonError: item.phonetic ? `Phiên âm: ${item.phonetic}` : '',
+  moduleTitle: 'Flashcard cá nhân',
+  lessonTitle: 'Flashcard của tôi',
+  status: item.status === 'MASTERED' ? 'MASTERED' : 'LEARNING',
+  starred: false,
+  savedVocabularyId: item.id,
+  personalNote: item.note || null,
+});
+
 export default function FlashcardPracticePage() {
+  const [searchParams] = useSearchParams();
   const [courses, setCourses] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
+  const [personalTerms, setPersonalTerms] = useState([]);
   const [sourceKey, setSourceKey] = useState('');
   const [studyCourse, setStudyCourse] = useState(undefined);
   const [terms, setTerms] = useState([]);
@@ -42,9 +60,17 @@ export default function FlashcardPracticePage() {
   const [loadingSources, setLoadingSources] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [sourceWarning, setSourceWarning] = useState('');
   const loadRequestId = useRef(0);
 
   const sources = useMemo(() => [
+    {
+      key: 'PERSONAL',
+      type: 'PERSONAL',
+      title: 'Flashcard cá nhân',
+      label: `[Cá nhân] Flashcard của tôi (${personalTerms.length} từ)`,
+      terms: personalTerms,
+    },
     ...courses.map((course) => ({
       key: `ONLINE:${course.courseId || course.id}`,
       id: Number(course.courseId || course.id),
@@ -63,7 +89,7 @@ export default function FlashcardPracticePage() {
       terms: classroom.terms,
       studyCourse: toClassroomFlashcardCourse(classroom.detail)
     })),
-  ], [classrooms, courses]);
+  ], [classrooms, courses, personalTerms]);
 
   const selectedSource = useMemo(
     () => sources.find((source) => source.key === sourceKey),
@@ -85,7 +111,10 @@ export default function FlashcardPracticePage() {
     }
     setError('');
     try {
-      if (selectedSource.type === 'ONLINE') {
+      if (selectedSource.type === 'PERSONAL') {
+        setStudyCourse(undefined);
+        setTerms(selectedSource.terms || []);
+      } else if (selectedSource.type === 'ONLINE') {
         const data = await courseApi.getGlobalFlashcardPractice({ courseId: selectedSource.id });
         if (requestId !== loadRequestId.current) return;
         setStudyCourse(selectedSource.studyCourse);
@@ -125,14 +154,30 @@ export default function FlashcardPracticePage() {
     const loadSources = async () => {
       setLoadingSources(true);
       setError('');
+      setSourceWarning('');
       try {
-        const [courseResult, classroomResult] = await Promise.allSettled([
+        const [courseResult, classroomResult, personalResult] = await Promise.allSettled([
           courseApi.getMyOnlineCourses(),
           classroomApi.getMyClassrooms(),
+          dictionaryApi.listSaved(),
         ]);
 
         const fetchedCourses = courseResult.status === 'fulfilled' ? courseResult.value : [];
         const fetchedClassrooms = classroomResult.status === 'fulfilled' ? classroomResult.value : [];
+        const fetchedPersonalTerms = personalResult.status === 'fulfilled'
+          ? personalResult.value.map(toPersonalFlashcardTerm)
+          : [];
+        const unavailableSources = [
+          courseResult.status === 'rejected' ? 'khóa học online' : null,
+          classroomResult.status === 'rejected' ? 'lớp học' : null,
+          personalResult.status === 'rejected' ? 'flashcard cá nhân' : null,
+        ].filter(Boolean);
+
+        if (active && unavailableSources.length) {
+          setSourceWarning(
+            `Chưa tải được nguồn ${unavailableSources.join(', ')}. Các nguồn còn lại vẫn có thể sử dụng; hãy bấm Làm mới để thử lại.`,
+          );
+        }
 
         // Load course flashcards in parallel to filter out those with 0 flashcards
         const coursesWithFlashcards = [];
@@ -174,6 +219,7 @@ export default function FlashcardPracticePage() {
         if (active) {
           setCourses(coursesWithFlashcards);
           setClassrooms(classroomsWithFlashcards);
+          setPersonalTerms(fetchedPersonalTerms);
         }
       } catch (err) {
         if (active) setError('Chưa thể tải danh sách khóa học và lớp học của bạn.');
@@ -187,6 +233,14 @@ export default function FlashcardPracticePage() {
       active = false;
     };
   }, []);
+
+  const requestedSource = searchParams.get('source');
+  useEffect(() => {
+    if (!loadingSources && requestedSource === 'personal') {
+      setSourceKey('PERSONAL');
+      setSelectedModule('ALL');
+    }
+  }, [loadingSources, requestedSource]);
 
   useEffect(() => {
     if (selectedSource) {
@@ -205,6 +259,42 @@ export default function FlashcardPracticePage() {
     fetchTerms();
   }, [loadTerms]);
 
+  const refreshSelectedTerms = async () => {
+    if (selectedSource?.type !== 'PERSONAL') {
+      await loadTerms();
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const refreshed = (await dictionaryApi.listSaved()).map(toPersonalFlashcardTerm);
+      setPersonalTerms(refreshed);
+      setTerms(refreshed);
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Chưa thể tải flashcard cá nhân. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const persistPersonalTerm = async (term, payload) => {
+    if (!term?.savedVocabularyId) return payload;
+    const updated = await dictionaryApi.update(term.savedVocabularyId, {
+      note: term.personalNote,
+      status: payload.status || term.status,
+    });
+    const next = {
+      ...toPersonalFlashcardTerm(updated),
+      starred: payload.starred ?? term.starred,
+      reviewed: payload.reviewed,
+      correct: payload.correct,
+    };
+    setPersonalTerms((current) => current.map((item) => (
+      item.savedVocabularyId === next.savedVocabularyId ? next : item
+    )));
+    return next;
+  };
+
   const sourceOptions = sources.map((source) => ({ label: source.label, value: source.key }));
 
   const moduleOptions = useMemo(() => {
@@ -221,13 +311,15 @@ export default function FlashcardPracticePage() {
     return terms.filter((t) => t.moduleTitle === selectedModule);
   }, [terms, selectedModule]);
 
-  const emptyDescription = selectedSource?.type === 'CLASSROOM'
-    ? 'Giáo trình của lớp này chưa có flashcard.'
-    : 'Khóa học online này chưa có flashcard.';
+  const emptyDescription = selectedSource?.type === 'PERSONAL'
+    ? 'Bạn chưa có flashcard cá nhân. Hãy tra từ và thêm từ mới trong trang Từ điển.'
+    : selectedSource?.type === 'CLASSROOM'
+      ? 'Giáo trình của lớp này chưa có flashcard.'
+      : 'Khóa học online này chưa có flashcard.';
 
   return (
     <LearnerPageShell
-      description="Chọn khóa học để ôn flashcard đúng với nội dung bạn đang học."
+      description="Ôn flashcard từ khóa học, lớp học hoặc bộ từ cá nhân của bạn."
       eyebrow="Flashcard practice"
       title="Luyện từ vựng"
     >
@@ -240,7 +332,7 @@ export default function FlashcardPracticePage() {
             setSelectedModule('ALL');
           }}
           options={sourceOptions}
-          placeholder={loadingSources ? 'Đang tải nội dung học...' : 'Chọn khóa học hoặc lớp học'}
+          placeholder={loadingSources ? 'Đang tải nội dung học...' : 'Chọn nguồn flashcard'}
           value={sourceKey}
           searchable={true}
         />
@@ -257,7 +349,7 @@ export default function FlashcardPracticePage() {
         <button
           className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-6 py-3.5 text-sm font-extrabold text-[#730014] shadow-sm transition hover:bg-[#fff2f3] active:scale-95 disabled:opacity-50"
           disabled={loading || !sourceKey}
-          onClick={loadTerms}
+          onClick={refreshSelectedTerms}
           type="button"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -266,7 +358,8 @@ export default function FlashcardPracticePage() {
       </section>
 
       {error ? <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">{error}</div> : null}
-      {!sourceKey && !loadingSources ? <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white p-12 text-center font-semibold text-[#584140] shadow-sm">Chọn khóa học online hoặc lớp học để bắt đầu luyện flashcard.</section> : null}
+      {sourceWarning ? <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">{sourceWarning}</div> : null}
+      {!sourceKey && !loadingSources ? <section className="rounded-[28px] border border-dashed border-[#dfbfbd] bg-white p-12 text-center font-semibold text-[#584140] shadow-sm">Chọn flashcard cá nhân, khóa học online hoặc lớp học để bắt đầu.</section> : null}
       {loading ? <section className="rounded-[28px] border border-[#ead9db] bg-white p-12 text-center font-semibold text-[#584140] shadow-sm">Đang tải bộ flashcard...</section> : null}
       {sourceKey && !loading ? <>
         {filteredTerms.length ? <p className="mb-4 text-sm font-semibold text-[#6a5553]">Đã tải {filteredTerms.length} thẻ từ {selectedSource?.label.toLowerCase()}.</p> : null}
@@ -274,6 +367,7 @@ export default function FlashcardPracticePage() {
           course={studyCourse}
           emptyStateDescription={emptyDescription}
           key={`${sourceKey}-${selectedModule}`}
+          onPersistTerm={selectedSource?.type === 'PERSONAL' ? persistPersonalTerm : undefined}
           termsOverride={filteredTerms}
         />
       </> : null}

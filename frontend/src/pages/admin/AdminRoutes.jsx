@@ -4,5 +4,8 @@ import AdminDashboardPage from './AdminDashboardPage';
 import AdminUsersPage from './AdminUsersPage';
 import AdminSystemSettingsPage from './AdminSystemSettingsPage';
 import AdminAuditLogsPage from './AdminAuditLogsPage';
+import AdminBroadcastsPage from './AdminBroadcastsPage';
+import AdminMonitoringPage from './AdminMonitoringPage';
+import AdminBackupsPage from './AdminBackupsPage';
 
-export default function AdminRoutes(){return <Routes><Route element={<AdminLayout/>}><Route index element={<AdminDashboardPage/>}/><Route path="users" element={<AdminUsersPage/>}/><Route path="settings" element={<AdminSystemSettingsPage/>}/><Route path="audit-logs" element={<AdminAuditLogsPage/>}/><Route path="*" element={<Navigate replace to="/admin"/>}/></Route></Routes>;}
+export default function AdminRoutes(){return <Routes><Route element={<AdminLayout/>}><Route index element={<AdminDashboardPage/>}/><Route path="users" element={<AdminUsersPage/>}/><Route path="broadcasts" element={<AdminBroadcastsPage/>}/><Route path="monitoring" element={<AdminMonitoringPage/>}/><Route path="backups" element={<AdminBackupsPage/>}/><Route path="settings" element={<AdminSystemSettingsPage/>}/><Route path="audit-logs" element={<AdminAuditLogsPage/>}/><Route path="*" element={<Navigate replace to="/admin"/>}/></Route></Routes>;}

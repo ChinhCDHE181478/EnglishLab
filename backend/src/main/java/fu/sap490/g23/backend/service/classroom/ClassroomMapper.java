@@ -38,7 +38,7 @@ public class ClassroomMapper {
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
-    private final LarkMeetingService larkMeetingService;
+    private final VirtualMeetingService virtualMeetingService;
 
     public ClassroomOfferingResponse toOfferingResponse(ClassroomOffering offering) {
         return toOfferingResponse(offering, false, null, null, false);
@@ -98,11 +98,11 @@ public class ClassroomMapper {
                 .roomName(offering.getDefaultRoom() == null ? null : offering.getDefaultRoom().getName())
                 .offlineAddress(offering.getOfflineAddress())
                 .locationNote(offering.getLocationNote())
-                .defaultLarkMeetingUrl(larkMeetingService.isDemoUrl(offering.getDefaultLarkMeetingUrl())
+                .defaultLarkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())
                         ? null
                         : offering.getDefaultLarkMeetingUrl())
                 .larkMeetingStatus(offering.getLarkMeetingStatus())
-                .larkPlatformName(larkMeetingService.getPlatformName())
+                .larkPlatformName(virtualMeetingService.getPlatformName())
                 .recordingUrl(offering.isRecordingVisible() ? offering.getRecordingUrl() : null)
                 .recordingVisible(offering.isRecordingVisible())
                 .syllabusSummary(offering.getSyllabusSummary())
@@ -226,12 +226,13 @@ public class ClassroomMapper {
                 .roomId(session.getRoom() == null ? null : session.getRoom().getId())
                 .roomName(session.getRoom() == null ? null : session.getRoom().getName())
                 .offlineAddress(session.getClassroomOffering().getOfflineAddress())
-                .larkMeetingUrl(larkMeetingService.isDemoUrl(session.getLarkMeetingUrl())
+                .larkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())
                         ? null
                         : session.getLarkMeetingUrl())
+                .larkMeetingNo(session.getLarkMeetingNo())
                 .larkMeetingStatus(larkStatus)
-                .larkJoinable(larkMeetingService.isJoinable(session.getLarkMeetingUrl(), larkStatus))
-                .larkPlatformName(larkMeetingService.getPlatformName())
+                .larkJoinable(virtualMeetingService.isJoinable(session.getLarkMeetingUrl(), larkStatus))
+                .larkPlatformName(virtualMeetingService.getPlatformName())
                 .larkSyncStatus(session.getLarkSyncStatus())
                 .larkSyncError(session.getLarkSyncError())
                 .larkSyncedAt(session.getLarkSyncedAt())
@@ -517,6 +518,7 @@ public class ClassroomMapper {
                 .type(notification.getType())
                 .title(notification.getTitle())
                 .body(notification.getBody())
+                .actionPath(notification.getActionPath())
                 .read(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
@@ -697,7 +699,7 @@ public class ClassroomMapper {
             case CREATE_MAKEUP_SESSION -> "Tạo buổi học bù";
             case TRANSFER_STUDENT -> "Chuyển học viên";
             case TRANSFER_CLASS -> "Chuyển lớp";
-            case UPDATE_LARK_LINK -> "Cập nhật link Lark";
+            case UPDATE_LARK_LINK -> "Cập nhật liên kết Google Meet";
         };
     }
 

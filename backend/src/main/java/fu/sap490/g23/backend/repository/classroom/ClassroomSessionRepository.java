@@ -7,6 +7,7 @@ import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,6 +22,10 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     long countByClassroomOfferingId(Long classroomOfferingId);
 
+    long countByTeacherId(Long teacherId);
+
+    long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);
+
     List<ClassroomSession> findByDeliveryModeAndStatusIn(
             ClassroomDeliveryMode deliveryMode,
             Collection<ClassroomSessionStatus> statuses
@@ -30,6 +35,28 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
             ClassroomDeliveryMode deliveryMode,
             LocalDate fromDate,
             LocalDate toDate
+    );
+
+    List<ClassroomSession> findByStatusInAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
+            Collection<ClassroomSessionStatus> statuses,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
+    @Query("""
+            SELECT s FROM ClassroomSession s
+            WHERE s.deliveryMode = :deliveryMode
+              AND s.status IN :sessionStatuses
+              AND s.sessionDate >= :fromDate
+              AND (s.larkSyncStatus IS NULL OR s.larkSyncStatus IN :syncStatuses)
+            ORDER BY s.updatedAt ASC, s.id ASC
+            """)
+    List<ClassroomSession> findVirtualMeetingsPendingSync(
+            @Param("deliveryMode") ClassroomDeliveryMode deliveryMode,
+            @Param("sessionStatuses") Collection<ClassroomSessionStatus> sessionStatuses,
+            @Param("syncStatuses") Collection<String> syncStatuses,
+            @Param("fromDate") LocalDate fromDate,
+            Pageable pageable
     );
 
     Optional<ClassroomSession> findByLarkMeetingId(String larkMeetingId);

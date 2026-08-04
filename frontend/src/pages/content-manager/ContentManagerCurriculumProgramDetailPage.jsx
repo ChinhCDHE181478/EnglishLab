@@ -18,6 +18,7 @@ import {
   ProgramStatusPill,
 } from '../../components/curriculum/CurriculumProgramUi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
+import { ENGLISH_SKILL_OPTIONS, englishTrackLabel } from '../../utils/englishProgramProfile';
 import {
   DANGER_BUTTON_CLASS,
   EMPTY_STATE_CLASS,
@@ -203,9 +204,22 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
         <div className="space-y-5">
           <ProgramSection title="Tổng quan">
             <ProgramMetricGrid items={[
+              { label: 'Chương trình', value: englishTrackLabel(program.programTrack) },
               { label: 'Cấp độ đầu vào', value: program.entryLevel || '—' },
-              { label: 'Target IELTS', value: program.targetBand ?? '—' },
-              { label: 'Target TOEIC', value: program.targetScore ?? '—' },
+              {
+                label: 'Mục tiêu',
+                value: program.examCategory === 'IELTS'
+                  ? `Band ${program.targetBand ?? '—'}`
+                  : program.examCategory === 'TOEIC'
+                    ? `${program.targetScore ?? '—'} điểm`
+                    : 'Theo chuẩn đầu ra',
+              },
+              {
+                label: 'Kỹ năng trọng tâm',
+                value: String(program.focusSkills || '').split(',').filter(Boolean).map((skill) => (
+                  ENGLISH_SKILL_OPTIONS.find((item) => item.value === skill)?.label || skill
+                )).join(', ') || '—',
+              },
               { label: 'Số buổi', value: program.totalSessions || 0 },
             ]} />
             {program.outcomes ? (

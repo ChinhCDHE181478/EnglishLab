@@ -20,18 +20,13 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         seedRoles();
+        migrateNormalizedTrainingManagerRole();
         migrateLegacyRoleColumn();
+        enforceRoleConstraint();
     }
 
     private void seedRoles() {
-        // Hibernate không tự mở rộng CHECK constraint cũ khi enum Java có thêm giá trị.
         jdbcTemplate.execute("alter table roles drop constraint if exists roles_code_check");
-        jdbcTemplate.execute("""
-                alter table roles add constraint roles_code_check check (code in (
-                    'LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER',
-                    'STAFF', 'TRAINING_MANAGER', 'ADMIN'
-                ))
-                """);
         jdbcTemplate.update("""
                 insert into roles (code, name, description, active)
                 values
@@ -40,13 +35,34 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
                     ('MANAGER', 'Quản lý', 'Quản lý vận hành chung của hệ thống.', true),
                     ('CONTENT_MANAGER', 'Quản lý nội dung', 'Quản lý khóa học và nội dung học tập.', true),
                     ('STAFF', 'Nhân viên đào tạo', 'Tiếp nhận đăng ký, phân lớp và chuẩn bị đề xuất mở lớp.', true),
-                    ('TRAINING_MANAGER', 'Quản lý đào tạo', 'Quản lý đăng ký, lớp học và hoạt động đào tạo.', true),
                     ('ADMIN', 'Quản trị viên', 'Có quyền quản trị cao nhất trong hệ thống.', true)
                 on conflict (code) do update
                 set name = excluded.name,
                     description = excluded.description,
                     active = true
                 """);
+    }
+
+    private void migrateNormalizedTrainingManagerRole() {
+        int migratedRows = jdbcTemplate.update("""
+                insert into user_roles (user_id, role_id)
+                select user_roles.user_id, staff_role.id
+                from user_roles
+                join roles legacy_role on legacy_role.id = user_roles.role_id
+                join roles staff_role on staff_role.code = 'STAFF'
+                where legacy_role.code = 'TRAINING_MANAGER'
+                on conflict (user_id, role_id) do nothing
+                """);
+        jdbcTemplate.update("""
+                delete from user_roles
+                where role_id in (
+                    select id from roles where code = 'TRAINING_MANAGER'
+                )
+                """);
+        jdbcTemplate.update("delete from roles where code = 'TRAINING_MANAGER'");
+        if (migratedRows > 0) {
+            log.info("Migrated {} TRAINING_MANAGER assignments to STAFF.", migratedRows);
+        }
     }
 
     private void migrateLegacyRoleColumn() {
@@ -66,7 +82,11 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
 
         jdbcTemplate.execute("alter table users drop constraint if exists users_role_check");
         jdbcTemplate.update("update users set role = 'LEARNER' where upper(role) = 'USER'");
-        jdbcTemplate.update("update users set role = 'TRAINING_MANAGER' where upper(role) = 'TEACHER_MANAGER'");
+        jdbcTemplate.update("""
+                update users
+                set role = 'STAFF'
+                where upper(role) in ('TEACHER_MANAGER', 'TRAINING_MANAGER')
+                """);
 
         int migratedRows = jdbcTemplate.update("""
                 insert into user_roles (user_id, role_id)
@@ -79,5 +99,13 @@ public class LegacyUserRoleMigration implements CommandLineRunner {
 
         jdbcTemplate.execute("alter table users drop column role");
         log.info("Migrated {} user-role assignments to normalized role tables.", migratedRows);
+    }
+
+    private void enforceRoleConstraint() {
+        jdbcTemplate.execute("""
+                alter table roles add constraint roles_code_check check (code in (
+                    'LEARNER', 'TEACHER', 'MANAGER', 'CONTENT_MANAGER', 'STAFF', 'ADMIN'
+                ))
+                """);
     }
 }

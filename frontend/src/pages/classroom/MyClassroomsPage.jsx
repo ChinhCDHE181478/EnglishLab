@@ -323,7 +323,7 @@ function MinimalistClassroomCard({ classroom }) {
           {/* Delivery Mode Badge */}
           <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
             {isVirtual ? <Video className="h-3 w-3 text-purple-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
-            {isVirtual ? 'LARK Meeting' : 'Tại cơ sở'}
+            {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
           </span>
         </div>
 

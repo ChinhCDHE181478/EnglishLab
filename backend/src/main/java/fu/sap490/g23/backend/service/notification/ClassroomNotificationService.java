@@ -7,6 +7,6 @@ import java.util.Map;
 public interface ClassroomNotificationService {
 
     void notifyUser(User user, String type, String title, String body, Map<String, Object> metadata);
-    List<User> findTrainingManagers();
-    void notifyTrainingManagers(String type, String title, String body, Map<String, Object> metadata);
+    List<User> findTrainingStaff();
+    void notifyTrainingStaff(String type, String title, String body, Map<String, Object> metadata);
 }

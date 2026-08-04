@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.service.classroom.impl;
 
 import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
@@ -11,6 +12,7 @@ import fu.sap490.g23.backend.dto.response.classroom.CourseEnrollmentRequestRespo
 import fu.sap490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sap490.g23.backend.dto.response.classroom.EnrollmentRequestHistoryResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.AuthToken;
 import fu.sap490.g23.backend.entity.classroom.EnrollmentRequest;
 import fu.sap490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
 import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
@@ -18,6 +20,7 @@ import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
@@ -27,10 +30,16 @@ import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.security.TrainingRolePolicy;
 import fu.sap490.g23.backend.service.assessment.PlacementEligibilityService;
+import fu.sap490.g23.backend.service.auth.AuthTokenService;
 import fu.sap490.g23.backend.service.classroom.EnrollmentRequestService;
 import fu.sap490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sap490.g23.backend.service.mail.AuthMailService;
 import fu.sap490.g23.backend.service.mail.EnrollmentRequestMailService;
+import fu.sap490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -40,6 +49,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,10 +66,15 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private final EnrollmentRequestStatusHistoryRepository historyRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomOfferingRepository classroomOfferingRepository;
+    private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
     private final UserRepository userRepository;
     private final PlacementEligibilityService placementEligibilityService;
     private final ClassroomOfferingService classroomOfferingService;
     private final EnrollmentRequestMailService enrollmentRequestMailService;
+    private final AuthTokenService authTokenService;
+    private final AuthMailService authMailService;
+    private final UserRoleService userRoleService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public CourseEnrollmentRequestResponse submit(CreateCourseEnrollmentRequest request, String learnerEmail) {
@@ -74,8 +89,12 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         }
         ClassroomOffering requestedClassroom = null;
         TrainingProgram offering = requirePublishedProgram(request.getCourseOfferingId());
-        if (enrollmentRequestRepository.existsByLearnerAndStatusNotIn(learner, TERMINAL_STATUSES)) {
-            throw new IllegalArgumentException("Bạn đã có một form đang được Staff xử lý.");
+        if (enrollmentRequestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(
+                learner,
+                offering,
+                TERMINAL_STATUSES
+        )) {
+            throw new IllegalArgumentException("Bạn đã có một hồ sơ đang được xử lý cho khóa học này.");
         }
 
         EnrollmentRequest enrollmentRequest = EnrollmentRequest.builder()
@@ -84,6 +103,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .requestedClassroom(requestedClassroom)
                 .placementAttempt(null)
                 .status(EnrollmentRequestStatus.SUBMITTED)
+                .requestSource(EnrollmentRequestSource.ONLINE)
                 .contactName(request.getContactName().trim())
                 .contactEmail(request.getContactEmail().trim().toLowerCase())
                 .contactPhone(request.getContactPhone().trim())
@@ -107,27 +127,114 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     }
 
     @Override
+    public CourseEnrollmentRequestResponse createAtCenter(
+            CreateCenterEnrollmentRequest payload,
+            String staffEmail
+    ) {
+        User staff = requireUser(staffEmail);
+        assertStaff(staff);
+        ClassroomOffering target = requireAssignableClassroom(payload.getClassroomId());
+
+        String normalizedEmail = payload.getEmail().trim().toLowerCase();
+        User learner = userRepository.findByEmail(normalizedEmail).orElse(null);
+        boolean accountCreated = learner == null;
+        boolean setupEmailRequired = accountCreated || !learner.isEmailVerified();
+
+        if (accountCreated) {
+            learner = User.builder()
+                    .fullName(payload.getFullName().trim())
+                    .email(normalizedEmail)
+                    .phoneNumber(payload.getPhoneNumber().trim())
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .emailVerified(true)
+                    .profileCompleted(false)
+                    .build();
+            userRoleService.assignRole(learner, RoleEnum.LEARNER);
+            learner = userRepository.save(learner);
+        } else {
+            if (!learner.hasRole(RoleEnum.LEARNER)) {
+                throw new IllegalArgumentException(
+                        "Email này đang thuộc tài khoản nội bộ và không thể dùng để mở hồ sơ học viên."
+                );
+            }
+            if (!learner.isEmailVerified()) {
+                learner.setEmailVerified(true);
+                learner.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+            }
+            if (!StringUtils.hasText(learner.getPhoneNumber())) {
+                learner.setPhoneNumber(payload.getPhoneNumber().trim());
+            }
+            learner = userRepository.save(learner);
+        }
+
+        if (classroomEnrollmentRepository
+                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+                        learner.getId(),
+                        target.getId(),
+                        ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS
+                )) {
+            throw new IllegalArgumentException("Học viên đã có hồ sơ còn hiệu lực trong lớp này.");
+        }
+
+        ClassroomEnrollmentResponse enrollment = classroomOfferingService.enrollStudent(
+                target.getId(),
+                EnrollStudentRequest.builder()
+                        .studentId(learner.getId())
+                        .note(trimOrNull(payload.getNote()))
+                        .build()
+        );
+        if (!enrollment.isHasClassAccess()) {
+            throw new IllegalArgumentException("Lớp đã đủ chỗ; hãy chọn lớp khác cho học viên.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        EnrollmentRequest request = EnrollmentRequest.builder()
+                .learner(learner)
+                .courseOffering(target.getTrainingProgram())
+                .assignedClassroom(target)
+                .contactName(learner.getFullName())
+                .contactEmail(learner.getEmail())
+                .contactPhone(payload.getPhoneNumber().trim())
+                .consultationTrack(target.getTrainingProgram() == null
+                        ? null
+                        : target.getTrainingProgram().getCode())
+                .confirmedLevel(payload.getConfirmedLevel())
+                .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
+                .requestSource(EnrollmentRequestSource.CENTER)
+                .staffNote(trimOrNull(payload.getNote()))
+                .reviewedBy(staff)
+                .reviewedAt(now)
+                .testCompletedAt(now)
+                .build();
+        request = enrollmentRequestRepository.save(request);
+        recordTransition(
+                request,
+                null,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                staff,
+                "Đã ghi danh trực tiếp tại trung tâm và xếp vào lớp "
+                        + target.getLearningPackage().getTitle() + "."
+        );
+
+        if (setupEmailRequired) {
+            AuthToken setupToken = authTokenService.issuePasswordResetToken(learner);
+            authMailService.sendStaffCreatedAccountEmail(learner, setupToken.getToken());
+        }
+        enrollmentRequestMailService.sendClassAssignment(request, target);
+
+        CourseEnrollmentRequestResponse response = toResponse(request);
+        response.setLearnerAccountCreated(accountCreated);
+        response.setAccountSetupEmailSent(setupEmailRequired);
+        return response;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<CourseEnrollmentRequestResponse> listMine(String learnerEmail) {
         User learner = requireUser(learnerEmail);
         return enrollmentRequestRepository.findByLearnerOrderByCreatedAtDesc(learner).stream()
                 .map(this::toResponse)
                 .toList();
-    }
-
-    @Override
-    public CourseEnrollmentRequestResponse cancel(Long requestId, String learnerEmail) {
-        User learner = requireUser(learnerEmail);
-        EnrollmentRequest request = requireRequest(requestId);
-        assertOwner(request, learner);
-        if (request.getStatus() == EnrollmentRequestStatus.CLASS_PROPOSED
-                || request.getStatus() == EnrollmentRequestStatus.CLASS_ASSIGNED
-                || TERMINAL_STATUSES.contains(request.getStatus())) {
-            throw new IllegalArgumentException("Yêu cầu không còn có thể hủy ở trạng thái hiện tại.");
-        }
-        request.setCancelledAt(LocalDateTime.now());
-        transition(request, EnrollmentRequestStatus.CANCELLED, learner, "Học viên hủy yêu cầu.");
-        return toResponse(request);
     }
 
     @Override
@@ -189,9 +296,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         EnrollmentRequest request = requireRequest(requestId);
         if (request.getStatus() != EnrollmentRequestStatus.TEST_SCHEDULED) {
             throw new IllegalArgumentException("Chỉ có thể ghi kết quả sau khi hồ sơ đã được xếp lịch test.");
-        }
-        if (request.getTestAppointmentAt() != null && request.getTestAppointmentAt().isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Chưa đến thời gian test đã hẹn; không thể ghi kết quả trước.");
         }
         request.setTestCompletedAt(LocalDateTime.now());
         request.setStaffNote(trimOrNull(payload.getNote()));
@@ -260,23 +364,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                     "Chỉ có thể xếp lớp sau khi học viên đã test, đủ điều kiện và hồ sơ đang chờ xếp lớp."
             );
         }
-        ClassroomOffering target = classroomOfferingRepository.findById(payload.getClassroomId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
-        if (target.getStatus() != ClassroomOfferingStatus.UPCOMING
-                || target.getStartDate() == null
-                || !target.getStartDate().isAfter(LocalDate.now())
-                || target.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
-            throw new IllegalArgumentException(
-                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
-            );
-        }
-        if (request.getCourseOffering() != null
-                && (target.getTrainingProgram() == null
-                || !request.getCourseOffering().getId().equals(target.getTrainingProgram().getId()))) {
-            throw new IllegalArgumentException(
-                    "Lớp được chọn không thuộc khóa học học viên đã đăng ký và được test tư vấn."
-            );
-        }
+        ClassroomOffering target = requireAssignableClassroom(payload.getClassroomId());
         ClassroomEnrollmentResponse enrollment = classroomOfferingService.enrollStudent(
                 target.getId(),
                 EnrollStudentRequest.builder()
@@ -384,6 +472,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .capacity(offering == null ? null : offering.getMaxCapacity())
                 .status(request.getStatus())
                 .statusLabel(statusLabel(request.getStatus()))
+                .requestSource(request.getRequestSource() == null
+                        ? EnrollmentRequestSource.ONLINE
+                        : request.getRequestSource())
                 .confirmedLevel(request.getConfirmedLevel())
                 .preferredSchedule(request.getPreferredSchedule())
                 .campusPreference(request.getCampusPreference())
@@ -472,12 +563,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy yêu cầu đăng ký."));
     }
 
-    private void assertOwner(EnrollmentRequest request, User learner) {
-        if (!request.getLearner().getId().equals(learner.getId())) {
-            throw new IllegalArgumentException("Bạn không có quyền truy cập yêu cầu này.");
-        }
-    }
-
     private void assertStaff(User user) {
         if (!TrainingRolePolicy.canPerformStaffAction(user)) {
             throw new IllegalArgumentException("Bạn không có quyền xử lý yêu cầu đăng ký.");
@@ -502,6 +587,21 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             case REJECTED -> "Đã từ chối";
             case CANCELLED -> "Đã hủy";
         };
+    }
+
+    private ClassroomOffering requireAssignableClassroom(Long classroomId) {
+        ClassroomOffering target = classroomOfferingRepository.findById(classroomId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
+        if (target.getLearningPackage() == null
+                || target.getStatus() != ClassroomOfferingStatus.UPCOMING
+                || target.getStartDate() == null
+                || !target.getStartDate().isAfter(LocalDate.now())
+                || target.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
+            throw new IllegalArgumentException(
+                    "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
+            );
+        }
+        return target;
     }
 
     private String placementLevelLabel(fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel level) {

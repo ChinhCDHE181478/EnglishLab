@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -86,6 +87,11 @@ public class EnrollmentRequest {
     @Column(nullable = false, length = 40)
     @Builder.Default
     private EnrollmentRequestStatus status = EnrollmentRequestStatus.SUBMITTED;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "request_source", nullable = false, length = 20)
+    @Builder.Default
+    private EnrollmentRequestSource requestSource = EnrollmentRequestSource.ONLINE;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "confirmed_level", length = 30)

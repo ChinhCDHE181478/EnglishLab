@@ -18,15 +18,6 @@ class TrainingRolePolicyTest {
     }
 
     @Test
-    void legacyTrainingManagerKeepsStaffActionsDuringCompatibilityWindow() {
-        User legacyTrainingManager = user(RoleEnum.TRAINING_MANAGER);
-
-        assertThat(TrainingRolePolicy.canOperate(legacyTrainingManager)).isTrue();
-        assertThat(TrainingRolePolicy.canPerformStaffAction(legacyTrainingManager)).isTrue();
-        assertThat(TrainingRolePolicy.canApprove(legacyTrainingManager)).isFalse();
-    }
-
-    @Test
     void managerApprovesButDoesNotPerformStaffActions() {
         User manager = user(RoleEnum.MANAGER);
 

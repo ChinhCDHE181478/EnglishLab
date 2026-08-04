@@ -18,21 +18,28 @@ const targetBandOptions = [
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: '' },
-  { label: 'Từ vựng học thuật', value: 'Từ vựng học thuật' },
-  { label: 'Viết luận', value: 'Viết luận' },
-  { label: 'Luyện đề', value: 'Luyện đề' },
-  { label: 'Ngữ pháp', value: 'Ngữ pháp' },
-  { label: 'Đọc hiểu', value: 'Đọc hiểu' },
-  { label: 'Speaking theo chủ đề', value: 'Speaking theo chủ đề' },
+  { label: 'Listening', value: 'LISTENING' },
+  { label: 'Reading', value: 'READING' },
+  { label: 'Writing', value: 'WRITING' },
+  { label: 'Speaking', value: 'SPEAKING' },
+  { label: 'Vocabulary', value: 'VOCABULARY' },
+  { label: 'Grammar', value: 'GRAMMAR' },
 ];
 
 const fallbackCategoryOptions = [
   { label: 'Tất cả danh mục', value: '' },
   { label: 'IELTS', value: 'IELTS' },
   { label: 'TOEIC', value: 'TOEIC' },
-  { label: 'Giao tiếp', value: 'COMMUNICATION' },
-  { label: 'Nền tảng', value: 'FOUNDATION' },
-  { label: 'Trực tuyến', value: 'ONLINE' },
+  { label: 'Tiếng Anh giao tiếp', value: 'COMMUNICATION' },
+  { label: 'Tiếng Anh nền tảng', value: 'FOUNDATION' },
+];
+
+const toeicTargetOptions = [
+  { label: 'Tất cả mục tiêu', value: '' },
+  { label: 'Từ 450 điểm', value: '450' },
+  { label: 'Từ 650 điểm', value: '650' },
+  { label: 'Từ 800 điểm', value: '800' },
+  { label: 'Từ 900 điểm', value: '900' },
 ];
 
 const promotionOptions = [
@@ -48,6 +55,7 @@ const CourseFilters = ({
   onFilterChange,
   onClear,
   categories = [],
+  selectedCategory = '',
 }) => (
   <aside className="hidden space-y-8 lg:block">
     <div className="sticky top-28">
@@ -83,15 +91,26 @@ const CourseFilters = ({
           />
         </div>
 
-        <div>
-          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Trình độ hiện tại</p>
-          <BrandedSelect name="currentBand" onChange={onFilterChange} options={bandOptions} placeholder="Chọn trình độ hiện tại" value={filters.currentBand} />
-        </div>
+        {selectedCategory === 'IELTS' ? (
+          <>
+            <div>
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Band IELTS hiện tại</p>
+              <BrandedSelect name="currentBand" onChange={onFilterChange} options={bandOptions} placeholder="Chọn band hiện tại" value={filters.currentBand} />
+            </div>
 
-        <div>
-          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Band mục tiêu</p>
-          <BrandedSelect name="targetBand" onChange={onFilterChange} options={targetBandOptions} placeholder="Chọn band mục tiêu" value={filters.targetBand} />
-        </div>
+            <div>
+              <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Band IELTS mục tiêu</p>
+              <BrandedSelect name="targetBand" onChange={onFilterChange} options={targetBandOptions} placeholder="Chọn band mục tiêu" value={filters.targetBand} />
+            </div>
+          </>
+        ) : null}
+
+        {selectedCategory === 'TOEIC' ? (
+          <div>
+            <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Điểm TOEIC mục tiêu</p>
+            <BrandedSelect name="toeicTarget" onChange={onFilterChange} options={toeicTargetOptions} placeholder="Chọn điểm mục tiêu" value={filters.toeicTarget} />
+          </div>
+        ) : null}
 
         <div>
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.1em] text-[#584140]">Kỹ năng trọng tâm</p>

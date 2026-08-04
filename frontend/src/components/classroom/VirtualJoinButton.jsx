@@ -4,7 +4,7 @@ import classroomApi from '../../api/classroomApi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 
 /**
- * Gọi API join trước khi mở Lark — ghi nhận thời gian tham gia cho điểm danh virtual.
+ * Gọi API join trước khi mở Google Meet để ghi nhận thời gian tham gia.
  */
 export default function VirtualJoinButton({
   classroomId,

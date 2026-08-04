@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sap490.g23.backend.service.classroom.ClassroomProposalService;
 import jakarta.validation.Valid;
@@ -40,6 +41,19 @@ public class StaffClassroomProposalController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomProposalService.create(request, authentication.getName()));
+    }
+
+    @PostMapping("/validate-schedule")
+    public ResponseEntity<ConflictCheckResultResponse> validateSchedule(
+            @Valid @RequestBody CreateClassroomProposalRequest request,
+            @RequestParam(required = false) Long excludeProposalId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomProposalService.validateSchedule(
+                request,
+                excludeProposalId,
+                authentication.getName()
+        ));
     }
 
     @PutMapping("/{proposalId}")

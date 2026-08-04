@@ -38,6 +38,12 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
                 .orElseGet(() -> NotificationPreference.builder().user(user).build());
         preference.setEmailEnabled(request.getEmailEnabled());
         preference.setInAppEnabled(request.getInAppEnabled());
+        if (request.getClassReminderEnabled() != null) {
+            preference.setClassReminderEnabled(request.getClassReminderEnabled());
+        }
+        if (request.getStudyAlertEnabled() != null) {
+            preference.setStudyAlertEnabled(request.getStudyAlertEnabled());
+        }
         return toResponse(preferenceRepository.save(preference));
     }
 
@@ -51,6 +57,18 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
     @Transactional(readOnly = true)
     public boolean isInAppEnabled(User user) {
         return isEnabled(user, NotificationPreference::isInAppEnabled);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isClassReminderEnabled(User user) {
+        return isEnabled(user, NotificationPreference::isClassReminderEnabled);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isStudyAlertEnabled(User user) {
+        return isEnabled(user, NotificationPreference::isStudyAlertEnabled);
     }
 
     private boolean isEnabled(
@@ -74,6 +92,8 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
         return NotificationPreferenceResponse.builder()
                 .emailEnabled(preference.isEmailEnabled())
                 .inAppEnabled(preference.isInAppEnabled())
+                .classReminderEnabled(preference.isClassReminderEnabled())
+                .studyAlertEnabled(preference.isStudyAlertEnabled())
                 .build();
     }
 
@@ -81,6 +101,8 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
         return NotificationPreferenceResponse.builder()
                 .emailEnabled(true)
                 .inAppEnabled(true)
+                .classReminderEnabled(true)
+                .studyAlertEnabled(true)
                 .build();
     }
 }

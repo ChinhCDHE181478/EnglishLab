@@ -8,7 +8,7 @@ export const getStoredUser = () => {
 
 export const hasAccessToken = () => Boolean(localStorage.getItem('accessToken'));
 
-const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 const LEARNER_STUDY_TOOL_ROLES = ['LEARNER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 export const getUserRoles = (user) => {

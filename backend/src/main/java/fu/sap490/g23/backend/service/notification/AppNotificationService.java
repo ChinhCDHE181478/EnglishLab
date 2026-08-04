@@ -16,4 +16,14 @@ public interface AppNotificationService {
     long countUnread(String userEmail);
 
     void createForUser(User user, String type, String title, String body, Map<String, Object> metadata);
+
+    boolean createForUserOnce(
+            User user,
+            String type,
+            String title,
+            String body,
+            String actionPath,
+            String deduplicationKey,
+            Map<String, Object> metadata
+    );
 }

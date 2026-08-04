@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.controller.assessment;
 import fu.sap490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
 import fu.sap490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sap490.g23.backend.service.assessment.PlacementTestService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,7 +24,7 @@ public class PlacementTestController {
 
     @PostMapping("/current/submit")
     public ResponseEntity<PlacementTestAttemptResponse> submitCurrent(
-            @RequestBody PlacementTestSubmissionRequest request,
+            @Valid @RequestBody PlacementTestSubmissionRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(placementTestService.submit(request, authentication.getName()));

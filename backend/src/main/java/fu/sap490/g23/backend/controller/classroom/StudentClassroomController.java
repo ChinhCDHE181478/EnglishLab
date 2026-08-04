@@ -160,7 +160,7 @@ public class StudentClassroomController {
     @PostMapping("/homework/{homeworkId}/submit")
     public ResponseEntity<ClassroomHomeworkSubmissionResponse> submitHomework(
             @PathVariable Long homeworkId,
-            @RequestBody SubmitHomeworkRequest request,
+            @Valid @RequestBody SubmitHomeworkRequest request,
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomHomeworkService.submit(homeworkId, request, authentication.getName()));

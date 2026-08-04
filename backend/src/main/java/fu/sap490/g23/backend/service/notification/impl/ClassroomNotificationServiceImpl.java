@@ -18,9 +18,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ClassroomNotificationServiceImpl implements ClassroomNotificationService {
 
-    private static final Set<RoleEnum> TRAINING_MANAGER_ROLES = EnumSet.of(
+    private static final Set<RoleEnum> TRAINING_STAFF_ROLES = EnumSet.of(
             RoleEnum.STAFF,
-            RoleEnum.TRAINING_MANAGER,
             RoleEnum.MANAGER,
             RoleEnum.ADMIN
     );
@@ -34,12 +33,12 @@ public class ClassroomNotificationServiceImpl implements ClassroomNotificationSe
     }
 
     @Transactional(readOnly = true)
-    public List<User> findTrainingManagers() {
-        return userRepository.findDistinctByRoles_CodeIn(TRAINING_MANAGER_ROLES);
+    public List<User> findTrainingStaff() {
+        return userRepository.findDistinctByRoles_CodeIn(TRAINING_STAFF_ROLES);
     }
 
     @Transactional
-    public void notifyTrainingManagers(String type, String title, String body, Map<String, Object> metadata) {
-        findTrainingManagers().forEach(manager -> notifyUser(manager, type, title, body, metadata));
+    public void notifyTrainingStaff(String type, String title, String body, Map<String, Object> metadata) {
+        findTrainingStaff().forEach(staff -> notifyUser(staff, type, title, body, metadata));
     }
 }

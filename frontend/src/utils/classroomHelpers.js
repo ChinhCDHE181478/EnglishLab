@@ -236,7 +236,7 @@ export const isGradebookPassed = (value) => {
 
 export const openLarkMeeting = (url) => {
   if (!url) {
-    return { ok: false, message: 'Chưa có liên kết Lark cho buổi học này.' };
+    return { ok: false, message: 'Chưa có liên kết Google Meet cho buổi học này.' };
   }
 
   const popup = window.open(url, '_blank', 'noopener,noreferrer');

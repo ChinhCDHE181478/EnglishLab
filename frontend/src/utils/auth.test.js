@@ -13,11 +13,10 @@ describe('role helpers', () => {
       .toEqual(['LEARNER', 'STAFF']);
   });
 
-  it('recognizes STAFF independently from the legacy TRAINING_MANAGER role', () => {
+  it('recognizes the STAFF role', () => {
     const staff = { role: 'STAFF' };
 
     expect(hasAnyUserRole(staff, ['STAFF'])).toBe(true);
-    expect(hasAnyUserRole(staff, ['TRAINING_MANAGER'])).toBe(false);
   });
 
   it('does not force staff accounts through learner onboarding', () => {
@@ -37,6 +36,5 @@ describe('role helpers', () => {
     expect(canUseLearnerStudyTools({ role: 'CONTENT_MANAGER' })).toBe(true);
     expect(canUseLearnerStudyTools({ role: 'STAFF' })).toBe(false);
     expect(canUseLearnerStudyTools({ role: 'TEACHER' })).toBe(false);
-    expect(canUseLearnerStudyTools({ role: 'TRAINING_MANAGER' })).toBe(false);
   });
 });

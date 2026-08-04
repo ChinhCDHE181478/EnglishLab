@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
+import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
 
 @Repository
 public interface PackageEnrollmentRepository extends JpaRepository<PackageEnrollment, Long> {
@@ -22,4 +24,11 @@ public interface PackageEnrollmentRepository extends JpaRepository<PackageEnroll
 
     long countByLearningPackage(LearningPackage learningPackage);
     long count();
+
+    List<PackageEnrollment> findByStatusAndProgressPercentBetweenAndUpdatedAtBefore(
+            EnrollmentStatus status,
+            Integer minimumProgress,
+            Integer maximumProgress,
+            LocalDateTime updatedBefore
+    );
 }
