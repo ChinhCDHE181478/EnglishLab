@@ -1,9 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, LogOut, Plus } from 'lucide-react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { clearSession, getStoredUser } from '../../utils/auth';
 import { contentManagerNav, contentManagerPageMeta } from './contentManagerConfig';
 import BrandedSelect from '../ui/BrandedSelect';
+
+export const ContentManagerHeaderActionsContext = createContext(null);
+
+export function HeaderActions({ children }) {
+  const setActions = useContext(ContentManagerHeaderActionsContext);
+  useEffect(() => {
+    if (setActions) {
+      setActions(children);
+      return () => setActions(null);
+    }
+  }, [children, setActions]);
+  return null;
+}
 
 export function ContentManagerLayout({ children }) {
   const location = useLocation();
@@ -13,6 +26,7 @@ export function ContentManagerLayout({ children }) {
   const [bootLoading, setBootLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [headerActions, setHeaderActions] = useState(null);
   const sidebarNavRef = useRef(null);
   const sidebarScrollTopRef = useRef(0);
 
@@ -200,7 +214,7 @@ export function ContentManagerLayout({ children }) {
           <div className="mx-auto flex max-w-[1680px] items-center gap-3 border-t border-slate-100 px-4 py-2.5 sm:px-6 lg:hidden">
             <div className="min-w-0 flex-1">
               <BrandedSelect
-                onChange={(event) => navigate(event.target.value)}
+                onChange={(val) => navigate(val)}
                 options={mobileNavOptions}
                 value={mobileNavValue}
               />
@@ -227,7 +241,7 @@ export function ContentManagerLayout({ children }) {
               <ContentManagerLoadingState message="Đang tải dữ liệu quản lý..." />
             </section>
           ) : (
-            <>
+            <ContentManagerHeaderActionsContext.Provider value={setHeaderActions}>
               <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
@@ -239,29 +253,37 @@ export function ContentManagerLayout({ children }) {
                     </p>
                   ) : null}
                 </div>
-                {location.pathname === '/content-manager/courses' ? (
-                  <Link
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
-                    to="/content-manager/courses?new=1"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Tạo khóa học mới
-                  </Link>
-                ) : null}
-                {location.pathname === '/content-manager/flashcards' ? (
-                  <Link
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
-                    to="/content-manager/flashcards?new=1"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Tạo bộ thẻ mới
-                  </Link>
-                ) : null}
+                {headerActions ? (
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {headerActions}
+                  </div>
+                ) : (
+                  <>
+                    {location.pathname === '/content-manager/courses' ? (
+                      <Link
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
+                        to="/content-manager/courses?new=1"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Tạo khóa học mới
+                      </Link>
+                    ) : null}
+                    {location.pathname === '/content-manager/flashcards' ? (
+                      <Link
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
+                        to="/content-manager/flashcards?new=1"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Tạo bộ thẻ mới
+                      </Link>
+                    ) : null}
+                  </>
+                )}
               </div>
               <div className="min-h-[500px]">
                 {children}
               </div>
-            </>
+            </ContentManagerHeaderActionsContext.Provider>
           )}
         </main>
       </div>

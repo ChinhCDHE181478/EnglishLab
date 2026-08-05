@@ -64,6 +64,7 @@ import java.util.regex.Pattern;
 @Transactional
 public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
+    private static final int PROGRAM_CODE_MAX_LENGTH = 120;
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
     private static final Set<String> EXAM_CATEGORIES = Set.of("IELTS", "TOEIC", "GENERAL_ENGLISH");
@@ -123,10 +124,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     @Override
     public CurriculumProgramResponse createProgram(CurriculumProgramRequest request) {
-        String code = requireText(request.getCode(), "Mã giáo trình không được để trống.").toUpperCase(Locale.ROOT);
-        if (programRepository.existsByCodeIgnoreCase(code)) {
-            throw new RuntimeException("Mã giáo trình đã tồn tại.");
-        }
+        String code = resolveNewProgramCode(request);
         String slug = uniqueProgramSlug(StringUtils.hasText(request.getSlug()) ? request.getSlug() : request.getTitle(), null);
         CurriculumProgram program = CurriculumProgram.builder()
                 .title(requireText(request.getTitle(), "Tên giáo trình không được để trống."))
@@ -151,7 +149,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public CurriculumProgramResponse updateProgram(Long id, CurriculumProgramRequest request) {
         CurriculumProgram program = findProgram(id);
-        String code = requireText(request.getCode(), "Mã giáo trình không được để trống.").toUpperCase(Locale.ROOT);
+        String code = StringUtils.hasText(request.getCode())
+                ? normalizeProgramCode(request.getCode())
+                : program.getCode();
         if (!program.getCode().equalsIgnoreCase(code) && programRepository.existsByCodeIgnoreCase(code)) {
             throw new RuntimeException("Mã giáo trình đã tồn tại.");
         }
@@ -872,12 +872,48 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .count();
     }
 
+    private String resolveNewProgramCode(CurriculumProgramRequest request) {
+        if (StringUtils.hasText(request.getCode())) {
+            String requestedCode = normalizeProgramCode(request.getCode());
+            if (programRepository.existsByCodeIgnoreCase(requestedCode)) {
+                throw new RuntimeException("Mã giáo trình đã tồn tại.");
+            }
+            return requestedCode;
+        }
+        return uniqueCode(makeProgramCode(request.getTitle(), request.getDeliveryMode()));
+    }
+
+    private String makeProgramCode(String title, ClassroomDeliveryMode deliveryMode) {
+        String prefix = deliveryMode == ClassroomDeliveryMode.VIRTUAL ? "VIRTUAL" : "OFFLINE";
+        String normalizedTitle = Normalizer.normalize(defaultText(title, "CURRICULUM"), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .replaceAll("[^A-Za-z0-9]+", "-")
+                .replaceAll("^-+|-+$", "")
+                .toUpperCase(Locale.ROOT);
+        return normalizeProgramCode(prefix + "-" + defaultText(normalizedTitle, "CURRICULUM"));
+    }
+
+    private String normalizeProgramCode(String sourceCode) {
+        String normalized = sourceCode.trim().toUpperCase(Locale.ROOT);
+        return normalized.length() <= PROGRAM_CODE_MAX_LENGTH
+                ? normalized
+                : normalized.substring(0, PROGRAM_CODE_MAX_LENGTH);
+    }
+
     private String uniqueProgramCode(String sourceCode) {
-        String base = sourceCode + "-COPY";
+        return uniqueCode(sourceCode + "-COPY");
+    }
+
+    private String uniqueCode(String sourceCode) {
+        String base = normalizeProgramCode(sourceCode);
         String code = base;
         int index = 2;
         while (programRepository.existsByCodeIgnoreCase(code)) {
-            code = base + "-" + index++;
+            String suffix = "-" + index++;
+            int baseLength = Math.min(base.length(), PROGRAM_CODE_MAX_LENGTH - suffix.length());
+            code = base.substring(0, baseLength) + suffix;
         }
         return code;
     }

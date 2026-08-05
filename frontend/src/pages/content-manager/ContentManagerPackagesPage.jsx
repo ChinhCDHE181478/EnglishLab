@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Check, Package, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import packageApi from '../../api/packageApi';
-import { ContentManagerLoadingState, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import { ContentManagerLoadingState, HeaderActions, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
@@ -228,24 +228,16 @@ export default function ContentManagerPackagesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap justify-end gap-3">
+      <HeaderActions>
         <button
-          className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/70 bg-white px-4 py-3 text-sm font-bold text-[#730014]"
-          onClick={loadData}
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </button>
-        <button
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
           onClick={openCreate}
           type="button"
         >
           <Plus className="h-4 w-4" />
           Tạo bundle
         </button>
-      </div>
+      </HeaderActions>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
@@ -505,26 +497,47 @@ export default function ContentManagerPackagesPage() {
                         ? `${item.childCount ?? item.childPackages?.length ?? 0} sản phẩm`
                         : '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-2">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <div className="inline-flex items-center justify-end gap-2">
                         {item.packageTypeCode === 'BUNDLE' ? (
                           <>
-                            <IconButton label="Sửa" onClick={() => openEdit(item)}>
-                              <Pencil className="h-4 w-4" />
-                            </IconButton>
+                            <button
+                              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                              onClick={() => openEdit(item)}
+                              type="button"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Sửa
+                            </button>
                             {(item.status === 'DRAFT' || item.status === 'PENDING_REVIEW' || item.status === 'REJECTED') && (
-                              <button className="rounded-xl border border-[#dfbfbd]/70 px-3 py-1.5 text-xs font-bold" onClick={() => runLifecycle(item, 'publish')} type="button">
+                              <button
+                                className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
+                                onClick={() => runLifecycle(item, 'publish')}
+                                type="button"
+                              >
+                                <Check className="h-3.5 w-3.5" />
                                 Xuất bản
                               </button>
                             )}
                             {item.status !== 'ARCHIVED' && (
-                              <button className="rounded-xl border border-[#dfbfbd]/70 px-3 py-1.5 text-xs font-bold" onClick={() => runLifecycle(item, 'archive')} type="button">
+                              <button
+                                className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                                onClick={() => runLifecycle(item, 'archive')}
+                                type="button"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
                                 Lưu trữ
                               </button>
                             )}
-                            <IconButton label="Xóa" onClick={() => runLifecycle(item, 'delete')}>
-                              <Trash2 className="h-4 w-4" />
-                            </IconButton>
+                            <button
+                              aria-label="Xóa"
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
+                              onClick={() => runLifecycle(item, 'delete')}
+                              title="Xóa"
+                              type="button"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </>
                         ) : (
                           <span className="text-xs text-[#8b706e]">Chỉ xem</span>

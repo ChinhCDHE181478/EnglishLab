@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
-import { ContentManagerLoadingState, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import { ContentManagerLoadingState, HeaderActions, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
@@ -142,24 +142,16 @@ export default function ContentManagerCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap justify-end gap-3">
+      <HeaderActions>
         <button
-          className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/70 bg-white px-4 py-3 text-sm font-bold text-[#730014]"
-          onClick={loadCategories}
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </button>
-        <button
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
           onClick={openCreate}
           type="button"
         >
           <Plus className="h-4 w-4" />
           Thêm danh mục
         </button>
-      </div>
+      </HeaderActions>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
@@ -259,14 +251,23 @@ export default function ContentManagerCategoriesPage() {
                   <td className="max-w-md px-5 py-4 text-sm text-[#584140]">{stripRichTextToPlain(category.description) || 'Chưa có mô tả'}</td>
                   <td className="px-5 py-4 text-sm font-bold">{category.courseCount}</td>
                   <td className="px-5 py-4"><StatusBadge label={category.active ? 'Đang hoạt động' : 'Tạm ngừng'} /></td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-2">
-                      <button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] px-3 py-2 text-sm font-semibold text-[#730014]" onClick={() => openEdit(category)} type="button">
-                        <Pencil className="h-4 w-4" />
+                  <td className="whitespace-nowrap px-5 py-4 text-right">
+                    <div className="inline-flex items-center justify-end gap-2">
+                      <button
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                        onClick={() => openEdit(category)}
+                        type="button"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
                         Sửa
                       </button>
-                      <button className="inline-flex items-center gap-2 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-40" disabled={category.courseCount > 0} onClick={() => deleteCategory(category)} type="button">
-                        <Trash2 className="h-4 w-4" />
+                      <button
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-bold text-rose-700 whitespace-nowrap transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                        disabled={category.courseCount > 0}
+                        onClick={() => deleteCategory(category)}
+                        type="button"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                         Xóa
                       </button>
                     </div>
@@ -280,10 +281,7 @@ export default function ContentManagerCategoriesPage() {
         </div>
 
         {totalPages > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
-            <span className="text-sm font-semibold text-[#584140]">
-              Trang {page} / {totalPages} · <span className="font-bold text-[#730014]">{totalItems}</span> danh mục
-            </span>
+          <div className="border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
             <Pagination
               page={page}
               totalPages={totalPages}
