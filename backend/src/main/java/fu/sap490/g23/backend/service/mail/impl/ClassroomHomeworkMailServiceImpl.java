@@ -29,6 +29,7 @@ public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailSe
     @Value("${spring.mail.host:}") private String mailHost;
     @Value("${englishlab.mail.from:}") private String fromAddress;
     @Value("${englishlab.mail.from-name:EnglishLab}") private String fromName;
+    @Value("${englishlab.mail.support-email:support@englishlab.vn}") private String supportEmail;
     @Value("${englishlab.mail.base-url:http://localhost:5173}") private String baseUrl;
 
     public void sendHomeworkAssigned(User student, ClassroomHomework homework) {
@@ -42,6 +43,7 @@ public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailSe
             helper.setSubject("Bạn có bài tập mới - EnglishLab");
             helper.setText(render(student, homework), true);
             mailSender.send(message);
+            log.info("Sent homework assigned email to {}", student.getEmail());
         } catch (Exception exception) {
             log.error("Không thể gửi email bài tập {} tới {}", homework.getId(), student.getEmail(), exception);
         }
@@ -49,19 +51,32 @@ public class ClassroomHomeworkMailServiceImpl implements ClassroomHomeworkMailSe
 
     private String render(User student, ClassroomHomework homework) {
         String deadline = homework.getDeadline() == null ? "Giảng viên chưa đặt hạn nộp" : homework.getDeadline().format(DATE_FORMAT);
-        return """
-                <html><body style="font-family:Arial,sans-serif;color:#2b2828;line-height:1.6">
-                <h2 style="color:#8a0018">Bạn có bài tập mới</h2>
-                <p>Xin chào %s,</p>
-                <p>Giảng viên vừa giao bài tập <strong>%s</strong>.</p>
-                <p><strong>Hạn nộp:</strong> %s</p>
-                <p>%s</p>
-                <p><a href="%s/my-homework" style="display:inline-block;background:#8a0018;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Xem bài tập</a></p>
-                </body></html>
-                """.formatted(escape(student.getFullName()), escape(homework.getTitle()), escape(deadline), escape(homework.getInstruction()), normalizedBaseUrl());
+        String instruction = homework.getInstruction() == null ? "" : homework.getInstruction().trim();
+
+        String highlightContent = """
+                <p style="margin:0 0 6px;font-size:13px;color:#7a5c59;font-weight:700;">TÊN BÀI TẬP</p>
+                <p style="margin:0 0 12px;font-size:17px;font-weight:700;color:#4b0009;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">%s</p>
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">HẠN NỘP BÀI</p>
+                <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#8a0018;">%s</p>
+                %s
+                """.formatted(
+                EmailTemplateUtil.escapeHtml(homework.getTitle()),
+                EmailTemplateUtil.escapeHtml(deadline),
+                instruction.isEmpty() ? "" : "<p style=\"margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;\">HƯỚNG DẪN</p><p style=\"margin:0;font-size:13px;line-height:20px;color:#5f4745;\">" + EmailTemplateUtil.escapeHtml(instruction) + "</p>"
+        );
+
+        return EmailTemplateUtil.buildBrandedEmailHtml(
+                student.getFullName(),
+                "Bạn có bài tập mới!",
+                "Giảng viên vừa giao bài tập mới cho bạn. Hãy hoàn thành đúng hạn để duy trì tiến độ học tập tốt nhất.",
+                highlightContent,
+                normalizedBaseUrl() + "/my-homework",
+                "Xem bài tập",
+                supportEmail,
+                "Vui lòng truy cập EnglishLab để làm và nộp bài trước thời hạn."
+        );
     }
 
     private String normalizedBaseUrl() { return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl; }
     private boolean blank(String value) { return value == null || value.isBlank(); }
-    private String escape(String value) { return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;"); }
 }

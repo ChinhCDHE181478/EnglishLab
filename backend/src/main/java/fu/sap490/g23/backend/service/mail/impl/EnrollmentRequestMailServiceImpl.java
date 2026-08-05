@@ -3,6 +3,7 @@ package fu.sap490.g23.backend.service.mail.impl;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sap490.g23.backend.service.mail.EmailTemplateUtil;
 import fu.sap490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.internet.InternetAddress;
@@ -39,6 +40,9 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     @Value("${englishlab.mail.from-name:EnglishLab}")
     private String fromName;
 
+    @Value("${englishlab.mail.support-email:support@englishlab.vn}")
+    private String supportEmail;
+
     @Value("${englishlab.mail.base-url:http://localhost:5173}")
     private String baseUrl;
 
@@ -47,17 +51,27 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
         String appointment = request.getTestAppointmentAt() == null
                 ? "Chưa xác định"
                 : request.getTestAppointmentAt().format(DATE_TIME_FORMAT);
-        send(
-                request,
-                "Xác nhận lịch tư vấn và kiểm tra đầu vào - EnglishLab",
-                """
-                <h2 style="color:#730014">Lịch tư vấn và kiểm tra đầu vào của bạn</h2>
-                <p>Xin chào %s,</p>
-                <p><strong>Ngày giờ:</strong> %s</p>
-                <p><strong>Địa điểm:</strong> %s</p>
-                <p>Vui lòng đến trước giờ hẹn 10 phút và mang theo giấy tờ tùy thân. Nếu cần đổi lịch, hãy liên hệ EnglishLab sớm nhất có thể.</p>
-                """.formatted(name(request), escape(appointment), escape(request.getTestLocation()))
+        String location = valueOrDefault(request.getTestLocation(), "Trung tâm EnglishLab");
+
+        String highlightContent = """
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">THỜI GIAN TƯ VẤN & TEST</p>
+                <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#730014;">%s</p>
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">ĐỊA ĐIỂM</p>
+                <p style="margin:0;font-size:14px;font-weight:700;color:#2b1f1f;">%s</p>
+                """.formatted(EmailTemplateUtil.escapeHtml(appointment), EmailTemplateUtil.escapeHtml(location));
+
+        String html = EmailTemplateUtil.buildBrandedEmailHtml(
+                name(request),
+                "Xác nhận lịch hẹn tư vấn & test",
+                "Cảm ơn bạn đã đăng ký tư vấn tại EnglishLab. Dưới đây là thông tin chi tiết buổi làm việc và kiểm tra trình độ đầu vào của bạn.",
+                highlightContent,
+                normalizedBaseUrl() + "/placement-tests",
+                "Xem chi tiết lịch hẹn",
+                supportEmail,
+                "Vui lòng đến trước giờ hẹn 10 phút và mang theo giấy tờ tùy thân. Nếu cần thay đổi lịch hẹn, xin liên hệ hotline/email của EnglishLab."
         );
+
+        send(request, "Xác nhận lịch tư vấn và kiểm tra đầu vào - EnglishLab", html);
     }
 
     @Override
@@ -66,58 +80,67 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
                 ? "Đang cập nhật"
                 : classroom.getStartDate().format(DATE_FORMAT);
         String teacher = classroom.getPrimaryTeacher() == null
-                ? "Đang cập nhật"
+                ? "Đang phân công"
                 : classroom.getPrimaryTeacher().getFullName();
         String location = classroom.getDeliveryMode() == null
                 ? "Đang cập nhật"
                 : classroom.getDeliveryMode().name().equals("VIRTUAL")
-                    ? "Học trực tuyến"
-                    : valueOrDefault(classroom.getOfflineAddress(), "EnglishLab");
-        String classTitle = classroom.getLearningPackage() == null
-                ? "Lớp EnglishLab"
-                : classroom.getLearningPackage().getTitle();
-        send(
-                request,
-                "Bạn đã được xếp lớp - EnglishLab",
-                """
-                <h2 style="color:#730014">Bạn đã được xếp lớp thành công</h2>
-                <p>Xin chào %s,</p>
-                <p>Bạn đã được xếp vào lớp <strong>%s</strong>.</p>
-                <ul>
-                  <li><strong>Khai giảng:</strong> %s</li>
-                  <li><strong>Giáo viên:</strong> %s</li>
-                  <li><strong>Địa điểm/Hình thức:</strong> %s</li>
-                </ul>
-                <p><a href="%s/my-classrooms/%d" style="display:inline-block;background:#730014;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Xem lớp học</a></p>
+                    ? "Học trực tuyến (Virtual)"
+                    : valueOrDefault(classroom.getOfflineAddress(), "Học tại trung tâm EnglishLab");
+        String classTitle = classroom.getLearningPackage() != null
+                ? classroom.getLearningPackage().getTitle()
+                : (classroom.getTrainingProgram() != null ? classroom.getTrainingProgram().getTitle() : "Lớp EnglishLab");
+
+        String highlightContent = """
+                <p style="margin:0 0 4px;font-size:12px;color:#7a5c59;font-weight:700;">LỚP HỌC</p>
+                <p style="margin:0 0 12px;font-size:16px;font-weight:700;color:#730014;">%s</p>
+                <table role="presentation" width="100%%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#7a5c59;font-weight:700;">Khai giảng:</td>
+                    <td style="padding:4px 0;font-size:13px;color:#2b1f1f;font-weight:700;text-align:right;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#7a5c59;font-weight:700;">Giáo viên:</td>
+                    <td style="padding:4px 0;font-size:13px;color:#2b1f1f;font-weight:700;text-align:right;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;font-size:13px;color:#7a5c59;font-weight:700;">Hình thức:</td>
+                    <td style="padding:4px 0;font-size:13px;color:#2b1f1f;font-weight:700;text-align:right;">%s</td>
+                  </tr>
+                </table>
                 """.formatted(
-                        name(request),
-                        escape(classTitle),
-                        escape(startDate),
-                        escape(teacher),
-                        escape(location),
-                        normalizedBaseUrl(),
-                        classroom.getId()
-                )
+                EmailTemplateUtil.escapeHtml(classTitle),
+                EmailTemplateUtil.escapeHtml(startDate),
+                EmailTemplateUtil.escapeHtml(teacher),
+                EmailTemplateUtil.escapeHtml(location)
         );
+
+        String html = EmailTemplateUtil.buildBrandedEmailHtml(
+                name(request),
+                "Thông báo xếp lớp thành công!",
+                "EnglishLab xin chúc mừng bạn đã hoàn tất đăng ký và được xếp vào lớp học chính thức.",
+                highlightContent,
+                normalizedBaseUrl() + "/my-classrooms/" + classroom.getId(),
+                "Vào lớp học ngay",
+                supportEmail,
+                "Truy cập EnglishLab để xem thời khóa biểu chi tiết và tài liệu học tập của lớp."
+        );
+
+        send(request, "Bạn đã được xếp lớp thành công - EnglishLab", html);
     }
 
-    private void send(EnrollmentRequest request, String subject, String content) {
+    private void send(EnrollmentRequest request, String subject, String htmlContent) {
         User learner = request == null ? null : request.getLearner();
         if (learner != null && !notificationPreferenceService.isEmailEnabled(learner)) return;
         String recipient = request == null ? null : valueOrDefault(request.getContactEmail(), learner == null ? null : learner.getEmail());
         if (!enabled || blank(mailHost) || blank(fromAddress) || blank(recipient)) return;
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(recipient);
             helper.setSubject(subject);
-            helper.setText("""
-                    <html><body style="font-family:Arial,sans-serif;color:#2b2828;line-height:1.6">
-                    %s
-                    <p style="margin-top:24px;color:#6b7280">Trân trọng,<br/>EnglishLab</p>
-                    </body></html>
-                    """.formatted(content), true);
+            helper.setText(htmlContent, true);
             mailSender.send(message);
             log.info("Sent enrollment request email '{}' to {}", subject, recipient);
         } catch (Exception exception) {
@@ -127,7 +150,7 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
 
     private String name(EnrollmentRequest request) {
         String fallback = request.getLearner() == null ? "bạn" : request.getLearner().getFullName();
-        return escape(valueOrDefault(request.getContactName(), valueOrDefault(fallback, "bạn")));
+        return valueOrDefault(request.getContactName(), valueOrDefault(fallback, "bạn"));
     }
 
     private String normalizedBaseUrl() {
@@ -141,14 +164,5 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
 
     private boolean blank(String value) {
         return value == null || value.isBlank();
-    }
-
-    private String escape(String value) {
-        return value == null ? "" : value
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
     }
 }

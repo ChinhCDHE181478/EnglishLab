@@ -144,8 +144,8 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
       setError('Vui lòng nhập tên khóa học.');
       return;
     }
-    if (!form.curriculumProgramId) {
-      setError('Vui lòng chọn chương trình đào tạo được sử dụng.');
+    if (!form.curriculumProgramId && form.status === 'PUBLISHED') {
+      setError('Vui lòng chọn chương trình đào tạo được sử dụng trước khi xuất bản.');
       return;
     }
     if (!Number.isInteger(Number(form.capacity)) || Number(form.capacity) < 1) {

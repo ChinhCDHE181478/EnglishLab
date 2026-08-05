@@ -12,6 +12,7 @@ import {
   ToeicScoreField,
 } from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import { HeaderActions } from '../../components/content-manager/ContentManagerUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -1256,12 +1257,12 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={onCreate} type="button">
+      <HeaderActions>
+        <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={onCreate} type="button">
           <Plus className="h-4 w-4" />
           Tạo giáo trình nội dung
         </button>
-      </div>
+      </HeaderActions>
 
       <div className="grid gap-6 md:grid-cols-4">
         {stats.map((item) => {
@@ -1366,10 +1367,7 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
             Không có giáo trình phù hợp với bộ lọc hiện tại.
           </div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
-            <p className="text-sm text-[#2b2828]">
-              Trang {listPage} / {totalListPages} · <span className="font-bold text-[#0b1c30]">{filteredPrograms.length}</span> giáo trình
-            </p>
+          <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
             <Pagination
               page={listPage}
               totalPages={totalListPages}

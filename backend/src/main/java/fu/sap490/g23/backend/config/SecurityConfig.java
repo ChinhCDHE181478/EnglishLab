@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-homework/attachments/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/user/avatars/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/demo/**").permitAll()
+                        .requestMatchers("/api/dev/**", "/api/test-emails/**").hasRole("ADMIN")
                         .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/staff/**").hasAnyRole("STAFF", "ADMIN")

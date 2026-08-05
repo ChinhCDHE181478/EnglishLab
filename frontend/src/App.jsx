@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from '
 import AuthLayout from './components/auth/AuthLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AppDialogProvider } from './components/ui/AppDialog';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { LearnerExperienceProvider } from './context/LearnerExperienceContext';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -61,6 +61,7 @@ import SupportTicketsPage from './pages/SupportTicketsPage';
 import StaffEnrollmentRequestsPage from './pages/staff/StaffEnrollmentRequestsPage';
 import StaffClassroomProposalsPage from './pages/staff/StaffClassroomProposalsPage';
 import AdminRoutes from './pages/admin/AdminRoutes';
+import { getDefaultAuthenticatedPath } from './utils/auth';
 
 function CourseDetailRoute() {
   const { slugOrId } = useParams();
@@ -77,12 +78,31 @@ function CourseHomeRoute() {
   return <CourseHome key={`course-home-${slugOrId}`} />;
 }
 
+function HomeRoute() {
+  const { status, user } = useAuth();
+
+  if (status === 'checking') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f9f9f9] font-['Inter'] text-[#584140]">
+        Đang kiểm tra tài khoản...
+      </div>
+    );
+  }
+
+  if (status === 'authenticated') {
+    const defaultPath = getDefaultAuthenticatedPath(user);
+    if (defaultPath !== '/home') return <Navigate replace to={defaultPath} />;
+  }
+
+  return <Home />;
+}
+
 function AppRoutes() {
   const location = useLocation();
 
   return (
     <Routes location={location}>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<HomeRoute />} />
       <Route path="/certificates/:code" element={<CertificateVerifyPage />} />
       <Route element={<ProtectedRoute requireCompleteProfile={false} allowedRoles={['CONTENT_MANAGER', 'MANAGER', 'ADMIN']} />}>
         <Route path="/content-manager/*" element={<ContentManagerRoutes />} />
@@ -131,7 +151,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/dictionary" element={<DictionaryPage />} />
-        <Route path="/home" element={<Home />} />
+        <Route path="/home" element={<HomeRoute />} />
       </Route>
 
       {/* Teacher routes */}

@@ -523,7 +523,7 @@ export const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confi
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose}></div>
 
       {/* Modal Dialog */}
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-scale-in">
+      <div className="relative z-10 w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl border border-gray-100 bg-white p-6 shadow-2xl animate-scale-in">
         <h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">{title}</h3>
         <p className="mt-3 text-sm leading-6 text-[#584140]">{message}</p>
 

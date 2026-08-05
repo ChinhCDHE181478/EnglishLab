@@ -73,6 +73,45 @@ class CurriculumProgramServiceImplTest {
     }
 
     @Test
+    void createProgramGeneratesUniqueCodeWhenCodeIsMissing() {
+        CurriculumProgramRequest request = validIeltsRequest();
+        request.setCode(null);
+        when(programRepository.existsByCodeIgnoreCase("OFFLINE-IELTS-ACADEMIC-6-5")).thenReturn(true);
+        when(programRepository.existsByCodeIgnoreCase("OFFLINE-IELTS-ACADEMIC-6-5-2")).thenReturn(false);
+        when(programRepository.findBySlug("ielts-academic-65")).thenReturn(Optional.empty());
+        when(programRepository.save(any(CurriculumProgram.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.createProgram(request);
+
+        ArgumentCaptor<CurriculumProgram> captor = ArgumentCaptor.forClass(CurriculumProgram.class);
+        verify(programRepository).save(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo("OFFLINE-IELTS-ACADEMIC-6-5-2");
+    }
+
+    @Test
+    void updateProgramKeepsExistingCodeWhenCodeIsMissing() {
+        CurriculumProgramRequest request = validIeltsRequest();
+        request.setCode(null);
+        CurriculumProgram existing = CurriculumProgram.builder()
+                .id(9L)
+                .title("IELTS cũ")
+                .code("OFFLINE-IELTS-CU")
+                .slug("ielts-cu")
+                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
+                .status("DRAFT")
+                .build();
+        when(programRepository.findById(9L)).thenReturn(Optional.of(existing));
+        when(programRepository.findBySlug("ielts-academic-65")).thenReturn(Optional.empty());
+        when(programRepository.save(any(CurriculumProgram.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.updateProgram(9L, request);
+
+        assertThat(existing.getCode()).isEqualTo("OFFLINE-IELTS-CU");
+    }
+
+    @Test
     void createProgramRejectsToeicUsingIeltsBand() {
         CurriculumProgramRequest request = validIeltsRequest();
         request.setExamCategory("TOEIC");

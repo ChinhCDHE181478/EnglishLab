@@ -317,28 +317,6 @@ export default function TeacherManagementPage({ mode = 'STAFF' }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-[#ead9db] bg-[linear-gradient(135deg,#4b0009,#730014)] p-6 text-white shadow-[0_18px_45px_rgba(75,0,9,0.18)] md:p-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-white/65">
-              {isManager ? 'Quản trị chất lượng giảng dạy' : 'Hồ sơ đội ngũ'}
-            </p>
-            <h1 className="mt-2 font-['Manrope'] text-3xl font-black">
-              {isManager ? 'Hiệu suất giáo viên' : 'Hồ sơ & minh chứng giáo viên'}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-white/75">
-              {isManager
-                ? 'Theo dõi tải giảng dạy, kết quả các kỳ đánh giá và kế hoạch cải thiện của từng giáo viên.'
-                : 'Quản lý thông tin chuyên môn, bằng cấp và trạng thái xác minh minh chứng của giáo viên.'}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 backdrop-blur">
-            <p className="text-3xl font-black">{teachers.length}</p>
-            <p className="text-xs font-bold uppercase tracking-wide text-white/65">Giáo viên</p>
-          </div>
-        </div>
-      </section>
-
       {error && !modal ? <p className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700" role="alert">{error}</p> : null}
 
       <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
