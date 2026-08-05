@@ -1208,7 +1208,7 @@ export default function MyClassroomDetailPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4 sm:grid-cols-3 lg:col-span-3 w-full">
-              <div className="rounded-xl bg-white border border-gray-250/60 p-4 text-center">
+              <div className="rounded-xl bg-white border border-gray-200/70 p-4 text-center">
                 <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Tổng số buổi</p>
                 <p className="mt-1.5 font-['Manrope'] text-2xl font-extrabold text-gray-700">{attendanceStats.total}</p>
               </div>
@@ -1230,7 +1230,7 @@ export default function MyClassroomDetailPage() {
 
           {/* Attendance Timeline Table */}
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-            <table className="min-w-full divide-y divide-gray-150 text-left text-sm">
+            <table className="min-w-full divide-y divide-gray-200/60 text-left text-sm">
               <thead className="bg-[#fffafb] text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Buổi học</th>

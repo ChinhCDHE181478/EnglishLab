@@ -525,23 +525,30 @@ export default function ContentManagerMaterialsPage() {
 
           <Panel className="overflow-hidden rounded-xl border-[#dcc0bf]/30 bg-white shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse text-left">
+              <table className="w-full min-w-[1080px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    {['Học liệu', 'Loại', 'Kỹ năng', 'Kỳ thi / mức', 'Nguồn', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
-                      <th className={`px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371] ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
-                    ))}
+                    <th className="w-[28%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Học liệu</th>
+                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Loại</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỹ năng</th>
+                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỳ thi / mức</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Nguồn</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Trạng thái</th>
+                    <th className="w-[8%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Cập nhật</th>
+                    <th className="w-[10%] px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dcc0bf]/15">
-                  {pageItems.map((item) => (
-                    <tr className="transition hover:bg-[#eff4ff]/40" key={item.id}>
-                      <td className="px-4 py-3">
-                        <p className="max-w-[240px] truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
-                        <p className="mt-0.5 max-w-[260px] truncate text-xs text-[#584140]">
-                          {stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả'}
-                        </p>
-                      </td>
+                  {pageItems.map((item) => {
+                    const plainDesc = stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả';
+                    return (
+                      <tr className="transition hover:bg-[#eff4ff]/40" key={item.id}>
+                        <td className="px-4 py-3">
+                          <p className="max-w-[220px] truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
+                          <p className="mt-0.5 max-w-[240px] truncate text-xs text-[#584140]" title={plainDesc}>
+                            {plainDesc}
+                          </p>
+                        </td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{item.skill || 'Mixed'}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{formatTargetRange(item)}</td>
@@ -612,7 +619,8 @@ export default function ContentManagerMaterialsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>
