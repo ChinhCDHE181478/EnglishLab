@@ -16,7 +16,7 @@ import {
   Upload,
   ArrowRight,
   RefreshCw,
-  Sparkles,
+  Bot,
   BookMarked,
   Info,
   X
@@ -542,16 +542,16 @@ export default function MyHomeworkPage() {
                           <div className="flex flex-wrap gap-1.5 pt-1">
                             {isAiGradedHomework(item) && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] px-2.5 py-0.5 text-[9px] font-bold text-[#8a0018] border border-[#dfbfbd]/40">
-                                <Sparkles className="h-3 w-3" />
+                                <Bot className="h-3 w-3" />
                                 AI Review
                               </span>
                             )}
                             {item.curriculumUnitTitle && (
-                              <span className="rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
+                              <span className="rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
                                 Unit: {item.curriculumUnitTitle}
                               </span>
                             )}
-                            <span className="rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
+                            <span className="rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
                               {getHomeworkActivityTypeLabel(item.activityType)}
                             </span>
                           </div>
@@ -733,7 +733,7 @@ export default function MyHomeworkPage() {
 
             {getHomeworkGradingHint(selectedHomework) && (
               <div className="rounded-xl border border-purple-100 bg-[#fff5f5] p-4 text-xs leading-relaxed text-[#8a0018] flex items-start gap-2 border-[#dfbfbd]/55">
-                <Sparkles className="h-4 w-4 text-[#730014] shrink-0 mt-0.5" />
+                <Bot className="h-4 w-4 text-[#730014] shrink-0 mt-0.5" />
                 <p>{getHomeworkGradingHint(selectedHomework)}</p>
               </div>
             )}

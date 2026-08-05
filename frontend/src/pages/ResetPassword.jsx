@@ -120,7 +120,10 @@ const ResetPassword = () => {
         newPassword: formData.password,
       });
       setSuccess(response.data?.message || 'Đặt lại mật khẩu thành công.');
-      setTimeout(() => navigate('/login', { replace: true }), 1200);
+      const nextPath = new URLSearchParams(location.search).get('next');
+      const safeNextPath = nextPath?.startsWith('/') && !nextPath.startsWith('//') ? nextPath : null;
+      const loginPath = safeNextPath ? `/login?next=${encodeURIComponent(safeNextPath)}` : '/login';
+      setTimeout(() => navigate(loginPath, { replace: true }), 1200);
     } catch (err) {
       setError(err.response?.data?.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
     } finally {

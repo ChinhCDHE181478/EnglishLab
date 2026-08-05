@@ -504,7 +504,7 @@ function SessionGridCard({ session, onClick }) {
         )}
         <p className="mt-1 flex items-center gap-0.5 text-[9px] text-[#8b706e]">
           {isVirtual
-            ? <><Video className="h-2.5 w-2.5 flex-shrink-0 text-purple-500" /><span className="line-clamp-1">Trực tuyến</span></>
+            ? <><Video className="h-2.5 w-2.5 flex-shrink-0 text-sky-600" /><span className="line-clamp-1">Trực tuyến</span></>
             : <><MapPin className="h-2.5 w-2.5 flex-shrink-0 text-[#730014]" /><span className="line-clamp-1">{session.roomName ? `${session.roomName}${session.offlineAddress ? ' · ' + session.offlineAddress : ''}` : 'Đang xếp phòng'}</span></>
           }
         </p>
@@ -556,7 +556,7 @@ function SessionListRow({ session, onClick }) {
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
           {isVirtual ? (
-            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Google Meet</span>
+            <span className="flex items-center gap-1 font-bold text-sky-700"><Video className="h-3 w-3" /> Google Meet</span>
           ) : (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{session.roomName || 'Đang xếp phòng'}</span>
           )}
@@ -729,7 +729,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
             <span>{formatClassroomTime(session.startTime)} – {formatClassroomTime(session.endTime)}</span>
           </div>
           <div className="flex items-center gap-3">
-            {isVirtual ? <Video className="h-4 w-4 flex-shrink-0 text-purple-700" /> : <MapPin className="h-4 w-4 flex-shrink-0 text-[#730014]" />}
+            {isVirtual ? <Video className="h-4 w-4 flex-shrink-0 text-sky-700" /> : <MapPin className="h-4 w-4 flex-shrink-0 text-[#730014]" />}
             <span>
               {isVirtual
                 ? 'Lớp học trực tuyến (Google Meet)'
@@ -741,8 +741,8 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
 
       {/* Lark block */}
       {isVirtual && (
-        <div className="rounded-2xl border border-purple-100 bg-purple-50/10 p-5 space-y-3">
-          <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-purple-700">
+        <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/50 p-5">
+          <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-sky-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
           {session.larkMeetingUrl ? (

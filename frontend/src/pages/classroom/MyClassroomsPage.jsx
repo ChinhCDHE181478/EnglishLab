@@ -83,8 +83,8 @@ const getMinimalistStatusInfo = (classroom) => {
     if (days != null && days > 0) return { text: `Khai giảng sau ${days} ngày`, dotColor: 'bg-amber-500', textColor: 'text-amber-700', badgeBg: 'bg-amber-50 border-amber-100' };
     if (days === 0) return { text: 'Khai giảng hôm nay!', dotColor: 'bg-rose-500 animate-ping', textColor: 'text-[#730014]', badgeBg: 'bg-rose-50 border-rose-100' };
   }
-  if (isCompletedClass(classroom)) return { text: 'Đã hoàn thành', dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
-  return { text: formatClassroomDate(classroom.startDate), dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-150' };
+  if (isCompletedClass(classroom)) return { text: 'Đã hoàn thành', dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-200/70' };
+  return { text: formatClassroomDate(classroom.startDate), dotColor: 'bg-gray-400', textColor: 'text-gray-600', badgeBg: 'bg-gray-50 border-gray-200/70' };
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -321,8 +321,8 @@ function MinimalistClassroomCard({ classroom }) {
           </div>
 
           {/* Delivery Mode Badge */}
-          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
-            {isVirtual ? <Video className="h-3 w-3 text-purple-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
+          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
+            {isVirtual ? <Video className="h-3 w-3 text-sky-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
             {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
           </span>
         </div>

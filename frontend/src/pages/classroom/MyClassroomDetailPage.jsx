@@ -28,7 +28,7 @@ import {
   RefreshCw,
   Send,
   Plus,
-  Sparkles,
+  Bot,
   Search,
   X,
   Paperclip,
@@ -461,13 +461,23 @@ export default function MyClassroomDetailPage() {
     }
   };
 
+  const [selectedUnitId, setSelectedUnitId] = useState(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState(null);
+
   const renderTabContent = () => {
     if (activeTab === 'curriculum') {
       return (
         <LearnerCurriculumPanel
           curriculum={classroom?.curriculumProgram}
-          onOpenPractice={() => setActiveTab('practice')}
-          onOpenFlashcards={() => setActiveTab('flashcards')}
+          onOpenPractice={(unitId, exerciseId) => {
+            setSelectedUnitId(unitId);
+            setSelectedExerciseId(exerciseId);
+            setActiveTab('practice');
+          }}
+          onOpenFlashcards={(unitId) => {
+            setSelectedUnitId(unitId);
+            setActiveTab('flashcards');
+          }}
           expandedUnits={expandedUnits}
           setExpandedUnits={setExpandedUnits}
         />
@@ -475,11 +485,23 @@ export default function MyClassroomDetailPage() {
     }
 
     if (activeTab === 'practice') {
-      return <ClassroomPracticePanel classroomId={id} curriculum={classroom?.curriculumProgram} />;
+      return (
+        <ClassroomPracticePanel
+          classroomId={id}
+          curriculum={classroom?.curriculumProgram}
+          initialUnitId={selectedUnitId}
+          initialExerciseId={selectedExerciseId}
+        />
+      );
     }
 
     if (activeTab === 'flashcards') {
-      return <ClassroomFlashcardsPanel curriculum={classroom?.curriculumProgram} />;
+      return (
+        <ClassroomFlashcardsPanel
+          curriculum={classroom?.curriculumProgram}
+          initialUnitId={selectedUnitId}
+        />
+      );
     }
 
     if (activeTab === 'overview') {
@@ -823,10 +845,10 @@ export default function MyClassroomDetailPage() {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
                             {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
                           </span>
-                          <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-150 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-gray-500">
+                          <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200/70 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-gray-500">
                             {formatSessionStatus(effStatus)}
                           </span>
                           {isActive && (
@@ -1061,7 +1083,7 @@ export default function MyClassroomDetailPage() {
                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {isAiGradedHomework(item) && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] px-2 py-0.5 text-[9px] font-bold text-[#8a0018] border border-[#dfbfbd]/40">
-                              <Sparkles className="h-3 w-3" />
+                              <Bot className="h-3 w-3" />
                               AI Review
                             </span>
                           )}
@@ -1752,7 +1774,7 @@ function GradeIndicatorCard({ label, score, suffix = '', customScore, color }) {
   );
 }
 
-function ClassroomPracticePanel({ classroomId, curriculum }) {
+function ClassroomPracticePanel({ classroomId, curriculum, initialUnitId = null, initialExerciseId = null }) {
   const [selectedPractice, setSelectedPractice] = useState(null);
   const [practices, setPractices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1762,7 +1784,7 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUnitId, setSelectedUnitId] = useState('ALL');
+  const [selectedUnitId, setSelectedUnitId] = useState(initialUnitId ? String(initialUnitId) : 'ALL');
   const [selectedSkill, setSelectedSkill] = useState('ALL');
 
   useEffect(() => {
@@ -1772,7 +1794,19 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
       setError('');
       try {
         const data = await classroomApi.getClassroomPractice(classroomId);
-        if (active) setPractices(data || []);
+        if (active) {
+          const list = data || [];
+          setPractices(list);
+          if (initialExerciseId) {
+            const found = list.find((item) => String(item.exerciseId || item.id) === String(initialExerciseId));
+            if (found) {
+              setSelectedPractice(found);
+              setResponseText(found.responseText || '');
+            }
+          } else if (initialUnitId) {
+            setSelectedUnitId(String(initialUnitId));
+          }
+        }
       } catch (err) {
         if (active) setError(getClassroomErrorMessage(err, 'Không thể tải nội dung luyện tập.'));
       } finally {
@@ -1783,7 +1817,7 @@ function ClassroomPracticePanel({ classroomId, curriculum }) {
     return () => {
       active = false;
     };
-  }, [classroomId]);
+  }, [classroomId, initialExerciseId, initialUnitId]);
 
   const openPractice = (exercise) => {
     setSelectedPractice(exercise);
@@ -2298,7 +2332,7 @@ function LearnerRefList({
                 <button
                   key={`${ref.type}-${ref.id}`}
                   type="button"
-                  onClick={onOpenPractice}
+                  onClick={() => onOpenPractice?.(unitId, ref.resourceId || ref.id)}
                   className="w-full text-left group block rounded-xl bg-white border border-gray-100 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] hover:border-[#730014]/30 hover:bg-[#fff5f5]/5 transition duration-200 cursor-pointer"
                 >
                   <p className="font-extrabold text-xs text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors">{ref.title}</p>
@@ -2314,7 +2348,12 @@ function LearnerRefList({
 
             if (type === 'flashcards') {
               return (
-                <button key={`${ref.type}-${ref.id}`} type="button" onClick={onOpenFlashcards} className="w-full rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-left hover:border-[#730014]/30">
+                <button
+                  key={`${ref.type}-${ref.id}`}
+                  type="button"
+                  onClick={() => onOpenFlashcards?.(unitId, ref.resourceId || ref.id)}
+                  className="w-full rounded-xl border border-gray-100 bg-white px-3 py-2.5 text-left hover:border-[#730014]/30"
+                >
                   <p className="text-xs font-extrabold text-[#1a1c1c]">{ref.title}</p>
                   <span className="mt-1 inline-block text-[9px] font-bold text-[#730014]">Mở flashcard</span>
                 </button>

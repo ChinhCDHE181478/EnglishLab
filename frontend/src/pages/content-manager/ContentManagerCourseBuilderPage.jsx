@@ -1111,11 +1111,11 @@ export default function ContentManagerCourseBuilderPage() {
                 />
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={addLesson} type="button">
+                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={addLesson} type="button">
                   <Plus className="h-4 w-4" />
                   Thêm bài học
                 </button>
-                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessmentFromBank('module')} type="button">
+                <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] px-4 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3]" disabled={!activeModule} onClick={() => addAssessmentFromBank('module')} type="button">
                   <Plus className="h-4 w-4" />
                   Thêm từ kho đề
                 </button>

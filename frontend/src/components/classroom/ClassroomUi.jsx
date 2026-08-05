@@ -205,7 +205,7 @@ export const ClassroomTypeBadge = ({ mode }) => {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-extrabold tracking-wide ${
       isVirtual
-        ? 'bg-purple-50 border-purple-100 text-purple-700'
+        ? 'border-sky-200 bg-sky-50 text-sky-700'
         : 'bg-rose-50 border-rose-100 text-[#730014]'
     }`}>
       {isVirtual ? <Video className="h-3.5 w-3.5" /> : <MapPin className="h-3.5 w-3.5" />}
@@ -913,13 +913,13 @@ export const LarkJoinButton = ({ url, label = 'Tham gia Google Meet', className 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <button
-        className={`rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] ${className}`}
+        className={`rounded-2xl bg-sky-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-sky-700 ${className}`}
         onClick={handleClick}
         type="button"
       >
         {label}
       </button>
-      <a className="text-sm font-semibold text-[#730014] underline" href={url} rel="noreferrer" target="_blank">
+      <a className="text-sm font-semibold text-sky-700 underline" href={url} rel="noreferrer" target="_blank">
         Mở liên kết thủ công
       </a>
     </div>

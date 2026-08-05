@@ -327,7 +327,7 @@ const MyCoursesPage = () => {
 // ─── Local helper KpiMiniCell ───────────────────────────────────────────────
 function KpiMiniCell({ label, value }) {
   return (
-    <div className="rounded-xl bg-[#fffafb]/60 border border-gray-150 px-4 py-2.5 text-xs">
+    <div className="rounded-xl bg-[#fffafb]/60 border border-gray-200/70 px-4 py-2.5 text-xs">
       <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#8b706e] leading-none mb-1">{label}</p>
       <strong className="text-[#1a1c1c] font-extrabold leading-none">{value}</strong>
     </div>

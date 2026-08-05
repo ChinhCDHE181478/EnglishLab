@@ -41,6 +41,10 @@ const Login = () => {
 
   const resolvePostLoginPath = (user) => {
     const defaultPath = getDefaultAuthenticatedPath(user);
+    const requestedQueryPath = new URLSearchParams(location.search).get('next');
+    if (typeof requestedQueryPath === 'string'
+      && requestedQueryPath.startsWith('/')
+      && !requestedQueryPath.startsWith('//')) return requestedQueryPath;
     if (defaultPath !== '/home') return defaultPath;
     const requestedPath = location.state?.from;
     if (typeof requestedPath === 'string' && requestedPath.startsWith('/')) return requestedPath;

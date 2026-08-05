@@ -47,6 +47,18 @@ const teacherProfessionalApi = {
   async getMyFeedbackSummary() {
     return unwrapData(await axiosClient.get('/api/teacher/professional-profile/feedback-summary'));
   },
+
+  async getGoogleMeetConnection() {
+    return unwrapData(await axiosClient.get('/api/teacher/google-meet/connection'));
+  },
+
+  async connectGoogleMeet() {
+    return unwrapData(await axiosClient.post('/api/teacher/google-meet/connect'));
+  },
+
+  async disconnectGoogleMeet() {
+    await axiosClient.delete('/api/teacher/google-meet/connection');
+  },
 };
 
 export default teacherProfessionalApi;

@@ -276,7 +276,7 @@ export default function TeacherClassroomPage() {
                     {formatClassroomTime(session.startTime)} – {formatClassroomTime(session.endTime)}
                   </span>
                   {isVirtual ? (
-                    <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="flex items-center gap-1 font-bold text-sky-700">
                       <Video className="h-3.5 w-3.5" /> Trực tuyến
                     </span>
                   ) : (

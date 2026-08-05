@@ -480,7 +480,7 @@ const CheckoutPage = () => {
                 value={couponCode}
               />
               <button
-                className="shrink-0 rounded-2xl border border-[#4b0009] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-60"
+                className="shrink-0 rounded-2xl border border-[#dfbfbd] px-4 py-3 text-sm font-extrabold text-[#4b0009] transition hover:bg-[#fff2f3] disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={quoteLoading}
                 onClick={handleApplyCoupon}
                 type="button"

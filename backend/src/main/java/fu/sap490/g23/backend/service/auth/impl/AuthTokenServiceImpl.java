@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -67,12 +68,41 @@ public class AuthTokenServiceImpl implements AuthTokenService {
                 .build());
     }
 
+    @Override
+    @Transactional
+    public AuthToken issueGoogleMeetConnectionState(User user) {
+        authTokenRepository.deleteByUserAndType(user, AuthTokenType.GOOGLE_MEET_CONNECTION);
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
+        return authTokenRepository.save(AuthToken.builder()
+                .user(user)
+                .type(AuthTokenType.GOOGLE_MEET_CONNECTION)
+                .token(Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes))
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build());
+    }
+
     public AuthToken requireValidEmailVerificationCode(User user, String rawCode, String invalidMessage) {
         return requireValidCode(user, rawCode, AuthTokenType.EMAIL_VERIFICATION, invalidMessage);
     }
 
     public AuthToken requireValidPasswordResetCode(User user, String rawCode, String invalidMessage) {
         return requireValidCode(user, rawCode, AuthTokenType.PASSWORD_RESET, invalidMessage);
+    }
+
+    @Override
+    public AuthToken requireValidGoogleMeetConnectionState(String rawState) {
+        String normalizedState = rawState == null ? "" : rawState.trim();
+        AuthToken token = authTokenRepository.findByTokenAndType(
+                        normalizedState,
+                        AuthTokenType.GOOGLE_MEET_CONNECTION
+                )
+                .orElseThrow(() -> new IllegalArgumentException("Yêu cầu kết nối Google Meet không hợp lệ hoặc đã hết hạn."));
+        if (token.isUsed() || token.isExpired()) {
+            throw new IllegalArgumentException("Yêu cầu kết nối Google Meet không hợp lệ hoặc đã hết hạn.");
+        }
+        return token;
     }
 
     private AuthToken requireValidCode(User user, String rawCode, AuthTokenType type, String invalidMessage) {

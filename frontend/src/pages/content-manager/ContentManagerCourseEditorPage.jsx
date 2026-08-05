@@ -455,7 +455,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             
             <div className="flex items-center gap-3">
               <button
-                className="rounded-2xl border border-[#4b0009] bg-white px-6 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                className="rounded-2xl border border-[#dfbfbd] bg-white px-6 py-3 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
                 disabled={saving || !canEdit}
                 onClick={() => handleSubmit()}
                 type="button"
