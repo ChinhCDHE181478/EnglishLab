@@ -7,6 +7,7 @@ import ListeningExamMode from '../../components/course-assessment/ListeningExamM
 import ReadingExamMode from '../../components/course-assessment/ReadingExamMode';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { requestExamFullscreen } from '../../utils/examFullscreen';
 
 const parseExamConfig = (instruction) => {
   try {
@@ -84,9 +85,14 @@ export default function PracticeRunnerPage() {
   const isListening = String(practice?.skill || '').toUpperCase() === 'LISTENING'
     || examConfig?.type === 'ielts_listening_exam';
 
-  const openExam = () => {
+  const openExam = async () => {
     setLatestResult(null);
     setError('');
+    const fullscreenStarted = await requestExamFullscreen();
+    if (!fullscreenStarted) {
+      setError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+      return;
+    }
     startedAtRef.current = new Date();
     setExamOpen(true);
   };

@@ -19,6 +19,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +52,7 @@ class ClassroomPracticeServiceImplTest {
                 .curriculumProgram(program).build();
         CompletePracticeRequest request = new CompletePracticeRequest();
         request.setAnswersJson("{\"1\":\"B\",\"2\":\"C\"}");
+        request.setStartedAt(Instant.parse("2026-08-06T10:15:30Z"));
 
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
         when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), any()))
@@ -71,5 +75,7 @@ class ClassroomPracticeServiceImplTest {
         assertThat(result.getCorrectAnswers()).isEqualTo(1);
         assertThat(result.getTotalQuestions()).isEqualTo(2);
         assertThat(result.getScorePercent()).isEqualTo(50.0D);
+        assertThat(result.getStartedAt()).isEqualTo(
+                LocalDateTime.ofInstant(request.getStartedAt(), ZoneId.systemDefault()));
     }
 }

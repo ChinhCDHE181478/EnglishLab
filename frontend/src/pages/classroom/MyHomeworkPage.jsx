@@ -37,6 +37,7 @@ import ReadingExamMode from '../../components/course-assessment/ReadingExamMode'
 import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMode';
 import WritingExamMode from '../../components/course-assessment/WritingExamMode';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { requestExamFullscreen } from '../../utils/examFullscreen';
 import { formatClassroomDateTime, getHomeworkMaxScore, getSubmissionFeedback } from '../../utils/classroomHelpers';
 import {
   getHomeworkActivityTypeLabel,
@@ -345,8 +346,13 @@ export default function MyHomeworkPage() {
     }
   };
 
-  const handleConfirmStartExam = () => {
+  const handleConfirmStartExam = async () => {
     if (confirmHomework) {
+      const fullscreenStarted = await requestExamFullscreen();
+      if (!fullscreenStarted) {
+        setExamError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+        return;
+      }
       setExamHomework(confirmHomework);
       setConfirmHomework(null);
     }

@@ -49,6 +49,7 @@ import {
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { requestExamFullscreen } from '../../utils/examFullscreen';
 import {
   formatAttendanceStatus,
   formatAttendanceDisputeStatus,
@@ -1711,7 +1712,12 @@ export default function MyClassroomDetailPage() {
             <HomeworkConfirmModal
               homework={confirmHomework}
               onClose={() => setConfirmHomework(null)}
-              onConfirm={() => {
+              onConfirm={async () => {
+                const fullscreenStarted = await requestExamFullscreen();
+                if (!fullscreenStarted) {
+                  setExamError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+                  return;
+                }
                 setExamHomework(confirmHomework);
                 setConfirmHomework(null);
               }}

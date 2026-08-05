@@ -4,7 +4,7 @@ import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public class CompletePracticeRequest {
@@ -17,5 +17,5 @@ public class CompletePracticeRequest {
     @Min(value = 0, message = "Thời gian làm bài không hợp lệ")
     private Integer durationSeconds;
 
-    private LocalDateTime startedAt;
+    private Instant startedAt;
 }

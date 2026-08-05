@@ -11,6 +11,7 @@ import BrandLoadingState from '../components/ui/BrandLoadingState';
 import mockTestApi from '../api/mockTestApi';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import placementTestApi from '../api/placementTestApi';
+import { exitExamFullscreen, requestExamFullscreen } from '../utils/examFullscreen';
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: 'ALL' },
@@ -101,6 +102,11 @@ export default function MockTestsPage() {
   const startTest = async (item) => {
     setError('');
     setResult(null);
+    const fullscreenStarted = await requestExamFullscreen();
+    if (!fullscreenStarted) {
+      setError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+      return;
+    }
     try {
       const detail = await mockTestApi.getMockTest(item.id);
       const config = parseJson(detail.uiConfigJson);
@@ -109,6 +115,7 @@ export default function MockTestsPage() {
       setActiveConfig(resolved.config);
       setActiveSkill(resolved.skill);
     } catch (requestError) {
+      if (fullscreenStarted) await exitExamFullscreen();
       setError(requestError?.response?.data?.message || 'Không mở được đề thi thử.');
     }
   };
