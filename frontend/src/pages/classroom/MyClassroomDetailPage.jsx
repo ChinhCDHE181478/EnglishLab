@@ -1317,30 +1317,155 @@ export default function MyClassroomDetailPage() {
       const finalResultLabel = formatGradebookFinalResult(gradebook.finalResult);
       const isPassed = isGradebookPassed(gradebook.finalResult);
 
+      // Sắp xếp bài tập theo thứ tự bài học (sessionId / deadline / thứ tự tạo)
+      const sortedHomework = [...homework].sort((a, b) => {
+        if (a.sessionId != null && b.sessionId != null && a.sessionId !== b.sessionId) {
+          return a.sessionId - b.sessionId;
+        }
+        if (a.deadline && b.deadline) {
+          return new Date(a.deadline) - new Date(b.deadline);
+        }
+        return (a.id || 0) - (b.id || 0);
+      });
+
+      const gradedSubmissions = sortedHomework.filter(
+        (h) => h.mySubmission && h.mySubmission.score != null
+      );
+      const computedAverage = gradedSubmissions.length > 0
+        ? (gradedSubmissions.reduce((sum, h) => sum + Number(h.mySubmission.score), 0) / gradedSubmissions.length).toFixed(1)
+        : null;
+      const finalHomeworkAverage = gradebook.homeworkAverage != null
+        ? Number(gradebook.homeworkAverage).toFixed(1)
+        : computedAverage;
+
       return (
         <div className="space-y-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2">
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
-            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Bảng điểm chi tiết</h3>
-          </div>
-          
-          {/* Grade Summary Cards */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <GradeIndicatorCard label="Điểm TB bài tập" score={gradebook.homeworkAverage} color="red" />
-            <GradeIndicatorCard label="Chuyên cần" score={gradebook.attendancePercent != null ? gradebook.attendancePercent / 10 : null} suffix="%" customScore={gradebook.attendancePercent} color="emerald" />
+            <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Bảng điểm bài tập</h3>
           </div>
 
-          {/* Final Result Banner */}
-          <div className="flex items-center gap-2 mt-8 mb-4">
+          {/* ── Bảng điểm chi tiết từng bài tập (Khung viền tường minh, không phân trang) ── */}
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-left text-xs">
+                <thead className="bg-[#fffafb] text-[10px] font-extrabold uppercase tracking-wider text-[#8b706e]">
+                  <tr>
+                    <th className="px-5 py-3.5 text-center w-12" scope="col">#</th>
+                    <th className="px-5 py-3.5" scope="col">Tên bài tập</th>
+                    <th className="px-5 py-3.5 w-32" scope="col">Kỹ năng</th>
+                    <th className="px-5 py-3.5 w-36 text-center" scope="col">Trạng thái</th>
+                    <th className="px-5 py-3.5 text-right w-36" scope="col">Điểm số</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-150 text-[#584140]">
+                  {sortedHomework.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-8 text-center text-xs text-gray-400 font-semibold">
+                        Lớp học chưa có bài tập nào.
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedHomework.map((item, index) => {
+                      const hasSubmission = Boolean(item.mySubmission);
+                      const hasScore = hasSubmission && item.mySubmission.score != null;
+                      const scoreValue = hasScore ? Number(item.mySubmission.score).toFixed(1) : null;
+                      const maxScore = getHomeworkMaxScore(item) || 10;
+
+                      return (
+                        <tr key={item.id || index} className="hover:bg-gray-50/50 transition">
+                          <td className="whitespace-nowrap px-5 py-4 text-center font-bold text-gray-400">
+                            {index + 1}
+                          </td>
+                          <td className="px-5 py-4">
+                            <p className="font-bold text-[#1a1c1c] leading-snug">{item.title}</p>
+                            {item.curriculumUnitTitle && (
+                              <p className="text-[10px] text-gray-400 mt-0.5">{item.curriculumUnitTitle}</p>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-4">
+                            <span className="inline-flex items-center rounded-md bg-gray-50 border border-gray-200 px-2 py-0.5 text-[9px] font-bold text-[#584140]">
+                              {getHomeworkSkillLabel(item.skill)}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-4 text-center">
+                            {hasScore ? (
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-700">
+                                Đã chấm điểm
+                              </span>
+                            ) : hasSubmission ? (
+                              <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-extrabold text-blue-700">
+                                Đã nộp bài
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200 px-2.5 py-0.5 text-[10px] font-bold text-gray-400">
+                                Chưa nộp
+                              </span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-4 text-right">
+                            {hasScore ? (
+                              <span className="font-['Manrope'] text-sm font-extrabold text-emerald-700">
+                                {scoreValue} <span className="text-xs font-normal text-gray-400">/ {maxScore}</span>
+                              </span>
+                            ) : (
+                              <span className="text-base font-bold text-gray-300 select-none">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                {/* ── Dòng tổng kết điểm trung bình ── */}
+                <tfoot>
+                  <tr className="border-t-2 border-gray-200 bg-[#fffafb]">
+                    <td colSpan={3} className="px-5 py-4 font-extrabold text-[#1a1c1c] uppercase tracking-wider text-[11px]">
+                      Điểm trung bình bài tập
+                    </td>
+                    <td colSpan={2} className="px-5 py-4 text-right">
+                      {finalHomeworkAverage != null ? (
+                        <span className="font-['Manrope'] text-base font-extrabold text-[#730014]">
+                          {finalHomeworkAverage} <span className="text-xs font-semibold text-gray-400">/ 10</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm font-bold text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          {/* ── Thống kê tổng hợp (KPI Cards) ── */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <GradeIndicatorCard
+              label="Điểm TB bài tập"
+              score={finalHomeworkAverage != null ? Number(finalHomeworkAverage) : null}
+              customScore={finalHomeworkAverage != null ? `${finalHomeworkAverage}/10` : '—'}
+              color="red"
+            />
+            <GradeIndicatorCard
+              label="Chuyên cần"
+              score={gradebook.attendancePercent != null ? gradebook.attendancePercent / 10 : null}
+              suffix="%"
+              customScore={gradebook.attendancePercent}
+              color="emerald"
+            />
+          </div>
+
+          {/* ── Kết quả tổng kết ── */}
+          <div className="flex items-center gap-2 mt-4">
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Tổng kết kết quả</h3>
           </div>
-          
+
           <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
             isPassed ? 'border-emerald-100 bg-emerald-50/15' : 'border-amber-100 bg-amber-50/15'
           }`}>
             <div>
-              <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Tổng kết kết quả</p>
+              <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Trạng thái khóa học</p>
               <h4 className={`mt-1 font-['Manrope'] text-xl font-extrabold ${isPassed ? 'text-emerald-800' : 'text-amber-800'}`}>
                 {finalResultLabel}
               </h4>
@@ -1353,7 +1478,7 @@ export default function MyClassroomDetailPage() {
             </span>
           </div>
 
-          {/* Teacher Comment */}
+          {/* ── Đánh giá của giảng viên ── */}
           {gradebook.teacherComment && (
             <div className="rounded-2xl border border-gray-200/80 bg-white p-5 space-y-2 shadow-[0_10px_30px_rgba(0,0,0,0.01)]">
               <h4 className="text-[10px] font-extrabold text-[#730014] uppercase tracking-wider flex items-center gap-1.5">
