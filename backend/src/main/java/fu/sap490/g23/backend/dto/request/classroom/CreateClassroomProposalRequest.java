@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.dto.request.classroom;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,6 +24,7 @@ public class CreateClassroomProposalRequest {
     /** Trường tương thích dữ liệu cũ; đề xuất mở lớp không phụ thuộc danh sách học viên. */
     private List<Long> enrollmentRequestIds = List.of();
 
+    @NotNull(message = "Sức chứa không được để trống")
     @Min(value = 1, message = "Sức chứa phải lớn hơn 0")
     private Integer capacity;
 
@@ -52,4 +54,14 @@ public class CreateClassroomProposalRequest {
 
     @Size(max = 700)
     private String note;
+
+    @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
+    public boolean isDateRangeValid() {
+        return plannedStartDate == null || plannedEndDate == null || !plannedEndDate.isBefore(plannedStartDate);
+    }
+
+    @AssertTrue(message = "Giờ kết thúc phải sau giờ bắt đầu")
+    public boolean isTimeRangeValid() {
+        return sessionStartTime == null || sessionEndTime == null || sessionEndTime.isAfter(sessionStartTime);
+    }
 }

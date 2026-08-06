@@ -131,7 +131,7 @@ export function AppDialogProvider({ children }) {
           role="dialog"
         >
           <form
-            className="w-full max-w-lg overflow-hidden rounded-3xl border border-[#ead7d9] bg-white shadow-[0_28px_90px_rgba(56,0,10,0.3)]"
+            className="w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-[#ead7d9] bg-white shadow-[0_28px_90px_rgba(56,0,10,0.3)]"
             onSubmit={submitDialog}
           >
             <div className="flex items-start gap-4 border-b border-[#f0e1e3] px-6 py-5">
@@ -158,7 +158,7 @@ export function AppDialogProvider({ children }) {
               </button>
             </div>
 
-            <div className="space-y-4 px-6 py-5">
+            <div className="flex-1 overflow-y-auto space-y-4 px-6 py-5">
               <p className="whitespace-pre-line text-[15px] leading-6 text-slate-700">{dialog.message}</p>
               {dialog.type === 'prompt' ? (
                 <label className="block">

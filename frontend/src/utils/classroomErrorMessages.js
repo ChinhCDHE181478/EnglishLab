@@ -2,7 +2,7 @@ const CONFLICT_TYPE_MESSAGES = {
   TEACHER_SCHEDULE: 'Giáo viên đã có lịch trùng trong khung giờ này.',
   LEARNER_SCHEDULE: 'Học viên đã có lớp khác trùng lịch.',
   ROOM_SCHEDULE: 'Phòng học đã được sử dụng trong khung giờ này.',
-  LARK_TEACHER_OVERLAP: 'Giáo viên đang có buổi học trực tuyến Lark trùng thời gian.',
+  LARK_TEACHER_OVERLAP: 'Giáo viên đang có buổi học Google Meet trùng thời gian.',
   CLASS_CAPACITY: 'Lớp học đã đạt sĩ số tối đa.',
   SESSION_LOCKED: 'Buổi học đã khóa, không thể thay đổi.',
   DUPLICATE_ENROLLMENT: 'Học viên đã được ghi danh vào lớp này.',

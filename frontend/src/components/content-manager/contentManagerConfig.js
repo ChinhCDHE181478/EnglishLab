@@ -169,7 +169,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/publication': {
     title: 'Kiểm soát xuất bản',
-    subtitle: 'Rà soát bản nháp và trực tiếp xuất bản nội dung do Content Manager phụ trách.',
+    subtitle: 'Rà soát bản nháp và quản lý nội dung đang được xuất bản.',
     searchPlaceholder: 'Tìm loại nội dung hoặc người phụ trách...',
   },
   '/content-manager/analytics': {
@@ -193,7 +193,7 @@ export const contentManagerPageMeta = {
     searchPlaceholder: 'Tìm gói theo tên hoặc slug...',
   },
   '/content-manager/settings': {
-    title: 'Cài đặt Content Manager',
+    title: 'Cài đặt nội dung',
     subtitle: 'Xem loại gói hệ thống và truy cập nhanh khu vực quản lý gói / bundle.',
     searchPlaceholder: 'Tìm loại gói...',
   },

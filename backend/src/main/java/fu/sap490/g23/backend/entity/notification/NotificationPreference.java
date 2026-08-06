@@ -48,6 +48,14 @@ public class NotificationPreference {
     @Builder.Default
     private boolean inAppEnabled = true;
 
+    @Column(name = "class_reminder_enabled", nullable = false)
+    @Builder.Default
+    private boolean classReminderEnabled = true;
+
+    @Column(name = "study_alert_enabled", nullable = false)
+    @Builder.Default
+    private boolean studyAlertEnabled = true;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -189,6 +189,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .curriculumProgramTitle(curriculum == null ? null : curriculum.getTitle())
                 .curriculumProgramCode(curriculum == null ? null : curriculum.getCode())
                 .curriculumProgramExamCategory(curriculum == null ? null : curriculum.getExamCategory())
+                .programTrack(curriculum == null ? null : curriculum.getProgramTrack())
+                .focusSkills(curriculum == null ? null : curriculum.getFocusSkills())
                 .curriculumProgramStatus(curriculum == null ? null : curriculum.getStatus())
                 .shortDescription(program.getShortDescription())
                 .description(program.getDescription())

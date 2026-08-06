@@ -55,7 +55,7 @@ const LearnerPageShell = ({ title, description, children, actions = null, eyebro
         </motion.section>
       )}
       <motion.div
-        className="flex flex-1 flex-col"
+        className="flex flex-1 flex-col min-h-[calc(100vh-360px)]"
         initial="hidden"
         animate="visible"
         variants={pageVariants}

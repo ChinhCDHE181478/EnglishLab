@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canUseLearnerStudyTools,
+  getDefaultAuthenticatedPath,
   getUserRoles,
   hasAnyUserRole,
   needsPlacementTest,
@@ -8,16 +9,38 @@ import {
 } from './auth';
 
 describe('role helpers', () => {
+  it.each([
+    ['ADMIN', '/admin'],
+    ['MANAGER', '/manager/classroom-proposals'],
+    ['CONTENT_MANAGER', '/content-manager/dashboard'],
+    ['STAFF', '/staff'],
+    ['TEACHER', '/teacher'],
+  ])('returns the workspace landing page for %s', (role, expectedPath) => {
+    expect(getDefaultAuthenticatedPath({ role })).toBe(expectedPath);
+  });
+
+  it('keeps a fully onboarded learner on the learner home page', () => {
+    const learner = {
+      role: 'LEARNER',
+      profileCompleted: true,
+      fullName: 'Học viên',
+      phoneNumber: '0900000000',
+      targetExam: 'IELTS',
+      targetScore: '6.5',
+    };
+
+    expect(getDefaultAuthenticatedPath(learner)).toBe('/home');
+  });
+
   it('normalizes primary and assigned roles without duplicates', () => {
     expect(getUserRoles({ role: 'staff', roles: ['LEARNER', 'STAFF'] }))
       .toEqual(['LEARNER', 'STAFF']);
   });
 
-  it('recognizes STAFF independently from the legacy TRAINING_MANAGER role', () => {
+  it('recognizes the STAFF role', () => {
     const staff = { role: 'STAFF' };
 
     expect(hasAnyUserRole(staff, ['STAFF'])).toBe(true);
-    expect(hasAnyUserRole(staff, ['TRAINING_MANAGER'])).toBe(false);
   });
 
   it('does not force staff accounts through learner onboarding', () => {
@@ -37,6 +60,5 @@ describe('role helpers', () => {
     expect(canUseLearnerStudyTools({ role: 'CONTENT_MANAGER' })).toBe(true);
     expect(canUseLearnerStudyTools({ role: 'STAFF' })).toBe(false);
     expect(canUseLearnerStudyTools({ role: 'TEACHER' })).toBe(false);
-    expect(canUseLearnerStudyTools({ role: 'TRAINING_MANAGER' })).toBe(false);
   });
 });

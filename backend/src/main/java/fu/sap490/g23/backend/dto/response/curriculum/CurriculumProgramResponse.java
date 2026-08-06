@@ -19,6 +19,8 @@ public class CurriculumProgramResponse {
     private ClassroomDeliveryMode deliveryMode;
     private String deliveryModeLabel;
     private String examCategory;
+    private String programTrack;
+    private String focusSkills;
     private BigDecimal targetBand;
     private Integer targetScore;
     private String entryLevel;

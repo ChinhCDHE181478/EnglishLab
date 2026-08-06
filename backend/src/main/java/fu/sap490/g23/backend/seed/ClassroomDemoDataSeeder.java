@@ -39,9 +39,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private static final String TEACHER2_FULL_NAME = "Trần Thị Teacher";
 
     private static final String OFFLINE_UPCOMING_TITLE = "IELTS Foundation - Tại trung tâm";
-    private static final String VIRTUAL_UPCOMING_TITLE = "IELTS Speaking Live - Lark";
+    private static final String VIRTUAL_UPCOMING_TITLE = "IELTS Speaking Live - Google Meet";
     private static final String OFFLINE_IN_PROGRESS_TITLE = "IELTS Intermediate - Đang học";
-    private static final String VIRTUAL_IN_PROGRESS_TITLE = "TOEIC Communication - Đang học (Lark)";
+    private static final String VIRTUAL_IN_PROGRESS_TITLE = "TOEIC Communication - Đang học (Google Meet)";
     private static final String REGISTRATION_PIPELINE_TITLE = "IELTS Mới - Chờ xử lý đăng ký";
     private static final String COMPLETED_TITLE = "IELTS Foundation - Đã kết thúc";
 
@@ -84,6 +84,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         syncEnglishSlugs();
+        syncGoogleMeetLabels();
         syncTeacher2Account();
         clearLegacyDemoLarkLinks();
 
@@ -101,7 +102,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
         User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", RoleEnum.LEARNER);
         User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
-        User trainingManager = ensureUser("training.manager@englishlab.vn", "Quản Lý Đào Tạo", RoleEnum.TRAINING_MANAGER);
+        ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleEnum.STAFF);
         User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
         User admin = ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
 
@@ -254,6 +255,21 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         updateSlugIfNeeded(COMPLETED_TITLE, SLUG_COMPLETED);
     }
 
+    private void syncGoogleMeetLabels() {
+        renameVirtualPackage(SLUG_VIRTUAL_UPCOMING, VIRTUAL_UPCOMING_TITLE);
+        renameVirtualPackage(SLUG_VIRTUAL_IN_PROGRESS, VIRTUAL_IN_PROGRESS_TITLE);
+    }
+
+    private void renameVirtualPackage(String slug, String title) {
+        offeringRepository.findByLearningPackageSlug(slug).ifPresent(offering -> {
+            LearningPackage learningPackage = offering.getLearningPackage();
+            if (learningPackage != null && !title.equals(learningPackage.getTitle())) {
+                learningPackage.setTitle(title);
+                learningPackageRepository.save(learningPackage);
+            }
+        });
+    }
+
     private void updateSlugIfNeeded(String title, String slug) {
         offeringRepository.findByLearningPackageTitleIgnoreCase(title).ifPresent(offering -> {
             LearningPackage learningPackage = offering.getLearningPackage();
@@ -364,7 +380,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
 
         announcementRepository.save(ClassroomAnnouncement.builder()
                 .classroomOffering(offering)
-                .title("Hướng dẫn vào lớp Lark")
+                .title("Hướng dẫn vào lớp Google Meet")
                 .content("Vào lớp trước 5 phút, bật mic khi giáo viên yêu cầu.")
                 .createdBy(teacher)
                 .build());
@@ -676,7 +692,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .packageType(classroomType)
                 .title(title)
                 .slug(slug)
-                .shortDescription("Lớp trực tuyến qua Lark với giảng viên.")
+                .shortDescription("Lớp trực tuyến qua Google Meet với giảng viên.")
                 .description("Luyện kỹ năng trực tuyến theo nhóm nhỏ.")
                 .price(price)
                 .salePrice(salePrice)

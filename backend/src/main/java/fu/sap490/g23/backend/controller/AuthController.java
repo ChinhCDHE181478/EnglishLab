@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.controller;
 
 import fu.sap490.g23.backend.dto.request.EmailRequest;
+import fu.sap490.g23.backend.dto.request.FacebookAuthRequest;
 import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
 import fu.sap490.g23.backend.dto.request.LoginRequest;
 import fu.sap490.g23.backend.dto.request.ResetPasswordRequest;
@@ -17,8 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -66,14 +65,14 @@ public class AuthController {
     }
 
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request) {
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleAuthRequest request) {
         AuthResponse response = googleAuthService.loginWithGoogle(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/facebook")
-    public ResponseEntity<AuthResponse> facebookLogin(@RequestBody Map<String, String> request) {
-        AuthResponse response = facebookAuthService.loginWithFacebook(request.get("accessToken"));
+    public ResponseEntity<AuthResponse> facebookLogin(@Valid @RequestBody FacebookAuthRequest request) {
+        AuthResponse response = facebookAuthService.loginWithFacebook(request.getAccessToken());
         return ResponseEntity.ok(response);
     }
 }

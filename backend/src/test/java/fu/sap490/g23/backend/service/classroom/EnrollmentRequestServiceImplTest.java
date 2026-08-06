@@ -2,11 +2,13 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sap490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.AuthToken;
 import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.EnrollmentRequest;
@@ -19,17 +21,22 @@ import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.EnrollmentRequestRepository;
 import fu.sap490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
 import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sap490.g23.backend.service.assessment.PlacementEligibilityService;
+import fu.sap490.g23.backend.service.auth.AuthTokenService;
 import fu.sap490.g23.backend.service.classroom.impl.EnrollmentRequestServiceImpl;
 import fu.sap490.g23.backend.service.mail.EnrollmentRequestMailService;
+import fu.sap490.g23.backend.service.mail.AuthMailService;
+import fu.sap490.g23.backend.service.user.UserRoleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,7 +47,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,10 +58,15 @@ class EnrollmentRequestServiceImplTest {
     @Mock private EnrollmentRequestStatusHistoryRepository historyRepository;
     @Mock private TrainingProgramRepository trainingProgramRepository;
     @Mock private ClassroomOfferingRepository classroomOfferingRepository;
+    @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private PlacementEligibilityService placementEligibilityService;
     @Mock private ClassroomOfferingService classroomOfferingService;
     @Mock private EnrollmentRequestMailService enrollmentRequestMailService;
+    @Mock private AuthTokenService authTokenService;
+    @Mock private AuthMailService authMailService;
+    @Mock private UserRoleService userRoleService;
+    @Mock private PasswordEncoder passwordEncoder;
 
     private EnrollmentRequestServiceImpl service;
     private User learner;
@@ -68,10 +82,15 @@ class EnrollmentRequestServiceImplTest {
                 historyRepository,
                 trainingProgramRepository,
                 classroomOfferingRepository,
+                classroomEnrollmentRepository,
                 userRepository,
                 placementEligibilityService,
                 classroomOfferingService,
-                enrollmentRequestMailService
+                enrollmentRequestMailService,
+                authTokenService,
+                authMailService,
+                userRoleService,
+                passwordEncoder
         );
         learner = user(10L, "learner@example.com", RoleEnum.LEARNER);
         staff = user(50L, "staff@example.com", RoleEnum.STAFF);
@@ -105,7 +124,8 @@ class EnrollmentRequestServiceImplTest {
     void learnerRegistersInterestInCourseInsteadOfClass() {
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
         when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
-        when(requestRepository.existsByLearnerAndStatusNotIn(any(), anySet())).thenReturn(false);
+        when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(any(), any(), anySet()))
+                .thenReturn(false);
         stubPersistence();
 
         CourseEnrollmentRequestResponse response = service.submit(consultationForm(), learner.getEmail());
@@ -114,6 +134,26 @@ class EnrollmentRequestServiceImplTest {
         assertThat(response.getCourseOfferingId()).isEqualTo(program.getId());
         assertThat(response.getRequestedClassroomId()).isNull();
         verify(historyRepository).save(any());
+        verify(requestRepository).existsByLearnerAndCourseOfferingAndStatusNotIn(
+                eq(learner),
+                eq(program),
+                anySet()
+        );
+    }
+
+    @Test
+    void learnerCannotCreateSecondActiveRequestForSameCourse() {
+        when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(trainingProgramRepository.findById(program.getId())).thenReturn(Optional.of(program));
+        when(requestRepository.existsByLearnerAndCourseOfferingAndStatusNotIn(
+                eq(learner),
+                eq(program),
+                anySet()
+        )).thenReturn(true);
+
+        assertThatThrownBy(() -> service.submit(consultationForm(), learner.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("khóa học này");
     }
 
     @Test
@@ -145,15 +185,20 @@ class EnrollmentRequestServiceImplTest {
     }
 
     @Test
-    void staffCannotRecordResultBeforeAppointment() {
+    void staffCanRecordResultWhenLearnerArrivesBeforeAppointment() {
         EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.TEST_SCHEDULED);
         request.setTestAppointmentAt(LocalDateTime.now().plusHours(2));
         stubStaffRequest(request);
-        CompleteEnrollmentTestRequest payload = eligibleResult();
+        stubPersistence();
 
-        assertThatThrownBy(() -> service.completeTest(request.getId(), payload, staff.getEmail()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Chưa đến thời gian test");
+        CourseEnrollmentRequestResponse response = service.completeTest(
+                request.getId(),
+                eligibleResult(),
+                staff.getEmail()
+        );
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        assertThat(response.getTestCompletedAt()).isNotNull();
     }
 
     @Test
@@ -171,8 +216,16 @@ class EnrollmentRequestServiceImplTest {
     }
 
     @Test
-    void staffAssignsOnlyAClassFromRegisteredCourseAndEmailsLearner() {
+    void staffCanAssignAClassFromDifferentCourseAfterPlacementTestAndEmailsLearner() {
         EnrollmentRequest request = enrollmentRequest(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        TrainingProgram placementProgram = TrainingProgram.builder()
+                .id(99L)
+                .code("IELTS-INTERMEDIATE")
+                .title("IELTS Intermediate")
+                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
+                .status(PackageStatus.PUBLISHED)
+                .build();
+        classroom.setTrainingProgram(placementProgram);
         stubStaffRequest(request);
         when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
         when(classroomOfferingService.enrollStudent(any(), any()))
@@ -198,6 +251,93 @@ class EnrollmentRequestServiceImplTest {
         assertThatThrownBy(() -> service.assignClass(request.getId(), payload, staff.getEmail()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("đã test");
+    }
+
+    @Test
+    void staffCreatesLearnerAccountAndAssignsClassForCenterRegistration() {
+        CreateCenterEnrollmentRequest payload = centerEnrollment();
+        AuthToken setupToken = AuthToken.builder().token("123456").build();
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByEmail("new.learner@example.com")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(any())).thenReturn("encoded-random-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setId(70L);
+            saved.setRole(RoleEnum.LEARNER);
+            return saved;
+        });
+        when(classroomEnrollmentRepository
+                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .thenReturn(false);
+        when(classroomOfferingService.enrollStudent(eq(classroom.getId()), any()))
+                .thenReturn(ClassroomEnrollmentResponse.builder().hasClassAccess(true).build());
+        when(authTokenService.issuePasswordResetToken(any())).thenReturn(setupToken);
+        stubPersistence();
+
+        CourseEnrollmentRequestResponse response = service.createAtCenter(payload, staff.getEmail());
+
+        assertThat(response.getStatus()).isEqualTo(EnrollmentRequestStatus.CLASS_ASSIGNED);
+        assertThat(response.getRequestSource().name()).isEqualTo("CENTER");
+        assertThat(response.isLearnerAccountCreated()).isTrue();
+        assertThat(response.isAccountSetupEmailSent()).isTrue();
+        assertThat(response.getAssignedClassroomId()).isEqualTo(classroom.getId());
+        verify(userRoleService).assignRole(any(User.class), eq(RoleEnum.LEARNER));
+        verify(authMailService).sendStaffCreatedAccountEmail(any(User.class), eq("123456"));
+        verify(enrollmentRequestMailService).sendClassAssignment(any(EnrollmentRequest.class), eq(classroom));
+    }
+
+    @Test
+    void staffCannotCreateDuplicateCenterEnrollmentInSameClass() {
+        CreateCenterEnrollmentRequest payload = centerEnrollment();
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByEmail("new.learner@example.com")).thenReturn(Optional.of(learner));
+        when(userRepository.save(learner)).thenReturn(learner);
+        when(classroomEnrollmentRepository
+                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.createAtCenter(payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("đã có hồ sơ");
+    }
+
+    @Test
+    void staffReusesExistingLearnerAccountWithoutChangingItsPassword() {
+        CreateCenterEnrollmentRequest payload = centerEnrollment();
+        payload.setEmail(learner.getEmail());
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
+        when(userRepository.save(learner)).thenReturn(learner);
+        when(classroomEnrollmentRepository
+                .existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), anySet()))
+                .thenReturn(false);
+        when(classroomOfferingService.enrollStudent(eq(classroom.getId()), any()))
+                .thenReturn(ClassroomEnrollmentResponse.builder().hasClassAccess(true).build());
+        stubPersistence();
+
+        CourseEnrollmentRequestResponse response = service.createAtCenter(payload, staff.getEmail());
+
+        assertThat(response.isLearnerAccountCreated()).isFalse();
+        assertThat(response.isAccountSetupEmailSent()).isFalse();
+        verify(passwordEncoder, never()).encode(any());
+        verify(authTokenService, never()).issuePasswordResetToken(any());
+    }
+
+    @Test
+    void staffCannotUseInternalAccountAsLearnerAtCenter() {
+        CreateCenterEnrollmentRequest payload = centerEnrollment();
+        payload.setEmail(manager.getEmail());
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(classroomOfferingRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+
+        assertThatThrownBy(() -> service.createAtCenter(payload, staff.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("tài khoản nội bộ");
+        verify(classroomOfferingService, never()).enrollStudent(any(), any());
     }
 
     @Test
@@ -241,6 +381,17 @@ class EnrollmentRequestServiceImplTest {
         payload.setContactPhone("0901234567");
         payload.setConsultationTrack("IELTS_4_SKILLS");
         payload.setStudyWorkGoal("Mục tiêu IELTS 6.5");
+        return payload;
+    }
+
+    private CreateCenterEnrollmentRequest centerEnrollment() {
+        CreateCenterEnrollmentRequest payload = new CreateCenterEnrollmentRequest();
+        payload.setFullName("Nguyễn Học Viên Mới");
+        payload.setEmail("new.learner@example.com");
+        payload.setPhoneNumber("0901234567");
+        payload.setConfirmedLevel(PlacementLevel.INTERMEDIATE);
+        payload.setClassroomId(classroom.getId());
+        payload.setNote("Đăng ký trực tiếp tại trung tâm.");
         return payload;
     }
 

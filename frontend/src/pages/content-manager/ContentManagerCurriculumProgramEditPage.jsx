@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, X } from 'lucide-react';
 import curriculumApi from '../../api/curriculumApi';
-import { ContentManagerLoadingState, Panel } from '../../components/content-manager/ContentManagerUi';
+import { ContentManagerLoadingState, HeaderActions, Panel } from '../../components/content-manager/ContentManagerUi';
+import {
+  EnglishEntryLevelField,
+  IeltsBandSelect,
+  ToeicScoreField,
+} from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
@@ -12,47 +17,57 @@ import {
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
-
-const examOptions = [
-  { label: 'IELTS', value: 'IELTS' },
-  { label: 'TOEIC', value: 'TOEIC' },
-  { label: 'General English', value: 'GENERAL' },
-];
+import {
+  ENGLISH_EXAM_OPTIONS,
+  ENGLISH_SKILL_OPTIONS,
+  ENGLISH_TRACK_OPTIONS,
+  getEnglishProfileDefaults,
+  normalizeEnglishEntryLevel,
+  normalizeEnglishExamCategory,
+  readEnglishFocusSkills,
+  validateEnglishProgramProfile,
+} from '../../utils/englishProgramProfile';
 
 const platformOptions = [
-  { label: 'Lark', value: 'LARK' },
+  { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Zoom', value: 'ZOOM' },
   { label: 'Google Meet', value: 'GOOGLE_MEET' },
   { label: 'Liên kết thủ công', value: 'MANUAL' },
 ];
 
-const toForm = (program = {}) => ({
-  title: program.title || '',
-  code: program.code || '',
-  slug: program.slug || '',
-  examCategory: program.examCategory || 'IELTS',
-  targetBand: program.targetBand ?? '',
-  targetScore: program.targetScore ?? '',
-  entryLevel: program.entryLevel || '',
-  outcomes: program.outcomes || '',
-  teacherGuide: program.teacherGuide || '',
-  interactionActivities: program.interactionActivities || '',
-  totalSessions: program.totalSessions ?? 0,
-  status: program.status || 'DRAFT',
-  displayOrder: program.displayOrder ?? 0,
-  virtualPlatform: program.virtualPlatform || 'LARK',
-  recordingAllowed: program.recordingAllowed ?? true,
-  recordingAvailableDays: program.recordingAvailableDays ?? 30,
-  materialsDownloadable: program.materialsDownloadable ?? false,
-  sessionOpenBeforeMinutes: program.sessionOpenBeforeMinutes ?? 15,
-  sessionCloseAfterMinutes: program.sessionCloseAfterMinutes ?? 30,
-  deviceCheckRequired: program.deviceCheckRequired ?? true,
-  micRequired: program.micRequired ?? true,
-  speakerRequired: program.speakerRequired ?? true,
-  cameraRequired: program.cameraRequired ?? false,
-  autoAttendanceEnabled: program.autoAttendanceEnabled ?? true,
-  minAttendanceMinutes: program.minAttendanceMinutes ?? 45,
-});
+const toForm = (program = {}) => {
+  const examCategory = normalizeEnglishExamCategory(program.examCategory);
+  const defaults = getEnglishProfileDefaults(examCategory);
+  return {
+    title: program.title || '',
+    code: program.code || '',
+    slug: program.slug || '',
+    examCategory,
+    programTrack: program.programTrack || defaults.programTrack,
+    focusSkills: readEnglishFocusSkills(program.focusSkills, examCategory),
+    targetBand: examCategory === 'IELTS' ? (program.targetBand ?? defaults.targetBand) : '',
+    targetScore: examCategory === 'TOEIC' ? (program.targetScore ?? defaults.targetScore) : '',
+    entryLevel: normalizeEnglishEntryLevel(program.entryLevel, examCategory),
+    outcomes: program.outcomes || '',
+    teacherGuide: program.teacherGuide || '',
+    interactionActivities: program.interactionActivities || '',
+    totalSessions: program.totalSessions ?? 0,
+    status: program.status || 'DRAFT',
+    displayOrder: program.displayOrder ?? 0,
+    virtualPlatform: program.virtualPlatform || 'GOOGLE_MEET',
+    recordingAllowed: program.recordingAllowed ?? true,
+    recordingAvailableDays: program.recordingAvailableDays ?? 30,
+    materialsDownloadable: program.materialsDownloadable ?? false,
+    sessionOpenBeforeMinutes: program.sessionOpenBeforeMinutes ?? 15,
+    sessionCloseAfterMinutes: program.sessionCloseAfterMinutes ?? 30,
+    deviceCheckRequired: program.deviceCheckRequired ?? true,
+    micRequired: program.micRequired ?? true,
+    speakerRequired: program.speakerRequired ?? true,
+    cameraRequired: program.cameraRequired ?? false,
+    autoAttendanceEnabled: program.autoAttendanceEnabled ?? true,
+    minAttendanceMinutes: program.minAttendanceMinutes ?? 45,
+  };
+};
 
 export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLINE' }) {
   const { id } = useParams();
@@ -88,6 +103,11 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
       setError('Vui lòng nhập tên giáo trình.');
       return;
     }
+    const profileError = validateEnglishProgramProfile(form);
+    if (profileError) {
+      setError(profileError);
+      return;
+    }
     setSaving(true);
     setError('');
     setSuccess('');
@@ -95,6 +115,7 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
       const payload = {
         ...form,
         deliveryMode: mode,
+        focusSkills: form.focusSkills.join(','),
         targetBand: form.targetBand === '' ? null : Number(form.targetBand),
         targetScore: form.targetScore === '' ? null : Number(form.targetScore),
         totalSessions: Number(form.totalSessions || 0),
@@ -127,21 +148,22 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <HeaderActions>
+        <Link className={SECONDARY_BUTTON_CLASS} to={detailPath}>
+          <X className="h-4 w-4" />
+          Hủy
+        </Link>
+        <button className={PRIMARY_BUTTON_CLASS} disabled={saving} onClick={saveProgram} type="button">
+          <Save className="h-4 w-4" />
+          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
+      </HeaderActions>
+
+      <div className="flex items-center justify-between gap-3">
         <Link className="inline-flex items-center gap-2 text-sm font-bold text-[#564241] hover:text-[#4b0009]" to={detailPath}>
           <ChevronLeft className="h-4 w-4" />
           Quay lại chi tiết
         </Link>
-        <div className="flex flex-wrap gap-2 sm:-mt-[88px] sm:mb-14">
-          <Link className={SECONDARY_BUTTON_CLASS} to={detailPath}>
-            <X className="h-4 w-4" />
-            Hủy
-          </Link>
-          <button className={PRIMARY_BUTTON_CLASS} disabled={saving} onClick={saveProgram} type="button">
-            <Save className="h-4 w-4" />
-            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </button>
-        </div>
       </div>
 
       {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}
@@ -154,12 +176,39 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
           <TextInput label="Slug" value={form.slug} onChange={(value) => updateForm({ slug: value })} />
           <div>
             <FieldLabel>Nhóm thi</FieldLabel>
-            <BrandedSelect value={form.examCategory} onChange={(event) => updateForm({ examCategory: event.target.value })} options={examOptions} />
+            <BrandedSelect
+              value={form.examCategory}
+              onChange={(event) => {
+                const examCategory = event.target.value;
+                updateForm({ examCategory, ...getEnglishProfileDefaults(examCategory) });
+              }}
+              options={ENGLISH_EXAM_OPTIONS}
+            />
           </div>
-          <TextInput label="Cấp độ đầu vào" value={form.entryLevel} onChange={(value) => updateForm({ entryLevel: value })} />
+          <div>
+            <FieldLabel>Loại chương trình</FieldLabel>
+            <BrandedSelect value={form.programTrack} onChange={(event) => updateForm({ programTrack: event.target.value })} options={ENGLISH_TRACK_OPTIONS[form.examCategory]} />
+          </div>
+          <EnglishEntryLevelField
+            examCategory={form.examCategory}
+            onChange={(value) => updateForm({ entryLevel: value })}
+            value={form.entryLevel}
+          />
           <TextInput label="Số buổi" type="number" value={form.totalSessions} onChange={(value) => updateForm({ totalSessions: value })} />
-          <TextInput label="Target IELTS" type="number" value={form.targetBand} onChange={(value) => updateForm({ targetBand: value })} />
-          <TextInput label="Target TOEIC" type="number" value={form.targetScore} onChange={(value) => updateForm({ targetScore: value })} />
+          {form.examCategory === 'IELTS' ? (
+            <IeltsBandSelect
+              label="Band IELTS mục tiêu"
+              onChange={(value) => updateForm({ targetBand: value })}
+              value={form.targetBand}
+            />
+          ) : null}
+          {form.examCategory === 'TOEIC' ? (
+            <ToeicScoreField
+              label="Điểm TOEIC mục tiêu"
+              onChange={(value) => updateForm({ targetScore: value })}
+              value={form.targetScore}
+            />
+          ) : null}
           <div>
             <FieldLabel>Trạng thái</FieldLabel>
             <div className="rounded-lg border border-[#dcc0bf]/40 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#584140]">
@@ -167,6 +216,28 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
             </div>
           </div>
           <TextInput label="Thứ tự hiển thị" type="number" value={form.displayOrder} onChange={(value) => updateForm({ displayOrder: value })} />
+        </div>
+        <div className="mt-5">
+          <FieldLabel>Kỹ năng trọng tâm</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            {ENGLISH_SKILL_OPTIONS.map((skill) => {
+              const selected = form.focusSkills.includes(skill.value);
+              return (
+                <button
+                  className={`rounded-full border px-3 py-2 text-xs font-bold transition ${selected ? 'border-[#730014] bg-[#730014] text-white' : 'border-[#dcc0bf] bg-white text-[#584140] hover:border-[#730014]'}`}
+                  key={skill.value}
+                  onClick={() => updateForm({
+                    focusSkills: selected
+                      ? form.focusSkills.filter((value) => value !== skill.value)
+                      : [...form.focusSkills, skill.value],
+                  })}
+                  type="button"
+                >
+                  {skill.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="mt-5 space-y-4">
           <RichTextEditor label="Chuẩn đầu ra" onChange={(value) => updateForm({ outcomes: value })} placeholder="Chuẩn đầu ra của chương trình..." size="form" value={form.outcomes} />

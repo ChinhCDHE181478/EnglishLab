@@ -198,6 +198,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     @Override
     public ClassroomHomeworkSubmissionResponse submit(Long homeworkId, SubmitHomeworkRequest request, String learnerEmail) {
+        if (request == null || (!hasText(request.getTextAnswer()) && !hasText(request.getAttachmentUrl()))) {
+            throw new IllegalArgumentException("Bài nộp cần có nội dung trả lời hoặc tệp đính kèm.");
+        }
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomHomework homework = findHomework(homeworkId);
 
@@ -277,6 +280,10 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (maxScore != null && score.compareTo(maxScore) > 0) {
             throw new RuntimeException("Điểm không được vượt quá điểm tối đa (" + maxScore.stripTrailingZeros().toPlainString() + ").");
         }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private void syncHomeworkScoreToGradebook(ClassroomHomework homework, Long studentId, User grader) {

@@ -11,4 +11,8 @@ public class UpdateNotificationPreferenceRequest {
 
     @NotNull(message = "Vui lòng chọn tùy chọn thông báo trong ứng dụng.")
     private Boolean inAppEnabled;
+
+    private Boolean classReminderEnabled;
+
+    private Boolean studyAlertEnabled;
 }

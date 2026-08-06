@@ -58,7 +58,7 @@ class ClassroomOfferingServiceImplSettlementTest {
     @Mock private UserRepository userRepository;
     @Mock private ClassroomMapper mapper;
     @Mock private ClassroomConflictService conflictService;
-    @Mock private LarkMeetingService larkMeetingService;
+    @Mock private VirtualMeetingService virtualMeetingService;
     @Mock private ClassroomAccessHelper accessHelper;
     @Mock private ClassroomNotificationService notificationService;
     @Mock private LarkMeetingParticipantRepository larkParticipantRepository;

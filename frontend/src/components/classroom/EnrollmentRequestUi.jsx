@@ -1,23 +1,23 @@
 import { Check, Circle, Clock3 } from 'lucide-react';
 
 export const enrollmentStatusMeta = {
-  SUBMITTED: { label: 'Đã gửi', tone: 'bg-slate-100 text-slate-700' },
-  INVITATION_SENT: { label: 'Đã gửi lời mời', tone: 'bg-violet-50 text-violet-700' },
-  TEST_SCHEDULED: { label: 'Đã hẹn lịch test', tone: 'bg-sky-50 text-sky-700' },
-  AWAITING_PLACEMENT_TEST: { label: 'Chờ placement test', tone: 'bg-amber-50 text-amber-800' },
-  PLACEMENT_TEST_COMPLETED: { label: 'Đã hoàn thành placement test', tone: 'bg-sky-50 text-sky-700' },
-  UNDER_STAFF_REVIEW: { label: 'Nhân viên đang rà soát', tone: 'bg-violet-50 text-violet-700' },
-  WAITING_FOR_CLASS: { label: 'Đủ điều kiện - chờ xếp lớp', tone: 'bg-blue-50 text-blue-700' },
-  CLASS_PROPOSED: { label: 'Đã có đề xuất lớp', tone: 'bg-indigo-50 text-indigo-700' },
-  CLASS_ASSIGNED: { label: 'Hoàn tất - Đã xếp lớp', tone: 'bg-emerald-50 text-emerald-700' },
-  REJECTED: { label: 'Đã từ chối', tone: 'bg-rose-50 text-rose-700' },
-  CANCELLED: { label: 'Đã hủy', tone: 'bg-slate-100 text-slate-600' },
+  SUBMITTED: { label: 'Đã gửi', tone: 'bg-slate-100 text-slate-700 border-slate-200' },
+  INVITATION_SENT: { label: 'Đã gửi lời mời', tone: 'bg-violet-50 text-violet-700 border-violet-200' },
+  TEST_SCHEDULED: { label: 'Đã hẹn lịch test', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
+  AWAITING_PLACEMENT_TEST: { label: 'Chờ đánh giá đầu vào', tone: 'bg-amber-50 text-amber-800 border-amber-200' },
+  PLACEMENT_TEST_COMPLETED: { label: 'Đã có kết quả đầu vào', tone: 'bg-sky-50 text-sky-700 border-sky-200' },
+  UNDER_STAFF_REVIEW: { label: 'Đang rà soát', tone: 'bg-violet-50 text-violet-700 border-violet-200' },
+  WAITING_FOR_CLASS: { label: 'Đủ điều kiện · Chờ xếp lớp', tone: 'bg-blue-50 text-blue-700 border-blue-200' },
+  CLASS_PROPOSED: { label: 'Đã có đề xuất lớp', tone: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  CLASS_ASSIGNED: { label: 'Hoàn tất · Đã xếp lớp', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  REJECTED: { label: 'Đã từ chối', tone: 'bg-rose-50 text-rose-700 border-rose-200' },
+  CANCELLED: { label: 'Đã hủy', tone: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
 
 export function EnrollmentStatusBadge({ status, label }) {
-  const meta = enrollmentStatusMeta[status] || { label: label || status, tone: 'bg-slate-100 text-slate-700' };
+  const meta = enrollmentStatusMeta[status] || { label: label || status, tone: 'bg-slate-100 text-slate-700 border-slate-200' };
   return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-extrabold ${meta.tone}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-extrabold border ${meta.tone}`}>
       {label || meta.label}
     </span>
   );
@@ -25,7 +25,7 @@ export function EnrollmentStatusBadge({ status, label }) {
 
 export function EnrollmentRequestTimeline({ history = [] }) {
   if (!history.length) {
-    return <p className="text-sm text-slate-500">Lịch sử xử lý sẽ xuất hiện sau khi yêu cầu được gửi.</p>;
+    return <p className="text-sm text-slate-500">Chưa có cập nhật mới.</p>;
   }
 
   return (
@@ -41,7 +41,7 @@ export function EnrollmentRequestTimeline({ history = [] }) {
             </span>
             <div className="pt-0.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-extrabold text-[#0b1c30]">{item.statusLabel || enrollmentStatusMeta[item.toStatus]?.label || item.toStatus}</p>
+                <p className="text-sm font-extrabold text-[#0b1c30]">{enrollmentStatusMeta[item.toStatus]?.label || item.statusLabel || item.toStatus}</p>
                 <time className="text-xs font-semibold text-slate-400">
                   {item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}
                 </time>
@@ -58,7 +58,7 @@ export function EnrollmentRequestTimeline({ history = [] }) {
 
 export function PlacementRequirements({ eligibility }) {
   if (!eligibility) {
-    return <p className="text-sm leading-6 text-slate-600">Bạn chưa có kết quả placement test được liên kết.</p>;
+    return <p className="text-sm leading-6 text-slate-600">Chưa có kết quả đánh giá đầu vào.</p>;
   }
   if (eligibility.eligible) {
     return (
@@ -84,11 +84,11 @@ export function PlacementRequirements({ eligibility }) {
 }
 
 const placementRequirementLabel = (value) => ({
-  TEST_SUBMISSION: 'Chưa nộp bài placement test',
+  TEST_SUBMISSION: 'Chưa nộp bài đánh giá đầu vào',
   LISTENING_SCORE: 'Chưa có điểm Listening',
   READING_SCORE: 'Chưa có điểm Reading',
-  WRITING_REVIEW: 'Writing cần Staff xác nhận',
-  SPEAKING_REVIEW: 'Speaking cần Staff xác nhận',
+  WRITING_REVIEW: 'Chưa xác nhận kết quả Writing',
+  SPEAKING_REVIEW: 'Chưa xác nhận kết quả Speaking',
   RECOMMENDED_LEVEL: 'Chưa chốt trình độ đề xuất',
   OVERALL_SCORE: 'Chưa có kết quả tổng thể',
   RESULT_EXPIRED: 'Kết quả đã hết hiệu lực',

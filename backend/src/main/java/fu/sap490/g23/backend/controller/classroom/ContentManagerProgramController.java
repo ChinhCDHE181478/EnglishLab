@@ -38,7 +38,7 @@ public class ContentManagerProgramController {
     private final CenterMaterialLibraryService centerMaterialLibraryService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
 
-    @GetMapping({"/scheduled-course-offerings", "/training-programs"})
+    @GetMapping("/training-programs")
     public ResponseEntity<List<TrainingProgramResponse>> listTrainingPrograms(
             @RequestParam(required = false) ClassroomDeliveryMode deliveryType,
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
@@ -51,19 +51,19 @@ public class ContentManagerProgramController {
         ));
     }
 
-    @GetMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
+    @GetMapping("/training-programs/{id}")
     public ResponseEntity<TrainingProgramResponse> getTrainingProgram(@PathVariable Long id) {
         return ResponseEntity.ok(trainingProgramService.getProgram(id));
     }
 
-    @PostMapping({"/scheduled-course-offerings", "/training-programs"})
+    @PostMapping("/training-programs")
     public ResponseEntity<TrainingProgramResponse> createTrainingProgram(
             @Valid @RequestBody TrainingProgramRequest request
     ) {
         return ResponseEntity.ok(trainingProgramService.createProgram(request));
     }
 
-    @PutMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
+    @PutMapping("/training-programs/{id}")
     public ResponseEntity<TrainingProgramResponse> updateTrainingProgram(
             @PathVariable Long id,
             @Valid @RequestBody TrainingProgramRequest request
@@ -71,12 +71,12 @@ public class ContentManagerProgramController {
         return ResponseEntity.ok(trainingProgramService.updateProgram(id, request));
     }
 
-    @PostMapping({"/scheduled-course-offerings/{id}/clone", "/training-programs/{id}/clone"})
+    @PostMapping("/training-programs/{id}/clone")
     public ResponseEntity<TrainingProgramResponse> cloneTrainingProgram(@PathVariable Long id) {
         return ResponseEntity.ok(trainingProgramService.cloneProgram(id));
     }
 
-    @DeleteMapping({"/scheduled-course-offerings/{id}", "/training-programs/{id}"})
+    @DeleteMapping("/training-programs/{id}")
     public ResponseEntity<Void> archiveTrainingProgram(@PathVariable Long id) {
         trainingProgramService.archiveProgram(id);
         return ResponseEntity.noContent().build();

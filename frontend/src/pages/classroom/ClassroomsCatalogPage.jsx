@@ -108,7 +108,7 @@ export default function ClassroomsCatalogPage() {
   const isAuthenticated = Boolean(hasAccessToken() && currentUser);
 
   const [programs, setPrograms] = useState([]);
-  const [existingRequest, setExistingRequest] = useState(null);
+  const [activeRequests, setActiveRequests] = useState([]);
   const [form, setForm] = useState(() => createInitialForm(currentUser));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -127,9 +127,9 @@ export default function ClassroomsCatalogPage() {
       if (isAuthenticated) {
         try {
           const mine = await enrollmentRequestApi.listMine();
-          setExistingRequest(mine.find((item) => ACTIVE_REQUEST_STATUSES.has(item.status)) || null);
+          setActiveRequests(mine.filter((item) => ACTIVE_REQUEST_STATUSES.has(item.status)));
         } catch {
-          setExistingRequest(null);
+          setActiveRequests([]);
         }
       }
     } catch (loadError) {
@@ -168,7 +168,14 @@ export default function ClassroomsCatalogPage() {
     });
   }, [deliveryFilter, programs, searchQuery]);
 
-  const programOptions = useMemo(() => programs.map((program) => ({
+  const activeProgramIds = useMemo(
+    () => new Set(activeRequests.map((item) => String(item.courseOfferingId)).filter(Boolean)),
+    [activeRequests],
+  );
+
+  const programOptions = useMemo(() => programs
+    .filter((program) => !activeProgramIds.has(String(program.id)))
+    .map((program) => ({
     value: String(program.id),
     label: program.title,
     description: [
@@ -176,7 +183,7 @@ export default function ClassroomsCatalogPage() {
       program.entryLevel ? `Đầu vào ${program.entryLevel}` : null,
       program.targetScore ? `Mục tiêu ${program.targetScore}` : null,
     ].filter(Boolean).join(' · '),
-  })), [programs]);
+    })), [activeProgramIds, programs]);
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -201,6 +208,11 @@ export default function ClassroomsCatalogPage() {
   };
 
   const selectProgram = (program) => {
+    if (activeProgramIds.has(String(program.id))) {
+      setFormError('Bạn đã có một hồ sơ đang được xử lý cho khóa học này. Bạn vẫn có thể chọn khóa học khác.');
+      document.getElementById('dang-ky-tu-van')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     setForm((current) => ({
       ...current,
       courseOfferingId: String(program.id),
@@ -211,6 +223,9 @@ export default function ClassroomsCatalogPage() {
 
   const validateForm = () => {
     if (!form.courseOfferingId) return 'Vui lòng chọn khóa học bạn quan tâm.';
+    if (activeProgramIds.has(String(form.courseOfferingId))) {
+      return 'Bạn đã có một hồ sơ đang được xử lý cho khóa học này. Vui lòng chọn khóa học khác.';
+    }
     if (!form.contactName.trim() || !form.contactPhone.trim() || !form.contactEmail.trim()) {
       return 'Vui lòng điền Họ tên, Số điện thoại và Email.';
     }
@@ -255,8 +270,12 @@ export default function ClassroomsCatalogPage() {
         preferredSchedule: form.preferredSchedule.trim() || null,
       });
       sessionStorage.removeItem(DRAFT_STORAGE_KEY);
-      setExistingRequest(saved);
-      setSuccess('Đã gửi đăng ký. Staff sẽ gửi email mời và gọi điện để chốt lịch tư vấn, test đầu vào tại trung tâm.');
+      setActiveRequests((current) => [
+        saved,
+        ...current.filter((item) => item.id !== saved.id),
+      ]);
+      setForm((current) => ({ ...current, courseOfferingId: '' }));
+      setSuccess('Đã gửi đăng ký. Đội ngũ tư vấn sẽ liên hệ để xác nhận lịch tư vấn và đánh giá đầu vào tại trung tâm.');
     } catch (submitError) {
       setFormError(submitError?.response?.data?.message || 'Không thể gửi form đăng ký. Vui lòng thử lại.');
     } finally {
@@ -278,8 +297,8 @@ export default function ClassroomsCatalogPage() {
                   Chọn khóa học, EnglishLab sẽ tư vấn lớp phù hợp
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-white/80">
-                  Bạn không cần đoán lớp nào phù hợp. Hãy chọn khóa học mong muốn; Staff sẽ liên hệ,
-                  hẹn lịch test đầu vào và xếp lớp dựa trên kết quả thực tế.
+                  Chọn khóa học bạn quan tâm. Đội ngũ tư vấn sẽ liên hệ, hẹn lịch đánh giá đầu vào
+                  và đề xuất lớp phù hợp với kết quả thực tế.
                 </p>
               </div>
               <div className="grid shrink-0 gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-xs backdrop-blur-sm">
@@ -293,7 +312,7 @@ export default function ClassroomsCatalogPage() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="font-['Manrope'] text-2xl font-black text-slate-900">Khóa học đang nhận đăng ký</h2>
-                <p className="mt-1 text-sm text-slate-500">Số lớp sẽ được mở dựa trên nhu cầu đăng ký và phê duyệt của Manager.</p>
+                <p className="mt-1 text-sm text-slate-500">Danh sách được cập nhật theo kế hoạch tuyển sinh của trung tâm.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="w-full sm:w-48">
@@ -324,6 +343,7 @@ export default function ClassroomsCatalogPage() {
             {!loading && !error && !filteredPrograms.length ? <CourseEmpty /> : null}
             {!loading && !error && filteredPrograms.length ? (
               <ProgramList
+                registeredProgramIds={activeProgramIds}
                 onSelect={selectProgram}
                 programs={filteredPrograms}
                 selectedProgramId={form.courseOfferingId}
@@ -339,23 +359,37 @@ export default function ClassroomsCatalogPage() {
                 </div>
                 <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-slate-900">Thông tin đăng ký</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Sau khi tiếp nhận, Staff sẽ gửi email mời và gọi điện để chốt ngày giờ bạn đến trung tâm.
+                  Đội ngũ tư vấn sẽ liên hệ để xác nhận ngày giờ bạn đến trung tâm.
                 </p>
               </div>
 
-              {existingRequest ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl bg-slate-50 p-8 text-center">
-                  <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-                  <h3 className="mt-3 text-lg font-bold text-slate-900">Hồ sơ đăng ký đã được tiếp nhận</h3>
-                  <p className="mt-1 max-w-xl text-sm text-slate-600">
-                    {success || existingRequest.statusLabel || 'Staff sẽ sớm liên hệ với bạn.'}
-                  </p>
-                  <button className="mt-4 rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-bold text-white" onClick={() => navigate('/my-enrollment-requests')} type="button">
+              {activeRequests.length ? (
+                <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-extrabold text-blue-900">
+                      Bạn có {activeRequests.length} hồ sơ đăng ký đang được xử lý
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-blue-700">
+                      Bạn vẫn có thể đăng ký thêm khóa học khác; mỗi khóa chỉ có một hồ sơ đang hoạt động.
+                    </p>
+                  </div>
+                  <button className="shrink-0 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-bold text-blue-800" onClick={() => navigate('/my-enrollment-requests')} type="button">
                     Theo dõi hồ sơ
                   </button>
                 </div>
-              ) : (
-                <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+              ) : null}
+
+              {success ? (
+                <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-extrabold text-emerald-900">Hồ sơ đăng ký đã được tiếp nhận</p>
+                    <p className="mt-1 text-xs leading-5 text-emerald-700">{success} Bạn có thể tiếp tục chọn một khóa học khác.</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
                   <div className="md:col-span-2">
                     <FieldLabel>Khóa học quan tâm *</FieldLabel>
                     <BrandedSelect
@@ -399,8 +433,7 @@ export default function ClassroomsCatalogPage() {
                     </button>
                     <span className="mt-2 text-[11px] text-slate-500">Thông tin chỉ được dùng cho tư vấn và xếp lớp.</span>
                   </div>
-                </form>
-              )}
+              </form>
             </div>
           </section>
         </main>
@@ -410,7 +443,7 @@ export default function ClassroomsCatalogPage() {
   );
 }
 
-function ProgramList({ onSelect, programs, selectedProgramId }) {
+function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgramId }) {
   return (
     <>
       <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
@@ -436,6 +469,7 @@ function ProgramList({ onSelect, programs, selectedProgramId }) {
                     key={program.id}
                     onSelect={() => onSelect(program)}
                     program={program}
+                    registered={registeredProgramIds.has(String(program.id))}
                     selected={selected}
                   />
                 );
@@ -451,6 +485,7 @@ function ProgramList({ onSelect, programs, selectedProgramId }) {
             key={program.id}
             onSelect={() => onSelect(program)}
             program={program}
+            registered={registeredProgramIds.has(String(program.id))}
             selected={String(program.id) === String(selectedProgramId)}
           />
         ))}
@@ -459,7 +494,7 @@ function ProgramList({ onSelect, programs, selectedProgramId }) {
   );
 }
 
-function ProgramTableRow({ onSelect, program, selected }) {
+function ProgramTableRow({ onSelect, program, registered, selected }) {
   const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
   return (
     <tr className={`text-sm transition ${selected ? 'bg-[#fff3f4]' : 'odd:bg-white even:bg-slate-50/70 hover:bg-[#fff8f8]'}`}>
@@ -468,6 +503,10 @@ function ProgramTableRow({ onSelect, program, selected }) {
       </td>
       <td className="max-w-xs px-4 py-3 align-top">
         <p className="font-extrabold text-slate-900">{program.title}</p>
+        <p className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#8a0018]">
+          {program.curriculumProgramExamCategory === 'GENERAL_ENGLISH' ? 'General English' : program.curriculumProgramExamCategory}
+          {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
+        </p>
         <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
           {program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
         </p>
@@ -480,13 +519,13 @@ function ProgramTableRow({ onSelect, program, selected }) {
       <td className="px-4 py-3 align-top text-slate-600">{program.duration || 'Đang cập nhật'}</td>
       <td className="px-4 py-3 align-top text-slate-600">{program.maxCapacity || program.capacity || 30} học viên/lớp</td>
       <td className="px-4 py-3 text-center align-middle">
-        <SelectProgramButton onSelect={onSelect} selected={selected} />
+        <SelectProgramButton onSelect={onSelect} registered={registered} selected={selected} />
       </td>
     </tr>
   );
 }
 
-function ProgramMobileRow({ onSelect, program, selected }) {
+function ProgramMobileRow({ onSelect, program, registered, selected }) {
   const virtual = (program.deliveryMode || program.deliveryType) === 'VIRTUAL';
   return (
     <article className={selected ? 'bg-[#fff3f4] p-4' : 'bg-white p-4'}>
@@ -494,6 +533,10 @@ function ProgramMobileRow({ onSelect, program, selected }) {
         <div>
           <p className="text-xs font-extrabold text-[#a0001c]">{program.code}</p>
           <h3 className="mt-1 font-['Manrope'] text-base font-black text-slate-900">{program.title}</h3>
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#8a0018]">
+            {program.curriculumProgramExamCategory === 'GENERAL_ENGLISH' ? 'General English' : program.curriculumProgramExamCategory}
+            {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
+          </p>
         </div>
         <DeliveryBadge virtual={virtual} />
       </div>
@@ -503,7 +546,7 @@ function ProgramMobileRow({ onSelect, program, selected }) {
         <ProgramDetail label="Thời lượng" value={program.duration || 'Đang cập nhật'} />
         <ProgramDetail label="Sĩ số" value={`${program.maxCapacity || program.capacity || 30} học viên/lớp`} />
       </dl>
-      <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} selected={selected} />
+      <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} registered={registered} selected={selected} />
     </article>
   );
 }
@@ -521,18 +564,25 @@ function ProgramDetail({ label, value }) {
   return <div><dt className="font-bold uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-0.5 font-semibold text-slate-700">{value}</dd></div>;
 }
 
-function SelectProgramButton({ className = '', onSelect, selected }) {
+function SelectProgramButton({ className = '', onSelect, registered, selected }) {
   return (
     <button
       className={`${className} inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-extrabold transition ${
-        selected
+        registered
+          ? 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-500'
+          : selected
           ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
           : 'bg-[#4b0009] text-white hover:bg-[#730014]'
       }`}
+      disabled={registered}
       onClick={onSelect}
       type="button"
     >
-      {selected ? <><CheckCircle2 className="h-3.5 w-3.5" />Đã chọn</> : <>Chọn <ArrowRight className="h-3.5 w-3.5" /></>}
+      {registered
+        ? <><CheckCircle2 className="h-3.5 w-3.5" />Đã đăng ký</>
+        : selected
+          ? <><CheckCircle2 className="h-3.5 w-3.5" />Đã chọn</>
+          : <>Chọn <ArrowRight className="h-3.5 w-3.5" /></>}
     </button>
   );
 }

@@ -4,6 +4,8 @@ import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -69,7 +71,10 @@ public class CreateClassroomOfferingRequest {
     private Boolean recordingVisible;
     private String syllabusSummary;
 
+    @DecimalMin(value = "0.0", inclusive = true, message = "Học phí không được âm")
     private BigDecimal price;
+
+    @DecimalMin(value = "0.0", inclusive = true, message = "Giá ưu đãi không được âm")
     private BigDecimal salePrice;
 
     @Size(max = 700)
@@ -88,4 +93,14 @@ public class CreateClassroomOfferingRequest {
     private Integer displayOrder;
 
     private Boolean featured;
+
+    @AssertTrue(message = "Ngày kết thúc phải từ ngày bắt đầu trở đi")
+    public boolean isDateRangeValid() {
+        return startDate == null || endDate == null || !endDate.isBefore(startDate);
+    }
+
+    @AssertTrue(message = "Giá ưu đãi không được lớn hơn học phí gốc")
+    public boolean isSalePriceValid() {
+        return price == null || salePrice == null || salePrice.compareTo(price) <= 0;
+    }
 }

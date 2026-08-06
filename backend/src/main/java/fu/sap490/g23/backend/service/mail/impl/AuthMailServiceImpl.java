@@ -13,6 +13,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -37,6 +38,9 @@ public class AuthMailServiceImpl implements AuthMailService {
     @Value("${englishlab.mail.support-email:support@englishlab.vn}")
     private String supportEmail;
 
+    @Value("${englishlab.mail.base-url:http://localhost:5173}")
+    private String baseUrl;
+
     public void sendVerificationEmail(User user, String code) {
         sendCodeEmail(
                 user,
@@ -44,7 +48,9 @@ public class AuthMailServiceImpl implements AuthMailService {
                 "Xác thực tài khoản của bạn",
                 "Cảm ơn bạn đã đăng ký EnglishLab. Nhập mã dưới đây trên trang xác thực để kích hoạt tài khoản và bắt đầu học.",
                 "Mã xác thực của bạn",
-                code
+                code,
+                "/verify-email?email=" + encodedEmail(user),
+                "Xác thực tài khoản"
         );
     }
 
@@ -55,7 +61,23 @@ public class AuthMailServiceImpl implements AuthMailService {
                 "Mã đặt lại mật khẩu của bạn",
                 "Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu. Nhập mã dưới đây trên trang đặt lại mật khẩu để tiếp tục.",
                 "Mã OTP của bạn",
-                code
+                code,
+                "/reset-password?email=" + encodedEmail(user),
+                "Đặt lại mật khẩu"
+        );
+    }
+
+    @Override
+    public void sendStaffCreatedAccountEmail(User user, String code) {
+        sendCodeEmail(
+                user,
+                "Thiết lập mật khẩu tài khoản EnglishLab",
+                "Tài khoản học viên của bạn đã sẵn sàng",
+                "EnglishLab đã tạo tài khoản theo thông tin bạn cung cấp tại trung tâm. Dùng mã dưới đây tại trang đặt lại mật khẩu để tự thiết lập mật khẩu đăng nhập.",
+                "Mã thiết lập mật khẩu",
+                code,
+                "/reset-password?email=" + encodedEmail(user),
+                "Thiết lập mật khẩu"
         );
     }
 
@@ -65,7 +87,9 @@ public class AuthMailServiceImpl implements AuthMailService {
             String heading,
             String description,
             String codeLabel,
-            String code
+            String code,
+            String actionPath,
+            String actionLabel
     ) {
         if (!enabled) {
             log.debug("Auth mail is disabled.");
@@ -86,7 +110,7 @@ public class AuthMailServiceImpl implements AuthMailService {
             helper.setFrom(new InternetAddress(fromAddress, fromName, StandardCharsets.UTF_8.name()));
             helper.setTo(user.getEmail());
             helper.setSubject(subject);
-            helper.setText(renderCodeHtml(user, heading, description, codeLabel, code), true);
+            helper.setText(renderCodeHtml(user, heading, description, codeLabel, code, actionPath, actionLabel), true);
             mailSender.send(message);
             log.info("Sent auth email '{}' to {}", subject, user.getEmail());
         } catch (Exception ex) {
@@ -94,12 +118,22 @@ public class AuthMailServiceImpl implements AuthMailService {
         }
     }
 
-    private String renderCodeHtml(User user, String heading, String description, String codeLabel, String code) {
+    private String renderCodeHtml(
+            User user,
+            String heading,
+            String description,
+            String codeLabel,
+            String code,
+            String actionPath,
+            String actionLabel
+    ) {
         String safeName = escapeHtml(valueOrDefault(user.getFullName(), "bạn"));
         String safeHeading = escapeHtml(heading);
         String safeDescription = escapeHtml(description);
         String safeCodeLabel = escapeHtml(codeLabel);
         String safeCode = escapeHtml(code);
+        String safeActionUrl = escapeHtml(normalizedBaseUrl() + actionPath);
+        String safeActionLabel = escapeHtml(actionLabel);
         String safeSupportEmail = escapeHtml(valueOrDefault(supportEmail, "support@englishlab.vn"));
         String year = String.valueOf(LocalDateTime.now().getYear());
 
@@ -111,11 +145,11 @@ public class AuthMailServiceImpl implements AuthMailService {
                   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                   <title>EnglishLab</title>
                 </head>
-                <body style="margin:0;padding:0;background:#f7f3f2;font-family:Arial,sans-serif;color:#2b1f1f;">
-                  <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
+                <body style="margin:0;padding:0;background:#f7f3f2;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#2b1f1f;-webkit-font-smoothing:antialiased;">
+                  <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="padding:24px 12px;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
                     <tr>
                       <td align="center">
-                        <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #ead8d5;">
+                        <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #ead8d5;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
                           <tr>
                             <td style="padding:32px;background:linear-gradient(135deg,#fff7f5 0%%,#ffffff 52%%,#f6e3e0 100%%);">
                               <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
@@ -124,18 +158,21 @@ public class AuthMailServiceImpl implements AuthMailService {
                                     <span style="display:inline-block;width:12px;height:28px;background:#8a0018;border-radius:2px;"></span>
                                     <span style="display:inline-block;width:10px;height:20px;background:#c45a64;border-radius:2px;margin-left:4px;"></span>
                                   </td>
-                                  <td style="padding:0 0 0 10px;vertical-align:middle;font-size:24px;line-height:1;font-weight:800;color:#1f1f24;font-family:Arial,sans-serif;">
+                                  <td style="padding:0 0 0 10px;vertical-align:middle;font-size:24px;line-height:1;font-weight:600;color:#1f1f24;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
                                     English<span style="color:#8a0018;">Lab</span>
                                   </td>
                                 </tr>
                               </table>
-                              <p style="margin:24px 0 0;font-size:14px;line-height:22px;color:#7a5c59;">Xin chào %s,</p>
-                              <h1 style="margin:10px 0 0;font-size:28px;line-height:36px;color:#4b0009;">%s</h1>
-                              <p style="margin:14px 0 0;font-size:15px;line-height:26px;color:#5f4745;">%s</p>
+                              <p style="margin:24px 0 0;font-size:14px;line-height:22px;color:#7a5c59;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">Xin chào %s,</p>
+                              <h1 style="margin:10px 0 0;font-size:24px;line-height:34px;color:#4b0009;font-weight:600;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">%s</h1>
+                              <p style="margin:14px 0 0;font-size:15px;line-height:26px;color:#5f4745;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">%s</p>
                               <div style="margin-top:28px;padding:18px 24px;border-radius:18px;background:#fff1f3;border:1px solid #dfbfbd;text-align:center;">
-                                <p style="margin:0 0 8px;font-size:13px;line-height:20px;color:#7a5c59;font-weight:700;">%s</p>
-                                <p style="margin:0;font-size:36px;line-height:44px;letter-spacing:10px;color:#730014;font-weight:800;font-family:Arial,sans-serif;">%s</p>
+                                <p style="margin:0 0 8px;font-size:13px;line-height:20px;color:#7a5c59;font-weight:600;">%s</p>
+                                <p style="margin:0;font-size:32px;line-height:42px;letter-spacing:8px;color:#730014;font-weight:600;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">%s</p>
                               </div>
+                              <p style="margin:22px 0 0;text-align:center;">
+                                <a href="%s" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#730014;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">%s</a>
+                              </p>
                               <p style="margin:18px 0 0;font-size:13px;line-height:22px;color:#7a5c59;">Mã này chỉ có hiệu lực trong thời gian ngắn. Nếu bạn không yêu cầu thao tác này, hãy bỏ qua email.</p>
                             </td>
                           </tr>
@@ -159,10 +196,22 @@ public class AuthMailServiceImpl implements AuthMailService {
                 safeDescription,
                 safeCodeLabel,
                 safeCode,
+                safeActionUrl,
+                safeActionLabel,
                 safeSupportEmail,
                 safeSupportEmail,
                 year
         );
+    }
+
+    private String encodedEmail(User user) {
+        String email = user == null ? "" : valueOrDefault(user.getEmail(), "");
+        return URLEncoder.encode(email, StandardCharsets.UTF_8);
+    }
+
+    private String normalizedBaseUrl() {
+        String value = valueOrDefault(baseUrl, "http://localhost:5173");
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 
     private String valueOrDefault(String value, String fallback) {

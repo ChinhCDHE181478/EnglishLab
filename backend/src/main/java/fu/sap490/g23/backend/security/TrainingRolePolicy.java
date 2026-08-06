@@ -6,22 +6,17 @@ import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import java.util.EnumSet;
 import java.util.Set;
 
-/**
- * Nguồn sự thật tập trung cho quyền vận hành đào tạo.
- * TRAINING_MANAGER chỉ được giữ như alias tương thích trong giai đoạn chuyển đổi sang STAFF.
- */
+/** Nguồn sự thật tập trung cho quyền vận hành đào tạo. */
 public final class TrainingRolePolicy {
 
     public static final Set<RoleEnum> OPERATIONS_ROLES = Set.copyOf(EnumSet.of(
             RoleEnum.STAFF,
-            RoleEnum.TRAINING_MANAGER,
             RoleEnum.MANAGER,
             RoleEnum.ADMIN
     ));
 
     public static final Set<RoleEnum> STAFF_ACTION_ROLES = Set.copyOf(EnumSet.of(
             RoleEnum.STAFF,
-            RoleEnum.TRAINING_MANAGER,
             RoleEnum.ADMIN
     ));
 

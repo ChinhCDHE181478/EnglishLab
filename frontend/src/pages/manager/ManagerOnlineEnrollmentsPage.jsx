@@ -107,57 +107,74 @@ export default function ManagerOnlineEnrollmentsPage() {
       </section>
 
       {loading ? (
-        <p className="text-sm font-semibold text-slate-500">Đang tải...</p>
+        <div className="space-y-3">
+          <div className="h-11 animate-pulse rounded-xl bg-slate-100" />
+          <div className="h-64 animate-pulse rounded-xl bg-slate-100" />
+        </div>
       ) : filtered.length === 0 ? (
         <div className={EMPTY_STATE_CLASS}>
           <Users className="mx-auto mb-3 h-8 w-8 text-slate-400" />
           Chưa có ghi danh phù hợp.
         </div>
       ) : (
-        <div className={`${PANEL_CLASS} overflow-hidden !p-0`}>
-          <table className="min-w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Học viên</th>
-                <th className="px-4 py-3">Khóa học</th>
-                <th className="px-4 py-3">Tiến độ</th>
-                <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((item) => (
-                <tr key={item.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3">
-                    <div className="font-semibold text-slate-900">{item.studentName}</div>
-                    <div className="text-xs text-slate-500">{item.studentEmail}</div>
-                  </td>
-                  <td className="px-4 py-3">{item.packageTitle}</td>
-                  <td className="px-4 py-3">{item.progressPercent ?? 0}%</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusMeta[item.status] || 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      {['ACTIVE', 'COMPLETED', 'CANCELLED'].filter((value) => value !== item.status).map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          disabled={workingId === item.id}
-                          onClick={() => updateStatus(item.id, value)}
-                          className={GHOST_BUTTON_CLASS}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
+        <div className="overflow-hidden rounded-xl border border-[#dfbfbd]/40 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1080px] text-left text-sm">
+              <thead className="border-b border-[#dfbfbd]/30 bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
+                <tr>
+                  <th className="px-5 py-4 w-60">Học viên</th>
+                  <th className="px-5 py-4">Khóa học</th>
+                  <th className="px-5 py-4 w-32">Tiến độ</th>
+                  <th className="px-5 py-4 w-40">Trạng thái</th>
+                  <th className="px-5 py-4 w-64">Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#dfbfbd]/20">
+                {pageItems.map((item) => (
+                  <tr key={item.id} className="transition hover:bg-[#fffafb]">
+                    <td className="px-5 py-4">
+                      <div className="font-extrabold text-[#2b2828]">{item.studentName}</div>
+                      <div className="text-xs text-slate-500">{item.studentEmail}</div>
+                    </td>
+                    <td className="px-5 py-4 font-semibold text-slate-700">{item.packageTitle}</td>
+                    <td className="px-5 py-4 font-bold text-slate-600">{item.progressPercent ?? 0}%</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusMeta[item.status] || 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {['ACTIVE', 'COMPLETED', 'CANCELLED'].filter((value) => value !== item.status).map((value) => {
+                          const styleMap = {
+                            ACTIVE: 'border-emerald-200 text-emerald-700 hover:bg-emerald-50',
+                            COMPLETED: 'border-blue-200 text-blue-700 hover:bg-blue-50',
+                            CANCELLED: 'border-rose-200 text-rose-700 hover:bg-rose-50',
+                          };
+                          const labelMap = {
+                            ACTIVE: 'Kích hoạt',
+                            COMPLETED: 'Hoàn thành',
+                            CANCELLED: 'Hủy học',
+                          };
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              disabled={workingId === item.id}
+                              onClick={() => updateStatus(item.id, value)}
+                              className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-bold transition disabled:opacity-60 ${styleMap[value] || 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                            >
+                              {labelMap[value] || value}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

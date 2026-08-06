@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
+import fu.sap490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sap490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
@@ -14,9 +15,9 @@ import java.util.List;
 public interface EnrollmentRequestService {
     CourseEnrollmentRequestResponse submit(CreateCourseEnrollmentRequest request, String learnerEmail);
 
-    List<CourseEnrollmentRequestResponse> listMine(String learnerEmail);
+    CourseEnrollmentRequestResponse createAtCenter(CreateCenterEnrollmentRequest request, String staffEmail);
 
-    CourseEnrollmentRequestResponse cancel(Long requestId, String learnerEmail);
+    List<CourseEnrollmentRequestResponse> listMine(String learnerEmail);
 
     List<CourseEnrollmentRequestResponse> listForStaff(EnrollmentRequestStatus status, String staffEmail);
 

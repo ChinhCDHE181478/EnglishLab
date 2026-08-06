@@ -17,6 +17,7 @@ import fu.sap490.g23.backend.service.assessment.MockTestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,6 +34,7 @@ public class MockTestServiceImpl implements MockTestService {
     @Override
     @Transactional
     public MockTestAttemptResponse submitMockTest(Long mockTestId, MockTestSubmissionRequest request, String studentEmail) {
+        validateSubmission(request);
         AssessmentBankItem mockTest = assessmentBankRepository
                 .findByIdAndTypeAndStatusAndActiveTrue(mockTestId, AssessmentType.MOCK_TEST, "PUBLISHED")
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi thử đã xuất bản."));
@@ -61,6 +63,15 @@ public class MockTestServiceImpl implements MockTestService {
                 .submittedAt(LocalDateTime.now())
                 .build();
         return toResponse(attemptRepository.save(attempt));
+    }
+
+    private void validateSubmission(MockTestSubmissionRequest request) {
+        if (request == null
+                || (!StringUtils.hasText(request.getObjectiveAnswersJson())
+                && !StringUtils.hasText(request.getSubmittedText())
+                && !StringUtils.hasText(request.getSubmittedAudioUrl()))) {
+            throw new IllegalArgumentException("Bài thi chưa có câu trả lời để nộp.");
+        }
     }
 
     private BigDecimal resolveScore(AssessmentBankItem mockTest, ObjectiveScore objectiveScore) {

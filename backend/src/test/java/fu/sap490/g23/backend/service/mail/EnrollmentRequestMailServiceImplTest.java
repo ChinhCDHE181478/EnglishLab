@@ -7,6 +7,8 @@ import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.service.mail.impl.EnrollmentRequestMailServiceImpl;
 import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +73,22 @@ class EnrollmentRequestMailServiceImplTest {
 
         verify(mailSender).send(message);
         assertThat(message.getAllRecipients()[0].toString()).isEqualTo("contact@example.com");
-        assertThat(message.getSubject()).isEqualTo("Bạn đã được xếp lớp - EnglishLab");
-        assertThat(message.getContent().toString()).contains("05/08/2026");
+        assertThat(message.getSubject()).isEqualTo("Bạn đã được xếp lớp thành công - EnglishLab");
+        assertThat(readTextContent(message)).contains("05/08/2026");
+    }
+
+    private String readTextContent(Part part) throws Exception {
+        Object content = part.getContent();
+        if (content instanceof String text) {
+            return text;
+        }
+        if (content instanceof Multipart multipart) {
+            StringBuilder result = new StringBuilder();
+            for (int index = 0; index < multipart.getCount(); index++) {
+                result.append(readTextContent(multipart.getBodyPart(index)));
+            }
+            return result.toString();
+        }
+        return "";
     }
 }

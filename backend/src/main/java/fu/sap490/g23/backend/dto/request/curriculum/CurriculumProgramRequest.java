@@ -19,7 +19,6 @@ public class CurriculumProgramRequest {
     @Size(max = 180)
     private String title;
 
-    @NotBlank(message = "Mã giáo trình không được để trống.")
     @Size(max = 120)
     private String code;
 
@@ -31,6 +30,12 @@ public class CurriculumProgramRequest {
 
     @Size(max = 30)
     private String examCategory;
+
+    @Size(max = 60)
+    private String programTrack;
+
+    @Size(max = 240)
+    private String focusSkills;
 
     @DecimalMin(value = "0.0", message = "Band mục tiêu không hợp lệ.")
     @DecimalMax(value = "9.0", message = "Band mục tiêu không hợp lệ.")

@@ -8,7 +8,7 @@ export const getStoredUser = () => {
 
 export const hasAccessToken = () => Boolean(localStorage.getItem('accessToken'));
 
-const STAFF_ROLES = ['TEACHER', 'STAFF', 'TRAINING_MANAGER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
+const STAFF_ROLES = ['TEACHER', 'STAFF', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 const LEARNER_STUDY_TOOL_ROLES = ['LEARNER', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN'];
 
 export const getUserRoles = (user) => {
@@ -43,6 +43,17 @@ export const needsPlacementTest = (user) => {
 
 export const isContentManagerUser = (user) =>
   hasAnyUserRole(user, ['CONTENT_MANAGER', 'MANAGER', 'ADMIN']);
+
+export const getDefaultAuthenticatedPath = (user) => {
+  if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
+  if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/classroom-proposals';
+  if (hasAnyUserRole(user, ['CONTENT_MANAGER'])) return '/content-manager/dashboard';
+  if (hasAnyUserRole(user, ['STAFF'])) return '/staff';
+  if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
+  if (needsPlacementTest(user)) return '/placement-test';
+  if (needsProfileCompletion(user)) return '/complete-profile';
+  return '/home';
+};
 
 export const clearSession = () => {
   localStorage.removeItem('accessToken');

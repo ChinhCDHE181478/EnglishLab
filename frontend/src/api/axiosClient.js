@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT_MS);
+
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  timeout: Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 15000,
   headers: {
     'Content-Type': 'application/json',
   },

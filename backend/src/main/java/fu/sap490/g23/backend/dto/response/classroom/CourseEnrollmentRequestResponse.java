@@ -4,6 +4,7 @@ import fu.sap490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
 import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import lombok.Builder;
 import lombok.Data;
 
@@ -40,6 +41,9 @@ public class CourseEnrollmentRequestResponse {
     private Integer capacity;
     private EnrollmentRequestStatus status;
     private String statusLabel;
+    private EnrollmentRequestSource requestSource;
+    private boolean learnerAccountCreated;
+    private boolean accountSetupEmailSent;
     private PlacementLevel confirmedLevel;
     private String preferredSchedule;
     private String campusPreference;

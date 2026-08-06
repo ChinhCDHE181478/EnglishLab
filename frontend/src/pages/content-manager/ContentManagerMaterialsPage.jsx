@@ -5,6 +5,7 @@ import {
   Archive,
   BookOpen,
   CheckCircle2,
+  Download,
   FilePlus2,
   FileStack,
   Globe,
@@ -19,9 +20,10 @@ import {
   Upload,
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import { ContentManagerLoadingState, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
+import { ContentManagerLoadingState, HeaderActions, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -346,16 +348,16 @@ export default function ContentManagerMaterialsPage() {
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <HeaderActions>
         <button
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
           onClick={() => setComposerOpen(true)}
           type="button"
         >
           <Plus className="h-4 w-4" />
           Thêm học liệu mới
         </button>
-      </div>
+      </HeaderActions>
 
       {composerOpen && (
         <MaterialEditorModal onClose={() => resetForm(false)}>
@@ -546,27 +548,65 @@ export default function ContentManagerMaterialsPage() {
                       <td className="px-6 py-5 text-sm text-[#564241]">{item.provider || 'EnglishLab'}</td>
                       <td className="px-6 py-5"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
                       <td className="px-6 py-5 text-sm text-[#564241]">{formatDate(item.updatedAt)}</td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <a className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/40 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]" href={item.fileUrl} rel="noreferrer" target="_blank">
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <div className="inline-flex items-center justify-end gap-2">
+                          <a
+                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                            href={item.fileUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
                             <LinkIcon className="h-3.5 w-3.5" />
                             Mở
                           </a>
-                          <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => openEdit(item)} type="button">
+                          <a
+                            aria-label={`Tải tài liệu ${item.title}`}
+                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3 text-xs font-bold text-white transition hover:bg-[#8a0018] active:scale-95"
+                            download
+                            href={item.fileUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                            title="Tải tài liệu"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Tải
+                          </a>
+                          <button
+                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                            onClick={() => openEdit(item)}
+                            type="button"
+                          >
                             <PencilLine className="h-3.5 w-3.5" />
                             Sửa
                           </button>
                           {item.status === 'DRAFT' ? (
-                            <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#730014]" onClick={() => changeMaterialStatus(item, 'PUBLISHED')} type="button">
-                              <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
+                            <button
+                              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
+                              onClick={() => changeMaterialStatus(item, 'PUBLISHED')}
+                              type="button"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Xuất bản
                             </button>
                           ) : null}
                           {item.status === 'PUBLISHED' ? (
-                            <button aria-label={`Lưu trữ ${item.title}`} className="inline-flex items-center rounded-lg border border-rose-200 px-2 py-1.5 text-rose-700 transition hover:bg-rose-50" onClick={() => changeMaterialStatus(item, 'ARCHIVED')} title="Lưu trữ" type="button">
+                            <button
+                              aria-label={`Lưu trữ ${item.title}`}
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
+                              onClick={() => changeMaterialStatus(item, 'ARCHIVED')}
+                              title="Lưu trữ"
+                              type="button"
+                            >
                               <Archive className="h-3.5 w-3.5" />
                             </button>
                           ) : null}
-                          <button aria-label={`Xóa ${item.title}`} className="inline-flex items-center rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50" onClick={() => handleDelete(item)} title="Xóa" type="button">
+                          <button
+                            aria-label={`Xóa ${item.title}`}
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
+                            onClick={() => handleDelete(item)}
+                            title="Xóa"
+                            type="button"
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -587,30 +627,14 @@ export default function ContentManagerMaterialsPage() {
                 />
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
-                <p className="text-sm text-[#2b2828]">
-                  Trang {currentPage} / {totalPages} · <span className="font-bold text-[#0b1c30]">{filteredItems.length}</span> học liệu
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    aria-label="Trang trước"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                    type="button"
-                  >
-                    &lt;
-                  </button>
-                  <button
-                    aria-label="Trang sau"
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#dcc0bf]/35 bg-white text-[#8b706e] transition hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                    type="button"
-                  >
-                    &gt;
-                  </button>
-                </div>
+              <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
+                <Pagination
+                  onChange={setCurrentPage}
+                  page={currentPage}
+                  pageSize={PAGE_SIZE}
+                  totalItems={filteredItems.length}
+                  totalPages={totalPages}
+                />
               </div>
             )}
           </Panel>

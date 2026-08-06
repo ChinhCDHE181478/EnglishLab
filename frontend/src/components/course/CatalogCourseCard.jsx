@@ -22,8 +22,28 @@ const renderStars = (course) => {
   return `${Number(course.averageRating).toFixed(1)}/5 • ${course.reviewCount || 0} lượt đánh giá`;
 };
 
+const scoreProfile = (course) => {
+  if (course.category === 'IELTS') {
+    return {
+      entry: formatBandRangeText(course),
+      target: course.targetBand ? `Mục tiêu Band ${formatBandValue(course.targetBand)}` : 'Chưa có band mục tiêu',
+    };
+  }
+  if (course.category === 'TOEIC') {
+    return {
+      entry: 'Đầu vào theo bài kiểm tra',
+      target: course.targetScore ? `Mục tiêu ${course.targetScore} TOEIC` : 'Chưa có điểm mục tiêu',
+    };
+  }
+  return {
+    entry: `Trình độ ${String(course.level || 'BEGINNER').toLowerCase()}`,
+    target: course.targetScore || rutGonMoTa(course.targetOutcome, 8) || 'Chuẩn đầu ra tiếng Anh',
+  };
+};
+
 const CatalogCourseCard = ({ course, compact = false }) => {
   const shortDescription = rutGonMoTa(course.shortDescription || course.description);
+  const profile = scoreProfile(course);
 
   return (
     <article className={`group flex h-full flex-col overflow-hidden rounded-[28px] border border-[#dfbfbd]/25 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(75,0,9,0.08)] ${compact ? 'p-4' : 'p-5'}`}>
@@ -49,10 +69,11 @@ const CatalogCourseCard = ({ course, compact = false }) => {
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-          <span className="rounded-full bg-[#f5f1f1] px-3 py-2 text-[#584140]">{formatBandRangeText(course)}</span>
-          <span className="rounded-full bg-[#f5f1f1] px-3 py-2 text-[#584140]">
-            {course.targetBand ? `Mục tiêu đầu ra: Band ${formatBandValue(course.targetBand)}` : 'Đang cập nhật mục tiêu đầu ra'}
-          </span>
+          <span className="rounded-full bg-[#f5f1f1] px-3 py-2 text-[#584140]">{profile.entry}</span>
+          <span className="rounded-full bg-[#f5f1f1] px-3 py-2 text-[#584140]">{profile.target}</span>
+          {(course.focusSkills || []).slice(0, 2).map((skill) => (
+            <span className="rounded-full border border-[#ead9db] bg-white px-3 py-2 text-[#730014]" key={skill}>{skill}</span>
+          ))}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-xs font-semibold text-[#8c716f]">

@@ -21,6 +21,21 @@ const skillOptions = [
   { label: 'Tổng hợp', value: 'MIXED' },
 ];
 
+const examOptions = [
+  { label: 'Tất cả kỳ thi', value: 'ALL' },
+  { label: 'IELTS', value: 'IELTS' },
+  { label: 'TOEIC', value: 'TOEIC' },
+];
+
+const resolveExamType = (item) => {
+  const explicit = item.rubric?.examType || item.examType;
+  if (explicit) return String(explicit).toUpperCase();
+  const searchable = `${item.title || ''} ${item.description || ''}`.toUpperCase();
+  if (searchable.includes('TOEIC')) return 'TOEIC';
+  if (searchable.includes('IELTS')) return 'IELTS';
+  return 'GENERAL';
+};
+
 const skillMeta = {
   LISTENING: { label: 'Listening', icon: Headphones },
   READING: { label: 'Reading', icon: BookOpen },
@@ -39,6 +54,7 @@ export default function MockTestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [examType, setExamType] = useState('ALL');
   const [skill, setSkill] = useState('ALL');
   const [activeTest, setActiveTest] = useState(null);
   const [activeConfig, setActiveConfig] = useState(null);
@@ -67,18 +83,19 @@ export default function MockTestsPage() {
   const filteredTests = useMemo(() => {
     const query = keyword.trim().toLowerCase();
     return tests.filter((item) => {
+      const matchesExam = examType === 'ALL' || resolveExamType(item) === examType;
       const matchesSkill = skill === 'ALL' || item.skill === skill;
       const matchesKeyword = !query || [item.title, item.description, item.skill, item.type]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
-      return matchesSkill && matchesKeyword;
+      return matchesExam && matchesSkill && matchesKeyword;
     });
-  }, [tests, keyword, skill]);
+  }, [examType, tests, keyword, skill]);
 
   const { page, setPage, totalPages, pageItems: paginatedTests, totalItems } = usePagination(
     filteredTests,
     6,
-    `mock-tests-${skill}-${keyword}`
+    `mock-tests-${examType}-${skill}-${keyword}`
   );
 
   const startTest = async (item) => {
@@ -208,8 +225,8 @@ export default function MockTestsPage() {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
       <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
-        <section className="rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-10">
+        <section className="flex flex-1 flex-col min-h-[calc(100vh-320px)] rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Mock Test</p>
@@ -218,7 +235,7 @@ export default function MockTestsPage() {
                 Chọn đề IELTS, TOEIC hoặc từng kỹ năng để luyện trong giao diện thi. Các đề được lấy từ ngân hàng đề thi thử đã xuất bản.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-[minmax(240px,1fr)_220px] lg:w-[560px]">
+            <div className="grid gap-3 sm:grid-cols-2 lg:w-[680px] lg:grid-cols-[minmax(240px,1fr)_170px_190px]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
                 <input
@@ -228,6 +245,7 @@ export default function MockTestsPage() {
                   value={keyword}
                 />
               </div>
+              <BrandedSelect onChange={(event) => setExamType(event.target.value)} options={examOptions} value={examType} />
               <BrandedSelect onChange={(event) => setSkill(event.target.value)} options={skillOptions} value={skill} />
             </div>
           </div>
@@ -249,7 +267,10 @@ export default function MockTestsPage() {
                         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
                           <Icon className="h-5 w-5" />
                         </span>
-                        <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <span className="rounded-full border border-[#ead7d5] bg-white px-3 py-1 text-xs font-black text-[#8a0018]">{resolveExamType(item)}</span>
+                          <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
+                        </div>
                       </div>
                       <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#341c1d]">{item.title}</h2>
                       <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[#584140]">{item.description || item.instructions || 'Đề thi thử đã sẵn sàng.'}</p>

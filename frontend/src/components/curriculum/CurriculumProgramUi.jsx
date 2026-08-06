@@ -15,12 +15,12 @@ import {
 import { Link } from 'react-router-dom';
 import BrandedSelect from '../ui/BrandedSelect';
 import Pagination from '../ui/Pagination';
-import { Panel } from '../content-manager/ContentManagerUi';
+import { HeaderActions, Panel } from '../content-manager/ContentManagerUi';
 
 export function ProgramPageHero({ mode, title, subtitle, stats = [], actions }) {
   return (
     <section className="space-y-8">
-      {actions ? <div className="flex flex-wrap justify-end gap-2 sm:-mt-[88px] sm:mb-14">{actions}</div> : null}
+      {actions ? <HeaderActions>{actions}</HeaderActions> : null}
       {stats.length ? (
         <div className="grid gap-6 md:grid-cols-3">
           {stats.map((item) => (
@@ -170,7 +170,7 @@ export function ProgramTable({
           <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
             <tr>
               {['Khóa học', 'Chương trình đào tạo', 'Cấp độ', 'Kế hoạch mở lớp', 'Trạng thái', 'Lớp đang dùng', 'Thao tác'].map((heading) => (
-                <th className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
+                <th className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-left' : ''}`} key={heading}>{heading}</th>
               ))}
             </tr>
           </thead>
@@ -218,18 +218,29 @@ export function ProgramTable({
                       {program.activeClassroomCount > 0 ? program.activeClassroomCount : (program.classroomCount || 0)}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button className="inline-flex items-center gap-1 rounded-lg border border-[#dcc0bf]/40 bg-white px-2.5 py-1.5 text-[11px] font-extrabold text-[#4b0009] transition hover:bg-[#eff4ff]" onClick={() => onEdit(program)} type="button">
+                  <td className="whitespace-nowrap px-5 py-4 text-left">
+                    <div className="inline-flex items-center justify-start gap-2">
+                      <button
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                        onClick={() => onEdit(program)}
+                        type="button"
+                      >
                         <Edit3 className="h-3.5 w-3.5" />
                         Builder
                       </button>
-                      <button className="inline-flex items-center justify-center rounded-lg border border-[#dcc0bf]/40 bg-white p-1.5 text-[#4b0009] hover:bg-[#eff4ff]" disabled={working} onClick={() => onClone(program)} type="button">
+                      <button
+                        aria-label={`Nhân bản ${program.title}`}
+                        className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#dfbfbd]/60 bg-white text-[#730014] transition hover:bg-[#fff2f3] disabled:opacity-50 active:scale-95"
+                        disabled={working}
+                        onClick={() => onClone(program)}
+                        title="Nhân bản"
+                        type="button"
+                      >
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                       {program.status === 'DRAFT' || program.status === 'REJECTED' ? (
                         <button
-                          className="inline-flex items-center gap-1 rounded-lg bg-[#4b0009] px-2.5 py-1.5 text-[11px] font-extrabold text-white hover:bg-[#730014] disabled:opacity-60"
+                          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] disabled:opacity-50 active:scale-95"
                           disabled={working}
                           onClick={() => onPublish(program)}
                           type="button"
@@ -241,7 +252,7 @@ export function ProgramTable({
                       {program.status === 'PUBLISHED' ? (
                         <button
                           aria-label={`Lưu trữ ${program.title}`}
-                          className="inline-flex items-center justify-center rounded-lg border border-rose-200 bg-white p-1.5 text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 active:scale-95"
                           disabled={working}
                           onClick={() => onArchive(program)}
                           title="Lưu trữ"
@@ -359,7 +370,7 @@ export function ApprovalProgramCard({ program, workingId, rejectingId, rejectRea
             <p className="text-sm text-[#564241]">{program.code} · {program.examCategory} · {program.totalSessions || 0} buổi</p>
             {program.outcomes ? <p className="line-clamp-3 text-sm leading-7 text-[#584140]">{program.outcomes}</p> : null}
             <p className="text-xs text-[#8b706e]">
-              Gửi bởi {program.submittedByName || 'Content Manager'}
+              Gửi bởi {program.submittedByName || 'Bộ phận nội dung'}
               {program.submittedAt ? ` · ${new Date(program.submittedAt).toLocaleDateString('vi-VN')}` : ''}
             </p>
           </div>
@@ -382,7 +393,7 @@ export function ApprovalProgramCard({ program, workingId, rejectingId, rejectRea
             <textarea
               className="min-h-24 w-full rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-400"
               onChange={(event) => onRejectReasonChange(event.target.value)}
-              placeholder="Mô tả lý do để Content Manager chỉnh sửa..."
+              placeholder="Nêu rõ nội dung cần chỉnh sửa..."
               value={rejectReason}
             />
             <button className="mt-3 rounded-xl bg-rose-700 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-rose-800 disabled:opacity-60" disabled={workingId === program.id} onClick={() => onReject(program.id)} type="button">

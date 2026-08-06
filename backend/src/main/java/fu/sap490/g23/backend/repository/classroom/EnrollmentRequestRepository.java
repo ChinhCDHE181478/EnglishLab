@@ -29,8 +29,4 @@ public interface EnrollmentRequestRepository extends JpaRepository<EnrollmentReq
             Collection<EnrollmentRequestStatus> terminalStatuses
     );
 
-    boolean existsByLearnerAndStatusNotIn(
-            User learner,
-            Collection<EnrollmentRequestStatus> terminalStatuses
-    );
 }

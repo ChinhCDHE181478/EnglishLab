@@ -6,7 +6,13 @@ import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import {
+  EnglishEntryLevelField,
+  IeltsBandSelect,
+  ToeicScoreField,
+} from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import { HeaderActions } from '../../components/content-manager/ContentManagerUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -15,6 +21,16 @@ import {
   SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
+import {
+  ENGLISH_EXAM_OPTIONS,
+  ENGLISH_SKILL_OPTIONS,
+  ENGLISH_TRACK_OPTIONS,
+  getEnglishProfileDefaults,
+  normalizeEnglishEntryLevel,
+  normalizeEnglishExamCategory,
+  readEnglishFocusSkills,
+  validateEnglishProgramProfile,
+} from '../../utils/englishProgramProfile';
 
 const emptyUnit = {
   title: '',
@@ -37,9 +53,11 @@ const emptyProgramForm = {
   slug: '',
   deliveryMode: 'OFFLINE',
   examCategory: 'IELTS',
-  targetBand: '',
+  programTrack: 'IELTS_ACADEMIC',
+  focusSkills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'],
+  targetBand: 6.5,
   targetScore: '',
-  entryLevel: '',
+  entryLevel: '4.0',
   outcomes: '',
   totalSessions: 0,
   status: 'DRAFT',
@@ -63,12 +81,6 @@ const emptyProgramForm = {
 const deliveryModeOptions = [
   { label: 'Tại trung tâm', value: 'OFFLINE' },
   { label: 'Trực tuyến với giảng viên', value: 'VIRTUAL' },
-];
-
-const examOptions = [
-  { label: 'IELTS', value: 'IELTS' },
-  { label: 'TOEIC', value: 'TOEIC' },
-  { label: 'General English', value: 'GENERAL' },
 ];
 
 const typeOptions = [
@@ -144,13 +156,21 @@ const makeCode = (title, mode) => {
   return [mode, ...words].filter(Boolean).join('-');
 };
 
-const toProgramForm = (program) => ({
-  ...emptyProgramForm,
-  ...program,
-  targetBand: program?.targetBand ?? '',
-  targetScore: program?.targetScore ?? '',
-  totalSessions: program?.totalSessions ?? 0,
-});
+const toProgramForm = (program) => {
+  const examCategory = normalizeEnglishExamCategory(program?.examCategory);
+  const defaults = getEnglishProfileDefaults(examCategory);
+  return {
+    ...emptyProgramForm,
+    ...program,
+    examCategory,
+    programTrack: program?.programTrack || defaults.programTrack,
+    focusSkills: readEnglishFocusSkills(program?.focusSkills, examCategory),
+    targetBand: examCategory === 'IELTS' ? (program?.targetBand ?? defaults.targetBand) : '',
+    targetScore: examCategory === 'TOEIC' ? (program?.targetScore ?? defaults.targetScore) : '',
+    entryLevel: normalizeEnglishEntryLevel(program?.entryLevel, examCategory),
+    totalSessions: program?.totalSessions ?? 0,
+  };
+};
 
 const toProgramPayload = (form, forceDraft = false) => ({
   title: form.title.trim(),
@@ -158,6 +178,8 @@ const toProgramPayload = (form, forceDraft = false) => ({
   slug: form.slug.trim() || toSlug(form.title),
   deliveryMode: form.deliveryMode,
   examCategory: form.examCategory,
+  programTrack: form.programTrack,
+  focusSkills: form.focusSkills.join(','),
   targetBand: form.targetBand === '' ? null : Number(form.targetBand),
   targetScore: form.targetScore === '' ? null : Number(form.targetScore),
   entryLevel: form.entryLevel?.trim() || null,
@@ -373,6 +395,11 @@ export default function ContentManagerSyllabusBuilderPage() {
       setError('Vui lòng nhập mã giáo trình.');
       return;
     }
+    const profileError = validateEnglishProgramProfile(programForm);
+    if (profileError) {
+      setError(profileError);
+      return;
+    }
     setWorking(true);
     setError('');
     setSuccess('');
@@ -399,6 +426,11 @@ export default function ContentManagerSyllabusBuilderPage() {
     event.preventDefault();
     if (!programDetail || !programForm.title.trim() || !programForm.code.trim()) {
       setError('Vui lòng nhập đầy đủ tên và mã giáo trình.');
+      return;
+    }
+    const profileError = validateEnglishProgramProfile(programForm);
+    if (profileError) {
+      setError(profileError);
       return;
     }
     setWorking(true);
@@ -697,11 +729,12 @@ export default function ContentManagerSyllabusBuilderPage() {
 
   return (
     <div className="space-y-6">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
+      {error && !programCreatorOpen && !programEditorOpen ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
       {programCreatorOpen ? (
         <SyllabusProgramCreateModal
+          error={error}
           form={programForm}
           onChange={updateProgramForm}
           onClose={closeProgramCreator}
@@ -712,6 +745,7 @@ export default function ContentManagerSyllabusBuilderPage() {
 
       {programEditorOpen ? (
         <SyllabusProgramCreateModal
+          error={error}
           form={programForm}
           mode="edit"
           onChange={updateProgramForm}
@@ -1030,26 +1064,27 @@ function FieldSelect({ label, value, options, onChange, placeholder, disabled })
   );
 }
 
-function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, onSubmit, saving }) {
+function SyllabusProgramCreateModal({ error, form, mode = 'create', onChange, onClose, onSubmit, saving }) {
   const editing = mode === 'edit';
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && !saving) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose]);
+  }, [onClose, saving]);
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex min-h-0 items-center justify-center overflow-hidden p-4 sm:p-6 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
         className="absolute inset-0 bg-[#1a0004]/55 backdrop-blur-sm"
+        disabled={saving}
         onClick={onClose}
         type="button"
       />
@@ -1066,6 +1101,7 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
+            {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tên giáo trình</span>
               <input className={FIELD_CLASS} onChange={(event) => onChange({ title: event.target.value })} value={form.title} />
@@ -1080,23 +1116,58 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
                 <input className={FIELD_CLASS} onChange={(event) => onChange({ slug: event.target.value })} value={form.slug} />
               </label>
               <FieldSelect label="Hình thức" onChange={(value) => onChange({ deliveryMode: value })} options={deliveryModeOptions} value={form.deliveryMode} />
-              <FieldSelect label="Nhóm thi" onChange={(value) => onChange({ examCategory: value })} options={examOptions} value={form.examCategory} />
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Band IELTS</span>
-                <input className={FIELD_CLASS} max="9" min="0" onChange={(event) => onChange({ targetBand: event.target.value })} step="0.5" type="number" value={form.targetBand} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Target TOEIC</span>
-                <input className={FIELD_CLASS} min="0" onChange={(event) => onChange({ targetScore: event.target.value })} type="number" value={form.targetScore} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Cấp độ đầu vào</span>
-                <input className={FIELD_CLASS} onChange={(event) => onChange({ entryLevel: event.target.value })} value={form.entryLevel} />
-              </label>
+              <FieldSelect
+                label="Nhóm thi"
+                onChange={(value) => onChange({ examCategory: value, ...getEnglishProfileDefaults(value) })}
+                options={ENGLISH_EXAM_OPTIONS}
+                value={form.examCategory}
+              />
+              <FieldSelect label="Loại chương trình" onChange={(value) => onChange({ programTrack: value })} options={ENGLISH_TRACK_OPTIONS[form.examCategory]} value={form.programTrack} />
+              {form.examCategory === 'IELTS' ? (
+                <IeltsBandSelect
+                  label="Band IELTS mục tiêu"
+                  onChange={(value) => onChange({ targetBand: value })}
+                  value={form.targetBand}
+                />
+              ) : null}
+              {form.examCategory === 'TOEIC' ? (
+                <ToeicScoreField
+                  label="Điểm TOEIC mục tiêu"
+                  onChange={(value) => onChange({ targetScore: value })}
+                  value={form.targetScore}
+                />
+              ) : null}
+              <EnglishEntryLevelField
+                examCategory={form.examCategory}
+                onChange={(value) => onChange({ entryLevel: value })}
+                value={form.entryLevel}
+              />
               <label className="block">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Tổng số buổi dự kiến</span>
                 <input className={FIELD_CLASS} min="0" onChange={(event) => onChange({ totalSessions: event.target.value })} type="number" value={form.totalSessions} />
               </label>
+            </div>
+            <div>
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Kỹ năng trọng tâm</span>
+              <div className="flex flex-wrap gap-2">
+                {ENGLISH_SKILL_OPTIONS.map((skill) => {
+                  const selected = form.focusSkills.includes(skill.value);
+                  return (
+                    <button
+                      className={`rounded-full border px-3 py-2 text-xs font-bold transition ${selected ? 'border-[#730014] bg-[#730014] text-white' : 'border-[#dcc0bf] bg-white text-[#584140]'}`}
+                      key={skill.value}
+                      onClick={() => onChange({
+                        focusSkills: selected
+                          ? form.focusSkills.filter((value) => value !== skill.value)
+                          : [...form.focusSkills, skill.value],
+                      })}
+                      type="button"
+                    >
+                      {skill.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <label className="block">
               <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Chuẩn đầu ra</span>
@@ -1111,7 +1182,7 @@ function SyllabusProgramCreateModal({ form, mode = 'create', onChange, onClose, 
           </div>
 
           <div className="flex flex-wrap justify-end gap-3 border-t border-[#dcc0bf]/20 p-5">
-            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009]" onClick={onClose} type="button">Hủy</button>
+            <button className="rounded-lg border border-[#dcc0bf]/40 px-4 py-2.5 text-sm font-bold text-[#4b0009] disabled:opacity-50" disabled={saving} onClick={onClose} type="button">Hủy</button>
             <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60" disabled={saving} type="submit">
               {editing ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Tạo và biên soạn')}
@@ -1186,12 +1257,12 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={onCreate} type="button">
+      <HeaderActions>
+        <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={onCreate} type="button">
           <Plus className="h-4 w-4" />
           Tạo giáo trình nội dung
         </button>
-      </div>
+      </HeaderActions>
 
       <div className="grid gap-6 md:grid-cols-4">
         {stats.map((item) => {
@@ -1296,10 +1367,7 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
             Không có giáo trình phù hợp với bộ lọc hiện tại.
           </div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
-            <p className="text-sm text-[#2b2828]">
-              Trang {listPage} / {totalListPages} · <span className="font-bold text-[#0b1c30]">{filteredPrograms.length}</span> giáo trình
-            </p>
+          <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
             <Pagination
               page={listPage}
               totalPages={totalListPages}

@@ -47,7 +47,7 @@ const Rating = ({ value }) => (
 );
 
 const TestimonialsSection = () => (
-  <section className="border-y border-[#dfbfbd]/30 bg-[#f9f9f9] py-20">
+  <section id="testimonials" className="scroll-mt-24 border-y border-[#dfbfbd]/30 bg-[#f9f9f9] py-20">
     <div className="mx-auto max-w-7xl px-4 md:px-10">
       <div className="mb-12 text-center">
         <h2 className="mb-4 font-['Manrope'] text-3xl font-bold text-[#1a1c1c] md:text-4xl">

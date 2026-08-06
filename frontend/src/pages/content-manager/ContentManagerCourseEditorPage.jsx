@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 import CourseVersionPanel from '../../components/content-manager/CourseVersionPanel';
+import { IeltsBandSelect, ToeicScoreField } from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
@@ -33,29 +34,62 @@ const emptyForm = {
   modules: [],
 };
 
-const mapCourseToForm = (course = {}) => ({
-  title: course.title ?? '',
-  shortDescription: course.shortDescription ?? '',
-  description: course.description ?? '',
-  category: course.category ?? 'IELTS',
-  level: course.level ?? 'ADVANCED',
-  status: course.status ?? 'DRAFT',
-  targetScore: course.targetScore ?? '',
-  recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? '',
-  recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? '',
-  targetBand: course.targetBand ?? '',
-  targetOutcome: course.targetOutcome ?? '',
-  duration: course.duration ?? '',
-  studyMode: course.studyMode ?? 'Online',
-  price: course.price ?? '0',
-  salePrice: course.salePrice && Number(course.salePrice) < Number(course.price || 0) ? String(course.salePrice) : '',
-  thumbnailUrl: course.thumbnailUrl ?? '',
-  totalLessons: String(course.totalLessons ?? 0),
-  totalHours: String(course.totalHours ?? 0),
-  displayOrder: String(course.displayOrder ?? 0),
-  featured: Boolean(course.featured),
-  modules: course.modules ?? [],
-});
+const ALLOWED_ENGLISH_CATEGORIES = new Set(['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION']);
+
+const courseProfileDefaults = (category) => {
+  if (category === 'IELTS') {
+    return {
+      targetScore: '',
+      recommendedCurrentBandMin: 4,
+      recommendedCurrentBandMax: 5,
+      targetBand: 6.5,
+    };
+  }
+  if (category === 'TOEIC') {
+    return {
+      targetScore: '650',
+      recommendedCurrentBandMin: '',
+      recommendedCurrentBandMax: '',
+      targetBand: '',
+    };
+  }
+  return {
+    targetScore: '',
+    recommendedCurrentBandMin: '',
+    recommendedCurrentBandMax: '',
+    targetBand: '',
+  };
+};
+
+const mapCourseToForm = (course = {}) => {
+  const category = ALLOWED_ENGLISH_CATEGORIES.has(course.category) ? course.category : 'IELTS';
+  const defaults = courseProfileDefaults(category);
+  const isIelts = category === 'IELTS';
+
+  return {
+    title: course.title ?? '',
+    shortDescription: course.shortDescription ?? '',
+    description: course.description ?? '',
+    category,
+    level: course.level ?? 'ADVANCED',
+    status: course.status ?? 'DRAFT',
+    targetScore: category === 'IELTS' ? '' : (course.targetScore ?? defaults.targetScore),
+    recommendedCurrentBandMin: isIelts ? (course.recommendedCurrentBandMin ?? defaults.recommendedCurrentBandMin) : '',
+    recommendedCurrentBandMax: isIelts ? (course.recommendedCurrentBandMax ?? defaults.recommendedCurrentBandMax) : '',
+    targetBand: isIelts ? (course.targetBand ?? defaults.targetBand) : '',
+    targetOutcome: course.targetOutcome ?? '',
+    duration: course.duration ?? '',
+    studyMode: course.studyMode ?? 'Online',
+    price: course.price ?? '0',
+    salePrice: course.salePrice && Number(course.salePrice) < Number(course.price || 0) ? String(course.salePrice) : '',
+    thumbnailUrl: course.thumbnailUrl ?? '',
+    totalLessons: String(course.totalLessons ?? 0),
+    totalHours: String(course.totalHours ?? 0),
+    displayOrder: String(course.displayOrder ?? 0),
+    featured: Boolean(course.featured),
+    modules: course.modules ?? [],
+  };
+};
 
 export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId, onClose, onSave }) {
   const { confirm: confirmDialog } = useAppDialog();
@@ -130,8 +164,9 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   );
   const canEdit = !editMode || Boolean(editableVersion) || (!hasPublishedVersion && !legacyPendingVersion);
   const categoryOptions = useMemo(() => {
-    const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION', 'ONLINE'];
+    const fallback = ['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION'];
     const available = categories
+      .filter((category) => ALLOWED_ENGLISH_CATEGORIES.has(category.code))
       .filter((category) => category.active || category.code === form.category)
       .map((category) => ({ label: category.name, value: category.code }));
     return available.length ? available : fallback.map((value) => ({ label: value, value }));
@@ -139,7 +174,11 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
 
   const handleChange = (field) => (event) => {
     const value = field === 'featured' ? event.target.checked : event.target.value;
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => (
+      field === 'category'
+        ? { ...current, category: value, ...courseProfileDefaults(value) }
+        : { ...current, [field]: value }
+    ));
   };
 
   const handleSubmit = async (nextStatus = null) => {
@@ -306,10 +345,37 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
             <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
             <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
             <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
-            <TextField label="Nhãn mục tiêu hiển thị" onChange={handleChange('targetScore')} value={form.targetScore} />
-            <TextField label="Band đầu vào tối thiểu" onChange={handleChange('recommendedCurrentBandMin')} value={String(form.recommendedCurrentBandMin)} />
-            <TextField label="Band đầu vào tối đa" onChange={handleChange('recommendedCurrentBandMax')} value={String(form.recommendedCurrentBandMax)} />
-            <TextField label="Band mục tiêu" onChange={handleChange('targetBand')} value={String(form.targetBand)} />
+            {form.category === 'IELTS' ? (
+              <>
+                <IeltsBandSelect
+                  allowEmpty
+                  emptyLabel="Không giới hạn band tối thiểu"
+                  label="Band IELTS đầu vào tối thiểu"
+                  onChange={(value) => setForm((current) => ({ ...current, recommendedCurrentBandMin: value }))}
+                  value={String(form.recommendedCurrentBandMin)}
+                />
+                <IeltsBandSelect
+                  allowEmpty
+                  emptyLabel="Không giới hạn band tối đa"
+                  label="Band IELTS đầu vào tối đa"
+                  onChange={(value) => setForm((current) => ({ ...current, recommendedCurrentBandMax: value }))}
+                  value={String(form.recommendedCurrentBandMax)}
+                />
+                <IeltsBandSelect
+                  label="Band IELTS mục tiêu"
+                  onChange={(value) => setForm((current) => ({ ...current, targetBand: value }))}
+                  value={String(form.targetBand)}
+                />
+              </>
+            ) : null}
+            {form.category === 'TOEIC' ? (
+              <ToeicScoreField
+                label="Điểm TOEIC mục tiêu"
+                onChange={(value) => setForm((current) => ({ ...current, targetScore: value }))}
+                value={form.targetScore}
+              />
+            ) : null}
+            {['COMMUNICATION', 'FOUNDATION'].includes(form.category) ? <TextField label="Chuẩn đầu ra hiển thị" onChange={handleChange('targetScore')} value={form.targetScore} /> : null}
             <TextField label="Thời lượng ước tính" onChange={handleChange('duration')} value={form.duration} />
             <TextField label="Hình thức học" onChange={handleChange('studyMode')} value={form.studyMode} />
             <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
@@ -382,7 +448,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
                 </p>
               ) : (
                 <p>
-                  Hãy thiết lập band đầu vào, band mục tiêu và đầu ra. Khi Content Manager xuất bản, phiên bản mới sẽ áp dụng cho lượt ghi danh mới.
+                  Thiết lập band đầu vào, band mục tiêu và đầu ra cho khóa học. Các giá trị này được áp dụng cho lượt ghi danh mới.
                 </p>
               )}
             </div>
@@ -425,19 +491,35 @@ function SelectField({ label, value, onChange, options, disabled = false }) {
 
 function validateCourseForm(form, targetStatus, hasNoStructure) {
   if (!form.title.trim()) return 'Tên khóa học không được để trống.';
-  if (!form.category) return 'Hãy chọn danh mục khóa học.';
+  if (!ALLOWED_ENGLISH_CATEGORIES.has(form.category)) {
+    return 'EnglishLab chỉ cho phép khóa IELTS, TOEIC, tiếng Anh giao tiếp hoặc tiếng Anh nền tảng.';
+  }
 
   const minBand = form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin);
   const maxBand = form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax);
   const targetBand = form.targetBand === '' ? null : Number(form.targetBand);
-  if ([minBand, maxBand, targetBand].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9))) {
-    return 'Band IELTS phải nằm trong khoảng từ 0 đến 9.';
+  if (form.category === 'IELTS') {
+    if ([minBand, maxBand, targetBand].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9 || !Number.isInteger(value * 2)))) {
+      return 'Band IELTS phải từ 0 đến 9 và tăng theo bước 0.5.';
+    }
+    if (targetBand == null) return 'Khóa IELTS phải có band mục tiêu.';
+    if (minBand != null && maxBand != null && minBand > maxBand) {
+      return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
+    }
+  } else if (minBand != null || maxBand != null || targetBand != null) {
+    return 'Chỉ khóa IELTS mới sử dụng thang band IELTS.';
   }
-  if (minBand != null && maxBand != null && minBand > maxBand) {
-    return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
+  if (form.category === 'TOEIC') {
+    const score = Number(form.targetScore);
+    if (!Number.isInteger(score) || score < 10 || score > 990 || score % 5 !== 0) {
+      return 'Điểm TOEIC phải từ 10 đến 990 và tăng theo bước 5.';
+    }
   }
   if (targetStatus === 'PUBLISHED' && hasNoStructure) {
     return 'Khóa học cần có ít nhất một mô-đun và bài học trước khi xuất bản.';
+  }
+  if (targetStatus === 'PUBLISHED' && !String(form.targetOutcome || '').trim()) {
+    return 'Khóa học phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.';
   }
   return '';
 }
