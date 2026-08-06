@@ -741,7 +741,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 - Target band: %s
                 - Target outcome: %s
                 - Learning path: %s
-                - Learning path step: %s
+                - Learning path stage: %s
                 - Recommended next course slug: %s
 
                 Module context:

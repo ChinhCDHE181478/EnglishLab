@@ -30,7 +30,7 @@ const studentNavItems = [
   { label: 'Lộ trình học', to: '/learning-paths' },
   { label: 'Thi thử', to: '/mock-tests' },
   { label: 'Đăng ký học', to: '/opening-schedule' },
-  { label: 'Về EnglishLab', href: '/#testimonials' },
+  { label: 'Về EnglishLab', to: '/about' },
 ];
 
 const hasRole = (user, roles) => hasAnyUserRole(user, roles);

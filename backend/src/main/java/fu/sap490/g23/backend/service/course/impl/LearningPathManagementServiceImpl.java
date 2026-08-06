@@ -181,7 +181,7 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                     .enrollmentStatus(enrollment == null ? "NOT_ENROLLED" : enrollment.getStatus().name())
                     .progressPercent(enrollment == null ? 0 : defaultInt(enrollment.getProgressPercent()))
                     .completed(completed)
-                    .lockedReason(accessible ? null : "Hoàn thành khóa học trước để mở bước này.")
+                    .lockedReason(accessible ? null : "Hoàn thành khóa học trước để mở giai đoạn này.")
                     .build());
             prerequisiteCompleted = prerequisiteCompleted && completed;
         }

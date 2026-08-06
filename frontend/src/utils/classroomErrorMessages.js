@@ -32,6 +32,11 @@ const formatConflictItems = (conflicts) => {
 export const getClassroomErrorMessage = (error, fallback = 'Không thể xử lý yêu cầu lớp học. Vui lòng thử lại.') => {
   const status = error?.response?.status;
   const data = error?.response?.data;
+  const serverMessage = data?.message || data?.detail || '';
+
+  if (serverMessage.includes('invalid_grant') || serverMessage.includes('expired or revoked')) {
+    return 'Phòng Google Meet chưa sẵn sàng. Vui lòng liên hệ trung tâm để được hỗ trợ.';
+  }
 
   if (status === 409) {
     const conflictLines = formatConflictItems(data?.conflicts);

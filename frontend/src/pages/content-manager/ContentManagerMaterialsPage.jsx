@@ -528,30 +528,37 @@ export default function ContentManagerMaterialsPage() {
               <table className="w-full min-w-[1080px] border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    {['Học liệu', 'Loại', 'Kỹ năng', 'Kỳ thi / mức', 'Nguồn', 'Trạng thái', 'Cập nhật', 'Thao tác'].map((heading) => (
-                      <th className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Thao tác' ? 'text-right' : ''}`} key={heading}>{heading}</th>
-                    ))}
+                    <th className="w-[28%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Học liệu</th>
+                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Loại</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỹ năng</th>
+                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỳ thi / mức</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Nguồn</th>
+                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Trạng thái</th>
+                    <th className="w-[8%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Cập nhật</th>
+                    <th className="w-[10%] px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dcc0bf]/15">
-                  {pageItems.map((item) => (
-                    <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
-                      <td className="px-6 py-5">
-                        <p className="max-w-[320px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
-                        <p className="mt-1 max-w-[360px] overflow-hidden text-xs leading-5 text-[#584140] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-                          {stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-5 text-sm font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
-                      <td className="px-6 py-5 text-sm text-[#564241]">{item.skill || 'Mixed'}</td>
-                      <td className="px-6 py-5 text-sm text-[#564241]">{formatTargetRange(item)}</td>
-                      <td className="px-6 py-5 text-sm text-[#564241]">{item.provider || 'EnglishLab'}</td>
-                      <td className="px-6 py-5"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
-                      <td className="px-6 py-5 text-sm text-[#564241]">{formatDate(item.updatedAt)}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
+                  {pageItems.map((item) => {
+                    const plainDesc = stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả';
+                    return (
+                      <tr className="transition hover:bg-[#eff4ff]/40" key={item.id}>
+                        <td className="px-4 py-3">
+                          <p className="max-w-[220px] truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
+                          <p className="mt-0.5 max-w-[240px] truncate text-xs text-[#584140]" title={plainDesc}>
+                            {plainDesc}
+                          </p>
+                        </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{item.skill || 'Mixed'}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{formatTargetRange(item)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{item.provider || 'EnglishLab'}</td>
+                      <td className="whitespace-nowrap px-4 py-3"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{formatDate(item.updatedAt)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <div className="inline-flex items-center justify-end gap-1.5">
                           <a
-                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-[#dfbfbd] bg-[#fffafb] px-2.5 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                             href={item.fileUrl}
                             rel="noreferrer"
                             target="_blank"
@@ -561,7 +568,7 @@ export default function ContentManagerMaterialsPage() {
                           </a>
                           <a
                             aria-label={`Tải tài liệu ${item.title}`}
-                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3 text-xs font-bold text-white transition hover:bg-[#8a0018] active:scale-95"
+                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#730014] px-2.5 text-xs font-bold text-white transition hover:bg-[#8a0018] active:scale-95"
                             download
                             href={item.fileUrl}
                             rel="noreferrer"
@@ -572,7 +579,7 @@ export default function ContentManagerMaterialsPage() {
                             Tải
                           </a>
                           <button
-                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-[#dcc0bf]/50 bg-white px-2.5 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                             onClick={() => openEdit(item)}
                             type="button"
                           >
@@ -581,7 +588,7 @@ export default function ContentManagerMaterialsPage() {
                           </button>
                           {item.status === 'DRAFT' ? (
                             <button
-                              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
+                              className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md bg-[#730014] px-2.5 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
                               onClick={() => changeMaterialStatus(item, 'PUBLISHED')}
                               type="button"
                             >
@@ -592,7 +599,7 @@ export default function ContentManagerMaterialsPage() {
                           {item.status === 'PUBLISHED' ? (
                             <button
                               aria-label={`Lưu trữ ${item.title}`}
-                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
                               onClick={() => changeMaterialStatus(item, 'ARCHIVED')}
                               title="Lưu trữ"
                               type="button"
@@ -602,7 +609,7 @@ export default function ContentManagerMaterialsPage() {
                           ) : null}
                           <button
                             aria-label={`Xóa ${item.title}`}
-                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
+                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
                             onClick={() => handleDelete(item)}
                             title="Xóa"
                             type="button"
@@ -612,7 +619,8 @@ export default function ContentManagerMaterialsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 </tbody>
               </table>
             </div>

@@ -140,7 +140,9 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .totalQuestions(score.totalQuestions())
                 .scorePercent(score.scorePercent())
                 .durationSeconds(request.getDurationSeconds())
-                .startedAt(request.getStartedAt())
+                .startedAt(request.getStartedAt() == null
+                        ? null
+                        : LocalDateTime.ofInstant(request.getStartedAt(), java.time.ZoneId.systemDefault()))
                 .completedAt(completedAt)
                 .build();
         return toAttemptResponse(attemptHistoryRepository.save(history));

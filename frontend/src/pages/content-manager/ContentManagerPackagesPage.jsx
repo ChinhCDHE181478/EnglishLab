@@ -502,7 +502,7 @@ export default function ContentManagerPackagesPage() {
                         {item.packageTypeCode === 'BUNDLE' ? (
                           <>
                             <button
-                              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#8b706e]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                              className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                               onClick={() => openEdit(item)}
                               type="button"
                             >

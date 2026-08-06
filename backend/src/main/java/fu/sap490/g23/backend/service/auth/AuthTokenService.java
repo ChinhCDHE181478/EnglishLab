@@ -12,9 +12,13 @@ public interface AuthTokenService {
 
     AuthToken issuePasswordResetToken(User user);
 
+    AuthToken issueGoogleMeetConnectionState(User user);
+
     AuthToken requireValidEmailVerificationCode(User user, String rawCode, String invalidMessage);
 
     AuthToken requireValidPasswordResetCode(User user, String rawCode, String invalidMessage);
+
+    AuthToken requireValidGoogleMeetConnectionState(String rawState);
 
     void markUsed(AuthToken token);
 

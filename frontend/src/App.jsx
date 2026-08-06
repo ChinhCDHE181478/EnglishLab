@@ -29,6 +29,7 @@ import ResetPassword from './pages/ResetPassword';
 import TransactionHistoryPage from './pages/TransactionHistoryPage';
 import VerifyEmail from './pages/VerifyEmail';
 import WishlistPage from './pages/WishlistPage';
+import AboutPage from './pages/AboutPage';
 import ContentManagerRoutes from './pages/content-manager/ContentManagerRoutes';
 import ClassroomsCatalogPage from './pages/classroom/ClassroomsCatalogPage';
 import MyEnrollmentRequestsPage from './pages/classroom/MyEnrollmentRequestsPage';
@@ -112,6 +113,7 @@ function AppRoutes() {
       </Route>
       {/* Public / student-facing marketing pages */}
       <Route path="/opening-schedule" element={<ClassroomsCatalogPage />} />
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/opening-schedule/:slugOrId" element={<Navigate replace to="/opening-schedule#dang-ky-tu-van" />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/learning-paths" element={<LearningPathCatalogPage />} />

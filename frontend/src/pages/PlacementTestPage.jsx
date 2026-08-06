@@ -1058,7 +1058,7 @@ export default function PlacementTestPage() {
             setDeviceCheck(value);
             setStage('exam');
           }}
-          requireFullscreen={false}
+          requireFullscreen
           requireMic={selectedExamType !== 'TOEIC'}
           title="Kiểm tra thiết bị trước khi làm bài"
         />

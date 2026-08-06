@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
+import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
+import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -65,6 +67,7 @@ export default function ReadingExamMode({
   const [answers, setAnswers] = useState(() => initialAnswers || buildInitialAnswers(parts));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
   const [submissionPending, setSubmissionPending] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [pendingPartChange, setPendingPartChange] = useState(null);
@@ -107,8 +110,8 @@ export default function ReadingExamMode({
     intentionalExitRef.current = false;
     fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
     return () => {
-      if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
+      if (!preserveFullscreenOnUnmount) {
+        exitExamFullscreenWhenDetached(rootRef);
       }
     };
   }, [preserveFullscreenOnUnmount]);
@@ -263,10 +266,12 @@ export default function ReadingExamMode({
     if (isLocked || submitting || submissionPending || submissionInFlightRef.current) return;
     submissionInFlightRef.current = true;
     setSubmissionPending(true);
+    setSubmissionError('');
     try {
       await onSubmit(buildPayload(autoSubmitted));
-    } catch {
-      // The parent panel renders the actionable API error.
+    } catch (error) {
+      submittedRef.current = false;
+      setSubmissionError(getAssessmentSubmissionErrorMessage(error));
     } finally {
       submissionInFlightRef.current = false;
       setSubmissionPending(false);
@@ -413,6 +418,11 @@ export default function ReadingExamMode({
       onCut={(event) => event.preventDefault()}
       onPaste={(event) => event.preventDefault()}
     >
+      {submissionError ? (
+        <div className="fixed bottom-5 left-1/2 z-[140] w-[min(92vw,680px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 shadow-xl" role="alert">
+          {submissionError}
+        </div>
+      ) : null}
       <header className="flex min-h-[76px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">Bài thi đọc EnglishLab</p>

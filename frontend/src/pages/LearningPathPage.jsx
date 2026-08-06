@@ -63,7 +63,7 @@ const LearningPathPage = () => {
             <div>
               <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#8a0018]">Lộ trình cá nhân</p>
               <h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009] md:text-4xl">Con đường học tập của bạn</h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">Theo dõi từng bước, tiếp tục khóa đang học và biết chính xác khóa học nên bắt đầu tiếp theo.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">Theo dõi từng giai đoạn, tiếp tục khóa đang học và biết chính xác khóa học nên bắt đầu tiếp theo.</p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">{data?.targetExam || 'Chưa chọn kỳ thi'}</span>
                 <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">Band hiện tại: {data?.currentBand ?? 'Chưa cập nhật'}</span>
@@ -116,7 +116,7 @@ const LearningPathPage = () => {
                         <span className={`z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 bg-white ${isCurrent ? 'border-[#8a0018] text-[#8a0018]' : 'border-[#dfbfbd] text-[#8c716f]'}`}><Icon className="h-5 w-5" /></span>
                         <div className="hidden h-20 overflow-hidden rounded-2xl bg-[#f4eeee] md:block">{course.thumbnailUrl ? <img alt="" className="h-full w-full object-cover" src={course.thumbnailUrl} /> : null}</div>
                         <div>
-                          <div className="flex flex-wrap items-center gap-2"><span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#8c716f]">Bước {course.learningPathOrder || index + 1}</span><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${state.tone}`}>{state.label}</span></div>
+                          <div className="flex flex-wrap items-center gap-2"><span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#8c716f]">Giai đoạn {course.learningPathOrder || index + 1}</span><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${state.tone}`}>{state.label}</span></div>
                           <h3 className="mt-2 font-['Manrope'] text-lg font-extrabold text-[#1f1717]">{course.title}</h3>
                           {course.enrollmentStatus !== 'NOT_ENROLLED' ? <div className="mt-3 flex items-center gap-3"><div className="h-2 w-40 overflow-hidden rounded-full bg-[#f1e6e7]"><div className="h-full bg-[#8a0018]" style={{ width: `${course.progressPercent || 0}%` }} /></div><span className="text-xs font-bold text-[#730014]">{course.progressPercent || 0}%</span></div> : null}
                         </div>
