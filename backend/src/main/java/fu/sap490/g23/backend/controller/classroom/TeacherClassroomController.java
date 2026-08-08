@@ -161,12 +161,14 @@ public class TeacherClassroomController {
     @PostMapping(value = "/homework/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<HomeworkAttachmentUploadResponse> uploadHomeworkAttachment(
             @RequestPart("file") MultipartFile file,
+            @RequestParam Long classroomId,
             Authentication authentication
     ) {
+        authorizationService.assertClassroomAccess(classroomId, authentication.getName());
         String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/classroom-homework/attachments")
                 .toUriString();
-        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase));
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase, authentication.getName()));
     }
 
     @GetMapping("/homework/rubrics")
@@ -215,6 +217,22 @@ public class TeacherClassroomController {
     ) {
         authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
         return ResponseEntity.ok(homeworkService.grade(homeworkId, studentId, request, authentication.getName()));
+    }
+
+    @PutMapping("/homework/{homeworkId}/students/{studentId}/annotations")
+    public ResponseEntity<ClassroomHomeworkSubmissionResponse> saveHomeworkAnnotations(
+            @PathVariable Long homeworkId,
+            @PathVariable Long studentId,
+            @Valid @RequestBody SaveHomeworkAnnotationsRequest request,
+            Authentication authentication
+    ) {
+        authorizationService.assertHomeworkAccess(homeworkId, authentication.getName());
+        return ResponseEntity.ok(homeworkService.saveAnnotations(
+                homeworkId,
+                studentId,
+                request,
+                authentication.getName()
+        ));
     }
 
     @GetMapping("/homework/{homeworkId}/submissions")

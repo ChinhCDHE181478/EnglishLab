@@ -1,5 +1,10 @@
 export const HOMEWORK_GRADING_MODES = [
   {
+    value: 'AUTO',
+    label: 'Hệ thống tự chấm',
+    description: 'Đáp án được đối chiếu với answer key ngay khi học viên nộp và giáo viên chỉ xem lại kết quả.',
+  },
+  {
     value: 'TEACHER',
     label: 'Giáo viên tự chấm',
     description: 'Học viên nộp bài, giáo viên chấm điểm và nhận xét thủ công.',
@@ -24,8 +29,8 @@ export const HOMEWORK_ACTIVITY_TYPES = [
   },
   {
     value: 'SKILL_PRACTICE',
-    label: 'Reading/Listening worksheet',
-    description: 'Học viên nhập đáp án theo từng câu trong answer sheet; giáo viên dùng đáp án sẵn để review.',
+    label: 'Bài trắc nghiệm',
+    description: 'Học viên trả lời từng câu; hệ thống đối chiếu đáp án và tính điểm ngay khi nộp.',
   },
   {
     value: 'FLASHCARD_REVIEW',
@@ -35,7 +40,7 @@ export const HOMEWORK_ACTIVITY_TYPES = [
   {
     value: 'MIXED',
     label: 'Bài tổng hợp',
-    description: 'Kết hợp hướng dẫn, answer sheet, bài viết/nói và file nộp kèm.',
+    description: 'Kết hợp hướng dẫn, phiếu trả lời, bài viết hoặc bài nói và tệp nộp kèm.',
   },
 ];
 
@@ -85,6 +90,8 @@ export const getHomeworkActivityTypeLabel = (type) => (
 );
 
 export const isAiGradedHomework = (homework) => homework?.gradingMode === 'AI';
+
+export const isAutoGradedHomework = (homework) => homework?.gradingMode === 'AUTO';
 
 export const getHomeworkFeedbackLabel = (homework) => (
   isAiGradedHomework(homework) ? 'Nhận xét AI' : 'Nhận xét từ giảng viên'

@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
 import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -59,7 +60,7 @@ const renderPromptContent = (task) => {
     return (
       <div
         className="space-y-4 text-[15px] leading-8 text-[#3d2728]"
-        dangerouslySetInnerHTML={{ __html: task.promptHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(task.promptHtml) }}
       />
     );
   }

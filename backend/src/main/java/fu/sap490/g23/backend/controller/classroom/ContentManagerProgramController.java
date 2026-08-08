@@ -115,11 +115,12 @@ public class ContentManagerProgramController {
 
     @PostMapping(value = "/material-library/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<HomeworkAttachmentUploadResponse> uploadMaterialLibraryFile(
-            @RequestPart("file") MultipartFile file
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
     ) {
         String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/classroom-homework/attachments")
                 .toUriString();
-        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase));
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase, authentication.getName()));
     }
 }

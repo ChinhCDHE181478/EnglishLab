@@ -22,7 +22,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import classroomApi from '../../api/classroomApi';
-import { hasAccessToken, hasAnyUserRole } from '../../utils/auth';
+import { canUseLearnerStudyTools, hasAccessToken, hasAnyUserRole } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
 const studentNavItems = [
@@ -122,6 +122,7 @@ const Header = () => {
   const [popoverLoading, setPopoverLoading] = useState(false);
 
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
+  const canUseStudentNotifications = canUseLearnerStudyTools(user);
   const displayUnreadCount = Math.max(apiUnreadCount, unreadNotificationCount);
 
   const loadPopoverNotifications = useCallback(async () => {
@@ -187,7 +188,7 @@ const Header = () => {
   }, [isNotificationMenuOpen]);
 
   useEffect(() => {
-    if (!hasAccessToken()) {
+    if (!hasAccessToken() || !canUseStudentNotifications) {
       setApiUnreadCount(0);
       return undefined;
     }
@@ -211,7 +212,7 @@ const Header = () => {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [location.pathname, user?.id]);
+  }, [canUseStudentNotifications, location.pathname, user?.id]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return undefined;
@@ -320,6 +321,7 @@ const Header = () => {
               </Link>
             )}
 
+            {canUseStudentNotifications ? (
             <div className="relative" ref={notificationRef}>
               <button
                 aria-label="Thông báo"
@@ -327,7 +329,9 @@ const Header = () => {
                 onClick={() => {
                   setIsNotificationMenuOpen((current) => {
                     const next = !current;
-                    if (next && hasAccessToken()) loadPopoverNotifications();
+                    if (next && hasAccessToken() && canUseStudentNotifications) {
+                      loadPopoverNotifications();
+                    }
                     return next;
                   });
                   setIsProfileMenuOpen(false);
@@ -358,7 +362,9 @@ const Header = () => {
                         onClick={async () => {
                           markAllNotificationsRead();
                           setApiUnreadCount(0);
-                          try { await classroomApi.markAllNotificationsRead(); } catch {}
+                          if (canUseStudentNotifications) {
+                            try { await classroomApi.markAllNotificationsRead(); } catch {}
+                          }
                         }}
                         type="button"
                       >
@@ -411,6 +417,7 @@ const Header = () => {
                 </div>
               ) : null}
             </div>
+            ) : null}
 
             <div className="relative" ref={menuRef}>
               <button

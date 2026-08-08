@@ -1,7 +1,9 @@
-const ALLOWED_TAGS = new Set([
-  'A', 'B', 'BLOCKQUOTE', 'BR', 'CODE', 'DIV', 'EM', 'H1', 'H2', 'H3', 'HR',
-  'I', 'LI', 'OL', 'P', 'PRE', 'S', 'STRONG', 'U', 'UL', 'SPAN',
-]);
+import createDOMPurify from 'dompurify';
+
+const ALLOWED_TAGS = [
+  'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'h1', 'h2', 'h3', 'hr',
+  'i', 'li', 'ol', 'p', 'pre', 's', 'strong', 'u', 'ul', 'span',
+];
 
 const ALLOWED_TEXT_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify']);
 
@@ -29,32 +31,31 @@ export const stripRichTextToPlain = (value = '') => String(value || '')
 
 export const sanitizeLessonHtml = (value = '') => {
   if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') return '';
-  const documentNode = new window.DOMParser().parseFromString(String(value), 'text/html');
+  const purifier = typeof createDOMPurify?.sanitize === 'function'
+    ? createDOMPurify
+    : createDOMPurify(window);
+  const sanitized = purifier.sanitize(String(value), {
+    ALLOWED_ATTR: ['href', 'style'],
+    ALLOWED_TAGS,
+    ALLOW_DATA_ATTR: false,
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+  });
+  const documentNode = new window.DOMParser().parseFromString(String(sanitized), 'text/html');
 
-  const cleanNode = (node) => {
-    [...node.children].forEach((child) => {
-      if (!ALLOWED_TAGS.has(child.tagName)) {
-        child.replaceWith(...child.childNodes);
-        return;
-      }
+  [...documentNode.body.querySelectorAll('*')].forEach((element) => {
+    const originalHref = element.getAttribute('href');
+    const sourceStyle = String(element.getAttribute('style') || '');
+    [...element.attributes].forEach((attribute) => element.removeAttribute(attribute.name));
 
-      const originalHref = child.getAttribute('href');
-      const sourceStyle = String(child.getAttribute('style') || '');
-      [...child.attributes].forEach((attribute) => child.removeAttribute(attribute.name));
-      const alignment = sourceStyle.match(/text-align\s*:\s*(left|center|right|justify)/i)?.[1]?.toLowerCase();
-      if (alignment && ALLOWED_TEXT_ALIGNMENTS.has(alignment)) child.style.textAlign = alignment;
+    const alignment = sourceStyle.match(/text-align\s*:\s*(left|center|right|justify)/i)?.[1]?.toLowerCase();
+    if (alignment && ALLOWED_TEXT_ALIGNMENTS.has(alignment)) element.style.textAlign = alignment;
 
-      if (child.tagName === 'A') {
-        if (originalHref && hasSafeHref(originalHref)) {
-          child.setAttribute('href', originalHref);
-          child.setAttribute('target', '_blank');
-          child.setAttribute('rel', 'noopener noreferrer');
-        }
-      }
-      cleanNode(child);
-    });
-  };
+    if (element.tagName === 'A' && originalHref && hasSafeHref(originalHref)) {
+      element.setAttribute('href', originalHref);
+      element.setAttribute('target', '_blank');
+      element.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
 
-  cleanNode(documentNode.body);
   return documentNode.body.innerHTML;
 };

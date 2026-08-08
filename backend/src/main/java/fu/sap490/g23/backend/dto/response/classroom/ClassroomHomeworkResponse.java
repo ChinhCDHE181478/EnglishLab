@@ -28,6 +28,7 @@ public class ClassroomHomeworkResponse {
     private String attachmentUrl;
     private HomeworkActivityType activityType;
     private String activityConfigJson;
+    private String objectiveAnswerKey;
     private boolean aiReviewEnabled;
     private HomeworkStatus status;
     private HomeworkGradingMode gradingMode;

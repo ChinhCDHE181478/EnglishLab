@@ -5,6 +5,7 @@ import ExamDeviceCheck from './ExamDeviceCheck';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
 import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -40,7 +41,7 @@ const answerIsFilled = (value) => (Array.isArray(value) ? value.length > 0 : Str
 const renderRichText = (value, className = '') => {
   const text = String(value || '').trim();
   if (!text) return null;
-  return <div className={className} dangerouslySetInnerHTML={{ __html: text }} />;
+  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(text) }} />;
 };
 
 export default function ListeningExamMode({

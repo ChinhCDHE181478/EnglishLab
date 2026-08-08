@@ -1,6 +1,6 @@
 package fu.sap490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
+import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -15,13 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/classroom-homework/attachments")
 @RequiredArgsConstructor
 public class ClassroomHomeworkAttachmentController {
-    private final HomeworkAttachmentStorageService storageService;
+    private final HomeworkAttachmentAccessService accessService;
 
     @GetMapping("/{fileName}")
     public ResponseEntity<Resource> download(@PathVariable String fileName, Authentication authentication) {
-        Resource resource = storageService.load(fileName);
+        Resource resource = accessService.loadAuthorized(fileName, authentication.getName());
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, storageService.contentType(fileName))
+                .header(HttpHeaders.CONTENT_TYPE, accessService.contentType(fileName))
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(resource);
     }
