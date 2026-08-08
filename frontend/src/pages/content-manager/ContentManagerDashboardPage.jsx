@@ -153,7 +153,7 @@ export default function ContentManagerDashboardPage() {
                   to={item.to}
                 >
                   <div className="mt-0.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]">
-                    <Wand2 className="h-5 w-5" />
+                    <BookOpen className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">

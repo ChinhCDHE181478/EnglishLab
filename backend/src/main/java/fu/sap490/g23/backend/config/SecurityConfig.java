@@ -55,7 +55,6 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/online-courses", "/api/online-courses/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-offerings", "/api/classroom-offerings/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/course-offerings", "/api/course-offerings/**").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/classroom-homework/attachments/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/user/avatars/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/demo/**").permitAll()
                         .requestMatchers("/api/dev/**", "/api/test-emails/**").hasRole("ADMIN")

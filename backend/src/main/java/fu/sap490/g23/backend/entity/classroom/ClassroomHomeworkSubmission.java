@@ -59,6 +59,9 @@ public class ClassroomHomeworkSubmission {
     @Column(name = "teacher_feedback", columnDefinition = "text")
     private String teacherFeedback;
 
+    @Column(name = "teacher_annotations_json", columnDefinition = "text")
+    private String teacherAnnotationsJson;
+
     @Column(name = "graded_at")
     private LocalDateTime gradedAt;
 

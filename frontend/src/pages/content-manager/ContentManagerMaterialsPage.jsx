@@ -26,7 +26,9 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { downloadClassroomMaterial } from '../../utils/classroomHelpers';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
 const PAGE_SIZE = 8;
@@ -100,6 +102,7 @@ export default function ContentManagerMaterialsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [downloadingId, setDownloadingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -308,6 +311,19 @@ export default function ContentManagerMaterialsPage() {
       setMessage(status === 'PUBLISHED' ? 'Đã xuất bản học liệu.' : 'Đã lưu trữ học liệu.');
     } catch (err) {
       setMessage(getClassroomErrorMessage(err, status === 'PUBLISHED' ? 'Không thể xuất bản học liệu.' : 'Không thể lưu trữ học liệu.'));
+    }
+  };
+
+  const handleDownload = async (item) => {
+    setDownloadingId(item.id);
+    setMessage('');
+    try {
+      const downloaded = await downloadClassroomMaterial(item, { openOnFailure: false });
+      if (!downloaded) {
+        setMessage('Nguồn học liệu không cho phép tải trực tiếp. Bạn vẫn có thể dùng nút Mở để xem tài liệu.');
+      }
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -523,100 +539,104 @@ export default function ContentManagerMaterialsPage() {
             </div>
           </Panel>
 
-          <Panel className="overflow-hidden rounded-xl border-[#dcc0bf]/30 bg-white shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1080px] border-collapse text-left">
+          <Panel className="min-w-0 max-w-full overflow-hidden rounded-xl border-[#dcc0bf]/30 bg-white shadow-sm">
+            <div className="max-w-full overflow-x-auto overscroll-x-contain">
+              <table className="w-full min-w-[1180px] table-fixed border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    <th className="w-[28%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Học liệu</th>
-                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Loại</th>
-                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỹ năng</th>
-                    <th className="w-[12%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỳ thi / mức</th>
-                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Nguồn</th>
-                    <th className="w-[10%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Trạng thái</th>
-                    <th className="w-[8%] px-4 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Cập nhật</th>
-                    <th className="w-[10%] px-4 py-3 text-right text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Thao tác</th>
+                    <th className="sticky left-0 z-10 w-[28%] bg-[#fbf3f4] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371] shadow-[1px_0_0_rgba(220,192,191,0.3)]">Học liệu</th>
+                    <th className="w-[11%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Loại</th>
+                    <th className="w-[9%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỹ năng</th>
+                    <th className="w-[10%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỳ thi / mức</th>
+                    <th className="w-[9%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Nguồn</th>
+                    <th className="w-[10%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Trạng thái</th>
+                    <th className="w-[7%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Cập nhật</th>
+                    <th className="w-[16%] px-3 py-3 text-right text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dcc0bf]/15">
                   {pageItems.map((item) => {
                     const plainDesc = stripRichTextToPlain(item.description) || item.tags || 'Chưa có mô tả';
                     return (
-                      <tr className="transition hover:bg-[#eff4ff]/40" key={item.id}>
-                        <td className="px-4 py-3">
-                          <p className="max-w-[220px] truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
-                          <p className="mt-0.5 max-w-[240px] truncate text-xs text-[#584140]" title={plainDesc}>
+                      <tr className="group transition hover:bg-[#eff4ff]/40" key={item.id}>
+                        <td className="sticky left-0 z-[5] w-[28%] overflow-hidden bg-white px-3 py-3 shadow-[1px_0_0_rgba(220,192,191,0.2)] transition group-hover:bg-[#f8faff]">
+                          <p className="truncate text-sm font-bold text-[#4b0009]" title={item.title}>{item.title}</p>
+                          <p className="mt-0.5 truncate text-xs text-[#584140]" title={plainDesc}>
                             {plainDesc}
                           </p>
                         </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{item.skill || 'Mixed'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{formatTargetRange(item)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{item.provider || 'EnglishLab'}</td>
-                      <td className="whitespace-nowrap px-4 py-3"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-[#564241]">{formatDate(item.updatedAt)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right">
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          <a
-                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-[#dfbfbd] bg-[#fffafb] px-2.5 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
-                            href={item.fileUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            <LinkIcon className="h-3.5 w-3.5" />
-                            Mở
-                          </a>
-                          <a
-                            aria-label={`Tải tài liệu ${item.title}`}
-                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#730014] px-2.5 text-xs font-bold text-white transition hover:bg-[#8a0018] active:scale-95"
-                            download
-                            href={item.fileUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                            title="Tải tài liệu"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                            Tải
-                          </a>
-                          <button
-                            className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-[#dcc0bf]/50 bg-white px-2.5 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
-                            onClick={() => openEdit(item)}
-                            type="button"
-                          >
-                            <PencilLine className="h-3.5 w-3.5" />
-                            Sửa
-                          </button>
-                          {item.status === 'DRAFT' ? (
+                        <td className="whitespace-nowrap px-3 py-3 text-xs font-semibold text-[#0b1c30]">{item.materialType || 'LINK'}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{item.skill || 'Mixed'}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{formatTargetRange(item)}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{item.provider || 'EnglishLab'}</td>
+                        <td className="whitespace-nowrap px-3 py-3"><StatusBadge label={labelStatus(item.status || 'PUBLISHED')} /></td>
+                        <td className="whitespace-nowrap px-3 py-3 text-xs text-[#564241]">{formatDate(item.updatedAt)}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right">
+                          <div className="inline-flex items-center justify-end gap-1">
+                            {item.fileUrl ? (
+                              <>
+                                <AuthenticatedFileLink
+                                  aria-label={`Mở ${item.title}`}
+                                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#dfbfbd] bg-[#fffafb] text-[#730014] transition hover:bg-[#fff2f3] active:scale-95"
+                                  fileName={item.title}
+                                  title="Mở học liệu"
+                                  url={item.fileUrl}
+                                >
+                                  <LinkIcon className="h-3.5 w-3.5" />
+                                </AuthenticatedFileLink>
+                                <button
+                                  aria-label={`Tải tài liệu ${item.title}`}
+                                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#730014] text-white transition hover:bg-[#8a0018] active:scale-95 disabled:cursor-wait disabled:opacity-55"
+                                  disabled={downloadingId === item.id}
+                                  onClick={() => handleDownload(item)}
+                                  title="Tải tài liệu"
+                                  type="button"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            ) : null}
                             <button
-                              className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-md bg-[#730014] px-2.5 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] active:scale-95"
-                              onClick={() => changeMaterialStatus(item, 'PUBLISHED')}
+                              aria-label={`Sửa ${item.title}`}
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#dcc0bf]/50 bg-white text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                              onClick={() => openEdit(item)}
+                              title="Chỉnh sửa"
                               type="button"
                             >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                              Xuất bản
+                              <PencilLine className="h-3.5 w-3.5" />
                             </button>
-                          ) : null}
-                          {item.status === 'PUBLISHED' ? (
+                            {item.status === 'DRAFT' ? (
+                              <button
+                                aria-label={`Xuất bản ${item.title}`}
+                                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 transition hover:bg-emerald-100 active:scale-95"
+                                onClick={() => changeMaterialStatus(item, 'PUBLISHED')}
+                                title="Xuất bản"
+                                type="button"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              </button>
+                            ) : null}
+                            {item.status === 'PUBLISHED' ? (
+                              <button
+                                aria-label={`Lưu trữ ${item.title}`}
+                                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-amber-200 bg-white text-amber-700 transition hover:bg-amber-50 active:scale-95"
+                                onClick={() => changeMaterialStatus(item, 'ARCHIVED')}
+                                title="Lưu trữ"
+                                type="button"
+                              >
+                                <Archive className="h-3.5 w-3.5" />
+                              </button>
+                            ) : null}
                             <button
-                              aria-label={`Lưu trữ ${item.title}`}
+                              aria-label={`Xóa ${item.title}`}
                               className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
-                              onClick={() => changeMaterialStatus(item, 'ARCHIVED')}
-                              title="Lưu trữ"
+                              onClick={() => handleDelete(item)}
+                              title="Xóa"
                               type="button"
                             >
-                              <Archive className="h-3.5 w-3.5" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </button>
-                          ) : null}
-                          <button
-                            aria-label={`Xóa ${item.title}`}
-                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 active:scale-95"
-                            onClick={() => handleDelete(item)}
-                            title="Xóa"
-                            type="button"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                          </div>
                       </td>
                     </tr>
                   );

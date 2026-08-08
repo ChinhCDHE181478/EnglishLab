@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import curriculumApi from '../../api/curriculumApi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import FlashcardDictionaryAssistant from '../../components/flashcard/FlashcardDictionaryAssistant';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -697,16 +698,16 @@ export default function ContentManagerFlashcardsPage() {
                           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thuật ngữ</span>
                           <input value={card.front} onChange={(event) => updateCard(index, 'front', event.target.value)} className={FIELD_CLASS} />
                         </label>
-                        <label className="block">
-                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Định nghĩa</span>
-                          <input value={card.back} onChange={(event) => updateCard(index, 'back', event.target.value)} className={FIELD_CLASS} />
-                        </label>
-                      </div>
-                      <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <label className="block">
-                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Ví dụ</span>
-                          <textarea value={card.example} onChange={(event) => updateCard(index, 'example', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-                        </label>
+                        <FlashcardDictionaryAssistant
+                          example={card.example}
+                          exampleInputClassName={TEXTAREA_CLASS}
+                          meaning={card.back}
+                          meaningInputClassName={FIELD_CLASS}
+                          onExampleChange={(example) => updateCard(index, 'example', example)}
+                          onMeaningChange={(back) => updateCard(index, 'back', back)}
+                          showLabels
+                          term={card.front}
+                        />
                         <label className="block">
                           <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Lỗi thường gặp</span>
                           <textarea value={card.commonMistake} onChange={(event) => updateCard(index, 'commonMistake', event.target.value)} rows={3} className={TEXTAREA_CLASS} />

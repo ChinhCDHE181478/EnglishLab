@@ -44,4 +44,8 @@ public interface ClassroomHomeworkSubmissionRepository extends JpaRepository<Cla
     );
 
     boolean existsByHomeworkId(Long homeworkId);
+
+    Optional<ClassroomHomeworkSubmission> findFirstByAttachmentUrlEndingWith(String suffix);
+
+    boolean existsByAttachmentUrlEndingWith(String suffix);
 }

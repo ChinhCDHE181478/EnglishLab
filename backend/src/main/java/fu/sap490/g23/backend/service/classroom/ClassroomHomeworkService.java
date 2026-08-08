@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CreateHomeworkRequest;
 import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
+import fu.sap490.g23.backend.dto.request.classroom.SaveHomeworkAnnotationsRequest;
 import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
@@ -23,6 +24,13 @@ public interface ClassroomHomeworkService {
     ClassroomHomeworkSubmissionResponse submit(Long homeworkId, SubmitHomeworkRequest request, String learnerEmail);
 
     ClassroomHomeworkSubmissionResponse grade(Long homeworkId, Long studentId, GradeHomeworkRequest request, String graderEmail);
+
+    ClassroomHomeworkSubmissionResponse saveAnnotations(
+            Long homeworkId,
+            Long studentId,
+            SaveHomeworkAnnotationsRequest request,
+            String teacherEmail
+    );
 
     List<ClassroomHomeworkSubmissionResponse> listSubmissions(Long homeworkId, String teacherEmail);
 
