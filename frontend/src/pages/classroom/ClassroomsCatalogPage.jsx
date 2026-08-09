@@ -446,10 +446,10 @@ export default function ClassroomsCatalogPage() {
 function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgramId }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+      <div className="hidden overflow-hidden rounded-2xl border border-[#dcc0bf]/30 bg-white shadow-sm md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] border-collapse text-left">
-            <thead className="bg-[#3d3d3d] text-xs font-extrabold uppercase tracking-wide text-white">
+            <thead className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4] text-xs font-bold uppercase tracking-wider text-[#8e7371]">
               <tr>
                 <th className="px-4 py-3">Mã khóa học</th>
                 <th className="px-4 py-3">Khóa học</th>

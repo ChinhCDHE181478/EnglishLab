@@ -245,10 +245,7 @@ export default function ContentManagerDiscussionModerationPage() {
             </ManagerTable>
 
             {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#eff4ff]/30 px-6 py-4">
-                <span className="text-sm font-semibold text-[#564241]">
-                  Trang {page} / {totalPages} · <span className="font-bold text-[#0b1c30]">{totalItems}</span> báo cáo
-                </span>
+              <div className="border-t border-[#dcc0bf]/20 bg-[#eff4ff]/30 px-6 py-4">
                 <Pagination
                   page={page}
                   totalPages={totalPages}

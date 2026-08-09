@@ -29,6 +29,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ClassroomMapper {
 
+    private final HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
+
     private static final Set<ClassroomRegistrationStatus> OCCUPIES_CLASS_SLOT = ClassroomRegistrationSupport.OCCUPIES_CLASS_SLOT;
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
     private static final Set<ClassroomRegistrationStatus> WAITLIST_STATUSES = EnumSet.of(ClassroomRegistrationStatus.WAITLIST);
@@ -39,6 +41,7 @@ public class ClassroomMapper {
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     private final VirtualMeetingService virtualMeetingService;
+    private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
 
     public ClassroomOfferingResponse toOfferingResponse(ClassroomOffering offering) {
         return toOfferingResponse(offering, false, null, null, false);
@@ -409,10 +412,15 @@ public class ClassroomMapper {
                 .allowResubmission(homework.isAllowResubmission())
                 .attachmentUrl(homework.getAttachmentUrl())
                 .activityType(homework.getActivityType())
-                .activityConfigJson(homework.getActivityConfigJson())
+                .activityConfigJson(studentId == null
+                        ? homework.getActivityConfigJson()
+                        : homeworkObjectiveGrader.toLearnerActivityConfig(homework.getActivityConfigJson()))
+                .objectiveAnswerKey(studentId == null && homework.getAssessmentBankItem() != null
+                        ? homework.getAssessmentBankItem().getObjectiveAnswerKey() : null)
                 .aiReviewEnabled(homework.isAiReviewEnabled())
                 .status(homework.getStatus())
-                .gradingMode(homework.getGradingMode())
+                .gradingMode(homeworkObjectiveGrader.supports(homework)
+                        ? HomeworkGradingMode.AUTO : homework.getGradingMode())
                 .skill(homework.getSkill())
                 .rubricId(homework.getRubric() == null ? null : homework.getRubric().getId())
                 .rubricName(homework.getRubric() == null ? null : homework.getRubric().getName())
@@ -430,18 +438,42 @@ public class ClassroomMapper {
     }
 
     public ClassroomHomeworkSubmissionResponse toHomeworkSubmissionResponse(ClassroomHomeworkSubmission submission) {
+        return toHomeworkSubmissionResponse(submission.getHomework(), submission.getStudent(), submission);
+    }
+
+    public ClassroomHomeworkSubmissionResponse toHomeworkSubmissionResponse(
+            ClassroomHomework homework,
+            User student,
+            ClassroomHomeworkSubmission submission
+    ) {
+        boolean submitted = submission != null
+                && submission.getSubmittedAt() != null
+                && submission.getStatus() != HomeworkSubmissionStatus.DRAFT;
+        HomeworkSubmissionTiming timing = HomeworkSubmissionTiming.NOT_SUBMITTED;
+        if (submitted) {
+            timing = homework.getDeadline() != null && submission.getSubmittedAt().isAfter(homework.getDeadline())
+                    ? HomeworkSubmissionTiming.LATE
+                    : HomeworkSubmissionTiming.ON_TIME;
+        }
         return ClassroomHomeworkSubmissionResponse.builder()
-                .id(submission.getId())
-                .homeworkId(submission.getHomework().getId())
-                .studentId(submission.getStudent().getId())
-                .studentName(submission.getStudent().getFullName())
-                .textAnswer(submission.getTextAnswer())
-                .attachmentUrl(submission.getAttachmentUrl())
-                .submittedAt(submission.getSubmittedAt())
-                .status(submission.getStatus())
-                .score(submission.getScore())
-                .teacherFeedback(submission.getTeacherFeedback())
-                .gradedAt(submission.getGradedAt())
+                .id(submission == null ? null : submission.getId())
+                .homeworkId(homework.getId())
+                .studentId(student.getId())
+                .studentName(student.getFullName())
+                .studentEmail(student.getEmail())
+                .studentAvatarUrl(student.getAvatarUrl())
+                .submitted(submitted)
+                .submissionTiming(timing)
+                .textAnswer(submission == null ? null : submission.getTextAnswer())
+                .attachmentUrl(submission == null ? null : submission.getAttachmentUrl())
+                .submittedAt(submission == null ? null : submission.getSubmittedAt())
+                .status(submission == null ? null : submission.getStatus())
+                .score(submission == null ? null : submission.getScore())
+                .teacherFeedback(submission == null ? null : submission.getTeacherFeedback())
+                .annotations(submission == null
+                        ? List.of()
+                        : homeworkTextAnnotationCodec.deserialize(submission.getTeacherAnnotationsJson()))
+                .gradedAt(submission == null ? null : submission.getGradedAt())
                 .build();
     }
 

@@ -31,7 +31,7 @@ export default function RichTextEditor({
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || document.activeElement === editor) return;
-    const nextValue = String(value || '');
+    const nextValue = sanitizeLessonHtml(value);
     if (editor.innerHTML !== nextValue) editor.innerHTML = nextValue;
   }, [value]);
 

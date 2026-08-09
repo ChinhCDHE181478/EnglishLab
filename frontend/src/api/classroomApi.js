@@ -154,10 +154,12 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async uploadHomeworkSubmissionAttachment(file) {
+  async uploadHomeworkSubmissionAttachment(homeworkId, file) {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await axiosClient.post('/api/student/classrooms/homework/attachments', formData);
+    const response = await axiosClient.post('/api/student/classrooms/homework/attachments', formData, {
+      params: { homeworkId },
+    });
     return unwrapData(response);
   },
 
@@ -251,10 +253,12 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async uploadHomeworkAttachment(file) {
+  async uploadHomeworkAttachment(classroomId, file) {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await axiosClient.post('/api/teacher/classrooms/homework/attachments', formData);
+    const response = await axiosClient.post('/api/teacher/classrooms/homework/attachments', formData, {
+      params: { classroomId },
+    });
     return unwrapData(response);
   },
 
@@ -282,6 +286,14 @@ export const classroomApi = {
 
   async gradeHomework(homeworkId, studentId, payload) {
     const response = await axiosClient.post(`/api/teacher/classrooms/homework/${homeworkId}/students/${studentId}/grade`, payload);
+    return unwrapData(response);
+  },
+
+  async saveHomeworkAnnotations(homeworkId, studentId, annotations) {
+    const response = await axiosClient.put(
+      `/api/teacher/classrooms/homework/${homeworkId}/students/${studentId}/annotations`,
+      { annotations },
+    );
     return unwrapData(response);
   },
 

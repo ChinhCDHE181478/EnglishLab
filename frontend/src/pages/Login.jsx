@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { login, loginWithFacebook, loginWithGoogle } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
-import { hasAnyUserRole, isContentManagerUser, needsPlacementTest, needsProfileCompletion } from '../utils/auth';
+import { getDefaultAuthenticatedPath } from '../utils/auth';
 
 const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
@@ -40,16 +40,15 @@ const Login = () => {
   const [facebookLoading, setFacebookLoading] = useState(false);
 
   const resolvePostLoginPath = (user) => {
-    if (hasAnyUserRole(user, ['ADMIN'])) return '/admin';
-    if (hasAnyUserRole(user, ['MANAGER'])) return '/manager/classroom-proposals';
-    if (hasAnyUserRole(user, ['CONTENT_MANAGER']) || isContentManagerUser(user)) return '/content-manager/dashboard';
-    if (hasAnyUserRole(user, ['STAFF'])) return '/staff';
-    if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
-    if (needsPlacementTest(user)) return '/placement-test';
-    if (needsProfileCompletion(user)) return '/complete-profile';
+    const defaultPath = getDefaultAuthenticatedPath(user);
+    const requestedQueryPath = new URLSearchParams(location.search).get('next');
+    if (typeof requestedQueryPath === 'string'
+      && requestedQueryPath.startsWith('/')
+      && !requestedQueryPath.startsWith('//')) return requestedQueryPath;
+    if (defaultPath !== '/home') return defaultPath;
     const requestedPath = location.state?.from;
     if (typeof requestedPath === 'string' && requestedPath.startsWith('/')) return requestedPath;
-    return '/home';
+    return defaultPath;
   };
 
   const handleSaveSession = (response) => {

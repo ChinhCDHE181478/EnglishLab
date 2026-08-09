@@ -442,7 +442,7 @@ export default function ContentManagerRubricsPage() {
                 <td className="px-6 py-5"><ManagerStatusBadge tone={rubric.active === false ? 'neutral' : 'success'}>{rubric.active === false ? 'Tạm ngưng' : 'Đang dùng'}</ManagerStatusBadge></td>
                 <td className="px-6 py-5 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5" onClick={() => editRubric(rubric)} type="button">
+                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]" onClick={() => editRubric(rubric)} type="button">
                       <Edit3 className="h-3.5 w-3.5" />
                       Chỉnh sửa
                     </button>

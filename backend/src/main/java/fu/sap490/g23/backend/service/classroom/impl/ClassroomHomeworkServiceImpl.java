@@ -5,6 +5,7 @@ import fu.sap490.g23.backend.service.classroom.*;
 
 import fu.sap490.g23.backend.dto.request.classroom.CreateHomeworkRequest;
 import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
+import fu.sap490.g23.backend.dto.request.classroom.SaveHomeworkAnnotationsRequest;
 import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
@@ -29,8 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +59,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomHomeworkAiGradingService homeworkAiGradingService;
     private final ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
+    private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
+    private final HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
 
     @Override
     @Transactional(readOnly = true)
@@ -87,8 +94,26 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User teacher = accessHelper.requireUser(teacherEmail);
         accessHelper.assertTeacher(teacher);
         ClassroomHomework homework = findHomework(homeworkId);
-        return submissionRepository.findByHomeworkIdOrderBySubmittedAtDesc(homework.getId()).stream()
-                .map(mapper::toHomeworkSubmissionResponse)
+        Map<Long, ClassroomHomeworkSubmission> submissionsByStudent = submissionRepository
+                .findByHomeworkId(homework.getId()).stream()
+                .collect(Collectors.toMap(
+                        submission -> submission.getStudent().getId(),
+                        Function.identity()
+                ));
+        return enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
+                        homework.getClassroomOffering().getId(), HAS_LEARNING_ACCESS
+                ).stream()
+                .map(ClassroomEnrollment::getStudent)
+                .filter(student -> student != null)
+                .sorted(Comparator.comparing(
+                        User::getFullName,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+                ))
+                .map(student -> mapper.toHomeworkSubmissionResponse(
+                        homework,
+                        student,
+                        submissionsByStudent.get(student.getId())
+                ))
                 .toList();
     }
 
@@ -210,10 +235,6 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (homework.getStatus() != HomeworkStatus.OPEN) {
             throw new RuntimeException("Bài tập chưa mở để nộp.");
         }
-        if (homework.getDeadline() != null && homework.getDeadline().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Đã quá hạn nộp bài.");
-        }
-
         ClassroomHomeworkSubmission submission = submissionRepository
                 .findByHomeworkIdAndStudentId(homeworkId, learner.getId())
                 .orElseGet(() -> ClassroomHomeworkSubmission.builder()
@@ -231,11 +252,22 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         submission.setStatus(HomeworkSubmissionStatus.SUBMITTED);
         submission.setScore(null);
         submission.setTeacherFeedback(null);
+        submission.setTeacherAnnotationsJson(null);
         submission.setGradedAt(null);
         submission.setGradedBy(null);
 
         ClassroomHomeworkSubmission saved = submissionRepository.save(submission);
-        if (homework.isAiReviewEnabled() && homeworkAiGradingService.tryAutoGrade(saved)) {
+        if (homeworkObjectiveGrader.supports(homework)) {
+            ClassroomHomeworkObjectiveGrader.ObjectiveScore result = homeworkObjectiveGrader.score(
+                    homework, saved.getTextAnswer()
+            );
+            saved.setScore(result.score());
+            saved.setTeacherFeedback("Hệ thống tự chấm: " + result.correctCount() + "/" + result.totalCount() + " câu đúng.");
+            saved.setGradedAt(LocalDateTime.now());
+            saved.setStatus(HomeworkSubmissionStatus.GRADED);
+            saved = submissionRepository.save(saved);
+            syncHomeworkScoreToGradebook(homework, learner.getId(), null);
+        } else if (homework.isAiReviewEnabled() && homeworkAiGradingService.tryAutoGrade(saved)) {
             saved = submissionRepository.save(saved);
             syncHomeworkScoreToGradebook(homework, learner.getId(), null);
         }
@@ -249,6 +281,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         accessHelper.assertTeacher(grader);
 
         ClassroomHomework homework = findHomework(homeworkId);
+        if (homework.getGradingMode() == HomeworkGradingMode.AUTO || homeworkObjectiveGrader.supports(homework)) {
+            throw new RuntimeException("Điểm trắc nghiệm do hệ thống chấm theo đáp án và không thể sửa thủ công.");
+        }
         ClassroomHomeworkSubmission submission = submissionRepository.findByHomeworkIdAndStudentId(homeworkId, studentId)
                 .orElseThrow(() -> new RuntimeException("Học viên chưa nộp bài tập."));
 
@@ -260,9 +295,16 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             throw new RuntimeException("Vui lòng nhập điểm.");
         }
         validateScore(request.getScore(), homework.getMaxScore());
+        if (request.getAnnotations() != null && !request.getAnnotations().isEmpty()
+                && homework.getSkill() != AssessmentSkill.WRITING) {
+            throw new IllegalArgumentException("Ghi chú theo đoạn chỉ áp dụng cho bài Writing.");
+        }
 
         submission.setScore(request.getScore());
         submission.setTeacherFeedback(request.getTeacherFeedback());
+        submission.setTeacherAnnotationsJson(homeworkTextAnnotationCodec.validateAndSerialize(
+                submission.getTextAnswer(), request.getAnnotations()
+        ));
         submission.setGradedAt(LocalDateTime.now());
         submission.setGradedBy(grader);
         submission.setStatus(HomeworkSubmissionStatus.GRADED);
@@ -271,6 +313,33 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         syncHomeworkScoreToGradebook(homework, studentId, grader);
 
         return mapper.toHomeworkSubmissionResponse(savedSubmission);
+    }
+
+    @Override
+    public ClassroomHomeworkSubmissionResponse saveAnnotations(
+            Long homeworkId,
+            Long studentId,
+            SaveHomeworkAnnotationsRequest request,
+            String teacherEmail
+    ) {
+        User teacher = accessHelper.requireUser(teacherEmail);
+        accessHelper.assertTeacher(teacher);
+        ClassroomHomework homework = findHomework(homeworkId);
+        if (homework.getSkill() != AssessmentSkill.WRITING) {
+            throw new IllegalArgumentException("Nhận xét theo đoạn chỉ áp dụng cho bài Writing.");
+        }
+
+        ClassroomHomeworkSubmission submission = submissionRepository.findByHomeworkIdAndStudentId(homeworkId, studentId)
+                .orElseThrow(() -> new RuntimeException("Học viên chưa nộp bài tập."));
+        if (submission.getStatus() != HomeworkSubmissionStatus.SUBMITTED
+                && submission.getStatus() != HomeworkSubmissionStatus.GRADED) {
+            throw new RuntimeException("Bài nộp chưa sẵn sàng để nhận xét.");
+        }
+
+        submission.setTeacherAnnotationsJson(homeworkTextAnnotationCodec.validateAndSerialize(
+                submission.getTextAnswer(), request == null ? null : request.getAnnotations()
+        ));
+        return mapper.toHomeworkSubmissionResponse(submissionRepository.save(submission));
     }
 
     private void validateScore(BigDecimal score, BigDecimal maxScore) {
@@ -364,13 +433,23 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             homework.setActivityConfigJson(assessment.getUiConfigJson());
         } else {
             homework.setAssessmentBankItem(null);
-            homework.setSkill(null);
+            homework.setSkill(request.getSkill());
             homework.setRubric(null);
         }
 
         boolean aiEnabled = Boolean.TRUE.equals(request.getAiReviewEnabled());
+        if (homework.getActivityType() == HomeworkActivityType.SKILL_PRACTICE) {
+            if (homework.getSkill() == AssessmentSkill.SPEAKING || homework.getSkill() == AssessmentSkill.WRITING) {
+                throw new RuntimeException("Bài Speaking hoặc Writing cần học viên nộp bài để giáo viên chấm, không dùng loại trắc nghiệm.");
+            }
+            if (!homeworkObjectiveGrader.supports(homework)) {
+                throw new RuntimeException("Bài trắc nghiệm phải có đáp án đúng để hệ thống tự chấm.");
+            }
+        }
         homework.setAiReviewEnabled(aiEnabled);
-        homework.setGradingMode(aiEnabled ? HomeworkGradingMode.AI : HomeworkGradingMode.TEACHER);
+        homework.setGradingMode(aiEnabled
+                ? HomeworkGradingMode.AI
+                : homeworkObjectiveGrader.supports(homework) ? HomeworkGradingMode.AUTO : HomeworkGradingMode.TEACHER);
         if (!aiEnabled) {
             return;
         }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, X } from 'lucide-react';
 import curriculumApi from '../../api/curriculumApi';
-import { ContentManagerLoadingState, Panel } from '../../components/content-manager/ContentManagerUi';
+import { ContentManagerLoadingState, HeaderActions, Panel } from '../../components/content-manager/ContentManagerUi';
 import {
   EnglishEntryLevelField,
   IeltsBandSelect,
@@ -148,21 +148,22 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <HeaderActions>
+        <Link className={SECONDARY_BUTTON_CLASS} to={detailPath}>
+          <X className="h-4 w-4" />
+          Hủy
+        </Link>
+        <button className={PRIMARY_BUTTON_CLASS} disabled={saving} onClick={saveProgram} type="button">
+          <Save className="h-4 w-4" />
+          {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+        </button>
+      </HeaderActions>
+
+      <div className="flex items-center justify-between gap-3">
         <Link className="inline-flex items-center gap-2 text-sm font-bold text-[#564241] hover:text-[#4b0009]" to={detailPath}>
           <ChevronLeft className="h-4 w-4" />
           Quay lại chi tiết
         </Link>
-        <div className="flex flex-wrap gap-2 sm:-mt-[88px] sm:mb-14">
-          <Link className={SECONDARY_BUTTON_CLASS} to={detailPath}>
-            <X className="h-4 w-4" />
-            Hủy
-          </Link>
-          <button className={PRIMARY_BUTTON_CLASS} disabled={saving} onClick={saveProgram} type="button">
-            <Save className="h-4 w-4" />
-            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
-          </button>
-        </div>
       </div>
 
       {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}

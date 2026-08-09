@@ -74,6 +74,11 @@ public class ClassroomHomeworkGradingSchemaMigration {
                                 FOREIGN KEY (assessment_bank_item_id) REFERENCES assessment_bank_items(id);
                         END IF;
                     END IF;
+
+                    IF to_regclass('public.classroom_homework_submissions') IS NOT NULL THEN
+                        ALTER TABLE classroom_homework_submissions
+                            ADD COLUMN IF NOT EXISTS teacher_annotations_json TEXT;
+                    END IF;
                 END $$;
                 """);
     }

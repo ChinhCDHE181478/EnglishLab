@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 
-import java.util.List;
 
 @RestController
 @RequestMapping({"/api/manager/payments", "/api/content-manager/payments"})
@@ -20,9 +23,10 @@ public class ManagerPaymentController {
     private final PaymentService paymentService;
 
     @GetMapping("/orders")
-    public ResponseEntity<List<PaymentOrderSummaryResponse>> listOrders(
-            @RequestParam(required = false) PaymentOrderStatus status
+    public ResponseEntity<Page<PaymentOrderSummaryResponse>> listOrders(
+            @RequestParam(required = false) PaymentOrderStatus status,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
-        return ResponseEntity.ok(paymentService.listStaffOrders(status));
+        return ResponseEntity.ok(paymentService.listStaffOrders(status, pageable));
     }
 }

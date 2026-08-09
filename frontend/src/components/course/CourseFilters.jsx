@@ -123,7 +123,7 @@ const CourseFilters = ({
         </div>
       </div>
 
-      <button className="mt-8 w-full rounded-lg border border-[#4b0009] py-3 text-[14px] font-semibold tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#4b0009]/5" onClick={onClear} type="button">
+      <button className="mt-8 w-full rounded-lg border border-[#dfbfbd] py-3 text-[14px] font-semibold tracking-[0.02em] text-[#4b0009] transition-all hover:bg-[#fff2f3]" onClick={onClear} type="button">
         Xóa tất cả bộ lọc
       </button>
     </div>

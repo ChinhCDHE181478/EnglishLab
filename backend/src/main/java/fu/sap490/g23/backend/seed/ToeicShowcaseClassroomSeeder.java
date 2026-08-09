@@ -46,6 +46,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private static final String LEGACY_DEMO_LARK_URL = "https://meet.larksuite.com/s/englishlab-toeic-650-showcase";
 
     private static final String LEARNER_EMAIL = "0386852628z@gmail.com";
+    private static final String DEMO_LEARNER_TWO_EMAIL = "classroom.learner2@englishlab.vn";
+    private static final String DEMO_LEARNER_THREE_EMAIL = "classroom.learner3@englishlab.vn";
+    private static final String DEMO_LEARNER_FOUR_EMAIL = "classroom.learner4@englishlab.vn";
     private static final String TEACHER_EMAIL = "classroom.teacher1@englishlab.vn";
     private static final String CURRICULUM_SLUG = "toeic-650-complete-virtual-v1";
     private static final String TRAINING_SLUG = "toeic-650-complete-training";
@@ -116,6 +119,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final ClassroomSyllabusItemRepository syllabusRepository;
     private final ClassroomMaterialRepository classroomMaterialRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
+    private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
 
@@ -130,6 +134,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         }
 
         User learner = ensureUser(LEARNER_EMAIL, "Học viên EnglishLab", RoleEnum.LEARNER);
+        User learnerTwo = ensureUser(DEMO_LEARNER_TWO_EMAIL, "Phạm Minh Anh", RoleEnum.LEARNER);
+        User learnerThree = ensureUser(DEMO_LEARNER_THREE_EMAIL, "Hoàng Gia Huy", RoleEnum.LEARNER);
+        User learnerFour = ensureUser(DEMO_LEARNER_FOUR_EMAIL, "Trần Ngọc Mai", RoleEnum.LEARNER);
+        List<User> learners = List.of(learner, learnerTwo, learnerThree, learnerFour);
         User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleEnum.TEACHER);
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseGet(() -> packageTypeRepository.save(PackageType.builder()
@@ -148,15 +156,16 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         clearLegacyDemoLarkLinks(offering);
 
         ensureTeacherAssignment(offering, teacher);
-        ensureEnrollment(offering, learner, teacher);
+        learners.forEach(student -> ensureEnrollment(offering, student, teacher));
         List<ClassroomSession> sessions = ensureSessions(offering, teacher, units);
         ensureSyllabus(offering, units, sessions);
         ensureClassroomMaterials(offering, units, teacher);
         AssessmentBankItem unitProgressCheck = ensureUnitProgressCheckBankItem();
         ensureCurriculumAssessment(units.get(4), unitProgressCheck);
         ensureHomework(offering, units, sessions, teacher, unitProgressCheck);
+        ensureHomeworkSubmissions(offering, learnerTwo, learnerThree, learnerFour, teacher);
         ensureAnnouncement(offering, teacher);
-        ensureGradebook(offering, learner, teacher);
+        learners.forEach(student -> ensureGradebook(offering, student, teacher));
     }
 
     private CurriculumProgram ensureCurriculum(User teacher) {
@@ -681,7 +690,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                           {"number":3,"prompt":"Some boxes ------- on the shelves.","options":[{"value":"A","label":"have arranged"},{"value":"B","label":"are arranging"},{"value":"C","label":"are arranged"},{"value":"D","label":"arrange"}]}],
                          "answerKey":{"1":"B","2":"A","3":"C"}}
                         """)
-                .gradingMode(HomeworkGradingMode.TEACHER)
+                .gradingMode(HomeworkGradingMode.AUTO)
                 .skill(AssessmentSkill.LISTENING)
                 .status(HomeworkStatus.OPEN)
                 .createdBy(teacher)
@@ -736,6 +745,22 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .createdBy(teacher)
                 .build());
 
+        ensureHomeworkItem(offering, "Unit 3 Speaking Retell - Conversations", ClassroomHomework.builder()
+                .classroomOffering(offering)
+                .session(sessions.get(2))
+                .curriculumUnit(units.get(2))
+                .title("Unit 3 Speaking Retell - Conversations")
+                .instruction("Tóm tắt bằng tiếng Anh nội dung một cuộc hội thoại về lịch hẹn hoặc dịch vụ khách hàng trong 60-90 giây.")
+                .deadline(LocalDateTime.now().plusDays(6))
+                .maxScore(BigDecimal.TEN)
+                .allowResubmission(true)
+                .activityType(HomeworkActivityType.TEXT_RESPONSE)
+                .gradingMode(HomeworkGradingMode.TEACHER)
+                .skill(AssessmentSkill.SPEAKING)
+                .status(HomeworkStatus.OPEN)
+                .createdBy(teacher)
+                .build());
+
         ensureUnitProgressCheckHomework(offering, units.get(4), sessions.get(4), teacher, unitProgressCheck);
 
         ensureHomeworkItem(offering, "Unit 6 Text Completion - System Practice", ClassroomHomework.builder()
@@ -756,7 +781,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                           {"number":4,"prompt":"Contact Ms. Rivera if you have any questions ------- the schedule.","options":[{"value":"A","label":"regarding"},{"value":"B","label":"between"},{"value":"C","label":"through"},{"value":"D","label":"beside"}]}],
                          "answerKey":{"1":"B","2":"A","3":"C","4":"A"}}
                         """)
-                .gradingMode(HomeworkGradingMode.TEACHER)
+                .gradingMode(HomeworkGradingMode.AUTO)
                 .skill(AssessmentSkill.READING)
                 .status(HomeworkStatus.OPEN)
                 .createdBy(teacher)
@@ -794,6 +819,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .status(HomeworkStatus.OPEN)
                 .createdBy(teacher)
                 .build());
+
+        synchronizeObjectiveHomeworkGrading(offering);
     }
 
     private void ensureUnitProgressCheckHomework(
@@ -822,13 +849,143 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         homework.setAllowResubmission(true);
         homework.setActivityType(HomeworkActivityType.SKILL_PRACTICE);
         homework.setActivityConfigJson(assessment.getUiConfigJson());
-        homework.setGradingMode(HomeworkGradingMode.TEACHER);
+        homework.setAssessmentBankItem(assessment);
+        homework.setGradingMode(HomeworkGradingMode.AUTO);
         homework.setSkill(AssessmentSkill.READING);
         homework.setStatus(HomeworkStatus.OPEN);
         if (isNew) {
             homework.setCreatedBy(teacher);
         }
         homeworkRepository.save(homework);
+    }
+
+    private void synchronizeObjectiveHomeworkGrading(ClassroomOffering offering) {
+        homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+                .filter(item -> item.getActivityType() == HomeworkActivityType.SKILL_PRACTICE)
+                .filter(item -> StringUtils.hasText(item.getActivityConfigJson()) || item.getAssessmentBankItem() != null)
+                .forEach(item -> {
+                    item.setGradingMode(HomeworkGradingMode.AUTO);
+                    item.setAiReviewEnabled(false);
+                    homeworkRepository.save(item);
+                });
+    }
+
+    private void ensureHomeworkSubmissions(
+            ClassroomOffering offering,
+            User learnerTwo,
+            User learnerThree,
+            User learnerFour,
+            User teacher
+    ) {
+        ClassroomHomework quiz = requireHomework(offering, "Unit 1 Quiz - Photographs");
+        ensureSubmission(
+                quiz,
+                learnerTwo,
+                "{\"responses\":{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}}",
+                null,
+                submittedAt(quiz, false),
+                HomeworkSubmissionStatus.GRADED,
+                BigDecimal.TEN,
+                "Hệ thống tự chấm: 3/3 câu đúng.",
+                teacher
+        );
+        ensureSubmission(
+                quiz,
+                learnerThree,
+                "{\"responses\":{\"1\":\"B\",\"2\":\"D\",\"3\":\"C\"}}",
+                null,
+                submittedAt(quiz, true),
+                HomeworkSubmissionStatus.GRADED,
+                BigDecimal.valueOf(6.67),
+                "Hệ thống tự chấm: 2/3 câu đúng.",
+                teacher
+        );
+
+        ClassroomHomework writing = requireHomework(offering, "Unit 7 Error Log - Reading");
+        ensureSubmission(
+                writing,
+                learnerTwo,
+                "My first recurring problem is reading every word before checking the question. This wastes time and makes me lose focus. I will scan names, dates and keywords first, then locate the relevant paragraph. My second problem is choosing an option because it repeats words from the passage. I will compare the meaning instead of matching vocabulary. Finally, I often leave difficult questions blank. I will make a temporary choice, flag it and return after completing the easier questions.",
+                null,
+                submittedAt(writing, false),
+                HomeworkSubmissionStatus.SUBMITTED,
+                null,
+                null,
+                null
+        );
+        ensureSubmission(
+                writing,
+                learnerThree,
+                "I usually spend too much time on the first passage and then rush the final questions. I also confuse NOT GIVEN with FALSE when the passage does not mention enough information. In my next practice, I will use a strict time limit for each passage, underline evidence before answering, and keep an error log with the reason for every incorrect choice.",
+                null,
+                submittedAt(writing, true),
+                HomeworkSubmissionStatus.SUBMITTED,
+                null,
+                null,
+                null
+        );
+        ensureSubmission(
+                writing,
+                learnerFour,
+                "My reading errors mainly come from overlooking reference words and reading options too quickly. I now circle pronouns, identify what they refer to, and eliminate choices that are only partly supported. I will review my error log twice a week and redo each incorrect question without looking at the answer.",
+                null,
+                submittedAt(writing, false),
+                HomeworkSubmissionStatus.GRADED,
+                BigDecimal.valueOf(8.5),
+                "Phân tích lỗi rõ ràng và có kế hoạch cải thiện cụ thể. Em nên bổ sung một ví dụ thực tế từ bài Reading gần nhất.",
+                teacher
+        );
+
+        ClassroomHomework speaking = requireHomework(offering, "Unit 3 Speaking Retell - Conversations");
+        ensureSubmission(
+                speaking,
+                learnerTwo,
+                "Học viên đã thu âm phần tóm tắt hội thoại và nộp bản ghi để giáo viên đánh giá.",
+                MATERIAL_BASE_URL + "unit-3-speaking-submission.wav",
+                submittedAt(speaking, false),
+                HomeworkSubmissionStatus.SUBMITTED,
+                null,
+                null,
+                null
+        );
+    }
+
+    private ClassroomHomework requireHomework(ClassroomOffering offering, String title) {
+        return homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy bài tập showcase: " + title));
+    }
+
+    private LocalDateTime submittedAt(ClassroomHomework homework, boolean late) {
+        LocalDateTime deadline = homework.getDeadline() == null ? LocalDateTime.now() : homework.getDeadline();
+        return late ? deadline.plusMinutes(45) : deadline.minusHours(4);
+    }
+
+    private void ensureSubmission(
+            ClassroomHomework homework,
+            User learner,
+            String textAnswer,
+            String attachmentUrl,
+            LocalDateTime submittedAt,
+            HomeworkSubmissionStatus status,
+            BigDecimal score,
+            String feedback,
+            User gradedBy
+    ) {
+        homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homework.getId(), learner.getId())
+                .orElseGet(() -> homeworkSubmissionRepository.save(ClassroomHomeworkSubmission.builder()
+                        .homework(homework)
+                        .student(learner)
+                        .textAnswer(textAnswer)
+                        .attachmentUrl(attachmentUrl)
+                        .submittedAt(submittedAt)
+                        .status(status)
+                        .score(score)
+                        .teacherFeedback(feedback)
+                        .gradedAt(status == HomeworkSubmissionStatus.GRADED ? submittedAt.plusHours(2) : null)
+                        .gradedBy(status == HomeworkSubmissionStatus.GRADED ? gradedBy : null)
+                        .build()));
     }
 
     private void ensureHomeworkItem(ClassroomOffering offering, String title, ClassroomHomework item) {

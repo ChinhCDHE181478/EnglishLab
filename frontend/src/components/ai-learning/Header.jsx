@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   BookCheck,
@@ -22,7 +22,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLearnerExperience } from '../../context/LearnerExperienceContext';
 import classroomApi from '../../api/classroomApi';
-import { hasAccessToken, hasAnyUserRole } from '../../utils/auth';
+import { canUseLearnerStudyTools, hasAccessToken, hasAnyUserRole } from '../../utils/auth';
 import { commerceEventName, readCart } from '../../utils/commerceStore';
 
 const studentNavItems = [
@@ -30,7 +30,7 @@ const studentNavItems = [
   { label: 'Lộ trình học', to: '/learning-paths' },
   { label: 'Thi thử', to: '/mock-tests' },
   { label: 'Đăng ký học', to: '/opening-schedule' },
-  { label: 'Về EnglishLab', href: '/#testimonials' },
+  { label: 'Về EnglishLab', to: '/about' },
 ];
 
 const hasRole = (user, roles) => hasAnyUserRole(user, roles);
@@ -112,12 +112,37 @@ const Header = () => {
   const { logout, user } = useAuth();
   const { markAllNotificationsRead, unreadNotificationCount } = useLearnerExperience();
   const menuRef = useRef(null);
+  const notificationRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(() => readCart().length);
   const [apiUnreadCount, setApiUnreadCount] = useState(0);
+  const [popoverNotifications, setPopoverNotifications] = useState([]);
+  const [popoverLoading, setPopoverLoading] = useState(false);
+
   const shouldReloadWhenLeavingWorkspace = /\/courses\/[^/]+\/learn$/.test(location.pathname);
+  const canUseStudentNotifications = canUseLearnerStudyTools(user);
   const displayUnreadCount = Math.max(apiUnreadCount, unreadNotificationCount);
+
+  const loadPopoverNotifications = useCallback(async () => {
+    setPopoverLoading(true);
+    try {
+      const items = await classroomApi.getStudentNotifications();
+      setPopoverNotifications(items.map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.body,
+        read: n.read,
+        createdAt: n.createdAt,
+        actionPath: n.actionPath,
+      })));
+    } catch {
+      setPopoverNotifications([]);
+    } finally {
+      setPopoverLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const syncCart = () => setCartCount(readCart().length);
@@ -134,11 +159,36 @@ const Header = () => {
 
   useEffect(() => {
     setIsProfileMenuOpen(false);
+    setIsNotificationMenuOpen(false);
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!hasAccessToken()) {
+    if (!isNotificationMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!notificationRef.current?.contains(event.target)) {
+        setIsNotificationMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsNotificationMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNotificationMenuOpen]);
+
+  useEffect(() => {
+    if (!hasAccessToken() || !canUseStudentNotifications) {
       setApiUnreadCount(0);
       return undefined;
     }
@@ -162,7 +212,7 @@ const Header = () => {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, [location.pathname, user?.id]);
+  }, [canUseStudentNotifications, location.pathname, user?.id]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return undefined;
@@ -271,18 +321,103 @@ const Header = () => {
               </Link>
             )}
 
-            <Link
-              aria-label="Thông báo"
-              className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
-              onClick={markAllNotificationsRead}
-              to="/notifications"
-              reloadDocument={shouldReloadWhenLeavingWorkspace}
-            >
-              <Bell className="h-5 w-5" />
-              {displayUnreadCount > 0 ? (
-                <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#c5162e]" />
+            {canUseStudentNotifications ? (
+            <div className="relative" ref={notificationRef}>
+              <button
+                aria-label="Thông báo"
+                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                onClick={() => {
+                  setIsNotificationMenuOpen((current) => {
+                    const next = !current;
+                    if (next && hasAccessToken() && canUseStudentNotifications) {
+                      loadPopoverNotifications();
+                    }
+                    return next;
+                  });
+                  setIsProfileMenuOpen(false);
+                }}
+                type="button"
+              >
+                <Bell className="h-5 w-5" />
+                {displayUnreadCount > 0 ? (
+                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-[#c5162e]" />
+                ) : null}
+              </button>
+
+              {isNotificationMenuOpen ? (
+                <div className="absolute -right-32 sm:-right-40 top-[calc(100%+12px)] z-[70] w-[min(360px,calc(100vw-32px))] rounded-[28px] border border-[#dfbfbd]/70 bg-white p-2 shadow-[0_20px_45px_rgba(75,0,9,0.18)]">
+                  <div className="flex items-center justify-between border-b border-[#f1e4e5] px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Bell className="h-4 w-4 text-[#8a0018]" />
+                      <h3 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828]">Thông báo</h3>
+                      {displayUnreadCount > 0 ? (
+                        <span className="rounded-full bg-[#fff1f2] px-2 py-0.5 text-[10px] font-black text-[#8a0018]">
+                          {displayUnreadCount} mới
+                        </span>
+                      ) : null}
+                    </div>
+                    {displayUnreadCount > 0 ? (
+                      <button
+                        className="text-[11px] font-bold text-[#8a0018] hover:underline"
+                        onClick={async () => {
+                          markAllNotificationsRead();
+                          setApiUnreadCount(0);
+                          if (canUseStudentNotifications) {
+                            try { await classroomApi.markAllNotificationsRead(); } catch {}
+                          }
+                        }}
+                        type="button"
+                      >
+                        Đánh dấu đã đọc
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="max-h-[320px] overflow-y-auto overscroll-contain p-2 space-y-1">
+                    {popoverLoading ? (
+                      <div className="py-6 text-center text-xs font-semibold text-slate-400">Đang tải thông báo...</div>
+                    ) : popoverNotifications.length === 0 ? (
+                      <div className="py-6 text-center text-xs font-semibold text-slate-500">Chưa có thông báo mới</div>
+                    ) : (
+                      popoverNotifications.slice(0, 5).map((item) => (
+                        <div
+                          key={item.id}
+                          className={`group flex items-start gap-3 rounded-2xl p-3 text-left transition cursor-pointer ${
+                            !item.read ? 'bg-[#fff7f8] hover:bg-[#fff0f1]' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => {
+                            setIsNotificationMenuOpen(false);
+                            if (item.actionPath) navigate(item.actionPath);
+                            else navigate('/notifications');
+                          }}
+                        >
+                          <span className={`mt-1.5 flex h-2 w-2 shrink-0 rounded-full ${!item.read ? 'bg-[#c5162e]' : 'bg-slate-200'}`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-[#2b2828] group-hover:text-[#8a0018]">{item.title}</p>
+                            <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#6a5553]">{item.message}</p>
+                            <time className="mt-1 block text-[10px] text-slate-400">
+                              {item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : ''}
+                            </time>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="border-t border-[#f1e4e5] p-2">
+                    <Link
+                      className="block w-full rounded-2xl bg-[#fff1f2] py-2.5 text-center text-xs font-extrabold text-[#8a0018] transition hover:bg-[#fbe3e6]"
+                      onClick={() => setIsNotificationMenuOpen(false)}
+                      to="/notifications"
+                      reloadDocument={shouldReloadWhenLeavingWorkspace}
+                    >
+                      Xem tất cả thông báo →
+                    </Link>
+                  </div>
+                </div>
               ) : null}
-            </Link>
+            </div>
+            ) : null}
 
             <div className="relative" ref={menuRef}>
               <button
@@ -417,7 +552,7 @@ const Header = () => {
         </button>
       </div>
       {isMobileMenuOpen ? (
-        <nav className="border-t border-[#dfbfbd]/30 bg-white px-5 py-4 xl:hidden" aria-label="Điều hướng trên thiết bị di động">
+        <nav className="max-h-[calc(100dvh-80px)] overflow-y-auto overscroll-contain border-t border-[#dfbfbd]/30 bg-white px-4 py-4 sm:px-5 xl:hidden" aria-label="Điều hướng trên thiết bị di động">
           <div className="mx-auto grid max-w-[1280px] gap-1 sm:grid-cols-2">
             {navItems.map((item) => (
               item.to ? (

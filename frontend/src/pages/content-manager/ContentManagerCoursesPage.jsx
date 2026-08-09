@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter, RefreshCw } from 'lucide-react';
+import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter, Pencil, RefreshCw } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
@@ -200,7 +200,7 @@ export default function ContentManagerCoursesPage() {
             <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.12em] text-[#8e7371]">
               <tr>
                 {['Tên khóa học', 'Danh mục', 'Trình độ', 'Bài học', 'Giờ học', 'Học phí', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
-                  <th key={heading} className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-right' : ''} ${heading === 'Bài học' ? 'text-center' : ''}`}>{heading}</th>
+                  <th key={heading} className={`px-5 py-4 font-bold ${heading === 'Thao tác' ? 'text-left' : ''} ${heading === 'Bài học' ? 'text-center' : ''}`}>{heading}</th>
                 ))}
               </tr>
             </thead>
@@ -233,29 +233,50 @@ export default function ContentManagerCoursesPage() {
                     <td className="px-5 py-5 text-sm font-extrabold text-[#26364a]">{formatPrice(course.price)}</td>
                     <td className="px-5 py-5"><StatusPill status={course.status} /></td>
                     <td className="px-5 py-5 text-sm text-[#69778a]">{formatDate(course.updatedAt)}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/preview`}>
+                    <td className="whitespace-nowrap px-5 py-4 text-left">
+                      <div className="inline-flex items-center justify-start gap-2">
+                        <Link
+                          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-[#fffafb] px-3 text-xs font-bold text-[#730014] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                          to={`/content-manager/courses/${course.slug}/preview`}
+                        >
                           <Eye className="h-3.5 w-3.5" />
                           Xem trước
                         </Link>
                         <button
-                          className="rounded-lg border border-[#8b706e]/60 bg-white px-3 py-2 text-xs font-bold leading-4 text-[#4b0009] transition hover:bg-[#fff2f3] active:scale-95"
+                          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
                           onClick={() => setSearchParams((prev) => { prev.set('edit', course.slug); return prev; })}
                           type="button"
                         >
+                          <Pencil className="h-3.5 w-3.5" />
                           Chỉnh sửa
                         </button>
-                        <Link className="rounded-lg bg-[#4b0009] px-4 py-2 text-xs font-bold leading-4 text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/builder`}>
+                        <Link
+                          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#4b0009] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#730014] active:scale-95"
+                          to={`/content-manager/courses/${course.slug}/builder`}
+                        >
+                          <BookOpen className="h-3.5 w-3.5" />
                           Biên soạn
                         </Link>
                         {course.status === 'DRAFT' || course.status === 'REJECTED' || course.status === 'PENDING_REVIEW' ? (
-                          <button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#730014] disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'PUBLISH')} type="button">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Xuất bản
+                          <button
+                            className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#730014] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#8a0018] disabled:opacity-50 active:scale-95"
+                            disabled={workingId === course.id}
+                            onClick={() => changeCourseStatus(course, 'PUBLISH')}
+                            type="button"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Xuất bản
                           </button>
                         ) : null}
                         {course.status === 'PUBLISHED' ? (
-                          <button aria-label={`Lưu trữ ${course.title}`} className="inline-flex items-center justify-center rounded-lg border border-rose-200 p-2 text-rose-700 disabled:opacity-50" disabled={workingId === course.id} onClick={() => changeCourseStatus(course, 'ARCHIVE')} title="Lưu trữ" type="button">
+                          <button
+                            aria-label={`Lưu trữ ${course.title}`}
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 active:scale-95"
+                            disabled={workingId === course.id}
+                            onClick={() => changeCourseStatus(course, 'ARCHIVE')}
+                            title="Lưu trữ"
+                            type="button"
+                          >
                             <Archive className="h-3.5 w-3.5" />
                           </button>
                         ) : null}

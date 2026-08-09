@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { BookMarked, Check, ChevronDown, ChevronUp, GraduationCap, Link2, Pencil, Plus, RefreshCw, Save, Search, Trash2 } from 'lucide-react';
+import { BookMarked, Check, GraduationCap, Link2, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
@@ -12,6 +12,7 @@ import {
   ToeicScoreField,
 } from '../../components/content-manager/EnglishScoreFields';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import { HeaderActions } from '../../components/content-manager/ContentManagerUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -220,6 +221,7 @@ export default function ContentManagerSyllabusBuilderPage() {
   const [attachForm, setAttachForm] = useState(() => ({ ...emptyAttach, unitId: requestedUnitId || '' }));
   const [resourcePanelOpen, setResourcePanelOpen] = useState(requestedPanel === 'resource');
   const [expandedUnitId, setExpandedUnitId] = useState(requestedUnitId);
+  const [resourceDetailUnitId, setResourceDetailUnitId] = useState(null);
   const [keyword, setKeyword] = useState('');
   const [banks, setBanks] = useState({
     materials: [],
@@ -311,6 +313,7 @@ export default function ContentManagerSyllabusBuilderPage() {
   const openProgramWorkspace = (program) => {
     setSelectedProgramId(String(program.id));
     setExpandedUnitId(null);
+    setResourceDetailUnitId(null);
     setSearchParams({ programId: String(program.id) }, { replace: true });
     setKeyword('');
     setError('');
@@ -320,6 +323,7 @@ export default function ContentManagerSyllabusBuilderPage() {
   const closeProgramWorkspace = () => {
     setSelectedProgramId('');
     setExpandedUnitId(null);
+    setResourceDetailUnitId(null);
     setSearchParams({}, { replace: true });
     setProgramDetail(null);
     setKeyword('');
@@ -333,15 +337,8 @@ export default function ContentManagerSyllabusBuilderPage() {
   const selectProgram = (programId) => {
     setSelectedProgramId(programId);
     setExpandedUnitId(null);
+    setResourceDetailUnitId(null);
     setSearchParams(programId ? { programId } : {}, { replace: true });
-  };
-
-  const toggleExpandedUnit = (unitId) => {
-    const nextUnitId = String(expandedUnitId) === String(unitId) ? null : String(unitId);
-    setExpandedUnitId(nextUnitId);
-    setSearchParams(nextUnitId
-      ? { programId: selectedProgramId, unitId: nextUnitId }
-      : { programId: selectedProgramId }, { replace: true });
   };
 
   const updateProgramForm = (patch) => {
@@ -460,6 +457,7 @@ export default function ContentManagerSyllabusBuilderPage() {
     () => [...(programDetail?.units || [])].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.id - b.id),
     [programDetail],
   );
+  const resourceDetailUnit = units.find((unit) => String(unit.id) === String(resourceDetailUnitId)) || null;
 
   useEffect(() => {
     if (requestedPanel !== 'unit' || !requestedUnitId || !units.length) return;
@@ -525,7 +523,7 @@ export default function ContentManagerSyllabusBuilderPage() {
     description: [
       item.skill,
       item.materialType || item.exerciseType || item.type || item.examCategory,
-      item.status || (item.active === false ? 'INACTIVE' : 'ACTIVE'),
+      formatStatusLabel(item.status || (item.active === false ? 'INACTIVE' : 'ACTIVE')),
     ].filter(Boolean).join(' · '),
   }));
 
@@ -935,6 +933,37 @@ export default function ContentManagerSyllabusBuilderPage() {
         </ResourceAttachModal>
       )}
 
+      {resourceDetailUnit ? (
+        <UnitResourceDetailModal onClose={() => setResourceDetailUnitId(null)}>
+          <section>
+            <div className="flex items-start justify-between gap-4 border-b border-[#dcc0bf]/30 pb-5">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8e7371]">Tài nguyên của unit</p>
+                <h3 className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#0b1c30]">
+                  {resourceDetailUnit.displayOrder ?? 0}. {resourceDetailUnit.title}
+                </h3>
+                {resourceDetailUnit.description ? (
+                  <p className="mt-2 text-sm leading-6 text-[#584140]">{resourceDetailUnit.description}</p>
+                ) : null}
+              </div>
+              <button
+                aria-label="Đóng danh sách tài nguyên"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#dcc0bf]/50 bg-white text-[#4b0009] transition hover:bg-[#fff1f3]"
+                onClick={() => setResourceDetailUnitId(null)}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <UnitResourceGroups
+              onDetach={detachResource}
+              unit={resourceDetailUnit}
+              working={working}
+            />
+          </section>
+        </UnitResourceDetailModal>
+      ) : null}
+
               <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#dcc0bf]/25 px-6 py-4">
                   <div>
@@ -966,10 +995,8 @@ export default function ContentManagerSyllabusBuilderPage() {
                         <tbody className="divide-y divide-[#dcc0bf]/15">
                           {pageItems.map((unit) => {
                             const resourceCount = refGroups.reduce((total, group) => total + (unit[group.key]?.length || 0), 0);
-                            const expanded = String(expandedUnitId) === String(unit.id);
                             return (
-                              <Fragment key={unit.id}>
-                              <tr className="align-top transition hover:bg-[#eff4ff]">
+                              <tr className="align-top transition hover:bg-[#eff4ff]" key={unit.id}>
                                 <td className="px-6 py-5">
                                   <p className="text-sm font-extrabold text-[#4b0009]">{unit.displayOrder ?? 0}. {unit.title}</p>
                                   {unit.description ? <p className="mt-1 max-w-[360px] text-xs leading-5 text-[#584140]">{unit.description}</p> : null}
@@ -991,17 +1018,16 @@ export default function ContentManagerSyllabusBuilderPage() {
                                   {resourceCount ? (
                                     <button
                                       className="mt-3 inline-flex items-center gap-1.5 text-xs font-extrabold text-[#730014] hover:text-[#4b0009]"
-                                      onClick={() => toggleExpandedUnit(unit.id)}
+                                      onClick={() => setResourceDetailUnitId(String(unit.id))}
                                       type="button"
                                     >
-                                      {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                      {expanded ? 'Thu gọn' : 'Xem tài nguyên'}
+                                      Xem tài nguyên
                                     </button>
                                   ) : null}
                                 </td>
                                 <td className="px-6 py-5 text-right">
                                   <div className="flex justify-end gap-2">
-                                    <button type="button" onClick={() => openEditUnit(unit)} className="rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5">Sửa</button>
+                                    <button type="button" onClick={() => openEditUnit(unit)} className="rounded-lg border border-[#dcc0bf]/50 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">Sửa</button>
                                     <button type="button" onClick={() => openResourcePanel(unit.id)} className="rounded-lg border border-[#dcc0bf]/40 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]">Gắn</button>
                                     <button type="button" onClick={() => deleteUnit(unit)} disabled={working} className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">
                                       <Trash2 className="h-3.5 w-3.5" />
@@ -1009,18 +1035,6 @@ export default function ContentManagerSyllabusBuilderPage() {
                                   </div>
                                 </td>
                               </tr>
-                              {expanded ? (
-                                <tr className="bg-[#fcfbfb]">
-                                  <td className="border-t border-[#dcc0bf]/20 px-6 py-5" colSpan={4}>
-                                    <UnitResourceGroups
-                                      onDetach={detachResource}
-                                      unit={unit}
-                                      working={working}
-                                    />
-                                  </td>
-                                </tr>
-                              ) : null}
-                              </Fragment>
                             );
                           })}
                         </tbody>
@@ -1256,12 +1270,12 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <button className="inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014]" onClick={onCreate} type="button">
+      <HeaderActions>
+        <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={onCreate} type="button">
           <Plus className="h-4 w-4" />
           Tạo giáo trình nội dung
         </button>
-      </div>
+      </HeaderActions>
 
       <div className="grid gap-6 md:grid-cols-4">
         {stats.map((item) => {
@@ -1349,7 +1363,7 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
                   <td className="px-6 py-5 text-sm text-[#564241]">{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '-'}</td>
                   <td className="px-6 py-5 text-right">
                     <button
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#4b0009] px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#4b0009]/5"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 px-3 py-1.5 text-xs font-bold text-[#4b0009] transition hover:bg-[#fff7f7]"
                       onClick={() => onOpen(item)}
                       type="button"
                     >
@@ -1366,10 +1380,7 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
             Không có giáo trình phù hợp với bộ lọc hiện tại.
           </div>
         ) : (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
-            <p className="text-sm text-[#2b2828]">
-              Trang {listPage} / {totalListPages} · <span className="font-bold text-[#0b1c30]">{filteredPrograms.length}</span> giáo trình
-            </p>
+          <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
             <Pagination
               page={listPage}
               totalPages={totalListPages}
@@ -1391,17 +1402,17 @@ function UnitResourceGroups({ onDetach, unit, working }) {
   }
 
   return (
-    <div className="mt-3 grid gap-5 lg:grid-cols-2">
+    <div className="mt-5 space-y-5">
       {refGroups.map((group) => {
         const references = unit?.[group.key] || [];
         if (!references.length) return null;
         return (
-          <section key={group.key}>
-            <div className="mb-2 flex items-center justify-between gap-3">
+          <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/35 bg-white" key={group.key}>
+            <div className="flex items-center justify-between gap-3 border-b border-[#dcc0bf]/25 bg-[#fbf3f4] px-4 py-3">
               <h5 className="text-xs font-extrabold uppercase tracking-[0.1em] text-[#8b706e]">{group.title}</h5>
               <span className="text-xs font-bold text-[#69778a]">{references.length}</span>
             </div>
-            <div className="divide-y divide-[#dcc0bf]/25 border-y border-[#dcc0bf]/25">
+            <div className="divide-y divide-[#dcc0bf]/25 px-4">
               {references.map((reference) => (
                 <div className="flex items-start justify-between gap-3 py-3" key={`${reference.type}-${reference.id}`}>
                   <div className="min-w-0">
@@ -1441,6 +1452,8 @@ function StatusBadge({ value }) {
 function formatStatusLabel(value) {
   const labels = {
     ACTIVE: 'Đang hoạt động',
+    APPROVED: 'Đã duyệt',
+    INACTIVE: 'Tạm ngừng',
     ONGOING: 'Đang hoạt động',
     UPCOMING: 'Sắp khai giảng',
     PUBLISHED: 'Đã xuất bản',
@@ -1490,6 +1503,10 @@ function UnitEditorModal({ children, onClose }) {
     </div>,
     document.body
   );
+}
+
+function UnitResourceDetailModal({ children, onClose }) {
+  return <UnitEditorModal onClose={onClose}>{children}</UnitEditorModal>;
 }
 
 function ResourceAttachModal({ children, onClose }) {

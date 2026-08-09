@@ -16,6 +16,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { looksLikeRichTextHtml, sanitizeLessonHtml } from '../../utils/lessonRichText';
 import { formatModuleTitle } from '../../utils/courseModuleTitle';
 
@@ -96,20 +97,20 @@ export default function ContentManagerCoursePreviewPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/courses">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <Link className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to="/content-manager/courses">
           <ArrowLeft className="h-4 w-4" />
           Quay lại danh sách
         </Link>
-        <Link className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/edit`}>
+        <Link className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#730014]" to={`/content-manager/courses/${course.slug}/edit`}>
           Chỉnh sửa thông tin
         </Link>
-        <Link className="inline-flex items-center gap-2 rounded-2xl border border-[#730014] bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/builder`}>
+        <Link className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#730014] bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" to={`/content-manager/courses/${course.slug}/builder`}>
           Mở trình biên soạn
         </Link>
       </div>
 
-      <section className={`flex flex-col justify-between gap-3 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center ${status.banner}`}>
+      <section className={`flex flex-col justify-between gap-3 rounded-2xl border px-4 py-3.5 sm:px-5 sm:py-4 sm:flex-row sm:items-center ${status.banner}`}>
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
           <div>
@@ -117,7 +118,7 @@ export default function ContentManagerCoursePreviewPage() {
             <p className="mt-1 text-xs leading-5 opacity-75">Chế độ xem trước dành cho người biên soạn. Không lưu tiến độ học hay kết quả bài làm.</p>
           </div>
         </div>
-        <div className="flex min-w-[220px] items-center gap-2">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto sm:min-w-[220px] sm:flex-nowrap">
           <BrandedSelect
             buttonClassName="py-2 shadow-none"
             onChange={(event) => setSearchParams({ versionId: event.target.value })}
@@ -232,20 +233,23 @@ function ValidationWarnings({ warnings }) {
 
 function CourseOutline({ activeLessonId, modules, onSelectLesson }) {
   return (
-    <aside className="self-start overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-5">
-      <div className="border-b border-slate-100 bg-[#fff7f7] px-5 py-4"><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Nội dung khóa học</p><h2 className="mt-1 text-xl font-black text-[#0b1c30]">Mô-đun và bài học</h2></div>
-      <div className="max-h-[680px] overflow-y-auto p-3">
+    <aside className="w-full self-start overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm xl:sticky xl:top-5">
+      <div className="border-b border-slate-100 bg-[#fff7f7] px-4 py-3.5 sm:px-5 sm:py-4">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Nội dung khóa học</p>
+        <h2 className="mt-0.5 text-lg sm:text-xl font-black text-[#0b1c30]">Mô-đun và bài học</h2>
+      </div>
+      <div className="max-h-[360px] overflow-y-auto p-2.5 sm:p-3 xl:max-h-[680px]">
         {modules.map((module, moduleIndex) => (
           <section className="mb-3 overflow-hidden rounded-2xl border border-slate-100" key={module.id || moduleIndex}>
-            <div className="bg-slate-50 px-4 py-3"><h3 className="text-sm font-black text-slate-800">{formatModuleTitle(module.title, moduleIndex)}</h3><p className="mt-1 text-xs text-slate-500">{module.lessons?.length || 0} bài học</p></div>
-            <div className="p-2">
+            <div className="bg-slate-50 px-3.5 py-2.5 sm:px-4 sm:py-3"><h3 className="text-xs sm:text-sm font-black text-slate-800">{formatModuleTitle(module.title, moduleIndex)}</h3><p className="mt-0.5 text-[11px] text-slate-500">{module.lessons?.length || 0} bài học</p></div>
+            <div className="p-1.5 sm:p-2 space-y-1">
               {(module.lessons || []).map((lesson, lessonIndex) => (
-                <button className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition ${String(activeLessonId) === String(lesson.id) ? 'bg-[#730014] text-white' : 'text-slate-600 hover:bg-slate-50'}`} key={lesson.id || lessonIndex} onClick={() => onSelectLesson(lesson.id)} type="button">
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${String(activeLessonId) === String(lesson.id) ? 'bg-white/15' : 'bg-slate-100 text-slate-500'}`}>{lessonIndex + 1}</span>
-                  <span className="min-w-0"><span className="block text-sm font-extrabold leading-5">{lesson.title}</span><span className={`mt-1 block text-[10px] font-semibold ${String(activeLessonId) === String(lesson.id) ? 'text-white/60' : 'text-slate-400'}`}>{formatContentType(lesson.contentType)} · {lesson.durationMinutes || 0} phút</span></span>
+                <button className={`flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition ${String(activeLessonId) === String(lesson.id) ? 'bg-[#730014] text-white' : 'text-slate-600 hover:bg-slate-50'}`} key={lesson.id || lessonIndex} onClick={() => onSelectLesson(lesson.id)} type="button">
+                  <span className={`flex h-5 w-5 sm:h-6 sm:w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${String(activeLessonId) === String(lesson.id) ? 'bg-white/15' : 'bg-slate-100 text-slate-500'}`}>{lessonIndex + 1}</span>
+                  <span className="min-w-0"><span className="block text-xs sm:text-sm font-extrabold leading-snug">{lesson.title}</span><span className={`mt-0.5 block text-[10px] font-semibold ${String(activeLessonId) === String(lesson.id) ? 'text-white/60' : 'text-slate-400'}`}>{formatContentType(lesson.contentType)} · {lesson.durationMinutes || 0} phút</span></span>
                 </button>
               ))}
-              {!module.lessons?.length ? <p className="px-3 py-5 text-center text-xs text-slate-400">Chưa có bài học</p> : null}
+              {!module.lessons?.length ? <p className="px-3 py-4 text-center text-xs text-slate-400">Chưa có bài học</p> : null}
             </div>
           </section>
         ))}
@@ -261,15 +265,15 @@ function LessonPreview({ lesson, module }) {
     <article className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
       {embedUrl ? <div className="aspect-video bg-black"><iframe allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen className="h-full w-full" src={embedUrl} title={lesson.title} /></div> : null}
       {directVideoUrl ? <div className="bg-black"><video className="aspect-video w-full" controls preload="metadata" src={directVideoUrl}><track kind="captions" /></video></div> : null}
-      <div className="p-6 md:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">{module.title}</p><h2 className="mt-2 font-['Manrope'] text-3xl font-black text-[#0b1c30]">{lesson.title}</h2></div>
-          <span className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-extrabold text-slate-600">{formatContentType(lesson.contentType)} · {lesson.durationMinutes || 0} phút</span>
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div><p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">{module.title}</p><h2 className="mt-1 font-['Manrope'] text-xl sm:text-2xl md:text-3xl font-black text-[#0b1c30]">{lesson.title}</h2></div>
+          <span className="self-start rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-extrabold text-slate-600">{formatContentType(lesson.contentType)} · {lesson.durationMinutes || 0} phút</span>
         </div>
-        {lesson.description ? <p className="mt-4 text-sm leading-7 text-slate-500">{lesson.description}</p> : null}
+        {lesson.description ? <p className="mt-3 text-sm leading-6 sm:leading-7 text-slate-500">{lesson.description}</p> : null}
         <LessonContent content={lesson.contentText} />
-        {!lesson.contentText && !embedUrl && !directVideoUrl ? <div className="mt-5 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5 text-sm font-bold text-amber-800">Bài học chưa có nội dung chính để hiển thị.</div> : null}
-        {lesson.materialUrl ? <a className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-[#dcb6bb] bg-[#fff8f8] px-4 py-3 text-sm font-extrabold text-[#8a0018]" href={lesson.materialUrl} rel="noreferrer" target="_blank"><FileText className="h-4 w-4" />Mở tài liệu bài học<ExternalLink className="h-3.5 w-3.5" /></a> : null}
+        {!lesson.contentText && !embedUrl && !directVideoUrl ? <div className="mt-5 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-4 text-xs sm:text-sm font-bold text-amber-800">Bài học chưa có nội dung chính để hiển thị.</div> : null}
+        {lesson.materialUrl ? <a className="mt-5 inline-flex w-full justify-center sm:w-auto items-center gap-2 rounded-2xl border border-[#dcb6bb] bg-[#fff8f8] px-4 py-3 text-sm font-extrabold text-[#8a0018]" href={lesson.materialUrl} rel="noreferrer" target="_blank"><FileText className="h-4 w-4" />Mở tài liệu bài học<ExternalLink className="h-3.5 w-3.5" /></a> : null}
         <TranscriptPreview segments={lesson.transcriptSegments || []} />
         <FlashcardPreview sets={lesson.flashcardSets || []} />
       </div>
@@ -372,10 +376,66 @@ function FlashcardPreview({ sets }) {
 
 function AssessmentPreview({ assessments, modules }) {
   const moduleNames = Object.fromEntries(modules.map((module) => [String(module.id), module.title]));
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(assessments || [], 4);
+
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center gap-3"><div className="rounded-xl bg-[#fff4f5] p-2.5 text-[#730014]"><MonitorPlay className="h-5 w-5" /></div><div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Read-only assessment preview</p><h2 className="mt-1 text-xl font-black text-[#0b1c30]">Bài tập và đánh giá ({assessments.length})</h2></div></div>
-      {assessments.length ? <div className="mt-5 grid gap-3 md:grid-cols-2">{assessments.map((assessment) => <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={assessment.id}><div className="flex flex-wrap gap-2"><span className="rounded-lg bg-white px-2 py-1 text-[10px] font-extrabold text-[#730014]">{assessment.type}</span><span className="rounded-lg bg-white px-2 py-1 text-[10px] font-extrabold text-slate-600">{assessment.skill}</span></div><h3 className="mt-3 font-extrabold text-[#0b1c30]">{assessment.title}</h3><p className="mt-1 text-xs text-slate-500">{assessment.moduleId ? moduleNames[String(assessment.moduleId)] || `Mô-đun #${assessment.moduleId}` : 'Đánh giá cuối khóa'}</p><p className="mt-3 text-xs font-bold text-slate-600">Điểm đạt: {assessment.resolvedPassingThreshold ?? assessment.passingScore ?? '—'} / {assessment.maxScore ?? '—'} · {assessment.timeLimitMinutes || 0} phút</p></article>)}</div> : <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">Khóa học chưa có bài đánh giá.</p>}
+    <section className="rounded-[28px] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-[#fff4f5] p-2.5 text-[#730014] shrink-0">
+            <MonitorPlay className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">Read-only assessment preview</p>
+            <h2 className="mt-0.5 text-lg sm:text-xl font-black text-[#0b1c30]">Bài tập và đánh giá ({assessments.length})</h2>
+          </div>
+        </div>
+        {totalPages > 1 && (
+          <span className="text-xs font-semibold text-slate-500">
+            Trang <span className="font-extrabold text-[#0b1c30]">{page}</span> / {totalPages}
+          </span>
+        )}
+      </div>
+
+      {assessments.length ? (
+        <>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {pageItems.map((assessment) => (
+              <article className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100/70" key={assessment.id}>
+                <div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-extrabold text-[#730014] shadow-2xs">{assessment.type || 'ASSESSMENT'}</span>
+                    <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-extrabold text-slate-600 shadow-2xs">{assessment.skill || 'Tổng hợp'}</span>
+                  </div>
+                  <h3 className="mt-2.5 font-extrabold text-[#0b1c30] leading-snug">{assessment.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500 line-clamp-1">
+                    {assessment.moduleId ? moduleNames[String(assessment.moduleId)] || `Mô-đun #${assessment.moduleId}` : 'Đánh giá cuối khóa'}
+                  </p>
+                </div>
+                <div className="mt-4 border-t border-slate-200/60 pt-2.5 text-xs font-semibold text-slate-600 flex flex-wrap items-center justify-between gap-1">
+                  <span>Điểm đạt: <strong className="text-[#0b1c30]">{assessment.resolvedPassingThreshold ?? assessment.passingScore ?? '—'} / {assessment.maxScore ?? '—'}</strong></span>
+                  <span className="text-slate-400">·</span>
+                  <span>{assessment.timeLimitMinutes || 0} phút</span>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={setPage}
+                totalItems={totalItems}
+                pageSize={4}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">Khóa học chưa có bài đánh giá.</p>
+      )}
     </section>
   );
 }

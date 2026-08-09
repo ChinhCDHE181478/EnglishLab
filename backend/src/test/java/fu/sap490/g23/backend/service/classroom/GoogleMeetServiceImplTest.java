@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.service.classroom;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sap490.g23.backend.service.classroom.impl.GoogleMeetServiceImpl;
@@ -15,6 +16,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class GoogleMeetServiceImplTest {
 
@@ -56,8 +61,9 @@ class GoogleMeetServiceImplTest {
         server.start();
 
         GoogleMeetProperties properties = configuredProperties();
-        VirtualMeetingService service = new GoogleMeetServiceImpl(properties);
-        ClassroomSession session = new ClassroomSession();
+        TeacherGoogleMeetConnectionService connectionService = connectedTeacherService();
+        VirtualMeetingService service = new GoogleMeetServiceImpl(properties, connectionService);
+        ClassroomSession session = sessionWithTeacher();
 
         service.syncMeeting(session);
 
@@ -71,7 +77,10 @@ class GoogleMeetServiceImplTest {
 
     @Test
     void rejectsLegacyLarkAndPlaceholderUrls() {
-        VirtualMeetingService service = new GoogleMeetServiceImpl(new GoogleMeetProperties());
+        VirtualMeetingService service = new GoogleMeetServiceImpl(
+                new GoogleMeetProperties(),
+                mock(TeacherGoogleMeetConnectionService.class)
+        );
 
         assertThat(service.isLegacyOrPlaceholderUrl(
                 "https://meet.larksuite.com/s/englishlab-toeic-650-showcase"
@@ -85,12 +94,36 @@ class GoogleMeetServiceImplTest {
     void reportsMissingOAuthConfigurationInsteadOfCreatingFakeLink() {
         GoogleMeetProperties properties = new GoogleMeetProperties();
         properties.setEnabled(true);
-        VirtualMeetingService service = new GoogleMeetServiceImpl(properties);
+        VirtualMeetingService service = new GoogleMeetServiceImpl(
+                properties,
+                mock(TeacherGoogleMeetConnectionService.class)
+        );
 
         assertThatThrownBy(() -> service.syncMeeting(new ClassroomSession()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("GOOGLE_MEET_CLIENT_ID")
-                .hasMessageContaining("GOOGLE_MEET_REFRESH_TOKEN");
+                .hasMessageContaining("GOOGLE_MEET_CLIENT_SECRET");
+    }
+
+    @Test
+    void explainsHowToRecoverWhenRefreshTokenIsExpiredOrRevoked() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> respond(
+                exchange,
+                400,
+                """
+                        {"error":"invalid_grant","error_description":"Token has been expired or revoked."}
+                        """
+        ));
+        server.start();
+
+        TeacherGoogleMeetConnectionService connectionService = connectedTeacherService();
+        VirtualMeetingService service = new GoogleMeetServiceImpl(configuredProperties(), connectionService);
+
+        assertThatThrownBy(() -> service.syncMeeting(sessionWithTeacher()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Quyền Google Meet của giáo viên đã hết hạn hoặc bị thu hồi");
+        verify(connectionService).markReauthenticationRequired(any(User.class));
     }
 
     @Test
@@ -125,8 +158,11 @@ class GoogleMeetServiceImplTest {
         });
         server.start();
 
-        VirtualMeetingService service = new GoogleMeetServiceImpl(configuredProperties());
-        ClassroomSession session = new ClassroomSession();
+        VirtualMeetingService service = new GoogleMeetServiceImpl(
+                configuredProperties(),
+                connectedTeacherService()
+        );
+        ClassroomSession session = sessionWithTeacher();
 
         service.syncMeeting(session);
 
@@ -142,10 +178,26 @@ class GoogleMeetServiceImplTest {
         properties.setEnabled(true);
         properties.setClientId("client-id");
         properties.setClientSecret("client-secret");
-        properties.setRefreshToken("refresh-token");
         properties.setTokenUri("http://localhost:" + port + "/token");
         properties.setApiBaseUrl("http://localhost:" + port + "/v2");
         return properties;
+    }
+
+    private TeacherGoogleMeetConnectionService connectedTeacherService() {
+        TeacherGoogleMeetConnectionService service = mock(TeacherGoogleMeetConnectionService.class);
+        when(service.requireRefreshToken(any(User.class))).thenReturn("teacher-refresh-token");
+        return service;
+    }
+
+    private ClassroomSession sessionWithTeacher() {
+        User teacher = User.builder()
+                .id(77L)
+                .fullName("Giáo viên kiểm thử")
+                .email("teacher@example.com")
+                .build();
+        ClassroomSession session = new ClassroomSession();
+        session.setTeacher(teacher);
+        return session;
     }
 
     private void respond(HttpExchange exchange, int status, String body) throws IOException {

@@ -13,6 +13,7 @@ import {
 import courseApi from "../../api/courseApi";
 import {
   ContentManagerLoadingState,
+  HeaderActions,
   Panel,
   TextField,
 } from "../../components/content-manager/ContentManagerUi";
@@ -177,23 +178,16 @@ export default function ContentManagerLearningPathsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end gap-2">
+      <HeaderActions>
         <button
-          className="rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition-all hover:bg-[#730014] active:scale-95 shadow-sm"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
           onClick={() => openModal()}
           type="button"
         >
-          + Tạo lộ trình
+          <Plus className="h-4 w-4" />
+          Tạo lộ trình
         </button>
-        <button
-          className="rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014] transition-all hover:bg-[#fff4f5] active:scale-95 shadow-sm"
-          onClick={() => loadData()}
-          type="button"
-        >
-          <RefreshCw className="mr-2 inline h-4 w-4" />
-          Làm mới
-        </button>
-      </div>
+      </HeaderActions>
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice>{success}</Notice> : null}
       {pathPageItems.map((group) => {
@@ -263,11 +257,11 @@ export default function ContentManagerLearningPathsPage() {
               <div className="divide-y divide-[#f0e3e4] border-t border-[#f0e3e4]">
                 {group.courses.map((course, index) => (
                   <div
-                    className="grid gap-4 px-6 py-5 lg:grid-cols-[80px_1fr]"
+                    className="grid gap-4 px-6 py-5 lg:grid-cols-[max-content_1fr]"
                     key={course.courseId}
                   >
-                    <span className="font-bold text-[#730014]">
-                      Bước {course.displayOrder || index + 1}
+                    <span className="whitespace-nowrap font-bold text-[#730014]">
+                      Giai đoạn {course.displayOrder || index + 1}
                     </span>
                     <div>
                       <Link

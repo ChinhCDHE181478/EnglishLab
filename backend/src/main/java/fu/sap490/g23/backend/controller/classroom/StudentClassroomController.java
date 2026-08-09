@@ -27,6 +27,7 @@ public class StudentClassroomController {
     private final ClassroomAttendanceService classroomAttendanceService;
     private final TuitionProofService tuitionProofService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
+    private final HomeworkAttachmentAccessService homeworkAttachmentAccessService;
     private final ClassroomPracticeService classroomPracticeService;
 
     @GetMapping({"/my-classrooms", "/my-classes"})
@@ -169,12 +170,14 @@ public class StudentClassroomController {
     @PostMapping(value = "/homework/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<HomeworkAttachmentUploadResponse> uploadHomeworkSubmissionAttachment(
             @RequestPart("file") MultipartFile file,
+            @RequestParam Long homeworkId,
             Authentication authentication
     ) {
+        homeworkAttachmentAccessService.assertLearnerUploadAccess(homeworkId, authentication.getName());
         String publicUrlBase = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/classroom-homework/attachments")
                 .toUriString();
-        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase));
+        return ResponseEntity.ok(homeworkAttachmentStorageService.store(file, publicUrlBase, authentication.getName()));
     }
 
     @GetMapping("/my-homework")

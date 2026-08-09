@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, Plus, RefreshCw, Trash2, Users, Video, Wand2, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Plus, RefreshCw, Trash2, Users, Video, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -453,7 +453,7 @@ export default function StaffClassroomDetailPage() {
                 <input className={inputClass} min="1" onChange={(e) => setTemplateForm((c) => ({ ...c, weeks: e.target.value }))} type="number" value={templateForm.weeks} />
               </Field>
               <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white hover:bg-[#730014] disabled:opacity-60" disabled={generatingSessions} type="submit">
-                <Wand2 className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
                 {generatingSessions ? 'Đang sinh...' : 'Sinh lịch'}
               </button>
             </div>

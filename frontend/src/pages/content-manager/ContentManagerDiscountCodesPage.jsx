@@ -3,7 +3,7 @@ import { useAppDialog } from '../../components/ui/AppDialog';
 import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
-import { Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
+import { HeaderActions, Panel, StatusBadge, TextField } from '../../components/content-manager/ContentManagerUi';
 import { formatCoursePrice } from '../../components/course/courseFormatters';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
@@ -262,20 +262,19 @@ export default function ContentManagerDiscountCodesPage() {
               />
               Hiện mã đã tắt
             </label>
-            <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 px-4 py-3 text-sm font-bold text-[#730014] transition hover:bg-[#fff2f3]" onClick={loadDiscountCodes} type="button">
-              <RefreshCw className="h-4 w-4" />
-              Làm mới
-            </button>
-            <button
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#730014]"
-              onClick={openCreate}
-              type="button"
-            >
-              <Plus className="h-4 w-4" />
-              Thêm mã mới
-            </button>
           </div>
         </div>
+
+        <HeaderActions>
+          <button
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
+            onClick={openCreate}
+            type="button"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm mã mới
+          </button>
+        </HeaderActions>
 
         {loading ? (
           <div className="px-6 py-12 text-sm font-semibold text-[#584140]">Đang tải mã giảm giá...</div>
@@ -311,20 +310,27 @@ export default function ContentManagerDiscountCodesPage() {
                     <td className="px-5 py-4">{item.reservedCount}</td>
                     <td className="px-5 py-4">{item.remainingUses}</td>
                     <td className="px-5 py-4"><StatusBadge label={item.active ? 'Đang hoạt động' : 'Tạm ngừng'} /></td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button aria-label={`Chỉnh sửa mã ${item.code}`} className="rounded-xl border border-[#dfbfbd]/60 p-2 text-[#730014] transition hover:bg-[#fff2f3]" onClick={() => handleEdit(item)} title="Chỉnh sửa" type="button">
-                          <Edit3 className="h-4 w-4" />
+                    <td className="whitespace-nowrap px-5 py-4 text-right">
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <button
+                          aria-label={`Chỉnh sửa mã ${item.code}`}
+                          className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
+                          onClick={() => handleEdit(item)}
+                          title="Chỉnh sửa"
+                          type="button"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                          Sửa
                         </button>
                         <button
                           aria-label={`Xóa mã ${item.code}`}
-                          className="rounded-xl border border-[#f0d4d7] p-2 text-[#93000a] transition hover:bg-[#fff6f7] disabled:opacity-40"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 active:scale-95"
                           disabled={saving}
                           onClick={() => handleDeactivate(item.id)}
                           title={Number(item.usedCount || 0) === 0 && Number(item.reservedCount || 0) === 0 ? 'Xóa mã' : 'Tắt mã'}
                           type="button"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -335,10 +341,7 @@ export default function ContentManagerDiscountCodesPage() {
           </div>
         )}
         {totalPages > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
-            <span className="text-sm font-semibold text-[#584140]">
-              Trang {page} / {totalPages} · <span className="font-bold text-[#730014]">{totalItems}</span> mã giảm giá
-            </span>
+          <div className="border-t border-[#dfbfbd]/45 px-6 py-4 bg-[#fffafb]/25">
             <Pagination
               page={page}
               totalPages={totalPages}

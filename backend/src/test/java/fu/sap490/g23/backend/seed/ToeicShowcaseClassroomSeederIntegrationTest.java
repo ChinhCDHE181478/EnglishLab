@@ -3,9 +3,12 @@ package fu.sap490.g23.backend.seed;
 import fu.sap490.g23.backend.entity.User;
 import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
+import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
@@ -49,6 +52,9 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
 
     @Autowired
     private ClassroomHomeworkRepository homeworkRepository;
+
+    @Autowired
+    private ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
 
     @Autowired
     private ClassroomMaterialRepository materialRepository;
@@ -121,6 +127,51 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                     assertThat(item.getActivityConfigJson()).contains("\"parts\"");
                     assertThat(item.getInstruction()).contains("kiểm tra tiến độ bắt buộc");
                     assertThat(item.getCurriculumUnit().getDisplayOrder()).isEqualTo(5);
+                });
+        var quiz = classroomHomework.stream()
+                .filter(item -> "Unit 1 Quiz - Photographs".equals(item.getTitle()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(quiz.getGradingMode()).isEqualTo(HomeworkGradingMode.AUTO);
+        assertThat(homeworkSubmissionRepository.findByHomeworkId(quiz.getId()).stream()
+                .filter(submission -> Set.of(
+                        "classroom.learner2@englishlab.vn",
+                        "classroom.learner3@englishlab.vn"
+                ).contains(submission.getStudent().getEmail()))
+                .toList())
+                .hasSize(2)
+                .allSatisfy(submission -> {
+                    assertThat(submission.getStatus()).isEqualTo(HomeworkSubmissionStatus.GRADED);
+                    assertThat(submission.getScore()).isNotNull();
+                });
+
+        var writing = classroomHomework.stream()
+                .filter(item -> "Unit 7 Error Log - Reading".equals(item.getTitle()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(homeworkSubmissionRepository.findByHomeworkId(writing.getId()).stream()
+                .filter(submission -> Set.of(
+                        "classroom.learner2@englishlab.vn",
+                        "classroom.learner3@englishlab.vn",
+                        "classroom.learner4@englishlab.vn"
+                ).contains(submission.getStudent().getEmail()))
+                .toList())
+                .hasSize(3)
+                .anySatisfy(submission -> assertThat(submission.getSubmittedAt()).isAfter(writing.getDeadline()))
+                .anySatisfy(submission -> assertThat(submission.getStatus()).isEqualTo(HomeworkSubmissionStatus.SUBMITTED))
+                .anySatisfy(submission -> assertThat(submission.getStatus()).isEqualTo(HomeworkSubmissionStatus.GRADED));
+
+        var speaking = classroomHomework.stream()
+                .filter(item -> "Unit 3 Speaking Retell - Conversations".equals(item.getTitle()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(homeworkSubmissionRepository.findByHomeworkId(speaking.getId()).stream()
+                .filter(submission -> "classroom.learner2@englishlab.vn".equals(submission.getStudent().getEmail()))
+                .toList())
+                .singleElement()
+                .satisfies(submission -> {
+                    assertThat(submission.getStatus()).isEqualTo(HomeworkSubmissionStatus.SUBMITTED);
+                    assertThat(submission.getAttachmentUrl()).endsWith("unit-3-speaking-submission.wav");
                 });
         assertThat(enrollmentRepository.findByStudentIdAndClassroomOfferingId(
                 learner.getId(), offering.getId())).get()

@@ -95,7 +95,7 @@ export default function LearningPathReferencePage() {
                     {/* Text info */}
                     <div className="min-w-0 flex-1 flex flex-col justify-center">
                       <span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#8c716f]">
-                        Bước {course.learningPathOrder || index + 1}
+                        Giai đoạn {course.learningPathOrder || index + 1}
                       </span>
                       <h2 className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#1f1717] group-hover:text-[#730014] transition-colors">
                         {course.title}

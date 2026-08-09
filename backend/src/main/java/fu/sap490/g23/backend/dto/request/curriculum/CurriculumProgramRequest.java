@@ -19,7 +19,6 @@ public class CurriculumProgramRequest {
     @Size(max = 180)
     private String title;
 
-    @NotBlank(message = "Mã giáo trình không được để trống.")
     @Size(max = 120)
     private String code;
 

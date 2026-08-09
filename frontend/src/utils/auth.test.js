@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   canUseLearnerStudyTools,
+  getDefaultAuthenticatedPath,
   getUserRoles,
   hasAnyUserRole,
   needsPlacementTest,
@@ -8,6 +9,29 @@ import {
 } from './auth';
 
 describe('role helpers', () => {
+  it.each([
+    ['ADMIN', '/admin'],
+    ['MANAGER', '/manager/classroom-proposals'],
+    ['CONTENT_MANAGER', '/content-manager/dashboard'],
+    ['STAFF', '/staff'],
+    ['TEACHER', '/teacher'],
+  ])('returns the workspace landing page for %s', (role, expectedPath) => {
+    expect(getDefaultAuthenticatedPath({ role })).toBe(expectedPath);
+  });
+
+  it('keeps a fully onboarded learner on the learner home page', () => {
+    const learner = {
+      role: 'LEARNER',
+      profileCompleted: true,
+      fullName: 'Học viên',
+      phoneNumber: '0900000000',
+      targetExam: 'IELTS',
+      targetScore: '6.5',
+    };
+
+    expect(getDefaultAuthenticatedPath(learner)).toBe('/home');
+  });
+
   it('normalizes primary and assigned roles without duplicates', () => {
     expect(getUserRoles({ role: 'staff', roles: ['LEARNER', 'STAFF'] }))
       .toEqual(['LEARNER', 'STAFF']);

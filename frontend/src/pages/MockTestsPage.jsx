@@ -11,6 +11,7 @@ import BrandLoadingState from '../components/ui/BrandLoadingState';
 import mockTestApi from '../api/mockTestApi';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import placementTestApi from '../api/placementTestApi';
+import { exitExamFullscreen, requestExamFullscreen } from '../utils/examFullscreen';
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: 'ALL' },
@@ -101,6 +102,11 @@ export default function MockTestsPage() {
   const startTest = async (item) => {
     setError('');
     setResult(null);
+    const fullscreenStarted = await requestExamFullscreen();
+    if (!fullscreenStarted) {
+      setError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+      return;
+    }
     try {
       const detail = await mockTestApi.getMockTest(item.id);
       const config = parseJson(detail.uiConfigJson);
@@ -109,6 +115,7 @@ export default function MockTestsPage() {
       setActiveConfig(resolved.config);
       setActiveSkill(resolved.skill);
     } catch (requestError) {
+      if (fullscreenStarted) await exitExamFullscreen();
       setError(requestError?.response?.data?.message || 'Không mở được đề thi thử.');
     }
   };
@@ -225,8 +232,8 @@ export default function MockTestsPage() {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
       <Header />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10">
-        <section className="rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-10">
+        <section className="flex flex-1 flex-col min-h-[calc(100vh-320px)] rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Mock Test</p>

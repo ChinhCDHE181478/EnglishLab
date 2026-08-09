@@ -103,7 +103,7 @@ export default function NotificationsPage() {
         </section>
       ) : null}
       {!loading && !error && notifications.length > 0 ? (
-        <section className="rounded-[32px] border border-[#dfbfbd]/30 bg-white p-4 shadow-sm md:p-6 space-y-6">
+        <section className="flex flex-1 flex-col justify-between min-h-[420px] rounded-[32px] border border-[#dfbfbd]/30 bg-white p-4 shadow-sm md:p-6 space-y-6">
           <div className="space-y-3">
             {paginatedNotifications.map((notification) => {
               const content = (

@@ -139,6 +139,11 @@ export default function MySchedulePage() {
   const [larkMessage, setLarkMessage] = useState('');
   const isAuthenticated = Boolean(hasAccessToken() && getStoredUser());
 
+  const selectSession = (session) => {
+    setLarkMessage('');
+    setSelectedSession(session);
+  };
+
   const loadSchedule = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -360,7 +365,7 @@ export default function MySchedulePage() {
                                 className={`border-r border-[#eeeeed] p-1.5 last:border-r-0 ${isToday ? 'bg-[#fff8f8]' : ''}`}
                               >
                                 {cellSessions.map((s) => (
-                                  <SessionGridCard key={s.id} session={s} onClick={() => setSelectedSession(s)} onLark={setLarkMessage} />
+                                  <SessionGridCard key={s.id} session={s} onClick={() => selectSession(s)} onLark={setLarkMessage} />
                                 ))}
                               </div>
                             );
@@ -387,7 +392,7 @@ export default function MySchedulePage() {
                             </h3>
                           </div>
                           {items.map((session) => (
-                            <SessionListRow key={session.id} session={session} onClick={() => setSelectedSession(session)} onLark={setLarkMessage} />
+                            <SessionListRow key={session.id} session={session} onClick={() => selectSession(session)} onLark={setLarkMessage} />
                           ))}
                         </div>
                       ))
@@ -424,7 +429,7 @@ export default function MySchedulePage() {
                   {/* Today's sessions */}
                   <div className="px-5 py-4">
                     {todaySessions.length ? (
-                      <TodayTimeline sessions={todaySessions} onSelect={setSelectedSession} onLark={setLarkMessage} />
+                      <TodayTimeline sessions={todaySessions} onSelect={selectSession} onLark={setLarkMessage} />
                     ) : (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
                         <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff3f4] text-[#730014]">
@@ -459,7 +464,10 @@ export default function MySchedulePage() {
       {/* ── Detail Drawer ── */}
       <DetailDrawer
         isOpen={Boolean(selectedSession)}
-        onClose={() => setSelectedSession(null)}
+        onClose={() => {
+          setLarkMessage('');
+          setSelectedSession(null);
+        }}
         title="Chi tiết buổi học"
       >
         {selectedSession && (
@@ -518,7 +526,7 @@ function SessionGridCard({ session, onClick, onLark }) {
         {/* Room / location */}
         <p className="mt-1 flex items-center gap-0.5 text-[9px] text-[#8b706e]">
           {isVirtual
-            ? <><Video className="h-2.5 w-2.5 flex-shrink-0 text-purple-500" /><span className="line-clamp-1">Trực tuyến</span></>
+            ? <><Video className="h-2.5 w-2.5 flex-shrink-0 text-sky-600" /><span className="line-clamp-1">Trực tuyến</span></>
             : <><MapPin className="h-2.5 w-2.5 flex-shrink-0 text-[#730014]" /><span className="line-clamp-1">{session.roomName ? `${session.roomName}${session.offlineAddress ? ' · ' + session.offlineAddress : ''}` : 'Đang xếp phòng'}</span></>
           }
         </p>
@@ -571,7 +579,7 @@ function SessionListRow({ session, onClick, onLark }) {
         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#2b2828] line-clamp-1">{session.classroomTitle}</h4>
         <p className="flex flex-wrap items-center gap-3 text-[10px] text-[#8b706e]">
           {isVirtual ? (
-            <span className="flex items-center gap-1 font-bold text-purple-700"><Video className="h-3 w-3" /> Google Meet</span>
+            <span className="flex items-center gap-1 font-bold text-sky-700"><Video className="h-3 w-3" /> Google Meet</span>
           ) : (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{session.roomName || 'Đang xếp phòng'}</span>
           )}
@@ -650,7 +658,7 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
                   {session.larkMeetingUrl && (
                     <div className="mt-3 flex items-center justify-between rounded-xl bg-white/80 px-3 py-2">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-[#584140]">
-                        <Video className="h-3.5 w-3.5 text-purple-600" /> Google Meet
+                        <Video className="h-3.5 w-3.5 text-sky-600" /> Google Meet
                       </span>
                       <button
                         className="rounded-lg bg-[#b81d2e] px-3 py-1 text-[10px] font-extrabold text-white transition hover:bg-[#4b0009] active:scale-95"
@@ -754,7 +762,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
             <span>{formatClassroomTime(session.startTime)} – {formatClassroomTime(session.endTime)}</span>
           </div>
           <div className="flex items-center gap-3">
-            {isVirtual ? <Video className="h-4 w-4 flex-shrink-0 text-purple-700" /> : <MapPin className="h-4 w-4 flex-shrink-0 text-[#730014]" />}
+            {isVirtual ? <Video className="h-4 w-4 flex-shrink-0 text-sky-700" /> : <MapPin className="h-4 w-4 flex-shrink-0 text-[#730014]" />}
             <span>
               {isVirtual
                 ? 'Lớp học trực tuyến'
@@ -777,16 +785,12 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
         </div>
       )}
 
-      {/* Lark block */}
+      {/* Virtual classroom */}
       {isVirtual && (
-        <div className="rounded-2xl border border-purple-100 bg-purple-50/10 p-5 space-y-3">
-          <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-purple-700">
+        <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/50 p-5">
+          <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-sky-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
-          <p className="text-xs leading-6 text-[#8b706e]">
-            Bạn có thể vào phòng bất kỳ lúc nào. Người tham gia đầu tiên sẽ tự động mở buổi học,
-            không cần chờ giảng viên. Phòng sẽ đóng sau khi người cuối cùng rời đi liên tục 5 phút.
-          </p>
           {larkMessage && <p className="text-xs font-semibold text-rose-700">{larkMessage}</p>}
         </div>
       )}
@@ -809,25 +813,24 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       )}
 
       {/* CTA */}
-      <div className="border-t border-gray-100 pt-4">
-        {isVirtual ? (
+      <div className={`grid gap-3 border-t border-gray-100 pt-4 ${isVirtual ? 'sm:grid-cols-2' : ''}`}>
+        {isVirtual && (
           <button
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95 disabled:cursor-wait disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-sky-600 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-sky-700 active:scale-95 disabled:cursor-wait disabled:opacity-60"
             disabled={joining}
             onClick={handleJoinVirtualClass}
             type="button"
           >
-            {joining ? 'Đang mở Google Meet...' : 'Vào lớp học'}
-            <CheckCircle2 className="h-4 w-4" />
+            {joining ? 'Đang mở Google Meet...' : 'Vào Google Meet'}
+            <Video className="h-4 w-4" />
           </button>
-        ) : (
-          <Link
-            className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
-            to={`/my-classrooms/${session.classroomId}`}
-          >
-            Vào lớp học <CheckCircle2 className="h-4 w-4" />
-          </Link>
         )}
+        <Link
+          className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
+          to={`/my-classrooms/${session.classroomId}`}
+        >
+          Vào lớp học <CheckCircle2 className="h-4 w-4" />
+        </Link>
       </div>
     </div>
   );

@@ -181,7 +181,7 @@ export default function TeacherDashboardPage() {
                       </h4>
                       <p className="mt-1 flex items-center gap-1.5 text-xs text-[#6a5553]">
                         {isVirtual
-                          ? <><Video className="h-3.5 w-3.5 text-purple-600" /> Lớp trực tuyến</>
+                          ? <><Video className="h-3.5 w-3.5 text-sky-600" /> Lớp trực tuyến</>
                           : <><MapPin className="h-3.5 w-3.5 text-[#730014]" /> {s.roomName || 'Đang xếp phòng'}</>}
                       </p>
                       <Link
@@ -345,9 +345,9 @@ export default function TeacherDashboardPage() {
                           </div>
 
                           {isVirtual && classroom.larkMeetingUrl && (
-                            <div className="rounded-2xl bg-purple-50/40 border border-purple-100 p-4 text-xs text-purple-800 flex items-center justify-between">
+                            <div className="flex items-center justify-between rounded-2xl border border-sky-200 bg-sky-50/50 p-4 text-xs text-sky-800">
                               <span className="font-bold flex items-center gap-1">
-                                <Video className="h-4 w-4 text-purple-700" /> Liên kết Google Meet
+                                <Video className="h-4 w-4 text-sky-700" /> Liên kết Google Meet
                               </span>
                               <a
                                 className="font-extrabold text-purple-900 underline flex items-center gap-1"

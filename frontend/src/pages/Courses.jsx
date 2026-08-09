@@ -239,7 +239,7 @@ const Courses = () => {
                 </span>
                 <div>
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#8a0018]">Lộ trình dành cho bạn</p>
-                  <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem bước đang học và khóa học tiếp theo</h2>
+                  <h2 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#4b0009]">Xem giai đoạn đang học và khóa học tiếp theo</h2>
                 </div>
               </div>
               <Link className="inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95" to="/learning-path">

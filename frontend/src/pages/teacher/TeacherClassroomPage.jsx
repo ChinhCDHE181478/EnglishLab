@@ -44,15 +44,13 @@ import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSect
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
 import TeacherAttendanceDisputesSection from '../../components/teacher/TeacherAttendanceDisputesSection';
-import TeacherGradebookSection from '../../components/teacher/TeacherGradebookSection';
-import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
   { id: 'curriculum', label: 'Giáo trình' },
   { id: 'students', label: 'Học viên' },
   { id: 'homework', label: 'Bài tập' },
-  { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
   { id: 'attendance-disputes', label: 'Khiếu nại điểm danh' },
@@ -63,7 +61,7 @@ export default function TeacherClassroomPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedInitialTab = searchParams.get('tab');
-  const initialTab = requestedInitialTab === 'quizzes' ? 'homework' : requestedInitialTab;
+  const initialTab = ['quizzes', 'gradebook'].includes(requestedInitialTab) ? 'homework' : requestedInitialTab;
   const [activeTab, setActiveTab] = useState(() => (
     teacherTabs.some((tab) => tab.id === initialTab) ? initialTab : 'sessions'
   ));
@@ -108,10 +106,10 @@ export default function TeacherClassroomPage() {
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    const tab = requestedTab === 'quizzes' ? 'homework' : requestedTab;
+    const tab = ['quizzes', 'gradebook'].includes(requestedTab) ? 'homework' : requestedTab;
     if (tab && teacherTabs.some((item) => item.id === tab)) {
       setActiveTab(tab);
-      if (requestedTab === 'quizzes') {
+      if (['quizzes', 'gradebook'].includes(requestedTab)) {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'homework');
         setSearchParams(nextParams, { replace: true });
@@ -138,44 +136,6 @@ export default function TeacherClassroomPage() {
       nextParams.set('action', 'create');
     }
     setSearchParams(nextParams, { replace: true });
-  };
-
-  const handlePublishGradebook = async () => {
-    setActionMessage('');
-    try {
-      const data = await classroomApi.publishGradebook(id);
-      setGradebook(data);
-      setActionMessage('Đã công bố bảng điểm thành công.');
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố bảng điểm.'));
-    }
-  };
-
-  const handleUnpublishGradebook = async () => {
-    setActionMessage('');
-    try {
-      const data = await classroomApi.unpublishGradebook(id);
-      setGradebook(data);
-      setActionMessage('Đã thu hồi công bố bảng điểm.');
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể thu hồi công bố bảng điểm.'));
-    }
-  };
-
-  const handleExportGradebook = () => {
-    const rows = gradebook.map((entry) => [
-      entry.studentName || `Học viên #${entry.studentId}`,
-      entry.studentEmail || '',
-      entry.attendancePercent ?? '',
-      entry.homeworkAverage ?? '',
-      entry.finalResult ?? '',
-      entry.status || '',
-    ]);
-    downloadCsv(
-      `${sanitizeCsvFilename(`bang-diem-${classroom?.title || id}`)}.csv`,
-      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm TB bài tập', 'Điểm/Kết quả cuối', 'Trạng thái'],
-      rows
-    );
   };
 
   // Build a beautiful student roster using gradebook entries
@@ -276,7 +236,7 @@ export default function TeacherClassroomPage() {
                     {formatClassroomTime(session.startTime)} – {formatClassroomTime(session.endTime)}
                   </span>
                   {isVirtual ? (
-                    <span className="flex items-center gap-1 text-purple-700 font-bold">
+                    <span className="flex items-center gap-1 font-bold text-sky-700">
                       <Video className="h-3.5 w-3.5" /> Trực tuyến
                     </span>
                   ) : (
@@ -441,6 +401,14 @@ export default function TeacherClassroomPage() {
             setSearchParams(nextParams, { replace: true });
           }}
           onMessage={setActionMessage}
+          onSelectedHomeworkChange={(homeworkId) => {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.set('tab', 'homework');
+            if (homeworkId) nextParams.set('homeworkId', String(homeworkId));
+            else nextParams.delete('homeworkId');
+            setSearchParams(nextParams, { replace: true });
+          }}
+          selectedHomeworkId={searchParams.get('homeworkId')}
           sessions={sessions}
         />
       );
@@ -448,20 +416,6 @@ export default function TeacherClassroomPage() {
 
     if (activeTab === 'attendance-disputes') {
       return <TeacherAttendanceDisputesSection classroomId={id} onMessage={setActionMessage} />;
-    }
-
-    if (activeTab === 'gradebook') {
-      return (
-        <TeacherGradebookSection
-          classroomId={id}
-          gradebook={gradebook}
-          onExport={handleExportGradebook}
-          onGradebookChange={setGradebook}
-          onMessage={setActionMessage}
-          onPublish={handlePublishGradebook}
-          onUnpublish={handleUnpublishGradebook}
-        />
-      );
     }
 
     if (activeTab === 'materials') {
@@ -747,9 +701,13 @@ function CurriculumRefList({ title, refs = [] }) {
                 ref.status,
               ].filter(Boolean).join(' · ')}</p>
               {ref.fileUrl ? (
-                <a className="mt-2 inline-flex font-extrabold text-[#730014] hover:underline" href={ref.fileUrl} rel="noreferrer" target="_blank">
-                  Mở học liệu
-                </a>
+                <AuthenticatedFileLink
+                  className="mt-2 inline-flex font-extrabold text-[#730014] hover:underline"
+                  fileName={ref.title}
+                  url={ref.fileUrl}
+                >
+                  Tải học liệu
+                </AuthenticatedFileLink>
               ) : null}
             </div>
           ))}
