@@ -3,12 +3,14 @@ package fu.sap490.g23.backend.dto.request.classroom;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -22,4 +24,8 @@ public class GradeHomeworkRequest {
 
     @Size(max = 5000, message = "Nhận xét không được vượt quá 5.000 ký tự")
     private String teacherFeedback;
+
+    @Valid
+    @Size(max = 100, message = "Mỗi bài làm chỉ được có tối đa 100 ghi chú")
+    private List<HomeworkTextAnnotationRequest> annotations;
 }

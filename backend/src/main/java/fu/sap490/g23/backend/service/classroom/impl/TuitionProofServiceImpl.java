@@ -72,7 +72,7 @@ public class TuitionProofServiceImpl implements TuitionProofService {
         }
         TuitionPaymentKind kind = resolvePaymentKind(paymentKind);
 
-        HomeworkAttachmentUploadResponse uploaded = attachmentStorageService.store(file, publicUrlBase);
+        HomeworkAttachmentUploadResponse uploaded = attachmentStorageService.store(file, publicUrlBase, learnerEmail);
         ClassroomTuitionPaymentProof proof = proofRepository.save(ClassroomTuitionPaymentProof.builder()
                 .enrollment(enrollment)
                 .amount(amount)

@@ -16,13 +16,16 @@ import {
   Upload,
   ArrowRight,
   RefreshCw,
-  Sparkles,
+  Bot,
   BookMarked,
   Info,
   X
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import ClassroomFlashcardsPanel from '../../components/classroom/ClassroomFlashcardsPanel';
+import WorkspaceFlashcards from '../../components/course-workspace/WorkspaceFlashcards';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
+import HomeworkAnnotatedText from '../../components/classroom/HomeworkAnnotatedText';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
@@ -37,6 +40,7 @@ import ReadingExamMode from '../../components/course-assessment/ReadingExamMode'
 import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMode';
 import WritingExamMode from '../../components/course-assessment/WritingExamMode';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
+import { requestExamFullscreen } from '../../utils/examFullscreen';
 import { formatClassroomDateTime, getHomeworkMaxScore, getSubmissionFeedback } from '../../utils/classroomHelpers';
 import {
   getHomeworkActivityTypeLabel,
@@ -228,7 +232,7 @@ export default function MyHomeworkPage() {
 
   const canResubmitHomework = (item) => {
     if (item?.sourceType === 'LEGACY_QUIZ') return false;
-    if (!item || item.status !== 'OPEN' || item.overdue) return false;
+    if (!item || item.status !== 'OPEN') return false;
     if (!item.mySubmission) return true;
     if (item.mySubmission.status === 'SUBMITTED') return true;
     return Boolean(item.allowResubmission);
@@ -290,7 +294,7 @@ export default function MyHomeworkPage() {
       } else {
         let attachmentUrl = '';
         if (file) {
-          const uploaded = await classroomApi.uploadHomeworkSubmissionAttachment(file);
+          const uploaded = await classroomApi.uploadHomeworkSubmissionAttachment(homeworkId, file);
           attachmentUrl = uploaded.url;
         }
         await classroomApi.submitHomework(homeworkId, { textAnswer, attachmentUrl });
@@ -345,8 +349,13 @@ export default function MyHomeworkPage() {
     }
   };
 
-  const handleConfirmStartExam = () => {
+  const handleConfirmStartExam = async () => {
     if (confirmHomework) {
+      const fullscreenStarted = await requestExamFullscreen();
+      if (!fullscreenStarted) {
+        setExamError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
+        return;
+      }
       setExamHomework(confirmHomework);
       setConfirmHomework(null);
     }
@@ -542,16 +551,16 @@ export default function MyHomeworkPage() {
                           <div className="flex flex-wrap gap-1.5 pt-1">
                             {isAiGradedHomework(item) && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] px-2.5 py-0.5 text-[9px] font-bold text-[#8a0018] border border-[#dfbfbd]/40">
-                                <Sparkles className="h-3 w-3" />
+                                <Bot className="h-3 w-3" />
                                 AI Review
                               </span>
                             )}
                             {item.curriculumUnitTitle && (
-                              <span className="rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
+                              <span className="rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
                                 Unit: {item.curriculumUnitTitle}
                               </span>
                             )}
-                            <span className="rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
+                            <span className="rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-bold text-gray-600">
                               {getHomeworkActivityTypeLabel(item.activityType)}
                             </span>
                           </div>
@@ -564,15 +573,13 @@ export default function MyHomeworkPage() {
                           {/* Info block details */}
                           <div className="space-y-3 pt-3 border-t border-gray-50">
                             {item.attachmentUrl && (
-                              <a
+                              <AuthenticatedFileLink
                                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
-                                href={item.attachmentUrl}
-                                rel="noreferrer"
-                                target="_blank"
+                                url={item.attachmentUrl}
                               >
                                 <Paperclip className="h-3.5 w-3.5 text-[#730014]" />
                                 Đề bài đính kèm
-                              </a>
+                              </AuthenticatedFileLink>
                             )}
 
                             <div className="flex items-center justify-between text-xs text-[#8b706e]">
@@ -733,7 +740,7 @@ export default function MyHomeworkPage() {
 
             {getHomeworkGradingHint(selectedHomework) && (
               <div className="rounded-xl border border-purple-100 bg-[#fff5f5] p-4 text-xs leading-relaxed text-[#8a0018] flex items-start gap-2 border-[#dfbfbd]/55">
-                <Sparkles className="h-4 w-4 text-[#730014] shrink-0 mt-0.5" />
+                <Bot className="h-4 w-4 text-[#730014] shrink-0 mt-0.5" />
                 <p>{getHomeworkGradingHint(selectedHomework)}</p>
               </div>
             )}
@@ -745,15 +752,13 @@ export default function MyHomeworkPage() {
               </p>
               
               {selectedHomework.attachmentUrl && (
-                <a
+                <AuthenticatedFileLink
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
-                  href={selectedHomework.attachmentUrl}
-                  rel="noreferrer"
-                  target="_blank"
+                  url={selectedHomework.attachmentUrl}
                 >
                   <Paperclip className="h-4 w-4" />
                   Tải file đề bài đính kèm
-                </a>
+                </AuthenticatedFileLink>
               )}
             </div>
 
@@ -766,20 +771,20 @@ export default function MyHomeworkPage() {
                     <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     Bài nộp đã ghi nhận
                   </h4>
-                  <div className="rounded-xl bg-white border border-gray-100 p-4 text-xs text-[#1a1c1c] whitespace-pre-wrap min-h-[100px] leading-relaxed">
-                    {selectedHomework.mySubmission.textAnswer || 'Không ghi nhận câu trả lời dạng chữ.'}
-                  </div>
+                  <HomeworkAnnotatedText
+                    annotations={selectedHomework.mySubmission.annotations || []}
+                    className="text-xs"
+                    text={selectedHomework.mySubmission.textAnswer || 'Không ghi nhận câu trả lời dạng chữ.'}
+                  />
                   
                   {selectedHomework.mySubmission.attachmentUrl && (
-                    <a
+                    <AuthenticatedFileLink
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
-                      href={selectedHomework.mySubmission.attachmentUrl}
-                      rel="noreferrer"
-                      target="_blank"
+                      url={selectedHomework.mySubmission.attachmentUrl}
                     >
                       <Paperclip className="h-4 w-4" />
                       Tải tệp đính kèm bài làm cũ
-                    </a>
+                    </AuthenticatedFileLink>
                   )}
                   <p className="text-[10px] text-gray-400">
                     Thời điểm nộp: {formatClassroomDateTime(selectedHomework.mySubmission.submittedAt)}
@@ -1005,7 +1010,7 @@ export function HomeworkModuleExam({ homework, onClose, onSubmit, submitting }) 
         onClose={onClose}
         onSubmit={onSubmit}
         submitting={submitting}
-        uploadAudio={(file) => classroomApi.uploadHomeworkSubmissionAttachment(file)}
+        uploadAudio={(file) => classroomApi.uploadHomeworkSubmissionAttachment(homework?.id, file)}
       />
     );
   }
@@ -1042,7 +1047,9 @@ function HomeworkAnswerWorkspace({ homework, value, onChange }) {
   };
 
   if (activityType === 'FLASHCARD_REVIEW') {
-    const flashcardSetIds = config.flashcardSetIds || config.flashcards || [];
+    const customFlashcards = (Array.isArray(config.flashcards) ? config.flashcards : [])
+      .filter((card) => card && typeof card === 'object');
+    const flashcardSetIds = config.flashcardSetIds || [];
     return (
       <div className="rounded-xl border border-emerald-100 bg-[#fff5f5] p-4 text-xs leading-relaxed text-[#8a0018] border-[#dfbfbd]/50">
         <p className="font-extrabold flex items-center gap-1.5 text-[#730014]">
@@ -1051,7 +1058,11 @@ function HomeworkAnswerWorkspace({ homework, value, onChange }) {
         </p>
         <p className="mt-1">
           {homework.curriculumUnitTitle ? `Học phần: ${homework.curriculumUnitTitle}. ` : ''}
-          {flashcardSetIds.length ? `Bộ flashcard cần ôn: ${flashcardSetIds.join(', ')}.` : 'Vui lòng truy cập thư viện từ vựng trong lớp học để hoàn thành ôn tập flashcard cho unit này.'}
+          {customFlashcards.length
+            ? `Bộ thẻ gồm ${customFlashcards.length} flashcard do giáo viên biên soạn.`
+            : flashcardSetIds.length
+              ? `Bộ flashcard cần ôn: ${flashcardSetIds.join(', ')}.`
+              : 'Vui lòng truy cập thư viện từ vựng trong lớp học để hoàn thành ôn tập flashcard cho unit này.'}
         </p>
       </div>
     );
@@ -1322,6 +1333,24 @@ export function FlashcardHomeworkWorkspace({ canComplete, curriculum, homework, 
   const assignedUnit = (curriculum?.units || []).find(
     (unit) => String(unit.id) === String(homework.curriculumUnitId),
   );
+  const customFlashcards = useMemo(() => {
+    const config = parseActivityConfig(homework?.activityConfigJson);
+    return (Array.isArray(config.flashcards) ? config.flashcards : [])
+      .filter((card) => card && typeof card === 'object' && card.term && (card.meaning || card.definition))
+      .map((card, index) => ({
+        termKey: `homework-${homework?.id}-flashcard-${index + 1}`,
+        term: String(card.term),
+        meaning: String(card.meaning || card.definition),
+        example: [
+          card.example ? String(card.example) : '',
+          card.commonMistake ? `Lỗi thường gặp: ${card.commonMistake}` : '',
+        ].filter(Boolean).join('\n\n'),
+        moduleTitle: homework?.title || 'Flashcard bài tập',
+        status: 'NEW',
+        reviewCount: 0,
+        incorrectCount: 0,
+      }));
+  }, [homework?.activityConfigJson, homework?.id, homework?.title]);
 
   return (
     <div className="fixed inset-0 z-[155] flex min-h-0 flex-col bg-[#fcf9f8]">
@@ -1363,10 +1392,18 @@ export function FlashcardHomeworkWorkspace({ canComplete, curriculum, homework, 
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
         <div className="mx-auto max-w-[1320px]">
-          <ClassroomFlashcardsPanel
-            curriculum={curriculum}
-            initialUnitId={homework.curriculumUnitId}
-          />
+          {customFlashcards.length ? (
+            <WorkspaceFlashcards
+              course={{ title: homework.title }}
+              emptyStateDescription="Bài tập này chưa có flashcard."
+              termsOverride={customFlashcards}
+            />
+          ) : (
+            <ClassroomFlashcardsPanel
+              curriculum={curriculum}
+              initialUnitId={homework.curriculumUnitId}
+            />
+          )}
         </div>
       </main>
     </div>

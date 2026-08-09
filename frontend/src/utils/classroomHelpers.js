@@ -1,3 +1,5 @@
+import { downloadProtectedFile, isProtectedAttachmentUrl } from './protectedFile';
+
 const resolveDate = (value) => {
   if (!value) return null;
   const raw = String(value).trim();
@@ -266,16 +268,20 @@ export const buildMaterialDownloadName = (material) => {
   return baseName;
 };
 
-export const downloadClassroomMaterial = async (material) => {
+export const downloadClassroomMaterial = async (material, { openOnFailure = true } = {}) => {
   const url = material?.fileUrl;
-  if (!url) return;
+  if (!url) return false;
 
   const fileName = buildMaterialDownloadName(material);
   try {
+    if (isProtectedAttachmentUrl(url)) {
+      await downloadProtectedFile(url, fileName);
+      return true;
+    }
     const response = await fetch(url, { credentials: 'include' });
     if (!response.ok) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-      return;
+      if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');
+      return false;
     }
     const blob = await response.blob();
     const objectUrl = URL.createObjectURL(blob);
@@ -286,7 +292,9 @@ export const downloadClassroomMaterial = async (material) => {
     link.click();
     link.remove();
     URL.revokeObjectURL(objectUrl);
+    return true;
   } catch {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (openOnFailure) window.open(url, '_blank', 'noopener,noreferrer');
+    return false;
   }
 };

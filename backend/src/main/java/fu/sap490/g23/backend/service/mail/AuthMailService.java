@@ -7,4 +7,5 @@ public interface AuthMailService {
     void sendVerificationEmail(User user, String code);
     void sendPasswordResetEmail(User user, String code);
     void sendStaffCreatedAccountEmail(User user, String code);
+    void sendTeacherGoogleMeetInvitation(User user);
 }

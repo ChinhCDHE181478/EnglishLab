@@ -3,8 +3,8 @@ import axiosClient from './axiosClient';
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
 const dictionaryApi = {
-  async lookup(word) {
-    const response = await axiosClient.get('/api/student/dictionary/lookup', { params: { word } });
+  async lookup(word, config = {}) {
+    const response = await axiosClient.get('/api/dictionary/lookup', { ...config, params: { word } });
     return unwrapData(response);
   },
 

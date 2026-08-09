@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
+import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
+import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -57,7 +60,7 @@ const renderPromptContent = (task) => {
     return (
       <div
         className="space-y-4 text-[15px] leading-8 text-[#3d2728]"
-        dangerouslySetInnerHTML={{ __html: task.promptHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(task.promptHtml) }}
       />
     );
   }
@@ -85,6 +88,7 @@ export default function WritingExamMode({
   const [responses, setResponses] = useState(() => buildInitialResponses(tasks, initialSubmissionText));
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Number(config?.durationMinutes || assessment?.timeLimitMinutes || 60)) * 60);
   const [submissionPending, setSubmissionPending] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [pendingTaskChange, setPendingTaskChange] = useState(null);
@@ -120,8 +124,8 @@ export default function WritingExamMode({
     intentionalExitRef.current = false;
     fullscreenSessionStartedRef.current = Boolean(document.fullscreenElement);
     return () => {
-      if (!preserveFullscreenOnUnmount && document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
+      if (!preserveFullscreenOnUnmount) {
+        exitExamFullscreenWhenDetached(rootRef);
       }
     };
   }, [preserveFullscreenOnUnmount]);
@@ -250,10 +254,12 @@ export default function WritingExamMode({
     if (isLocked || submitting || submissionPending || submissionInFlightRef.current) return;
     submissionInFlightRef.current = true;
     setSubmissionPending(true);
+    setSubmissionError('');
     try {
       await onSubmit(buildPayload(autoSubmitted));
-    } catch {
-      // The parent panel renders the actionable API error.
+    } catch (error) {
+      submittedRef.current = false;
+      setSubmissionError(getAssessmentSubmissionErrorMessage(error));
     } finally {
       submissionInFlightRef.current = false;
       setSubmissionPending(false);
@@ -285,6 +291,11 @@ export default function WritingExamMode({
       onCut={(event) => event.preventDefault()}
       onPaste={(event) => event.preventDefault()}
     >
+      {submissionError ? (
+        <div className="fixed bottom-5 left-1/2 z-[140] w-[min(92vw,680px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 shadow-xl" role="alert">
+          {submissionError}
+        </div>
+      ) : null}
       <header className="flex min-h-[78px] flex-wrap items-center justify-between gap-4 border-b border-[#ead8d5] bg-white px-5 shadow-sm">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#9a6e67]">EnglishLab Writing Exam</p>

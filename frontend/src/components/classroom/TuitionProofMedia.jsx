@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ExternalLink, FileText } from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
+import AuthenticatedFileLink from './AuthenticatedFileLink';
+import { isProtectedAttachmentUrl } from '../../utils/protectedFile';
 
 const isImageUrl = (url = '', fileName = '') => {
   const source = `${fileName || ''} ${url || ''}`.toLowerCase();
@@ -22,30 +25,67 @@ export default function TuitionProofMedia({
   className = '',
   imageClassName = 'max-h-64 w-full rounded-xl border border-[#ecdedd] object-contain bg-[#faf7f7]',
 }) {
-  if (!url) return null;
-
   const image = isImageUrl(url, fileName);
   const pdf = isPdfUrl(url, fileName);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewError, setPreviewError] = useState('');
+
+  useEffect(() => {
+    if (!url || !image || !isProtectedAttachmentUrl(url)) {
+      setPreviewUrl(url || '');
+      setPreviewError('');
+      return undefined;
+    }
+
+    let active = true;
+    let objectUrl = '';
+    const loadPreview = async () => {
+      setPreviewError('');
+      try {
+        const response = await axiosClient.get(url, { responseType: 'blob' });
+        if (!active) return;
+        objectUrl = URL.createObjectURL(response.data);
+        setPreviewUrl(objectUrl);
+      } catch {
+        if (active) {
+          setPreviewUrl('');
+          setPreviewError('Không thể tải ảnh minh chứng hoặc bạn không có quyền truy cập.');
+        }
+      }
+    };
+    loadPreview();
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [image, url]);
+
+  if (!url) return null;
 
   // Ảnh: chỉ hiện preview (bấm để xem/tải), không thêm link bên dưới.
   if (image) {
     return (
       <div className={className}>
-        <a
-          className="block"
-          download={fileName || true}
-          href={url}
-          rel="noreferrer"
-          target="_blank"
-          title="Xem / tải ảnh minh chứng"
-        >
+        {previewUrl ? (
           <img
             alt={alt}
             className={imageClassName}
             loading="lazy"
-            src={url}
+            src={previewUrl}
           />
-        </a>
+        ) : (
+          <div className={`${imageClassName} flex min-h-32 items-center justify-center px-4 text-center text-xs font-bold text-red-600`}>
+            {previewError || 'Đang tải ảnh minh chứng...'}
+          </div>
+        )}
+        <AuthenticatedFileLink
+          className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
+          fileName={fileName}
+          title="Tải ảnh minh chứng"
+          url={url}
+        >
+          <ExternalLink className="h-3 w-3" /> Tải ảnh minh chứng
+        </AuthenticatedFileLink>
       </div>
     );
   }
@@ -64,16 +104,14 @@ export default function TuitionProofMedia({
           </p>
         </div>
       </div>
-      <a
+      <AuthenticatedFileLink
         className="inline-flex items-center gap-1 text-[11px] font-bold text-[#730014] hover:underline"
-        download={fileName || true}
-        href={url}
-        rel="noreferrer"
-        target="_blank"
+        fileName={fileName}
+        url={url}
       >
         <ExternalLink className="h-3 w-3" />
-        {pdf ? 'Mở / tải PDF minh chứng' : 'Xem / tải minh chứng'}
-      </a>
+        {pdf ? 'Tải PDF minh chứng' : 'Tải minh chứng'}
+      </AuthenticatedFileLink>
     </div>
   );
 }

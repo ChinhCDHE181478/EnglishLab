@@ -32,7 +32,7 @@ export default function LearningPathCatalog({ courses = [] }) {
       <div className="mb-8 flex items-end justify-between">
         <div>
           <span className="mb-3 block text-[12px] font-extrabold uppercase leading-none tracking-[0.12em] text-[#4b0009]">
-            Học theo từng bước
+            Học theo từng giai đoạn
           </span>
           <h2 className="text-[32px] font-bold leading-[1.2]">
             Lộ trình tham khảo

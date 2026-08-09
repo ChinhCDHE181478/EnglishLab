@@ -257,11 +257,11 @@ export default function ContentManagerLearningPathsPage() {
               <div className="divide-y divide-[#f0e3e4] border-t border-[#f0e3e4]">
                 {group.courses.map((course, index) => (
                   <div
-                    className="grid gap-4 px-6 py-5 lg:grid-cols-[80px_1fr]"
+                    className="grid gap-4 px-6 py-5 lg:grid-cols-[max-content_1fr]"
                     key={course.courseId}
                   >
-                    <span className="font-bold text-[#730014]">
-                      Bước {course.displayOrder || index + 1}
+                    <span className="whitespace-nowrap font-bold text-[#730014]">
+                      Giai đoạn {course.displayOrder || index + 1}
                     </span>
                     <div>
                       <Link

@@ -44,8 +44,6 @@ import vn.payos.model.v2.paymentRequests.PaymentLinkStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -53,6 +51,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -724,14 +724,11 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentOrderSummaryResponse> listStaffOrders(PaymentOrderStatus status) {
-        List<PaymentOrder> orders = status == null
-                ? paymentOrderRepository.findAll()
-                : paymentOrderRepository.findByStatusIn(List.of(status));
-        return orders.stream()
-                .sorted(Comparator.comparing(PaymentOrder::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(this::toOrderSummary)
-                .toList();
+    public Page<PaymentOrderSummaryResponse> listStaffOrders(PaymentOrderStatus status, Pageable pageable) {
+        Page<PaymentOrder> orders = status == null
+                ? paymentOrderRepository.findAll(pageable)
+                : paymentOrderRepository.findByStatus(status, pageable);
+        return orders.map(this::toOrderSummary);
     }
 
     @Override
@@ -807,41 +804,33 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public RevenueAnalyticsResponse getRevenueAnalytics() {
-        List<PaymentOrder> orders = paymentOrderRepository.findAll();
-        long paid = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PAID).count();
-        long failed = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.FAILED
-                || order.getStatus() == PaymentOrderStatus.CANCELLED
-                || order.getStatus() == PaymentOrderStatus.EXPIRED
-                || order.getStatus() == PaymentOrderStatus.REFUNDED).count();
-        long pending = orders.stream().filter(order -> order.getStatus() == PaymentOrderStatus.PENDING
-                || order.getStatus() == PaymentOrderStatus.PROCESSING).count();
-        long totalRevenue = orders.stream()
-                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
-                .mapToLong(order -> order.getAmount() == null ? 0L : order.getAmount())
-                .sum();
-        long totalDiscount = orders.stream()
-                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
-                .mapToLong(order -> safeLong(order.getSystemDiscountAmount()) + safeLong(order.getCouponDiscountAmount()))
-                .sum();
-        long couponDiscount = orders.stream()
-                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID)
-                .mapToLong(order -> safeLong(order.getCouponDiscountAmount()))
-                .sum();
-
-        Map<YearMonth, List<PaymentOrder>> byMonth = orders.stream()
-                .filter(order -> order.getStatus() == PaymentOrderStatus.PAID && order.getPaidAt() != null)
-                .collect(Collectors.groupingBy(order -> YearMonth.from(order.getPaidAt())));
-        List<RevenueByMonthResponse> monthly = byMonth.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
+        long totalOrders = paymentOrderRepository.count();
+        long paid = paymentOrderRepository.countByStatus(PaymentOrderStatus.PAID);
+        long failed = paymentOrderRepository.countByStatusIn(List.of(
+                PaymentOrderStatus.FAILED,
+                PaymentOrderStatus.CANCELLED,
+                PaymentOrderStatus.EXPIRED,
+                PaymentOrderStatus.REFUNDED
+        ));
+        long pending = paymentOrderRepository.countByStatusIn(List.of(
+                PaymentOrderStatus.PENDING,
+                PaymentOrderStatus.PROCESSING
+        ));
+        long totalRevenue = safeLong(paymentOrderRepository.sumAmountByStatus(PaymentOrderStatus.PAID));
+        long totalDiscount = safeLong(paymentOrderRepository.sumDiscountByStatus(PaymentOrderStatus.PAID));
+        long couponDiscount = safeLong(paymentOrderRepository.sumCouponDiscountByStatus(PaymentOrderStatus.PAID));
+        List<RevenueByMonthResponse> monthly = paymentOrderRepository
+                .summarizeMonthlyRevenue(PaymentOrderStatus.PAID)
+                .stream()
                 .map(entry -> RevenueByMonthResponse.builder()
-                        .month(entry.getKey().format(DateTimeFormatter.ofPattern("yyyy-MM")))
-                        .revenueVnd(entry.getValue().stream().mapToLong(order -> safeLong(order.getAmount())).sum())
-                        .orderCount(entry.getValue().size())
+                        .month(String.format("%04d-%02d", entry.getYearValue(), entry.getMonthValue()))
+                        .revenueVnd(safeLong(entry.getRevenueVnd()))
+                        .orderCount(safeLong(entry.getOrderCount()))
                         .build())
                 .toList();
 
         return RevenueAnalyticsResponse.builder()
-                .totalOrders(orders.size())
+                .totalOrders(totalOrders)
                 .paidOrders(paid)
                 .failedOrders(failed)
                 .pendingOrders(pending)

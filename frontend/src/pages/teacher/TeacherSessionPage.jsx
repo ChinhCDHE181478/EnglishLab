@@ -262,7 +262,7 @@ export default function TeacherSessionPage() {
                     {formatClassroomTime(sessionMeta.startTime)} – {formatClassroomTime(sessionMeta.endTime)}
                   </span>
                   {sessionMeta.deliveryMode === 'VIRTUAL' ? (
-                    <span className="flex items-center gap-1.5 font-semibold text-purple-700">
+                    <span className="flex items-center gap-1.5 font-semibold text-sky-700">
                       <Video className="h-4 w-4" /> Trực tuyến
                     </span>
                   ) : (

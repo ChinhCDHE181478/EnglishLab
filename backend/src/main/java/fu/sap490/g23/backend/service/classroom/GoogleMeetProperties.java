@@ -14,7 +14,9 @@ public class GoogleMeetProperties {
     private boolean enabled;
     private String clientId;
     private String clientSecret;
-    private String refreshToken;
+    private String authorizationUri = "https://accounts.google.com/o/oauth2/v2/auth";
     private String tokenUri = "https://oauth2.googleapis.com/token";
     private String apiBaseUrl = "https://meet.googleapis.com/v2";
+    private String redirectUri = "http://localhost:8080/api/teacher/google-meet/callback";
+    private String frontendReturnUrl = "http://localhost:5173/teacher/professional-profile";
 }

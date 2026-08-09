@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
+import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../ui/Pagination';
 import { useAppDialog } from '../ui/AppDialog';
@@ -113,7 +114,7 @@ export default function TeacherMaterialsSection({
       let fileUrl = uploadForm.fileUrl.trim();
       let fileType = inferFileType(fileUrl);
       if (attachmentFile) {
-        const uploaded = await classroomApi.uploadHomeworkAttachment(attachmentFile);
+        const uploaded = await classroomApi.uploadHomeworkAttachment(classroomId, attachmentFile);
         fileUrl = uploaded.url;
         fileType = inferFileType(uploaded.originalFileName || uploaded.fileName || fileUrl);
       }
@@ -414,14 +415,13 @@ function MaterialRow({ material, mandatory = false, deleting = false, onDelete }
       
       <div className="flex items-center justify-end gap-2 shrink-0 self-end sm:self-center">
         {material.fileUrl && (
-          <a
+          <AuthenticatedFileLink
             className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3.5 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff2f3] active:scale-95"
-            href={material.fileUrl}
-            rel="noreferrer"
-            target="_blank"
+            fileName={material.title}
+            url={material.fileUrl}
           >
-            <Download className="h-3.5 w-3.5" /> Mở tài liệu
-          </a>
+            <Download className="h-3.5 w-3.5" /> Tải tài liệu
+          </AuthenticatedFileLink>
         )}
         {!mandatory && (
           <button

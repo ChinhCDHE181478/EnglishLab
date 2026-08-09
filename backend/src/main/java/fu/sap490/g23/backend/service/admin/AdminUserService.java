@@ -13,4 +13,5 @@ public interface AdminUserService {
     AdminUserResponse updateUser(Long id, UpsertAdminUserRequest request, String requesterEmail);
     AdminUserResponse updateRoles(Long id, UpdateUserRolesRequest request, String requesterEmail);
     AdminUserResponse updateStatus(Long id, UpdateAdminUserStatusRequest request, String requesterEmail);
+    void resendTeacherOnboardingEmail(Long id, String requesterEmail);
 }

@@ -23,4 +23,5 @@ public class AdminUserController {
     @PutMapping("/users/{id}") public ResponseEntity<AdminUserResponse> update(@PathVariable Long id, @Valid @RequestBody UpsertAdminUserRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.updateUser(id, request, auth.getName())); }
     @PatchMapping("/users/{id}/roles") public ResponseEntity<AdminUserResponse> roles(@PathVariable Long id, @Valid @RequestBody UpdateUserRolesRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.updateRoles(id, request, auth.getName())); }
     @PatchMapping("/users/{id}/status") public ResponseEntity<AdminUserResponse> status(@PathVariable Long id, @Valid @RequestBody UpdateAdminUserStatusRequest request, Authentication auth) { return ResponseEntity.ok(adminUserService.updateStatus(id, request, auth.getName())); }
+    @PostMapping("/users/{id}/teacher-onboarding-email") public ResponseEntity<Void> resendTeacherOnboarding(@PathVariable Long id, Authentication auth) { adminUserService.resendTeacherOnboardingEmail(id, auth.getName()); return ResponseEntity.noContent().build(); }
 }
