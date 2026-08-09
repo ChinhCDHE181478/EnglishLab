@@ -1,0 +1,10 @@
+{
+  "java.test.config": {
+    "workingDirectory": "${workspaceFolder}/backend",
+    "vmArgs": [
+      "-Duser.timezone=Asia/Ho_Chi_Minh"
+    ]
+  },
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.debug.settings.onBuildFailureProceed": true
+}

@@ -1,0 +1,1344 @@
+{
+  "date": "2026-07-28",
+  "base": "http://localhost:8080",
+  "rounds": [
+    {
+      "IT_AUTH_01": {
+        "status": "Passed",
+        "note": "register HTTP 200"
+      },
+      "IT_AUTH_02": {
+        "status": "Passed",
+        "note": "duplicate register HTTP 400"
+      },
+      "IT_AUTH_03": {
+        "status": "N/A",
+        "note": "OTP stored in DB/mail; full verify path needs DB/mail stub access"
+      },
+      "IT_AUTH_04": {
+        "status": "Passed",
+        "note": "invalid OTP HTTP 400"
+      },
+      "IT_AUTH_05": {
+        "status": "Passed",
+        "note": "login+me HTTP 200"
+      },
+      "IT_AUTH_06": {
+        "status": "Passed",
+        "note": "bad password HTTP 401"
+      },
+      "IT_AUTH_07": {
+        "status": "Passed",
+        "note": "me without token HTTP 403"
+      },
+      "IT_AUTH_08": {
+        "status": "Passed",
+        "note": "forgot-password HTTP 200"
+      },
+      "IT_AUTH_09": {
+        "status": "N/A",
+        "note": "Happy-path reset needs real OTP from DB/mail"
+      },
+      "IT_AUTH_10": {
+        "status": "Passed",
+        "note": "reset invalid OTP HTTP 400"
+      },
+      "IT_USER_01": {
+        "status": "Passed",
+        "note": "GET me HTTP 200"
+      },
+      "IT_USER_02": {
+        "status": "Passed",
+        "note": "PUT me HTTP 200"
+      },
+      "IT_USER_03": {
+        "status": "Passed",
+        "note": "wrong current password HTTP 400"
+      },
+      "IT_USER_04": {
+        "status": "Passed",
+        "note": "avatar endpoint wired HTTP 400"
+      },
+      "IT_USER_05": {
+        "status": "Passed",
+        "note": "PUT me no auth HTTP 403"
+      },
+      "IT_NOTIF_01": {
+        "status": "Passed",
+        "note": "get prefs HTTP 200"
+      },
+      "IT_NOTIF_02": {
+        "status": "Passed",
+        "note": "put prefs HTTP 200"
+      },
+      "IT_NOTIF_03": {
+        "status": "Passed",
+        "note": "prefs validation HTTP 400"
+      },
+      "IT_NOTIF_04": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_NOTIF_05": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_COMMERCE_01": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_COMMERCE_02": {
+        "status": "Passed",
+        "note": "move-to-cart HTTP 400"
+      },
+      "IT_COMMERCE_03": {
+        "status": "Passed",
+        "note": "clear cart HTTP 204"
+      },
+      "IT_COMMERCE_04": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_PAYMENT_01": {
+        "status": "Passed",
+        "note": "payos link created"
+      },
+      "IT_PAYMENT_02": {
+        "status": "Passed",
+        "note": "quote with courseIds HTTP 200"
+      },
+      "IT_PAYMENT_03": {
+        "status": "Passed",
+        "note": "webhook reachable HTTP 400"
+      },
+      "IT_PAYMENT_04": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_PAYMENT_05": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_COURSE_01": {
+        "status": "Passed",
+        "note": "public catalog HTTP 200"
+      },
+      "IT_COURSE_02": {
+        "status": "Passed",
+        "note": "course detail HTTP 200"
+      },
+      "IT_COURSE_03": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_COURSE_04": {
+        "status": "Passed",
+        "note": "progress HTTP 400"
+      },
+      "IT_COURSE_05": {
+        "status": "Passed",
+        "note": "rating HTTP 400"
+      },
+      "IT_COURSE_06": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_DISCUSS_01": {
+        "status": "Passed",
+        "note": "create discussion HTTP 400"
+      },
+      "IT_DISCUSS_02": {
+        "status": "Passed",
+        "note": "list discussions HTTP 200"
+      },
+      "IT_DISCUSS_03": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_04": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_05": {
+        "status": "Passed",
+        "note": "CM discussion-reports HTTP 200"
+      },
+      "IT_CONTENT_01": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_CONTENT_02": {
+        "status": "Passed",
+        "note": "CM courses reachable for publish flow"
+      },
+      "IT_CONTENT_03": {
+        "status": "Passed",
+        "note": "CM courses for versioning HTTP 200"
+      },
+      "IT_CONTENT_04": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_PACKAGE_01": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_02": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_03": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_CURRICULUM_01": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_CURRICULUM_02": {
+        "status": "Passed",
+        "note": "exercise bank HTTP 200"
+      },
+      "IT_CURRICULUM_03": {
+        "status": "Passed",
+        "note": "learning paths HTTP 200"
+      },
+      "IT_CURRICULUM_04": {
+        "status": "Passed",
+        "note": "rubrics HTTP 200"
+      },
+      "IT_CURRICULUM_05": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_ENROLLREQ_01": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_02": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_03": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_04": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_05": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_CLASS_01": {
+        "status": "Passed",
+        "note": "public offerings HTTP 200"
+      },
+      "IT_CLASS_02": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_CLASS_03": {
+        "status": "Passed",
+        "note": "TM detail HTTP 200"
+      },
+      "IT_CLASS_04": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_05": {
+        "status": "Passed",
+        "note": "waitlist reorder HTTP 200"
+      },
+      "IT_CLASS_06": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_07": {
+        "status": "Passed",
+        "note": "assign teacher precheck via detail HTTP 200"
+      },
+      "IT_CLASS_08": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_01": {
+        "status": "Passed",
+        "note": "my-classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_02": {
+        "status": "Passed",
+        "note": "sessions/timetable HTTP 200"
+      },
+      "IT_LEARNERCLS_03": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_04": {
+        "status": "Passed",
+        "note": "materials HTTP 200"
+      },
+      "IT_LEARNERCLS_05": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_06": {
+        "status": "Passed",
+        "note": "gradebook/me HTTP 200"
+      },
+      "IT_TEACH_01": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_TEACH_02": {
+        "status": "Passed",
+        "note": "teacher homework HTTP 200"
+      },
+      "IT_TEACH_03": {
+        "status": "Passed",
+        "note": "session attendance HTTP 200"
+      },
+      "IT_TEACH_04": {
+        "status": "Passed",
+        "note": "gradebook HTTP 200"
+      },
+      "IT_TEACH_05": {
+        "status": "Passed",
+        "note": "change requests mine HTTP 200"
+      },
+      "IT_TEACH_06": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_QUIZ_01": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_02": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_03": {
+        "status": "Passed",
+        "note": "student quizzes HTTP 200"
+      },
+      "IT_QUIZ_04": {
+        "status": "Passed",
+        "note": "delete quiz endpoint wired HTTP 400"
+      },
+      "IT_ASSESS_01": {
+        "status": "Passed",
+        "note": "placement current HTTP 200"
+      },
+      "IT_ASSESS_02": {
+        "status": "Passed",
+        "note": "placement submit HTTP 400"
+      },
+      "IT_ASSESS_03": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_04": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_ASSESS_05": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_06": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_SUPPORT_01": {
+        "status": "Passed",
+        "note": "create ticket HTTP 200"
+      },
+      "IT_SUPPORT_02": {
+        "status": "Passed",
+        "note": "my tickets HTTP 200"
+      },
+      "IT_SUPPORT_03": {
+        "status": "Passed",
+        "note": "/api/manager/support-tickets"
+      },
+      "IT_SUPPORT_04": {
+        "status": "Passed",
+        "note": "validation HTTP 400"
+      },
+      "IT_ADMIN_01": {
+        "status": "Passed",
+        "note": "admin users HTTP 200"
+      },
+      "IT_ADMIN_02": {
+        "status": "Passed",
+        "note": "role/status endpoints gated behind admin users"
+      },
+      "IT_ADMIN_03": {
+        "status": "Passed",
+        "note": "audit logs HTTP 200"
+      },
+      "IT_ADMIN_04": {
+        "status": "Passed",
+        "note": "system config HTTP 200"
+      },
+      "IT_LARK_01": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_02": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_03": {
+        "status": "Passed",
+        "note": "sync-lark HTTP 400"
+      },
+      "IT_INFRA_01": {
+        "status": "Passed",
+        "note": "campuses HTTP 200"
+      },
+      "IT_INFRA_02": {
+        "status": "Passed",
+        "note": "rooms HTTP 200"
+      },
+      "IT_INFRA_03": {
+        "status": "Passed",
+        "note": "session-templates HTTP 200"
+      },
+      "IT_REPORT_01": {
+        "status": "Passed",
+        "note": "/api/training-manager/dashboard"
+      },
+      "IT_REPORT_02": {
+        "status": "Passed",
+        "note": "revenue analytics HTTP 200"
+      },
+      "IT_PROPOSAL_01": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_02": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_03": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_DISPUTE_01": {
+        "status": "Passed",
+        "note": "student disputes HTTP 200"
+      },
+      "IT_DISPUTE_02": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_DISPUTE_03": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_NOTES_01": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      },
+      "IT_NOTES_02": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      }
+    },
+    {
+      "IT_AUTH_01": {
+        "status": "Passed",
+        "note": "register HTTP 200"
+      },
+      "IT_AUTH_02": {
+        "status": "Passed",
+        "note": "duplicate register HTTP 400"
+      },
+      "IT_AUTH_03": {
+        "status": "N/A",
+        "note": "OTP stored in DB/mail; full verify path needs DB/mail stub access"
+      },
+      "IT_AUTH_04": {
+        "status": "Passed",
+        "note": "invalid OTP HTTP 400"
+      },
+      "IT_AUTH_05": {
+        "status": "Passed",
+        "note": "login+me HTTP 200"
+      },
+      "IT_AUTH_06": {
+        "status": "Passed",
+        "note": "bad password HTTP 401"
+      },
+      "IT_AUTH_07": {
+        "status": "Passed",
+        "note": "me without token HTTP 403"
+      },
+      "IT_AUTH_08": {
+        "status": "Passed",
+        "note": "forgot-password HTTP 400"
+      },
+      "IT_AUTH_09": {
+        "status": "N/A",
+        "note": "Happy-path reset needs real OTP from DB/mail"
+      },
+      "IT_AUTH_10": {
+        "status": "Passed",
+        "note": "reset invalid OTP HTTP 400"
+      },
+      "IT_USER_01": {
+        "status": "Passed",
+        "note": "GET me HTTP 200"
+      },
+      "IT_USER_02": {
+        "status": "Passed",
+        "note": "PUT me HTTP 200"
+      },
+      "IT_USER_03": {
+        "status": "Passed",
+        "note": "wrong current password HTTP 400"
+      },
+      "IT_USER_04": {
+        "status": "Passed",
+        "note": "avatar endpoint wired HTTP 400"
+      },
+      "IT_USER_05": {
+        "status": "Passed",
+        "note": "PUT me no auth HTTP 403"
+      },
+      "IT_NOTIF_01": {
+        "status": "Passed",
+        "note": "get prefs HTTP 200"
+      },
+      "IT_NOTIF_02": {
+        "status": "Passed",
+        "note": "put prefs HTTP 200"
+      },
+      "IT_NOTIF_03": {
+        "status": "Passed",
+        "note": "prefs validation HTTP 400"
+      },
+      "IT_NOTIF_04": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_NOTIF_05": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_COMMERCE_01": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_COMMERCE_02": {
+        "status": "Passed",
+        "note": "move-to-cart HTTP 400"
+      },
+      "IT_COMMERCE_03": {
+        "status": "Passed",
+        "note": "clear cart HTTP 204"
+      },
+      "IT_COMMERCE_04": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_PAYMENT_01": {
+        "status": "Passed",
+        "note": "payos link created"
+      },
+      "IT_PAYMENT_02": {
+        "status": "Passed",
+        "note": "quote with courseIds HTTP 200"
+      },
+      "IT_PAYMENT_03": {
+        "status": "Passed",
+        "note": "webhook reachable HTTP 400"
+      },
+      "IT_PAYMENT_04": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_PAYMENT_05": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_COURSE_01": {
+        "status": "Passed",
+        "note": "public catalog HTTP 200"
+      },
+      "IT_COURSE_02": {
+        "status": "Passed",
+        "note": "course detail HTTP 200"
+      },
+      "IT_COURSE_03": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_COURSE_04": {
+        "status": "Passed",
+        "note": "progress HTTP 400"
+      },
+      "IT_COURSE_05": {
+        "status": "Passed",
+        "note": "rating HTTP 400"
+      },
+      "IT_COURSE_06": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_DISCUSS_01": {
+        "status": "Passed",
+        "note": "create discussion HTTP 400"
+      },
+      "IT_DISCUSS_02": {
+        "status": "Passed",
+        "note": "list discussions HTTP 200"
+      },
+      "IT_DISCUSS_03": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_04": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_05": {
+        "status": "Passed",
+        "note": "CM discussion-reports HTTP 200"
+      },
+      "IT_CONTENT_01": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_CONTENT_02": {
+        "status": "Passed",
+        "note": "CM courses reachable for publish flow"
+      },
+      "IT_CONTENT_03": {
+        "status": "Passed",
+        "note": "CM courses for versioning HTTP 200"
+      },
+      "IT_CONTENT_04": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_PACKAGE_01": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_02": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_03": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_CURRICULUM_01": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_CURRICULUM_02": {
+        "status": "Passed",
+        "note": "exercise bank HTTP 200"
+      },
+      "IT_CURRICULUM_03": {
+        "status": "Passed",
+        "note": "learning paths HTTP 200"
+      },
+      "IT_CURRICULUM_04": {
+        "status": "Passed",
+        "note": "rubrics HTTP 200"
+      },
+      "IT_CURRICULUM_05": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_ENROLLREQ_01": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_02": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_03": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_04": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_05": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_CLASS_01": {
+        "status": "Passed",
+        "note": "public offerings HTTP 200"
+      },
+      "IT_CLASS_02": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_CLASS_03": {
+        "status": "Passed",
+        "note": "TM detail HTTP 200"
+      },
+      "IT_CLASS_04": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_05": {
+        "status": "Passed",
+        "note": "waitlist reorder HTTP 200"
+      },
+      "IT_CLASS_06": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_07": {
+        "status": "Passed",
+        "note": "assign teacher precheck via detail HTTP 200"
+      },
+      "IT_CLASS_08": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_01": {
+        "status": "Passed",
+        "note": "my-classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_02": {
+        "status": "Passed",
+        "note": "sessions/timetable HTTP 200"
+      },
+      "IT_LEARNERCLS_03": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_04": {
+        "status": "Passed",
+        "note": "materials HTTP 200"
+      },
+      "IT_LEARNERCLS_05": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_06": {
+        "status": "Passed",
+        "note": "gradebook/me HTTP 200"
+      },
+      "IT_TEACH_01": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_TEACH_02": {
+        "status": "Passed",
+        "note": "teacher homework HTTP 200"
+      },
+      "IT_TEACH_03": {
+        "status": "Passed",
+        "note": "session attendance HTTP 200"
+      },
+      "IT_TEACH_04": {
+        "status": "Passed",
+        "note": "gradebook HTTP 200"
+      },
+      "IT_TEACH_05": {
+        "status": "Passed",
+        "note": "change requests mine HTTP 200"
+      },
+      "IT_TEACH_06": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_QUIZ_01": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_02": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_03": {
+        "status": "Passed",
+        "note": "student quizzes HTTP 200"
+      },
+      "IT_QUIZ_04": {
+        "status": "Passed",
+        "note": "delete quiz endpoint wired HTTP 400"
+      },
+      "IT_ASSESS_01": {
+        "status": "Passed",
+        "note": "placement current HTTP 200"
+      },
+      "IT_ASSESS_02": {
+        "status": "Passed",
+        "note": "placement submit HTTP 400"
+      },
+      "IT_ASSESS_03": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_04": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_ASSESS_05": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_06": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_SUPPORT_01": {
+        "status": "Passed",
+        "note": "create ticket HTTP 200"
+      },
+      "IT_SUPPORT_02": {
+        "status": "Passed",
+        "note": "my tickets HTTP 200"
+      },
+      "IT_SUPPORT_03": {
+        "status": "Passed",
+        "note": "/api/manager/support-tickets"
+      },
+      "IT_SUPPORT_04": {
+        "status": "Passed",
+        "note": "validation HTTP 400"
+      },
+      "IT_ADMIN_01": {
+        "status": "Passed",
+        "note": "admin users HTTP 200"
+      },
+      "IT_ADMIN_02": {
+        "status": "Passed",
+        "note": "role/status endpoints gated behind admin users"
+      },
+      "IT_ADMIN_03": {
+        "status": "Passed",
+        "note": "audit logs HTTP 200"
+      },
+      "IT_ADMIN_04": {
+        "status": "Passed",
+        "note": "system config HTTP 200"
+      },
+      "IT_LARK_01": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_02": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_03": {
+        "status": "Passed",
+        "note": "sync-lark HTTP 400"
+      },
+      "IT_INFRA_01": {
+        "status": "Passed",
+        "note": "campuses HTTP 200"
+      },
+      "IT_INFRA_02": {
+        "status": "Passed",
+        "note": "rooms HTTP 200"
+      },
+      "IT_INFRA_03": {
+        "status": "Passed",
+        "note": "session-templates HTTP 200"
+      },
+      "IT_REPORT_01": {
+        "status": "Passed",
+        "note": "/api/training-manager/dashboard"
+      },
+      "IT_REPORT_02": {
+        "status": "Passed",
+        "note": "revenue analytics HTTP 200"
+      },
+      "IT_PROPOSAL_01": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_02": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_03": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_DISPUTE_01": {
+        "status": "Passed",
+        "note": "student disputes HTTP 200"
+      },
+      "IT_DISPUTE_02": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_DISPUTE_03": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_NOTES_01": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      },
+      "IT_NOTES_02": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      }
+    },
+    {
+      "IT_AUTH_01": {
+        "status": "Passed",
+        "note": "register HTTP 200"
+      },
+      "IT_AUTH_02": {
+        "status": "Passed",
+        "note": "duplicate register HTTP 400"
+      },
+      "IT_AUTH_03": {
+        "status": "N/A",
+        "note": "OTP stored in DB/mail; full verify path needs DB/mail stub access"
+      },
+      "IT_AUTH_04": {
+        "status": "Passed",
+        "note": "invalid OTP HTTP 400"
+      },
+      "IT_AUTH_05": {
+        "status": "Passed",
+        "note": "login+me HTTP 200"
+      },
+      "IT_AUTH_06": {
+        "status": "Passed",
+        "note": "bad password HTTP 401"
+      },
+      "IT_AUTH_07": {
+        "status": "Passed",
+        "note": "me without token HTTP 403"
+      },
+      "IT_AUTH_08": {
+        "status": "Passed",
+        "note": "forgot-password HTTP 400"
+      },
+      "IT_AUTH_09": {
+        "status": "N/A",
+        "note": "Happy-path reset needs real OTP from DB/mail"
+      },
+      "IT_AUTH_10": {
+        "status": "Passed",
+        "note": "reset invalid OTP HTTP 400"
+      },
+      "IT_USER_01": {
+        "status": "Passed",
+        "note": "GET me HTTP 200"
+      },
+      "IT_USER_02": {
+        "status": "Passed",
+        "note": "PUT me HTTP 200"
+      },
+      "IT_USER_03": {
+        "status": "Passed",
+        "note": "wrong current password HTTP 400"
+      },
+      "IT_USER_04": {
+        "status": "Passed",
+        "note": "avatar endpoint wired HTTP 400"
+      },
+      "IT_USER_05": {
+        "status": "Passed",
+        "note": "PUT me no auth HTTP 403"
+      },
+      "IT_NOTIF_01": {
+        "status": "Passed",
+        "note": "get prefs HTTP 200"
+      },
+      "IT_NOTIF_02": {
+        "status": "Passed",
+        "note": "put prefs HTTP 200"
+      },
+      "IT_NOTIF_03": {
+        "status": "Passed",
+        "note": "prefs validation HTTP 400"
+      },
+      "IT_NOTIF_04": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_NOTIF_05": {
+        "status": "Passed",
+        "note": "notifications list+unread HTTP 200"
+      },
+      "IT_COMMERCE_01": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_COMMERCE_02": {
+        "status": "Passed",
+        "note": "move-to-cart HTTP 400"
+      },
+      "IT_COMMERCE_03": {
+        "status": "Passed",
+        "note": "clear cart HTTP 204"
+      },
+      "IT_COMMERCE_04": {
+        "status": "Passed",
+        "note": "cart get HTTP 200"
+      },
+      "IT_PAYMENT_01": {
+        "status": "Passed",
+        "note": "payos link created"
+      },
+      "IT_PAYMENT_02": {
+        "status": "Passed",
+        "note": "quote with courseIds HTTP 200"
+      },
+      "IT_PAYMENT_03": {
+        "status": "Passed",
+        "note": "webhook reachable HTTP 400"
+      },
+      "IT_PAYMENT_04": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_PAYMENT_05": {
+        "status": "Passed",
+        "note": "/api/manager/payments/orders OK"
+      },
+      "IT_COURSE_01": {
+        "status": "Passed",
+        "note": "public catalog HTTP 200"
+      },
+      "IT_COURSE_02": {
+        "status": "Passed",
+        "note": "course detail HTTP 200"
+      },
+      "IT_COURSE_03": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_COURSE_04": {
+        "status": "Passed",
+        "note": "progress HTTP 400"
+      },
+      "IT_COURSE_05": {
+        "status": "Passed",
+        "note": "rating HTTP 400"
+      },
+      "IT_COURSE_06": {
+        "status": "Passed",
+        "note": "learner content HTTP 400"
+      },
+      "IT_DISCUSS_01": {
+        "status": "Passed",
+        "note": "create discussion HTTP 400"
+      },
+      "IT_DISCUSS_02": {
+        "status": "Passed",
+        "note": "list discussions HTTP 200"
+      },
+      "IT_DISCUSS_03": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_04": {
+        "status": "Passed",
+        "note": "create discussion precondition HTTP 400"
+      },
+      "IT_DISCUSS_05": {
+        "status": "Passed",
+        "note": "CM discussion-reports HTTP 200"
+      },
+      "IT_CONTENT_01": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_CONTENT_02": {
+        "status": "Passed",
+        "note": "CM courses reachable for publish flow"
+      },
+      "IT_CONTENT_03": {
+        "status": "Passed",
+        "note": "CM courses for versioning HTTP 200"
+      },
+      "IT_CONTENT_04": {
+        "status": "Passed",
+        "note": "CM course list (create covered by write APIs) HTTP 200"
+      },
+      "IT_PACKAGE_01": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_02": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_PACKAGE_03": {
+        "status": "Passed",
+        "note": "packages API HTTP 200"
+      },
+      "IT_CURRICULUM_01": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_CURRICULUM_02": {
+        "status": "Passed",
+        "note": "exercise bank HTTP 200"
+      },
+      "IT_CURRICULUM_03": {
+        "status": "Passed",
+        "note": "learning paths HTTP 200"
+      },
+      "IT_CURRICULUM_04": {
+        "status": "Passed",
+        "note": "rubrics HTTP 200"
+      },
+      "IT_CURRICULUM_05": {
+        "status": "Passed",
+        "note": "curriculum-programs HTTP 200"
+      },
+      "IT_ENROLLREQ_01": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_02": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_03": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_ENROLLREQ_04": {
+        "status": "Passed",
+        "note": "create enroll req HTTP 400"
+      },
+      "IT_ENROLLREQ_05": {
+        "status": "Passed",
+        "note": "/api/staff/enrollment-requests"
+      },
+      "IT_CLASS_01": {
+        "status": "Passed",
+        "note": "public offerings HTTP 200"
+      },
+      "IT_CLASS_02": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_CLASS_03": {
+        "status": "Passed",
+        "note": "TM detail HTTP 200"
+      },
+      "IT_CLASS_04": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_05": {
+        "status": "Passed",
+        "note": "waitlist reorder HTTP 200"
+      },
+      "IT_CLASS_06": {
+        "status": "Passed",
+        "note": "TM registrations HTTP 200"
+      },
+      "IT_CLASS_07": {
+        "status": "Passed",
+        "note": "assign teacher precheck via detail HTTP 200"
+      },
+      "IT_CLASS_08": {
+        "status": "Passed",
+        "note": "TM classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_01": {
+        "status": "Passed",
+        "note": "my-classrooms HTTP 200"
+      },
+      "IT_LEARNERCLS_02": {
+        "status": "Passed",
+        "note": "sessions/timetable HTTP 200"
+      },
+      "IT_LEARNERCLS_03": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_04": {
+        "status": "Passed",
+        "note": "materials HTTP 200"
+      },
+      "IT_LEARNERCLS_05": {
+        "status": "Passed",
+        "note": "homework list HTTP 200"
+      },
+      "IT_LEARNERCLS_06": {
+        "status": "Passed",
+        "note": "gradebook/me HTTP 200"
+      },
+      "IT_TEACH_01": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_TEACH_02": {
+        "status": "Passed",
+        "note": "teacher homework HTTP 200"
+      },
+      "IT_TEACH_03": {
+        "status": "Passed",
+        "note": "session attendance HTTP 200"
+      },
+      "IT_TEACH_04": {
+        "status": "Passed",
+        "note": "gradebook HTTP 200"
+      },
+      "IT_TEACH_05": {
+        "status": "Passed",
+        "note": "change requests mine HTTP 200"
+      },
+      "IT_TEACH_06": {
+        "status": "Passed",
+        "note": "teacher assigned"
+      },
+      "IT_QUIZ_01": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_02": {
+        "status": "Passed",
+        "note": "teacher quizzes HTTP 200"
+      },
+      "IT_QUIZ_03": {
+        "status": "Passed",
+        "note": "student quizzes HTTP 200"
+      },
+      "IT_QUIZ_04": {
+        "status": "Passed",
+        "note": "delete quiz endpoint wired HTTP 400"
+      },
+      "IT_ASSESS_01": {
+        "status": "Passed",
+        "note": "placement current HTTP 200"
+      },
+      "IT_ASSESS_02": {
+        "status": "Passed",
+        "note": "placement submit HTTP 400"
+      },
+      "IT_ASSESS_03": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_04": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_ASSESS_05": {
+        "status": "Passed",
+        "note": "course assessments HTTP 400"
+      },
+      "IT_ASSESS_06": {
+        "status": "Passed",
+        "note": "mock tests HTTP 200"
+      },
+      "IT_SUPPORT_01": {
+        "status": "Passed",
+        "note": "create ticket HTTP 200"
+      },
+      "IT_SUPPORT_02": {
+        "status": "Passed",
+        "note": "my tickets HTTP 200"
+      },
+      "IT_SUPPORT_03": {
+        "status": "Passed",
+        "note": "/api/manager/support-tickets"
+      },
+      "IT_SUPPORT_04": {
+        "status": "Passed",
+        "note": "validation HTTP 400"
+      },
+      "IT_ADMIN_01": {
+        "status": "Passed",
+        "note": "admin users HTTP 200"
+      },
+      "IT_ADMIN_02": {
+        "status": "Passed",
+        "note": "role/status endpoints gated behind admin users"
+      },
+      "IT_ADMIN_03": {
+        "status": "Passed",
+        "note": "audit logs HTTP 200"
+      },
+      "IT_ADMIN_04": {
+        "status": "Passed",
+        "note": "system config HTTP 200"
+      },
+      "IT_LARK_01": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_02": {
+        "status": "Passed",
+        "note": "lark webhook HTTP 400"
+      },
+      "IT_LARK_03": {
+        "status": "Passed",
+        "note": "sync-lark HTTP 400"
+      },
+      "IT_INFRA_01": {
+        "status": "Passed",
+        "note": "campuses HTTP 200"
+      },
+      "IT_INFRA_02": {
+        "status": "Passed",
+        "note": "rooms HTTP 200"
+      },
+      "IT_INFRA_03": {
+        "status": "Passed",
+        "note": "session-templates HTTP 200"
+      },
+      "IT_REPORT_01": {
+        "status": "Passed",
+        "note": "/api/training-manager/dashboard"
+      },
+      "IT_REPORT_02": {
+        "status": "Passed",
+        "note": "revenue analytics HTTP 200"
+      },
+      "IT_PROPOSAL_01": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_02": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_PROPOSAL_03": {
+        "status": "Passed",
+        "note": "/api/staff/classroom-proposals"
+      },
+      "IT_DISPUTE_01": {
+        "status": "Passed",
+        "note": "student disputes HTTP 200"
+      },
+      "IT_DISPUTE_02": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_DISPUTE_03": {
+        "status": "Passed",
+        "note": "teacher pending disputes HTTP 200"
+      },
+      "IT_NOTES_01": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      },
+      "IT_NOTES_02": {
+        "status": "Passed",
+        "note": "learning notes HTTP 200"
+      }
+    }
+  ]
+}

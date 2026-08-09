@@ -1,0 +1,2503 @@
+
+
+===== FR SECTION =====
+20: 3. Functional Requirements	132
+21: 3.1 Authentication	132
+22: 3.2 Learning Experience	138
+23: 3.3 Assessment & Practice	161
+24: 3.4 Courses & Contents Creation	168
+25: 3.5 Commerce & Transaction	168
+26: 3.6 Classroom Management	168
+27: 3.7 Account Management	168
+28: 3.8 Teacher Operations	168
+29: 3.9 Communication & Administration	168
+30: 3.10 System Administration	168
+31: 4. Non-Functional Requirements	168
+32: 4.1 External Interfaces	168
+33: 4.2 Quality Attributes	170
+34: 5. Requirement Appendix	171
+35: 5.1 Business Rules	171
+36: 5.2 System Messages	174
+37: I. Record of Changes
+38: Date
+39: A*
+40: M, D
+41: In charge
+42: Change Description
+43: 25/5/2026
+44: A
+45: ChinhCD
+46: Add template documents
+47: 27/5/2026
+48: A
+49: ChinhCD
+50: Add II.1 (Overall Requirements)
+51: 3/6/2026
+52: A
+53: ChinhCD
+54: Add II.2 (Use case description)
+55: 7/6/2026
+56: U
+57: ChinhCD
+58: Update II.1.1 (Context Diagram)
+59: 7/6/2026
+60: U
+61: ChinhCD
+62: Update II.1.3.3 (Usecase Diagram)
+63: 10/6/2026
+64: U
+65: ChinhCD
+66: Update II.1.4.1 (Screen Flow Diagram)
+67: 17/6/2026
+68: U
+69: ChinhCD
+70: Update II.1.2 (Main WorkFlows Diagram)
+71: 18/6/2026
+72: U
+73: All Team
+74: Update II.1.5 (Entity Relationship)
+75: 20/6/2026
+76: Add
+77: Add
+78: Add II.1.3.1,2 (Authentication and Course Learning)
+79: *A - Added M - Modified D - Deleted
+80: II. Software Requirement Specification
+81: 1. Overall Requirements
+82: 1.1 Context Diagram
+83: The context diagram illustrates the overall interaction between the EnglishLab system and its main actors, including Learners, Teacher, Content Manager, Training Manager, Manager, and Admin, along with external services such as AI Engine Service, Payment Service, Email Service, and Lark Meeting Service. The system serves as a centralized platform for managing online learning, classroom activities, assessments, learning content, scheduling, and administrative operations. Each role interacts with the system according to its responsibilities to support a complete English learning and classroom management environment.
+84: 1.2 Main Workflows
+85: 1.2.1 Enroll Online Course Workflow
+86: The Course Enrollment and Payment Workflow starts with the Learner browsing available courses and viewing the system-displayed course catalog to see specific course details before attempting to add a selected course to their cart. The system first verifies if the Learner has already registered for this course, displaying a registration confirmation and returning them to the catalog if true, but if false, the Learner views their cart and proceeds to checkout, provided there are registered courses in the cart. During checkout, the system generates a payment request that is sent to the Payment Gateway for processing, and if the initial payment verification fails, the system requests another status check, ultimately displaying an error message and redirecting the Learner back if the payment fails again. However, upon a successful payment verification, the system grants course access, enabling the Learner to access the course, learn the lessons while their progress is tracked, take lesson practices whose results are recorded, and finally complete the course to receive an officially issued completion status.
+87: 1.2.2 Take Placement Test Workflow
+88: The Placement Exam Workflow details the process of a Learner taking a timed practice test, beginning with the Learner choosing to take the placement exam, which prompts the EnglishLab System to load the necessary exam content. Once the Learner starts the exam, the system simultaneously starts a countdown timer and enters an interruptible activity region where the Learner cycles through viewing a displayed question, answering it, and having the system auto-save the answers until no questions remain, at which point the Learner manually submits the exam. Crucially, if the Learner runs out of time before finishing, a time event is triggered that instantly interrupts the question-answering loop and forces the system to execute an auto-submit action. Regardless of whether the exam was submitted manually by the Learner or automatically due to the timer expiring, the workflow converges as the system calculates the final score, generates a detailed result report, and presents it to the Learner for review before the process concludes.
+89: 1.2.3 Enroll Classroom Workflow
+90: The Enroll Classroom Workflow initiates when the EnglishLab System creates a class, generates a corresponding class record, assigns a timetable, and assigns a teacher to the course. Following these setup steps, the workflow splits into two parallel tracks where the system simultaneously notifies the Teacher, who then views their assigned class and waits for the session to start, and checks whether the class is full or registration is closed. If the class is still open for registration, the system enrolls the Learner, sends them a notification, and allows them to view both the class information and the timetable, eventually merging this track with the Teacher's track. Once both parties are ready, the parallel tracks synchronize as the Teacher conducts the class session while the Learner joins the learning activities, bringing the entire classroom training process to its completion.
+91: 1.2.4 Take Practice & Homework Workflow
+92: The Practice and Homework Workflow within the EnglishLab system begins with the Teacher deciding to manage either homework or practice activities. If Homework Management is selected, the Teacher creates and assigns a homework task, allowing the Learner to access and submit their work, which the system stores so the Teacher can review and grade the submission, prompting the system to store the final grades for the Learner to view before the process ends. Alternatively, if Practice Management is chosen, the Teacher creates a practice activity by selecting a format such as 4 Skills, Flashcard, or Quiz, which is then published by the system so the Learner can access learning resources, choose the practice activity, and complete the selected format. Once completed, the system automatically grades the practice using AI, enabling the Teacher to review the results and provide feedback that the Learner can subsequently view to conclude the workflow.
+93: 1.3 User Requirements
+94: 1.3.1 Main Actors
+95: #
+96: Actor
+97: Type
+98: Description
+99: 1
+100: Guest
+101: Concrete
+102: An individual who accesses the platform to explore public information, such as the homepage, course catalog, and marketing materials. This role allows guests to register to become an authenticated user.
+103: 2
+104: System User
+105: Abstract
+106: An abstract actor representing any user who has successfully authenticated (logged in) to the system. This role encapsulates common functionalities such as managing personal profiles, changing passwords, and viewing notifications.
+107: 3
+108: Learner (Student)
+109: Concrete
+110: Learners participate in classroom learning, enroll in online courses, access learning materials, complete assignments and quizzes, and track their learning progress.
+111: 4
+112: Teacher
+113: Concrete
+114: Teachers manage classroom activities, attendance, assignments, quizzes, grading, and monitor learner performance during teaching activities.
+115: 5
+116: Content Manager
+117: Concrete
+118: Content managers maintain and organize learning materials, online courses, syllabuses, flashcards, and placement examination content within the system.
+119: 6
+120: Training Manager
+121: Concrete
+122: Training Managers handle teacher scheduling, classroom assignment, student enrollment into classes, and coordination of teaching operations.
+123: 7
+124: Manager
+125: Concrete
+126: Managers oversee classroom operations, teacher performance, learner feedback, operational reports, and revenue analytics for educational management purposes.
+127: 8
+128: Admin
+129: Concrete
+130: System administrators manage user accounts, access control, security settings, notifications, and overall system configuration.
+131: 1.3.2 Use Cases (UC)
+132: ID
+133: Use Case
+134: Actors
+135: Use Case Description
+136: UC-01
+137: Register Account
+138: Guest
+139: As a Guest, I want to register a new account in the system so that I can access its authenticated and personalized features.
+140: UC-02
+141: View public courses
+142: Guest
+143: As a Guest, I want to browse and view the catalog of courses available to the public so that I can explore what the system offers before registering.
+144: UC-03
+145: Login
+146: System user
+147: As a user, I want to be able to log into the system so that I can access my personalized account and authenticated features.
+148: UC-04
+149: Reset password
+150: System user
+151: As a user, I want to recover or reset my password when I forget it so that I can regain access to my account.
+152: UC-05
+153: Manage profile
+154: System user
+155: As a user, I want to view and update my personal profile information so that my account details stay accurate and up to date.
+156: UC-06
+157: View Notifications
+158: System user
+159: As a user, I want to view system alerts, messages, and updates so that I stay informed about important activities.
+160: UC-07
+161: Submit Support Ticket
+162: System user
+163: As a user, I want to submit a support request or report an issue so that I can get help from the administration.
+164: UC-08
+165: Enroll in Course
+166: Learner
+167: As a Learner, I want to enroll in online courses or classes so that I can start learning the content I am interested in.
+168: UC-09
+169: View Timetable
+170: Learner
+171: As a Learner, I want to view my scheduled classes and upcoming events so that I can plan my learning time.
+172: UC-10
+173: Join Online Meeting
+174: Learner
+175: As a Learner, I want to join live online (virtual) classroom sessions so that I can participate in lessons in real time.
+176: UC-11
+177: Access Classroom Learning Materials
+178: Learner
+179: As a Learner, I want to access the reading materials, documents, and resources for my classes so that I can study the learning content.
+180: UC-12
+181: Download Learning Materials
+182: Learner
+183: As a Learner, I want to download learning materials so that I can study the files offline.
+184: UC-13
+185: Submit Homework
+186: Learner
+187: As a Learner, I want to upload and submit my completed homework so that my work can be reviewed and graded.
+188: UC-14
+189: View Academic Report
+190: Learner
+191: As a Learner, I want to track my grades, scores, and overall learning progress so that I can monitor how I am performing.
+192: UC-15
+193: Take Quiz
+194: Learner
+195: As a Learner, I want to take short quizzes so that I can test my understanding of the lessons.
+196: UC-16
+197: Take Placement Exam
+198: Learner
+199: As a Learner, I want to take simulated placement exams so that I can practice and evaluate my readiness.
+200: UC-17
+201: Practice writing skill
+202: Learner
+203: As a Learner, I want to access and complete writing exercises so that I can improve my writing skill.
+204: UC-18
+205: Practice listening skill
+206: Learner
+207: As a Learner, I want to access and complete listening exercises so that I can improve my listening skill.
+208: UC-19
+209: Practice speaking skill
+210: Learner
+211: As a Learner, I want to access and complete speaking exercises so that I can improve my speaking skill.
+212: UC-20
+213: Practice reading skill
+214: Learner
+215: As a Learner, I want to access and complete reading exercises so that I can improve my reading skill.
+216: UC-21
+217: Practice flashcard
+218: Learner
+219: As a Learner, I want to study with flashcards so that I can memorize vocabulary and concepts more effectively.
+220: UC-22
+221: View Teaching Schedule
+222: Teacher
+223: As a Teacher, I want to view my assigned classes, dates, and times so that I can prepare for my teaching schedule.
+224: UC-23
+225: Manage Class Attendance
+226: Teacher
+227: As a Teacher, I want to track, record, and update student attendance so that attendance records stay accurate.
+228: UC-24
+229: View syllabus
+230: Teacher
+231: As a Teacher, I want to access and review the official course syllabus so that I can follow the planned curriculum.
+232: UC-25
+233: Download syllabus
+234: Teacher
+235: As a Teacher, I want to download the syllabus so that I can reference it offline.
+236: UC-26
+237: Manage Homework
+238: Teacher
+239: As a Teacher, I want to create, assign, update, or delete homework so that I can manage assignments for my students.
+240: UC-27
+241: Manage Quiz Practice Content
+242: Teacher
+243: As a Teacher, I want to create, update, or delete quiz materials so that I can provide practice content for students.
+244: UC-28
+245: Manage Writing Practice Content
+246: Teacher
+247: As a Teacher, I want to organize and update writing exercises so that students have quality writing practice content.
+248: UC-29
+249: Manage Speaking Practice Content
+250: Teacher
+251: As a Teacher, I want to organize and update speaking exercises so that students have quality speaking practice content.
+252: UC-30
+253: Manage Reading Practice Content
+254: Teacher
+255: As a Teacher, I want to organize and update reading exercises so that students have quality reading practice content.
+256: UC-31
+257: Manage Listening Practice Content
+258: Teacher
+259: As a Teacher, I want to organize and update listening exercises so that students have quality listening practice content.
+260: UC-32
+261: Manage Syllabus
+262: Content manager
+263: As a Content Manager, I want to create, update, delete, and structure course syllabuses so that course content is well organized.
+264: UC-33
+265: Manage Online Courses
+266: Content manager
+267: As a Content Manager, I want to oversee, create, and edit online course offerings so that the course catalog stays current.
+268: UC-34
+269: Manage Placement Exams
+270: Content manager
+271: As a Content Manager, I want to create, organize, and update the placement exam question bank so that learners have quality exams to practice with.
+272: UC-35
+273: View teacher profiles
+274: Training manager
+275: As a Training Manager, I want to review the personal and professional details of teachers so that I can manage the teaching staff effectively.
+276: UC-36
+277: Manage Classrooms
+278: Training manager
+279: As a Training Manager, I want to create, configure, update, or remove offline (on-site) or virtual classrooms so that classes are properly set up.
+280: UC-37
+281: Assign Teacher to Classroom
+282: Training manager
+283: As a Training Manager, I want to allocate teachers to specific classes so that every class has an assigned teacher.
+284: UC-38
+285: Assign Learner to Classroom
+286: Training manager
+287: As a Training Manager, I want to place enrolled learners into their respective classes so that learners are organized into the right classrooms.
+288: UC-39
+289: Evaluate Teacher Performance
+290: Training manager
+291: As a Training Manager, I want to review and assess teaching quality and metrics so that I can evaluate teacher performance.
+292: UC-40
+293: View operational report
+294: Manager
+295: As a Manager, I want to view overarching reports on platform operations so that I can make informed management decisions.
+296: UC-41
+297: View revenue analytic of online course
+298: Manager
+299: As a Manager, I want to track and analyze the financial performance and sales of courses so that I can monitor revenue.
+300: UC-42
+301: Manage User Accounts
+302: Admin
+303: As an Admin, I want to create, update, lock, unlock, and oversee user accounts so that I can administer access to the system.
+304: UC-43
+305: Manage System Notifications
+306: Admin
+307: As an Admin, I want to broadcast, edit, or remove global system notifications so that users receive timely announcements.
+308: UC-44
+309: Resolve Support Tickets
+310: Admin, Training manager
+311: As an Admin or Training Manager, I want to view, reply to, and close user support requests so that user issues are resolved.
+312: UC-45
+313: Wishlist Courses
+314: Learner
+315: As a Learner, I want to add courses to my wishlist so that I can save courses to consider enrolling in later.
+316: UC-46
+317: Add Courses to Cart
+318: Learner
+319: As a Learner, I want to add courses to my cart so that I can purchase several courses together.
+320: UC-47
+321: Checkout
+322: Learner
+323: As a Learner, I want to check out and pay for the courses in my cart so that I can complete my enrollment.
+324: UC-48
+325: Access Online Learning Materials
+326: Learner
+327: As a Learner, I want to access online learning materials so that I can study the course content anytime, anywhere.
+328: UC-49
+329: Discuss in Course
+330: Learner
+331: As a Learner, I want to discuss in online Course so that I can ask or answer the learning issues.
+332: UC-50
+333: Report Discussion
+334: Learner
+335: As a Learner, I want to report discussion in online Course so that Content Manager can hide the violated comment.
+336: UC-51
+337: Take Note in Course
+338: Learner
+339: As a Learner, I want to take note in online Course so that I can review the parts of the lesson I need to pay attention to.
+340: 1.3.3 Use Case Diagrams
+341: 1.3.3.1 UCs for Common Feature
+342: 1.3.3.2 UCs for Learner
+343: 1.3.3.3 UCs for Teacher
+344: 1.3.3.4 UCs for Content Manager
+345: 1.3.3.5 UCs for Training Manager
+346: 1.3.3.6 UCs for Manager and Admin
+347: 1.4 System Functionalities
+348: 1.4.1 Screens Flow
+349: 1.4.1.1 SF for Guest
+350: 1.4.1.2 SF for Learner
+351: 1.4.1.3 SF for Teacher
+352: 1.4.1.4 SF for Training Manager
+353: 1.4.1.5 SF for Content Manager
+354: 1.4.1.6 SF for Manager
+355: 1.4.1.7 SF for Admin
+356: 1.4.2 Screen Authorization
+357: Screen
+358: Guest
+359: Learner
+360: Teacher
+361: Training Manager
+362: Content Manager
+363: Manager
+364: Admin
+365: Home page
+366: X
+367: X
+368: X
+369: X
+370: X
+371: X
+372: X
+373: Teacher team
+374: X
+375: X
+376: X
+377: X
+378: X
+379: X
+380: X
+381: About us
+382: X
+383: X
+384: X
+385: X
+386: X
+387: X
+388: X
+389: Contact us
+390: X
+391: X
+392: X
+393: X
+394: X
+395: X
+396: X
+397: Login
+398: X
+399: X
+400: X
+401: X
+402: X
+403: X
+404: X
+405: User register
+406: X
+407: X
+408: X
+409: X
+410: X
+411: X
+412: X
+413: Forget password
+414: X
+415: X
+416: X
+417: X
+418: X
+419: X
+420: X
+421: Student Dashboard
+422: X
+423: Teacher Dashboard
+424: X
+425: X
+426: X
+427: Content Manager Dashboard
+428: X
+429: X
+430: Manager Dashboard
+431: X
+432: Admin Dashboard
+433: X
+434: Profile
+435: X
+436: X
+437: X
+438: X
+439: Setting
+440: X
+441: Edit profile
+442: X
+443: Device management
+444: X
+445: Change password
+446: X
+447: Notify
+448: X
+449: Payment history
+450: X
+451: Learning history
+452: X
+453: Timetable / Time table
+454: X
+455: X
+456: X
+457: X
+458: Register course
+459: X
+460: Wishlist
+461: X
+462: My course
+463: X
+464: Student's Course List
+465: X
+466: Course Step Detail
+467: X
+468: Course
+469: X
+470: Online course
+471: X
+472: Online course grid
+473: X
+474: Online course information
+475: X
+476: Cart
+477: X
+478: Payment
+479: X
+480: Class list
+481: X
+482: X
+483: X
+484: X
+485: Class detail
+486: X
+487: X
+488: X
+489: X
+490: Practice
+491: X
+492: X
+493: X
+494: X
+495: Homework
+496: X
+497: X
+498: X
+499: X
+500: Homework list
+501: X
+502: X
+503: X
+504: X
+505: Homework detail
+506: X
+507: X
+508: X
+509: X
+510: Vocabulary
+511: X
+512: X
+513: X
+514: X
+515: Vocabulary list
+516: X
+517: X
+518: X
+519: X
+520: Vocabulary content
+521: X
+522: X
+523: X
+524: X
+525: Quiz
+526: X
+527: X
+528: X
+529: X
+530: Study content
+531: X
+532: X
+533: X
+534: X
+535: Quiz list
+536: X
+537: X
+538: X
+539: X
+540: Writing
+541: X
+542: X
+543: X
+544: X
+545: Writing list
+546: X
+547: X
+548: X
+549: X
+550: Video listening
+551: X
+552: X
+553: X
+554: X
+555: Video list
+556: X
+557: X
+558: X
+559: X
+560: Flashcard
+561: X
+562: X
+563: X
+564: X
+565: Flashcard content
+566: X
+567: X
+568: X
+569: X
+570: Homework submition
+571: X
+572: Quiz practice
+573: X
+574: Writing practice
+575: X
+576: Practice page
+577: X
+578: Flashcard practice
+579: X
+580: Flashcard quiz
+581: X
+582: Campus schedule
+583: X
+584: X
+585: X
+586: X
+587: Homework submition management
+588: X
+589: X
+590: X
+591: Quiz management
+592: X
+593: X
+594: X
+595: Writing management
+596: X
+597: X
+598: X
+599: Practice management
+600: X
+601: X
+602: X
+603: Flashcard management
+604: X
+605: X
+606: X
+607: Student list
+608: X
+609: X
+610: X
+611: Student detail
+612: X
+613: X
+614: X
+615: Attendance
+616: X
+617: X
+618: X
+619: Teacher list
+620: X
+621: X
+622: Teacher detail
+623: X
+624: X
+625: Online course list
+626: X
+627: X
+628: Online course detail
+629: X
+630: X
+631: Online course management
+632: X
+633: X
+634: Syllabus list
+635: X
+636: X
+637: Syllabus detail
+638: X
+639: X
+640: Syllabus management
+641: X
+642: X
+643: Placement test question bank
+644: X
+645: X
+646: Placement test question bank management
+647: X
+648: X
+649: Teacher performance list
+650: X
+651: Revenue analytic
+652: X
+653: Operation report
+654: X
+655: Classroom list
+656: X
+657: Classroom management
+658: X
+659: Feedback
+660: X
+661: Support ticket
+662: X
+663: X
+664: Ticket management
+665: X
+666: User list
+667: X
+668: User detail
+669: X
+670: User management
+671: X
+672: Notify history
+673: X
+674: Notify management
+675: X
+676: Support ticket list
+677: X
+678: Support ticket detail
+679: X
+680: Support ticket management
+681: X
+682: System setting
+683: X
+684: 1.4.3 Non-UI Functions
+685: #
+686: Feature
+687: System Function
+688: Description
+689: 1
+690: Authentication & Authorization
+691: User Authentication
+692: Validates user login credentials and generates secure authentication tokens for session management.
+693: 2
+694: Authentication & Authorization
+695: User Session
+696: Keep Logged In user session for 1 day.
+697: 3
+698: Authentication & Authorization
+699: Role-Based Access Control
+700: Controls access to system functions based on assigned roles.
+701: 4
+702: Data Validation
+703: Input Validation
+704: Validates user input such as email format, required fields, date ranges, and file size before sending api requests.
+705: 5
+706: Integrity
+707: Referential Integrity
+708: Ensures relationships such as between modules, domains, skills, and questions remain consistent; between provinces and wards; …
+709: 1.5 Entity Relationship Diagram
+710: 1.5.1 Authentication
+711: Entities Description
+712: #
+713: Entity
+714: Description
+715: 1
+716: users
+717: Stores account and profile information for every platform user, including the directly stored login role.
+718: 2
+719: roles
+720: Stores the set of assignable system roles used for access control.
+721: 3
+722: user_roles
+723: Records which roles are assigned to which users.
+724: 4
+725: auth_tokens
+726: Stores authentication and verification tokens such as email-verification and password-reset tokens.
+727: 5
+728: teacher_profiles
+729: Stores extended teaching profile details for users who act as teachers.
+730: 1.5.2 Product Package & Delivery Models
+731: Entities Description
+732: #
+733: Entity
+734: Description
+735: 1
+736: package_types
+737: Stores the catalog classification of products such as online or classroom.
+738: 2
+739: packages
+740: Stores the commercial product/offering layer with pricing, status, and sales information.
+741: 3
+742: package_availability
+743: Stores the sales window, access duration, and capacity rules for a package.
+744: 4
+745: course_categories
+746: Stores categories used to group and filter online courses.
+747: 5
+748: online_courses
+749: Stores the self-paced online delivery details linked to an online package.
+750: 6
+751: classroom_offerings
+752: Stores a scheduled class offering whose delivery_mode distinguishes offline (campus) from virtual (Lark) classes.
+753: 7
+754: campuses
+755: Stores physical branch or campus locations.
+756: 8
+757: classroom_rooms
+758: Stores physical rooms belonging to a campus.
+759: 1.5.3 Online Course Content
+760: Entities Description
+761: #
+762: Entity
+763: Description
+764: 1
+765: course_modules
+766: Stores the ordered modules that structure an online course.
+767: 2
+768: lessons
+769: Stores individual lessons contained within a course module.
+770: 3
+771: learning_materials
+772: Stores downloadable or reference materials attached to lessons.
+773: 4
+774: question_banks
+775: Stores collections of practice and exam questions owned by a package.
+776: 5
+777: exam_questions
+778: Stores individual questions belonging to a question bank.
+779: 6
+780: question_options
+781: Stores the selectable answer options for a question.
+782: 1.5.4 Classroom Operations
+783: Entities Description
+784: #
+785: Entity
+786: Description
+787: 1
+788: classroom_sessions
+789: Stores each scheduled class session, including offline room or virtual Lark meeting details.
+790: 2
+791: classroom_teacher_assignments
+792: Records the assignment of teachers to a classroom offering.
+793: 3
+794: classroom_enrollments
+795: Records a learner's enrollment in a classroom offering.
+796: 4
+797: classroom_attendance_records
+798: Records per-session attendance for enrolled learners.
+799: 5
+800: classroom_gradebook_entries
+801: Stores the consolidated grade and result summary for a learner in a classroom offering.
+802: 6
+803: classroom_materials
+804: Stores teaching materials shared at the offering or session level.
+805: 7
+806: classroom_announcements
+807: Stores announcements posted to a classroom offering.
+808: 8
+809: classroom_syllabus_items
+810: Stores the planned syllabus items for a classroom offering.
+811: 9
+812: classroom_change_requests
+813: Records requests to change schedule, room, meeting, or cancel sessions, together with their review status.
+814: 10
+815: classroom_tuition_payments
+816: Records tuition payment entries logged against a classroom enrollment.
+817: 11
+818: lark_meeting_participants
+819: Records join and leave activity of participants in a virtual session via the Lark webhook.
+820: 1.5.5 Enrollment, Progress, Completion & Certificate
+821: Entities Description
+822: #
+823: Entity
+824: Description
+825: 1
+826: package_enrollments
+827: Records a learner's access and ownership of a package after registration or payment.
+828: 2
+829: enrollment_events
+830: Records lifecycle events occurring on a package enrollment.
+831: 3
+832: lesson_progress
+833: Records each learner's progress through individual lessons.
+834: 4
+835: vocabulary_progress
+836: Records each learner's study progress on vocabulary terms.
+837: 5
+838: course_completions
+839: Stores the computed completion record for a package enrollment.
+840: 6
+841: certificates
+842: Stores issued completion certificates with a unique verification code.
+843: 1.5.6 Assignment & Classroom Homework
+844: Entities Description
+845: #
+846: Entity
+847: Description
+848: 1
+849: assignments
+850: Stores online and general assignments defined for an online course.
+851: 2
+852: assignment_submissions
+853: Records learner submissions and grading for online assignments.
+854: 3
+855: classroom_homework
+856: Stores homework assigned within a classroom offering or session.
+857: 4
+858: classroom_homework_submissions
+859: Records learner submissions and grading for classroom homework.
+860: 1.5.7 Commerce, Cart, Wishlist, Order & Payment
+861: Entities Description
+862: #
+863: Entity
+864: Description
+865: 1
+866: carts
+867: Stores each user's active shopping cart.
+868: 2
+869: cart_items
+870: Stores the packages added to a cart.
+871: 3
+872: wishlists
+873: Stores each user's wishlist.
+874: 4
+875: wishlist_items
+876: Stores the packages saved to a wishlist.
+877: 5
+878: orders
+879: Stores purchase orders placed by users.
+880: 6
+881: order_items
+882: Stores the package line items of an order with price and title snapshots.
+883: 7
+884: payments
+885: Records payment transactions made against an order.
+886: 8
+887: refunds
+888: Records refunds issued against a payment.
+889: 9
+890: discount_codes
+891: Stores discount or voucher codes and their usage limits.
+892: 10
+893: order_discounts
+894: Records discount codes applied to an order with snapshot values.
+895: 11
+896: app_notifications
+897: Stores in-app notifications sent to users.
+898: 1.5.8 Assessment & AI Processing
+899: Entities Description
+900: #
+901: Entity
+902: Description
+903: 1
+904: assessment_rubrics
+905: Stores IELTS scoring rubrics defined by skill and task type.
+906: 2
+907: rubric_criteria
+908: Stores the weighted criteria that make up a rubric.
+909: 3
+910: course_assessments
+911: Stores assessment definitions attached to a course or module.
+912: 4
+913: assessment_submissions
+914: Records learner submissions to a course assessment, including AI scoring data.
+915: 5
+916: assessment_answer_keys
+917: Stores versioned answer keys for an assessment.
+918: 6
+919: assessment_answer_items
+920: Stores the accepted answers per question within an answer key.
+921: 7
+922: ielts_band_scales
+923: Stores raw-score-to-band conversion scales by skill and test type.
+924: 8
+925: ielts_band_scale_rows
+926: Stores individual raw-score-range to band-score rows of a band scale.
+927: 9
+928: assessment_processing_jobs
+929: Records asynchronous AI processing jobs for assessment submissions.
+930: 10
+931: assessment_audio_assets
+932: Stores uploaded speaking audio files linked to a submission.
+933: 11
+934: submission_criterion_scores
+935: Records per-criterion scores and feedback for a submission.
+936: 12
+937: objective_mistake_analysis
+938: Records per-question mistake analysis for objective submissions.
+939: 1.5.9 Discussion, Review, Notification & Content Management
+940: Entities Description
+941: #
+942: Entity
+943: Description
+944: 1
+945: course_discussion_threads
+946: Stores discussion threads created within an online course.
+947: 2
+948: course_discussion_replies
+949: Stores replies posted to a discussion thread.
+950: 3
+951: course_discussion_reply_votes
+952: Records helpful votes cast by users on replies.
+953: 4
+954: course_discussion_reactions
+955: Records user reactions to a thread or reply through a polymorphic target.
+956: 5
+957: course_discussion_reports
+958: Records user reports on a thread or reply through a polymorphic target.
+959: 6
+960: course_reviews
+961: Stores learner ratings and reviews of a package.
+962: 7
+963: notification_preferences
+964: Stores each user's notification channel preferences.
+965: 8
+966: moderation_actions
+967: Records moderation actions taken on discussion content.
+968: 9
+969: lesson_notes
+970: Stores personal notes a learner takes on a lesson.
+971: 10
+972: lesson_bookmarks
+973: Records lessons bookmarked by a learner.
+974: 11
+975: content_manager_assignments
+976: Records the assignment of content managers to packages.
+977: 12
+978: content_versions
+979: Stores versioned snapshots of content entities through a polymorphic reference.
+980: 13
+981: content_audit_log
+982: Records audit-log entries of content changes through a polymorphic reference.
+983: 2. Use Case Specifications
+984: 2.1 Common
+985: 2.1.1 View public courses
+986: UC ID and Name:
+987: UC-02: View public courses
+988: Created By:
+989: ChinhCD
+990: Date Created:
+991: 03/06/2026
+992: Primary Actor:
+993: All actors
+994: Secondary Actors:
+995: None
+996: Description:
+997: As a user, I want to browse, search, and view the catalog of courses available to the public so that I can explore what the system offers before registering.
+998: Trigger:
+999: The user opens the “Khóa học” (Courses) page (/courses).
+1000: Preconditions:
+1001: PRE-1. The course catalog is publicly accessible without logging in.
+1002: Postconditions:
+1003: POST-1. The list of active, published courses matching the criteria is displayed.
+1004: POST-2. No data is changed in the system (read-only use case).
+1005: Normal Flow:
+1006: 1. The user opens the “Khóa học” (Courses) page.
+1007: 2. The user enters keywords in the search box (“Nhập tên khóa học...”) or selects a category/level filter.
+1008: 3. System retrieves the active, published courses matching the criteria.
+1009: 4. System displays the list of courses with thumbnail, title, level, and price.
+1010: 5. The user clicks “Xem chi tiết khóa học” (View course details) to open a course detail page.
+1011: Alternative Flows:
+1012: 2.A1 No results found:
+1013: - System finds no courses matching the criteria and displays MSG-04.
+1014: - The user clears or changes the filters (“Xóa tất cả bộ lọc”) and continues from step 2.
+1015: Exceptions:
+1016: None.
+1017: Priority:
+1018: Medium
+1019: Frequency of Use:
+1020: Very High
+1021: Business Rules:
+1022: None.
+1023: 2.1.2 View profile
+1024: UC ID and Name:
+1025: UC-05a View profile
+1026: Created By:
+1027: ChinhCD
+1028: Date Created:
+1029: 03/06/2026
+1030: Primary Actor:
+1031: System user
+1032: Secondary Actors:
+1033: None
+1034: Description:
+1035: As a user, I want to view my current personal profile information so that I can review my account details.
+1036: Trigger:
+1037: User navigates to the "Hồ sơ" page.
+1038: Preconditions:
+1039: PRE-1. The user must be successfully logged in and have a valid account in the system.
+1040: PRE-2.The user must have a valid JWT token
+1041: PRE-3. The user must have a verified email
+1042: Postconditions:
+1043: POST-1. The user's current profile information is displayed.
+1044: POST-2. No data is changed (read-only use case).
+1045: Normal Flow:
+1046: 1. The user opens the “Cài đặt tài khoản” (Profile) page.
+1047: 2. System retrieves the current user's information from the database.
+1048: 3. System displays the profile information (e.g., Full name, Avatar, Phone number, Email, linked accounts).
+1049: Alternative Flows:
+1050: None
+1051: Exceptions:
+1052: E1. Invalid/Expired JWT Token
+1053: E2. User Not Found
+1054: Priority:
+1055: Medium
+1056: Frequency of Use:
+1057: Medium
+1058: 2.1.3 Update profile
+1059: UC ID and Name:
+1060: UC-05b Update profile
+1061: Created By:
+1062: ChinhCD
+1063: Date Created:
+1064: 03/06/2026
+1065: Primary Actor:
+1066: System user
+1067: Secondary Actors:
+1068: None
+1069: Description:
+1070: As a user, I want to edit and update my personal profile information so that my account details stay accurate and up to date.
+1071: Trigger:
+1072: On the “Cài đặt tài khoản” (Profile) page, the user edits a field and clicks the “Lưu thay đổi” (Save changes) button.
+1073: Preconditions:
+1074: PRE-1. The user must be successfully logged in and have a valid account.
+1075: PRE-2. The user must have a valid JWT token.
+1076: PRE-3: The user must have a verified email.
+1077: Postconditions:
+1078: POST-1. The user's profile information is validated and updated in the database.
+1079: POST-2. The updated information is reflected on the profile page.
+1080: Normal Flow:
+1081: 1. System displays the user's current profile information.
+1082: 2. The user edits fields (e.g., Full name, Phone number, Avatar via “Tải ảnh lên”).
+1083: 3. The user clicks “Lưu thay đổi” (Save changes).
+1084: 4. System validates the input data.
+1085: 5. System updates the database and displays MSG-03.
+1086: Alternative Flows:
+1087: 2.A1 Change password:
+1088: - The user opens “Thay đổi mật khẩu” (Change password), enters the current and new password, and saves; System validates (BR-01) and updates the password.
+1089: Exceptions:
+1090: 3.E1 Validation Error:
+1091: System detects invalid data formats (e.g., letters in phone number).
+1092: System displays inline validation errors preventing save.
+1093: Priority:
+1094: Medium
+1095: Frequency of Use:
+1096: Medium
+1097: Business Rules:
+1098: None.
+1099: Assumptions:
+1100: None.
+1101: 2.1.4 View Notifications
+1102: UC ID and Name:
+1103: UC-06: View Notifications
+1104: Created By:
+1105: ChinhCD
+1106: Date Created:
+1107: 03/06/2026
+1108: Primary Actor:
+1109: System user
+1110: Secondary Actors:
+1111: None
+1112: Description:
+1113: As a user, I want to view system alerts, messages, and updates so that I stay informed about important activities.
+1114: Trigger:
+1115: The user clicks the notification bell icon or opens the “Thông báo” (Notifications) page (/notifications).
+1116: Preconditions:
+1117: PRE-1. The user must be successfully logged in and have a valid account in the system.
+1118: PRE-2.The user must have a valid JWT token.
+1119: PRE-3. The user must have a verified email.
+1120: Postconditions:
+1121: POST-1. The user's notifications are displayed, most recent first.
+1122: POST-2. Notifications shown are marked as read.
+1123: POST-3. The database is not modified.
+1124: Normal Flow:
+1125: 1. The user clicks the notification bell or opens the “Thông báo” (Notifications) page.
+1126: 2. System retrieves the user's notifications from the database.
+1127: 3. System displays the list of notifications (title, content, time) and marks them as read.
+1128: 4. The user clicks a notification to view its details or navigate to the related item.
+1129: Alternative Flows:
+1130: 2.A1 No notifications:
+1131: - System detects the user has no notifications and displays MSG-09.
+1132: Exceptions:
+1133: None
+1134: Priority:
+1135: Low
+1136: Frequency of Use:
+1137: High
+1138: Business Rules:
+1139: None.
+1140: 2.1.5 Submit Support Ticket
+1141: UC ID and Name:
+1142: UC-07: Submit Support Ticket
+1143: Created By:
+1144: ChinhCD
+1145: Date Created:
+1146: 03/06/2026
+1147: Primary Actor:
+1148: System user
+1149: Secondary Actors:
+1150: None
+1151: Description:
+1152: As a user, I want to submit a support request or report an issue so that I can get help from the administration. .
+1153: Trigger:
+1154: The user opens “Hỗ trợ” (Support) and clicks “Gửi phiếu hỗ trợ” (Submit support ticket).
+1155: Preconditions:
+1156: PRE-1. The user must be successfully logged in and have a valid account in the system.
+1157: PRE-2. The user must have a valid JWT token.
+1158: PRE-3. The user must have a verified email.
+1159: Postconditions:
+1160: POST-1. A new support ticket is created in the database with status “Open”.
+1161: POST-2. The ticket appears in the support queue for staff to resolve (UC-44).
+1162: Normal Flow:
+1163: 1. System displays the support ticket form.
+1164: 2. The user enters a Title and Description and selects a Category.
+1165: 3. The user clicks “Gửi” (Submit).
+1166: 4. System validates the required fields and saves the ticket with status “Open”.
+1167: 5. System displays MSG-03.
+1168: Alternative Flows:
+1169: A1. Missing required fields:
+1170: - System detects an empty required field and blocks submission with an inline validation message; the user completes the fields and continues from step 3.
+1171: A2. Resubmit duplicate ticket:
+1172: The user already has a similar ticket created within the last 24 hours
+1173: The system detects the duplicate.
+1174: The system displays a message to the user.
+1175: User select:
+1176: -View my ticket: Navigate to the previous ticket's detail page.
+1177: -Submit anyway: Continues to create a new ticket (step 5 Basic Flow).
+1178: Exceptions:
+1179: E1. Empty subject.
+1180: Priority:
+1181: Medium
+1182: Frequency of Use:
+1183: Low
+1184: Business Rules:
+1185: None.
+1186: 2.2 Authentication
+1187: 2.2.1 Register Account
+1188: UC ID and Name:
+1189: UC-01 Register Account
+1190: Created By:
+1191: ChinhCD
+1192: Date Created:
+1193: 03/06/2026
+1194: Primary Actor:
+1195: Guest
+1196: Secondary Actors:
+1197: None
+1198: Description:
+1199: As a Guest, I want to register a new account in the system so that I can access its authenticated and personalized features.
+1200: Trigger:
+1201: The Guest opens the registration page (/register) and clicks the “Đăng ký” (Register) button.
+1202: Preconditions:
+1203: PRE-1. The Guest is not logged in.
+1204: PRE-2. The Guest has a valid email address that is not already registered in the system.
+1205: Postconditions:
+1206: POST-1. A new user account is created in the database with the default Learner role.
+1207: POST-2. The email is verified through a valid OTP and the account is activated.
+1208: POST-3. The Guest is authenticated (access and refresh tokens issued) and redirected into the system.
+1209: Normal Flow:
+1210: 1. The Guest opens the registration page.
+1211: 2. The Guest enters Full name, Email, Password, and Confirm password.
+1212: 3. The Guest clicks “Đăng ký” (Register).
+1213: 4. System validates the password format (BR-01) and confirms the email is unique (BR-02).
+1214: 5. System creates the account and sends a verification OTP to the registered email.
+1215: 6. System opens the “Xác thực email” (Email verification) screen.
+1216: 7. The Guest enters the OTP and clicks “Xác thực email” (Verify email).
+1217: 8. System verifies the OTP (BR-06), activates the account, logs the Guest in, and displays MSG-03.
+1218: Alternative Flows:
+1219: 4.A1 Invalid password format:
+1220: - System detects the password does not meet BR-01 and displays MSG-01.
+1221: - The Guest re-enters the password and continues from step 3.
+1222: 7.A1 Resend OTP:
+1223: - The Guest clicks “Gửi lại mã xác thực” (Resend code); System sends a new OTP and restarts the countdown.
+1224: Exceptions:
+1225: 5.E1 Email Already Exists:
+1226: System detects the email is already registered (BR-02).
+1227: System displays MSG-02.
+1228: 8.E2 Wrong OTP:
+1229: System detects the OTP is wrong (BR-06).
+1230: System displays MSG-13.
+1231: Priority:
+1232: High
+1233: Frequency of Use:
+1234: High
+1235: Business Rules:
+1236: BR-01, BR-02
+1237: 2.2.2 Login
+1238: UC ID and Name:
+1239: UC-03 Login
+1240: Created By:
+1241: ChinhCD
+1242: Date Created:
+1243: 03/06/2026
+1244: Primary Actor:
+1245: System user
+1246: Secondary Actors:
+1247: None
+1248: Description:
+1249: As a user, I want to be able to log into the system so that I can access my personalized account and authenticated features.
+1250: Trigger:
+1251: The user opens the login page (/login), enters credentials, and clicks the “Đăng nhập” (Log in) button.
+1252: Preconditions:
+1253: PRE-1. The user has a registered, activated account.
+1254: PRE-2. The user is not currently logged in.
+1255: Postconditions:
+1256: POST-1. The user is authenticated and an access/refresh token session is created.
+1257: POST-2. The failed-login attempt counter is reset to zero.
+1258: POST-3. The user is redirected to the home page or the page they originally requested.
+1259: Normal Flow:
+1260: 1. System displays the login form.
+1261: 2. The user enters Email and Password and clicks “Đăng nhập” (Log in).
+1262: 3. System validates the credentials against the database (BR-01, BR-02).
+1263: 4. System resets the failed-login attempt counter.
+1264: 5. System creates the session and redirects the user to the home page (or the previously requested page).
+1265: Alternative Flows:
+1266: 2.A1 Login with Google:
+1267: - The user clicks the “Google” button; System redirects to Google authentication.
+1268: - The user authenticates with Google; Google returns a secure token and email.
+1269: - System verifies the email exists in the database, logs the user in, and continues from step 5.
+1270: 3.A2 Invalid credentials:
+1271: - System detects an incorrect email or password, increments the failed-login counter, and displays MSG-05.
+1272: - The user re-enters credentials and continues from step 2.
+1273: 5.A3 Unregistered Google email:
+1274: - System detects the Google email does not exist in the database, aborts login, and displays MSG-07.
+1275: Exceptions:
+1276: 2.E1 Account Locked:
+1277: System detects the failed login counter has reached 5 (BR-03).
+1278: System locks the account and prevents login.
+1279: System displays MSG-06.
+1280: 4.E2 Google Authentication Failed:
+1281: System fails to communicate with Google API or user cancels the prompt.
+1282: System displays MSG-14.
+1283: Priority:
+1284: High
+1285: Frequency of Use:
+1286: Very High
+1287: Business Rules:
+1288: BR-03.
+1289: 2.2.3 Reset Password
+1290: UC ID and Name:
+1291: UC-04 Reset password
+1292: Created By:
+1293: ChinhCD
+1294: Date Created:
+1295: 03/06/2026
+1296: Primary Actor:
+1297: System user
+1298: Secondary Actors:
+1299: None
+1300: Description:
+1301: As a user, I want to recover or reset my password when I forget it so that I can regain access to my account.
+1302: Trigger:
+1303: The user clicks the “Quên mật khẩu?” (Forgot password?) link on the login page.
+1304: Preconditions:
+1305: PRE-1. The user is not logged in.
+1306: PRE-2. The email entered belongs to an existing, activated account.
+1307: Postconditions:
+1308: POST-1. A password-reset OTP is generated and sent to the user's registered email.
+1309: POST-2. On success, the user's password is updated in the database and the user can log in with the new password.
+1310: Normal Flow:
+1311: 1. System displays the email input form.
+1312: 2. The user enters their registered email and clicks “Gửi mã OTP đặt lại mật khẩu” (Send reset OTP).
+1313: 3. System verifies the email exists in the database.
+1314: 4. System generates an OTP with a 5-minute expiration and emails it to the user.
+1315: 5. The user enters the OTP on the “Đặt lại mật khẩu” (Reset password) screen.
+1316: 6. System verifies the OTP (BR-06).
+1317: 7. The user enters New password and Confirm password and clicks “Lưu mật khẩu mới” (Save new password).
+1318: 8. System validates the password format (BR-01) and updates the user's password in the database.
+1319: 9. System displays MSG-03 and redirects the user to the login page. .
+1320: Alternative Flows:
+1321: 3.A1 Email not found:
+1322: - System detects the email does not exist in the database and displays MSG-07.
+1323: 6.A1 Resend OTP:
+1324: - The user clicks “Gửi lại OTP” (Resend OTP); System sends a new OTP and restarts the countdown.
+1325: 8.A1 Invalid password format:
+1326: - System detects the password does not meet BR-01 and displays MSG-01; the user re-enters the password and continues from step 7.
+1327: Exceptions:
+1328: None
+1329: Priority:
+1330: High
+1331: Frequency of Use:
+1332: Medium
+1333: Business Rules:
+1334: BR-04
+1335: 2.3 Learning Experience features
+1336: 2.3.1 Enroll in Course
+1337: UC ID and Name:
+1338: UC-08: Enroll in Course
+1339: Created By:
+1340: ChinhCD
+1341: Date Created:
+1342: 03/06/2026
+1343: Primary Actor:
+1344: Learner
+1345: Secondary Actors:
+1346: None
+1347: Description:
+1348: As a Learner, I want to enroll in online courses or classes so that I can start learning the content I am interested in.
+1349: Trigger:
+1350: The Learner opens a course detail page and clicks “Mua khóa học” (Buy course) or “Đăng ký miễn phí” (Enroll for free).
+1351: Preconditions:
+1352: PRE-1. The learner must be successfully logged in and have a valid account in the system.
+1353: PRE-2. The learner must have a valid JWT token.
+1354: PRE-3. The target course is active/published and visible to the Learner.
+1355: PRE-4. The Learner is not already enrolled in the target course (BR-05).
+1356: Postconditions:
+1357: POST-1. An enrollment record is created and the Learner is granted access to the course content (modules, lessons, materials).
+1358: POST-2. For a paid course, a payment transaction record is created and a confirmation email is sent.
+1359: POST-3. The course appears in the Learner's “Khóa học của tôi” (My Courses) screen.
+1360: Normal Flow:
+1361: 1. The Learner opens a course detail page and clicks “Mua khóa học” (Buy course) — or “Thêm vào giỏ hàng” (Add to cart) to buy several together.
+1362: 2. System validates the course status and confirms the Learner is not already enrolled (BR-05).
+1363: 3. The Learner proceeds to checkout and clicks “Xác nhận thanh toán” (Confirm payment), selecting a payment method.
+1364: 4. System initiates the transaction with the PayOS payment gateway and waits for the result.
+1365: 5. System receives a successful payment confirmation from the gateway.
+1366: 6. System creates the enrollment record for the Learner.
+1367: 7. System grants access to the course content and sends a confirmation email.
+1368: 8. System displays MSG-11 and redirects the Learner to “Khóa học của tôi” (My Courses).
+1369: Alternative Flows:
+1370: 4.A1 Payment Status Retry
+1371: The payment result is not returned or the transaction status is unclear.
+1372: System sends a retry request to the payment gateway/bank.
+1373: Payment gateway returns the latest transaction status.
+1374: If payment is confirmed successfully, the process resumes from Step 6 of the Normal Flow.
+1375: Otherwise, the process follows Exception 4.E1.
+1376: Exceptions:
+1377: 2.E1 Enrollment Validation Failed
+1378: System detects that the course is inactive or the learner is already enrolled in the course (BR-05).
+1379: System blocks the enrollment process.
+1380: System displays MSG-10.
+1381: 4.E1 Payment Failed
+1382: Payment gateway returns a failed, canceled, or expired transaction status.
+1383: System does not create the enrollment record.
+1384: System does not grant access to the course content.
+1385: System displays an appropriate payment failure message and allows the learner to retry payment.
+1386: Priority:
+1387: High
+1388: Frequency of Use:
+1389: Medium
+1390: Business Rules:
+1391: BR-05.
+1392: 2.3.2 View Timetable
+1393: UC ID and Name:
+1394: UC-09 View Timetable
+1395: Created By:
+1396: ChinhCD
+1397: Date Created:
+1398: 03/06/2026
+1399: Primary Actor:
+1400: Learner
+1401: Secondary Actors:
+1402: None
+1403: Description:
+1404: As a Learner, I want to view my scheduled classes and upcoming events so that I can plan my learning time.
+1405: Trigger:
+1406: The Learner opens the “Lịch học” (My Schedule) page (/my-schedule).
+1407: Preconditions:
+1408: PRE-1. The Learner is logged into the system.
+1409: PRE-2: The user must have a valid JWT token.
+1410: PRE-3. The Learner is enrolled in at least one classroom (offline or virtual).
+1411: Postconditions:
+1412: POST-1. The timetable for the selected period is displayed with the Learner's class sessions.
+1413: POST-2: The database not change.
+1414: Normal Flow:
+1415: 1. The Learner opens the “Lịch học” (My Schedule) page and selects a week or month view.
+1416: 2. System retrieves the scheduled sessions of the classrooms the Learner is enrolled in.
+1417: 3. System displays the timetable, marking each session with its date, time, mode (offline/virtual), and status.
+1418: 4. The Learner clicks “Chi tiết” (Details) on a session to view more information.
+1419: Alternative Flows:
+1420: 2.A1 No scheduled classes:
+1421: - System finds no sessions for the selected period and displays MSG-12.
+1422: Exceptions:
+1423: None
+1424: Priority:
+1425: High
+1426: Frequency of Use:
+1427: Very High
+1428: Business Rules:
+1429: None.
+1430: 2.3.3 Join Online Meeting
+1431: UC ID and Name:
+1432: UC-10: Join Online Meeting
+1433: Created By:
+1434: ChinhCD
+1435: Date Created:
+1436: 03/06/2026
+1437: Primary Actor:
+1438: Learner
+1439: Secondary Actors:
+1440: None
+1441: Description:
+1442: As a Learner, I want to join live online (virtual) classroom sessions so that I can participate in lessons in real time.
+1443: Trigger:
+1444: The Learner clicks the “Tham gia Lark” (Join Lark) button from the “Lịch học” (My Schedule) or classroom detail page.
+1445: Preconditions:
+1446: PRE-1. The user must be successfully logged in and have a valid account.
+1447: PRE-2. The user must have a valid JWT token.
+1448: PRE-3. The Learner is logged in and enrolled in the virtual classroom.
+1449: Postconditions:
+1450: POST-1. The Learner is taken to the live online meeting room (Lark).
+1451: Normal Flow:
+1452: 1. The Learner opens the upcoming virtual session from “Lịch học” (My Schedule) or the classroom detail page.
+1453: 2. The Learner clicks “Tham gia Lark” (Join Lark).
+1454: 3. System opens the meeting link and redirects the Learner to the online meeting room.
+1455: Alternative Flows:
+1456: 2.A1 Link not ready:
+1457: - The meeting link has not been created yet; System keeps the button disabled and offers “Mở liên kết thủ công” (Open link manually) once available.
+1458: 2.A2. Unauthorized User:
+1459: -The user attempts to access a meeting for a course they are not enrolled in.
+1460: Exceptions:
+1461: None
+1462: Priority:
+1463: High
+1464: Frequency of Use:
+1465: High
+1466: Business Rules:
+1467: None.
+1468: 2.3.4 Access Offline Learning Materials
+1469: UC ID and Name:
+1470: UC-11 Access Learning Materials
+1471: Created By:
+1472: ChinhCD
+1473: Date Created:
+1474: 03/06/2026
+1475: Primary Actor:
+1476: Learner
+1477: Secondary Actors:
+1478: None
+1479: Description:
+1480: As a Learner, I want to access the reading materials, documents, and resources of my registered classroom so that I can study the learning content.
+1481: Trigger:
+1482: The Learner opens the “Tài liệu” (Materials) tab of a classroom and clicks a material item.
+1483: Preconditions:
+1484: PRE-1. The Learner is logged in.
+1485: PRE-2. The user must have a valid JWT token.
+1486: PRE-3. The Learner is registered in the teacher-led (offline or virtual) classroom.
+1487: Postconditions:
+1488: POST-1. The selected material is rendered and displayed to the Learner inside the platform.
+1489: Normal Flow:
+1490: 1. The Learner opens the “Tài liệu” (Materials) tab of the classroom.
+1491: 2. The Learner clicks a material item or lesson (file, PDF, video, …).
+1492: 3. System retrieves the material data from the database.
+1493: 4. System loads the appropriate viewer embedded in the platform and the Learner views the content.
+1494: Alternative Flows:
+1495: 3.A1 Material unavailable:
+1496: - System detects the material has been hidden or removed and displays MSG-17.
+1497: Exceptions:
+1498: None
+1499: Priority:
+1500: High
+1501: 2.3.5 Download Learning Materials
+1502: UC ID and Name:
+1503: UC-12 Download Learning Materials
+1504: Created By:
+1505: ChinhCD
+1506: Date Created:
+1507: 03/06/2026
+1508: Primary Actor:
+1509: Learner
+1510: Secondary Actors:
+1511: None
+1512: Description:
+1513: As a Learner, I want to download learning materials so that I can study the files offline.
+1514: Trigger:
+1515: The Learner clicks the “Tải về máy” (Download) button next to a classroom material.
+1516: Preconditions:
+1517: PRE-1. The Learner is logged in and viewing a material within a registered teacher-led (offline or virtual) classroom.
+1518: PRE-2. The material is downloadable (it belongs to a classroom, not a self-paced online course) (BR-10).
+1519: Postconditions:
+1520: POST-1. The file is downloaded to the Learner's local device.
+1521: Normal Flow:
+1522: 1. The Learner clicks “Tải về máy” (Download) next to a material.
+1523: 2. System verifies the material belongs to a teacher-led classroom (BR-10).
+1524: 3. System prepares the file and triggers the browser's download prompt.
+1525: 4. The Learner saves the file locally.
+1526: Alternative Flows:
+1527: 2.A1 Download restricted (online course):
+1528: - System detects the material belongs to a self-paced online course (BR-10), blocks the download, and displays MSG-18.
+1529: Exceptions:
+1530: None
+1531: Priority:
+1532: Medium
+1533: Frequency of Use:
+1534: Medium
+1535: Business Rules:
+1536: BR-10
+1537: 2.3.6 Submit Homework
+1538: UC ID and Name:
+1539: UC-13 Submit Homework
+1540: Created By:
+1541: ChinhCD
+1542: Date Created:
+1543: 03/06/2026
+1544: Primary Actor:
+1545: Learner
+1546: Secondary Actors:
+1547: None
+1548: Description:
+1549: As a Learner, I want to upload and submit my completed homework so that my work can be reviewed and graded.
+1550: Trigger:
+1551: In the classroom “Bài tập” (Homework) tab, the Learner clicks “Làm bài & Nộp bài” (Do & Submit) and then “Nộp bài tập ngay” (Submit homework now).
+1552: Preconditions:
+1553: PRE-1. The learner must be successfully logged in and have a valid account in the system.
+1554: PRE-2. The learner must have a valid JWT token.
+1555: PRE-3. The assignment is open and its deadline has not passed.
+1556: Postconditions:
+1557: POST-1. The homework file is saved to the database and the submission status is updated to “Submitted”.
+1558: POST-2. The submission becomes available to the teacher for grading (UC-26).
+1559: Normal Flow:
+1560: 1. The Learner opens the assignment and clicks “Làm bài & Nộp bài” (Do & Submit).
+1561: 2. The Learner selects a file from their device in the “Nộp bài tập” (Submit homework) drawer.
+1562: 3. System validates the file format and size (BR-07).
+1563: 4. The Learner clicks “Nộp bài tập ngay” (Submit homework now).
+1564: 5. System saves the file, updates the status to “Submitted”, and displays MSG-03.
+1565: Alternative Flows:
+1566: 3.A1 Invalid file upload:
+1567: - System detects the file exceeds the size limit or is not an allowed format (BR-07), blocks the upload, and displays MSG-15; the Learner re-selects a valid file.
+1568: 5.A2 Resubmit:
+1569: - Before the deadline, the Learner clicks “Nộp lại bài” (Resubmit) to replace the previous submission; System updates the stored file.
+1570: Exceptions:
+1571: None
+1572: Priority:
+1573: High
+1574: Frequency of Use:
+1575: High
+1576: Business Rules:
+1577: BR-07
+1578: 2.3.7 View Academic Report
+1579: UC ID and Name:
+1580: UC-14: View Academic Report
+1581: Created By:
+1582: ChinhCD
+1583: Date Created:
+1584: 03/06/2026
+1585: Primary Actor:
+1586: Learner
+1587: Secondary Actors:
+1588: None
+1589: Description:
+1590: As a Learner, I want to track my grades, scores, and overall learning progress so that I can monitor how I am performing.
+1591: Trigger:
+1592: The Learner opens the “Bảng điểm” (Gradebook / Academic report) tab of a classroom or course.
+1593: Preconditions:
+1594: PRE-1. The learner must be successfully logged in and have a valid account in the system.
+1595: PRE-2. The learner must have a valid JWT token.
+1596: PRE-3. The teacher has published the gradebook for the classroom.
+1597: Postconditions:
+1598: POST-1. The academic report (grades, scores, attendance, progress) is displayed to the Learner.
+1599: Normal Flow:
+1600: 1. The Learner opens the “Bảng điểm” (Academic report) tab and selects a course, classroom, or period.
+1601: 2. System retrieves graded assignments, quiz scores, and attendance records from the database.
+1602: 3. System calculates the overall average and progress percentage.
+1603: 4. System displays the detailed report to the Learner.
+1604: Alternative Flows:
+1605: 1.A1 Gradebook not yet published:
+1606: - System detects the gradebook has not been published and displays an empty-state message.
+1607: Exceptions:
+1608: None
+1609: Priority:
+1610: Medium
+1611: Frequency of Use:
+1612: Medium
+1613: Business Rules:
+1614: None.
+1615: 2.3.8 Take Quiz
+1616: UC ID and Name:
+1617: UC-15: Take Quiz
+1618: Created By:
+1619: ChinhCD
+1620: Date Created:
+1621: 03/06/2026
+1622: Primary Actor:
+1623: Learner
+1624: Secondary Actors:
+1625: None
+1626: Description:
+1627: As a Learner, I want to take short quizzes so that I can test my understanding of the lessons.
+1628: Trigger:
+1629: The Learner opens a quiz and clicks “Vào chế độ làm bài” (Enter exam mode) to start.
+1630: Preconditions:
+1631: PRE-1. The Learner is logged in and enrolled in the classroom or course.
+1632: PRE-2. The quiz is available to the Learner.
+1633: Postconditions:
+1634: POST-1. The Learner's answers are saved and the score is recorded.
+1635: Normal Flow:
+1636: 1. The Learner clicks “Vào chế độ làm bài” (Enter exam mode).
+1637: 2. System loads the questions and starts the countdown timer.
+1638: 3. The Learner selects answers for the questions.
+1639: 4. The Learner clicks “Nộp bài” (Submit) before the timer ends.
+1640: 5. System calculates the score based on the correct answers.
+1641: 6. System saves and displays the score together with MSG-03.
+1642: Alternative Flows:
+1643: 4.A1 Timer expires:
+1644: - System detects the countdown reaches zero (BR-08), locks the quiz, auto-submits the saved answers, displays MSG-16, and calculates the score.
+1645: Exceptions:
+1646: 4.E1 Timer Expires:
+1647: System detects the countdown timer reaches zero (BR-08).
+1648: System locks the quiz and forces auto-submission.
+1649: System displays MSG-16 and calculates the score.
+1650: Priority:
+1651: High
+1652: Frequency of Use:
+1653: High
+1654: Business Rules:
+1655: BR-08
+1656: 2.3.9 Take Placement Exam
+1657: UC ID and Name:
+1658: UC-16 Take Placement Exam
+1659: Created By:
+1660: ChinhCD
+1661: Date Created:
+1662: 03/06/2026
+1663: Primary Actor:
+1664: Learner
+1665: Secondary Actors:
+1666: None
+1667: Description:
+1668: As a Learner, I want to take a placement exam so that I can practice and have my level evaluated.
+1669: Trigger:
+1670: The Learner clicks “Bắt đầu bài đánh giá đầu vào” (Start placement test) — or starts a placement exam — and confirms the device check.
+1671: Preconditions:
+1672: PRE-1. The learner must be successfully logged in and have a valid account in the system.
+1673: PRE-2. The learner must have a valid JWT token.
+1674: PRE-3. For a placement test, the Learner has completed the on-screen guidelines and device check.
+1675: Postconditions:
+1676: POST-1. The exam attempt is saved, scored, and the result/level is displayed to the Learner.
+1677: Normal Flow:
+1678: 1. The Learner clicks “Bắt đầu bài đánh giá đầu vào” (Start placement test) / starts the placement exam.
+1679: 2. System generates the exam structure and starts the main countdown timer.
+1680: 3. The Learner works through the sections and inputs answers, completing each section (e.g., “Hoàn thành phần Listening/Reading/Writing”).
+1681: 4. The Learner clicks “Nộp bài” (Submit).
+1682: 5. System prompts for confirmation and the Learner confirms.
+1683: 6. System saves the attempt, calculates the score, and displays the result.
+1684: Alternative Flows:
+1685: 4.A1 Timer expires:
+1686: - System detects the countdown reaches zero (BR-08), forces auto-submission of all saved answers, displays MSG-16, and calculates the final score.
+1687: Exceptions:
+1688: 6.E1 Submission failed:
+1689: System detects that the placement exam submission cannot be completed due to a server, scoring, or connection error.
+1690: System displays MSG-08.
+1691: System keeps the Learner’s saved draft answers so that the Learner can retry submission
+1692: Priority:
+1693: High
+1694: Frequency of Use:
+1695: Medium
+1696: Business Rules:
+1697: BR-08
+1698: 2.3.10 Practice writing skill
+1699: UC ID and Name:
+1700: UC-17: Practice writing skill
+1701: Created By:
+1702: ChinhCD
+1703: Date Created:
+1704: 03/06/2026
+1705: Primary Actor:
+1706: Learner
+1707: Secondary Actors:
+1708: None
+1709: Description:
+1710: As a Learner, I want to access and complete writing exercises so that I can improve my writing skill.
+1711: Trigger:
+1712: The Learner opens a writing practice and clicks “Vào chế độ làm bài” (Enter exam mode).
+1713: Preconditions:
+1714: PRE-1. The Learner is logged in and enrolled in the classroom or course.
+1715: PRE-2. The learner must have a valid JWT token.
+1716: Postconditions:
+1717: POST-1. The written submission is saved for AI scoring and teacher review.
+1718: Normal Flow:
+1719: 1. System displays the writing prompt and a text editor area.
+1720: 2. The Learner types their essay or response into the editor.
+1721: 3. System auto-saves the draft periodically.
+1722: 4. The Learner clicks “Nộp bài để chấm” (Submit for grading).
+1723: 5. System saves the final submission and displays MSG-03.
+1724: Alternative Flows:
+1725: 4.A1 Exit before submitting:
+1726: - The Learner exits exam mode; System keeps the auto-saved draft so the Learner can resume later.
+1727: Exceptions:
+1728: None
+1729: Priority:
+1730: Medium
+1731: Frequency of Use:
+1732: High
+1733: Business Rules:
+1734: None.
+1735: 2.3.11 Practice listening skill
+1736: UC ID and Name:
+1737: UC-18 Practice listening skill
+1738: Created By:
+1739: ChinhCD
+1740: Date Created:
+1741: 03/06/2026
+1742: Primary Actor:
+1743: Learner
+1744: Secondary Actors:
+1745: None
+1746: Description:
+1747: As a Learner, I want to access and complete listening exercises so that I can improve my listening skill.
+1748: Trigger:
+1749: The Learner opens a listening practice and clicks “Vào chế độ làm bài” (Enter exam mode).
+1750: Preconditions:
+1751: PRE-1. The Learner is logged in and enrolled in the classroom or course.
+1752: PRE-2. The learner must have a valid JWT token.
+1753: Postconditions:
+1754: POST-1. The Learner's answers are submitted, scored, and recorded.
+1755: Normal Flow:
+1756: 1. System loads the audio player and the associated questions.
+1757: 2. The Learner listens to the audio track and inputs/selects answers across the parts.
+1758: 3. The Learner clicks “Nộp bài” (Submit).
+1759: 4. System checks the answers against the answer key and records the score.
+1760: 5. System displays the result to the Learner.
+1761: Alternative Flows:
+1762: 3.A1 Timer expires:
+1763: - System detects the countdown reaches zero (BR-08), auto-submits the saved answers, and displays MSG-16.
+1764: Exceptions:
+1765: None
+1766: Priority:
+1767: Medium
+1768: Frequency of Use:
+1769: High
+1770: Business Rules:
+1771: None.
+1772: 2.3.12 Practice speaking skill
+1773: UC ID and Name:
+1774: UC-19: Practice speaking skill
+1775: Created By:
+1776: ChinhCD
+1777: Date Created:
+1778: 03/06/2026
+1779: Primary Actor:
+1780: Learner
+1781: Secondary Actors:
+1782: None
+1783: Description:
+1784: As a Learner, I want to access and complete speaking exercises so that I can improve my speaking skill.
+1785: Trigger:
+1786: The Learner opens a speaking practice, clicks “Bắt đầu kiểm tra” (Start test) for the mic check, then “Bắt đầu ghi âm” (Start recording).
+1787: Preconditions:
+1788: PRE-1. The Learner is logged in and enrolled in the classroom or course.
+1789: PRE-2. The learner must have a valid JWT token.
+1790: PRE-3. The Learner has granted browser microphone permission.
+1791: Postconditions:
+1792: POST-1. The audio recording is uploaded and saved for AI scoring and teacher evaluation.
+1793: Normal Flow:
+1794: 1. System displays the speaking topic/prompt and runs the mic check (“Bắt đầu kiểm tra”).
+1795: 2. The Learner clicks “Bắt đầu ghi âm” (Start recording) and speaks into the microphone.
+1796: 3. The Learner stops the recording (must be under 5 minutes per BR-09).
+1797: 4. System lets the Learner play back the recording.
+1798: 5. The Learner clicks “Nộp bài” (Submit).
+1799: 6. System uploads the audio file and displays MSG-03.
+1800: Alternative Flows:
+1801: 3.A1 Time limit reached:
+1802: - System detects the recording reaches the 5-minute limit (BR-09) and automatically stops it; the Learner continues from step 4.
+1803: Exceptions:
+1804: None
+1805: Priority:
+1806: Medium
+1807: Frequency of Use:
+1808: Medium
+1809: Business Rules:
+1810: BR-09.
+1811: 2.3.13 Practice reading skill
+1812: UC ID and Name:
+1813: UC-20: Practice reading skill
+1814: Created By:
+1815: ChinhCD
+1816: Date Created:
+1817: 03/06/2026
+1818: Primary Actor:
+1819: Learner
+1820: Secondary Actors:
+1821: None
+1822: Description:
+1823: As a Learner, I want to access and complete reading exercises so that I can improve my reading skill.
+1824: Trigger:
+1825: The Learner opens a reading practice and clicks “Vào chế độ làm bài” (Enter exam mode).
+1826: Preconditions:
+1827: PRE-1. The Learner is logged in and enrolled in the classroom or course.
+1828: Postconditions:
+1829: POST-1. The Learner's reading comprehension answers are evaluated and saved.
+1830: Normal Flow:
+1831: 1. System displays the reading passage on one side and the questions on the other.
+1832: 2. The Learner reads the passage and selects answers for the questions.
+1833: 3. The Learner clicks “Nộp bài” (Submit).
+1834: 4. System evaluates the answers against the answer key.
+1835: 5. System displays the score and highlights correct/incorrect answers.
+1836: Alternative Flows:
+1837: 3.A1 Timer expires:
+1838: - System detects the countdown reaches zero (BR-08), auto-submits the saved answers, and displays MSG-16.
+1839: Exceptions:
+1840: None
+1841: Priority:
+1842: Medium
+1843: Frequency of Use:
+1844: High
+1845: Business Rules:
+1846: None.
+1847: 2.3.14 Practice flashcard
+1848: UC ID and Name:
+1849: UC-21 Practice flashcard
+1850: Created By:
+1851: ChinhCD
+1852: Date Created:
+1853: 03/06/2026
+1854: Primary Actor:
+1855: Learner
+1856: Secondary Actors:
+1857: None
+1858: Description:
+1859: As a Learner, I want to study with flashcards so that I can memorize vocabulary and concepts more effectively.
+1860: Trigger:
+1861: The Learner opens a flashcard deck inside a course lesson (tabs “Thẻ”, “Học”, “Ghép”).
+1862: Preconditions:
+1863: PRE-1. The Learner is logged in and enrolled in the classroom or online course.
+1864: Postconditions:
+1865: POST-1. The Learner's study progress (mastered / not-mastered cards) is saved.
+1866: Normal Flow:
+1867: 1. System displays the front of the first flashcard in “Thẻ” (Cards) mode.
+1868: 2. The Learner clicks the card to flip it and view the definition on the back.
+1869: 3. The Learner marks the card as “Đã thuộc” (Mastered) or “Chưa thuộc” (Not mastered).
+1870: 4. System records the selection and loads the next card.
+1871: 5. On finishing the deck, System displays the completion summary and MSG-03.
+1872: Alternative Flows:
+1873: 1.A1 Study / Match mode:
+1874: - The Learner switches to “Học” (Learn) or “Ghép” (Match) mode; System runs the corresponding practice and records the results.
+1875: Exceptions:
+1876: None.
+1877: Priority:
+1878: Low
+1879: Frequency of Use:
+1880: High
+1881: Business Rules:
+1882: None.
+1883: 2.3.15 Wishlist Courses
+1884: UC ID and Name:
+1885: UC-45: Wishlist Courses
+1886: Created By:
+1887: ChinhCD
+1888: Date Created:
+1889: 20/06/2026
+1890: Primary Actor:
+1891: Learner
+1892: Secondary Actors:
+1893: None
+1894: Description:
+1895: As a Learner, I want to save courses to a personal wishlist and manage them so that I can keep track of courses I am interested in for later.
+1896: Trigger:
+1897: The Learner clicks the heart icon “Thêm vào danh sách yêu thích” (Add to wishlist) on a course, or opens the “Danh sách yêu thích” (Wishlist) screen (/wishlist).
+1898: Preconditions:
+1899: PRE-1. The Learner is logged into the system.
+1900: PRE-2. The target course is published/active and publicly visible.
+1901: Postconditions:
+1902: POST-1. The selected course is added to or removed from the Learner's wishlist.
+1903: POST-2. The wishlist displays the updated list and is persisted for the Learner across sessions.
+1904: Normal Flow:
+1905: 1. The Learner opens a course from the catalog or course detail page and clicks the “Thêm vào danh sách yêu thích” (Add to wishlist) icon.
+1906: 2. System verifies the Learner is logged in and that the course is not already in the wishlist.
+1907: 3. System adds the course to the wishlist and persists it.
+1908: 4. System displays MSG-28.
+1909: 5. The Learner opens the “Danh sách yêu thích” (Wishlist) screen.
+1910: 6. System displays all saved courses, each with a thumbnail, title, and a “Saved to wishlist” label.
+1911: 7. The Learner selects a per-course action: “Xem khóa học” (View course), “Thêm vào giỏ hàng” (Add to cart), or “Xóa khỏi danh sách yêu thích” (Remove from wishlist).
+1912: Alternative Flows:
+1913: 2.A1 Course already in wishlist:
+1914: - System detects the course is already saved, does not create a duplicate, and displays MSG-30.
+1915: 6.A1 Empty wishlist:
+1916: - System finds no saved courses and displays MSG-31.
+1917: 7.A1 Add to cart from wishlist:
+1918: - The Learner clicks “Thêm vào giỏ hàng” (Add to cart); the flow continues in UC-46 (Add Courses to Cart).
+1919: 7.A2 Remove from wishlist:
+1920: - The Learner clicks “Xóa khỏi danh sách yêu thích” (Remove from wishlist); System removes the course, refreshes the list, and displays MSG-29.
+1921: Exceptions:
+1922: *.E1 Not authenticated / session expired:
+1923: - System redirects the learner to the Login screen.
+1924: *.E2 System or network error while saving:
+1925: - System displays a generic error and the wishlist remains unchanged.
+1926: Priority:
+1927: Medium
+1928: Frequency of Use:
+1929: Medium
+1930: Business Rules:
+1931: BR-20
+1932: BR-21
+1933: 2.3.16 Add Courses to Cart
+1934: UC ID and Name:
+1935: UC-46: Add Courses to Cart
+1936: Created By:
+1937: ChinhCD
+1938: Date Created:
+1939: 20/06/2026
+1940: Primary Actor:
+1941: Learner
+1942: Secondary Actors:
+1943: None
+1944: Description:
+1945: As a Learner, I want to add courses to my cart so that I can purchase several courses together.
+1946: Trigger:
+1947: The Learner clicks the cart icon “Thêm vào giỏ hàng” (Add to cart) on a course, or opens the “Giỏ hàng” (Cart) screen (/cart).
+1948: Preconditions:
+1949: PRE-1. The Learner is logged into the system.
+1950: PRE-2. The target course is active/published and available for purchase.
+1951: PRE-3. The Learner is not already enrolled in the target course.
+1952: Postconditions:
+1953: POST-1. The selected course is added to (or removed/moved from) the Learner's cart.
+1954: POST-2. The order summary (number of courses and total amount payable) is updated.
+1955: Normal Flow:
+1956: 1. The Learner clicks “Thêm vào giỏ hàng” (Add to cart) on a course from the detail page, catalog, or wishlist.
+1957: 2. System verifies the Learner is logged in, the course is purchasable, the Learner is not already enrolled, and the course is not already in the cart.
+1958: 3. System adds the course to the cart and updates the order summary.
+1959: 4. System displays MSG-32.
+1960: 5. The Learner opens the “Giỏ hàng” (Cart) screen.
+1961: 6. System displays the cart items (thumbnail, title, price) and the order summary.
+1962: 7. The Learner selects a per-course action: “Xóa khỏi giỏ hàng” (Remove), “Chuyển sang danh sách yêu thích” (Move to wishlist), or “Tiếp tục thanh toán” (Continue to payment).
+1963: Alternative Flows:
+1964: 2.A1 Course already in cart:
+1965: - System does not add a duplicate and displays MSG-33.
+1966: 2.A2 Learner already enrolled:
+1967: - System prevents adding the course and displays MSG-36.
+1968: 6.A1 Empty cart:
+1969: - System finds no items in the cart and displays MSG-34.
+1970: 7.A1 Remove course from cart:
+1971: - The Learner clicks “Xóa khỏi giỏ hàng” (Remove); System removes the item, updates the order summary, and displays MSG-35.
+1972: 7.A2 Move to wishlist:
+1973: - The Learner clicks “Chuyển sang danh sách yêu thích” (Move to wishlist); System moves the course to the wishlist (UC-45) and updates the cart.
+1974: 7.A3 Continue to payment:
+1975: - The Learner clicks “Tiếp tục thanh toán” (Continue to payment); the flow continues in UC-47 (Checkout).
+1976: Exceptions:
+1977: *.E1 Not authenticated / session expired:
+1978: - System redirects the learner to the Login screen.
+1979: *.E2 System or network error:
+1980: - System displays a generic error and the cart remains unchanged.
+1981: Priority:
+1982: High
+1983: Frequency of Use:
+1984: Medium
+1985: Business Rules:
+1986: BR-20
+1987: BR-21
+1988: 2.3.17 Checkout
+1989: UC ID and Name:
+1990: UC-47: Checkout
+1991: Created By:
+1992: ChinhCD
+1993: Date Created:
+1994: 20/06/2026
+1995: Primary Actor:
+1996: Learner
+1997: Secondary Actors:
+1998: Payment Service (PayOS), Email Service
+1999: Description:
+2000: As a Learner, I want to check out and pay for the courses in my cart so that I can complete my enrollment.
+2001: Trigger:
+2002: The Learner clicks “Mua khóa học” (Buy course) on a course detail page or “Tiếp tục thanh toán” (Continue to payment) in the cart.
+2003: Preconditions:
+2004: PRE-1. The Learner is logged into the system.
+2005: PRE-2. The cart contains at least one course.
+2006: PRE-3. The courses in the cart are still active/available and not already owned by the Learner.
+2007: Postconditions:
+2008: POST-1. On success, the Learner is enrolled in all purchased courses and they appear in “Khóa học của tôi” (My Courses).
+2009: POST-2. A payment transaction record is created; for paid orders a confirmation/receipt email is sent.
+2010: POST-3. The purchased courses are removed from the cart.
+2011: Normal Flow:
+2012: 1. The Learner clicks “Tiếp tục thanh toán” (Continue to payment) from the cart.
+2013: 2. System displays the Checkout screen: the selected courses (thumbnail, title, target outcome, number of lessons) and an order summary (prices and total payable).
+2014: 3. The Learner reviews the order and may enter a coupon and click “Áp dụng” (Apply).
+2015: 4. The Learner selects a payment method (“Thanh toán qua PayOS”) and clicks “Xác nhận thanh toán” (Confirm payment).
+2016: 5. System re-validates the cart: courses are still active, the Learner is not already enrolled, and the total is recomputed.
+2017: 6. System initiates the transaction with the PayOS gateway and waits for the payment result.
+2018: 7. On payment success, System enrolls the Learner in all courses, creates a payment record, and removes the purchased courses from the cart.
+2019: 8. System sends a confirmation/receipt email and displays MSG-37.
+2020: 9. System redirects the Learner to “Khóa học của tôi” (My Courses).
+2021: Alternative Flows:
+2022: 4.A1 Free order (total = 0):
+2023: - System shows the total as “Miễn phí” and the method/payment-info steps are skipped; the Learner clicks “Xác nhận ghi danh” (Confirm enrollment).
+2024: - On confirmation, System enrolls the Learner immediately (continue at step 7) without invoking the PayOS gateway.
+2025: 4.A2 Back to cart:
+2026: - The Learner clicks “Quay lại giỏ hàng” (Back to cart); System returns to the cart with no changes.
+2027: 6.A1 Payment cancelled at gateway:
+2028: - The Learner cancels payment at PayOS; System returns to the Checkout screen, the order is not completed, and no enrollment is created.
+2029: Exceptions:
+2030: 6.E1 Course unavailable or already enrolled:
+2031: - System removes the invalid course from the order, displays MSG-36, and asks the learner to review the order before paying.
+2032: 7.E1 Payment failed or declined:
+2033: - PayOS returns a failure result; system displays MSG-38, no enrollment is created, and the cart is preserved.
+2034: 7.E2 Payment gateway timeout / unreachable:
+2035: - System displays MSG-39, marks the transaction as failed/pending, and does not grant enrollment until the payment is confirmed.
+2036: *.E1 Not authenticated / session expired:
+2037: - System redirects the learner to the Login screen.
+2038: Priority:
+2039: High
+2040: Frequency of Use:
+2041: Medium
+2042: Business Rules:
+2043: BR-05
+2044: BR-21
+2045: BR-22
+2046: BR-23
+2047: 2.3.18 Access Online Learning Materials
+2048: UC ID and Name:
+2049: UC-48: Access Online Learning Materials
+2050: Created By:
+2051: ChinhCD
+2052: Date Created:
+2053: 29/06/2026
+2054: Primary Actor:
+2055: Learner
+2056: Secondary Actors:
+2057: None
+2058: Description:
+2059: As a Learner, I want to access online learning materials so that I can study the course content anytime, anywhere.
+2060: Trigger:
+2061: The Learner opens an enrolled online course and clicks a lesson in the course workspace (/courses/:slug/learn).
+2062: Preconditions:
+2063: PRE-1. The Learner is logged into the system.
+2064: PRE-2.The learner must have a valid JWT token.
+2065: PRE-3. The Learner is enrolled in the online (self-paced) course.
+2066: PRE-4. The lesson is unlocked (the previous lesson has been completed for sequential courses).
+2067: Postconditions:
+2068: POST-1. The selected lesson content is rendered and displayed in the course workspace.
+2069: POST-2. The Learner's learning progress for the course is updated.
+2070: Normal Flow:
+2071: 1. The Learner opens an enrolled course from “Khóa học của tôi” (My Courses) and clicks “Tiếp tục học” (Continue learning).
+2072: 2. System opens the course workspace and displays the module/lesson navigation panel with locked/unlocked status.
+2073: 3. The Learner selects an unlocked lesson.
+2074: 4. System retrieves the lesson content and renders it (text sections, embedded video, and any attached material).
+2075: 5. The Learner studies the content and clicks “Đánh dấu hoàn thành” (Mark complete).
+2076: 6. System saves the progress and unlocks the next lesson.
+2077: Alternative Flows:
+2078: 3.A1 Lesson locked:
+2079: - System detects the lesson is locked because the previous lesson is not completed and shows “Hoàn thành bài hiện tại để mở bài tiếp theo”.
+2080: 4.A1 Open attached material:
+2081: - The Learner clicks “Mở tài liệu bài học” (Open lesson material); System opens the material in a new browser tab.
+2082: 3.A3 Module Completion Assessment
+2083: After accessing a module, the learner completes all lessons within that module.
+2084: System provides the module final assessment.
+2085: Learner submits the assessment.
+2086: System calculates the assessment score.
+2087: If the score is target -0.5, the learner is allowed to access the next module.
+2088: If the score is below target -0.5, the learner remains in the current module and must retake the assessment before proceeding.
+2089: Exceptions:
+2090: 4.E1 Content load error:
+2091: - System fails to load the lesson content and displays a generic error, keeping the navigation panel available.
+2092: Priority:
+2093: High
+2094: Frequency of Use:
+2095: Very High
+2096: Business Rules:
+2097: None.
+2098: 2.4 Course & Content Management
+2099: 2.4.1 Create Syllabus
+2100: UC ID and Name:
+2101: UC-32a: Create Syllabus
+2102: Created By:
+2103: ChinhCD
+2104: Date Created:
+2105: 29/06/2026
+2106: Primary Actor:
+2107: Content Manager
+2108: Secondary Actors:
+2109: None
+2110: Description:
+2111: As a Content Manager, I want to create a new course syllabus so that courses can be built on a well-defined curriculum.
+2112: Trigger:
+2113: The Content Manager opens “Quản lý Đề cương” (Syllabus Management) and clicks “Tạo giáo trình” (Create syllabus).
+2114: Preconditions:
+2115: PRE-1. The Content Manager is logged in.
+2116: PRE-2.The user must have a valid JWT token
+2117: PRE-3. The Content Manager is authorized to manage content.
+2118: Postconditions:
+2119: POST-1. A new syllabus record is created in the database.
+2120: POST-2. The syllabus becomes available to link to courses/classrooms.
+2121: Normal Flow:
+2122: 1. The Content Manager clicks “Tạo giáo trình” (Create syllabus).
+2123: 2. System displays the syllabus form.
+2124: 3. The Content Manager enters the Syllabus name, Level, Description and uploads the coursebook file.
+2125: 4. The Content Manager clicks “Lưu” (Save).
+2126: 5. System validates the required fields and saves the new syllabus.
+2127: 6. System displays MSG-03.
+2128: Alternative Flows:
+2129: 5.A1 Missing required fields:
+2130: - System blocks the save with inline validation messages; the Content Manager completes the fields and continues from step 4.
+2131: Exceptions:
+2132: None.
+2133: Priority:
+2134: High
+2135: Frequency of Use:
+2136: Medium
+2137: Business Rules:
+2138: None.
+2139: 2.4.2 View Syllabus
+2140: UC ID and Name:
+2141: UC-32b: View Syllabus
+2142: Created By:
+2143: ChinhCD
+2144: Date Created:
+2145: 29/06/2026
+2146: Primary Actor:
+2147: Content Manager
+2148: Secondary Actors:
+2149: None
+2150: Description:
+2151: As a Content Manager, I want to view and search the list of syllabuses so that I can review the existing curriculum.
+2152: Trigger:
+2153: The Content Manager opens “Quản lý Đề cương” (Syllabus Management).
+2154: Preconditions:
+2155: PRE-1. The Content Manager is logged in.
+2156: Postconditions:
+2157: POST-1. The list of syllabuses (and a selected syllabus's details) is displayed (read-only).
+2158: Normal Flow:
+2159: 1. The Content Manager opens “Quản lý Đề cương” (Syllabus Management).
+2160: 2. System retrieves and displays the list of syllabuses (name, level, linked courses).
+2161: 3. The Content Manager searches/filters and clicks a syllabus to view its details.
+2162: 4. System displays the syllabus details and the embedded coursebook.
+2163: Alternative Flows:
+2164: 2.A1 No data:
+2165: - System finds no syllabuses and displays MSG-04.
+2166: Exceptions:
+2167: None.
+2168: Priority:
+2169: Medium
+2170: Frequency of Use:
+2171: High
+2172: Business Rules:
+2173: None.
+2174: 2.4.3 Update Syllabus
+2175: UC ID and Name:
+2176: UC-32c: Update Syllabus
+2177: Created By:
+2178: ChinhCD
+2179: Date Created:
+2180: 29/06/2026
+2181: Primary Actor:
+2182: Content Manager
+2183: Secondary Actors:
+2184: None
+2185: Description:
+2186: As a Content Manager, I want to update an existing syllabus so that the curriculum stays accurate and up to date.
+2187: Trigger:
+2188: In the syllabus list, the Content Manager clicks “Cập nhật” (Update) on a syllabus.
+2189: Preconditions:
+2190: PRE-1. The Content Manager is logged in.
+2191: PRE-2. The Content Manager must have a valid JWT token.
+2192: PRE-3. The target syllabus exists in the system.
+2193: Postconditions:
+2194: POST-1. The syllabus information is updated in the database.
+2195: Normal Flow:
+2196: 1. The Content Manager clicks “Cập nhật” (Update) on a syllabus.
+2197: 2. System displays the form pre-filled with the current data.
+2198: 3. The Content Manager edits the fields and/or replaces the coursebook file.
+2199: 4. The Content Manager clicks “Lưu” (Save).
+2200: 5. System validates the input and updates the syllabus, then displays MSG-03.
+2201: Alternative Flows:
+2202: None.
+2203: Exceptions:
+2204: None.
+2205: Priority:
+2206: High
+2207: Frequency of Use:
+2208: Medium
+2209: Business Rules:
+2210: None.
+2211: 2.4.4 Delete Syllabus
+2212: UC ID and Name:
+2213: UC-32d: Delete Syllabus
+2214: Created By:
+2215: ChinhCD
+2216: Date Created:
+2217: 29/06/2026
+2218: Primary Actor:
+2219: Content Manager
+2220: Secondary Actors:
+2221: None
+2222: Description:
+2223: As a Content Manager, I want to delete a syllabus that is no longer needed so that the curriculum list stays clean.
+2224: Trigger:
+2225: In the syllabus list, the Content Manager clicks “Xóa” (Delete) on a syllabus.
+2226: Preconditions:
+2227: PRE-1. The Content Manager is logged in.
+2228: PRE-2. The Content Manager must have a valid JWT token.
+2229: PRE-3. The syllabus is not linked to an active course or classroom (BR-14).
+2230: Postconditions:
+2231: POST-1. The syllabus is removed from the database.
+2232: Normal Flow:
+2233: 1. The Content Manager clicks “Xóa” (Delete) on a syllabus.
+2234: 2. System verifies the syllabus is not linked to an active course/classroom (BR-14).
+2235: 3. System prompts for confirmation (MSG-21).
+2236: 4. The Content Manager confirms.
+2237: 5. System deletes the syllabus and displays MSG-03.
+2238: Alternative Flows:
+2239: None.
+2240: Exceptions:
+2241: 2.E1 Syllabus in use:
+2242: - System detects the syllabus is linked to an active course or classroom (BR-14), blocks deletion, and displays MSG-23.
+2243: Priority:
+2244: Medium
+2245: Frequency of Use:
+2246: Low
+2247: Business Rules:
+2248: BR-14
+2249: 2.4.5 Create Online Course
+2250: UC ID and Name:
+2251: UC-33a: Create Online Course
+2252: Created By:
+2253: ChinhCD
+2254: Date Created:
+2255: 29/06/2026
+2256: Primary Actor:
+2257: Content Manager
+2258: Secondary Actors:
+2259: None
+2260: Description:
+2261: As a Content Manager, I want to create a new online course so that new offerings can be added to the catalog.
+2262: Trigger:
+2263: The Content Manager opens “Quản lý khóa học” (Course Management) and clicks “Tạo khóa học online” (Create online course).
+2264: Preconditions:
+2265: PRE-1. The Content Manager is logged in.
+2266: PRE-2. The Content Manager must have a valid JWT token.
+2267: Postconditions:
+2268: POST-1. A new online course is created in the database (initially unpublished).
+2269: Normal Flow:
+2270: 1. The Content Manager clicks “Tạo khóa học online” (Create online course).
+2271: 2. System displays the course form.
+2272: 3. The Content Manager enters the Course name, Category, Price, Status, and Description.
+2273: 4. The Content Manager selects one of the following actions:
+2274: “Save Draft” to create the course with “Draft” status.
+2275: “Publish” to create the course with “Publish" status.
+2276: 5. System validates the course-name uniqueness (BR-15).
+2277: 6. The Content Manager clicks “Lưu” (Save Draft).
+2278: 7. System saves the course and displays MSG-03.
+2279: 8. The Content Manager may click “Open Builder” to add modules and lessons to the course.
+2280: Alternative Flows:
+2281: 5.A1. Publish the course immediately:
+2282: Instead of clicking “Lưu”(Save draft), the Content Manager clicks”Publish”.
+2283: The system validate the course information.
+2284: The system generate a unique slug and saves the course with “Publish” status.
+2285: The system redirects the Content Manager to the course edit page.
+2286: Exceptions:
+2287: 4.E1 Duplicated name:
+2288: - System detects the course name already exists (BR-15) and displays MSG-24; the Content Manager must choose a new name.
+2289: Priority:
+2290: High
+2291: Frequency of Use:
+2292: High
+2293: Business Rules:
+2294: BR-15
+2295: 2.4.6 View Online Courses
+2296: UC ID and Name:
+2297: UC-33b: View Online Courses
+2298: Created By:
+2299: ChinhCD
+2300: Date Created:
+2301: 29/06/2026
+2302: Primary Actor:
+2303: Content Manager
+2304: Secondary Actors:
+2305: None
+2306: Description:
+2307: As a Content Manager, I want to view and search the list of online courses so that I can oversee the catalog.
+2308: Trigger:
+2309: The Content Manager opens “Quản lý khóa học” (Course Management).
+2310: Preconditions:
+2311: PRE-1. The Content Manager is logged in.
+2312: PRE-2. The Content Manager must have a valid JWT token.
+2313: Postconditions:
+2314: POST-1. The list of online courses (and a selected course's details) is displayed (read-only).
+2315: Normal Flow:
+2316: 1. The Content Manager opens “Quản lý khóa học” (Course Management).
+2317: 2. System displays the list of courses (name, category, price, status, enrollments).
+2318: 3. The Content Manager searches/filters and clicks a course.
+2319: 4. System displays the course details and its module/lesson structure.
+2320: Alternative Flows:
+2321: 2.A1 No data:
+2322: - System finds no courses and displays MSG-04.
+2323: Exceptions:
+2324: None.
+2325: Priority:
+2326: Medium
+2327: Frequency of Use:
+2328: High
+2329: Business Rules:
+2330: None.
+2331: 2.4.7 Update Online Course
+2332: UC ID and Name:
+2333: UC-33c: Update Online Course
+2334: Created By:
+2335: ChinhCD
+2336: Date Created:
+2337: 29/06/2026
+2338: Primary Actor:
+2339: Content Manager
+2340: Secondary Actors:
+2341: None
+2342: Description:
+2343: As a Content Manager, I want to edit an online course so that the course catalog stays current.
+2344: Trigger:
+2345: In the course list, the Content Manager clicks “Cập nhật” (Update) on a course.
+2346: Preconditions:
+2347: PRE-1. The Content Manager is logged in.
+2348: PRE-2. The Content Manager must have a valid JWT token.
+2349: PRE-2. The target course exists in the system.
+2350: Postconditions:
+2351: POST-1. The course information is updated in the database.
+2352: POST-2. If the course is published, the changes are reflected in the public catalog.
+2353: Normal Flow:
+2354: 1. The Content Manager clicks “Cập nhật” (Update) on a course.
+2355: 2. System displays the form pre-filled with the current data.
+2356: 3. The Content Manager edits the fields and/or the module/lesson structure.
+2357: 4. System validates the course-name uniqueness (BR-15).
+2358: 5. The Content Manager clicks “Lưu” (Save); System updates the course and displays MSG-03.
+2359: Alternative Flows:
+2360: None.
+2361: Exceptions:
+2362: 4.E1 Duplicated name:
+2363: - System detects the course name already exists (BR-15) and displays MSG-24.
+2364: Priority:
+2365: High
+2366: Frequency of Use:
+2367: High
+2368: Business Rules:
+2369: BR-15
+2370: 2.4.8 Deactivate Online Course
+2371: UC ID and Name:
+2372: UC-33d: Deactivate Online Course
+2373: Created By:
+2374: ChinhCD
+2375: Date Created:
+2376: 29/06/2026
+2377: Primary Actor:
+2378: Content Manager
+2379: Secondary Actors:
+2380: None
+2381: Description:
+2382: As a Content Manager, I want to deactivate an online course that is no longer offered so that it is no longer available for new enrollments while preserving its data.
+2383: Trigger:
+2384: In the course list, the Content Manager clicks "Lưu trữ" (Archive) on a course.
+2385: Preconditions:
+2386: PRE-1. The Content Manager is logged in.
+2387: PRE-2. The Content Manager has a valid JWT token.
+2388: PRE-3. The selected course exists and is currently active or published.
+2389: Postconditions:
+2390: POST-1. The course status is changed to ARCHIVED.
+2391: POST-2. The course is no longer visible in the public course catalog.
+2392: POST-3. New learners cannot enroll in the course.
+2393: POST-4. Existing course data (course information, enrollments, and learning progress) is preserved.
+2394: Normal Flow:
+2395: 1. The Content Manager selects an online course from the course list.
+2396: 2. The Content Manager clicks "Lưu trữ" (Archive).
+2397: 3. The system displays a confirmation dialog (MSG-21).
+2398: 4. The Content Manager confirms the action.
+2399: 5. The system changes the course status to ARCHIVED.
+2400: 6. The system displays a success message (MSG-03).
+2401: 7. The updated course information is returned and the course list is refreshed.
+2402: Alternative Flows:
+2403: None.
+2404: Exceptions:
+2405: 2.E1 Course in use:
+2406: - The system cannot deactivate the course because it is linked to active records.
+2407: - The system displays MSG-23.
+2408: Priority:
+2409: Medium
+2410: Frequency of Use:
+2411: Low
+2412: Business Rules:
+2413: None.
+2414: 2.4.10 View Placement Exams
+2415: UC ID and Name:
+2416: UC-34a: View Placement Exams
+2417: Created By:
+2418: ChinhCD
+2419: Date Created:
+2420: 29/06/2026
+2421: Primary Actor:
+2422: Content Manager
+2423: Secondary Actors:
+2424: None
+2425: Description:
+2426: As a Content Manager, I want to view and search the placement exam bank so that I can review existing exams and questions before creating, updating, or deleting content.
+2427: Trigger:
+2428: The Content Manager accesses the placement exam management module.
+2429: Preconditions:
+2430: PRE-1. The Content Manager is logged in.
+2431: PRE-2. The Content Manager must have a valid JWT token.
+2432: PRE-3. The Content Manager has permission to view placement exam content.
+2433: PRE-4. Placement exam data has been created or initialized in the system.
+2434: PRE-5. The Content Manager provides search or filter criteria if they want to narrow down the displayed results.
+2435: PRE-6. If the Content Manager wants to view a specific exam/question, that exam/question must exist in the placement exam bank.
+2436: Postconditions:
+2437: POST-1. The system displays the list of placement exams/questions.
+2438: POST-2. The displayed list includes basic information such as title, skill section, score value, status, and last updated date where applicable.
+2439: POST-3. If the Content Manager searches or filters the list, only matching results are displayed.
+2440: POST-4. If the Content Manager selects a specific exam/question, its detailed information is displayed.
+2441: POST-5. The selected exam/question is displayed in read-only mode unless the Content Manager chooses an edit action.
+2442: POST-6. No placement exam data is changed during viewing.
+2443: POST-7. If no matching data is found, the system displays MSG-04.
+2444: Normal Flow:
+2445: 1. The Content Manager accesses the placement exam management module.
+2446: 2. The system retrieves available placement exams/questions.
+2447: 3. The system displays the list of exams/questions.
+2448: 4. The Content Manager searches or filters the list if needed.
+2449: 5. The system displays matching results.
+2450: 6. The Content Manager selects an exam/question.
+2451: 7. The system displays the detailed information of the selected item.
+2452: Alternative Flows:
+2453: 2.A1 No data available
+2454: 1. The system finds no placement exams/questions.
+2455: 2. The system displays MSG-04.
+2456: 3. The use case ends.
+2457: 4.A1 No matching result
+2458: 1. The Content Manager enters search/filter criteria.
+2459: 2. The system finds no matching data.
+2460: 3. The system displays MSG-04.
+2461: Exceptions:
+2462: EX-1. Unauthorized access:
+2463: - The system denies access if the user does not have permission to view placement exam content.
+2464: EX-2. Selected item does not exist:
+2465: - The system displays an error message if the selected exam/question has been removed or is no longer available.
+2466: Priority:
+2467: Medium
+2468: Frequency of Use:
+2469: Medium
+2470: Business Rules:
+2471: BR-24, BR-29, BR-30
+2472: 2.4.11 Update Placement Exam
+2473: UC ID and Name:
+2474: UC-34b: Update Placement Exam
+2475: Created By:
+2476: ChinhCD
+2477: Date Created:
+2478: 29/06/2026
+2479: Primary Actor:
+2480: Content Manager
+2481: Secondary Actors:
+2482: None
+2483: Description:
+2484: As a Content Manager, I want to edit a placement exam or its questions so that the placement exam bank remains accurate, updated, and suitable for learner assessment.
+2485: Trigger:
+2486: The Content Manager selects the edit function for an existing placement exam/question.
+2487: Preconditions:
+2488: PRE-1. The Content Manager is logged in.
+2489: PRE-2. The Content Manager has permission to update placement exam content.
+2490: PRE-3. The target placement exam/question exists in the system.
+2491: PRE-4. The current data of the target exam/question has been loaded for editing.
+2492: PRE-5. The edited question must still belong to a valid skill section.
+2493: PRE-6. Required fields must remain complete after editing.
+2494: PRE-7. For objective questions, the edited answer options and correct answer must remain valid.
+2495: PRE-8. For Writing and Speaking questions, the edited prompt/task instruction must remain clear and non-empty.
+2496: PRE-9. The edited score value must be a valid positive number.
+2497: PRE-10. If the exam/question has already been used in learner attempts, the update must not damage or invalidate existing learner result records.
+2498: Postconditions:
+2499: POST-1. The selected placement exam/question is updated successfully.
+2500: POST-2. The updated content is saved in the database.
+2501: POST-3. The updated data replaces the previous version for future use.
+2502: POST-4. Related answer keys and score values are updated according to the edited content.
+2503: POST-5. The last updated date/time of the exam/question is changed.
+2504: POST-6. The updated exam/question can be viewed by authorized Content Managers.
+2505: POST-7. If the updated exam/question is active, learners will use the updated version in future attempts.
+2506: POST-8. Existing learner attempt records remain preserved.
+2507: POST-9. If validation fails, the previous valid version remains unchanged.
+2508: Normal Flow:
+2509: 1. The Content Manager selects an existing placement exam/question.
+2510: 2. The Content Manager chooses the edit function.
+2511: 3. The system displays the current exam/question information.
+2512: 4. The Content Manager modifies the necessary fields.
+2513: 5. The Content Manager updates answer options and correct answers where applicable.
+2514: 6. The Content Manager updates the score value if needed.
+2515: 7. The Content Manager saves the changes.
+2516: 8. The system validates the updated data.
+2517: 9. The system saves the updated exam/question.
+2518: 10. The system displays MSG-03.
+2519: Alternative Flows:

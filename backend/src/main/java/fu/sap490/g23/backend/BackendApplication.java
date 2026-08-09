@@ -10,10 +10,15 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class BackendApplication {
 
-    public static void main(String[] args) {
-        // JDBC sets session TimeZone from JVM; Windows often reports Asia/Saigon,
-        // which some Postgres images reject. Prefer the IANA name Postgres accepts.
+    static {
+        // JDBC/pgjdbc uses ZoneId.systemDefault() (reads user.timezone). Windows often
+        // reports Asia/Saigon, which some Postgres images reject. Fix both property + default
+        // so @SpringBootTest also works (main() is not called in tests).
+        System.setProperty("user.timezone", "Asia/Ho_Chi_Minh");
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+    }
+
+    public static void main(String[] args) {
         SpringApplication.run(BackendApplication.class, args);
     }
 

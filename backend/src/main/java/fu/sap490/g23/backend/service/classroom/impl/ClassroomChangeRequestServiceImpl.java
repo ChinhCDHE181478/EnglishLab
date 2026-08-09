@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -247,7 +248,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             };
             return objectMapper.writeValueAsString(values);
         } catch (Exception ex) {
-            return null;
+            throw new RuntimeException("Không thể lưu lịch hiện tại của buổi học vào yêu cầu thay đổi.", ex);
         }
     }
 
@@ -255,15 +256,17 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         if (session == null) {
             return Map.of();
         }
-        return Map.of(
-                "sessionDate", session.getSessionDate().toString(),
-                "startTime", session.getStartTime().toString(),
-                "endTime", session.getEndTime().toString(),
-                "teacherId", session.getTeacher() == null ? null : session.getTeacher().getId(),
-                "roomId", session.getRoom() == null ? null : session.getRoom().getId(),
-                "larkMeetingUrl", session.getLarkMeetingUrl(),
-                "status", session.getStatus().name()
-        );
+        // LinkedHashMap cho phép value = null; Map.of() thì không
+        // (roomId / teacherId / larkMeetingUrl thường null với lớp online hoặc chưa gán phòng).
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("sessionDate", session.getSessionDate() == null ? null : session.getSessionDate().toString());
+        values.put("startTime", session.getStartTime() == null ? null : session.getStartTime().toString());
+        values.put("endTime", session.getEndTime() == null ? null : session.getEndTime().toString());
+        values.put("teacherId", session.getTeacher() == null ? null : session.getTeacher().getId());
+        values.put("roomId", session.getRoom() == null ? null : session.getRoom().getId());
+        values.put("larkMeetingUrl", session.getLarkMeetingUrl());
+        values.put("status", session.getStatus() == null ? null : session.getStatus().name());
+        return values;
     }
 
     private ConflictCheckRequest buildConflictRequest(CreateChangeRequestRequest request, ClassroomOffering offering, ClassroomSession session) {
