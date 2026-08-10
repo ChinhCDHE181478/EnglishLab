@@ -2550,7 +2550,7 @@ function EditorModal({ children, onClose }) {
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[640px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-[640px] flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/50 bg-white p-6 shadow-2xl pointer-events-auto overflow-y-auto">
         {children}
       </div>
     </div>

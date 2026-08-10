@@ -283,7 +283,7 @@ export default function ContentManagerDiscountCodesPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-left">
-              <thead className="bg-[#fbf3f4] text-[11px] uppercase tracking-[0.16em] text-[#8e7371]">
+              <thead className="bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">
                 <tr>
                   <th className="px-5 py-4">Mã</th>
                   <th className="px-5 py-4">Giá trị</th>
@@ -396,15 +396,17 @@ function DiscountCodeModal({ children, onClose }) {
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[600px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-        {children}
+      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[600px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/35 bg-[#fafafa] shadow-2xl pointer-events-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+          {children}
+        </div>
       </div>
     </div>,
     document.body

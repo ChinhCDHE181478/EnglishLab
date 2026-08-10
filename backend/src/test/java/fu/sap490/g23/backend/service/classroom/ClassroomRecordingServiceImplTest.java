@@ -35,6 +35,9 @@ class ClassroomRecordingServiceImplTest {
     @Mock
     private LarkMeetingService larkMeetingService;
 
+    @Mock
+    private VirtualMeetingService virtualMeetingService;
+
     private ClassroomRecordingServiceImpl service;
     private ClassroomSession session;
 
@@ -45,7 +48,9 @@ class ClassroomRecordingServiceImplTest {
                 sessionRepository,
                 mapper,
                 larkMeetingService,
-                new LarkProperties()
+                new LarkProperties(),
+                virtualMeetingService,
+                new GoogleMeetProperties()
         );
         session = ClassroomSession.builder()
                 .id(11L)

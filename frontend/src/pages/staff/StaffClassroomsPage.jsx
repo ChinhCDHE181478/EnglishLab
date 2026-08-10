@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, Plus, RefreshCw, Search, Users, X } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, RefreshCw, Search, Users, X } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState, StatusBadge } from '../../components/classroom/ClassroomUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
@@ -278,10 +278,6 @@ export default function StaffClassroomsPage() {
           <button aria-label="Làm mới danh sách lớp" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-[#730014] hover:bg-slate-50 transition" onClick={loadClassrooms} type="button">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 text-xs font-extrabold text-white hover:bg-[#730014] transition active:scale-95 whitespace-nowrap shadow-sm" onClick={() => navigate('/staff/classroom-proposals')} type="button">
-            <Plus className="h-4 w-4" />
-            Đề xuất lớp mới
-          </button>
         </div>
       </section>
 
@@ -305,7 +301,7 @@ export default function StaffClassroomsPage() {
                     <td className="px-5 py-4 text-[#584140]">{item.trainingProgramTitle || item.curriculumProgramTitle || 'Chưa gắn'}</td>
                     <td className="px-5 py-4">{formatClassroomDate(item.startDate)}</td>
                     <td className="px-5 py-4 font-bold">{formatClassroomPrice(item.salePrice ?? item.price ?? 0)}</td>
-                    <td className="px-5 py-4"><span className="rounded-lg bg-[#fff0f1] px-3 py-1.5 text-xs font-extrabold text-[#730014]">{formatOfferingStatus(item.classroomStatus)}</span></td>
+                    <td className="whitespace-nowrap px-5 py-4"><StatusBadge status={item.classroomStatus} /></td>
                     <td className="px-5 py-4"><div className="flex justify-end gap-2"><button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014]" disabled={working} onClick={() => openEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button><button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white" onClick={() => navigate(`/staff/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>
                   </tr>
                 ))}

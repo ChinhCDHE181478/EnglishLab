@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { BookMarked, Check, GraduationCap, Link2, Pencil, Plus, RefreshCw, Save, Search, Trash2, X } from 'lucide-react';
+import { BookMarked, Check, Download, FileSpreadsheet, GraduationCap, Link2, LoaderCircle, Pencil, Plus, RefreshCw, Save, Search, Trash2, UploadCloud, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import classroomApi from '../../api/classroomApi';
 import courseApi from '../../api/courseApi';
@@ -156,6 +156,42 @@ const makeCode = (title, mode) => {
   return [mode, ...words].filter(Boolean).join('-');
 };
 
+const downloadCurriculumExcelTemplate = async () => {
+  const XLSX = await import('@e965/xlsx');
+  const rows = [
+    ['Tên chương trình đào tạo', 'Tên unit/buổi học', 'Mô tả & Mục tiêu buổi học'],
+    ['IELTS Intensive 6.5+', 'Buổi 1: Tổng quan IELTS Writing Task 2', 'Phân tích dạng đề Opinion Essay và tiêu chí Task Response.'],
+    ['', 'Buổi 2: Phương pháp phát triển ý tưởng', 'Học kỹ thuật PEEL (Point, Explanation, Example, Link).'],
+  ];
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet['!cols'] = [{ wch: 30 }, { wch: 45 }, { wch: 60 }];
+  worksheet['!autofilter'] = { ref: 'A1:C3' };
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Khung_Chuong_Trinh');
+  XLSX.writeFile(workbook, 'Mau_Import_Chuong_Trinh_Dao_Tao.xlsx');
+};
+
+const parseCurriculumExcelFile = async (file) => {
+  const XLSX = await import('@e965/xlsx');
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  if (!rows || rows.length < 2) throw new Error('Tệp Excel không chứa dữ liệu hoặc sai định dạng.');
+
+  let title = '';
+  const units = [];
+  rows.slice(1).forEach((row) => {
+    const programTitle = String(row?.[0] || '').trim();
+    const unitTitle = String(row?.[1] || '').trim();
+    const description = String(row?.[2] || '').trim();
+    if (programTitle && !title) title = programTitle;
+    if (unitTitle) units.push({ displayOrder: units.length + 1, title: unitTitle, description: description || null });
+  });
+
+  if (!title) throw new Error('Không tìm thấy tên chương trình đào tạo trong cột đầu tiên.');
+  return { title, units, fileName: file.name };
+};
+
 const toProgramForm = (program) => {
   const examCategory = normalizeEnglishExamCategory(program?.examCategory);
   const defaults = getEnglishProfileDefaults(examCategory);
@@ -233,6 +269,12 @@ export default function ContentManagerSyllabusBuilderPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [excelImportOpen, setExcelImportOpen] = useState(false);
+  const [excelDeliveryMode, setExcelDeliveryMode] = useState('OFFLINE');
+  const [parsedExcel, setParsedExcel] = useState(null);
+  const [excelReading, setExcelReading] = useState(false);
+  const [excelImporting, setExcelImporting] = useState(false);
+  const [excelError, setExcelError] = useState('');
 
   const loadPrograms = async () => {
     setLoading(true);
@@ -415,6 +457,70 @@ export default function ContentManagerSyllabusBuilderPage() {
       setError(err?.response?.data?.message || 'Không tạo được giáo trình.');
     } finally {
       setWorking(false);
+    }
+  };
+
+  const closeExcelImport = () => {
+    setExcelImportOpen(false);
+    setParsedExcel(null);
+    setExcelError('');
+  };
+
+  const readCurriculumExcel = async (file) => {
+    if (!file) return;
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      setExcelError('Chỉ hỗ trợ tệp Excel định dạng .xlsx hoặc .xls.');
+      return;
+    }
+    setExcelReading(true);
+    setExcelError('');
+    setParsedExcel(null);
+    try {
+      setParsedExcel(await parseCurriculumExcelFile(file));
+    } catch (err) {
+      setExcelError(err.message || 'Không đọc được tệp Excel.');
+    } finally {
+      setExcelReading(false);
+    }
+  };
+
+  const importCurriculumFromExcel = async () => {
+    if (!parsedExcel) return;
+    setExcelImporting(true);
+    setExcelError('');
+    try {
+      const profileDefaults = getEnglishProfileDefaults('IELTS');
+      const curriculum = await curriculumApi.createCurriculumProgram({
+        ...toProgramPayload({
+          ...emptyProgramForm,
+          title: parsedExcel.title,
+          code: makeCode(parsedExcel.title, excelDeliveryMode),
+          deliveryMode: excelDeliveryMode,
+          ...profileDefaults,
+          totalSessions: parsedExcel.units.length,
+        }, true),
+        displayOrder: 0,
+      });
+      const failedUnits = [];
+      for (const unit of parsedExcel.units) {
+        try {
+          await curriculumApi.createCurriculumUnit(curriculum.id, unit);
+        } catch {
+          failedUnits.push(unit.title);
+        }
+      }
+      setPrograms((current) => [curriculum, ...current]);
+      setSelectedProgramId(String(curriculum.id));
+      setSearchParams({ programId: String(curriculum.id) }, { replace: true });
+      await loadProgramDetail(curriculum.id);
+      closeExcelImport();
+      setSuccess(failedUnits.length
+        ? `Đã tạo giáo trình, nhưng chưa thêm được ${failedUnits.length} unit. Bạn có thể thêm lại trong trình biên soạn.`
+        : `Đã tạo giáo trình và ${parsedExcel.units.length} unit từ Excel.`);
+    } catch (err) {
+      setExcelError(err?.response?.data?.message || 'Chưa thể tạo chương trình đào tạo từ Excel.');
+    } finally {
+      setExcelImporting(false);
     }
   };
 
@@ -729,6 +835,21 @@ export default function ContentManagerSyllabusBuilderPage() {
       {error && !programCreatorOpen && !programEditorOpen ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
+      {excelImportOpen ? (
+        <CurriculumExcelImportModal
+          deliveryMode={excelDeliveryMode}
+          error={excelError}
+          importing={excelImporting}
+          onClose={closeExcelImport}
+          onDeliveryModeChange={setExcelDeliveryMode}
+          onDownloadTemplate={downloadCurriculumExcelTemplate}
+          onFileChange={readCurriculumExcel}
+          onImport={importCurriculumFromExcel}
+          parsed={parsedExcel}
+          reading={excelReading}
+        />
+      ) : null}
+
       {programCreatorOpen ? (
         <SyllabusProgramCreateModal
           error={error}
@@ -757,6 +878,7 @@ export default function ContentManagerSyllabusBuilderPage() {
           programs={programs}
           loading={loading}
           onCreate={openProgramCreator}
+          onImport={() => { setExcelImportOpen(true); setExcelError(''); }}
           onOpen={openProgramWorkspace}
           onRefresh={loadPrograms}
         />
@@ -1120,14 +1242,6 @@ function SyllabusProgramCreateModal({ error, form, mode = 'create', onChange, on
               <input className={FIELD_CLASS} onChange={(event) => onChange({ title: event.target.value })} value={form.title} />
             </label>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Mã</span>
-                <input className={FIELD_CLASS} onChange={(event) => onChange({ code: event.target.value })} value={form.code} />
-              </label>
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Slug</span>
-                <input className={FIELD_CLASS} onChange={(event) => onChange({ slug: event.target.value })} value={form.slug} />
-              </label>
               <FieldSelect label="Hình thức" onChange={(value) => onChange({ deliveryMode: value })} options={deliveryModeOptions} value={form.deliveryMode} />
               <FieldSelect
                 label="Nhóm thi"
@@ -1208,7 +1322,7 @@ function SyllabusProgramCreateModal({ error, form, mode = 'create', onChange, on
   );
 }
 
-function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefresh }) {
+function SyllabusProgramListPanel({ programs, loading, onCreate, onImport, onOpen, onRefresh }) {
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [modeFilter, setModeFilter] = useState('ALL');
@@ -1274,6 +1388,10 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onOpen, onRefre
         <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]" onClick={onCreate} type="button">
           <Plus className="h-4 w-4" />
           Tạo giáo trình nội dung
+        </button>
+        <button className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[#dfbfbd] bg-[#fff8f8] px-5 py-3 text-sm font-bold text-[#730014] shadow-sm transition hover:bg-[#fff0f1] active:scale-[0.98]" onClick={onImport} type="button">
+          <FileSpreadsheet className="h-4 w-4" />
+          Import từ Excel
         </button>
       </HeaderActions>
 
@@ -1536,5 +1654,61 @@ function ResourceAttachModal({ children, onClose }) {
       </div>
     </div>,
     document.body
+  );
+}
+
+function CurriculumExcelImportModal({
+  deliveryMode,
+  error,
+  importing,
+  onClose,
+  onDeliveryModeChange,
+  onDownloadTemplate,
+  onFileChange,
+  onImport,
+  parsed,
+  reading,
+}) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <button aria-label="Đóng" className="absolute inset-0 bg-[#1a0004]/50" onClick={onClose} type="button" />
+      <div className="relative z-10 max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-[28px] border border-[#ead9db] bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4 border-b border-[#f1e4e5] pb-4">
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8a0018]">Khởi tạo nhanh</span>
+            <h3 className="mt-1 font-['Manrope'] text-xl font-black text-[#2b2828]">Import chương trình đào tạo từ Excel</h3>
+          </div>
+          <button aria-label="Đóng" className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-700" onClick={onClose} type="button"><X className="h-4 w-4" /></button>
+        </div>
+        <p className="mt-4 text-xs leading-5 text-[#584140]">Tệp Excel sẽ tạo một giáo trình và các Unit/Buổi học bên trong; không tạo thêm khóa học Offline hoặc Virtual.</p>
+        <div className="mt-4">
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Hình thức triển khai</label>
+          <BrandedSelect onChange={(event) => onDeliveryModeChange(event.target.value)} options={deliveryModeOptions} value={deliveryMode} />
+        </div>
+        <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#dfbfbd] bg-[#fffafb] p-6 text-center">
+          <UploadCloud className="h-10 w-10 text-[#8a0018]" />
+          <p className="mt-3 text-sm font-bold text-[#2b2828]">Chọn tệp Excel có tên chương trình và danh sách Unit</p>
+          <p className="mt-1 text-xs text-slate-400">Chỉ nhận định dạng .xlsx hoặc .xls</p>
+          <label className="mt-4 cursor-pointer rounded-xl bg-[#4b0009] px-4 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014]">
+            Chọn tệp Excel
+            <input accept=".xlsx,.xls" className="hidden" onChange={(event) => { onFileChange(event.target.files?.[0]); event.target.value = ''; }} type="file" />
+          </label>
+        </div>
+        <button className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#8a0018] hover:underline" onClick={onDownloadTemplate} type="button"><Download className="h-3.5 w-3.5" /> Tải bản mẫu Excel chuẩn</button>
+        {reading ? <div className="mt-4 flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-600"><LoaderCircle className="h-4 w-4 animate-spin text-[#8a0018]" /> Đang đọc tệp Excel...</div> : null}
+        {error ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">{error}</div> : null}
+        {parsed ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 text-xs text-slate-700"><div className="flex items-center gap-2 font-extrabold text-emerald-800"><Check className="h-4 w-4 text-emerald-600" /> Đã đọc: {parsed.fileName}</div><div className="mt-2 space-y-1 pl-6"><p><strong>Tên chương trình:</strong> {parsed.title}</p><p><strong>Số Unit trích xuất:</strong> {parsed.units.length}</p></div></div> : null}
+        <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-3"><button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-xs font-bold text-[#730014] hover:bg-slate-50" onClick={onClose} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={!parsed || importing} onClick={onImport} type="button">{importing ? 'Đang tạo giáo trình...' : 'Khởi tạo giáo trình từ Excel'}</button></div>
+      </div>
+    </div>,
+    document.body,
   );
 }

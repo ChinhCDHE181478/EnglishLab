@@ -18,8 +18,6 @@ import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 import ContentManagerTrainingProgramsPage from './ContentManagerTrainingProgramsPage';
 import ContentManagerTrainingProgramBuilderPage from './ContentManagerTrainingProgramBuilderPage';
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
-import ContentManagerPackagesPage from './ContentManagerPackagesPage';
-import ContentManagerSettingsPage from './ContentManagerSettingsPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
 
@@ -64,8 +62,6 @@ export default function ContentManagerRoutes() {
         <Route path="mock-exams" element={<ContentManagerAssessmentsHubPage pageKey="mockExams" />} />
         <Route path="publication" element={<ContentManagerPublicationPage />} />
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
-        <Route path="packages" element={<ContentManagerPackagesPage />} />
-        <Route path="settings" element={<ContentManagerSettingsPage />} />
         <Route path="discussion-moderation" element={<ContentManagerDiscussionModerationPage />} />
         <Route path="categories" element={<ContentManagerCategoriesPage />} />
         <Route path="*" element={<Navigate replace to="dashboard" />} />

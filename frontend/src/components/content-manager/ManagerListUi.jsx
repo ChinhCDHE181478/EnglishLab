@@ -10,7 +10,7 @@ export function ManagerStatsGrid({ stats }) {
         return (
           <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-[0_4px_12px_rgba(75,0,9,0.05)]" key={item.label}>
             <div className="mb-1 flex items-center justify-between gap-3">
-              <span className={`text-xs font-bold uppercase tracking-[0.12em] ${item.tone || 'text-[#4b0009]'}`}>{item.label}</span>
+              <span className={`text-xs font-bold uppercase tracking-[0.14em] ${item.tone || 'text-[#4b0009]'}`}>{item.label}</span>
               {Icon ? <Icon className={`h-5 w-5 ${item.tone || 'text-[#4b0009]'}`} /> : null}
             </div>
             <p className="font-['Manrope'] text-3xl font-extrabold text-[#0b1c30]">{item.value}</p>
@@ -39,7 +39,7 @@ export function ManagerTable({ columns, children, minWidth = '1040px' }) {
           <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
             {columns.map((column) => (
               <th
-                className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
+                className={`px-6 py-4 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] ${column.align === 'center' ? 'text-center' : ''} ${column.align === 'right' ? 'text-right' : ''}`}
                 key={column.key || column.label}
               >
                 {column.label}
