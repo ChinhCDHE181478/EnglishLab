@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { ContentManagerLayout } from '../../components/content-manager/ContentManagerUi';
 import ContentManagerCourseBuilderPage from './ContentManagerCourseBuilderPage';
 import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
@@ -18,8 +18,6 @@ import ContentManagerExerciseBankPage from './ContentManagerExerciseBankPage';
 import ContentManagerTrainingProgramsPage from './ContentManagerTrainingProgramsPage';
 import ContentManagerTrainingProgramBuilderPage from './ContentManagerTrainingProgramBuilderPage';
 import ContentManagerSyllabusBuilderPage from './ContentManagerSyllabusBuilderPage';
-import ContentManagerPackagesPage from './ContentManagerPackagesPage';
-import ContentManagerSettingsPage from './ContentManagerSettingsPage';
 import ContentManagerDiscussionModerationPage from './ContentManagerDiscussionModerationPage';
 import ContentManagerCoursePreviewPage from './ContentManagerCoursePreviewPage';
 
@@ -51,6 +49,8 @@ export default function ContentManagerRoutes() {
         <Route path="discount-codes" element={<ContentManagerDiscountCodesPage />} />
         <Route path="materials" element={<ContentManagerMaterialsPage />} />
         <Route path="flashcards" element={<ContentManagerFlashcardsPage />} />
+        <Route path="flashcards/edit" element={<FlashcardEditorRedirect />} />
+        <Route path="flashcards/editor" element={<FlashcardEditorRedirect />} />
         <Route path="flashcards/:courseSlug" element={<ContentManagerFlashcardsPage />} />
         <Route path="flashcards/:courseSlug/modules/:moduleId" element={<LegacyFlashcardsModuleRedirect />} />
         <Route path="listening" element={<ContentManagerAssessmentsHubPage pageKey="listening" />} />
@@ -64,8 +64,6 @@ export default function ContentManagerRoutes() {
         <Route path="mock-exams" element={<ContentManagerAssessmentsHubPage pageKey="mockExams" />} />
         <Route path="publication" element={<ContentManagerPublicationPage />} />
         <Route path="analytics" element={<ContentManagerAnalyticsPage />} />
-        <Route path="packages" element={<ContentManagerPackagesPage />} />
-        <Route path="settings" element={<ContentManagerSettingsPage />} />
         <Route path="discussion-moderation" element={<ContentManagerDiscussionModerationPage />} />
         <Route path="categories" element={<ContentManagerCategoriesPage />} />
         <Route path="*" element={<Navigate replace to="dashboard" />} />
@@ -77,4 +75,11 @@ export default function ContentManagerRoutes() {
 function LegacyFlashcardsModuleRedirect() {
   const { courseSlug, moduleId } = useParams();
   return <Navigate replace to={`/content-manager/flashcards/${courseSlug}?module=${moduleId}`} />;
+}
+
+function FlashcardEditorRedirect() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  searchParams.set('editor', '1');
+  return <Navigate replace to={`/content-manager/flashcards?${searchParams.toString()}`} />;
 }

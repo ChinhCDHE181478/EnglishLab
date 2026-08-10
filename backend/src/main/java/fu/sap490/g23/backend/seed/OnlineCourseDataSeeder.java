@@ -55,7 +55,6 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     private void seedPackageTypes() {
         seedPackageType(PackageTypeCode.ONLINE_COURSE, "Online Course", "Self-paced or mentor-supported online learning package.");
         seedPackageType(PackageTypeCode.CLASSROOM, "Classroom", "Offline or blended classroom package.");
-        seedPackageType(PackageTypeCode.BUNDLE, "Bundle", "A bundle containing multiple learning products.");
         seedPackageType(PackageTypeCode.MOCK_TEST, "Mock Test", "Certification exam simulation package.");
         seedPackageType(PackageTypeCode.SUBSCRIPTION, "Subscription", "Recurring access package.");
     }
