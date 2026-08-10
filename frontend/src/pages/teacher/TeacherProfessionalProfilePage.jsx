@@ -58,6 +58,7 @@ export default function TeacherProfessionalProfilePage() {
   }, [searchParams, setSearchParams]);
 
   const handleConnectGoogleMeet = async () => {
+    if (meetConnection?.connected) return;
     setMeetBusy(true);
     setMeetMessage('');
     try {

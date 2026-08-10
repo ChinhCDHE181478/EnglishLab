@@ -39,8 +39,8 @@ public class StaffRecordingController {
         return ResponseEntity.ok(recordingService.updateSessionRecording(sessionId, request));
     }
 
-    @PostMapping("/sessions/{sessionId}/sync-lark")
-    public ResponseEntity<ClassroomSessionResponse> syncLarkRecording(@PathVariable Long sessionId) {
-        return ResponseEntity.ok(recordingService.syncLarkRecording(sessionId));
+    @PostMapping({"/sessions/{sessionId}/sync", "/sessions/{sessionId}/sync-lark"})
+    public ResponseEntity<ClassroomSessionResponse> syncRecording(@PathVariable Long sessionId) {
+        return ResponseEntity.ok(recordingService.syncRecording(sessionId));
     }
 }

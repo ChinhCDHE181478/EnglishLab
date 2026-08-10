@@ -141,9 +141,9 @@ export default function AdminBroadcastsPage() {
     <div>
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#8a0018]">Giao tiếp hệ thống</p>
-          <h1 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-slate-900">Thông báo hệ thống</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-500">Soạn bản nháp, hẹn giờ hoặc gửi ngay qua thông báo trong ứng dụng và email. Mỗi chiến dịch chỉ gửi một lần cho mỗi người nhận.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8a0018]">Giao tiếp hệ thống</p>
+          <h1 className="mt-1 font-['Manrope'] text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Thông báo hệ thống</h1>
+          <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-500">Soạn bản nháp, hẹn giờ hoặc gửi ngay qua thông báo trong ứng dụng và email. Mỗi chiến dịch chỉ gửi một lần cho mỗi người nhận.</p>
         </div>
         <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#730014] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#730014]/15 transition hover:bg-[#56000f]" onClick={() => openEditor(null)} type="button">
           <Plus className="h-4 w-4" /> Soạn thông báo

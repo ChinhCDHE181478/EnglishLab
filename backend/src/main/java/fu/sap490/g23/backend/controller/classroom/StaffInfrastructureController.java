@@ -6,7 +6,6 @@ import fu.sap490.g23.backend.service.classroom.ClassroomInfrastructureService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,32 +53,4 @@ public class StaffInfrastructureController {
         return ResponseEntity.ok(infrastructureService.updateRoom(id, request));
     }
 
-    @GetMapping("/session-templates")
-    public ResponseEntity<List<ClassroomSessionTemplateResponse>> listTemplates() {
-        return ResponseEntity.ok(infrastructureService.listSessionTemplates());
-    }
-
-    @PostMapping("/session-templates")
-    public ResponseEntity<ClassroomSessionTemplateResponse> createTemplate(
-            @Valid @RequestBody UpsertSessionTemplateRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(infrastructureService.createSessionTemplate(request, authentication.getName()));
-    }
-
-    @PutMapping("/session-templates/{id}")
-    public ResponseEntity<ClassroomSessionTemplateResponse> updateTemplate(
-            @PathVariable Long id,
-            @Valid @RequestBody UpsertSessionTemplateRequest request
-    ) {
-        return ResponseEntity.ok(infrastructureService.updateSessionTemplate(id, request));
-    }
-
-    @PostMapping("/classrooms/{offeringId}/generate-sessions")
-    public ResponseEntity<List<ClassroomSessionResponse>> generateSessions(
-            @PathVariable Long offeringId,
-            @Valid @RequestBody GenerateSessionsFromTemplateRequest request
-    ) {
-        return ResponseEntity.ok(infrastructureService.generateSessionsFromTemplate(offeringId, request));
-    }
 }

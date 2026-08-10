@@ -19,4 +19,8 @@ public class GoogleMeetProperties {
     private String apiBaseUrl = "https://meet.googleapis.com/v2";
     private String redirectUri = "http://localhost:8080/api/teacher/google-meet/callback";
     private String frontendReturnUrl = "http://localhost:5173/teacher/professional-profile";
+    private boolean autoRecording = true;
+    private boolean recordingAutoPublish;
+    private int recordingMaxSyncAttempts = 20;
+    private long recordingSyncDelayMs = 60000;
 }

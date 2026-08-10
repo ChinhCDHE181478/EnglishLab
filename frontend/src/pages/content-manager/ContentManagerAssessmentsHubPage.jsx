@@ -645,23 +645,26 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
       {editorOpen && (
         <AssessmentHubModal onClose={closeEditor}>
-          <section className="space-y-5" ref={editorRef}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">
-                  {editingId ? pageConfig.editLabel : pageConfig.createLabel}
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  {isSkillLocked
-                    ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
-                    : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
-                </p>
-              </div>
-              <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
-                <X className="h-4 w-4" /> Đóng
-              </button>
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#f0e3e4] px-6 py-5 bg-white">
+            <div>
+              <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">
+                {pageConfig.title || 'Biên soạn bài luyện tập'}
+              </p>
+              <h2 className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
+                {editingId ? pageConfig.editLabel : pageConfig.createLabel}
+              </h2>
+              <p className="mt-1 text-xs text-[#8b706e]">
+                {isSkillLocked
+                  ? `Trang này chỉ lưu ${pageConfig.successNoun} với kỹ năng ${formatLabel(pageConfig.skill)}.`
+                  : 'Nội dung tạo ở đây sẽ nằm trong ngân hàng dùng chung, sau đó có thể gắn vào nhiều khóa học hoặc giáo trình.'}
+              </p>
             </div>
+            <button className="rounded-2xl border border-[#dfbfbd]/65 p-2.5 text-[#730014] transition hover:bg-[#fff2f3]" onClick={closeEditor} type="button">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6" ref={editorRef}>
             <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
               <div className="space-y-4">
                 <label className="block">
@@ -747,7 +750,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                 {renderWorkspace()}
               </div>
             </div>
-          </section>
+          </div>
         </AssessmentHubModal>
       )}
 
@@ -842,14 +845,14 @@ function AssessmentHubModal({ children, onClose }) {
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[1200px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[1280px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/50 bg-white shadow-2xl pointer-events-auto">
         {children}
       </div>
     </div>,

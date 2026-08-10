@@ -369,8 +369,8 @@ function ProposalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-      <section aria-modal="true" className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" role="dialog">
-        <div className="flex items-start justify-between">
+      <section aria-modal="true" className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog">
+        <div className="flex shrink-0 items-start justify-between border-b border-slate-100 p-6">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">
               {editing ? 'Chỉnh sửa bản nháp mở lớp' : 'Lập kế hoạch lớp trước khai giảng'}
@@ -381,115 +381,115 @@ function ProposalModal({
           <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={working} onClick={onClose} type="button">
             <X className="h-5 w-5" />
           </button>
-        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+          {error ? <div className={`${ERROR_NOTICE_CLASS} mb-4`} role="alert">{error}</div> : null}
 
-        {error ? <div className={`${ERROR_NOTICE_CLASS} mt-5`} role="alert">{error}</div> : null}
-
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <div className="space-y-4">
-            <TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} />
-            <div>
-              <FieldLabel>Khóa học nền</FieldLabel>
-              <BrandedSelect
-                disabled={editing}
-                onChange={(event) => onUpdate({ courseOfferingId: event.target.value, enrollmentRequestIds: [] })}
-                options={courseOfferings.map((item) => ({
-                  label: item.title,
-                  value: String(item.id),
-                  description: `${item.deliveryType || item.deliveryMode} · ${item.entryLevel || 'Mọi trình độ'}`,
-                }))}
-                placeholder="Chọn khóa học"
-                searchable
-                value={form.courseOfferingId}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value })} type="number" value={form.capacity} />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div className="space-y-4">
+              <TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} />
               <div>
-                <FieldLabel>Giáo viên dự kiến</FieldLabel>
+                <FieldLabel>Khóa học nền</FieldLabel>
                 <BrandedSelect
-                  onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })}
-                  options={teachers.map((item) => ({ label: item.label || item.fullName || item.email, value: String(item.id) }))}
-                  placeholder="Chọn giáo viên"
+                  disabled={editing}
+                  onChange={(event) => onUpdate({ courseOfferingId: event.target.value, enrollmentRequestIds: [] })}
+                  options={courseOfferings.map((item) => ({
+                    label: item.title,
+                    value: String(item.id),
+                    description: `${item.deliveryType || item.deliveryMode} · ${item.entryLevel || 'Mọi trình độ'}`,
+                  }))}
+                  placeholder="Chọn khóa học"
                   searchable
-                  value={form.primaryTeacherId}
+                  value={form.courseOfferingId}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={(value) => onUpdate({ plannedStartDate: value })} type="date" value={form.plannedStartDate} />
-              <TextField label="Ngày kết thúc" min={form.plannedStartDate || toLocalDateKey()} onChange={(value) => onUpdate({ plannedEndDate: value })} type="date" value={form.plannedEndDate} />
-            </div>
-            <div>
-              <FieldLabel>Ngày học trong tuần</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                {weekdayOptions.map(([value, label]) => (
-                  <button
-                    className={`h-9 min-w-10 rounded-lg px-3 text-xs font-extrabold ${form.weekdays.includes(value) ? 'bg-[#730014] text-white' : 'bg-slate-100 text-slate-600'}`}
-                    key={value}
-                    onClick={() => onToggleWeekday(value)}
-                    type="button"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <TextField label="Giờ bắt đầu" onChange={(value) => onUpdate({ sessionStartTime: value })} type="time" value={form.sessionStartTime} />
-              <TextField label="Giờ kết thúc" onChange={(value) => onUpdate({ sessionEndTime: value })} type="time" value={form.sessionEndTime} />
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {isVirtual ? (
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                <p className="font-extrabold">Phòng học Virtual được tạo tự động</p>
-                <p className="mt-1 leading-6">
-                  Mỗi buổi học trực tuyến sử dụng một phòng Google Meet riêng
-                  và hiển thị trạng thái đồng bộ trong chi tiết lớp.
-                </p>
-              </div>
-            ) : (
-              <>
+              <div className="grid grid-cols-2 gap-3">
+                <TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value })} type="number" value={form.capacity} />
                 <div>
-                  <FieldLabel>Phòng học</FieldLabel>
+                  <FieldLabel>Giáo viên dự kiến</FieldLabel>
                   <BrandedSelect
-                    onChange={(event) => onUpdate({ roomId: event.target.value })}
-                    options={rooms.map((item) => ({
-                      label: item.label || item.name,
-                      value: String(item.id),
-                      description: `${item.capacity || 0} chỗ`,
-                    }))}
-                    placeholder="Chọn phòng"
+                    onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })}
+                    options={teachers.map((item) => ({ label: item.label || item.fullName || item.email, value: String(item.id) }))}
+                    placeholder="Chọn giáo viên"
                     searchable
-                    value={form.roomId}
+                    value={form.primaryTeacherId}
                   />
                 </div>
-                <TextField label="Địa chỉ/cơ sở" onChange={(value) => onUpdate({ offlineAddress: value })} value={form.offlineAddress} />
-              </>
-            )}
-            <div className={`flex items-start gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${validationStyle}`}>
-              <ValidationIcon className={`mt-0.5 h-4 w-4 shrink-0 ${scheduleValidation.status === 'checking' ? 'animate-spin' : ''}`} />
-              <span>{scheduleValidation.message}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={(value) => onUpdate({ plannedStartDate: value })} type="date" value={form.plannedStartDate} />
+                <TextField label="Ngày kết thúc" min={form.plannedStartDate || toLocalDateKey()} onChange={(value) => onUpdate({ plannedEndDate: value })} type="date" value={form.plannedEndDate} />
+              </div>
+              <div>
+                <FieldLabel>Ngày học trong tuần</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {weekdayOptions.map(([value, label]) => (
+                    <button
+                      className={`h-9 min-w-10 rounded-lg px-3 text-xs font-extrabold ${form.weekdays.includes(value) ? 'bg-[#730014] text-white' : 'bg-slate-100 text-slate-600'}`}
+                      key={value}
+                      onClick={() => onToggleWeekday(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <TextField label="Giờ bắt đầu" onChange={(value) => onUpdate({ sessionStartTime: value })} type="time" value={form.sessionStartTime} />
+                <TextField label="Giờ kết thúc" onChange={(value) => onUpdate({ sessionEndTime: value })} type="time" value={form.sessionEndTime} />
+              </div>
             </div>
-            <label className="block">
-              <FieldLabel>Ghi chú xét duyệt</FieldLabel>
-              <RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} />
-            </label>
-          </div>
-        </div>
 
-        <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-5">
-          <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
-          <button
-            className={PRIMARY_BUTTON_CLASS}
-            disabled={working || scheduleValidation.status === 'checking' || scheduleValidation.status === 'invalid'}
-            onClick={onSave}
-            type="button"
-          >
-            {working ? 'Đang lưu...' : editing ? 'Lưu chỉnh sửa' : 'Tạo bản nháp'}
-          </button>
+            <div className="space-y-4">
+              {isVirtual ? (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  <p className="font-extrabold">Phòng học Virtual được tạo tự động</p>
+                  <p className="mt-1 leading-6">
+                    Mỗi buổi học trực tuyến sử dụng một phòng Google Meet riêng
+                    và hiển thị trạng thái đồng bộ trong chi tiết lớp.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <FieldLabel>Phòng học</FieldLabel>
+                    <BrandedSelect
+                      onChange={(event) => onUpdate({ roomId: event.target.value })}
+                      options={rooms.map((item) => ({
+                        label: item.label || item.name,
+                        value: String(item.id),
+                        description: `${item.capacity || 0} chỗ`,
+                      }))}
+                      placeholder="Chọn phòng"
+                      searchable
+                      value={form.roomId}
+                    />
+                  </div>
+                  <TextField label="Địa chỉ/cơ sở" onChange={(value) => onUpdate({ offlineAddress: value })} value={form.offlineAddress} />
+                </>
+              )}
+              <div className={`flex items-start gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${validationStyle}`}>
+                <ValidationIcon className={`mt-0.5 h-4 w-4 shrink-0 ${scheduleValidation.status === 'checking' ? 'animate-spin' : ''}`} />
+                <span>{scheduleValidation.message}</span>
+              </div>
+              <label className="block">
+                <FieldLabel>Ghi chú xét duyệt</FieldLabel>
+                <RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} />
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-5">
+            <button className={SECONDARY_BUTTON_CLASS} disabled={working} onClick={onClose} type="button">Hủy</button>
+            <button
+              className={PRIMARY_BUTTON_CLASS}
+              disabled={working || scheduleValidation.status === 'checking' || scheduleValidation.status === 'invalid'}
+              onClick={onSave}
+              type="button"
+            >
+              {working ? 'Đang lưu...' : editing ? 'Lưu chỉnh sửa' : 'Tạo bản nháp'}
+            </button>
+          </div>
         </div>
       </section>
     </div>

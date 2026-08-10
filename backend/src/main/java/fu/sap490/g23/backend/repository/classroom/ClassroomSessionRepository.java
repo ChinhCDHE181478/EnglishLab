@@ -83,6 +83,20 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     @Query("""
             SELECT s FROM ClassroomSession s
+            WHERE s.recordingSyncStatus IN :statuses
+              AND s.larkMeetingId LIKE 'spaces/%'
+              AND s.recordingSyncAttempts < :maxAttempts
+              AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
+            ORDER BY s.recordingLastAttemptAt ASC, s.id ASC
+            """)
+    List<ClassroomSession> findGoogleMeetRecordingsPendingSync(
+            @Param("statuses") Collection<RecordingSyncStatus> statuses,
+            @Param("maxAttempts") int maxAttempts,
+            @Param("retryBefore") LocalDateTime retryBefore
+    );
+
+    @Query("""
+            SELECT s FROM ClassroomSession s
             WHERE s.teacher.id = :teacherId
               AND s.status IN :statuses
               AND s.sessionDate = :sessionDate

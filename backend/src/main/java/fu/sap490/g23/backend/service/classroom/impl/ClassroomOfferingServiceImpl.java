@@ -396,11 +396,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     public ClassroomSessionResponse createSession(Long offeringId, CreateClassroomSessionRequest request) {
-        return createSession(offeringId, request, true);
+        return createSessionInternal(offeringId, request, true);
     }
 
     @Override
     public ClassroomSessionResponse createSession(
+            Long offeringId,
+            CreateClassroomSessionRequest request,
+            boolean enforceConflictCheck
+    ) {
+        return createSessionInternal(offeringId, request, enforceConflictCheck);
+    }
+
+    private ClassroomSessionResponse createSessionInternal(
             Long offeringId,
             CreateClassroomSessionRequest request,
             boolean enforceConflictCheck
@@ -413,6 +421,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
         ClassroomRoom room = resolveSessionRoom(request, offering, deliveryMode);
         validateRoomCapacity(room, offering.getMaxCapacity());
+        if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
+            ensureTeacherMeetingOwner(offering);
+        }
 
         if (enforceConflictCheck) {
             ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
@@ -430,9 +441,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         ClassroomSession session = buildSession(offering, request, teacher, room, deliveryMode);
         session = sessionRepository.save(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
-                && (session.getLarkMeetingUrl() == null
-                || session.getLarkMeetingUrl().isBlank()
-                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl()))) {
+                && needsManagedVirtualMeetingSync(session)) {
             syncVirtualMeetingSafely(session);
             session = sessionRepository.save(session);
         }
@@ -444,6 +453,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertStaffOperator(actor);
         ClassroomSession session = findSession(sessionId);
+        ensureTeacherMeetingOwner(session.getClassroomOffering());
         if (session.getDeliveryMode() != ClassroomDeliveryMode.VIRTUAL) {
             throw new IllegalArgumentException("Chỉ buổi học trực tuyến mới có phòng Google Meet để đồng bộ.");
         }
@@ -1246,13 +1256,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (session.getLarkMeetingUrl() == null
                 || session.getLarkMeetingUrl().isBlank()
                 || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
-            if (!syncVirtualMeetingSafely(session)) {
-                sessionRepository.save(session);
-                throw new ResponseStatusException(
-                        HttpStatus.SERVICE_UNAVAILABLE,
-                        "Chưa thể mở phòng học trực tuyến. Vui lòng thử lại sau ít phút."
-                );
-            }
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Staff chưa tạo liên kết Google Meet cho buổi học này."
+            );
         }
         inviteTeacher(session, actor);
         session.setStatus(ClassroomSessionStatus.OPEN);
@@ -1285,23 +1292,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (session.getLarkMeetingUrl() == null
                 || session.getLarkMeetingUrl().isBlank()
                 || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
-            if (!syncVirtualMeetingSafely(session)) {
-                sessionRepository.save(session);
-                throw new RuntimeException(
-                        session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
-                                ? "Chưa thể tạo phòng Google Meet cho buổi học này."
-                                : session.getLarkSyncError()
-                );
-            }
-        } else if (session.getLarkMeetingId() != null && virtualMeetingService.isEnabled()) {
-            if (!syncVirtualMeetingSafely(session)) {
-                sessionRepository.save(session);
-                throw new RuntimeException(
-                        session.getLarkSyncError() == null || session.getLarkSyncError().isBlank()
-                                ? "Chưa thể cập nhật phòng Google Meet."
-                                : session.getLarkSyncError()
-                );
-            }
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Staff chưa tạo liên kết Google Meet cho buổi học này."
+            );
         }
 
         session.setLarkEmptySince(null);
@@ -1623,10 +1617,60 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             return true;
         } catch (RuntimeException ex) {
             session.setLarkSyncStatus("FAILED");
-            session.setLarkSyncError(ex.getMessage());
+            session.setLarkSyncError(toVirtualMeetingUserMessage(ex));
             log.warn("Không thể đồng bộ buổi học {} với Google Meet: {}", session.getId(), ex.getMessage());
             return false;
         }
+    }
+
+    private void ensureTeacherMeetingOwner(ClassroomOffering offering) {
+        if (offering == null) return;
+        User teacher = offering.getPrimaryTeacher();
+        if (teacher == null) return;
+        if (offering.getVirtualMeetingOwner() == null
+                || !java.util.Objects.equals(offering.getVirtualMeetingOwner().getId(), teacher.getId())) {
+            offering.setVirtualMeetingOwner(teacher);
+            offering.setDefaultLarkMeetingUrl(null);
+            sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                    .stream()
+                    .filter(candidate -> candidate.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL)
+                    .filter(candidate -> VIRTUAL_MEETING_RETRY_SESSION_STATUSES.contains(candidate.getStatus()))
+                    .filter(candidate -> candidate.getLarkMeetingId() != null
+                            && candidate.getLarkMeetingId().startsWith("spaces/"))
+                    .forEach(candidate -> {
+                        clearManagedVirtualMeetingData(candidate);
+                        candidate.setLarkMeetingUrl(null);
+                        candidate.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
+                        candidate.setLarkSyncStatus("PENDING");
+                        candidate.setLarkSyncError(null);
+                    });
+        }
+    }
+
+    private String toVirtualMeetingUserMessage(RuntimeException exception) {
+        String detail = exception.getMessage() == null ? "" : exception.getMessage();
+        if (detail.contains("hết hạn hoặc bị thu hồi")) {
+            return "Tài khoản Google của giáo viên đã hết hạn quyền truy cập. Hãy yêu cầu giáo viên liên kết lại Google Meet.";
+        }
+        if (detail.contains("GOOGLE_MEET_CLIENT_ID") || detail.contains("GOOGLE_MEET_CLIENT_SECRET")) {
+            return "Tích hợp Google Meet chưa được cấu hình đầy đủ. Vui lòng liên hệ quản trị hệ thống.";
+        }
+        if (detail.contains("FEATURE_UNAVAILABLE_TO_USER") || detail.contains("updateAutoRecordingGeneration")) {
+            return "Tài khoản Google của giáo viên chưa được phép ghi hình tự động. Nếu nút Ghi trong Google Meet bị khóa, cần cấp quyền ghi hình từ gói hoặc quản trị Google Workspace.";
+        }
+        return "Không thể tạo phòng Google Meet lúc này. Vui lòng thử lại sau hoặc kiểm tra kết nối Google của giáo viên phụ trách.";
+    }
+
+    private boolean needsManagedVirtualMeetingSync(ClassroomSession session) {
+        if (session.getLarkMeetingUrl() == null
+                || session.getLarkMeetingUrl().isBlank()
+                || virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())) {
+            return true;
+        }
+        ClassroomOffering offering = session.getClassroomOffering();
+        return session.getLarkMeetingId() == null
+                && offering != null
+                && session.getLarkMeetingUrl().equals(offering.getDefaultLarkMeetingUrl());
     }
 
     private boolean requiresManagedVirtualMeeting(ClassroomSession session) {

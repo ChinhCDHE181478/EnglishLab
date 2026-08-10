@@ -271,7 +271,7 @@ export function ContentManagerLayout({ children }) {
                     {location.pathname === '/content-manager/flashcards' ? (
                       <Link
                         className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#730014] active:scale-[0.98]"
-                        to="/content-manager/flashcards?new=1"
+                        to="/content-manager/flashcards?editor=1&new=1"
                       >
                         <Plus className="h-4 w-4" />
                         Tạo bộ thẻ mới

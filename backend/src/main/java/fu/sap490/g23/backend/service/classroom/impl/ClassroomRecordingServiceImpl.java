@@ -15,6 +15,9 @@ import fu.sap490.g23.backend.service.classroom.ClassroomRecordingService;
 import fu.sap490.g23.backend.service.classroom.LarkMeetingService;
 import fu.sap490.g23.backend.service.classroom.LarkProperties;
 import fu.sap490.g23.backend.service.classroom.LarkRecordingInfo;
+import fu.sap490.g23.backend.service.classroom.GoogleMeetProperties;
+import fu.sap490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
+import fu.sap490.g23.backend.service.classroom.VirtualMeetingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -39,6 +42,8 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
     private final ClassroomMapper mapper;
     private final LarkMeetingService larkMeetingService;
     private final LarkProperties larkProperties;
+    private final VirtualMeetingService virtualMeetingService;
+    private final GoogleMeetProperties googleMeetProperties;
 
     @Override
     public ClassroomOfferingResponse updateOfferingRecording(Long offeringId, UpdateRecordingRequest request) {
@@ -98,11 +103,20 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
     }
 
     @Override
-    public ClassroomSessionResponse syncLarkRecording(Long sessionId) {
+    public ClassroomSessionResponse syncRecording(Long sessionId) {
         ClassroomSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
-        syncLarkRecording(session);
+        if (isGoogleMeetSession(session)) {
+            syncGoogleMeetRecording(session);
+        } else {
+            syncLarkRecording(session);
+        }
         return mapper.toManagerSessionResponse(sessionRepository.save(session));
+    }
+
+    @Override
+    public ClassroomSessionResponse syncLarkRecording(Long sessionId) {
+        return syncRecording(sessionId);
     }
 
     @Scheduled(
@@ -123,12 +137,45 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
         );
         pending.stream().limit(50).forEach(session -> {
             try {
+                if (isGoogleMeetSession(session)) {
+                    return;
+                }
                 syncLarkRecording(session);
                 sessionRepository.save(session);
             } catch (RuntimeException ex) {
                 log.warn("Không đồng bộ được recording Lark cho sessionId={}: {}", session.getId(), ex.getMessage());
             }
         });
+    }
+
+    @Scheduled(
+            fixedDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}",
+            initialDelayString = "${englishlab.google-meet.recording-sync-delay-ms:60000}"
+    )
+    public void reconcilePendingGoogleMeetRecordings() {
+        if (!virtualMeetingService.isEnabled()) {
+            return;
+        }
+        LocalDateTime retryBefore = LocalDateTime.now().minusSeconds(
+                Math.max(30, googleMeetProperties.getRecordingSyncDelayMs() / 1000)
+        );
+        List<ClassroomSession> pending = sessionRepository.findGoogleMeetRecordingsPendingSync(
+                EnumSet.of(
+                        RecordingSyncStatus.SCHEDULED,
+                        RecordingSyncStatus.RECORDING,
+                        RecordingSyncStatus.PROCESSING,
+                        RecordingSyncStatus.FAILED
+                ),
+                Math.max(1, googleMeetProperties.getRecordingMaxSyncAttempts()),
+                retryBefore
+        );
+        pending.stream()
+                .filter(session -> session.getSessionDate() == null || !session.getSessionDate().isAfter(LocalDate.now()))
+                .limit(50)
+                .forEach(session -> {
+                    syncGoogleMeetRecording(session);
+                    sessionRepository.save(session);
+                });
     }
 
     @Scheduled(fixedDelayString = "${englishlab.lark.recording-expiry-check-delay-ms:300000}")
@@ -201,6 +248,40 @@ public class ClassroomRecordingServiceImpl implements ClassroomRecordingService 
                     ? "Lark đang xử lý file recording. Hệ thống sẽ tự thử lại."
                     : limit(ex.getMessage(), 1000));
         }
+    }
+
+    private void syncGoogleMeetRecording(ClassroomSession session) {
+        session.setRecordingLastAttemptAt(LocalDateTime.now());
+        session.setRecordingSyncAttempts((session.getRecordingSyncAttempts() == null ? 0 : session.getRecordingSyncAttempts()) + 1);
+        try {
+            VirtualMeetingRecordingInfo recording = virtualMeetingService.getRecording(session);
+            validateRecordingUrl(recording.url());
+            session.setRecordingUrl(recording.url());
+            session.setRecordingDurationMs(recording.durationMs());
+            session.setRecordingProvider("GOOGLE_MEET");
+            session.setRecordingSyncStatus(RecordingSyncStatus.READY);
+            session.setRecordingSyncedAt(LocalDateTime.now());
+            session.setRecordingSyncError(null);
+            setExpiry(session);
+            if (googleMeetProperties.isRecordingAutoPublish()) {
+                session.setRecordingVisible(true);
+                session.setRecordingPublishedAt(LocalDateTime.now());
+            }
+        } catch (RuntimeException ex) {
+            boolean stillProcessing = ex.getMessage() != null && (
+                    ex.getMessage().contains("đang xử lý")
+                            || ex.getMessage().contains("chưa có bản ghi hội nghị")
+            );
+            session.setRecordingSyncStatus(stillProcessing ? RecordingSyncStatus.PROCESSING : RecordingSyncStatus.FAILED);
+            session.setRecordingSyncError(stillProcessing
+                    ? "Google Meet đang xử lý file ghi hình. Hệ thống sẽ tự thử lại."
+                    : limit(ex.getMessage(), 1000));
+        }
+    }
+
+    private boolean isGoogleMeetSession(ClassroomSession session) {
+        return StringUtils.hasText(session.getLarkMeetingId())
+                && session.getLarkMeetingId().startsWith("spaces/");
     }
 
     private String trimOrNull(String value) {

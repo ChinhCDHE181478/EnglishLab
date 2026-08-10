@@ -228,11 +228,6 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async updateSessionLarkLink(sessionId, payload) {
-    const response = await axiosClient.patch(`/api/teacher/classrooms/sessions/${sessionId}/meeting-link`, payload);
-    return unwrapData(response);
-  },
-
   async getSessionAttendance(sessionId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/sessions/${sessionId}/attendance`);
     return asList(unwrapData(response));
@@ -588,26 +583,6 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
-  async listSessionTemplates() {
-    const response = await axiosClient.get('/api/staff/infrastructure/session-templates');
-    return asList(unwrapData(response));
-  },
-
-  async createSessionTemplate(payload) {
-    const response = await axiosClient.post('/api/staff/infrastructure/session-templates', payload);
-    return unwrapData(response);
-  },
-
-  async updateSessionTemplate(id, payload) {
-    const response = await axiosClient.put(`/api/staff/infrastructure/session-templates/${id}`, payload);
-    return unwrapData(response);
-  },
-
-  async generateSessionsFromTemplate(offeringId, payload) {
-    const response = await axiosClient.post(`/api/staff/infrastructure/classrooms/${offeringId}/generate-sessions`, payload);
-    return asList(unwrapData(response));
-  },
-
   async closeClassroomOffering(id) {
     const response = await axiosClient.post(`/api/staff/classrooms/${id}/close`);
     return unwrapData(response);
@@ -720,8 +695,8 @@ export const classroomApi = {
     return asList(unwrapData(response));
   },
 
-  async syncLarkRecording(sessionId) {
-    const response = await axiosClient.post(`/api/staff/recordings/sessions/${sessionId}/sync-lark`);
+  async syncSessionRecording(sessionId) {
+    const response = await axiosClient.post(`/api/staff/recordings/sessions/${sessionId}/sync`);
     return unwrapData(response);
   },
 };

@@ -172,8 +172,6 @@ export default function ContentManagerCurriculumProgramEditPage({ mode = 'OFFLIN
       <Panel className="rounded-xl border-[#dcc0bf]/30 p-6 shadow-sm">
         <div className="grid gap-5 xl:grid-cols-2">
           <TextInput label="Tên giáo trình" value={form.title} onChange={(value) => updateForm({ title: value })} />
-          <TextInput label="Mã" value={form.code} onChange={(value) => updateForm({ code: value })} />
-          <TextInput label="Slug" value={form.slug} onChange={(value) => updateForm({ slug: value })} />
           <div>
             <FieldLabel>Nhóm thi</FieldLabel>
             <BrandedSelect

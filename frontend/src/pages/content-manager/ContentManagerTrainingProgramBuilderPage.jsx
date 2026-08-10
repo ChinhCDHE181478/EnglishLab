@@ -208,8 +208,6 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
             <div className="grid gap-4 md:grid-cols-2">
               <TextInput label="Tên khóa học" value={form.title} onChange={(value) => updateForm({ title: value, code: form.code || makeCode(value, mode), slug: form.slug || toSlug(value) })} />
               <div><FieldLabel>Chương trình đào tạo</FieldLabel><BrandedSelect onChange={(event) => updateForm({ curriculumProgramId: event.target.value })} options={matchingCurriculums.map((item) => ({ label: item.title, value: String(item.id), description: [item.code, item.examCategory, item.status, `${item.totalUnits || 0} unit`].filter(Boolean).join(' · ') }))} placeholder="Chọn chương trình đào tạo" searchable={true} value={form.curriculumProgramId} /></div>
-              <TextInput label="Mã khóa học" value={form.code} onChange={(value) => updateForm({ code: value })} />
-              <TextInput label="Đường dẫn (slug)" value={form.slug} onChange={(value) => updateForm({ slug: value })} />
             </div>
           </BuilderSection>
 

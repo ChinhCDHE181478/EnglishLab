@@ -74,8 +74,15 @@ const getNavItemsByRole = (user) => {
 const getProfileItemsByRole = (user) => {
   if (!user) return [];
   const role = String(user.role || '').toUpperCase();
-  // Staff roles already have primary navigation in the header; keep the avatar menu for account actions only.
-  if (['TEACHER', 'STAFF', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
+  if (role === 'TEACHER') {
+    return [
+      { label: 'Lịch dạy', to: '/teacher/schedule', icon: CalendarDays, group: 'teaching' },
+      { label: 'Yêu cầu thay đổi', to: '/teacher/requests', icon: ClipboardList, group: 'teaching' },
+      { label: 'Hồ sơ chuyên môn', to: '/teacher/professional-profile', icon: UserRound, group: 'account' },
+    ];
+  }
+  // Other staff roles already have primary navigation in the header; keep the avatar menu for account actions only.
+  if (['STAFF', 'MANAGER', 'ADMIN', 'CONTENT_MANAGER'].includes(role)) {
     return [];
   }
   // Student
@@ -250,8 +257,11 @@ const Header = () => {
 
   const navItems = useMemo(() => getNavItemsByRole(user), [user]);
   const profileMenuItems = useMemo(() => getProfileItemsByRole(user), [user]);
+  const teachingMenuItems = profileMenuItems.filter((item) => item.group === 'teaching');
   const learningMenuItems = profileMenuItems.filter((item) => item.group === 'learning');
   const accountMenuItems = profileMenuItems.filter((item) => item.group === 'account');
+  const primaryMenuItems = teachingMenuItems.length ? teachingMenuItems : learningMenuItems;
+  const primaryMenuLabel = teachingMenuItems.length ? 'Giảng dạy' : 'Học tập';
   const isStaff = user && hasAnyUserRole(user, STAFF_ROLES);
 
   return (
@@ -457,11 +467,11 @@ const Header = () => {
                   </div>
 
                   <div className="p-3">
-                    {learningMenuItems.length ? (
+                    {primaryMenuItems.length ? (
                       <>
-                        <p className="px-2 pb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9b8582]">Học tập</p>
+                        <p className="px-2 pb-2 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#9b8582]">{primaryMenuLabel}</p>
                         <div className="grid grid-cols-2 gap-1.5">
-                          {learningMenuItems.map((item) => {
+                          {primaryMenuItems.map((item) => {
                             const Icon = item.icon;
                             return (
                               <Link
@@ -503,7 +513,7 @@ const Header = () => {
                       </div>
                     ) : null}
 
-                    {!learningMenuItems.length && !accountMenuItems.length ? profileMenuItems.map((item) => (
+                    {!primaryMenuItems.length && !accountMenuItems.length ? profileMenuItems.map((item) => (
                       <Link
                         key={item.to}
                         className="flex w-full items-center rounded-2xl px-4 py-3 text-sm font-bold text-[#2b2828] transition hover:bg-[#fff3f4] hover:text-[#730014]"

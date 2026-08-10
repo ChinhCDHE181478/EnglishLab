@@ -71,6 +71,10 @@ public class ClassroomOffering {
     private User primaryTeacher;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "virtual_meeting_owner_id")
+    private User virtualMeetingOwner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_room_id")
     private ClassroomRoom defaultRoom;
 

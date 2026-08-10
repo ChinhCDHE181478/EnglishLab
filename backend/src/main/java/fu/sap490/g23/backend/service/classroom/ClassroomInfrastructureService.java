@@ -12,8 +12,4 @@ public interface ClassroomInfrastructureService {
     List<ClassroomRoomDetailResponse> listRooms(Long campusId);
     ClassroomRoomDetailResponse createRoom(UpsertRoomRequest request);
     ClassroomRoomDetailResponse updateRoom(Long id, UpsertRoomRequest request);
-    List<ClassroomSessionTemplateResponse> listSessionTemplates();
-    ClassroomSessionTemplateResponse createSessionTemplate(UpsertSessionTemplateRequest request, String creatorEmail);
-    ClassroomSessionTemplateResponse updateSessionTemplate(Long id, UpsertSessionTemplateRequest request);
-    List<ClassroomSessionResponse> generateSessionsFromTemplate(Long offeringId, GenerateSessionsFromTemplateRequest request);
 }

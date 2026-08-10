@@ -13,5 +13,8 @@ public interface ClassroomRecordingService {
 
     List<ClassroomSessionResponse> listManagerSessions(Long offeringId);
 
+    ClassroomSessionResponse syncRecording(Long sessionId);
+
+    /** Kept temporarily for existing callers. The provider is resolved from the session. */
     ClassroomSessionResponse syncLarkRecording(Long sessionId);
 }

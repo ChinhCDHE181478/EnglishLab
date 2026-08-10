@@ -53,7 +53,6 @@ export default function TeacherSessionPage() {
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
   const [larkMessage, setLarkMessage] = useState('');
-  const [larkUrl, setLarkUrl] = useState('');
   const [sessionMeta, setSessionMeta] = useState(null);
   const [records, setRecords] = useState({});
 
@@ -99,30 +98,16 @@ export default function TeacherSessionPage() {
     }
   };
 
-  const handleOpenSession = async () => {
+  const handleOpenSession = () => {
     setActionMessage('');
     setLarkMessage('');
-    const roomWindow = window.open('about:blank', '_blank');
-    if (roomWindow) {
-      roomWindow.opener = null;
+    if (!sessionMeta?.larkMeetingUrl) {
+      setActionMessage('Staff chưa tạo liên kết Google Meet cho buổi học này.');
+      return;
     }
-    try {
-      const session = await classroomApi.openVirtualSession(sessionId);
-      setSessionMeta((current) => ({ ...current, ...session }));
-      if (session?.larkMeetingUrl) {
-        if (roomWindow) {
-          roomWindow.location.replace(session.larkMeetingUrl);
-        } else {
-          setLarkMessage('Phòng học đã mở nhưng trình duyệt chặn cửa sổ mới. Hãy dùng nút vào phòng bên dưới.');
-        }
-        setActionMessage('Phòng học đã mở. Bạn có thể bắt đầu buổi giảng.');
-      } else {
-        roomWindow?.close();
-        setActionMessage('Phòng học chưa có liên kết tham gia. Vui lòng thử mở lại sau ít phút.');
-      }
-    } catch (err) {
-      roomWindow?.close();
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể mở buổi học.'));
+    const roomWindow = window.open(sessionMeta.larkMeetingUrl, '_blank', 'noopener,noreferrer');
+    if (!roomWindow) {
+      setLarkMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
     }
   };
 
@@ -134,17 +119,6 @@ export default function TeacherSessionPage() {
       setActionMessage('Đã đóng buổi học trực tuyến thành công.');
     } catch (err) {
       setActionMessage(getClassroomErrorMessage(err, 'Không thể đóng buổi học.'));
-    }
-  };
-
-  const handleUpdateLark = async () => {
-    setActionMessage('');
-    try {
-      const session = await classroomApi.updateSessionLarkLink(sessionId, { larkMeetingUrl: larkUrl });
-      setSessionMeta((current) => ({ ...current, ...session }));
-      setActionMessage('Đã cập nhật liên kết Google Meet thành công.');
-    } catch (err) {
-      setActionMessage(getClassroomErrorMessage(err, 'Không thể cập nhật liên kết Google Meet.'));
     }
   };
 
@@ -343,14 +317,20 @@ export default function TeacherSessionPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#8a0018] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#650011] active:scale-95"
-                    onClick={handleOpenSession}
-                    type="button"
-                  >
-                    <Check className="h-4 w-4" />
-                    Mở và vào phòng học
-                  </button>
+                  {sessionMeta?.larkMeetingUrl ? (
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#8a0018] px-5 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#650011] active:scale-95"
+                      onClick={handleOpenSession}
+                      type="button"
+                    >
+                      <Check className="h-4 w-4" />
+                      Vào phòng học
+                    </button>
+                  ) : (
+                    <p className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs font-semibold leading-5 text-sky-900">
+                      Staff đang chuẩn bị liên kết Google Meet. Liên hệ staff nếu cần hỗ trợ.
+                    </p>
+                  )}
                   <button
                     className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-extrabold text-[#584140] transition hover:bg-gray-50 active:scale-95"
                     onClick={handleCloseSession}
@@ -365,9 +345,7 @@ export default function TeacherSessionPage() {
                   <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                     <p className="font-extrabold">Chưa thể mở phòng học tự động</p>
                     <p className="mt-1 leading-6">{sessionMeta.larkSyncError}</p>
-                    <p className="mt-2 text-xs font-semibold">
-                      Hãy bấm “Mở và vào phòng học” để thử lại hoặc nhập một liên kết phòng học bên dưới.
-                    </p>
+                    <p className="mt-2 text-xs font-semibold">Staff cần xử lý liên kết Google Meet trước khi giáo viên vào phòng.</p>
                   </div>
                 ) : null}
 
@@ -383,21 +361,6 @@ export default function TeacherSessionPage() {
                 )}
                 {larkMessage ? <p className="text-sm font-semibold text-[#93000a]">{larkMessage}</p> : null}
 
-                <div className="flex flex-col gap-3 md:flex-row pt-2">
-                  <input
-                    className="flex-1 rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white"
-                    onChange={(event) => setLarkUrl(event.target.value)}
-                    placeholder="Nhập liên kết Google Meet mới..."
-                    value={larkUrl}
-                  />
-                  <button
-                    className="rounded-2xl bg-[#4b0009] px-6 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
-                    onClick={handleUpdateLark}
-                    type="button"
-                  >
-                    Cập nhật liên kết
-                  </button>
-                </div>
               </section>
             )}
 

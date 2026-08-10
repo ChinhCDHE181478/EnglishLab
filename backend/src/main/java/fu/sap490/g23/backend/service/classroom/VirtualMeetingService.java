@@ -26,4 +26,6 @@ public interface VirtualMeetingService {
     void inviteInternalAttendee(ClassroomSession session, String email);
 
     void deleteMeeting(ClassroomSession session);
+
+    VirtualMeetingRecordingInfo getRecording(ClassroomSession session);
 }

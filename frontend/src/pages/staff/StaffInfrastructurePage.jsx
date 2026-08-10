@@ -1,599 +1,472 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Building2, Clock3, DoorOpen, Plus, RefreshCw, Save, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  Building2,
+  CheckCircle2,
+  DoorOpen,
+  PencilLine,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  Users,
+  X,
+  XCircle,
+} from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import RichTextEditor from '../../components/content-manager/RichTextEditor';
-import { ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 
-const tabs = [
-  { id: 'campuses', label: 'Cơ sở', icon: Building2 },
-  { id: 'rooms', label: 'Phòng học', icon: DoorOpen },
-  { id: 'templates', label: 'Mẫu lịch', icon: Clock3 },
+const emptyRoomForm = { name: '', capacity: '', active: true };
+
+const statusOptions = [
+  { label: 'Tất cả trạng thái', value: 'ALL' },
+  { label: 'Đang hoạt động', value: 'ACTIVE' },
+  { label: 'Tạm ngưng', value: 'INACTIVE' },
 ];
 
-const dayOptions = [
-  { label: 'Thứ 2', value: '1' },
-  { label: 'Thứ 3', value: '2' },
-  { label: 'Thứ 4', value: '3' },
-  { label: 'Thứ 5', value: '4' },
-  { label: 'Thứ 6', value: '5' },
-  { label: 'Thứ 7', value: '6' },
-  { label: 'Chủ nhật', value: '7' },
+const capacityFilterOptions = [
+  { label: 'Tất cả sức chứa', value: 'ALL' },
+  { label: 'Nhỏ (Dưới 20 chỗ)', value: 'SMALL' },
+  { label: 'Vừa (20 - 30 chỗ)', value: 'MEDIUM' },
+  { label: 'Lớn (Trên 30 chỗ)', value: 'LARGE' },
 ];
 
-const emptyCampusForm = { name: '', address: '', note: '', active: true };
-const emptyRoomForm = { name: '', campusId: '', capacity: '', active: true };
-const emptyTemplateForm = {
-  name: '',
-  description: '',
-  teacherGuide: '',
-  interactionActivities: '',
-  postSessionHomework: '',
-  defaultDurationMinutes: '90',
-  slots: [{ dayOfWeek: '1', startTime: '18:00', endTime: '20:00', roomId: '', teacherId: '' }],
-};
+const activeFormOptions = [
+  { label: 'Đang hoạt động', value: 'true' },
+  { label: 'Tạm ngưng', value: 'false' },
+];
 
-export default function TrainingManagerInfrastructurePage() {
-  const [activeTab, setActiveTab] = useState('campuses');
-  const [campuses, setCampuses] = useState([]);
+export default function StaffInfrastructurePage() {
+  const [centralCampus, setCentralCampus] = useState(null);
   const [rooms, setRooms] = useState([]);
-  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [campusForm, setCampusForm] = useState(emptyCampusForm);
+  const [editorError, setEditorError] = useState('');
+  const [editorOpen, setEditorOpen] = useState(false);
   const [roomForm, setRoomForm] = useState(emptyRoomForm);
-  const [templateForm, setTemplateForm] = useState(emptyTemplateForm);
-  const [editingCampusId, setEditingCampusId] = useState(null);
   const [editingRoomId, setEditingRoomId] = useState(null);
-  const [editingTemplateId, setEditingTemplateId] = useState(null);
 
-  const campusOptions = useMemo(
-    () => [
-      { label: 'Chưa gắn cơ sở', value: '' },
-      ...campuses.map((campus) => ({ label: campus.name, value: String(campus.id) })),
-    ],
-    [campuses],
-  );
+  // Filters & Search
+  const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [capacityFilter, setCapacityFilter] = useState('ALL');
 
-  const roomOptions = useMemo(
-    () => [
-      { label: 'Không chọn phòng mặc định', value: '' },
-      ...rooms.map((room) => ({ label: `${room.name}${room.campusName ? ` · ${room.campusName}` : ''}`, value: String(room.id) })),
-    ],
-    [rooms],
-  );
-
-  const loadAll = async () => {
+  const loadInfrastructure = async () => {
     setLoading(true);
     setError('');
     try {
-      const [campusData, roomData, templateData] = await Promise.all([
+      const [campusData, roomData] = await Promise.all([
         classroomApi.listCampuses(),
         classroomApi.listRooms(),
-        classroomApi.listSessionTemplates(),
       ]);
-      setCampuses(campusData);
-      setRooms(roomData);
-      setTemplates(templateData);
+      setCentralCampus(campusData.find((campus) => campus.active !== false) || campusData[0] || null);
+      setRooms(roomData || []);
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không tải được dữ liệu hạ tầng lớp học.');
+      setRooms([]);
+      setError(err?.response?.data?.message || 'Không tải được danh sách phòng học.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadAll();
+    loadInfrastructure();
   }, []);
 
-  const resetMessages = () => {
-    setError('');
-    setSuccess('');
+  // Filter logic
+  const filteredRooms = useMemo(() => {
+    const search = keyword.trim().toLowerCase();
+    return rooms.filter((room) => {
+      const matchesKeyword = !search || String(room.name || '').toLowerCase().includes(search);
+      const isActive = room.active !== false;
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'ACTIVE' && isActive) ||
+        (statusFilter === 'INACTIVE' && !isActive);
+
+      const cap = Number(room.capacity || 0);
+      let matchesCapacity = true;
+      if (capacityFilter === 'SMALL') matchesCapacity = cap < 20;
+      else if (capacityFilter === 'MEDIUM') matchesCapacity = cap >= 20 && cap <= 30;
+      else if (capacityFilter === 'LARGE') matchesCapacity = cap > 30;
+
+      return matchesKeyword && matchesStatus && matchesCapacity;
+    });
+  }, [rooms, keyword, statusFilter, capacityFilter]);
+
+  const resetKey = `${keyword}|${statusFilter}|${capacityFilter}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(filteredRooms, 8, resetKey);
+
+  // Stats computation
+  const stats = useMemo(() => {
+    const activeCount = rooms.filter((r) => r.active !== false).length;
+    const inactiveCount = rooms.length - activeCount;
+    const totalCapacity = rooms
+      .filter((r) => r.active !== false)
+      .reduce((sum, r) => sum + Number(r.capacity || 0), 0);
+
+    return {
+      total: rooms.length,
+      active: activeCount,
+      inactive: inactiveCount,
+      totalCapacity,
+    };
+  }, [rooms]);
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingRoomId(null);
+    setRoomForm(emptyRoomForm);
+    setEditorError('');
   };
 
-  const saveCampus = async (event) => {
-    event.preventDefault();
-    resetMessages();
-    if (!campusForm.name.trim()) {
-      setError('Vui lòng nhập tên cơ sở.');
-      return;
-    }
-    setWorking(true);
-    try {
-      const payload = { ...campusForm, name: campusForm.name.trim() };
-      if (editingCampusId) {
-        await classroomApi.updateCampus(editingCampusId, payload);
-        setSuccess('Đã cập nhật cơ sở.');
-      } else {
-        await classroomApi.createCampus(payload);
-        setSuccess('Đã tạo cơ sở mới.');
-      }
-      setCampusForm(emptyCampusForm);
-      setEditingCampusId(null);
-      await loadAll();
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được cơ sở.');
-    } finally {
-      setWorking(false);
-    }
+  const openCreate = () => {
+    setError('');
+    setSuccess('');
+    setEditorError('');
+    setEditingRoomId(null);
+    setRoomForm(emptyRoomForm);
+    setEditorOpen(true);
+  };
+
+  const editRoom = (room) => {
+    setError('');
+    setSuccess('');
+    setEditorError('');
+    setEditingRoomId(room.id);
+    setRoomForm({
+      name: room.name || '',
+      capacity: room.capacity || '',
+      active: room.active !== false,
+    });
+    setEditorOpen(true);
   };
 
   const saveRoom = async (event) => {
     event.preventDefault();
-    resetMessages();
+    setEditorError('');
+
     if (!roomForm.name.trim()) {
-      setError('Vui lòng nhập tên phòng.');
+      setEditorError('Vui lòng nhập tên phòng học.');
       return;
     }
+
     const capacity = roomForm.capacity ? Number(roomForm.capacity) : null;
-    if (capacity != null && capacity <= 0) {
-      setError('Sức chứa phòng phải lớn hơn 0.');
+    if (capacity != null && (!Number.isInteger(capacity) || capacity <= 0)) {
+      setEditorError('Sức chứa phải là số nguyên lớn hơn 0.');
       return;
     }
+
+    if (!centralCampus?.id) {
+      setEditorError('Không tìm thấy địa điểm học. Vui lòng tải lại trang.');
+      return;
+    }
+
     setWorking(true);
     try {
       const payload = {
         name: roomForm.name.trim(),
-        campusId: roomForm.campusId ? Number(roomForm.campusId) : null,
+        campusId: centralCampus.id,
         capacity,
-        active: roomForm.active,
+        active: Boolean(roomForm.active),
       };
       if (editingRoomId) {
         await classroomApi.updateRoom(editingRoomId, payload);
-        setSuccess('Đã cập nhật phòng học.');
+        setSuccess('Đã cập nhật thông tin phòng học.');
       } else {
         await classroomApi.createRoom(payload);
-        setSuccess('Đã tạo phòng học mới.');
+        setSuccess('Đã thêm phòng học mới thành công.');
       }
-      setRoomForm(emptyRoomForm);
-      setEditingRoomId(null);
-      await loadAll();
+      closeEditor();
+      await loadInfrastructure();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được phòng học.');
+      setEditorError(err?.response?.data?.message || 'Không lưu được phòng học.');
     } finally {
       setWorking(false);
     }
-  };
-
-  const saveTemplate = async (event) => {
-    event.preventDefault();
-    resetMessages();
-    if (!templateForm.name.trim()) {
-      setError('Vui lòng nhập tên mẫu lịch.');
-      return;
-    }
-    const invalidSlot = templateForm.slots.find((slot) => !slot.dayOfWeek || !slot.startTime || !slot.endTime || slot.startTime >= slot.endTime);
-    if (invalidSlot) {
-      setError('Mỗi khung giờ cần thứ, giờ bắt đầu và giờ kết thúc hợp lệ.');
-      return;
-    }
-    setWorking(true);
-    try {
-      const slotsJson = JSON.stringify(templateForm.slots.map((slot) => ({
-        dayOfWeek: Number(slot.dayOfWeek),
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        roomId: slot.roomId ? Number(slot.roomId) : null,
-        teacherId: slot.teacherId ? Number(slot.teacherId) : null,
-      })));
-      const payload = {
-        name: templateForm.name.trim(),
-        description: templateForm.description,
-        teacherGuide: templateForm.teacherGuide,
-        interactionActivities: templateForm.interactionActivities,
-        postSessionHomework: templateForm.postSessionHomework,
-        defaultDurationMinutes: templateForm.defaultDurationMinutes ? Number(templateForm.defaultDurationMinutes) : null,
-        slotsJson,
-        active: true,
-      };
-      if (editingTemplateId) {
-        await classroomApi.updateSessionTemplate(editingTemplateId, payload);
-        setSuccess('Đã cập nhật mẫu lịch.');
-      } else {
-        await classroomApi.createSessionTemplate(payload);
-        setSuccess('Đã tạo mẫu lịch mới.');
-      }
-      setTemplateForm(emptyTemplateForm);
-      setEditingTemplateId(null);
-      await loadAll();
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Không lưu được mẫu lịch.');
-    } finally {
-      setWorking(false);
-    }
-  };
-
-  const editCampus = (campus) => {
-    setActiveTab('campuses');
-    setEditingCampusId(campus.id);
-    setCampusForm({
-      name: campus.name || '',
-      address: campus.address || '',
-      note: campus.note || '',
-      active: campus.active !== false,
-    });
-  };
-
-  const editRoom = (room) => {
-    setActiveTab('rooms');
-    setEditingRoomId(room.id);
-    setRoomForm({
-      name: room.name || '',
-      campusId: room.campusId ? String(room.campusId) : '',
-      capacity: room.capacity || '',
-      active: room.active !== false,
-    });
-  };
-
-  const editTemplate = (template) => {
-    setActiveTab('templates');
-    setEditingTemplateId(template.id);
-    setTemplateForm({
-      name: template.name || '',
-      description: template.description || '',
-      teacherGuide: template.teacherGuide || '',
-      interactionActivities: template.interactionActivities || '',
-      postSessionHomework: template.postSessionHomework || '',
-      defaultDurationMinutes: template.defaultDurationMinutes ? String(template.defaultDurationMinutes) : '90',
-      slots: parseSlots(template.slotsJson),
-    });
-  };
-
-  const updateSlot = (index, patch) => {
-    setTemplateForm((current) => ({
-      ...current,
-      slots: current.slots.map((slot, slotIndex) => (slotIndex === index ? { ...slot, ...patch } : slot)),
-    }));
-  };
-
-  const addSlot = () => {
-    setTemplateForm((current) => ({
-      ...current,
-      slots: [...current.slots, { dayOfWeek: '1', startTime: '18:00', endTime: '20:00', roomId: '', teacherId: '' }],
-    }));
-  };
-
-  const removeSlot = (index) => {
-    setTemplateForm((current) => ({
-      ...current,
-      slots: current.slots.length <= 1 ? current.slots : current.slots.filter((_, slotIndex) => slotIndex !== index),
-    }));
   };
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex gap-1.5 overflow-x-auto">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                className={`flex items-center gap-2 shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${
-                  active
-                    ? 'bg-[#4b0009] text-white shadow-sm'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                }`}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <button
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-          onClick={loadAll}
-          type="button"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Làm mới
-        </button>
-      </section>
-
+      {/* Top Notifications */}
       {error ? <Notice tone="error">{error}</Notice> : null}
       {success ? <Notice tone="success">{success}</Notice> : null}
 
-      {loading ? (
-        <ClassroomLoadingState message="Đang tải hạ tầng lớp học..." />
-      ) : (
-        <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-          {activeTab === 'campuses' ? (
-            <>
-              <CampusForm
-                editing={Boolean(editingCampusId)}
-                form={campusForm}
-                onCancel={() => {
-                  setCampusForm(emptyCampusForm);
-                  setEditingCampusId(null);
-                }}
-                onChange={setCampusForm}
-                onSubmit={saveCampus}
-                working={working}
-              />
-              <ListPanel
-                emptyText="Chưa có cơ sở nào. Hãy tạo cơ sở trước khi tạo phòng."
-                items={campuses}
-                renderItem={(campus) => (
-                  <DataCard
-                    key={campus.id}
-                    meta={`${campus.roomCount || 0} phòng · ${campus.active ? 'Đang hoạt động' : 'Tạm ngưng'}`}
-                    onEdit={() => editCampus(campus)}
-                    title={campus.name}
-                  >
-                    <p>{campus.address || 'Chưa cập nhật địa chỉ.'}</p>
-                    {campus.note ? <p className="mt-2 text-slate-400">{campus.note}</p> : null}
-                  </DataCard>
-                )}
-                title="Danh sách cơ sở"
-              />
-            </>
-          ) : null}
+      {/* Metric Cards Grid */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard icon={DoorOpen} label="Tổng phòng học" value={stats.total} />
+        <MetricCard icon={CheckCircle2} label="Đang hoạt động" value={stats.active} />
+        <MetricCard icon={XCircle} label="Tạm ngưng" value={stats.inactive} />
+        <MetricCard icon={Users} label="Tổng sức chứa" value={stats.totalCapacity ? `${stats.totalCapacity} chỗ` : '0 chỗ'} />
+      </section>
 
-          {activeTab === 'rooms' ? (
-            <>
-              <RoomForm
-                campusOptions={campusOptions}
-                editing={Boolean(editingRoomId)}
-                form={roomForm}
-                onCancel={() => {
-                  setRoomForm(emptyRoomForm);
-                  setEditingRoomId(null);
-                }}
-                onChange={setRoomForm}
-                onSubmit={saveRoom}
-                working={working}
-              />
-              <ListPanel
-                emptyText="Chưa có phòng học nào. Phòng cần được tạo trước khi xếp lịch offline."
-                items={rooms}
-                renderItem={(room) => (
-                  <DataCard
-                    key={room.id}
-                    meta={`${room.capacity || '-'} chỗ · ${room.campusName || 'Chưa gắn cơ sở'} · ${room.active ? 'Hoạt động' : 'Tạm ngưng'}`}
-                    onEdit={() => editRoom(room)}
-                    title={room.name}
-                  />
-                )}
-                title="Danh sách phòng học"
-              />
-            </>
-          ) : null}
-
-          {activeTab === 'templates' ? (
-            <>
-              <TemplateForm
-                editing={Boolean(editingTemplateId)}
-                form={templateForm}
-                onAddSlot={addSlot}
-                onCancel={() => {
-                  setTemplateForm(emptyTemplateForm);
-                  setEditingTemplateId(null);
-                }}
-                onChange={setTemplateForm}
-                onRemoveSlot={removeSlot}
-                onSlotChange={updateSlot}
-                onSubmit={saveTemplate}
-                roomOptions={roomOptions}
-                working={working}
-              />
-              <ListPanel
-                emptyText="Chưa có mẫu lịch. Mẫu lịch giúp sinh nhiều buổi học chỉ bằng một lần thao tác."
-                items={templates}
-                renderItem={(template) => (
-                  <DataCard
-                    key={template.id}
-                    meta={`${parseSlots(template.slotsJson).length} khung giờ · ${template.active ? 'Hoạt động' : 'Tạm ngưng'}`}
-                    onEdit={() => editTemplate(template)}
-                    title={template.name}
-                  >
-                    <p>{template.description || 'Chưa có mô tả.'}</p>
-                  </DataCard>
-                )}
-                title="Mẫu lịch"
-              />
-            </>
-          ) : null}
+      {/* Filter and Action Bar */}
+      <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            className={`${inputClass} h-11 pl-10`}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="Tìm theo tên phòng học..."
+            value={keyword}
+          />
         </div>
-      )}
+        <div className="w-full sm:w-48">
+          <BrandedSelect
+            onChange={(event) => setStatusFilter(event.target.value)}
+            options={statusOptions}
+            value={statusFilter}
+          />
+        </div>
+        <div className="w-full sm:w-52">
+          <BrandedSelect
+            onChange={(event) => setCapacityFilter(event.target.value)}
+            options={capacityFilterOptions}
+            value={capacityFilter}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Làm mới danh sách phòng học"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-[#730014] transition hover:bg-slate-50 active:scale-95"
+            disabled={loading}
+            onClick={loadInfrastructure}
+            type="button"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 text-xs font-extrabold text-white transition hover:bg-[#730014] active:scale-95 whitespace-nowrap shadow-sm"
+            onClick={openCreate}
+            type="button"
+          >
+            <Plus className="h-4 w-4" />
+            Thêm phòng học
+          </button>
+        </div>
+      </section>
+
+      {/* Content Section */}
+      {loading ? (
+        <ClassroomLoadingState message="Đang tải danh sách cơ sở vật chất..." />
+      ) : null}
+
+      {!loading && error ? (
+        <ClassroomErrorState message={error} onRetry={loadInfrastructure} />
+      ) : null}
+
+      {!loading && !error && !filteredRooms.length ? (
+        <ClassroomEmptyState
+          description="Không tìm thấy phòng học nào phù hợp với điều kiện lọc."
+          title="Không có phòng học"
+        />
+      ) : null}
+
+      {!loading && !error && filteredRooms.length ? (
+        <section className="overflow-hidden rounded-xl border border-[#dfbfbd]/40 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[780px] text-left text-sm">
+              <thead className="border-b border-[#dfbfbd]/30 bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-[#8b706e]">
+                <tr>
+                  <th className="px-5 py-4">Phòng học</th>
+                  <th className="px-5 py-4">Địa điểm trung tâm</th>
+                  <th className="px-5 py-4">Sức chứa</th>
+                  <th className="px-5 py-4">Trạng thái</th>
+                  <th className="px-5 py-4 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#dfbfbd]/20">
+                {pageItems.map((room) => {
+                  const isActive = room.active !== false;
+                  return (
+                    <tr className="transition hover:bg-[#fffafb]" key={room.id}>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#fff1f3] text-[#730014]">
+                            <DoorOpen className="h-4 w-4" />
+                          </span>
+                          <div>
+                            <p className="font-extrabold text-[#2b2828]">{room.name}</p>
+                            <p className="text-xs text-[#8b706e]">Mã phòng #{room.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[#584140]">
+                          <Building2 className="h-3.5 w-3.5 text-[#8b706e]" />
+                          <span>{centralCampus?.name || 'Cơ sở trung tâm'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                          <Users className="h-3.5 w-3.5 text-slate-500" />
+                          {room.capacity ? `${room.capacity} chỗ` : 'Chưa cập nhật'}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold tracking-wide ${
+                            isActive
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 font-extrabold'
+                              : 'bg-slate-100 border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-4 text-right">
+                        <button
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff3f4] active:scale-95"
+                          onClick={() => editRoom(room)}
+                          type="button"
+                        >
+                          <PencilLine className="h-3.5 w-3.5" />
+                          Sửa
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-[#dfbfbd]/30 px-5 py-4">
+            <Pagination
+              onChange={setPage}
+              page={page}
+              pageSize={8}
+              totalItems={totalItems}
+              totalPages={totalPages}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {/* Room Editor Modal */}
+      {editorOpen ? (
+        <RoomEditorModal onClose={closeEditor}>
+          <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={saveRoom}>
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 shrink-0 bg-white">
+              <div>
+                <h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">
+                  {editingRoomId ? 'Sửa thông tin phòng học' : 'Thêm phòng học mới'}
+                </h3>
+                <p className="mt-1 text-xs text-[#8b706e]">
+                  Cập nhật các thông số phòng học để sẵn sàng xếp lịch thi và lớp học trực tiếp.
+                </p>
+              </div>
+              <button
+                aria-label="Đóng"
+                className="rounded-xl border border-gray-200 p-2 text-[#584140] transition hover:bg-gray-50"
+                onClick={closeEditor}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+              {editorError ? <Notice tone="error">{editorError}</Notice> : null}
+
+              <TextField
+                label="Tên phòng học"
+                onChange={(value) => setRoomForm((current) => ({ ...current, name: value }))}
+                placeholder="Ví dụ: Phòng A01, Lab 3..."
+                value={roomForm.name}
+              />
+              <TextField
+                label="Sức chứa (số chỗ ngồi)"
+                onChange={(value) => setRoomForm((current) => ({ ...current, capacity: value }))}
+                placeholder="Ví dụ: 24"
+                type="number"
+                value={roomForm.capacity}
+              />
+              <label className="block space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">Trạng thái hoạt động</span>
+                <BrandedSelect
+                  onChange={(e) => setRoomForm((current) => ({ ...current, active: e.target.value === 'true' }))}
+                  options={activeFormOptions}
+                  value={String(roomForm.active)}
+                />
+              </label>
+
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+                <button
+                  className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140] transition hover:bg-gray-50"
+                  onClick={closeEditor}
+                  type="button"
+                >
+                  Hủy
+                </button>
+                <button
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
+                  disabled={working}
+                  type="submit"
+                >
+                  <Save className="h-4 w-4" />
+                  {working ? 'Đang lưu...' : editingRoomId ? 'Lưu thay đổi' : 'Thêm phòng'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </RoomEditorModal>
+      ) : null}
     </div>
   );
 }
 
-function CampusForm({ editing, form, onCancel, onChange, onSubmit, working }) {
-  return (
-    <FormShell
-      editing={editing}
-      icon={Building2}
-      onCancel={onCancel}
-      onSubmit={onSubmit}
-      submitLabel={editing ? 'Cập nhật cơ sở' : 'Tạo cơ sở'}
-      title={editing ? 'Sửa cơ sở' : 'Tạo cơ sở mới'}
-      working={working}
-    >
-      <TextField label="Tên cơ sở" onChange={(value) => onChange({ ...form, name: value })} value={form.name} />
-      <TextField label="Địa chỉ" onChange={(value) => onChange({ ...form, address: value })} value={form.address} />
-      <TextField label="Ghi chú vận hành" onChange={(value) => onChange({ ...form, note: value })} textarea value={form.note} />
-    </FormShell>
+function RoomEditorModal({ children, onClose }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/45" role="dialog" aria-modal="true">
+      <button aria-label="Đóng modal" className="absolute inset-0" onClick={onClose} type="button" />
+      <section className="relative z-10 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-2xl pointer-events-auto">
+        {children}
+      </section>
+    </div>,
+    document.body,
   );
 }
 
-function RoomForm({ campusOptions, editing, form, onCancel, onChange, onSubmit, working }) {
+function MetricCard({ icon: Icon, label, value }) {
   return (
-    <FormShell
-      editing={editing}
-      icon={DoorOpen}
-      onCancel={onCancel}
-      onSubmit={onSubmit}
-      submitLabel={editing ? 'Cập nhật phòng' : 'Tạo phòng'}
-      title={editing ? 'Sửa phòng học' : 'Tạo phòng học'}
-      working={working}
-    >
-      <TextField label="Tên phòng" onChange={(value) => onChange({ ...form, name: value })} value={form.name} />
-      <label className="block">
-        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Cơ sở</span>
-        <BrandedSelect
-          onChange={(event) => onChange({ ...form, campusId: event.target.value })}
-          options={campusOptions}
-          value={form.campusId}
-        />
-      </label>
-      <TextField label="Sức chứa" onChange={(value) => onChange({ ...form, capacity: value })} type="number" value={form.capacity} />
-    </FormShell>
-  );
-}
-
-function TemplateForm({ editing, form, onAddSlot, onCancel, onChange, onRemoveSlot, onSlotChange, onSubmit, roomOptions, working }) {
-  return (
-    <FormShell
-      editing={editing}
-      icon={Clock3}
-      onCancel={onCancel}
-      onSubmit={onSubmit}
-      submitLabel={editing ? 'Cập nhật mẫu' : 'Tạo mẫu'}
-      title={editing ? 'Sửa mẫu lịch' : 'Tạo mẫu lịch'}
-      working={working}
-    >
-      <TextField label="Tên mẫu" onChange={(value) => onChange({ ...form, name: value })} value={form.name} />
-      <RichTextEditor
-        label="Mô tả"
-        onChange={(value) => onChange({ ...form, description: value })}
-        placeholder="Mô tả mẫu lịch..."
-        size="compact"
-        value={form.description}
-      />
-      <RichTextEditor
-        label="Hướng dẫn giảng viên"
-        onChange={(value) => onChange({ ...form, teacherGuide: value })}
-        placeholder="Hướng dẫn giảng viên..."
-        size="form"
-        value={form.teacherGuide}
-      />
-      <RichTextEditor
-        label="Hoạt động tương tác"
-        onChange={(value) => onChange({ ...form, interactionActivities: value })}
-        placeholder="Hoạt động tương tác..."
-        size="form"
-        value={form.interactionActivities}
-      />
-      <RichTextEditor
-        label="Bài tập sau buổi học"
-        onChange={(value) => onChange({ ...form, postSessionHomework: value })}
-        placeholder="Bài tập sau buổi học..."
-        size="form"
-        value={form.postSessionHomework}
-      />
-      <TextField label="Thời lượng mặc định (phút)" onChange={(value) => onChange({ ...form, defaultDurationMinutes: value })} type="number" value={form.defaultDurationMinutes} />
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Khung giờ</span>
-          <button className="inline-flex items-center gap-1 rounded-xl bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white" onClick={onAddSlot} type="button">
-            <Plus className="h-3.5 w-3.5" />
-            Thêm
-          </button>
+    <article className="rounded-xl border border-[#dfbfbd]/35 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</p>
+          <p className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">{value}</p>
         </div>
-        {form.slots.map((slot, index) => (
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3" key={`${slot.dayOfWeek}-${index}`}>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <BrandedSelect
-                onChange={(event) => onSlotChange(index, { dayOfWeek: event.target.value })}
-                options={dayOptions}
-                value={slot.dayOfWeek}
-              />
-              <input className={inputClass} onChange={(event) => onSlotChange(index, { startTime: event.target.value })} type="time" value={slot.startTime} />
-              <input className={inputClass} onChange={(event) => onSlotChange(index, { endTime: event.target.value })} type="time" value={slot.endTime} />
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <BrandedSelect
-                onChange={(event) => onSlotChange(index, { roomId: event.target.value })}
-                options={roomOptions}
-                value={slot.roomId}
-              />
-              <button className="inline-flex items-center justify-center rounded-xl border border-rose-200 px-3 py-2 text-rose-600" onClick={() => onRemoveSlot(index)} type="button">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </FormShell>
-  );
-}
-
-function FormShell({ children, editing, icon: Icon, onCancel, onSubmit, submitLabel, title, working }) {
-  return (
-    <form className="space-y-4 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm" onSubmit={onSubmit}>
-      <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff4f5] text-[#730014]">
+        <span className="rounded-xl bg-[#fff1f3] p-2.5 text-[#730014]">
           <Icon className="h-5 w-5" />
         </span>
-        <div>
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">{title}</h3>
-          <p className="text-xs font-semibold text-slate-400">{editing ? 'Đang chỉnh sửa bản ghi đã chọn' : 'Tạo dữ liệu mới cho vận hành lớp'}</p>
-        </div>
       </div>
-      {children}
-      <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
-        {editing ? (
-          <button className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-extrabold text-slate-600" onClick={onCancel} type="button">
-            Hủy sửa
-          </button>
-        ) : null}
-        <button className="inline-flex items-center gap-2 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={working} type="submit">
-          <Save className="h-4 w-4" />
-          {working ? 'Đang lưu...' : submitLabel}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function ListPanel({ emptyText, items, renderItem, title }) {
-  return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">{title}</h3>
-      <div className="mt-4 space-y-3">
-        {items.length ? items.map(renderItem) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-semibold text-slate-500">
-            {emptyText}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function DataCard({ children, meta, onEdit, title }) {
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-[#dfbfbd] hover:bg-white">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">{title}</h4>
-          <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{meta}</p>
-        </div>
-        <button className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-[#730014]" onClick={onEdit} type="button">
-          Sửa
-        </button>
-      </div>
-      {children ? <div className="mt-3 text-sm leading-6 text-slate-600">{children}</div> : null}
     </article>
   );
 }
 
-function TextField({ label, onChange, textarea = false, type = 'text', value }) {
+function TextField({ label, onChange, placeholder, type = 'text', value }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">{label}</span>
-      {textarea ? (
-        <textarea className={`${inputClass} min-h-24`} onChange={(event) => onChange(event.target.value)} value={value} />
-      ) : (
-        <input className={inputClass} onChange={(event) => onChange(event.target.value)} type={type} value={value} />
-      )}
+    <label className="block space-y-2">
+      <span className="text-[11px] font-bold uppercase tracking-wider text-[#8b706e]">{label}</span>
+      <input
+        className={inputClass}
+        min={type === 'number' ? '1' : undefined}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        type={type}
+        value={value}
+      />
     </label>
   );
 }
@@ -602,23 +475,7 @@ function Notice({ children, tone }) {
   const className = tone === 'error'
     ? 'border-rose-200 bg-rose-50 text-rose-700'
     : 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return <div className={`rounded-2xl border px-5 py-4 text-sm font-bold ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border px-4 py-3 text-sm font-bold ${className}`}>{children}</div>;
 }
 
-function parseSlots(slotsJson) {
-  try {
-    const parsed = JSON.parse(slotsJson || '[]');
-    if (!Array.isArray(parsed) || !parsed.length) return emptyTemplateForm.slots;
-    return parsed.map((slot) => ({
-      dayOfWeek: String(slot.dayOfWeek || '1'),
-      startTime: slot.startTime || '18:00',
-      endTime: slot.endTime || '20:00',
-      roomId: slot.roomId ? String(slot.roomId) : '',
-      teacherId: slot.teacherId ? String(slot.teacherId) : '',
-    }));
-  } catch {
-    return emptyTemplateForm.slots;
-  }
-}
-
-const inputClass = 'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white';
+const inputClass = 'w-full rounded-xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-3 py-2.5 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white placeholder:text-[#8b706e]';

@@ -3,12 +3,18 @@ package fu.sap490.g23.backend.service.classroom.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
+import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sap490.g23.backend.service.classroom.GoogleMeetProperties;
 import fu.sap490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
+import fu.sap490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
 import fu.sap490.g23.backend.service.classroom.VirtualMeetingService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -21,23 +27,42 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Service
-@RequiredArgsConstructor
 public class GoogleMeetServiceImpl implements VirtualMeetingService {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
-    private static final String OPEN_SPACE_PAYLOAD = "{\"config\":{\"accessType\":\"OPEN\"}}";
 
     private final GoogleMeetProperties properties;
     private final TeacherGoogleMeetConnectionService connectionService;
+    private final ClassroomSessionRepository sessionRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .build();
     private final ConcurrentMap<Long, CachedAccessToken> accessTokens = new ConcurrentHashMap<>();
+
+    @Autowired
+    public GoogleMeetServiceImpl(
+            GoogleMeetProperties properties,
+            TeacherGoogleMeetConnectionService connectionService,
+            ClassroomSessionRepository sessionRepository
+    ) {
+        this.properties = properties;
+        this.connectionService = connectionService;
+        this.sessionRepository = sessionRepository;
+    }
+
+    // Retained for focused provider tests that do not need classroom-level room reuse.
+    public GoogleMeetServiceImpl(
+            GoogleMeetProperties properties,
+            TeacherGoogleMeetConnectionService connectionService
+    ) {
+        this(properties, connectionService, null);
+    }
 
     @Override
     public String getPlatformName() {
@@ -79,12 +104,29 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 && session.getLarkMeetingId() != null
                 && session.getLarkMeetingId().startsWith("spaces/")) {
             markSynced(session);
+            propagateSharedRoom(session);
             return;
         }
 
-        User teacher = requireSessionTeacher(session);
-        String refreshToken = connectionService.requireRefreshToken(teacher);
-        JsonNode space = sendMeetRequest("POST", "/spaces", OPEN_SPACE_PAYLOAD, teacher, refreshToken);
+        ClassroomSession sharedRoomSession = findSharedRoomSession(session);
+        if (sharedRoomSession != null) {
+            reuseSharedRoom(session, sharedRoomSession);
+            return;
+        }
+
+        User meetingOwner = requireMeetingOwner(session);
+        String refreshToken = connectionService.requireRefreshToken(meetingOwner);
+        boolean autoRecordingUnavailable = false;
+        JsonNode space;
+        try {
+            space = sendMeetRequest("POST", "/spaces", openSpacePayload(), meetingOwner, refreshToken);
+        } catch (RuntimeException exception) {
+            if (!properties.isAutoRecording() || !isAutoRecordingUnavailable(exception)) {
+                throw exception;
+            }
+            autoRecordingUnavailable = true;
+            space = sendMeetRequest("POST", "/spaces", openSpacePayload(false), meetingOwner, refreshToken);
+        }
         String resourceName = space.path("name").asText("");
         String meetingUri = space.path("meetingUri").asText("");
         String meetingCode = space.path("meetingCode").asText("");
@@ -96,7 +138,83 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         session.setLarkMeetingId(resourceName);
         session.setLarkMeetingNo(meetingCode);
         session.setLarkMeetingUrl(meetingUri);
+        setClassroomDefaultRoom(session, meetingUri);
+        configureRecording(session, autoRecordingUnavailable);
         markSynced(session);
+        propagateSharedRoom(session);
+    }
+
+    @Override
+    public VirtualMeetingRecordingInfo getRecording(ClassroomSession session) {
+        validateConfiguration();
+        if (session.getLarkMeetingId() == null || !session.getLarkMeetingId().startsWith("spaces/")) {
+            throw new IllegalStateException("Buổi học chưa có Google Meet space hợp lệ.");
+        }
+
+        User meetingOwner = requireMeetingOwner(session);
+        String refreshToken = connectionService.requireRefreshToken(meetingOwner);
+        String filter = "space.name = \"" + session.getLarkMeetingId() + "\"";
+        JsonNode conferences = sendMeetRequest(
+                "GET",
+                "/conferenceRecords?pageSize=100&filter=" + encode(filter),
+                null,
+                meetingOwner,
+                refreshToken
+        );
+        JsonNode conference = findConferenceForSession(conferences, session);
+        String conferenceName = conference.path("name").asText("");
+        if (conferenceName.isBlank()) {
+            throw new IllegalStateException("Google Meet chưa có bản ghi cho đúng ngày của buổi học này.");
+        }
+
+        JsonNode recordings = sendMeetRequest("GET", "/" + conferenceName + "/recordings?pageSize=10", null, meetingOwner, refreshToken);
+        if (!recordings.path("recordings").isArray() || recordings.path("recordings").isEmpty()) {
+            throw new IllegalStateException("Google Meet đang xử lý file recording.");
+        }
+        for (JsonNode recording : recordings.path("recordings")) {
+            if (!"FILE_GENERATED".equals(recording.path("state").asText())) continue;
+            String url = recording.path("driveDestination").path("exportUri").asText("");
+            if (url.isBlank()) continue;
+            return new VirtualMeetingRecordingInfo(url, recordingDurationMs(recording));
+        }
+        throw new IllegalStateException("Google Meet đang xử lý file recording.");
+    }
+
+    private JsonNode findConferenceForSession(JsonNode conferences, ClassroomSession session) {
+        JsonNode records = conferences.path("conferenceRecords");
+        if (!records.isArray() || records.isEmpty()) {
+            return objectMapper.createObjectNode();
+        }
+        // Focused provider tests and legacy records may not have a schedule to match yet.
+        if (session.getSessionDate() == null || session.getStartTime() == null) {
+            return records.path(0);
+        }
+
+        LocalDateTime expectedStart = LocalDateTime.of(session.getSessionDate(), session.getStartTime());
+        JsonNode closest = null;
+        long closestDifference = Long.MAX_VALUE;
+        for (JsonNode record : records) {
+            LocalDateTime actualStart = conferenceStartTime(record);
+            if (actualStart == null || !session.getSessionDate().equals(actualStart.toLocalDate())) {
+                continue;
+            }
+            long difference = Math.abs(Duration.between(expectedStart, actualStart).toMinutes());
+            if (difference < closestDifference) {
+                closest = record;
+                closestDifference = difference;
+            }
+        }
+        return closest == null ? objectMapper.createObjectNode() : closest;
+    }
+
+    private LocalDateTime conferenceStartTime(JsonNode conference) {
+        String value = conference.path("startTime").asText("");
+        if (value.isBlank()) return null;
+        try {
+            return LocalDateTime.ofInstant(Instant.parse(value), ZoneId.of("Asia/Ho_Chi_Minh"));
+        } catch (RuntimeException exception) {
+            return null;
+        }
     }
 
     @Override
@@ -111,18 +229,17 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 || !session.getLarkMeetingId().startsWith("spaces/")) {
             return;
         }
-        User teacher = requireSessionTeacher(session);
-        String refreshToken = connectionService.requireRefreshToken(teacher);
-        sendMeetRequest("POST", "/" + session.getLarkMeetingId() + ":endActiveConference", "{}", teacher, refreshToken);
+        User meetingOwner = requireMeetingOwner(session);
+        String refreshToken = connectionService.requireRefreshToken(meetingOwner);
+        sendMeetRequest("POST", "/" + session.getLarkMeetingId() + ":endActiveConference", "{}", meetingOwner, refreshToken);
     }
 
-    private User requireSessionTeacher(ClassroomSession session) {
-        User teacher = session.getTeacher();
-        if (teacher == null && session.getClassroomOffering() != null) {
-            teacher = session.getClassroomOffering().getPrimaryTeacher();
-        }
+    private User requireMeetingOwner(ClassroomSession session) {
+        ClassroomOffering offering = session.getClassroomOffering();
+        User teacher = offering == null ? null : offering.getPrimaryTeacher();
+        if (teacher == null) teacher = session.getTeacher();
         if (teacher == null) {
-            throw new IllegalStateException("Buổi học chưa có giáo viên phụ trách.");
+            throw new IllegalStateException("Lớp học chưa có giáo viên phụ trách để tạo phòng Google Meet.");
         }
         return teacher;
     }
@@ -188,6 +305,8 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 .header("Content-Type", "application/json; charset=UTF-8");
         if ("POST".equals(method)) {
             builder.POST(HttpRequest.BodyPublishers.ofString(body));
+        } else if ("GET".equals(method)) {
+            builder.GET();
         } else {
             throw new IllegalArgumentException("Phương thức Google Meet không được hỗ trợ: " + method);
         }
@@ -267,6 +386,109 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         }
         if (isBlank(properties.getClientId()) || isBlank(properties.getClientSecret())) {
             throw new RuntimeException("Thiếu GOOGLE_MEET_CLIENT_ID hoặc GOOGLE_MEET_CLIENT_SECRET.");
+        }
+    }
+
+    private ClassroomSession findSharedRoomSession(ClassroomSession session) {
+        ClassroomOffering offering = session.getClassroomOffering();
+        if (sessionRepository == null || offering == null || offering.getId() == null) {
+            return null;
+        }
+        return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                .stream()
+                .filter(candidate -> candidate.getId() == null || !candidate.getId().equals(session.getId()))
+                .filter(candidate -> candidate.getLarkMeetingId() != null
+                        && candidate.getLarkMeetingId().startsWith("spaces/"))
+                .filter(candidate -> isGoogleMeetUrl(candidate.getLarkMeetingUrl()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void reuseSharedRoom(ClassroomSession session, ClassroomSession sharedRoomSession) {
+        session.setLarkMeetingId(sharedRoomSession.getLarkMeetingId());
+        session.setLarkMeetingNo(sharedRoomSession.getLarkMeetingNo());
+        session.setLarkMeetingUrl(sharedRoomSession.getLarkMeetingUrl());
+        setClassroomDefaultRoom(session, sharedRoomSession.getLarkMeetingUrl());
+        session.setRecordingProvider("GOOGLE_MEET");
+        session.setRecordingSyncStatus(sharedRoomSession.getRecordingSyncStatus() == RecordingSyncStatus.SCHEDULED
+                ? RecordingSyncStatus.SCHEDULED
+                : RecordingSyncStatus.NOT_AVAILABLE);
+        session.setRecordingSyncError(sharedRoomSession.getRecordingSyncError());
+        markSynced(session);
+        propagateSharedRoom(session);
+    }
+
+    /**
+     * A classroom owns one Google Meet space. Keep every active virtual session
+     * aligned with that space so staff never has to create a room per session.
+     */
+    private void propagateSharedRoom(ClassroomSession sourceSession) {
+        ClassroomOffering offering = sourceSession.getClassroomOffering();
+        if (sessionRepository == null || offering == null || offering.getId() == null) return;
+
+        sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                .stream()
+                .filter(candidate -> candidate.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL)
+                .filter(candidate -> candidate.getStatus() != ClassroomSessionStatus.COMPLETED
+                        && candidate.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .forEach(candidate -> copySharedRoom(sourceSession, candidate));
+    }
+
+    private void copySharedRoom(ClassroomSession sourceSession, ClassroomSession targetSession) {
+        targetSession.setLarkMeetingId(sourceSession.getLarkMeetingId());
+        targetSession.setLarkMeetingNo(sourceSession.getLarkMeetingNo());
+        targetSession.setLarkMeetingUrl(sourceSession.getLarkMeetingUrl());
+        targetSession.setRecordingProvider(sourceSession.getRecordingProvider());
+        targetSession.setRecordingSyncStatus(sourceSession.getRecordingSyncStatus());
+        targetSession.setRecordingSyncError(sourceSession.getRecordingSyncError());
+        markSynced(targetSession);
+    }
+
+    private void setClassroomDefaultRoom(ClassroomSession session, String meetingUri) {
+        ClassroomOffering offering = session.getClassroomOffering();
+        if (offering == null) return;
+        offering.setDefaultLarkMeetingUrl(meetingUri);
+        offering.setLarkMeetingStatus(LarkMeetingStatus.SCHEDULED);
+    }
+
+    private void configureRecording(ClassroomSession session, boolean autoRecordingUnavailable) {
+        session.setRecordingProvider("GOOGLE_MEET");
+        if (properties.isAutoRecording() && !autoRecordingUnavailable) {
+            session.setRecordingSyncStatus(RecordingSyncStatus.SCHEDULED);
+            session.setRecordingSyncError(null);
+            return;
+        }
+        session.setRecordingSyncStatus(RecordingSyncStatus.NOT_AVAILABLE);
+        session.setRecordingSyncError(autoRecordingUnavailable
+                ? "Tài khoản Google của giáo viên chưa được phép bật ghi hình tự động. Giáo viên chủ phòng cần bật ghi hình thủ công trong Google Meet."
+                : null);
+    }
+
+    private boolean isAutoRecordingUnavailable(RuntimeException exception) {
+        String message = exception.getMessage();
+        return message != null && (message.contains("FEATURE_UNAVAILABLE_TO_USER")
+                || message.contains("updateAutoRecordingGeneration"));
+    }
+
+    private String openSpacePayload() {
+        return openSpacePayload(properties.isAutoRecording());
+    }
+
+    private String openSpacePayload(boolean withAutoRecording) {
+        if (!withAutoRecording) {
+            return "{\"config\":{\"accessType\":\"OPEN\"}}";
+        }
+        return "{\"config\":{\"accessType\":\"OPEN\",\"artifactConfig\":{\"recordingConfig\":{\"autoRecordingGeneration\":\"ON\"}}}}";
+    }
+
+    private Long recordingDurationMs(JsonNode recording) {
+        try {
+            String start = recording.path("startTime").asText("");
+            String end = recording.path("endTime").asText("");
+            if (start.isBlank() || end.isBlank()) return null;
+            return Math.max(0L, Duration.between(Instant.parse(start), Instant.parse(end)).toMillis());
+        } catch (RuntimeException ignored) {
+            return null;
         }
     }
 

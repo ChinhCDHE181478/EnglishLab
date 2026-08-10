@@ -16,6 +16,7 @@ import fu.sap490.g23.backend.service.classroom.GoogleMeetTokenCipher;
 import fu.sap490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
@@ -32,7 +33,8 @@ import java.time.LocalDateTime;
 public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeetConnectionService {
 
     private static final String MEET_SCOPE = "https://www.googleapis.com/auth/meetings.space.created";
-    private static final String SCOPES = "openid email " + MEET_SCOPE;
+    private static final String MEET_SETTINGS_SCOPE = "https://www.googleapis.com/auth/meetings.space.settings";
+    private static final String SCOPES = "openid email " + MEET_SCOPE + " " + MEET_SETTINGS_SCOPE;
 
     private final UserRepository userRepository;
     private final TeacherGoogleMeetConnectionRepository connectionRepository;
@@ -47,7 +49,7 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
     @Override
     @Transactional(readOnly = true)
     public TeacherGoogleMeetConnectionResponse getConnection(String teacherEmail) {
-        User teacher = requireTeacher(teacherEmail);
+        User teacher = requireGoogleMeetAccount(teacherEmail);
         return connectionRepository.findByTeacherId(teacher.getId())
                 .map(connection -> toResponse(connection, properties.isEnabled()))
                 .orElseGet(() -> TeacherGoogleMeetConnectionResponse.builder()
@@ -61,7 +63,7 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
     @Transactional
     public String createAuthorizationUrl(String teacherEmail) {
         validateOAuthConfiguration();
-        User teacher = requireTeacher(teacherEmail);
+        User teacher = requireGoogleMeetAccount(teacherEmail);
         AuthToken state = authTokenService.issueGoogleMeetConnectionState(teacher);
         return properties.getAuthorizationUri()
                 + "?client_id=" + encode(properties.getClientId())
@@ -83,8 +85,8 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
         }
         AuthToken stateToken = authTokenService.requireValidGoogleMeetConnectionState(state);
         User teacher = stateToken.getUser();
-        if (!teacher.hasRole(RoleEnum.TEACHER)) {
-            throw new SecurityException("Tài khoản không còn quyền giáo viên.");
+        if (!canConnectGoogleMeet(teacher)) {
+            throw new SecurityException("Tài khoản không còn quyền liên kết Google Meet.");
         }
 
         JsonNode tokenResponse = exchangeAuthorizationCode(code);
@@ -112,13 +114,13 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
         connection.setRevokedAt(null);
         connectionRepository.save(connection);
         authTokenService.markUsed(stateToken);
-        return properties.getFrontendReturnUrl() + "?googleMeet=connected";
+        return frontendReturnUrlFor(teacher) + "?googleMeet=connected";
     }
 
     @Override
     @Transactional
     public void disconnect(String teacherEmail) {
-        User teacher = requireTeacher(teacherEmail);
+        User teacher = requireGoogleMeetAccount(teacherEmail);
         connectionRepository.findByTeacherId(teacher.getId()).ifPresent(connection -> {
             connection.setStatus(GoogleMeetConnectionStatus.DISCONNECTED);
             connection.setEncryptedRefreshToken("");
@@ -128,15 +130,16 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String requireRefreshToken(User teacher) {
         if (teacher == null) {
-            throw new IllegalStateException("Buổi học chưa có giáo viên phụ trách.");
+            throw new IllegalStateException("Lớp học chưa có giáo viên phụ trách.");
         }
         TeacherGoogleMeetConnection connection = connectionRepository.findByTeacherId(teacher.getId())
                 .filter(item -> item.getStatus() == GoogleMeetConnectionStatus.CONNECTED)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Giáo viên " + teacher.getFullName() + " chưa kết nối Google Meet."
+                        "Giáo viên " + teacher.getFullName()
+                                + " chưa kết nối Google Meet. Hãy yêu cầu giáo viên liên kết Google trong Hồ sơ giáo viên trước khi tạo phòng."
                 ));
         connection.setLastUsedAt(LocalDateTime.now());
         connectionRepository.save(connection);
@@ -144,7 +147,7 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markReauthenticationRequired(User teacher) {
         if (teacher == null) return;
         connectionRepository.findByTeacherId(teacher.getId()).ifPresent(connection -> {
@@ -205,13 +208,21 @@ public class TeacherGoogleMeetConnectionServiceImpl implements TeacherGoogleMeet
         }
     }
 
-    private User requireTeacher(String email) {
+    private User requireGoogleMeetAccount(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản giáo viên."));
-        if (!user.hasRole(RoleEnum.TEACHER)) {
-            throw new SecurityException("Chỉ giáo viên được kết nối Google Meet.");
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
+        if (!canConnectGoogleMeet(user)) {
+            throw new SecurityException("Chỉ giáo viên hoặc nhân viên vận hành được liên kết Google Meet.");
         }
         return user;
+    }
+
+    private boolean canConnectGoogleMeet(User user) {
+        return user.hasAnyRole(java.util.Set.of(RoleEnum.TEACHER));
+    }
+
+    private String frontendReturnUrlFor(User user) {
+        return properties.getFrontendReturnUrl();
     }
 
     private TeacherGoogleMeetConnectionResponse toResponse(
