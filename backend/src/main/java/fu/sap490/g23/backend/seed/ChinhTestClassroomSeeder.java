@@ -1,6 +1,7 @@
 package fu.sap490.g23.backend.seed;
 
 import fu.sap490.g23.backend.entity.User;
+import fu.sap490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sap490.g23.backend.entity.classroom.*;
 import fu.sap490.g23.backend.entity.classroom.enums.*;
@@ -8,11 +9,14 @@ import fu.sap490.g23.backend.entity.course.LearningPackage;
 import fu.sap490.g23.backend.entity.course.PackageType;
 import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sap490.g23.backend.entity.curriculum.*;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sap490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sap490.g23.backend.repository.classroom.*;
 import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sap490.g23.backend.repository.curriculum.*;
 import fu.sap490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +36,11 @@ import java.util.Optional;
 
 /**
  * Seeder tạo dữ liệu test đầy đủ cho account chinhcdhe181478@fpt.edu.vn và các học viên cùng lớp.
- * Bao gồm 1 lớp học IELTS duy nhất với tất cả trạng thái có thể:
+ * Bao gồm 1 lớp học IELTS duy nhất với tất cả chức năng & dữ liệu:
+ * - Giáo trình chuẩn (Curriculum): 8 Units đầy đủ nội dung, kết nối trực tiếp vào lớp
+ * - Flashcards: 8 bộ flashcard từ vựng IELTS theo từng Unit
+ * - Bài luyện tập (Practice): 8 bài luyện tập interactive theo từng Unit có câu hỏi, đáp án, giải thích
+ * - Lịch sử làm bài luyện tập: Đã làm và có điểm cho Chinh (Unit 1: 100%, Unit 2: 66.7%)
  * - Buổi học: COMPLETED, IN_PROGRESS (hôm nay + join meeting), SCHEDULED
  * - Bài tập: QUÁ HẠN, hạn hôm nay, ngày mai, ngày kia, đã nộp, đã chấm điểm (nhiều đầu điểm)
  * - Học viên: Chinh + 3 học viên khác cùng tham gia lớp
@@ -55,6 +63,9 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private static final String TEACHER_EMAIL = "classroom.teacher1@englishlab.vn";
     private static final String PACKAGE_SLUG = "ielts-intensive-chinh-test-v1";
     private static final String CLASS_TITLE = "IELTS Intensive 6.5+ – Lớp Test Chinh";
+    private static final String CURRICULUM_SLUG = "ielts-650-complete-virtual-v1";
+    private static final String TRAINING_PROGRAM_SLUG = "ielts-intensive-training-v1";
+    private static final String MATERIAL_BASE_URL = "https://cdn.englishlab.vn/materials/ielts-650/";
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private final UserRepository userRepository;
@@ -75,12 +86,87 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomSyllabusItemRepository syllabusRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    private final CurriculumProgramRepository curriculumProgramRepository;
+    private final CurriculumUnitRepository curriculumUnitRepository;
+    private final CenterMaterialLibraryItemRepository centerMaterialRepository;
+    private final ExerciseBankItemRepository exerciseRepository;
+    private final FlashcardSetRepository flashcardSetRepository;
+    private final TrainingProgramRepository trainingProgramRepository;
+    private final ClassroomPracticeAttemptRepository practiceAttemptRepository;
+    private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
 
     @Value("${app.seed.enabled:false}")
     private boolean seedEnabled;
 
     @Value("${app.seed.chinh-test.enabled:true}")
     private boolean chinhTestEnabled;
+
+    record IeltsUnitSeed(
+            String title,
+            String description,
+            String skill,
+            String fileName,
+            String tags
+    ) {}
+
+    private static final List<IeltsUnitSeed> UNIT_SEEDS = List.of(
+            new IeltsUnitSeed(
+                    "Listening Section 1–2 & Conversation Foundations",
+                    "Nghe bắt từ khóa, điền tên riêng, số điện thoại, ngày tháng và form notes.",
+                    "LISTENING",
+                    "unit1-listening-s1s2.pdf",
+                    "IELTS, Listening, Section 1, Section 2"
+            ),
+            new IeltsUnitSeed(
+                    "Listening Section 3–4 & Academic Lecture Prediction",
+                    "Nghe bài giảng học thuật, nhận diện từ nối và dự đoán thông tin.",
+                    "LISTENING",
+                    "unit2-listening-s3s4.pdf",
+                    "IELTS, Listening, Section 3, Section 4"
+            ),
+            new IeltsUnitSeed(
+                    "Reading Matching Headings & True/False/Not Given",
+                    "Kỹ thuật Skimming, Scanning và phân biệt True vs Not Given trong đề đọc học thuật.",
+                    "READING",
+                    "unit3-reading-tfng.pdf",
+                    "IELTS, Reading, Matching Headings, TFNG"
+            ),
+            new IeltsUnitSeed(
+                    "Writing Task 1 – Trends, Charts & Diagrams",
+                    "Cấu trúc 4 đoạn, từ vựng mô tả xu hướng tăng/giảm/dao động cho Bar chart, Line graph.",
+                    "WRITING",
+                    "unit4-writing-task1.pdf",
+                    "IELTS, Writing, Task 1, Charts"
+            ),
+            new IeltsUnitSeed(
+                    "Writing Task 2 – Opinion & Discussion Essays",
+                    "Cấu trúc 5 đoạn, kỹ thuật paraphrase đề bài, lập luận logic và ví dụ minh chứng.",
+                    "WRITING",
+                    "unit5-writing-task2.pdf",
+                    "IELTS, Writing, Task 2, Opinion Essay"
+            ),
+            new IeltsUnitSeed(
+                    "Speaking Part 1 & 2 – Fluency & Cue Cards",
+                    "Mở rộng câu trả lời theo công thức PREP; kỹ thuật xử lý cue card 2 phút.",
+                    "SPEAKING",
+                    "unit6-speaking-part12.pdf",
+                    "IELTS, Speaking, Part 1, Part 2"
+            ),
+            new IeltsUnitSeed(
+                    "Speaking Part 3 – In-depth Academic Discussion",
+                    "Phát triển luận điểm xã hội, giáo dục, môi trường; dùng từ nối học thuật.",
+                    "SPEAKING",
+                    "unit7-speaking-part3.pdf",
+                    "IELTS, Speaking, Part 3, Social Issues"
+            ),
+            new IeltsUnitSeed(
+                    "Full IELTS Mock Test & Error Log Analysis",
+                    "Thi thử toàn diện 4 kỹ năng; phân tích điểm yếu và tối ưu chiến lược phòng thi.",
+                    "MIXED",
+                    "unit8-mocktest-review.pdf",
+                    "IELTS, Mock Test, Error Log, Final Review"
+            )
+    );
 
     @Override
     @Transactional
@@ -89,7 +175,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             return;
         }
 
-        log.info("[ChinhTestSeeder] Bắt đầu seed / cập nhật dữ liệu test cho {}...", LEARNER_EMAIL);
+        log.info("[ChinhTestSeeder] Bắt đầu seed / đồng bộ dữ liệu test cho {}...", LEARNER_EMAIL);
 
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new IllegalStateException("CLASSROOM package type chưa tồn tại. Hãy chạy OnlineCourseDataSeeder trước."));
@@ -97,22 +183,36 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         User learner = ensureUser(LEARNER_EMAIL, "Chinh CDHE181478", RoleEnum.LEARNER);
         User teacher = ensureUser(TEACHER_EMAIL, "Nguyễn Văn Teacher", RoleEnum.TEACHER);
 
+        // 1. Tạo hoặc đồng bộ Giáo trình chuẩn (Curriculum + Flashcards + Bài luyện tập)
+        CurriculumProgram curriculum = ensureCurriculum(teacher);
+        List<CurriculumUnit> units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
+        synchronizeCurriculumResources(units, teacher);
+        units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
+
+        // 2. Tạo hoặc đồng bộ Training Program
+        TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
+
+        // 3. Tạo hoặc cập nhật Lớp học (ClassroomOffering)
         Optional<ClassroomOffering> existingOffering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG);
         ClassroomOffering offering;
         if (existingOffering.isPresent()) {
             offering = existingOffering.get();
-            log.info("[ChinhTestSeeder] Lớp học đã tồn tại (ID: {}), tiến hành đồng bộ học viên và điểm số mới...", offering.getId());
+            offering.setCurriculumProgram(curriculum);
+            offering.setTrainingProgram(trainingProgram);
+            offering = offeringRepository.save(offering);
+            log.info("[ChinhTestSeeder] Lớp học đã tồn tại (ID: {}), đã liên kết giáo trình ID: {}", offering.getId(), curriculum.getId());
         } else {
-            offering = createOffering(classroomType, teacher);
+            offering = createOffering(classroomType, trainingProgram, curriculum, teacher);
         }
 
         ensureTeacherAssignment(offering, teacher);
         ClassroomEnrollment enrollment = ensureEnrollment(offering, learner, teacher);
         ensureTuitionPayments(enrollment, teacher);
 
-        // Tạo thêm 3 học sinh cùng tham gia lớp
+        // 4. Tạo thêm 3 học sinh cùng tham gia lớp
         ensureAdditionalStudents(offering, teacher);
 
+        // 5. Buổi học (Sessions)
         List<ClassroomSession> sessions;
         if (existingOffering.isPresent()) {
             sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
@@ -131,21 +231,372 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             createAnnouncements(offering, teacher);
         }
 
-        createHomework(offering, sessions, teacher, learner);
+        // 6. Tạo/đồng bộ Bài tập & Bài nộp & Chấm điểm
+        createHomework(offering, sessions, units, teacher, learner);
+
+        // 7. Bảng điểm đã publish
         createGradebook(offering, learner, teacher);
 
-        log.info("[ChinhTestSeeder] ✅ Seed/Cập nhật hoàn tất! Email chính: {} | Mật khẩu: Password123!", LEARNER_EMAIL);
+        // 8. Tạo dữ liệu đã làm bài luyện tập (Practice attempts) cho học viên
+        ensurePracticeAttempts(offering, units, learner);
+
+        log.info("[ChinhTestSeeder] ✅ Seed/Cập nhật hoàn tất! Email: {} | Đã liên kết Giáo trình, Flashcards, Bài luyện tập!", LEARNER_EMAIL);
+    }
+
+    // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
+
+    private CurriculumProgram ensureCurriculum(User teacher) {
+        CurriculumProgram program = curriculumProgramRepository.findBySlug(CURRICULUM_SLUG)
+                .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
+                        .title("IELTS Intensive 6.5+ - Virtual Curriculum")
+                        .code("EL-IELTS-650-V1")
+                        .slug(CURRICULUM_SLUG)
+                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                        .examCategory("IELTS")
+                        .targetBand(BigDecimal.valueOf(6.5))
+                        .entryLevel("IELTS 5.0+ hoặc CEFR B1")
+                        .outcomes("Nắm vững cả 4 kỹ năng IELTS; đạt band 6.5+; thành thạo chiến thuật phòng thi.")
+                        .teacherGuide("Mỗi unit gồm tài liệu trung tâm, luyện tập, bộ flashcard từ vựng và bài tập có deadline.")
+                        .interactionActivities("Live practice, pair speaking, answer review, error log và mock test.")
+                        .totalSessions(8)
+                        .status("APPROVED")
+                        .virtualPlatform("GOOGLE_MEET")
+                        .recordingAllowed(true)
+                        .recordingAvailableDays(30)
+                        .materialsDownloadable(true)
+                        .deviceCheckRequired(true)
+                        .micRequired(true)
+                        .speakerRequired(true)
+                        .autoAttendanceEnabled(true)
+                        .displayOrder(1)
+                        .reviewedBy(teacher)
+                        .reviewedAt(LocalDateTime.now())
+                        .build()));
+
+        if (curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId()).isEmpty()) {
+            for (int index = 0; index < UNIT_SEEDS.size(); index++) {
+                IeltsUnitSeed seed = UNIT_SEEDS.get(index);
+                CenterMaterialLibraryItem material = ensureCenterMaterial(seed, index + 1, teacher);
+                ExerciseBankItem exercise = ensureExercise(seed, index + 1, teacher);
+                FlashcardSet flashcards = ensureFlashcards(seed, index + 1);
+
+                CurriculumUnit unit = CurriculumUnit.builder()
+                        .program(program)
+                        .displayOrder(index + 1)
+                        .title("Unit " + (index + 1) + " – " + seed.title())
+                        .description(seed.description())
+                        .sessionPlan("Warm-up 10 phút; chiến thuật 25 phút; guided practice 35 phút; review & Q&A 20 phút.")
+                        .build();
+                unit.getMaterialRefs().add(CurriculumMaterialRef.builder()
+                        .unit(unit).material(material).displayOrder(1).note("Tài liệu bài học chuẩn của trung tâm").build());
+                unit.getExerciseRefs().add(CurriculumExerciseRef.builder()
+                        .unit(unit).exercise(exercise).displayOrder(1).note("Bài luyện tập củng cố kiến thức").build());
+                unit.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
+                        .unit(unit).flashcardSet(flashcards).displayOrder(1).note("Từ vựng trọng tâm ôn trước và sau buổi học").build());
+                curriculumUnitRepository.save(unit);
+            }
+        }
+        return program;
+    }
+
+    private void synchronizeCurriculumResources(List<CurriculumUnit> units, User teacher) {
+        for (int index = 0; index < Math.min(units.size(), UNIT_SEEDS.size()); index++) {
+            CurriculumUnit unit = units.get(index);
+            IeltsUnitSeed seed = UNIT_SEEDS.get(index);
+            int unitNumber = index + 1;
+            CenterMaterialLibraryItem material = ensureCenterMaterial(seed, unitNumber, teacher);
+            ExerciseBankItem exercise = ensureExercise(seed, unitNumber, teacher);
+            FlashcardSet flashcards = ensureFlashcards(seed, unitNumber);
+
+            if (unit.getMaterialRefs().stream().noneMatch(ref -> ref.getMaterial().getId().equals(material.getId()))) {
+                unit.getMaterialRefs().add(CurriculumMaterialRef.builder()
+                        .unit(unit).material(material).displayOrder(1).note("Tài liệu bài học chuẩn của trung tâm").build());
+            }
+            if (unit.getExerciseRefs().stream().noneMatch(ref -> ref.getExercise().getId().equals(exercise.getId()))) {
+                unit.getExerciseRefs().add(CurriculumExerciseRef.builder()
+                        .unit(unit).exercise(exercise).displayOrder(1).note("Bài luyện tập củng cố kiến thức").build());
+            }
+            if (unit.getFlashcardRefs().stream().noneMatch(ref -> ref.getFlashcardSet().getId().equals(flashcards.getId()))) {
+                unit.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
+                        .unit(unit).flashcardSet(flashcards).displayOrder(1).note("Từ vựng trọng tâm ôn trước và sau buổi học").build());
+            }
+            curriculumUnitRepository.save(unit);
+        }
+    }
+
+    private CenterMaterialLibraryItem ensureCenterMaterial(IeltsUnitSeed seed, int unitNumber, User teacher) {
+        String title = "IELTS 6.5+ Unit " + unitNumber + " – " + seed.title();
+        return centerMaterialRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseGet(() -> centerMaterialRepository.save(CenterMaterialLibraryItem.builder()
+                        .title(title)
+                        .description(seed.description())
+                        .fileUrl(MATERIAL_BASE_URL + seed.fileName())
+                        .fileType("PDF")
+                        .materialType("LESSON_NOTE")
+                        .provider("EnglishLab")
+                        .examCategory("IELTS")
+                        .ieltsBandMin(BigDecimal.valueOf(5.0))
+                        .ieltsBandMax(BigDecimal.valueOf(7.5))
+                        .skill(seed.skill())
+                        .tags(seed.tags())
+                        .status("PUBLISHED")
+                        .createdBy(teacher)
+                        .updatedBy(teacher)
+                        .build()));
+    }
+
+    private ExerciseBankItem ensureExercise(IeltsUnitSeed seed, int unitNumber, User teacher) {
+        String title = "IELTS 6.5+ Unit " + unitNumber + " Practice";
+        ExerciseBankItem exercise = exerciseRepository.findAllByOrderByUpdatedAtDesc().stream()
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseGet(() -> ExerciseBankItem.builder()
+                        .title(title)
+                        .skill(seed.skill())
+                        .level("IELTS 5.0-6.5+")
+                        .prompt("Hoàn thành bài luyện tập " + seed.title() + " và ghi lại nguyên nhân các câu sai.")
+                        .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
+                        .explanation("Đối chiếu đáp án, xác định nguyên nhân câu chưa đúng và ôn lại lý thuyết trọng tâm.")
+                        .tags(seed.tags())
+                        .active(true)
+                        .createdBy(teacher)
+                        .build());
+        exercise.setExerciseType("PRACTICE");
+        if (exercise.getPrompt() == null || !exercise.getPrompt().trim().startsWith("{")) {
+            exercise.setPrompt(buildSystemPracticeConfig(seed, unitNumber));
+            exercise.setAnswerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}");
+            exercise.setExplanation("Xem lại đáp án, phân loại lỗi sai vào Error Log và thực hiện lại lượt mới để cải thiện kết quả.");
+        }
+        return exerciseRepository.save(exercise);
+    }
+
+    private String buildSystemPracticeConfig(IeltsUnitSeed seed, int unitNumber) {
+        String skill = seed.skill();
+        String type = switch (skill) {
+            case "LISTENING" -> "ielts_listening_exam";
+            case "READING" -> "ielts_reading_exam";
+            case "WRITING" -> "ielts_writing_exam";
+            case "SPEAKING" -> "ielts_speaking_exam";
+            default -> "ielts_reading_exam";
+        };
+        return """
+                {
+                  "type":"%s",
+                  "key":"ielts-650-unit-%d-practice",
+                  "title":"IELTS 6.5+ Unit %d Practice - %s",
+                  "durationMinutes":15,
+                  "rules":["Mỗi câu chỉ chọn một đáp án đúng nhất","Có thể luyện lại nhiều lần để nắm vững kiến thức","Kết quả ghi nhận vào lịch sử luyện tập cá nhân"],
+                  "parts":[{
+                    "key":"part_1",
+                    "partNumber":%d,
+                    "title":"%s Practice - %s",
+                    "questionRange":"Questions 1-3",
+                    "passage":{"title":"Hướng dẫn & Ngữ cảnh bài luyện tập","paragraphs":[{"label":"Target Skill: %s","text":"%s"}]},
+                    "questionGroups":[{
+                      "type":"single_choice",
+                      "title":"Chọn câu trả lời chính xác nhất",
+                      "instructions":"Đọc kỹ yêu cầu và chọn 1 đáp án A, B, C hoặc D.",
+                      "questions":[
+                        {"number":1,"prompt":"Chiến thuật quan trọng nhất khi xử lý phần này là gì?","options":[{"value":"A","label":"Bỏ qua ngữ cảnh và chọn ngẫu nhiên"},{"value":"B","label":"Xác định từ khóa, ngữ cảnh và cấu trúc câu trước khi trả lời"},{"value":"C","label":"Chỉ chọn câu có từ dài nhất"},{"value":"D","label":"Không cần đọc lại bài sau khi làm"}]},
+                        {"number":2,"prompt":"Bước kiểm tra cần thiết trước khi xác nhận đáp án là gì?","options":[{"value":"A","label":"Đối chiếu lại bằng chứng trong bài hoặc đề bài"},{"value":"B","label":"Đổi đáp án mà không có cơ sở"},{"value":"C","label":"Chỉ nhìn vào 1 từ đơn lẻ"},{"value":"D","label":"Để trống câu trả lời"}]},
+                        {"number":3,"prompt":"Phương pháp ôn tập hiệu quả nhất sau khi hoàn thành bài luyện tập là gì?","options":[{"value":"A","label":"Bỏ qua các câu làm sai"},{"value":"B","label":"Làm lại ngay lập tức mà không xem giải thích"},{"value":"C","label":"Phân loại lỗi sai vào Error Log và đọc kỹ lời giải"},{"value":"D","label":"Chỉ học thuộc thứ tự chữ cái A/B/C/D"}]}
+                      ]
+                    }]
+                  }]
+                }
+                """.formatted(type, unitNumber, unitNumber, seed.title(), unitNumber, skill, seed.title(), skill, seed.description());
+    }
+
+    private FlashcardSet ensureFlashcards(IeltsUnitSeed seed, int unitNumber) {
+        String title = "IELTS 6.5+ Unit " + unitNumber + " Flashcards";
+        FlashcardSet set = flashcardSetRepository.findByTitleIgnoreCase(title)
+                .orElseGet(() -> FlashcardSet.builder().title(title).build());
+        set.setDescription("Từ vựng trọng tâm cho " + seed.title());
+        set.setExamCategory("IELTS");
+        set.setSkill(seed.skill());
+        set.setTags(seed.tags());
+        set.setCardsJson(flashcardsJson(unitNumber));
+        set.setStatus("PUBLISHED");
+        set.setDisplayOrder(unitNumber);
+        return flashcardSetRepository.save(set);
+    }
+
+    private String flashcardsJson(int unitNumber) {
+        return switch (unitNumber) {
+            case 1 -> """
+                    [
+                      {"front":"accommodation","back":"chỗ ở, nơi lưu trú","example":"The university provides affordable student accommodation."},
+                      {"front":"reservation","back":"sự đặt chỗ trước","example":"I would like to confirm my table reservation for tonight."},
+                      {"front":"departure","back":"sự khởi hành, xuất phát","example":"Our departure time was delayed by 30 minutes due to weather."},
+                      {"front":"itinerary","back":"lịch trình chuyến đi","example":"Please check the travel itinerary before leaving for the airport."},
+                      {"front":"confirmation","back":"xác nhận, thư chứng nhận","example":"You will receive a booking confirmation email shortly."},
+                      {"front":"excursion","back":"chuyến du ngoạn ngắn ngày","example":"We booked a full-day excursion to the national park."}
+                    ]
+                    """;
+            case 2 -> """
+                    [
+                      {"front":"methodology","back":"phương pháp luận nghiên cứu","example":"The research methodology relies on quantitative surveys."},
+                      {"front":"hypothesis","back":"giả thuyết khoa học","example":"The experimental data fully supported our initial hypothesis."},
+                      {"front":"empirical","back":"thực nghiệm, dựa trên quan sát","example":"We need empirical evidence to substantiate this claim."},
+                      {"front":"bibliography","back":"thư mục tham khảo","example":"Always format your bibliography using standard APA style."},
+                      {"front":"qualitative","back":"định tính (dữ liệu/nghiên cứu)","example":"Qualitative interviews provided rich in-depth insights."},
+                      {"front":"quantitative","back":"định lượng (dữ liệu số liệu)","example":"Quantitative analysis showed a 25% increase in efficiency."}
+                    ]
+                    """;
+            case 3 -> """
+                    [
+                      {"front":"contradiction","back":"sự mâu thuẫn, trái ngược","example":"There is a clear contradiction in the author's statement."},
+                      {"front":"substantiate","back":"chứng minh, xác thực","example":"More clinical trials are needed to substantiate this result."},
+                      {"front":"comprehensive","back":"toàn diện, bao quát","example":"The report provides a comprehensive analysis of climate trends."},
+                      {"front":"subsequent","back":"xảy ra sau đó, tiếp theo","example":"The initial trial failed, but subsequent tests succeeded."},
+                      {"front":"obsolete","back":"lỗi thời, không còn dùng","example":"Outdated machinery has become completely obsolete."},
+                      {"front":"predominantly","back":"chủ yếu, phần lớn","example":"The region's economy is predominantly agricultural."}
+                    ]
+                    """;
+            case 4 -> """
+                    [
+                      {"front":"fluctuate","back":"dao động, biến động liên tục","example":"Oil prices fluctuated widely during the first quarter."},
+                      {"front":"skyrocket","back":"tăng vọt, tăng đột biến","example":"Sales skyrocketed after the product launch in May."},
+                      {"front":"plummet","back":"giảm mạnh, rơi thẳng đứng","example":"Tourism revenues plummeted during the pandemic."},
+                      {"front":"plateau","back":"chạm ngưỡng ổn định, đi ngang","example":"After two years of growth, user numbers began to plateau."},
+                      {"front":"respectively","back":"lần lượt theo thứ tự","example":"Class A and B scored 85 and 92, respectively."},
+                      {"front":"substantial","back":"đáng kể, có giá trị lớn","example":"There was a substantial rise in renewable energy investment."}
+                    ]
+                    """;
+            case 5 -> """
+                    [
+                      {"front":"detrimental","back":"có hại, gây bất lợi","example":"Excessive screen time has a detrimental impact on health."},
+                      {"front":"paramount","back":"tối quan trọng, hàng đầu","example":"Safety remains of paramount importance in construction."},
+                      {"front":"inevitable","back":"không thể tránh khỏi","example":"Automation is an inevitable trend in modern manufacturing."},
+                      {"front":"exacerbate","back":"làm trầm trọng thêm","example":"Traffic congestion exacerbates air pollution in urban areas."},
+                      {"front":"unprecedented","back":"chưa từng có tiền lệ","example":"The city witnessed unprecedented growth over the past decade."},
+                      {"front":"foster","back":"thúc đẩy, nuôi dưỡng","example":"Good educators foster critical thinking in their students."}
+                    ]
+                    """;
+            case 6 -> """
+                    [
+                      {"front":"over the moon","back":"vô cùng hạnh phúc, vui sướng","example":"I was over the moon when I achieved my target IELTS band."},
+                      {"front":"once in a blue moon","back":"rất hiếm khi xảy ra","example":"I only eat fast food once in a blue moon."},
+                      {"front":"hit the books","back":"bắt tay vào học tập chăm chỉ","example":"It is time to hit the books for the upcoming exams."},
+                      {"front":"take with a pinch of salt","back":"tiếp nhận có chọn lọc, hoài nghi","example":"You should take online rumors with a pinch of salt."},
+                      {"front":"cost an arm and a leg","back":"rất đắt đỏ, tốn kém","example":"Studying abroad at top universities can cost an arm and a leg."},
+                      {"front":"touch base","back":"liên lạc nhanh, trao đổi ngắn","example":"Let us touch base next Monday before the group presentation."}
+                    ]
+                    """;
+            case 7 -> """
+                    [
+                      {"front":"sustainable development","back":"phát triển bền vững","example":"Clean energy is essential for sustainable development."},
+                      {"front":"technological breakthrough","back":"đột phá công nghệ","example":"Artificial intelligence represents a major technological breakthrough."},
+                      {"front":"cultural heritage","back":"di sản văn hóa","example":"Preserving cultural heritage is a national priority."},
+                      {"front":"socioeconomic gap","back":"khoảng cách kinh tế - xã hội","example":"Free education helps narrow the socioeconomic gap."},
+                      {"front":"moral obligation","back":"nghĩa vụ đạo đức","example":"Every citizen has a moral obligation to protect nature."},
+                      {"front":"profound impact","back":"tác động sâu sắc","example":"Digital connectivity has had a profound impact on society."}
+                    ]
+                    """;
+            default -> """
+                    [
+                      {"front":"time management","back":"quản lý thời gian","example":"Effective time management is crucial in the reading test."},
+                      {"front":"distraction trap","back":"bẫy đánh lạc hướng","example":"Examiners often use distraction traps in listening sections."},
+                      {"front":"cohesion and coherence","back":"sự liên kết và mạch lạc","example":"Use linking devices to improve cohesion and coherence."},
+                      {"front":"lexical resource","back":"vốn từ vựng, độ phong phú từ","example":"Demonstrating a wide lexical resource raises your score."},
+                      {"front":"grammatical range","back":"sự đa dạng cấu trúc ngữ pháp","example":"Combine simple and complex sentences for grammatical range."},
+                      {"front":"elimination strategy","back":"phương pháp loại trừ đáp án","example":"Use the elimination strategy when unsure of the answer."}
+                    ]
+                    """;
+        };
+    }
+
+    private TrainingProgram ensureTrainingProgram(CurriculumProgram curriculum) {
+        return trainingProgramRepository.findBySlug(TRAINING_PROGRAM_SLUG)
+                .orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
+                        .title("IELTS Intensive 6.5+ Program")
+                        .code("TR-IELTS-650-V1")
+                        .slug(TRAINING_PROGRAM_SLUG)
+                        .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                        .curriculumProgram(curriculum)
+                        .shortDescription("Chương trình đào tạo IELTS 6.5+ chuyên sâu 8 tuần.")
+                        .description("Chương trình bám sát 4 kỹ năng IELTS chuẩn quốc tế, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
+                        .price(BigDecimal.valueOf(5_200_000))
+                        .salePrice(BigDecimal.valueOf(4_690_000))
+                        .status(PackageStatus.PUBLISHED)
+                        .displayOrder(1)
+                        .build()));
+    }
+
+    // ── Practice Attempts ────────────────────────────────────────────────────
+
+    private void ensurePracticeAttempts(ClassroomOffering offering, List<CurriculumUnit> units, User learner) {
+        if (units.isEmpty()) return;
+
+        // Attempt 1: Unit 1 Practice (100% score)
+        if (units.size() > 0 && !units.get(0).getExerciseRefs().isEmpty()) {
+            ExerciseBankItem ex1 = units.get(0).getExerciseRefs().get(0).getExercise();
+            if (practiceAttemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(offering.getId(), learner.getId(), ex1.getId()).isEmpty()) {
+                practiceAttemptRepository.save(ClassroomPracticeAttempt.builder()
+                        .classroomOffering(offering)
+                        .student(learner)
+                        .exercise(ex1)
+                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
+                        .completedAt(LocalDateTime.now().minusWeeks(4))
+                        .build());
+                practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
+                        .classroomOffering(offering)
+                        .student(learner)
+                        .exercise(ex1)
+                        .attemptNumber(1)
+                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
+                        .answersJson("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
+                        .correctAnswers(3)
+                        .totalQuestions(3)
+                        .scorePercent(100.0)
+                        .durationSeconds(420)
+                        .startedAt(LocalDateTime.now().minusWeeks(4).minusMinutes(7))
+                        .completedAt(LocalDateTime.now().minusWeeks(4))
+                        .build());
+            }
+        }
+
+        // Attempt 2: Unit 2 Practice (66.7% score)
+        if (units.size() > 1 && !units.get(1).getExerciseRefs().isEmpty()) {
+            ExerciseBankItem ex2 = units.get(1).getExerciseRefs().get(0).getExercise();
+            if (practiceAttemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(offering.getId(), learner.getId(), ex2.getId()).isEmpty()) {
+                practiceAttemptRepository.save(ClassroomPracticeAttempt.builder()
+                        .classroomOffering(offering)
+                        .student(learner)
+                        .exercise(ex2)
+                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")
+                        .completedAt(LocalDateTime.now().minusWeeks(3))
+                        .build());
+                practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
+                        .classroomOffering(offering)
+                        .student(learner)
+                        .exercise(ex2)
+                        .attemptNumber(1)
+                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")
+                        .answersJson("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")
+                        .correctAnswers(2)
+                        .totalQuestions(3)
+                        .scorePercent(66.7)
+                        .durationSeconds(510)
+                        .startedAt(LocalDateTime.now().minusWeeks(3).minusMinutes(9))
+                        .completedAt(LocalDateTime.now().minusWeeks(3))
+                        .build());
+            }
+        }
     }
 
     // ── Offering ──────────────────────────────────────────────────────────────
 
-    private ClassroomOffering createOffering(PackageType classroomType, User teacher) {
+    private ClassroomOffering createOffering(PackageType classroomType, TrainingProgram trainingProgram,
+                                             CurriculumProgram curriculum, User teacher) {
         LearningPackage pkg = learningPackageRepository.save(LearningPackage.builder()
                 .packageType(classroomType)
                 .title(CLASS_TITLE)
                 .slug(PACKAGE_SLUG)
                 .shortDescription("Lớp học IELTS 6.5+ dành để test đầy đủ tính năng.")
-                .description("Lớp test cho chinh: có bài tập quá hạn, bài mới, buổi học đang diễn ra và sắp tới. Bao gồm điểm danh, bảng điểm, học phí, tài liệu, thông báo.")
+                .description("Lớp test cho chinh: có bài tập quá hạn, bài mới, buổi học đang diễn ra và sắp tới. Bao gồm giáo trình, flashcard, bài luyện tập, điểm danh, bảng điểm, học phí, tài liệu, thông báo.")
                 .targetScore("IELTS 6.5+")
                 .duration("8 tuần")
                 .studyMode("Virtual · Google Meet")
@@ -159,6 +610,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         return offeringRepository.save(ClassroomOffering.builder()
                 .learningPackage(pkg)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
+                .trainingProgram(trainingProgram)
+                .curriculumProgram(curriculum)
                 .status(ClassroomOfferingStatus.ACTIVE)
                 .entryLevel("IELTS 5.0+ hoặc CEFR B1")
                 .targetOutcome("Đạt IELTS 6.5+; thành thạo cả 4 kỹ năng; có chiến lược thi thực tế.")
@@ -168,7 +621,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .primaryTeacher(teacher)
                 .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                 .recordingVisible(false)
-                .syllabusSummary("8 buổi bám sát 4 kỹ năng IELTS: Listening, Reading, Writing, Speaking. Mỗi buổi gồm lý thuyết + luyện tập + feedback cá nhân.")
+                .syllabusSummary("8 buổi bám sát 4 kỹ năng IELTS: Listening, Reading, Writing, Speaking. Mỗi buổi gồm lý thuyết + luyện tập + flashcards + feedback cá nhân.")
                 .programOutcomes("Đạt band 6.5 IELTS tổng. Viết task 1 và task 2 đạt band 6.0+. Nói liên tục 2 phút không dừng.")
                 .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
                 .interactionActivities("Mock test, pair speaking, error log review, timed writing, peer feedback.")
@@ -246,14 +699,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     // ── Sessions ──────────────────────────────────────────────────────────────
 
-    /**
-     * Tạo 8 buổi học với các trạng thái:
-     *  S1-S4: COMPLETED (4 buổi đã qua, từ 5 tuần → 2 tuần trước)
-     *  S5: OPEN (hôm nay 19:30–21:00 — có thể Join Meeting)
-     *  S6: SCHEDULED (ngày mai)
-     *  S7: SCHEDULED (3 ngày nữa)
-     *  S8: SCHEDULED (1 tuần nữa)
-     */
     private List<ClassroomSession> createSessions(ClassroomOffering offering, User teacher) {
         LocalDate today = LocalDate.now();
         ClassroomSession s1 = saveSession(offering, teacher, today.minusWeeks(5), 19, 21, ClassroomSessionStatus.COMPLETED,
@@ -272,6 +717,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 "Buổi 7: Speaking Part 3 – thảo luận chủ đề xã hội");
         ClassroomSession s8 = saveSession(offering, teacher, today.plusWeeks(1), 19, 21, ClassroomSessionStatus.SCHEDULED,
                 "Buổi 8: Mock test toàn phần & tổng kết khóa học");
+
         return List.of(s1, s2, s3, s4, s5, s6, s7, s8);
     }
 
@@ -330,14 +776,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     // ── Attendance ────────────────────────────────────────────────────────────
 
-    /**
-     * Điểm danh cho 4 buổi đã hoàn thành + 1 buổi đang diễn ra:
-     *  S1: CÓ MẶT, đúng giờ
-     *  S2: CÓ MẶT, đúng giờ
-     *  S3: ĐẾN MUỘN 15 phút
-     *  S4: VẮNG MẶT (có lý do)
-     *  S5: CÓ MẶT (buổi hôm nay, vừa join)
-     */
     private void createAttendance(List<ClassroomSession> sessions, User learner, User teacher) {
         if (sessions.isEmpty()) return;
         LocalDate today = LocalDate.now();
@@ -387,7 +825,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     // ── Materials ─────────────────────────────────────────────────────────────
 
     private void createMaterials(ClassroomOffering offering, List<ClassroomSession> sessions, User teacher) {
-        // Tài liệu cấp lớp (không gắn buổi cụ thể)
         saveMaterial(offering, null, teacher, "Tài liệu tổng quan IELTS 2024",
                 "https://cdn.englishlab.vn/test/ielts-overview-2024.pdf", "PDF",
                 "Hướng dẫn tổng quan cấu trúc đề thi IELTS Academic 2024", "DOCUMENT");
@@ -398,7 +835,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 "https://cdn.englishlab.vn/test/error-log-template.xlsx", "XLSX",
                 "File Excel để ghi lại lỗi sai theo từng kỹ năng và buổi học", "TEMPLATE");
 
-        // Tài liệu từng buổi
         if (sessions.size() > 0) {
             saveMaterial(offering, sessions.get(0), teacher, "Slide Buổi 1 – Listening Overview",
                     "https://cdn.englishlab.vn/test/session1-listening.pdf", "PDF",
@@ -448,16 +884,16 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private void createAnnouncements(ClassroomOffering offering, User teacher) {
         saveAnnouncement(offering, teacher,
                 "📚 Chào mừng đến lớp IELTS Intensive 6.5+",
-                "Chào các bạn! Lớp học bắt đầu từ tuần này. Tài liệu, bài tập và flashcard của từng buổi sẽ được mở lần lượt. Hãy vào mục Tài liệu để tải slide và vào Bài tập để hoàn thành bài trước deadline nhé!");
+                "Chào các bạn! Lớp học bắt đầu từ tuần này. Giáo trình, bài tập, flashcard và bài luyện tập của từng buổi đã được kích hoạt đầy đủ. Chúc các bạn học tốt!");
         saveAnnouncement(offering, teacher,
                 "📝 Nhắc nhở: Nộp bài Writing Task 1 trước hôm nay 23:59",
-                "Bài Writing Task 1 (Buổi 4) đến hạn hôm nay lúc 23:59. Các bạn chưa nộp vui lòng hoàn thành gấp trong mục Bài tập → Buổi 4. Bài nộp trễ vẫn được nhận nhưng trừ 2 điểm.");
+                "Bài Writing Task 1 (Buổi 4) đến hạn hôm nay lúc 23:59. Các bạn chưa nộp vui lòng hoàn thành gấp trong mục Bài tập.");
         saveAnnouncement(offering, teacher,
                 "🎯 Buổi 5 tối nay – Writing Task 2 Opinion Essay",
-                "Tối nay 19:30 chúng ta học Writing Task 2. Các bạn chuẩn bị sẵn 1 chủ đề yêu thích để luyện outline ngay tại lớp. Link Google Meet sẽ được mở lúc 19:25.");
+                "Tối nay 19:30 chúng ta học Writing Task 2. Các bạn chuẩn bị sẵn 1 chủ đề yêu thích để luyện outline ngay tại lớp. Link Google Meet sẽ mở lúc 19:25.");
         saveAnnouncement(offering, teacher,
                 "🔔 Lịch thi thử Mock Test – Buổi 8",
-                "Buổi 8 sẽ là mock test toàn phần 2h45m theo format thi thật. Các bạn cần chuẩn bị: tai nghe, bút chì (cho bản giấy) hoặc chỉ cần laptop nếu làm online. Chi tiết sẽ thông báo sau Buổi 7.");
+                "Buổi 8 sẽ là mock test toàn phần 2h45m theo format thi thật. Các bạn cần chuẩn bị tai nghe và đường truyền mạng ổn định.");
     }
 
     private void saveAnnouncement(ClassroomOffering offering, User teacher, String title, String content) {
@@ -471,21 +907,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     // ── Homework ──────────────────────────────────────────────────────────────
 
-    /**
-     * Tạo bài tập đầy đủ trạng thái và nhiều đầu điểm:
-     *
-     *  HW1 – Buổi 1 – QUÁ HẠN (deadline 4 tuần trước) – CHƯA NỘP (—)
-     *  HW2 – Buổi 2 – QUÁ HẠN – ĐÃ NỘP & ĐÃ CHẤM (Điểm: 8.5 / 10)
-     *  HW3 – Buổi 3 – QUÁ HẠN – ĐÃ NỘP & ĐÃ CHẤM (Điểm: 7.0 / 10)
-     *  HW4 – Buổi 4 – Hạn HÔM NAY – ĐÃ LÀM QUIZ & ĐÃ CHẤM (Điểm: 9.0 / 10)
-     *  HW5 – Buổi 5 – Hạn NGÀY MAI 23:59 – chưa nộp (—)
-     *  HW6 – Buổi 5 – Hạn NGÀY MAI 23:59 (dạng quiz) – chưa nộp (—)
-     *  HW7 – Buổi 6 – Hạn NGÀY KIA – chưa nộp (—)
-     *  HW8 – Buổi 7 – Hạn 5 ngày nữa – chưa nộp (—)
-     *  HW9 – Buổi 8 – Hạn 1 tuần nữa – chưa nộp (—)
-     */
     private void createHomework(ClassroomOffering offering, List<ClassroomSession> sessions,
-                                 User teacher, User learner) {
+                                 List<CurriculumUnit> units, User teacher, User learner) {
         LocalDate today = LocalDate.now();
 
         ClassroomSession s1 = sessions.size() > 0 ? sessions.get(0) : null;
@@ -497,8 +920,17 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ClassroomSession s7 = sessions.size() > 6 ? sessions.get(6) : null;
         ClassroomSession s8 = sessions.size() > 7 ? sessions.get(7) : null;
 
+        CurriculumUnit u1 = units.size() > 0 ? units.get(0) : null;
+        CurriculumUnit u2 = units.size() > 1 ? units.get(1) : null;
+        CurriculumUnit u3 = units.size() > 2 ? units.get(2) : null;
+        CurriculumUnit u4 = units.size() > 3 ? units.get(3) : null;
+        CurriculumUnit u5 = units.size() > 4 ? units.get(4) : null;
+        CurriculumUnit u6 = units.size() > 5 ? units.get(5) : null;
+        CurriculumUnit u7 = units.size() > 6 ? units.get(6) : null;
+        CurriculumUnit u8 = units.size() > 7 ? units.get(7) : null;
+
         // ── HW1: Quá hạn – chưa nộp ─────────────────────────────────────────
-        saveHomework(offering, s1, teacher,
+        saveHomework(offering, s1, u1, teacher,
                 "HW1 – Nghe Section 1-2 và điền bảng (QUÁ HẠN)",
                 "Nghe audio Section 1-2, điền form và trả lời 10 câu. Tải file đề tại Tài liệu Buổi 1.",
                 today.minusWeeks(4).atTime(23, 59),
@@ -506,7 +938,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 AssessmentSkill.LISTENING, null, null, false);
 
         // ── HW2: Quá hạn – đã nộp & đã chấm (8.5 / 10) ─────────────────────
-        ClassroomHomework hw2 = saveHomework(offering, s2, teacher,
+        ClassroomHomework hw2 = saveHomework(offering, s2, u2, teacher,
                 "HW2 – Tóm tắt lỗi Listening (QUÁ HẠN – đã chấm)",
                 "Viết 150-200 từ tóm tắt 5 lỗi Listening hay mắc nhất của bản thân và cách khắc phục.",
                 today.minusWeeks(3).atTime(23, 59),
@@ -518,7 +950,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 BigDecimal.valueOf(8.5), "Bài làm tốt, phân tích sâu. Cần bổ sung cách khắc phục cụ thể hơn cho lỗi số 3.", teacher);
 
         // ── HW3: Quá hạn – đã nộp & đã chấm (7.0 / 10) ─────────────────────
-        ClassroomHomework hw3 = saveHomework(offering, s3, teacher,
+        ClassroomHomework hw3 = saveHomework(offering, s3, u3, teacher,
                 "HW3 – Nộp bài Reading Section 1 (QUÁ HẠN – đã chấm)",
                 "Tải đề Reading Section 1 ở Tài liệu Buổi 3, làm và scan nộp lại file PDF/ảnh.",
                 today.minusWeeks(2).atTime(23, 59),
@@ -539,7 +971,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                   {"number":4,"prompt":"Which sentence correctly describes an overview?","options":[{"value":"A","label":"In 2010, the value was 45 million."},{"value":"B","label":"Overall, the most notable feature is the upward trend in Category A."},{"value":"C","label":"Furthermore, the data shows various figures."},{"value":"D","label":"The chart is about population growth."}]}
                 ],"answerKey":{"1":"B","2":"B","3":"C","4":"B"}}
                 """;
-        ClassroomHomework hw4 = saveHomework(offering, s4, teacher,
+        ClassroomHomework hw4 = saveHomework(offering, s4, u4, teacher,
                 "HW4 – Quiz Writing Task 1 (Hạn HÔM NAY 23:59)",
                 "Trả lời 4 câu trắc nghiệm về Writing Task 1 – Bar chart. Hoàn thành trực tiếp trên website.",
                 today.atTime(23, 59),
@@ -550,7 +982,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 BigDecimal.valueOf(9.0), "Trả lời đúng 4/4 câu quiz trắc nghiệm Writing Task 1. Nắm rất vững cấu trúc và từ vựng mô tả biểu đồ.", teacher);
 
         // ── HW5: Hạn NGÀY MAI – bài viết tự do (chưa nộp) ──────────────────
-        saveHomework(offering, s5, teacher,
+        saveHomework(offering, s5, u5, teacher,
                 "HW5 – Viết Writing Task 2 hoàn chỉnh (Hạn NGÀY MAI)",
                 "Viết bài Opinion Essay 250+ từ theo đề: 'Some people think that technology has made our lives more complex. To what extent do you agree or disagree?' Nộp trực tiếp vào ô text phía dưới.",
                 today.plusDays(1).atTime(23, 59),
@@ -567,7 +999,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                   {"number":5,"prompt":"Which sentence is the best paraphrase of the essay question?","options":[{"value":"A","label":"Technology makes life harder."},{"value":"B","label":"Some argue that technology has increased the complexity of modern life."},{"value":"C","label":"I agree that technology is bad."},{"value":"D","label":"Technology is a complex topic."}]}
                 ],"answerKey":{"1":"B","2":"C","3":"C","4":"B","5":"B"}}
                 """;
-        saveHomework(offering, s5, teacher,
+        saveHomework(offering, s5, u5, teacher,
                 "HW6 – Quiz chiến thuật Task 2 (Hạn NGÀY MAI)",
                 "5 câu trắc nghiệm về cấu trúc và chiến thuật Writing Task 2. Hoàn thành trong 12 phút.",
                 today.plusDays(1).atTime(23, 59),
@@ -575,7 +1007,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 AssessmentSkill.WRITING, null, quizConfigWritingTask2, false);
 
         // ── HW7: Hạn NGÀY KIA – ghi âm Speaking (chưa nộp) ─────────────────
-        saveHomework(offering, s6, teacher,
+        saveHomework(offering, s6, u6, teacher,
                 "HW7 – Ghi âm Speaking Part 1 (Hạn NGÀY KIA)",
                 "Ghi âm trả lời 3 câu hỏi Speaking Part 1 theo chủ đề Hometown (1-2 phút mỗi câu). Nộp link Google Drive hoặc file âm thanh vào ô text bên dưới.",
                 today.plusDays(2).atTime(23, 59),
@@ -583,17 +1015,17 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 AssessmentSkill.SPEAKING, null, null, true);
 
         // ── HW8: Hạn 5 ngày nữa – ghi âm Speaking Part 3 (chưa nộp) ────────
-        saveHomework(offering, s7, teacher,
+        saveHomework(offering, s7, u7, teacher,
                 "HW8 – Ghi âm Speaking Part 3 – Environment (Hạn 5 ngày)",
-                "Ghi âm trả lời 2 câu Speaking Part 3 về chủ đề Environment (tối thiểu 2 phút mỗi câu). Câu hỏi: (1) How can individuals help protect the environment? (2) Do you think governments are doing enough to fight climate change?",
+                "Ghi âm trả lời 2 câu Speaking Part 3 về chủ đề Environment (tối thiểu 2 phút mỗi câu).",
                 today.plusDays(5).atTime(23, 59),
                 HomeworkActivityType.TEXT_RESPONSE, HomeworkStatus.OPEN,
                 AssessmentSkill.SPEAKING, null, null, true);
 
         // ── HW9: Hạn 1 tuần nữa – nộp file Error Log (chưa nộp) ────────────
-        saveHomework(offering, s8, teacher,
+        saveHomework(offering, s8, u8, teacher,
                 "HW9 – Nộp Error Log cá nhân (Hạn 1 tuần nữa)",
-                "Hoàn chỉnh bảng Error Log theo template ở Tài liệu. Ghi đầy đủ lỗi của từng kỹ năng qua 8 buổi học. Scan hoặc xuất PDF và nộp bên dưới.",
+                "Hoàn chỉnh bảng Error Log theo template ở Tài liệu. Ghi đầy đủ lỗi của từng kỹ năng qua 8 buổi học.",
                 today.plusWeeks(1).atTime(23, 59),
                 HomeworkActivityType.FILE_RESPONSE, HomeworkStatus.OPEN,
                 AssessmentSkill.MIXED,
@@ -601,6 +1033,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     }
 
     private ClassroomHomework saveHomework(ClassroomOffering offering, ClassroomSession session,
+                                            CurriculumUnit unit,
                                             User teacher, String title, String instruction,
                                             LocalDateTime deadline,
                                             HomeworkActivityType activityType,
@@ -611,12 +1044,18 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         Optional<ClassroomHomework> existing = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId())
                 .stream().filter(h -> title.equalsIgnoreCase(h.getTitle())).findFirst();
         if (existing.isPresent()) {
-            return existing.get();
+            ClassroomHomework hw = existing.get();
+            if (unit != null && hw.getCurriculumUnit() == null) {
+                hw.setCurriculumUnit(unit);
+                return homeworkRepository.save(hw);
+            }
+            return hw;
         }
 
         ClassroomHomework.ClassroomHomeworkBuilder builder = ClassroomHomework.builder()
                 .classroomOffering(offering)
                 .session(session)
+                .curriculumUnit(unit)
                 .title(title)
                 .instruction(instruction)
                 .deadline(deadline)
@@ -693,10 +1132,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         gradebookRepository.save(ClassroomGradebookEntry.builder()
                 .classroomOffering(offering)
                 .student(learner)
-                .homeworkScore(BigDecimal.valueOf(8.2))   // trung bình các bài đã chấm (8.5, 7.0, 9.0)
-                .quizScore(BigDecimal.valueOf(9.0))       // điểm quiz
-                .attendancePercent(BigDecimal.valueOf(80.0)) // 4/5 buổi = 80%
-                .participationScore(BigDecimal.valueOf(8.5)) // tham gia tích cực
+                .homeworkScore(BigDecimal.valueOf(8.2))
+                .quizScore(BigDecimal.valueOf(9.0))
+                .attendancePercent(BigDecimal.valueOf(80.0))
+                .participationScore(BigDecimal.valueOf(8.5))
                 .finalResult(BigDecimal.valueOf(8.4))
                 .teacherComment("Học viên học nghiêm túc, tham gia tốt. Đã hoàn thành 3 bài tập và đạt điểm số ấn tượng (TB: 8.2). Cần tiếp tục duy trì phong độ cho các bài tập sắp tới!")
                 .status(GradebookEntryStatus.PUBLISHED)
