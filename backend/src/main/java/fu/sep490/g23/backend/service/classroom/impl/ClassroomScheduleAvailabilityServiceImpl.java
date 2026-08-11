@@ -10,6 +10,7 @@ import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sap490.g23.backend.entity.enums.RoleEnum;
 import fu.sap490.g23.backend.repository.UserRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
     );
 
     private final ClassroomRoomRepository roomRepository;
+    private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final UserRepository userRepository;
 
@@ -80,6 +82,37 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
                         ACTIVE_SESSION_STATUSES,
                         excludeSessionId
                 ).isEmpty())
+                .map(this::toTeacherOption)
+                .toList();
+    }
+
+    @Override
+    public List<AvailableTeacherOptionResponse> listAvailableReplacementTeachers(Long classroomOfferingId) {
+        LocalDate today = LocalDate.now();
+        var offering = offeringRepository.findById(classroomOfferingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lớp học."));
+        Long currentPrimaryTeacherId = offering.getPrimaryTeacher() == null
+                ? null
+                : offering.getPrimaryTeacher().getId();
+        var upcomingSessions = sessionRepository
+                .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(classroomOfferingId)
+                .stream()
+                .filter(session -> !session.getSessionDate().isBefore(today))
+                .filter(session -> ACTIVE_SESSION_STATUSES.contains(session.getStatus()))
+                .filter(session -> currentPrimaryTeacherId == null
+                        || session.getTeacher() == null
+                        || currentPrimaryTeacherId.equals(session.getTeacher().getId()))
+                .toList();
+
+        return userRepository.findDistinctByRoles_CodeIn(List.of(RoleEnum.TEACHER)).stream()
+                .filter(teacher -> upcomingSessions.stream().allMatch(session -> sessionRepository.findTeacherConflicts(
+                        teacher.getId(),
+                        session.getSessionDate(),
+                        session.getStartTime(),
+                        session.getEndTime(),
+                        ACTIVE_SESSION_STATUSES,
+                        session.getId()
+                ).isEmpty()))
                 .map(this::toTeacherOption)
                 .toList();
     }

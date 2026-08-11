@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,8 +57,8 @@ class TeacherClassroomAuthorizationServiceImplTest {
     void deniesTeacherWhoIsNotAssignedToRequestedClassroom() {
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
-                .thenReturn(Optional.empty());
+        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+                .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
                 .isInstanceOf(RuntimeException.class)
@@ -74,8 +75,8 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 .build();
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
-                .thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+                .thenReturn(List.of(assignment));
 
         assertThatCode(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
                 .doesNotThrowAnyException();
@@ -90,8 +91,8 @@ class TeacherClassroomAuthorizationServiceImplTest {
                 .build();
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
-        when(assignmentRepository.findByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
-                .thenReturn(Optional.of(assignment));
+        when(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()))
+                .thenReturn(List.of(assignment));
 
         assertThatThrownBy(() -> service.assertClassroomAccess(offering.getId(), teacher.getEmail()))
                 .isInstanceOf(RuntimeException.class)

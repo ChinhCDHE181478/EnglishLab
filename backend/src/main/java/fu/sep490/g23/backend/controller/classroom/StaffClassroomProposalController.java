@@ -2,6 +2,7 @@ package fu.sap490.g23.backend.controller.classroom;
 
 import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
 import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
+import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sap490.g23.backend.service.classroom.ClassroomProposalService;
@@ -50,6 +51,19 @@ public class StaffClassroomProposalController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomProposalService.validateSchedule(
+                request,
+                excludeProposalId,
+                authentication.getName()
+        ));
+    }
+
+    @PostMapping("/availability")
+    public ResponseEntity<ClassroomProposalAvailabilityResponse> getAvailability(
+            @Valid @RequestBody CreateClassroomProposalRequest request,
+            @RequestParam(required = false) Long excludeProposalId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomProposalService.getAvailability(
                 request,
                 excludeProposalId,
                 authentication.getName()

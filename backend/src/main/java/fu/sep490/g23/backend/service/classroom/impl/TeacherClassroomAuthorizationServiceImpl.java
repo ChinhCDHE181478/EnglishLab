@@ -74,9 +74,9 @@ public class TeacherClassroomAuthorizationServiceImpl implements TeacherClassroo
         }
         LocalDate today = LocalDate.now();
         boolean assigned = assignmentRepository
-                .findByClassroomOfferingIdAndTeacherId(offering.getId(), actor.getId())
-                .filter(assignment -> isActive(assignment, today))
-                .isPresent();
+                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), actor.getId())
+                .stream()
+                .anyMatch(assignment -> isActive(assignment, today));
         if (!assigned) {
             throw new RuntimeException("Bạn không được phân công phụ trách lớp học này.");
         }

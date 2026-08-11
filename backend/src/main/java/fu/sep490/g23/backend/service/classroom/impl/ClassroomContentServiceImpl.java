@@ -268,10 +268,10 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         accessHelper.assertTeacher(user);
         LocalDate today = LocalDate.now();
         boolean assigned = teacherAssignmentRepository
-                .findByClassroomOfferingIdAndTeacherId(offering.getId(), user.getId())
-                .filter(assignment -> assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
-                .filter(assignment -> assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today))
-                .isPresent();
+                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), user.getId())
+                .stream()
+                .anyMatch(assignment -> (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                        && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today)));
         if (!assigned) {
             throw new RuntimeException("Bạn không được phân công giảng dạy lớp học này.");
         }

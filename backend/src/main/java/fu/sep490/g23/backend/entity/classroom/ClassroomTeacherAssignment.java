@@ -33,6 +33,14 @@ public class ClassroomTeacherAssignment {
     @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
+    /**
+     * Chỉ được gắn khi đây là quyền dạy thay cho một buổi cụ thể.
+     * Phân công giáo viên chính của cả lớp để trống trường này.
+     */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_session_id", unique = true)
+    private ClassroomSession classroomSession;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

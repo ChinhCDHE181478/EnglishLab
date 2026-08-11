@@ -11,5 +11,7 @@ public interface ClassroomTeacherAssignmentRepository extends JpaRepository<Clas
 
     List<ClassroomTeacherAssignment> findByTeacherId(Long teacherId);
 
-    Optional<ClassroomTeacherAssignment> findByClassroomOfferingIdAndTeacherId(Long classroomOfferingId, Long teacherId);
+    List<ClassroomTeacherAssignment> findAllByClassroomOfferingIdAndTeacherId(Long classroomOfferingId, Long teacherId);
+
+    Optional<ClassroomTeacherAssignment> findByClassroomSessionId(Long classroomSessionId);
 }

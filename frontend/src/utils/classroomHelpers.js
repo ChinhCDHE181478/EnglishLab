@@ -161,6 +161,9 @@ export const formatSessionStatus = (status) => {
   const map = {
     SCHEDULED: 'Đã lên lịch',
     OPEN: 'Đang diễn ra',
+    IN_PROGRESS: 'Đang diễn ra',
+    RESCHEDULED: 'Đã đổi lịch',
+    MAKEUP: 'Học bù',
     COMPLETED: 'Đã kết thúc',
     CANCELLED: 'Đã hủy',
   };

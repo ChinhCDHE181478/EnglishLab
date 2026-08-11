@@ -85,6 +85,18 @@ const enrollmentRequestApi = {
     return unwrapData(response);
   },
 
+  async getClassroomProposalAvailability(payload, excludeProposalId) {
+    const response = await axiosClient.post('/api/staff/classroom-proposals/availability', payload, {
+      params: excludeProposalId ? { excludeProposalId } : undefined,
+    });
+    return unwrapData(response);
+  },
+
+  async getAvailableClassroomIds(requestId) {
+    const response = await axiosClient.get(`/api/staff/enrollment-requests/${requestId}/available-classrooms`);
+    return asList(unwrapData(response));
+  },
+
   async updateClassroomProposal(proposalId, payload) {
     const response = await axiosClient.put(`/api/staff/classroom-proposals/${proposalId}`, payload);
     return unwrapData(response);
