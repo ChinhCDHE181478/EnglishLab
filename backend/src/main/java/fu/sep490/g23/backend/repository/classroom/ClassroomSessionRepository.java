@@ -45,6 +45,19 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     @Query("""
             SELECT s FROM ClassroomSession s
+            WHERE s.status IN :statuses
+              AND (s.sessionDate < :cutoffDate
+                   OR (s.sessionDate = :cutoffDate AND s.endTime <= :cutoffTime))
+            ORDER BY s.sessionDate ASC, s.endTime ASC
+            """)
+    List<ClassroomSession> findSessionsEndedBefore(
+            @Param("statuses") Collection<ClassroomSessionStatus> statuses,
+            @Param("cutoffDate") LocalDate cutoffDate,
+            @Param("cutoffTime") LocalTime cutoffTime
+    );
+
+    @Query("""
+            SELECT s FROM ClassroomSession s
             WHERE s.deliveryMode = :deliveryMode
               AND s.status IN :sessionStatuses
               AND s.sessionDate >= :fromDate
@@ -149,11 +162,14 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT DISTINCT s FROM ClassroomSession s
             JOIN s.classroomOffering co
             JOIN ClassroomTeacherAssignment ta ON ta.classroomOffering = co
             WHERE ta.teacher.id = :teacherId
               AND s.sessionDate >= :fromDate
+              AND (ta.effectiveFrom IS NULL OR ta.effectiveFrom <= :fromDate)
+              AND (ta.effectiveTo IS NULL OR ta.effectiveTo >= :fromDate)
+              AND (ta.classroomSession IS NULL OR ta.classroomSession = s)
             ORDER BY s.sessionDate ASC, s.startTime ASC
             """)
     List<ClassroomSession> findTeacherSchedule(

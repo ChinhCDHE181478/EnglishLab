@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
@@ -83,8 +84,8 @@ class ClassroomContentServiceImplTest {
         when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
         when(accessHelper.canManageTrainingOperations(teacher)).thenReturn(false);
         when(offeringRepository.findById(1L)).thenReturn(Optional.of(offering));
-        when(teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(1L, 8L))
-                .thenReturn(Optional.empty());
+        when(teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(1L, 8L))
+                .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.getTeacherMaterials(1L, teacher.getEmail()))
                 .hasMessageContaining("không được phân công");

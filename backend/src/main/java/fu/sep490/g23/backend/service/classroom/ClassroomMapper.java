@@ -333,6 +333,10 @@ public class ClassroomMapper {
                 .teacherId(assignment.getTeacher().getId())
                 .teacherName(assignment.getTeacher().getFullName())
                 .role(assignment.getRole())
+                .sessionId(assignment.getClassroomSession() == null ? null : assignment.getClassroomSession().getId())
+                .effectiveFrom(assignment.getEffectiveFrom())
+                .effectiveTo(assignment.getEffectiveTo())
+                .reason(assignment.getReason())
                 .build();
     }
 

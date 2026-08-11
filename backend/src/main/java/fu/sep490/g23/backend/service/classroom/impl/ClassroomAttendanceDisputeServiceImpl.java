@@ -140,10 +140,10 @@ public class ClassroomAttendanceDisputeServiceImpl implements ClassroomAttendanc
             return true;
         }
         LocalDate today = LocalDate.now();
-        return teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offeringId, teacher.getId())
-                .filter(assignment -> assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
-                .filter(assignment -> assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today))
-                .isPresent();
+        return teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offeringId, teacher.getId())
+                .stream()
+                .anyMatch(assignment -> (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
+                        && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today)));
     }
 
     private AttendanceDisputeResponse toResponse(ClassroomAttendanceDispute dispute) {
