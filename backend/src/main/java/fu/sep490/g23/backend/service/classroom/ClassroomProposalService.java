@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.classroom;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectClassroomProposalRequest;

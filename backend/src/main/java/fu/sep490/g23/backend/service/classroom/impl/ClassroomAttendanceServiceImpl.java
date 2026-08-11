@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.service.classroom.ClassroomAttendanceService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
-
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 
 import fu.sep490.g23.backend.dto.request.classroom.SaveAttendanceRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomAttendanceResponse;

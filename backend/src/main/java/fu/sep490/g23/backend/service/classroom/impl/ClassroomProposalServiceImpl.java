@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;

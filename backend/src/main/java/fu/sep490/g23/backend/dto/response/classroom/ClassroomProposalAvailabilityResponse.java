@@ -1,4 +1,5 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
 
 import lombok.Builder;
 import lombok.Data;

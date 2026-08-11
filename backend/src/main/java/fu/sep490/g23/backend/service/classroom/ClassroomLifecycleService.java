@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
 import java.time.LocalDateTime;
 

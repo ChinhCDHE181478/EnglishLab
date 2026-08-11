@@ -1,4 +1,7 @@
 package fu.sep490.g23.backend.controller.classroom;
+import fu.sep490.g23.backend.dto.response.classroom.AvailableTeacherOptionResponse;
+import fu.sep490.g23.backend.service.classroom.ClassroomScheduleAvailabilityService;
+import fu.sep490.g23.backend.dto.response.classroom.AvailableRoomOptionResponse;
 
 import fu.sep490.g23.backend.dto.request.classroom.AssignToClassRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
