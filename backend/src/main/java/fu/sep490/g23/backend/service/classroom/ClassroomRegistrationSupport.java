@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementType;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 
 import java.math.BigDecimal;
 import java.util.EnumSet;
@@ -73,7 +73,7 @@ public final class ClassroomRegistrationSupport {
     }
 
     @SuppressWarnings("deprecation")
-    public static void syncLegacyStatus(fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment enrollment) {
+    public static void syncLegacyStatus(fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment enrollment) {
         ClassroomRegistrationStatus registrationStatus = enrollment.getRegistrationStatus();
         if (registrationStatus == null) {
             return;

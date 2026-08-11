@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionProofStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
 import lombok.Builder;
 import lombok.Data;
 

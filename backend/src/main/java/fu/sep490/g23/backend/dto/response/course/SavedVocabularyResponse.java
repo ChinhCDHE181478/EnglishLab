@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
+import fu.sep490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
 import lombok.*;
 
 import java.time.LocalDateTime;

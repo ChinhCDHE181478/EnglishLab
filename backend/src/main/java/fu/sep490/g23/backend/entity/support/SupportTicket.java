@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.entity.support;
+package fu.sep490.g23.backend.entity.support;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.support.enums.SupportTicketCategory;
-import fu.sap490.g23.backend.entity.support.enums.SupportTicketPriority;
-import fu.sap490.g23.backend.entity.support.enums.SupportTicketStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.support.enums.SupportTicketCategory;
+import fu.sep490.g23.backend.entity.support.enums.SupportTicketPriority;
+import fu.sep490.g23.backend.entity.support.enums.SupportTicketStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;

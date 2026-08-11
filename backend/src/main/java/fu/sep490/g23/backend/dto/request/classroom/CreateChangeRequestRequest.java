@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

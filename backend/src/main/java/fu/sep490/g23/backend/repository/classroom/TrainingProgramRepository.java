@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.classroom;
+package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

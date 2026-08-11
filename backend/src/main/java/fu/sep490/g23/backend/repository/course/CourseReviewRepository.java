@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.CourseReview;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.CourseReview;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.teacher;
+package fu.sep490.g23.backend.repository.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
-import fu.sap490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
+import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
+import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
-import fu.sap490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
-import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sap490.g23.backend.service.classroom.ClassroomMaterialSyncService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
+import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
+import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

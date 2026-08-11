@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import lombok.Builder;
 import lombok.Data;
 

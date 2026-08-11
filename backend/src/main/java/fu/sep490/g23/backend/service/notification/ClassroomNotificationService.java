@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.notification;
+package fu.sep490.g23.backend.service.notification;
 
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.User;
 import java.util.List;
 import java.util.Map;
 

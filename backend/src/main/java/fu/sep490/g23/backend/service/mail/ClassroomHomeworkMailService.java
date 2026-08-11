@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.mail;
+package fu.sep490.g23.backend.service.mail;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sep490.g23.backend.entity.User;
 
 public interface ClassroomHomeworkMailService {
 

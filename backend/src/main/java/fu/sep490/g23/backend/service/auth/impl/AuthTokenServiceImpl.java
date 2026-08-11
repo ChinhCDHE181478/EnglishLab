@@ -1,13 +1,10 @@
-package fu.sap490.g23.backend.service.auth.impl;
+package fu.sep490.g23.backend.service.auth.impl;
+import fu.sep490.g23.backend.service.auth.AuthTokenService;
 
-import fu.sap490.g23.backend.service.auth.*;
-
-import fu.sap490.g23.backend.service.user.UserRoleService;
-
-import fu.sap490.g23.backend.entity.AuthToken;
-import fu.sap490.g23.backend.entity.enums.AuthTokenType;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.repository.AuthTokenRepository;
+import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.enums.AuthTokenType;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.repository.AuthTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

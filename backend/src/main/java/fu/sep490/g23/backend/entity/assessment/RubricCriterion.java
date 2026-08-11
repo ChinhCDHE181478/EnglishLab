@@ -1,6 +1,4 @@
-package fu.sap490.g23.backend.entity.assessment;
-
-import fu.sap490.g23.backend.entity.assessment.enums.*;
+package fu.sep490.g23.backend.entity.assessment;
 
 import jakarta.persistence.*;
 import lombok.*;

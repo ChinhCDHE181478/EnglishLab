@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
+import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 
 import java.util.List;
 

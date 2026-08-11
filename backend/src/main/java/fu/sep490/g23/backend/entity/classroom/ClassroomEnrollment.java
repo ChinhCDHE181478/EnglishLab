@@ -1,9 +1,11 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 
-import fu.sap490.g23.backend.entity.classroom.enums.*;
-
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -178,6 +180,6 @@ public class ClassroomEnrollment {
         if (registrationStatus != ClassroomRegistrationStatus.WAITLIST) {
             waitlistPriority = null;
         }
-        fu.sap490.g23.backend.service.classroom.ClassroomRegistrationSupport.syncLegacyStatus(this);
+        fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport.syncLegacyStatus(this);
     }
 }

@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.entity.teacher;
+package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

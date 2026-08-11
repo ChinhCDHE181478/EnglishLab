@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
-import fu.sap490.g23.backend.dto.response.classroom.TuitionProofResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
+import fu.sep490.g23.backend.dto.response.classroom.TuitionProofResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;

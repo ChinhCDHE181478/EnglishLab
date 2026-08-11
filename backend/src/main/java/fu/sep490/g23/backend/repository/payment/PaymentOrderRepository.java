@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.payment;
+package fu.sep490.g23.backend.repository.payment;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +11,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
-import fu.sap490.g23.backend.entity.payment.enums.PaymentOrderStatus;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 
 public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long> {
     Optional<PaymentOrder> findByOrderCode(Long orderCode);

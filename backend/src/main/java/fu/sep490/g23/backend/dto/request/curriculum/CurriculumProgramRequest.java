@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.curriculum;
+package fu.sep490.g23.backend.dto.request.curriculum;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;

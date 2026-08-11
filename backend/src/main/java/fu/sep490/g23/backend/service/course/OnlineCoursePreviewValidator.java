@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
-import fu.sap490.g23.backend.dto.response.course.LessonResponse;
-import fu.sap490.g23.backend.dto.response.course.ModuleResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewWarningResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sep490.g23.backend.dto.response.course.LessonResponse;
+import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewWarningResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

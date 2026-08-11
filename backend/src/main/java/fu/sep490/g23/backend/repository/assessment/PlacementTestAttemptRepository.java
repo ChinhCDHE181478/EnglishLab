@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.assessment;
+package fu.sep490.g23.backend.repository.assessment;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

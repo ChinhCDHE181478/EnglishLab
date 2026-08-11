@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.curriculum;
+package fu.sep490.g23.backend.dto.request.curriculum;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;

@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CompletePracticeRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomPracticeResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CompletePracticeRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
 
 import java.util.List;
 

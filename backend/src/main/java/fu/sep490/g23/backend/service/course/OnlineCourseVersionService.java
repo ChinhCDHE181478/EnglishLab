@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.request.course.CreateCourseVersionRequest;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 
 import java.util.List;
 

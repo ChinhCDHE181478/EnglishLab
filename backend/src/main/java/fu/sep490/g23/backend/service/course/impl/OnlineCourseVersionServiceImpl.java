@@ -1,31 +1,31 @@
-package fu.sap490.g23.backend.service.course.impl;
+package fu.sep490.g23.backend.service.course.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.dto.request.course.CreateCourseVersionRequest;
-import fu.sap490.g23.backend.dto.response.course.LessonResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
-import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.course.enums.CourseVersionStatus;
-import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sap490.g23.backend.repository.course.OnlineCourseVersionRepository;
-import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sap490.g23.backend.security.ContentManagementRolePolicy;
-import fu.sap490.g23.backend.service.course.OnlineCourseMapper;
-import fu.sap490.g23.backend.service.course.OnlineCoursePreviewValidator;
-import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
+import fu.sep490.g23.backend.dto.response.course.LessonResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
+import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.security.ContentManagementRolePolicy;
+import fu.sep490.g23.backend.service.course.OnlineCourseMapper;
+import fu.sep490.g23.backend.service.course.OnlineCoursePreviewValidator;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -92,7 +92,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .sorted(Comparator.comparing(CourseAssessment::getDisplayOrder).thenComparing(CourseAssessment::getId))
                 .map(this::toPreviewAssessmentResponse)
                 .toList();
-        List<fu.sap490.g23.backend.dto.response.course.ModuleResponse> modules = courseResponse.getModules() == null
+        List<fu.sep490.g23.backend.dto.response.course.ModuleResponse> modules = courseResponse.getModules() == null
                 ? List.of()
                 : List.copyOf(courseResponse.getModules());
         var warnings = previewValidator.validate(courseResponse, assessments);

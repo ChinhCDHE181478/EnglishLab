@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Size;

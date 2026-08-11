@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.entity.curriculum;
+package fu.sep490.g23.backend.entity.curriculum;
 
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

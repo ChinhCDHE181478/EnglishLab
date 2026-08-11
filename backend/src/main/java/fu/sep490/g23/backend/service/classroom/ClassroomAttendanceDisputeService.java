@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateAttendanceDisputeRequest;
-import fu.sap490.g23.backend.dto.request.classroom.ReviewAttendanceDisputeRequest;
-import fu.sap490.g23.backend.dto.response.classroom.AttendanceDisputeResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAttendanceDisputeRequest;
+import fu.sep490.g23.backend.dto.request.classroom.ReviewAttendanceDisputeRequest;
+import fu.sep490.g23.backend.dto.response.classroom.AttendanceDisputeResponse;
 
 import java.util.List;
 

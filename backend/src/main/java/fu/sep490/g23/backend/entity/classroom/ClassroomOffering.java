@@ -1,10 +1,11 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 
-import fu.sap490.g23.backend.entity.classroom.enums.*;
-
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.LearningPackage;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

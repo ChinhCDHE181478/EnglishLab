@@ -1,19 +1,30 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.entity.classroom.ClassroomQuizQuestion;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassroomQuizAttempt;
+import fu.sep490.g23.backend.entity.classroom.ClassroomQuiz;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomQuizRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomQuizAttemptRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.request.classroom.QuizQuestionRequest;
-import fu.sap490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
-import fu.sap490.g23.backend.dto.response.classroom.QuizQuestionResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomQuizStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-import fu.sap490.g23.backend.repository.classroom.*;
-import fu.sap490.g23.backend.security.ClassroomAccessHelper;
-import fu.sap490.g23.backend.service.classroom.ClassroomQuizService;
+import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.request.classroom.QuizQuestionRequest;
+import fu.sep490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
+import fu.sep490.g23.backend.dto.response.classroom.QuizQuestionResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomQuizStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
+import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.ClassroomQuizService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,8 +66,8 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
         List<Long> offeringIds = enrollmentRepository.findByStudentIdAndStatusIn(
                         learner.getId(),
                         java.util.EnumSet.of(
-                                fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.ENROLLED,
-                                fu.sap490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.COMPLETED
+                                fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.ENROLLED,
+                                fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.COMPLETED
                         ))
                 .stream()
                 .map(enrollment -> enrollment.getClassroomOffering().getId())

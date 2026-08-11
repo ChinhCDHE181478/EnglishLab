@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller;
+package fu.sep490.g23.backend.controller;
 
-import fu.sap490.g23.backend.dto.response.ApiResponse;
-import fu.sap490.g23.backend.service.home.HomeService;
+import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.service.home.HomeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

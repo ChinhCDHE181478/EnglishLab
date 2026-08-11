@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.response.classroom.AppNotificationResponse;
-import fu.sap490.g23.backend.service.notification.AppNotificationService;
+import fu.sep490.g23.backend.dto.response.classroom.AppNotificationResponse;
+import fu.sep490.g23.backend.service.notification.AppNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

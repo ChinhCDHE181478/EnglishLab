@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.admin;
+package fu.sep490.g23.backend.entity.admin;
 
 import jakarta.persistence.*;
 import lombok.*;

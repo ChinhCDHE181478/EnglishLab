@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.course.SavedVocabulary;
-import fu.sap490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
+import fu.sep490.g23.backend.entity.course.SavedVocabulary;
+import fu.sep490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

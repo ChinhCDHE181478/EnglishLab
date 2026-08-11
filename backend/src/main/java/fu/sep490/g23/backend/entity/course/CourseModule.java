@@ -1,6 +1,4 @@
-package fu.sap490.g23.backend.entity.course;
-
-import fu.sap490.g23.backend.entity.course.enums.*;
+package fu.sep490.g23.backend.entity.course;
 
 import jakarta.persistence.*;
 import lombok.*;

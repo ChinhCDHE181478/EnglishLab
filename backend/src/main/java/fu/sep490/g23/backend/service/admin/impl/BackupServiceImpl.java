@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.service.admin.impl;
+package fu.sep490.g23.backend.service.admin.impl;
 
-import fu.sap490.g23.backend.dto.response.admin.BackupCapabilityResponse;
-import fu.sap490.g23.backend.dto.response.admin.BackupRecordResponse;
-import fu.sap490.g23.backend.entity.admin.BackupRecord;
-import fu.sap490.g23.backend.entity.admin.enums.BackupStatus;
-import fu.sap490.g23.backend.repository.admin.BackupRecordRepository;
-import fu.sap490.g23.backend.service.admin.AuditLogService;
-import fu.sap490.g23.backend.service.admin.BackupService;
+import fu.sep490.g23.backend.dto.response.admin.BackupCapabilityResponse;
+import fu.sep490.g23.backend.dto.response.admin.BackupRecordResponse;
+import fu.sep490.g23.backend.entity.admin.BackupRecord;
+import fu.sep490.g23.backend.entity.admin.enums.BackupStatus;
+import fu.sep490.g23.backend.repository.admin.BackupRecordRepository;
+import fu.sep490.g23.backend.service.admin.AuditLogService;
+import fu.sep490.g23.backend.service.admin.BackupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;

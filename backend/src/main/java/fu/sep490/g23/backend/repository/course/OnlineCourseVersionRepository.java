@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.OnlineCourseVersion;
-import fu.sap490.g23.backend.entity.course.enums.CourseVersionStatus;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

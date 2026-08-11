@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.commerce;
+package fu.sep490.g23.backend.controller.commerce;
 
-import fu.sap490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
-import fu.sap490.g23.backend.service.commerce.StudentCommerceService;
+import fu.sep490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
+import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

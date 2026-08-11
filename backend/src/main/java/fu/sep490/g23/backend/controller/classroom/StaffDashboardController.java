@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.response.classroom.StaffDashboardResponse;
-import fu.sap490.g23.backend.service.classroom.StaffOperationsService;
+import fu.sep490.g23.backend.dto.response.classroom.StaffDashboardResponse;
+import fu.sep490.g23.backend.service.classroom.StaffOperationsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

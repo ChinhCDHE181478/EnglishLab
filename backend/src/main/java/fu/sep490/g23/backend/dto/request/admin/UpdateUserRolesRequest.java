@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.admin;
+package fu.sep490.g23.backend.dto.request.admin;
 
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;

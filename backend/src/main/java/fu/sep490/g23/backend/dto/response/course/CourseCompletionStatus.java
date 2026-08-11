@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
 public enum CourseCompletionStatus {
     CHUA_BAT_DAU,

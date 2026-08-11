@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.entity.assessment;
+package fu.sep490.g23.backend.entity.assessment;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 

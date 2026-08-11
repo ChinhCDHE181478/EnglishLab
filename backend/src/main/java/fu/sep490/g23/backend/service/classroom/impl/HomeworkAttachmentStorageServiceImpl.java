@@ -1,8 +1,7 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 
-import fu.sap490.g23.backend.service.classroom.*;
-
-import fu.sap490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
+import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;

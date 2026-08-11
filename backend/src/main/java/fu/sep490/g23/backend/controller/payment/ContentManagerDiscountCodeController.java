@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.payment;
+package fu.sep490.g23.backend.controller.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.DiscountCodeRequest;
-import fu.sap490.g23.backend.dto.response.payment.DiscountCodeResponse;
-import fu.sap490.g23.backend.service.payment.DiscountCodeService;
+import fu.sep490.g23.backend.dto.request.payment.DiscountCodeRequest;
+import fu.sep490.g23.backend.dto.response.payment.DiscountCodeResponse;
+import fu.sep490.g23.backend.service.payment.DiscountCodeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

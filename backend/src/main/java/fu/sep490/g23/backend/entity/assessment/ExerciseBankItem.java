@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.assessment;
+package fu.sep490.g23.backend.entity.assessment;
 
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

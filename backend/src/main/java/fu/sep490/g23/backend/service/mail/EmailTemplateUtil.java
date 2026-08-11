@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.mail;
+package fu.sep490.g23.backend.service.mail;
 
 import java.time.LocalDateTime;
 

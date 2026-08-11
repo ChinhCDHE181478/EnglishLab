@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.admin;
+package fu.sep490.g23.backend.dto.response.admin;
 
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import lombok.Builder;
 import lombok.Getter;
 

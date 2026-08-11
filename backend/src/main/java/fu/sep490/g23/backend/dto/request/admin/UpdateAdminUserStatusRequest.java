@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.admin;
+package fu.sep490.g23.backend.dto.request.admin;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

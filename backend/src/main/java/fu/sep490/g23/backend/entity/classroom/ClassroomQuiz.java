@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomQuizStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomQuizStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.service.notification;
+package fu.sep490.g23.backend.service.notification;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sap490.g23.backend.service.mail.LearningReminderMailService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

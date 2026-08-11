@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
-import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 
 import java.util.List;
 

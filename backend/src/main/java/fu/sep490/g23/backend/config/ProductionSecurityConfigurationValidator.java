@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
-import fu.sap490.g23.backend.service.payment.PayosProperties;
+import fu.sep490.g23.backend.service.payment.PayosProperties;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

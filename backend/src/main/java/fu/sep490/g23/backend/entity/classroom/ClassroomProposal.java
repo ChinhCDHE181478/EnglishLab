@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

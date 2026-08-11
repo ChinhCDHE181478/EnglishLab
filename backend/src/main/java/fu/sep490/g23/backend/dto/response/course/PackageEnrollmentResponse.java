@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.admin;
+package fu.sep490.g23.backend.service.admin;
 
-import fu.sap490.g23.backend.dto.response.admin.BackupCapabilityResponse;
-import fu.sap490.g23.backend.dto.response.admin.BackupRecordResponse;
+import fu.sep490.g23.backend.dto.response.admin.BackupCapabilityResponse;
+import fu.sep490.g23.backend.dto.response.admin.BackupRecordResponse;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

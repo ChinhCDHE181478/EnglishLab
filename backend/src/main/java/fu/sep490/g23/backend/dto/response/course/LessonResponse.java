@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 
 import java.util.List;
 

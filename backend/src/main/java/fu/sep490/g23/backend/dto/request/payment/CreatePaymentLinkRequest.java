@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.payment;
+package fu.sep490.g23.backend.dto.request.payment;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

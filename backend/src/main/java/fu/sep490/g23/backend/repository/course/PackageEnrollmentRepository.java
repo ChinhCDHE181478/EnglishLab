@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.LearningPackage;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 
 @Repository
 public interface PackageEnrollmentRepository extends JpaRepository<PackageEnrollment, Long> {

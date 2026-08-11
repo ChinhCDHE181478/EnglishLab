@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.teacher;
+package fu.sep490.g23.backend.controller.teacher;
 
-import fu.sap490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
-import fu.sap490.g23.backend.dto.response.teacher.TeacherFeedbackAggregateResponse;
-import fu.sap490.g23.backend.service.teacher.TeacherFeedbackService;
-import fu.sap490.g23.backend.service.teacher.TeacherProfessionalService;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherFeedbackAggregateResponse;
+import fu.sep490.g23.backend.service.teacher.TeacherFeedbackService;
+import fu.sep490.g23.backend.service.teacher.TeacherProfessionalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

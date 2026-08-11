@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.payment;
+package fu.sep490.g23.backend.dto.request.payment;
 
-import fu.sap490.g23.backend.entity.payment.enums.DiscountType;
+import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

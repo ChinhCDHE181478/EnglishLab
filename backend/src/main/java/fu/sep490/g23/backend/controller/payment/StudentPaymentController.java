@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.controller.payment;
+package fu.sep490.g23.backend.controller.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.CreatePaymentLinkRequest;
-import fu.sap490.g23.backend.dto.response.payment.PaymentLinkResponse;
-import fu.sap490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
-import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
-import fu.sap490.g23.backend.dto.response.payment.PaymentQuoteResponse;
-import fu.sap490.g23.backend.service.payment.PaymentService;
+import fu.sep490.g23.backend.dto.request.payment.CreatePaymentLinkRequest;
+import fu.sep490.g23.backend.dto.response.payment.PaymentLinkResponse;
+import fu.sep490.g23.backend.dto.response.payment.PaymentOrderStatusResponse;
+import fu.sep490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
+import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
+import fu.sep490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

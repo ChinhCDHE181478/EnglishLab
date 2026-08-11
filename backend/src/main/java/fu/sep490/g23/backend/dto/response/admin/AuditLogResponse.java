@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.response.admin;
+package fu.sep490.g23.backend.dto.response.admin;
 
 import lombok.Builder;
 import lombok.Getter;

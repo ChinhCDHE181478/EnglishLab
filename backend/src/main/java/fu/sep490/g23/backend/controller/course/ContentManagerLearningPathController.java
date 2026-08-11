@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.LearningPathCoursesRequest;
-import fu.sap490.g23.backend.dto.request.course.LearningPathRequest;
-import fu.sap490.g23.backend.dto.response.course.LearningPathResponse;
-import fu.sap490.g23.backend.service.course.LearningPathManagementService;
+import fu.sep490.g23.backend.dto.request.course.LearningPathCoursesRequest;
+import fu.sep490.g23.backend.dto.request.course.LearningPathRequest;
+import fu.sep490.g23.backend.dto.response.course.LearningPathResponse;
+import fu.sep490.g23.backend.service.course.LearningPathManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
-import fu.sap490.g23.backend.service.admin.ApiMonitoringService;
+import fu.sep490.g23.backend.service.admin.ApiMonitoringService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

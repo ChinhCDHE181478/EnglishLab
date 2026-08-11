@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionProofStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionProofStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

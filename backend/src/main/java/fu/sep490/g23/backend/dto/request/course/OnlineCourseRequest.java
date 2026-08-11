@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.dto.request.course;
+package fu.sep490.g23.backend.dto.request.course;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
-import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.DecimalMax;

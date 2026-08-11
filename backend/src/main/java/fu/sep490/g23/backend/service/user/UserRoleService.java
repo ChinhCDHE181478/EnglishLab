@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.user;
+package fu.sep490.g23.backend.service.user;
 
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.entity.Role;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.Role;
+import fu.sep490.g23.backend.entity.User;
 import java.util.Collection;
 
 public interface UserRoleService {

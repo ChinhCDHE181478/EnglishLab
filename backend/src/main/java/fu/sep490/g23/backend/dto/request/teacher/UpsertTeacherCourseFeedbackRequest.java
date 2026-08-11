@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.teacher;
+package fu.sep490.g23.backend.dto.request.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
+import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

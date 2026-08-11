@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
-import fu.sap490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
-import fu.sap490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
-import fu.sap490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
-import fu.sap490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
-import fu.sap490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
-import fu.sap490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sep490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
+import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 
 import java.util.List;
 

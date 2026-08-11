@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.request.course.LearningPathCoursesRequest;
-import fu.sap490.g23.backend.dto.request.course.LearningPathRequest;
-import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
-import fu.sap490.g23.backend.dto.response.course.LearningPathResponse;
+import fu.sep490.g23.backend.dto.request.course.LearningPathCoursesRequest;
+import fu.sep490.g23.backend.dto.request.course.LearningPathRequest;
+import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
+import fu.sep490.g23.backend.dto.response.course.LearningPathResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

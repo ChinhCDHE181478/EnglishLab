@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkActivityType;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

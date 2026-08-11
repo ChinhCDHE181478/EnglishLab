@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

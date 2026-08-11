@@ -1,23 +1,23 @@
-package fu.sap490.g23.backend.service.auth.impl;
+package fu.sep490.g23.backend.service.auth.impl;
+import fu.sep490.g23.backend.service.auth.AuthTokenService;
+import fu.sep490.g23.backend.service.auth.GoogleAuthService;
 
-import fu.sap490.g23.backend.service.auth.*;
-
-import fu.sap490.g23.backend.service.user.UserRoleService;
+import fu.sep490.g23.backend.service.user.UserRoleService;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import fu.sap490.g23.backend.dto.request.GoogleAuthRequest;
-import fu.sap490.g23.backend.dto.response.AuthResponse;
-import fu.sap490.g23.backend.dto.response.UserResponse;
-import fu.sap490.g23.backend.entity.enums.AuthTokenType;
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sap490.g23.backend.security.JwtService;
-import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.dto.request.GoogleAuthRequest;
+import fu.sep490.g23.backend.dto.response.AuthResponse;
+import fu.sep490.g23.backend.dto.response.UserResponse;
+import fu.sep490.g23.backend.entity.enums.AuthTokenType;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.security.JwtService;
+import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;

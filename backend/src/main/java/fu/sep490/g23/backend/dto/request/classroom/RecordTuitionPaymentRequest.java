@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

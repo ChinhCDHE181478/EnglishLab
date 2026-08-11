@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.service.classroom.LarkWebhookService;
+import fu.sep490.g23.backend.service.classroom.LarkWebhookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

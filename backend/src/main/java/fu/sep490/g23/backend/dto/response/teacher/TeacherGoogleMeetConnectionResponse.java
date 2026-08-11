@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.teacher;
+package fu.sep490.g23.backend.dto.response.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.enums.GoogleMeetConnectionStatus;
+import fu.sep490.g23.backend.entity.teacher.enums.GoogleMeetConnectionStatus;
 import lombok.Builder;
 import lombok.Getter;
 

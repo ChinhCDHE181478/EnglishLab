@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.classroom;
+package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;

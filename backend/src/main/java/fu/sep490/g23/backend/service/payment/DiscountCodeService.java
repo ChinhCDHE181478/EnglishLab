@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.payment;
+package fu.sep490.g23.backend.service.payment;
 
-import fu.sap490.g23.backend.dto.request.payment.DiscountCodeRequest;
-import fu.sap490.g23.backend.dto.response.payment.DiscountCodeResponse;
+import fu.sep490.g23.backend.dto.request.payment.DiscountCodeRequest;
+import fu.sep490.g23.backend.dto.response.payment.DiscountCodeResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.course;
+package fu.sep490.g23.backend.entity.course;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

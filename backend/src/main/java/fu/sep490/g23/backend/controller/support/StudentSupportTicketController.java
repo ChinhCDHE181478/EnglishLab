@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.controller.support;
+package fu.sep490.g23.backend.controller.support;
 
-import fu.sap490.g23.backend.dto.request.support.CreateSupportTicketRequest;
-import fu.sap490.g23.backend.dto.request.support.LearnerSupportTicketStatusRequest;
-import fu.sap490.g23.backend.dto.request.support.SupportTicketReplyRequest;
-import fu.sap490.g23.backend.dto.response.support.SupportTicketResponse;
-import fu.sap490.g23.backend.service.support.SupportTicketService;
+import fu.sep490.g23.backend.dto.request.support.CreateSupportTicketRequest;
+import fu.sep490.g23.backend.dto.request.support.LearnerSupportTicketStatusRequest;
+import fu.sep490.g23.backend.dto.request.support.SupportTicketReplyRequest;
+import fu.sep490.g23.backend.dto.response.support.SupportTicketResponse;
+import fu.sep490.g23.backend.service.support.SupportTicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

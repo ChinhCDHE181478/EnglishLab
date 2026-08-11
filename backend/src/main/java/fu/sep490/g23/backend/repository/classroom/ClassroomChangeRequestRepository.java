@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.repository.classroom;
+package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

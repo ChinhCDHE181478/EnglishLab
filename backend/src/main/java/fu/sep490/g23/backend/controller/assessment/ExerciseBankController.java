@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.assessment;
+package fu.sep490.g23.backend.controller.assessment;
 
-import fu.sap490.g23.backend.dto.request.assessment.UpsertExerciseBankItemRequest;
-import fu.sap490.g23.backend.dto.response.assessment.ExerciseBankItemResponse;
-import fu.sap490.g23.backend.service.assessment.ExerciseBankService;
+import fu.sep490.g23.backend.dto.request.assessment.UpsertExerciseBankItemRequest;
+import fu.sep490.g23.backend.dto.response.assessment.ExerciseBankItemResponse;
+import fu.sep490.g23.backend.service.assessment.ExerciseBankService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

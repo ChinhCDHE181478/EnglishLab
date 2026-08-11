@@ -1,13 +1,13 @@
-package fu.sap490.g23.backend.controller;
+package fu.sep490.g23.backend.controller;
 
-import fu.sap490.g23.backend.dto.request.ChangePasswordRequest;
-import fu.sap490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
-import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
-import fu.sap490.g23.backend.dto.response.NotificationPreferenceResponse;
-import fu.sap490.g23.backend.dto.response.UserResponse;
-import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
-import fu.sap490.g23.backend.service.user.AvatarStorageService;
-import fu.sap490.g23.backend.service.user.UserService;
+import fu.sep490.g23.backend.dto.request.ChangePasswordRequest;
+import fu.sep490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
+import fu.sep490.g23.backend.dto.request.UpdateProfileRequest;
+import fu.sep490.g23.backend.dto.response.NotificationPreferenceResponse;
+import fu.sep490.g23.backend.dto.response.UserResponse;
+import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
+import fu.sep490.g23.backend.service.user.AvatarStorageService;
+import fu.sep490.g23.backend.service.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;

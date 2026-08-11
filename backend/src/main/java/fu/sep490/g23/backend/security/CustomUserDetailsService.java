@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.security;
+package fu.sep490.g23.backend.security;
 
-import fu.sap490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

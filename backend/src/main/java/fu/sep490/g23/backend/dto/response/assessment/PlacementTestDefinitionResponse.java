@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.response.assessment;
+package fu.sep490.g23.backend.dto.response.assessment;
 
 import lombok.Builder;
 import lombok.Value;

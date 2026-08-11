@@ -1,14 +1,18 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
+import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 
-import fu.sap490.g23.backend.service.classroom.*;
-
-import fu.sap490.g23.backend.dto.request.classroom.ConflictCheckRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ConflictItemResponse;
-import fu.sap490.g23.backend.entity.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.enums.*;
-import fu.sap490.g23.backend.exception.ClassroomConflictException;
-import fu.sap490.g23.backend.repository.classroom.*;
+import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictItemResponse;
+import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

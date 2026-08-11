@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkAnnotationType;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkAnnotationType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

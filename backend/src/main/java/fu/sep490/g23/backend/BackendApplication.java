@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend;
+package fu.sep490.g23.backend;
 
 import java.util.TimeZone;
 

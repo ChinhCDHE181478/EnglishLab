@@ -1,7 +1,11 @@
-package fu.sap490.g23.backend.service.teacher;
-
-import fu.sap490.g23.backend.dto.request.teacher.*;
-import fu.sap490.g23.backend.dto.response.teacher.*;
+package fu.sep490.g23.backend.service.teacher;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherCredentialResponse;
+import fu.sep490.g23.backend.dto.request.teacher.UpdateTeacherProfileRequest;
+import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherEvaluationRequest;
+import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCredentialRequest;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherEvaluationResponse;
+import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
 
 import java.util.List;
 

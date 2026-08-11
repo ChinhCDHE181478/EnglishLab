@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkActivityType;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import lombok.Builder;
 import lombok.Data;
 

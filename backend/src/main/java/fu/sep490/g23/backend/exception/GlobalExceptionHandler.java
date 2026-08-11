@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.exception;
+package fu.sep490.g23.backend.exception;
 
-import fu.sap490.g23.backend.dto.response.ErrorResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomConflictErrorResponse;
-import fu.sap490.g23.backend.service.ai.AiEvaluationException;
+import fu.sep490.g23.backend.dto.response.ErrorResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomConflictErrorResponse;
+import fu.sep490.g23.backend.service.ai.AiEvaluationException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;

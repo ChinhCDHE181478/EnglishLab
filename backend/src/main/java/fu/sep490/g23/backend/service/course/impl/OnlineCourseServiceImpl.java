@@ -1,59 +1,92 @@
-package fu.sap490.g23.backend.service.course.impl;
-
-import fu.sap490.g23.backend.service.course.*;
+package fu.sep490.g23.backend.service.course.impl;
+import fu.sep490.g23.backend.service.course.TranscriptSegmentNormalizer;
+import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
+import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.CourseCategory;
+import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
+import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.service.course.CourseProgressService;
+import fu.sep490.g23.backend.entity.course.VocabularyProgress;
+import fu.sep490.g23.backend.service.course.OnlineCoursePreviewValidator;
+import fu.sep490.g23.backend.service.course.BunnyStreamService;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
+import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
+import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
+import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
+import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonFlashcardRefRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseMapper;
+import fu.sep490.g23.backend.repository.course.LessonRepository;
+import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
-import fu.sap490.g23.backend.dto.request.course.LessonRequest;
-import fu.sap490.g23.backend.dto.request.course.ModuleRequest;
-import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
-import fu.sap490.g23.backend.dto.request.course.LessonOrderItemRequest;
-import fu.sap490.g23.backend.dto.request.course.ModuleOrderItemRequest;
-import fu.sap490.g23.backend.dto.request.course.ReorderLessonsRequest;
-import fu.sap490.g23.backend.dto.request.course.ReorderModulesRequest;
-import fu.sap490.g23.backend.dto.request.course.LearningPathOrderRequest;
-import fu.sap490.g23.backend.dto.request.course.TranscriptSegmentRequest;
-import fu.sap490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
-import fu.sap490.g23.backend.dto.response.assessment.RubricCriterionResponse;
-import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseStatsResponse;
-import fu.sap490.g23.backend.dto.response.course.LessonResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
-import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
-import fu.sap490.g23.backend.dto.response.course.TranscriptSegmentResponse;
-import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
-import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
-import fu.sap490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
-import fu.sap490.g23.backend.service.assessment.IeltsBandScale;
-import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sap490.g23.backend.entity.course.*;
-import fu.sap490.g23.backend.entity.course.enums.*;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
-import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
-import fu.sap490.g23.backend.exception.CourseUnavailableException;
-import fu.sap490.g23.backend.security.ContentManagementRolePolicy;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
-import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
-import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sap490.g23.backend.repository.course.*;
-import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
-import fu.sap490.g23.backend.repository.curriculum.FlashcardSetRepository;
-import fu.sap490.g23.backend.service.mail.CourseEnrollmentMailService;
+import fu.sep490.g23.backend.dto.request.assessment.ContentManagerCourseAssessmentRequest;
+import fu.sep490.g23.backend.dto.request.course.LessonRequest;
+import fu.sep490.g23.backend.dto.request.course.ModuleRequest;
+import fu.sep490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sep490.g23.backend.dto.request.course.LessonOrderItemRequest;
+import fu.sep490.g23.backend.dto.request.course.ModuleOrderItemRequest;
+import fu.sep490.g23.backend.dto.request.course.ReorderLessonsRequest;
+import fu.sep490.g23.backend.dto.request.course.ReorderModulesRequest;
+import fu.sep490.g23.backend.dto.request.course.LearningPathOrderRequest;
+import fu.sep490.g23.backend.dto.request.course.TranscriptSegmentRequest;
+import fu.sep490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
+import fu.sep490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCertificateResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseStatsResponse;
+import fu.sep490.g23.backend.dto.response.course.LessonResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
+import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
+import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.exception.CourseUnavailableException;
+import fu.sep490.g23.backend.security.ContentManagementRolePolicy;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
+import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -179,7 +212,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
                 .map(this::toManagerAssessmentResponse)
                 .toList();
-        List<fu.sap490.g23.backend.dto.response.course.ModuleResponse> modules = List.copyOf(courseResponse.getModules());
+        List<fu.sep490.g23.backend.dto.response.course.ModuleResponse> modules = List.copyOf(courseResponse.getModules());
         var warnings = previewValidator.validate(courseResponse, assessments);
         courseResponse.setModules(List.of());
 
@@ -193,7 +226,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     @Override
-    public List<fu.sap490.g23.backend.dto.response.course.ModuleResponse> reorderModules(
+    public List<fu.sep490.g23.backend.dto.response.course.ModuleResponse> reorderModules(
             Long courseId,
             ReorderModulesRequest request,
             String actorEmail
@@ -245,7 +278,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return mapper.toResponse(course).getModules().stream()
                 .filter(item -> moduleId.equals(item.getId()))
                 .findFirst()
-                .map(fu.sap490.g23.backend.dto.response.course.ModuleResponse::getLessons)
+                .map(fu.sep490.g23.backend.dto.response.course.ModuleResponse::getLessons)
                 .orElseThrow(() -> new IllegalStateException("Không thể đọc lại thứ tự bài học."));
     }
 
@@ -1903,7 +1936,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             if (skill != null) {
                 String skillToken = skill.name().toLowerCase(Locale.ROOT);
                 var assessmentSubquery = query.subquery(Long.class);
-                var assessmentRoot = assessmentSubquery.from(fu.sap490.g23.backend.entity.assessment.CourseAssessment.class);
+                var assessmentRoot = assessmentSubquery.from(fu.sep490.g23.backend.entity.assessment.CourseAssessment.class);
                 assessmentSubquery.select(assessmentRoot.get("id"));
                 assessmentSubquery.where(
                         criteriaBuilder.equal(assessmentRoot.get("onlineCourse"), root),

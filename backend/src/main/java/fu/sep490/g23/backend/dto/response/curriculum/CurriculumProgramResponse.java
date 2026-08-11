@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.curriculum;
+package fu.sep490.g23.backend.dto.response.curriculum;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import lombok.Builder;
 import lombok.Data;
 

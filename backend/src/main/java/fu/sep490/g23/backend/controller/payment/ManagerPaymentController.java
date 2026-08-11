@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.payment;
+package fu.sep490.g23.backend.controller.payment;
 
-import fu.sap490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
-import fu.sap490.g23.backend.entity.payment.enums.PaymentOrderStatus;
-import fu.sap490.g23.backend.service.payment.PaymentService;
+import fu.sep490.g23.backend.dto.response.payment.PaymentOrderSummaryResponse;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
+import fu.sep490.g23.backend.service.payment.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.user.impl;
+package fu.sep490.g23.backend.service.user.impl;
 
-import fu.sap490.g23.backend.service.user.AvatarStorageService;
+import fu.sep490.g23.backend.service.user.AvatarStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;

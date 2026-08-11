@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.notification.impl;
 
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.service.notification.AppNotificationService;
-import fu.sap490.g23.backend.service.notification.ClassroomNotificationService;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.service.notification.AppNotificationService;
+import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

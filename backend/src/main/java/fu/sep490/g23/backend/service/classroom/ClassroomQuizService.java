@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
 
 import java.util.List;
 

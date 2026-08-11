@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.admin;
+package fu.sep490.g23.backend.controller.admin;
 
-import fu.sap490.g23.backend.dto.response.admin.AuditLogResponse;
-import fu.sap490.g23.backend.service.admin.AuditLogService;
+import fu.sep490.g23.backend.dto.response.admin.AuditLogResponse;
+import fu.sep490.g23.backend.service.admin.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;

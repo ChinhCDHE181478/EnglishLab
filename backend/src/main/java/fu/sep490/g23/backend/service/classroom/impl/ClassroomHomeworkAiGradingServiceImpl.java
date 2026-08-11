@@ -1,18 +1,17 @@
-package fu.sap490.g23.backend.service.classroom.impl;
-
-import fu.sap490.g23.backend.service.classroom.*;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkAiGradingService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sap490.g23.backend.service.ai.AiEvaluationClient;
-import fu.sap490.g23.backend.service.ai.AiEvaluationResult;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
+import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

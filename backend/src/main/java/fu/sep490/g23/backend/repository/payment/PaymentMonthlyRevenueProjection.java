@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.repository.payment;
+package fu.sep490.g23.backend.repository.payment;
 
 public interface PaymentMonthlyRevenueProjection {
 

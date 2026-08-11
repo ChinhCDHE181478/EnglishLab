@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.teacher;
+package fu.sep490.g23.backend.dto.request.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
+import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;

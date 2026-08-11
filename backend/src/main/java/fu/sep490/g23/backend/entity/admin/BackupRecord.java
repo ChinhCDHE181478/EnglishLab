@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.admin;
+package fu.sep490.g23.backend.entity.admin;
 
-import fu.sap490.g23.backend.entity.admin.enums.BackupStatus;
+import fu.sep490.g23.backend.entity.admin.enums.BackupStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

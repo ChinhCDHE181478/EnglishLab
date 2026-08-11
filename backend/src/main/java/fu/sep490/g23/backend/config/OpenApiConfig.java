@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.ai;
+package fu.sep490.g23.backend.service.ai;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;

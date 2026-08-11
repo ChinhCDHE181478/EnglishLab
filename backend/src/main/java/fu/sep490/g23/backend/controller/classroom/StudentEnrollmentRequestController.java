@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
-import fu.sap490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
-import fu.sap490.g23.backend.service.classroom.EnrollmentRequestService;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCourseEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.payment;
+package fu.sep490.g23.backend.service.payment;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
@@ -6,9 +6,9 @@ import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.payment.PaymentOrder;
-import fu.sap490.g23.backend.entity.payment.enums.PaymentOrderStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.payment.PaymentOrder;
+import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;

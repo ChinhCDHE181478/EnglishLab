@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.repository.teacher;
+package fu.sep490.g23.backend.repository.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.TeacherCourseFeedback;
+import fu.sep490.g23.backend.entity.teacher.TeacherCourseFeedback;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

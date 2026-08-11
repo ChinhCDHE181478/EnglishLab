@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.service.mail.impl;
+package fu.sep490.g23.backend.service.mail.impl;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.EnrollmentRequest;
-import fu.sap490.g23.backend.service.mail.EmailTemplateUtil;
-import fu.sap490.g23.backend.service.mail.EnrollmentRequestMailService;
-import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.service.mail.EmailTemplateUtil;
+import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
+import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

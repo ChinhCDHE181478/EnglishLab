@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.home;
+package fu.sep490.g23.backend.service.home;
 
-import fu.sap490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.dto.response.ApiResponse;
 
 public interface HomeService {
 

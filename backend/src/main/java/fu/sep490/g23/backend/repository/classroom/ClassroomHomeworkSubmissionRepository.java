@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.classroom;
+package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

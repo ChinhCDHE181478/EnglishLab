@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.mail.impl;
+package fu.sep490.g23.backend.service.mail.impl;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.service.mail.AuthMailService;
-import fu.sap490.g23.backend.service.mail.EmailTemplateUtil;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.service.mail.AuthMailService;
+import fu.sep490.g23.backend.service.mail.EmailTemplateUtil;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.curriculum;
+package fu.sep490.g23.backend.entity.curriculum;
 
 import jakarta.persistence.*;
 import lombok.*;

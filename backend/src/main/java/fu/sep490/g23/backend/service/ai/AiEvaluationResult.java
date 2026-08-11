@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.ai;
+package fu.sep490.g23.backend.service.ai;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sap490.g23.backend.service.classroom.ClassroomScheduleLockService;
+import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;

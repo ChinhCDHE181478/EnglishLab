@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

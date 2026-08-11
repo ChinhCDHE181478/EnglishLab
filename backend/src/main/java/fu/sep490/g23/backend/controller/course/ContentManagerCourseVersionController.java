@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.CreateCourseVersionRequest;
-import fu.sap490.g23.backend.dto.request.course.OnlineCourseRequest;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
-import fu.sap490.g23.backend.entity.course.enums.CourseVersionStatus;
-import fu.sap490.g23.backend.service.course.OnlineCourseService;
-import fu.sap490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
+import fu.sep490.g23.backend.dto.request.course.OnlineCourseRequest;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
+import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

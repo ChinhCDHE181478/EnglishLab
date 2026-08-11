@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.auth;
+package fu.sep490.g23.backend.service.auth;
 
-import fu.sap490.g23.backend.dto.request.LoginRequest;
-import fu.sap490.g23.backend.dto.request.RegisterRequest;
-import fu.sap490.g23.backend.dto.request.ResetPasswordRequest;
-import fu.sap490.g23.backend.dto.request.VerifyEmailRequest;
-import fu.sap490.g23.backend.dto.response.AuthResponse;
+import fu.sep490.g23.backend.dto.request.LoginRequest;
+import fu.sep490.g23.backend.dto.request.RegisterRequest;
+import fu.sep490.g23.backend.dto.request.ResetPasswordRequest;
+import fu.sep490.g23.backend.dto.request.VerifyEmailRequest;
+import fu.sep490.g23.backend.dto.response.AuthResponse;
 
 public interface AuthService {
 

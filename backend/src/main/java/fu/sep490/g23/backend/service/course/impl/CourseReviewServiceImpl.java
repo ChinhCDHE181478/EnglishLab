@@ -1,18 +1,19 @@
-package fu.sap490.g23.backend.service.course.impl;
+package fu.sep490.g23.backend.service.course.impl;
+import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sep490.g23.backend.service.course.CourseReviewService;
+import fu.sep490.g23.backend.service.course.CourseProgressService;
 
-import fu.sap490.g23.backend.service.course.*;
 
-
-import fu.sap490.g23.backend.dto.request.course.CourseReviewRequest;
-import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseRatingResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.CourseReview;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.course.CourseReviewRepository;
-import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.dto.request.course.CourseReviewRequest;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseRatingResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.CourseReview;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.course.CourseReviewRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.CourseCategoryRequest;
-import fu.sap490.g23.backend.dto.response.ApiResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCategoryResponse;
-import fu.sap490.g23.backend.service.course.CourseCategoryManagementService;
+import fu.sep490.g23.backend.dto.request.course.CourseCategoryRequest;
+import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCategoryResponse;
+import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

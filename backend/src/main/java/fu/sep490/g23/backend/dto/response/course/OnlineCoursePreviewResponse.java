@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
+import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import lombok.Builder;
 import lombok.Data;
 

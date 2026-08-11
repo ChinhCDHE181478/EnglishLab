@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.notification.impl;
 
-import fu.sap490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
-import fu.sap490.g23.backend.dto.response.NotificationPreferenceResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.notification.NotificationPreference;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.notification.NotificationPreferenceRepository;
-import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
+import fu.sep490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
+import fu.sep490.g23.backend.dto.response.NotificationPreferenceResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.notification.NotificationPreference;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.notification.NotificationPreferenceRepository;
+import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

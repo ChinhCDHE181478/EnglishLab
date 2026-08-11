@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

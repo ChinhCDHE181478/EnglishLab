@@ -1,18 +1,18 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.ClassroomAttendanceService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 
-import fu.sap490.g23.backend.service.classroom.*;
 
-
-import fu.sap490.g23.backend.dto.request.classroom.SaveAttendanceRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomAttendanceResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomAttendance;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sap490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.dto.request.classroom.SaveAttendanceRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomAttendanceResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

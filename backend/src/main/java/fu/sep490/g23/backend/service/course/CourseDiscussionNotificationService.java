@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.entity.course.CourseDiscussionReply;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 
 public interface CourseDiscussionNotificationService {
 

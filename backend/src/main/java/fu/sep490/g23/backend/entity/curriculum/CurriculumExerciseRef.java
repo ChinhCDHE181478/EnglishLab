@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.curriculum;
+package fu.sep490.g23.backend.entity.curriculum;
 
-import fu.sap490.g23.backend.entity.assessment.ExerciseBankItem;
+import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 

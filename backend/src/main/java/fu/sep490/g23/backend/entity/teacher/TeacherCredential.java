@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.entity.teacher;
+package fu.sep490.g23.backend.entity.teacher;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
-import fu.sap490.g23.backend.service.payment.PayosProperties;
-import fu.sap490.g23.backend.service.payment.PaymentService;
+import fu.sep490.g23.backend.service.payment.PayosProperties;
+import fu.sep490.g23.backend.service.payment.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;

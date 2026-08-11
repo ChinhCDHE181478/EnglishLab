@@ -1,12 +1,13 @@
-package fu.sap490.g23.backend.service.classroom.impl;
-
-import fu.sap490.g23.backend.service.classroom.*;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.LarkRecordingInfo;
+import fu.sep490.g23.backend.service.classroom.LarkMeetingService;
+import fu.sep490.g23.backend.service.classroom.LarkProperties;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

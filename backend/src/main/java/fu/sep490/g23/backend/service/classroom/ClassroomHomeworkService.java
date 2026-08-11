@@ -1,12 +1,12 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateHomeworkRequest;
-import fu.sap490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
-import fu.sap490.g23.backend.dto.request.classroom.SaveHomeworkAnnotationsRequest;
-import fu.sap490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
-import fu.sap490.g23.backend.dto.response.classroom.HomeworkAiAssessmentOptionResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateHomeworkRequest;
+import fu.sep490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
+import fu.sep490.g23.backend.dto.request.classroom.SaveHomeworkAnnotationsRequest;
+import fu.sep490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
+import fu.sep490.g23.backend.dto.response.classroom.HomeworkAiAssessmentOptionResponse;
 import java.util.List;
 
 public interface ClassroomHomeworkService {

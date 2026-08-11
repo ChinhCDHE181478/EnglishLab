@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.notification;
+package fu.sep490.g23.backend.service.notification;
 
-import fu.sap490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
-import fu.sap490.g23.backend.dto.response.NotificationPreferenceResponse;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
+import fu.sep490.g23.backend.dto.response.NotificationPreferenceResponse;
+import fu.sep490.g23.backend.entity.User;
 
 public interface NotificationPreferenceService {
 

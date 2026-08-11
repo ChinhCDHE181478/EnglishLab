@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.exception;
+package fu.sep490.g23.backend.exception;
 
 import lombok.Getter;
 

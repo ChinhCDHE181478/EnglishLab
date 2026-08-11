@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.repository.notification;
+package fu.sep490.g23.backend.repository.notification;
 
-import fu.sap490.g23.backend.entity.notification.AppNotification;
+import fu.sep490.g23.backend.entity.notification.AppNotification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.commerce;
+package fu.sep490.g23.backend.service.commerce;
 
-import fu.sap490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
+import fu.sep490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
 
 import java.util.List;
 

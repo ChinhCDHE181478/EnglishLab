@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.dto.request.curriculum;
+package fu.sep490.g23.backend.dto.request.curriculum;
 
-import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;

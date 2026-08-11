@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.admin.impl;
+package fu.sep490.g23.backend.service.admin.impl;
 
-import fu.sap490.g23.backend.dto.response.admin.AuditLogResponse;
-import fu.sap490.g23.backend.entity.admin.AuditLog;
-import fu.sap490.g23.backend.repository.admin.AuditLogRepository;
-import fu.sap490.g23.backend.service.admin.AuditLogService;
+import fu.sep490.g23.backend.dto.response.admin.AuditLogResponse;
+import fu.sep490.g23.backend.entity.admin.AuditLog;
+import fu.sep490.g23.backend.repository.admin.AuditLogRepository;
+import fu.sep490.g23.backend.service.admin.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;

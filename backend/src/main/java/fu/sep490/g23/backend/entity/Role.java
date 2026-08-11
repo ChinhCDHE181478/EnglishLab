@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity;
+package fu.sep490.g23.backend.entity;
 
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
-import fu.sap490.g23.backend.service.classroom.ClassroomQuizService;
+import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.request.classroom.SubmitClassroomQuizRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomQuizResponse;
+import fu.sep490.g23.backend.service.classroom.ClassroomQuizService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
+import fu.sep490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface BunnyStreamService {

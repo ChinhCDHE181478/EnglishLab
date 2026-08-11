@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.payment;
+package fu.sep490.g23.backend.service.payment;
 
 import lombok.Getter;
 import lombok.Setter;

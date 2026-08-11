@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.response.course.LearnerLearningPathResponse;
-import fu.sap490.g23.backend.service.course.LearningPathManagementService;
+import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
+import fu.sep490.g23.backend.service.course.LearningPathManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

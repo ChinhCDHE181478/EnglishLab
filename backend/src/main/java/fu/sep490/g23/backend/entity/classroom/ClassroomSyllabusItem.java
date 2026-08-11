@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.enums.*;
+import fu.sep490.g23.backend.entity.User;
 
 import jakarta.persistence.*;
 import lombok.*;

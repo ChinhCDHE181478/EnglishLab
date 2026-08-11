@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.DiscussionModerationActionRequest;
-import fu.sap490.g23.backend.dto.response.course.DiscussionModerationReportResponse;
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
-import fu.sap490.g23.backend.service.course.DiscussionModerationService;
+import fu.sep490.g23.backend.dto.request.course.DiscussionModerationActionRequest;
+import fu.sep490.g23.backend.dto.response.course.DiscussionModerationReportResponse;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
+import fu.sep490.g23.backend.service.course.DiscussionModerationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

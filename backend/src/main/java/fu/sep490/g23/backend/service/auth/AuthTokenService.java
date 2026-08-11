@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.auth;
+package fu.sep490.g23.backend.service.auth;
 
-import fu.sap490.g23.backend.entity.AuthToken;
-import fu.sap490.g23.backend.entity.enums.AuthTokenType;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.AuthToken;
+import fu.sep490.g23.backend.entity.enums.AuthTokenType;
+import fu.sep490.g23.backend.entity.User;
 
 public interface AuthTokenService {
 

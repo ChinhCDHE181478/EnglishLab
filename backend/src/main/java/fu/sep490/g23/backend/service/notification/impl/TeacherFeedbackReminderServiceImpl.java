@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.notification.impl;
 
-import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sap490.g23.backend.service.notification.TeacherFeedbackReminderDispatcher;
-import fu.sap490.g23.backend.service.notification.TeacherFeedbackReminderService;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderDispatcher;
+import fu.sep490.g23.backend.service.notification.TeacherFeedbackReminderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

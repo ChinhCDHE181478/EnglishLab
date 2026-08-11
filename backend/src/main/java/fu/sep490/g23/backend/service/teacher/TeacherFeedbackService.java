@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.teacher;
+package fu.sep490.g23.backend.service.teacher;
 
-import fu.sap490.g23.backend.dto.request.teacher.UpsertTeacherCourseFeedbackRequest;
-import fu.sap490.g23.backend.dto.response.teacher.LearnerTeacherFeedbackResponse;
-import fu.sap490.g23.backend.dto.response.teacher.ManagerTeacherFeedbackDetailResponse;
-import fu.sap490.g23.backend.dto.response.teacher.TeacherFeedbackAggregateResponse;
+import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCourseFeedbackRequest;
+import fu.sep490.g23.backend.dto.response.teacher.LearnerTeacherFeedbackResponse;
+import fu.sep490.g23.backend.dto.response.teacher.ManagerTeacherFeedbackDetailResponse;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherFeedbackAggregateResponse;
 
 import java.util.List;
 

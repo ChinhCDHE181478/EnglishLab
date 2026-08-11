@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.config;
+package fu.sep490.g23.backend.config;
 
-import fu.sap490.g23.backend.security.CustomUserDetailsService;
-import fu.sap490.g23.backend.security.JwtAuthenticationFilter;
+import fu.sep490.g23.backend.security.CustomUserDetailsService;
+import fu.sep490.g23.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

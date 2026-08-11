@@ -1,21 +1,21 @@
-package fu.sap490.g23.backend.service.course.impl;
+package fu.sep490.g23.backend.service.course.impl;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.service.course.CourseProgressService;
 
-import fu.sap490.g23.backend.service.course.*;
-
-import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCompletionStatus;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
-import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionStatus;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.enums.CourseLevel;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

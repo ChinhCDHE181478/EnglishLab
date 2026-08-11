@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentAccessService;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;

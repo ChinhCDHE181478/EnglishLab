@@ -1,8 +1,11 @@
-package fu.sap490.g23.backend.controller.teacher;
+package fu.sep490.g23.backend.controller.teacher;
+import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCredentialRequest;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
+import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherCredentialResponse;
+import fu.sep490.g23.backend.dto.request.teacher.UpdateTeacherProfileRequest;
 
-import fu.sap490.g23.backend.dto.request.teacher.*;
-import fu.sap490.g23.backend.dto.response.teacher.*;
-import fu.sap490.g23.backend.service.teacher.TeacherProfessionalService;
+import fu.sep490.g23.backend.service.teacher.TeacherProfessionalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

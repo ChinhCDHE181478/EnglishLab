@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.teacher;
+package fu.sep490.g23.backend.dto.response.teacher;
 
-import fu.sap490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
+import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import lombok.*;
 
 import java.time.LocalDate;

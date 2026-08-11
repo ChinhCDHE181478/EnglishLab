@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.admin.enums;
+package fu.sep490.g23.backend.entity.admin.enums;
 
 public enum BroadcastStatus {
     DRAFT,

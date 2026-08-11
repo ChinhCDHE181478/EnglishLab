@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.admin;
+package fu.sep490.g23.backend.controller.admin;
 
-import fu.sap490.g23.backend.dto.response.admin.BackupCapabilityResponse;
-import fu.sap490.g23.backend.dto.response.admin.BackupRecordResponse;
-import fu.sap490.g23.backend.service.admin.BackupService;
+import fu.sep490.g23.backend.dto.response.admin.BackupCapabilityResponse;
+import fu.sep490.g23.backend.dto.response.admin.BackupRecordResponse;
+import fu.sep490.g23.backend.service.admin.BackupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.*;

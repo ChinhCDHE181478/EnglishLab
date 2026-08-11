@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.dto.request.course.LearnerLessonNoteRequest;
-import fu.sap490.g23.backend.dto.response.course.LearnerLessonNoteResponse;
-import fu.sap490.g23.backend.dto.response.course.LearnerLessonReviewFlagResponse;
+import fu.sep490.g23.backend.dto.request.course.LearnerLessonNoteRequest;
+import fu.sep490.g23.backend.dto.response.course.LearnerLessonNoteResponse;
+import fu.sep490.g23.backend.dto.response.course.LearnerLessonReviewFlagResponse;
 
 import java.util.List;
 

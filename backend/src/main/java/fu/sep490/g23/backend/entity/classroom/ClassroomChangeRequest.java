@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 
-import fu.sap490.g23.backend.entity.classroom.enums.*;
-
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
 /**
  * A provider-neutral recording ready for staff review and publication.

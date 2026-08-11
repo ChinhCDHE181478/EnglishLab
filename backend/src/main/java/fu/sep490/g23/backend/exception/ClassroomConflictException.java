@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.exception;
+package fu.sep490.g23.backend.exception;
 
-import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import lombok.Getter;
 
 @Getter

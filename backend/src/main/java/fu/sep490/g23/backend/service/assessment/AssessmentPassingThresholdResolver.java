@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.assessment;
+package fu.sep490.g23.backend.service.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.response.support;
+package fu.sep490.g23.backend.dto.response.support;
 
 import lombok.Builder;
 import lombok.Data;

@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.service.assessment.impl;
+package fu.sep490.g23.backend.service.assessment.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fu.sap490.g23.backend.dto.request.assessment.UpsertExerciseBankItemRequest;
-import fu.sap490.g23.backend.dto.response.assessment.ExerciseBankItemResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.ExerciseBankItem;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.ExerciseBankItemRepository;
-import fu.sap490.g23.backend.service.assessment.ExerciseBankService;
+import fu.sep490.g23.backend.dto.request.assessment.UpsertExerciseBankItemRequest;
+import fu.sep490.g23.backend.dto.response.assessment.ExerciseBankItemResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
+import fu.sep490.g23.backend.service.assessment.ExerciseBankService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

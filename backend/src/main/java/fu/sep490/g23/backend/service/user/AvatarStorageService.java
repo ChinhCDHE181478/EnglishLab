@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.service.user;
+package fu.sep490.g23.backend.service.user;
 
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;

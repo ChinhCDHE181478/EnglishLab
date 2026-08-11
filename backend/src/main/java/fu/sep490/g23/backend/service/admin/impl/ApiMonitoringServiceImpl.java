@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.admin.impl;
+package fu.sep490.g23.backend.service.admin.impl;
 
-import fu.sap490.g23.backend.dto.response.admin.ApiFailureResponse;
-import fu.sap490.g23.backend.dto.response.admin.ApiMonitoringResponse;
-import fu.sap490.g23.backend.dto.response.admin.ApiRouteMetricResponse;
-import fu.sap490.g23.backend.service.admin.ApiMonitoringService;
+import fu.sep490.g23.backend.dto.response.admin.ApiFailureResponse;
+import fu.sep490.g23.backend.dto.response.admin.ApiMonitoringResponse;
+import fu.sep490.g23.backend.dto.response.admin.ApiRouteMetricResponse;
+import fu.sep490.g23.backend.service.admin.ApiMonitoringService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 

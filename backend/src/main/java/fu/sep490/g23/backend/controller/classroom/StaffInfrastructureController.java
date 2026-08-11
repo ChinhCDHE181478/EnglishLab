@@ -1,8 +1,10 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertCampusRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomRoomDetailResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomCampusResponse;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertRoomRequest;
 
-import fu.sap490.g23.backend.dto.request.classroom.*;
-import fu.sap490.g23.backend.dto.response.classroom.*;
-import fu.sap490.g23.backend.service.classroom.ClassroomInfrastructureService;
+import fu.sep490.g23.backend.service.classroom.ClassroomInfrastructureService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

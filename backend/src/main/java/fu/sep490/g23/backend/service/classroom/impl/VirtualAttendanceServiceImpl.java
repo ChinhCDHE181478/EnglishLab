@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomAttendance;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.LarkMeetingParticipant;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sap490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
-import fu.sap490.g23.backend.service.classroom.VirtualAttendanceService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.LarkMeetingParticipant;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
+import fu.sep490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
+import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.commerce;
+package fu.sep490.g23.backend.repository.commerce;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.commerce.CartItem;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.commerce.CartItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

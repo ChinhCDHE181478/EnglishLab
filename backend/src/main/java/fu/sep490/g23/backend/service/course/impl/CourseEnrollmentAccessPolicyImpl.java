@@ -1,13 +1,13 @@
-package fu.sap490.g23.backend.service.course.impl;
+package fu.sep490.g23.backend.service.course.impl;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sap490.g23.backend.exception.EnrollmentAccessException;
-import fu.sap490.g23.backend.exception.EnrollmentErrorCode;
-import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sap490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.exception.EnrollmentAccessException;
+import fu.sep490.g23.backend.exception.EnrollmentErrorCode;
+import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

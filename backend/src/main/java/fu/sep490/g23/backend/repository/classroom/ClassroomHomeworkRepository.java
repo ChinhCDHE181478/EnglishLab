@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.classroom;
+package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.admin;
+package fu.sep490.g23.backend.repository.admin;
 
-import fu.sap490.g23.backend.entity.admin.AdminBroadcast;
-import fu.sap490.g23.backend.entity.admin.enums.BroadcastStatus;
+import fu.sep490.g23.backend.entity.admin.AdminBroadcast;
+import fu.sep490.g23.backend.entity.admin.enums.BroadcastStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
-import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sap490.g23.backend.service.course.PackageEnrollmentAdminService;
+import fu.sep490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.service.course.PackageEnrollmentAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

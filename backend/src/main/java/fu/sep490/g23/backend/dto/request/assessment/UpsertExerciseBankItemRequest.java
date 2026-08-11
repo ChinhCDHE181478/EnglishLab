@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.assessment;
+package fu.sep490.g23.backend.dto.request.assessment;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

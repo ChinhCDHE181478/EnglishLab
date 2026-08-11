@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.security;
+package fu.sep490.g23.backend.security;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;

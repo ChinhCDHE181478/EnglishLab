@@ -1,13 +1,13 @@
-package fu.sap490.g23.backend.seed;
+package fu.sep490.g23.backend.seed;
 
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
-import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
-import fu.sap490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;

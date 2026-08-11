@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.course;
+package fu.sep490.g23.backend.entity.course;
 
-import fu.sap490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import jakarta.persistence.*;
 import lombok.*;
 

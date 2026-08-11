@@ -1,7 +1,9 @@
-package fu.sap490.g23.backend.dto.response.assessment;
+package fu.sep490.g23.backend.dto.response.assessment;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 
-import fu.sap490.g23.backend.entity.assessment.*;
-import fu.sap490.g23.backend.entity.assessment.enums.*;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

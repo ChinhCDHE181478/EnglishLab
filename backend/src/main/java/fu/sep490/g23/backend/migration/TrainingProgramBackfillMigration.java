@@ -1,13 +1,13 @@
-package fu.sap490.g23.backend.migration;
+package fu.sep490.g23.backend.migration;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.data.domain.Sort;

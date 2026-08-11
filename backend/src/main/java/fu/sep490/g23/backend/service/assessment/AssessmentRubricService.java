@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.assessment;
+package fu.sep490.g23.backend.service.assessment;
 
-import fu.sap490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 
 import java.util.List;
 

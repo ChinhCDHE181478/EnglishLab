@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.service.user.impl;
+package fu.sep490.g23.backend.service.user.impl;
+import fu.sep490.g23.backend.service.user.UserService;
+import fu.sep490.g23.backend.service.user.AvatarStorageService;
 
-import fu.sap490.g23.backend.service.user.*;
-
-import fu.sap490.g23.backend.dto.request.ChangePasswordRequest;
-import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
-import fu.sap490.g23.backend.dto.response.UserResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.dto.request.ChangePasswordRequest;
+import fu.sep490.g23.backend.dto.request.UpdateProfileRequest;
+import fu.sep490.g23.backend.dto.response.UserResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.teacher;
+package fu.sep490.g23.backend.dto.request.teacher;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

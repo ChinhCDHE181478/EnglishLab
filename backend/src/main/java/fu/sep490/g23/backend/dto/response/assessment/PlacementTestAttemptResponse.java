@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.dto.response.assessment;
+package fu.sep490.g23.backend.dto.response.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.*;
 
 import java.math.BigDecimal;

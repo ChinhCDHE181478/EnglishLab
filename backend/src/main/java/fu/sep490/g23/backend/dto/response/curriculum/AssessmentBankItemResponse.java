@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.dto.response.curriculum;
+package fu.sep490.g23.backend.dto.response.curriculum;
 
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import lombok.Builder;
 import lombok.Data;
 

@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
 
-import fu.sap490.g23.backend.dto.request.classroom.TrainingProgramRequest;
-import fu.sap490.g23.backend.dto.response.classroom.TrainingProgramResponse;
-import fu.sap490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sap490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sap490.g23.backend.repository.curriculum.CurriculumProgramRepository;
-import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.dto.request.classroom.TrainingProgramRequest;
+import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

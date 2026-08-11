@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.response.assessment;
+package fu.sep490.g23.backend.dto.response.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
+import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

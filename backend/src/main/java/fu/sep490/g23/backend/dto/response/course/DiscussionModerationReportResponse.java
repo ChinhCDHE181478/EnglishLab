@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.dto.response.course;
+package fu.sep490.g23.backend.dto.response.course;
 
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import lombok.Builder;
 import lombok.Getter;
 

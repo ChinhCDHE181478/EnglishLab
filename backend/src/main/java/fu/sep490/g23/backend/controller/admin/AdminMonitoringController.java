@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.admin;
+package fu.sep490.g23.backend.controller.admin;
 
-import fu.sap490.g23.backend.dto.response.admin.ApiMonitoringResponse;
-import fu.sap490.g23.backend.service.admin.ApiMonitoringService;
+import fu.sep490.g23.backend.dto.response.admin.ApiMonitoringResponse;
+import fu.sep490.g23.backend.service.admin.ApiMonitoringService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

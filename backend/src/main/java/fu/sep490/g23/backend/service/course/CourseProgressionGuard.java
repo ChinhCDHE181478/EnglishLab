@@ -1,17 +1,17 @@
-package fu.sap490.g23.backend.service.course;
+package fu.sep490.g23.backend.service.course;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sap490.g23.backend.entity.course.CourseModule;
-import fu.sap490.g23.backend.entity.course.Lesson;
-import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
-import fu.sap490.g23.backend.repository.assessment.CourseAssessmentRepository;
-import fu.sap490.g23.backend.repository.course.LessonProgressRepository;
-import fu.sap490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
+import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
+import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

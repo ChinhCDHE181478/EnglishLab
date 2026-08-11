@@ -1,12 +1,13 @@
-package fu.sap490.g23.backend.entity.classroom;
+package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 
-import fu.sap490.g23.backend.entity.classroom.enums.*;
-
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.curriculum.CurriculumUnit;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

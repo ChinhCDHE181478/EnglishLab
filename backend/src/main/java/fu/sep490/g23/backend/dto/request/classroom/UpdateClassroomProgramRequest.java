@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.classroom;
+package fu.sep490.g23.backend.dto.request.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;

@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.security;
+package fu.sep490.g23.backend.security;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
 
 import java.util.EnumSet;
 import java.util.Set;

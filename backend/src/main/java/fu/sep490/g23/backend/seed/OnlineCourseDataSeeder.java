@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.seed;
+package fu.sep490.g23.backend.seed;
 
-import fu.sap490.g23.backend.entity.course.CourseCategory;
-import fu.sap490.g23.backend.entity.course.enums.CourseCategoryCode;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sap490.g23.backend.entity.course.PackageType;
-import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sap490.g23.backend.repository.course.CourseCategoryRepository;
-import fu.sap490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sap490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sap490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.entity.course.CourseCategory;
+import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
+import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;

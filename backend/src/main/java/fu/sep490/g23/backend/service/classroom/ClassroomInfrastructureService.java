@@ -1,7 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
-
-import fu.sap490.g23.backend.dto.request.classroom.*;
-import fu.sap490.g23.backend.dto.response.classroom.*;
+package fu.sep490.g23.backend.service.classroom;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertRoomRequest;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertCampusRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomCampusResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomRoomDetailResponse;
 
 import java.util.List;
 

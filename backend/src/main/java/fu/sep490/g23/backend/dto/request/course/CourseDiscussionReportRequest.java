@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.course;
+package fu.sep490.g23.backend.dto.request.course;
 
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;

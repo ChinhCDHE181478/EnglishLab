@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.seed;
+package fu.sep490.g23.backend.seed;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.assessment.PlacementTestAttempt;
-import fu.sap490.g23.backend.entity.enums.RoleEnum;
-import fu.sap490.g23.backend.repository.UserRepository;
-import fu.sap490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
-import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

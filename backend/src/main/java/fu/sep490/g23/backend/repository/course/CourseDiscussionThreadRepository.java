@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.course.enums.CourseDiscussionStatus;
-import fu.sap490.g23.backend.entity.course.CourseDiscussionThread;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

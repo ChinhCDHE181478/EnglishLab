@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.user;
+package fu.sep490.g23.backend.service.user;
 
-import fu.sap490.g23.backend.dto.request.UpdateProfileRequest;
-import fu.sap490.g23.backend.dto.request.ChangePasswordRequest;
-import fu.sap490.g23.backend.dto.response.UserResponse;
+import fu.sep490.g23.backend.dto.request.UpdateProfileRequest;
+import fu.sep490.g23.backend.dto.request.ChangePasswordRequest;
+import fu.sep490.g23.backend.dto.response.UserResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface UserService {

@@ -1,19 +1,19 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sap490.g23.backend.service.classroom.GoogleMeetProperties;
-import fu.sap490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
-import fu.sap490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
-import fu.sap490.g23.backend.service.classroom.VirtualMeetingService;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.service.classroom.GoogleMeetProperties;
+import fu.sep490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
+import fu.sep490.g23.backend.service.classroom.VirtualMeetingRecordingInfo;
+import fu.sep490.g23.backend.service.classroom.VirtualMeetingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

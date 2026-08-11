@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.Lesson;
-import fu.sap490.g23.backend.entity.course.LessonProgress;
-import fu.sap490.g23.backend.entity.course.enums.LessonProgressStatus;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

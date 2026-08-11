@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.entity.commerce;
+package fu.sep490.g23.backend.entity.commerce;
 
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

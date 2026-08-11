@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.mail;
+package fu.sep490.g23.backend.service.mail;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
 
 public interface EnrollmentRequestMailService {
     void sendTestAppointment(EnrollmentRequest request);

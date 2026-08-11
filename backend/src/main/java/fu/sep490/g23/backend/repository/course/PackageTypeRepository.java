@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.repository.course;
+package fu.sep490.g23.backend.repository.course;
 
-import fu.sap490.g23.backend.entity.course.PackageType;
-import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.course.PackageType;
+import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

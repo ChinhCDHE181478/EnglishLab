@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.support;
+package fu.sep490.g23.backend.dto.request.support;
 
-import fu.sap490.g23.backend.entity.support.enums.SupportTicketCategory;
+import fu.sep490.g23.backend.entity.support.enums.SupportTicketCategory;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

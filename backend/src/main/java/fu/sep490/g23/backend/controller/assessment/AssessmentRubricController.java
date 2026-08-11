@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.assessment;
+package fu.sep490.g23.backend.controller.assessment;
 
-import fu.sap490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.service.assessment.AssessmentRubricService;
+import fu.sep490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.service.assessment.AssessmentRubricService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

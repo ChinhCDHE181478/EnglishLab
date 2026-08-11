@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.service.assessment;
+package fu.sep490.g23.backend.service.assessment;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import fu.sap490.g23.backend.dto.request.assessment.PlacementTestDefinitionRequest;
-import fu.sap490.g23.backend.dto.response.assessment.PlacementTestDefinitionResponse;
-import fu.sap490.g23.backend.dto.response.assessment.PlacementTestMonitoringResponse;
-import fu.sap490.g23.backend.entity.assessment.PlacementTestDefinition;
+import fu.sep490.g23.backend.dto.request.assessment.PlacementTestDefinitionRequest;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestDefinitionResponse;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestMonitoringResponse;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
 
 public interface PlacementTestDefinitionService {
 

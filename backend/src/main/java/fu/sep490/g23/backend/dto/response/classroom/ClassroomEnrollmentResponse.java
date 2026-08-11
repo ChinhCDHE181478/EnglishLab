@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
-import fu.sap490.g23.backend.entity.classroom.enums.TuitionSettlementType;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import lombok.Builder;
 import lombok.Data;
 

@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCategoryResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.service.course.OnlineCourseService;
-import fu.sap490.g23.backend.service.course.CourseCategoryManagementService;
+import fu.sep490.g23.backend.dto.response.course.CourseCertificateResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCategoryResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

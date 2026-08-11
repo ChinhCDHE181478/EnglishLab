@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.admin.impl;
+package fu.sep490.g23.backend.service.admin.impl;
 
-import fu.sap490.g23.backend.dto.response.admin.AdminSystemConfigResponse;
-import fu.sap490.g23.backend.service.admin.AdminSystemService;
-import fu.sap490.g23.backend.service.payment.PayosProperties;
+import fu.sep490.g23.backend.dto.response.admin.AdminSystemConfigResponse;
+import fu.sep490.g23.backend.service.admin.AdminSystemService;
+import fu.sep490.g23.backend.service.payment.PayosProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;

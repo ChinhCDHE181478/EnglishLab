@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
-import fu.sap490.g23.backend.service.classroom.ClassroomChangeRequestService;
+import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

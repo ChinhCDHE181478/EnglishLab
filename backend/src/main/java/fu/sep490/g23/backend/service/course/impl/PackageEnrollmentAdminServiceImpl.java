@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.service.course.impl;
+package fu.sep490.g23.backend.service.course.impl;
 
-import fu.sap490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
-import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.course.LearningPackage;
-import fu.sap490.g23.backend.entity.course.PackageEnrollment;
-import fu.sap490.g23.backend.entity.course.enums.EnrollmentStatus;
-import fu.sap490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sap490.g23.backend.repository.course.PackageEnrollmentRepository;
-import fu.sap490.g23.backend.security.ClassroomAccessHelper;
-import fu.sap490.g23.backend.service.course.PackageEnrollmentAdminService;
+import fu.sep490.g23.backend.dto.request.course.UpdatePackageEnrollmentRequest;
+import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentAdminResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
+import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
+import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.course.PackageEnrollmentAdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

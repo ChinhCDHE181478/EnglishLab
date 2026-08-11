@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.controller.assessment;
+package fu.sep490.g23.backend.controller.assessment;
 
-import fu.sap490.g23.backend.dto.request.assessment.MockTestSubmissionRequest;
-import fu.sap490.g23.backend.dto.response.assessment.MockTestAttemptResponse;
-import fu.sap490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
-import fu.sap490.g23.backend.service.assessment.MockTestService;
-import fu.sap490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.dto.request.assessment.MockTestSubmissionRequest;
+import fu.sep490.g23.backend.dto.response.assessment.MockTestAttemptResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
+import fu.sep490.g23.backend.service.assessment.MockTestService;
+import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

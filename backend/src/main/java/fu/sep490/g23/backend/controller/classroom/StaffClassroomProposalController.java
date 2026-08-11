@@ -1,10 +1,10 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
-import fu.sap490.g23.backend.service.classroom.ClassroomProposalService;
+import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

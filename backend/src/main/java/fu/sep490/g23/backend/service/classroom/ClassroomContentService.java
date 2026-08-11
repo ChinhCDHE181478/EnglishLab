@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateMaterialRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateMaterialRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
 import java.util.List;
 
 public interface ClassroomContentService {

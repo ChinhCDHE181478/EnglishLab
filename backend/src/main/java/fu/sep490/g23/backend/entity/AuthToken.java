@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity;
+package fu.sep490.g23.backend.entity;
 
-import fu.sap490.g23.backend.entity.enums.AuthTokenType;
+import fu.sep490.g23.backend.entity.enums.AuthTokenType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.entity.classroom.enums;
+package fu.sep490.g23.backend.entity.classroom.enums;
 
 /**
  * Trạng thái đăng ký lớp và học phí (không phải luồng mua khóa self-paced).

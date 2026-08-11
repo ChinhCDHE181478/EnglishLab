@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.repository.support;
+package fu.sep490.g23.backend.repository.support;
 
-import fu.sap490.g23.backend.entity.support.SupportTicketMessage;
+import fu.sep490.g23.backend.entity.support.SupportTicketMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.EntityGraph;
 

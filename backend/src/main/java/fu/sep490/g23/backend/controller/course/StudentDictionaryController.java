@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.request.course.SaveVocabularyRequest;
-import fu.sap490.g23.backend.dto.request.course.UpdateSavedVocabularyRequest;
-import fu.sap490.g23.backend.dto.response.course.DictionaryEntryResponse;
-import fu.sap490.g23.backend.dto.response.course.SavedVocabularyResponse;
-import fu.sap490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
-import fu.sap490.g23.backend.service.course.DictionaryService;
+import fu.sep490.g23.backend.dto.request.course.SaveVocabularyRequest;
+import fu.sep490.g23.backend.dto.request.course.UpdateSavedVocabularyRequest;
+import fu.sep490.g23.backend.dto.response.course.DictionaryEntryResponse;
+import fu.sep490.g23.backend.dto.response.course.SavedVocabularyResponse;
+import fu.sep490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
+import fu.sep490.g23.backend.service.course.DictionaryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

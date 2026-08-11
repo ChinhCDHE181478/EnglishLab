@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.assessment;
+package fu.sep490.g23.backend.service.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sap490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

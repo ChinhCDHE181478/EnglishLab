@@ -1,4 +1,4 @@
-package fu.sap490.g23.backend.dto.request.course;
+package fu.sep490.g23.backend.dto.request.course;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

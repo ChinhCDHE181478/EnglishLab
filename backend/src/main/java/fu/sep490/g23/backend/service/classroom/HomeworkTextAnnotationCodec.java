@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.dto.request.classroom.HomeworkTextAnnotationRequest;
-import fu.sap490.g23.backend.dto.response.classroom.HomeworkTextAnnotationResponse;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkAnnotationType;
+import fu.sep490.g23.backend.dto.request.classroom.HomeworkTextAnnotationRequest;
+import fu.sep490.g23.backend.dto.response.classroom.HomeworkTextAnnotationResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkAnnotationType;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;

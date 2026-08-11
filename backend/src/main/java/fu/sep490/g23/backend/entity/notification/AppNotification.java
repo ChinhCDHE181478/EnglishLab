@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.entity.notification;
+package fu.sep490.g23.backend.entity.notification;
 
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

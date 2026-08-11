@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
-import fu.sap490.g23.backend.entity.course.enums.FlashcardPracticeSource;
-import fu.sap490.g23.backend.service.course.FlashcardPracticeService;
+import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
+import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

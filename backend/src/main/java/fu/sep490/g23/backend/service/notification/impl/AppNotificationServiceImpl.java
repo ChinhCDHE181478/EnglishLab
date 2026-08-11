@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.service.notification.impl;
+package fu.sep490.g23.backend.service.notification.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sap490.g23.backend.dto.response.classroom.AppNotificationResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.notification.AppNotification;
-import fu.sap490.g23.backend.repository.notification.AppNotificationRepository;
-import fu.sap490.g23.backend.security.ClassroomAccessHelper;
-import fu.sap490.g23.backend.service.classroom.ClassroomMapper;
-import fu.sap490.g23.backend.service.notification.AppNotificationService;
-import fu.sap490.g23.backend.service.notification.NotificationPreferenceService;
+import fu.sep490.g23.backend.dto.response.classroom.AppNotificationResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.notification.AppNotification;
+import fu.sep490.g23.backend.repository.notification.AppNotificationRepository;
+import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
+import fu.sep490.g23.backend.service.notification.AppNotificationService;
+import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.dto.request.assessment;
+package fu.sep490.g23.backend.dto.request.assessment;
 
-import fu.sap490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

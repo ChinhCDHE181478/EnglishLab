@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 
 public interface LarkMeetingService {
     String getPlatformName();

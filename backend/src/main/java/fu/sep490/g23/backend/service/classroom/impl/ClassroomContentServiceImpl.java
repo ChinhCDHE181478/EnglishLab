@@ -1,29 +1,31 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
+import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 
-import fu.sap490.g23.backend.service.classroom.*;
 
-
-import fu.sap490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateMaterialRequest;
-import fu.sap490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
-import fu.sap490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
-import fu.sap490.g23.backend.entity.User;
-import fu.sap490.g23.backend.entity.classroom.ClassroomAnnouncement;
-import fu.sap490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sap490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sap490.g23.backend.entity.classroom.ClassroomSyllabusItem;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sap490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
-import fu.sap490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
-import fu.sap490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateMaterialRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateSyllabusItemRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomMaterialResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomSyllabusItemResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
+import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
+import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,7 +105,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .sourceType("CLASSROOM_UPLOAD")
                 .centerMaterialId(null)
                 .uploadedBy(uploader)
-                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
+                .reviewStatus(fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .build();
 
         return mapper.toMaterialResponse(materialRepository.save(material));
@@ -219,7 +221,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .sessionNumber(request.getSessionNumber())
                 .linkedSessionId(request.getLinkedSessionId())
                 .status(request.getStatus() == null ? "DRAFT" : request.getStatus())
-                .reviewStatus(fu.sap490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
+                .reviewStatus(fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus.APPROVED)
                 .build();
         return mapper.toSyllabusItemResponse(syllabusItemRepository.save(item));
     }

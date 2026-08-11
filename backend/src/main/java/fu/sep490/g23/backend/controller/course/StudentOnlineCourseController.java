@@ -1,15 +1,15 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.response.course.CourseCertificateResponse;
-import fu.sap490.g23.backend.dto.response.course.CourseCompletionResponse;
-import fu.sap490.g23.backend.dto.request.course.CourseReviewRequest;
-import fu.sap490.g23.backend.dto.response.course.CourseRatingResponse;
-import fu.sap490.g23.backend.dto.response.course.OnlineCourseResponse;
-import fu.sap490.g23.backend.dto.response.course.PackageEnrollmentResponse;
-import fu.sap490.g23.backend.dto.response.course.VocabularyTermResponse;
-import fu.sap490.g23.backend.entity.course.enums.VocabularyProgressStatus;
-import fu.sap490.g23.backend.service.course.OnlineCourseService;
-import fu.sap490.g23.backend.service.course.CourseReviewService;
+import fu.sep490.g23.backend.dto.response.course.CourseCertificateResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sep490.g23.backend.dto.request.course.CourseReviewRequest;
+import fu.sep490.g23.backend.dto.response.course.CourseRatingResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
+import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
+import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
+import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.CourseReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

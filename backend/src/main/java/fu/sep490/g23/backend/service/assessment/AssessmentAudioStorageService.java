@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.assessment;
+package fu.sep490.g23.backend.service.assessment;
 
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentAudioUploadResponse;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentAudioUploadResponse;
 import java.util.Optional;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;

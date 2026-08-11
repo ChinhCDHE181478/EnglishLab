@@ -1,6 +1,6 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
+import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 

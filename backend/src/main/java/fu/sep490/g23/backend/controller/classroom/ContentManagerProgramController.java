@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.controller.classroom;
+package fu.sep490.g23.backend.controller.classroom;
 
-import fu.sap490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
-import fu.sap490.g23.backend.dto.request.classroom.TrainingProgramRequest;
-import fu.sap490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemResponse;
-import fu.sap490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
-import fu.sap490.g23.backend.dto.response.classroom.TrainingProgramResponse;
-import fu.sap490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sap490.g23.backend.service.classroom.CenterMaterialLibraryService;
-import fu.sap490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
-import fu.sap490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
+import fu.sep490.g23.backend.dto.request.classroom.TrainingProgramRequest;
+import fu.sep490.g23.backend.dto.response.classroom.CenterMaterialLibraryItemResponse;
+import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
+import fu.sep490.g23.backend.dto.response.classroom.TrainingProgramResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.service.classroom.CenterMaterialLibraryService;
+import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
+import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;

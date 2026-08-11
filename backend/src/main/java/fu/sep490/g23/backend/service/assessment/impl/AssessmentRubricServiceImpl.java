@@ -1,14 +1,14 @@
-package fu.sap490.g23.backend.service.assessment.impl;
+package fu.sep490.g23.backend.service.assessment.impl;
 
-import fu.sap490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
-import fu.sap490.g23.backend.dto.request.assessment.RubricCriterionRequest;
-import fu.sap490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
-import fu.sap490.g23.backend.dto.response.assessment.RubricCriterionResponse;
-import fu.sap490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sap490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sap490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sap490.g23.backend.repository.assessment.AssessmentRubricRepository;
-import fu.sap490.g23.backend.service.assessment.AssessmentRubricService;
+import fu.sep490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
+import fu.sep490.g23.backend.dto.request.assessment.RubricCriterionRequest;
+import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
+import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
+import fu.sep490.g23.backend.service.assessment.AssessmentRubricService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

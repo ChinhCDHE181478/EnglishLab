@@ -1,8 +1,8 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sap490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sap490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
+import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

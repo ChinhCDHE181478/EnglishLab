@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.service.classroom;
+package fu.sep490.g23.backend.service.classroom;
 
-import fu.sap490.g23.backend.dto.response.teacher.TeacherGoogleMeetConnectionResponse;
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherGoogleMeetConnectionResponse;
+import fu.sep490.g23.backend.entity.User;
 
 public interface TeacherGoogleMeetConnectionService {
     TeacherGoogleMeetConnectionResponse getConnection(String teacherEmail);

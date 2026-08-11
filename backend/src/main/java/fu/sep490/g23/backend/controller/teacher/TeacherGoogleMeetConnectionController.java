@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.teacher;
+package fu.sep490.g23.backend.controller.teacher;
 
-import fu.sap490.g23.backend.dto.response.teacher.GoogleMeetAuthorizationResponse;
-import fu.sap490.g23.backend.dto.response.teacher.TeacherGoogleMeetConnectionResponse;
-import fu.sap490.g23.backend.service.classroom.GoogleMeetProperties;
-import fu.sap490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
+import fu.sep490.g23.backend.dto.response.teacher.GoogleMeetAuthorizationResponse;
+import fu.sep490.g23.backend.dto.response.teacher.TeacherGoogleMeetConnectionResponse;
+import fu.sep490.g23.backend.service.classroom.GoogleMeetProperties;
+import fu.sep490.g23.backend.service.classroom.TeacherGoogleMeetConnectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;

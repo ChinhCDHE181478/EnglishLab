@@ -1,11 +1,11 @@
-package fu.sap490.g23.backend.dto.response.classroom;
+package fu.sep490.g23.backend.dto.response.classroom;
 
-import fu.sap490.g23.backend.entity.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.enums.*;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
+
 import lombok.Builder;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data

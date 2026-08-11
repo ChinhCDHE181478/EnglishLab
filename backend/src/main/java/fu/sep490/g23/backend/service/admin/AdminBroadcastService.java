@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.service.admin;
+package fu.sep490.g23.backend.service.admin;
 
-import fu.sap490.g23.backend.dto.request.admin.ScheduleAdminBroadcastRequest;
-import fu.sap490.g23.backend.dto.request.admin.UpsertAdminBroadcastRequest;
-import fu.sap490.g23.backend.dto.response.admin.AdminBroadcastResponse;
-import fu.sap490.g23.backend.entity.admin.enums.BroadcastStatus;
+import fu.sep490.g23.backend.dto.request.admin.ScheduleAdminBroadcastRequest;
+import fu.sep490.g23.backend.dto.request.admin.UpsertAdminBroadcastRequest;
+import fu.sep490.g23.backend.dto.response.admin.AdminBroadcastResponse;
+import fu.sep490.g23.backend.entity.admin.enums.BroadcastStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

@@ -1,8 +1,6 @@
-package fu.sap490.g23.backend.entity.course;
+package fu.sep490.g23.backend.entity.course;
 
-import fu.sap490.g23.backend.entity.course.enums.*;
-
-import fu.sap490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;

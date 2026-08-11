@@ -1,9 +1,9 @@
-package fu.sap490.g23.backend.controller.assessment;
+package fu.sep490.g23.backend.controller.assessment;
 
-import fu.sap490.g23.backend.dto.request.assessment.PlacementTestDefinitionRequest;
-import fu.sap490.g23.backend.dto.response.assessment.PlacementTestDefinitionResponse;
-import fu.sap490.g23.backend.dto.response.assessment.PlacementTestMonitoringResponse;
-import fu.sap490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.dto.request.assessment.PlacementTestDefinitionRequest;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestDefinitionResponse;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementTestMonitoringResponse;
+import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

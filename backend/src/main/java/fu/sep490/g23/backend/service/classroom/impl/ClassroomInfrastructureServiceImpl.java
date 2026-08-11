@@ -1,10 +1,14 @@
-package fu.sap490.g23.backend.service.classroom.impl;
+package fu.sep490.g23.backend.service.classroom.impl;
+import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertRoomRequest;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomRoomDetailResponse;
+import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sep490.g23.backend.dto.request.classroom.UpsertCampusRequest;
+import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomCampusResponse;
 
-import fu.sap490.g23.backend.dto.request.classroom.*;
-import fu.sap490.g23.backend.dto.response.classroom.*;
-import fu.sap490.g23.backend.entity.classroom.*;
-import fu.sap490.g23.backend.repository.classroom.*;
-import fu.sap490.g23.backend.service.classroom.ClassroomInfrastructureService;
+import fu.sep490.g23.backend.service.classroom.ClassroomInfrastructureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

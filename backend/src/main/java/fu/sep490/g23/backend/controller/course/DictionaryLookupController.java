@@ -1,7 +1,7 @@
-package fu.sap490.g23.backend.controller.course;
+package fu.sep490.g23.backend.controller.course;
 
-import fu.sap490.g23.backend.dto.response.course.DictionaryEntryResponse;
-import fu.sap490.g23.backend.service.course.DictionaryService;
+import fu.sep490.g23.backend.dto.response.course.DictionaryEntryResponse;
+import fu.sep490.g23.backend.service.course.DictionaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

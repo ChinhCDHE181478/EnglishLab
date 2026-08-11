@@ -1,10 +1,11 @@
-package fu.sap490.g23.backend.entity.assessment;
+package fu.sep490.g23.backend.entity.assessment;
+import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 
-import fu.sap490.g23.backend.entity.assessment.enums.*;
-
-import fu.sap490.g23.backend.entity.course.CourseModule;
-import fu.sap490.g23.backend.entity.course.OnlineCourse;
-import fu.sap490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
