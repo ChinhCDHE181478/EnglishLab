@@ -662,43 +662,18 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
   const isVirtual = session.deliveryMode === 'VIRTUAL';
   const effectiveStatus = getEffectiveStatus(session);
   const isLocked = ['COMPLETED', 'CANCELLED'].includes(effectiveStatus) || session.locked;
-  const canOpenLarkRoom = isVirtual && !['CANCELLED'].includes(effectiveStatus);
-
   const [showReschedule, setShowReschedule] = useState(false);
   const [larkMessage, setLarkMessage] = useState('');
-  const [openingLark, setOpeningLark] = useState(false);
 
-  const handleOpenLarkRoom = async () => {
+  const handleOpenLarkRoom = () => {
     setLarkMessage('');
-    const roomWindow = window.open('about:blank', '_blank');
-    if (roomWindow) {
-      roomWindow.opener = null;
-    }
-    if (!canOpenLarkRoom) {
-      roomWindow?.close();
-      setLarkMessage('Buổi học đã kết thúc hoặc đã hủy nên không thể tạo phòng Google Meet.');
+    if (!session.larkMeetingUrl) {
+      setLarkMessage('Staff chưa tạo liên kết Google Meet cho buổi học này.');
       return;
     }
-
-    setOpeningLark(true);
-    try {
-      const updated = await classroomApi.openVirtualSession(session.id);
-      onSessionUpdated?.(updated);
-      if (updated.larkMeetingUrl) {
-        if (roomWindow) {
-          roomWindow.location.replace(updated.larkMeetingUrl);
-        } else {
-          setLarkMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
-        }
-      } else {
-        roomWindow?.close();
-        setLarkMessage('Chưa tạo được liên kết Google Meet. Vào Quản lý buổi học để nhập liên kết thủ công.');
-      }
-    } catch (err) {
-      roomWindow?.close();
-      setLarkMessage(getClassroomErrorMessage(err, 'Không thể tạo phòng Google Meet.'));
-    } finally {
-      setOpeningLark(false);
+    const roomWindow = window.open(session.larkMeetingUrl, '_blank', 'noopener,noreferrer');
+    if (!roomWindow) {
+      setLarkMessage('Trình duyệt đã chặn cửa sổ mới. Hãy cho phép popup cho EnglishLab rồi thử lại.');
     }
   };
 
@@ -751,33 +726,16 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
                 Liên kết phòng học đã sẵn sàng. Bạn có thể vào phòng trực tiếp từ đây.
               </p>
               <LarkJoinButton
-                label={effectiveStatus === 'COMPLETED' ? 'Mở lại Google Meet' : 'Vào Google Meet'}
+                label={effectiveStatus === 'COMPLETED' ? 'Mở Google Meet' : 'Vào Google Meet'}
                 onBlocked={setLarkMessage}
                 onClick={handleOpenLarkRoom}
                 url={session.larkMeetingUrl}
               />
             </>
           ) : (
-            <>
-              <p className="text-xs leading-6 text-[#8b706e]">
-                Buổi học chưa có liên kết Google Meet. Bấm nút bên dưới để tạo phòng tự động hoặc vào trang quản lý buổi học để nhập liên kết thủ công.
-              </p>
-              {canOpenLarkRoom ? (
-                <button
-                  className="inline-flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] disabled:opacity-60"
-                  disabled={openingLark}
-                  onClick={handleOpenLarkRoom}
-                  type="button"
-                >
-                  {openingLark ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
-                  {openingLark ? 'Đang tạo phòng...' : 'Tạo và mở Google Meet'}
-                </button>
-              ) : (
-                <p className="rounded-xl border border-gray-100 bg-white/70 px-4 py-3 text-xs font-semibold text-[#8b706e]">
-                  Buổi học đã kết thúc mà chưa có liên kết Google Meet được lưu.
-                </p>
-              )}
-            </>
+            <p className="rounded-xl border border-sky-100 bg-white/70 px-4 py-3 text-xs font-semibold leading-5 text-[#584140]">
+              Staff đang chuẩn bị liên kết Google Meet cho buổi học này. Giáo viên sẽ chỉ cần vào phòng từ đây khi liên kết đã sẵn sàng.
+            </p>
           )}
           {larkMessage ? (
             <p className="text-xs font-semibold text-[#93000a]">{larkMessage}</p>

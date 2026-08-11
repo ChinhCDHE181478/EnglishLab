@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  ChevronDown,
+  ChevronUp,
   ChevronRight,
   User,
 } from 'lucide-react';
@@ -505,13 +507,15 @@ export default function TeacherClassroomPage() {
                 </h1>
                 {classroom && (
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#4b0009] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95"
-                      onClick={() => openHomeworkTab('create')}
-                      type="button"
-                    >
-                      <Plus className="h-4 w-4" /> Giao bài tập
-                    </button>
+                    {activeTab !== 'homework' ? (
+                      <button
+                        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#4b0009] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#730014] active:scale-95"
+                        onClick={() => openHomeworkTab('create')}
+                        type="button"
+                      >
+                        <Plus className="h-4 w-4" /> Giao bài tập
+                      </button>
+                    ) : null}
                     <Link
                       className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-4 py-2 text-sm font-semibold text-[#4b0009] transition hover:bg-[#fff3f4] active:scale-95"
                       to="/teacher/schedule"
@@ -628,6 +632,9 @@ function HeaderStat({ icon: Icon, label, value, tone = 'rose' }) {
 }
 
 function TeacherCurriculumPanel({ curriculum }) {
+  const [expandedUnits, setExpandedUnits] = useState(() => new Set());
+  const units = curriculum?.units || [];
+
   if (!curriculum) {
     return (
       <ClassroomEmptyState
@@ -636,7 +643,19 @@ function TeacherCurriculumPanel({ curriculum }) {
       />
     );
   }
-  const units = curriculum.units || [];
+
+  const toggleUnit = (unitId) => {
+    setExpandedUnits((current) => {
+      const next = new Set(current);
+      if (next.has(unitId)) next.delete(unitId);
+      else next.add(unitId);
+      return next;
+    });
+  };
+
+  const expandAll = () => setExpandedUnits(new Set(units.map((unit) => unit.id)));
+  const collapseAll = () => setExpandedUnits(new Set());
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-[#dfbfbd]/20 bg-[#fffafb] p-5">
@@ -653,9 +672,24 @@ function TeacherCurriculumPanel({ curriculum }) {
         ) : null}
       </div>
       {units.length ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+            <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500">
+              Chi tiết lộ trình ({units.length} chuyên đề)
+            </p>
+            <div className="flex items-center gap-3 text-[11px] font-bold">
+              <button className="text-[#730014] hover:underline" onClick={expandAll} type="button">Mở rộng tất cả</button>
+              <span className="text-gray-300">|</span>
+              <button className="text-slate-500 hover:underline" onClick={collapseAll} type="button">Thu gọn tất cả</button>
+            </div>
+          </div>
           {units.map((unit) => (
-            <CurriculumUnitCard key={unit.id} unit={unit} />
+            <CurriculumUnitCard
+              expanded={expandedUnits.has(unit.id)}
+              key={unit.id}
+              onToggle={() => toggleUnit(unit.id)}
+              unit={unit}
+            />
           ))}
         </div>
       ) : (
@@ -668,20 +702,43 @@ function TeacherCurriculumPanel({ curriculum }) {
   );
 }
 
-function CurriculumUnitCard({ unit }) {
+function CurriculumUnitCard({ expanded, onToggle, unit }) {
+  const totalResources = (unit.materials?.length ?? 0)
+    + (unit.exercises?.length ?? 0)
+    + (unit.assessments?.length ?? 0)
+    + (unit.flashcards?.length ?? 0);
+
   return (
-    <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
-        {unit.displayOrder ?? 0}. {unit.title}
-      </h4>
-      {unit.description ? <p className="mt-1 text-sm text-[#584140]">{unit.description}</p> : null}
-      {unit.sessionPlan ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <CurriculumRefList title="Học liệu" refs={unit.materials} />
-        <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
-        <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
-        <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
-      </div>
+    <article className={`overflow-hidden rounded-2xl border bg-white transition ${expanded ? 'border-[#730014]/30 shadow-md shadow-[#730014]/5' : 'border-gray-200 shadow-sm hover:border-gray-300'}`}>
+      <button
+        aria-expanded={expanded}
+        className="flex w-full items-center justify-between gap-4 p-5 text-left"
+        onClick={onToggle}
+        type="button"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${expanded ? 'bg-[#730014] text-white' : 'bg-[#fff0f1] text-[#730014]'}`}>
+            {String(unit.displayOrder ?? 0).padStart(2, '0')}
+          </span>
+          <div className="min-w-0">
+            <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">{unit.title}</h4>
+            {!expanded ? <p className="mt-1 line-clamp-1 text-xs text-[#8b706e]">{totalResources} học liệu · {unit.description || 'Nhấn để xem chi tiết unit'}</p> : null}
+          </div>
+        </div>
+        {expanded ? <ChevronUp className="h-5 w-5 shrink-0 text-[#730014]" /> : <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" />}
+      </button>
+      {expanded ? (
+        <div className="space-y-4 border-t border-gray-100 bg-[#fafafa]/50 p-5">
+          {unit.description ? <p className="text-sm text-[#584140]">{unit.description}</p> : null}
+          {unit.sessionPlan ? <p className="whitespace-pre-wrap rounded-xl border border-gray-100 bg-white p-4 text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+          <div className="grid gap-3 md:grid-cols-2">
+            <CurriculumRefList title="Học liệu" refs={unit.materials} />
+            <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
+            <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
+            <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

@@ -553,13 +553,13 @@ export default function TeacherHomeworkGradingWorkspace({
                 </section>
               ) : selected.submitted ? (
                 <section className="bg-[#fffafb] p-6 space-y-5">
-                  <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
+                  <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
                     <label className="block space-y-2">
                       <span className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
                         Điểm / {maxScore}
                       </span>
                       <input
-                        className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-base font-bold text-slate-800 outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/10"
+                        className="min-h-[105px] w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xl font-bold text-slate-800 outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/10"
                         max={maxScore}
                         min="0"
                         onChange={(e) => updateForm('score', e.target.value)}

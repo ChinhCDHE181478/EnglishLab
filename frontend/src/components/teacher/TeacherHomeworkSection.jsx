@@ -14,6 +14,7 @@ import {
 import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
 import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -105,6 +106,13 @@ export default function TeacherHomeworkSection({
   const [gradingId, setGradingId] = useState(null);
   const [gradingNotice, setGradingNotice] = useState(null);
   const closingHomeworkIdRef = useRef(null);
+  const {
+    page: homeworkPage,
+    setPage: setHomeworkPage,
+    totalPages: homeworkTotalPages,
+    pageItems: paginatedHomework,
+    totalItems: homeworkTotalItems,
+  } = usePagination(homework, 6, `homework-${classroomId}`);
 
   const activityTypeOptions = useMemo(
     () => HOMEWORK_ACTIVITY_TYPES.map((item) => ({ label: item.label, value: item.value })),
@@ -687,7 +695,7 @@ export default function TeacherHomeworkSection({
         />
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          {homework.map((item) => (
+          {paginatedHomework.map((item) => (
             <article
               className="flex flex-col justify-between rounded-xl border border-[#e5e7eb] bg-white p-5 transition hover:border-[#d0c4c3]"
               key={item.id}
@@ -790,6 +798,18 @@ export default function TeacherHomeworkSection({
           ))}
         </div>
       )}
+      {homework.length ? (
+        <div className="flex justify-center pt-1">
+          <Pagination
+            alwaysVisible={true}
+            onChange={setHomeworkPage}
+            page={homeworkPage}
+            pageSize={6}
+            totalItems={homeworkTotalItems}
+            totalPages={homeworkTotalPages}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

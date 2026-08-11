@@ -28,7 +28,7 @@ const RECORDING_STATUS = {
   NOT_AVAILABLE: { label: 'Chưa có bản ghi', className: 'bg-slate-100 text-slate-700', icon: Video },
   SCHEDULED: { label: 'Đã bật tự ghi', className: 'bg-blue-50 text-blue-700', icon: Clock3 },
   RECORDING: { label: 'Đang ghi hình', className: 'bg-red-50 text-red-700', icon: Radio },
-  PROCESSING: { label: 'Lark đang xử lý', className: 'bg-amber-50 text-amber-800', icon: RefreshCw },
+  PROCESSING: { label: 'Đang xử lý bản ghi', className: 'bg-amber-50 text-amber-800', icon: RefreshCw },
   READY: { label: 'Sẵn sàng', className: 'bg-emerald-50 text-emerald-700', icon: CheckCircle2 },
   FAILED: { label: 'Cần kiểm tra', className: 'bg-rose-50 text-rose-700', icon: AlertCircle },
 };
@@ -60,9 +60,10 @@ function RecordingStatus({ value }) {
   );
 }
 
-export default function TrainingManagerRecordingsPage() {
+export default function TrainingManagerRecordingsPage({ classroomId = null }) {
+  const embeddedInClassroom = classroomId != null;
   const [classrooms, setClassrooms] = useState([]);
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState(() => (classroomId == null ? '' : String(classroomId)));
   const [sessions, setSessions] = useState([]);
   const [sessionForms, setSessionForms] = useState({});
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function TrainingManagerRecordingsPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getManagerClassrooms();
+      const data = await classroomApi.getStaffClassrooms();
       setClassrooms(data);
       if (!selectedId && data.length > 0) setSelectedId(String(data[0].id));
     } catch (err) {
@@ -108,8 +109,13 @@ export default function TrainingManagerRecordingsPage() {
   };
 
   useEffect(() => {
+    if (embeddedInClassroom) {
+      setSelectedId(String(classroomId));
+      setLoading(false);
+      return;
+    }
     loadClassrooms();
-  }, []);
+  }, [classroomId, embeddedInClassroom]);
 
   useEffect(() => {
     if (selectedId) loadDetails(selectedId);
@@ -139,17 +145,18 @@ export default function TrainingManagerRecordingsPage() {
     setError('');
     setSuccess('');
     try {
-      const session = await classroomApi.syncLarkRecording(sessionId);
+      const session = await classroomApi.syncSessionRecording(sessionId);
       replaceSession(session);
+      const providerLabel = session.recordingProvider === 'GOOGLE_MEET' ? 'Google Meet' : 'Lark';
       if (session.recordingSyncStatus === 'READY') {
-        setSuccess('Đã nhận bản ghi thật từ Lark. Hãy kiểm tra rồi công bố cho học viên.');
+        setSuccess(`Đã nhận bản ghi từ ${providerLabel}. Hãy kiểm tra rồi công bố cho học viên.`);
       } else if (session.recordingSyncStatus === 'PROCESSING') {
-        setSuccess('Lark vẫn đang xử lý file. Hệ thống sẽ tiếp tục tự đồng bộ.');
+        setSuccess(`${providerLabel} vẫn đang xử lý file. Hệ thống sẽ tiếp tục tự đồng bộ.`);
       } else {
-        setError(session.recordingSyncError || 'Chưa thể lấy bản ghi từ Lark.');
+        setError(session.recordingSyncError || `Chưa thể lấy bản ghi từ ${providerLabel}.`);
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Không đồng bộ được bản ghi từ Lark.');
+      setError(err?.response?.data?.message || 'Không đồng bộ được bản ghi buổi học.');
     } finally {
       setWorkingKey('');
     }
@@ -188,14 +195,21 @@ export default function TrainingManagerRecordingsPage() {
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
       <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="w-full sm:w-85">
-          <BrandedSelect
-            label="Chọn lớp học"
-            value={selectedId}
-            onChange={(event) => setSelectedId(event.target.value)}
-            options={classroomOptions}
-          />
-        </div>
+        {embeddedInClassroom ? (
+          <div className="flex-1">
+            <h3 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Ghi hình các buổi trực tuyến</h3>
+            <p className="mt-1 text-sm text-[#584140]">Đồng bộ, kiểm tra và công bố bản ghi ngay trong lớp này.</p>
+          </div>
+        ) : (
+          <div className="w-full sm:w-85">
+            <BrandedSelect
+              label="Chọn lớp học"
+              value={selectedId}
+              onChange={(event) => setSelectedId(event.target.value)}
+              options={classroomOptions}
+            />
+          </div>
+        )}
         <button
           type="button"
           onClick={() => loadDetails(selectedId)}
@@ -205,6 +219,15 @@ export default function TrainingManagerRecordingsPage() {
           Làm mới trạng thái
         </button>
       </section>
+
+      <div className="flex gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <Video className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          Hệ thống sẽ tự lấy bản ghi sau buổi học khi tài khoản Google của giáo viên có quyền ghi hình. Trong Meet, giáo viên chủ
+          phòng dùng Công cụ cuộc họp &gt; Ghi. Nếu nút Ghi bị khóa, tài khoản hoặc chính sách Google Workspace chưa cho phép ghi hình;
+          liên kết Google với EnglishLab không thể tự mở quyền này.
+        </p>
+      </div>
 
       {loading || loadingSessions ? (
         <ClassroomLoadingState message="Đang tải trạng thái ghi hình..." />
@@ -236,11 +259,11 @@ export default function TrainingManagerRecordingsPage() {
                     type="button"
                     disabled={Boolean(workingKey) || !session.larkMeetingId}
                     onClick={() => syncSessionRecording(session.id)}
-                    className={SECONDARY_BUTTON_CLASS}
+                    className={`${SECONDARY_BUTTON_CLASS} cursor-pointer border-[#dfbfbd] hover:border-[#730014] hover:bg-[#fff0f1] hover:shadow-sm active:scale-[0.98] disabled:hover:border-slate-200 disabled:hover:bg-white`}
                     title={!session.larkMeetingId ? 'Bản ghi chỉ có thể đồng bộ sau khi phòng học đã bắt đầu.' : undefined}
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                    Đồng bộ từ Lark
+                    Đồng bộ bản ghi
                   </button>
                 </div>
 
@@ -296,7 +319,7 @@ export default function TrainingManagerRecordingsPage() {
 
                 <details className="mt-4 border-t border-slate-100 pt-4">
                   <summary className="cursor-pointer text-sm font-bold text-slate-600">
-                    <span className="inline-flex items-center gap-2"><Link2 className="h-4 w-4" /> Gắn link thủ công khi Lark gặp sự cố</span>
+                    <span className="inline-flex items-center gap-2"><Link2 className="h-4 w-4" /> Gắn link thủ công khi Google Meet gặp sự cố</span>
                   </summary>
                   <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                     <input

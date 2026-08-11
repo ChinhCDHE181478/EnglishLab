@@ -1,0 +1,12 @@
+package fu.sep490.g23.backend.repository.classroom;
+
+import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ClassroomRoomRepository extends JpaRepository<ClassroomRoom, Long> {
+    List<ClassroomRoom> findByActiveTrue();
+    List<ClassroomRoom> findByActiveTrueOrderByNameAsc();
+    List<ClassroomRoom> findByCampusIdAndActiveTrueOrderByNameAsc(Long campusId);
+}

@@ -15,10 +15,8 @@ import {
   LayoutDashboard,
   Mic2,
   NotebookPen,
-  Package,
   Route,
   School,
-  Settings2,
   SlidersHorizontal,
   Dumbbell,
   Video,
@@ -34,7 +32,6 @@ export const contentManagerNav = [
       { label: 'Khóa học Offline', href: '/content-manager/offline-programs', icon: Building2 },
       { label: 'Khóa học Virtual', href: '/content-manager/virtual-programs', icon: Video },
       { label: 'Chương trình đào tạo', href: '/content-manager/syllabus-builder', icon: BookMarked },
-      { label: 'Gói học / Bundle', href: '/content-manager/packages', icon: Package },
       { label: 'Mã giảm giá', href: '/content-manager/discount-codes', icon: BadgePercent },
       { label: 'Danh mục khóa học', href: '/content-manager/categories', icon: FolderKanban },
       { label: 'Lộ trình học', href: '/content-manager/learning-paths', icon: Route },
@@ -60,7 +57,6 @@ export const contentManagerNav = [
     items: [
       { label: 'Hàng chờ xuất bản', href: '/content-manager/publication', icon: FileCheck2 },
       { label: 'Phân tích nội dung', href: '/content-manager/analytics', icon: BarChart3 },
-      { label: 'Cài đặt', href: '/content-manager/settings', icon: Settings2 },
       { label: 'Báo cáo hỏi đáp', href: '/content-manager/discussion-moderation', icon: ShieldAlert },
     ],
   },
@@ -186,15 +182,5 @@ export const contentManagerPageMeta = {
     title: 'Danh mục khóa học',
     subtitle: 'Tạo, sắp xếp và cập nhật các nhóm khóa học được sử dụng trên toàn nền tảng.',
     searchPlaceholder: 'Tìm danh mục...',
-  },
-  '/content-manager/packages': {
-    title: 'Quản lý gói học / Bundle',
-    subtitle: 'Tạo gói bundle, ghép khóa online hoặc lớp học thành sản phẩm thương mại và quản lý vòng đời xuất bản.',
-    searchPlaceholder: 'Tìm gói theo tên hoặc slug...',
-  },
-  '/content-manager/settings': {
-    title: 'Cài đặt nội dung',
-    subtitle: 'Xem loại gói hệ thống và truy cập nhanh khu vực quản lý gói / bundle.',
-    searchPlaceholder: 'Tìm loại gói...',
   },
 };

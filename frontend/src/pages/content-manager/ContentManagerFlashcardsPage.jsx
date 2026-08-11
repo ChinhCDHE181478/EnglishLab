@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, Download, Edit3, FileUp, Layers3, Plus, RefreshCw, Save, Search, SquareStack, Trash2, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import CourseModuleFlashcardEditorPage, { InlineFlashcardSetEditor } from './CourseModuleFlashcardEditorPage';
 import curriculumApi from '../../api/curriculumApi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import FlashcardDictionaryAssistant from '../../components/flashcard/FlashcardDictionaryAssistant';
+import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -231,13 +233,25 @@ const parseSpreadsheetRows = (rows) => {
 };
 
 export default function ContentManagerFlashcardsPage() {
+  const { courseSlug } = useParams();
+  const location = useLocation();
+  const isCourseFlashcardRoute = courseSlug && !['edit', 'editor'].includes(courseSlug);
+  if (isCourseFlashcardRoute) {
+    return <CourseModuleFlashcardEditorPage />;
+  }
+  const editorRoute = new URLSearchParams(location.search).get('editor') === '1';
+  return <FlashcardBankPage editorRoute={editorRoute} />;
+}
+
+function FlashcardBankPage({ editorRoute }) {
   const { confirm: confirmDialog } = useAppDialog();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [sets, setSets] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [cards, setCards] = useState([createEmptyCard()]);
   const [editingId, setEditingId] = useState(null);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(() => editorRoute);
   const [keyword, setKeyword] = useState('');
   const [filters, setFilters] = useState({ examCategory: 'ALL', skill: 'ALL', status: 'ALL' });
   const [loading, setLoading] = useState(true);
@@ -274,10 +288,36 @@ export default function ContentManagerFlashcardsPage() {
   }, []);
 
   useEffect(() => {
+    setEditorOpen(editorRoute);
+  }, [editorRoute]);
+
+  useEffect(() => {
     if (searchParams.get('new') !== '1') return;
+    if (!editorRoute) {
+      navigate('/content-manager/flashcards?editor=1&new=1', { replace: true });
+      return;
+    }
     startNew();
-    setSearchParams({}, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [editorRoute, navigate, searchParams]);
+
+  useEffect(() => {
+    if (!editorRoute || loading) return;
+
+    const setId = searchParams.get('set');
+    if (!setId) {
+      startNew();
+      return;
+    }
+
+    const selectedSet = sets.find((item) => String(item.id) === String(setId));
+    if (!selectedSet) {
+      setError('Không tìm thấy bộ flashcard cần chỉnh sửa.');
+      return;
+    }
+    if (String(editingId) !== String(selectedSet.id)) {
+      openEdit(selectedSet);
+    }
+  }, [editorRoute, editingId, loading, searchParams, sets]);
 
   const filteredSets = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
@@ -320,6 +360,10 @@ export default function ContentManagerFlashcardsPage() {
   }, [sets]);
 
   const startNew = () => {
+    if (!editorRoute) {
+      navigate('/content-manager/flashcards?editor=1&new=1');
+      return;
+    }
     setEditingId(null);
     setForm(emptyForm);
     setCards([createEmptyCard()]);
@@ -332,6 +376,10 @@ export default function ContentManagerFlashcardsPage() {
   };
 
   const closeEditor = () => {
+    if (editorRoute) {
+      navigate('/content-manager/flashcards');
+      return;
+    }
     setEditingId(null);
     setForm(emptyForm);
     setCards([createEmptyCard()]);
@@ -341,6 +389,10 @@ export default function ContentManagerFlashcardsPage() {
   };
 
   const openEdit = (set) => {
+    if (!editorRoute) {
+      navigate(`/content-manager/flashcards?editor=1&set=${set.id}`);
+      return;
+    }
     setEditingId(set.id);
     setForm(toForm(set));
     setCards(parseCards(set.cardsJson));
@@ -513,6 +565,9 @@ export default function ContentManagerFlashcardsPage() {
       setForm(toForm(saved));
       setCards(parseCards(saved.cardsJson));
       setEditorOpen(true);
+      if (editorRoute && !editingId) {
+        navigate(`/content-manager/flashcards?editor=1&set=${saved.id}`, { replace: true });
+      }
       setSuccess(editingId ? 'Đã cập nhật bộ flashcard.' : 'Đã tạo bộ flashcard mới.');
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được bộ flashcard.');
@@ -594,134 +649,60 @@ export default function ContentManagerFlashcardsPage() {
       {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
       {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
 
-      {editorOpen && (
-        <FlashcardEditorModal onClose={closeEditor}>
-          <section className="space-y-5" ref={editorRef}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-['Manrope'] text-xl font-extrabold text-slate-900">
-                  {editingId ? 'Chỉnh sửa bộ flashcard' : 'Tạo bộ flashcard'}
-                </h3>
-                <p className="mt-1 text-sm text-slate-600">
-                  Nhập từng thẻ bằng form rõ ràng; hệ thống sẽ tự lưu thành dữ liệu dùng chung cho khóa học và giáo trình.
-                </p>
-              </div>
-              <button type="button" onClick={closeEditor} className={SECONDARY_BUTTON_CLASS}>
-                <X className="h-4 w-4" /> Đóng
-              </button>
-            </div>
+      {/* {!editorRoute && (
+        <div className="flex justify-end">
+          <button className={PRIMARY_BUTTON_CLASS} onClick={startNew} type="button">
+            <Plus className="h-4 w-4" /> Thêm bộ thẻ mới
+          </button>
+        </div>
+      )} */}
 
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,420px)_1fr]">
-              <div className="space-y-4 rounded-[24px] border border-[#ead8d6] bg-white/80 p-4">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tên bộ thẻ</span>
-                  <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className={FIELD_CLASS} />
-                </label>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Mô tả</span>
-                  <RichTextEditor
-                    helperText=""
-                    onChange={(value) => setForm({ ...form, description: value })}
-                    placeholder="Mô tả bộ flashcard..."
-                    size="compact"
-                    value={form.description}
-                  />
-                </label>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Nhóm thi</span>
-                    <BrandedSelect value={form.examCategory} onChange={(event) => setForm({ ...form, examCategory: event.target.value })} options={examOptions} />
-                  </div>
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
-                    <BrandedSelect value={form.skill} onChange={(event) => setForm({ ...form, skill: event.target.value })} options={skillOptions} />
-                  </div>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Trạng thái</span>
-                    <BrandedSelect value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={statusOptions} />
-                  </div>
-                  <label className="block">
-                    <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thứ tự</span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.displayOrder}
-                      onChange={(event) => setForm({ ...form, displayOrder: event.target.value })}
-                      className={FIELD_CLASS}
-                    />
-                  </label>
-                </div>
-                <label className="block">
-                  <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tags</span>
-                  <input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} className={FIELD_CLASS} placeholder="family, relationships, IELTS" />
-                </label>
-                <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                  <button type="button" disabled={working} onClick={saveSet} className={PRIMARY_BUTTON_CLASS}>
-                    <Save className="h-4 w-4" /> Lưu bộ thẻ
-                  </button>
-                  <button type="button" onClick={startNew} className={SECONDARY_BUTTON_CLASS}>
-                    <Plus className="h-4 w-4" /> Tạo bộ khác
-                  </button>
-                  <button type="button" onClick={openImport} className={SECONDARY_BUTTON_CLASS}>
-                    <FileUp className="h-4 w-4" /> Nhập thẻ
-                  </button>
-                  <button type="button" onClick={() => setTransferMode('EXPORT')} className={SECONDARY_BUTTON_CLASS}>
-                    <Download className="h-4 w-4" /> Xuất thẻ
-                  </button>
-                </div>
-              </div>
+      {editorRoute && loading ? (
+        <div className="rounded-[28px] border border-[#dcc0bf]/35 bg-white p-6 text-sm font-semibold text-slate-500 shadow-sm">
+          Đang tải bộ flashcard...
+        </div>
+      ) : null}
 
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h4 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Danh sách thẻ</h4>
-                    <p className="text-sm text-slate-600">Mỗi thẻ nên có thuật ngữ, định nghĩa, ví dụ và lỗi thường gặp.</p>
-                  </div>
-                  <button type="button" onClick={addCard} className={SECONDARY_BUTTON_CLASS}>
-                    <Plus className="h-4 w-4" /> Thêm thẻ
-                  </button>
-                </div>
+      {editorOpen && editorRoute && !loading ? (
+        <div className="space-y-5">
+          <button
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#730014] hover:underline"
+            onClick={closeEditor}
+            type="button"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Quay lại ngân hàng flashcard
+          </button>
+          <FlashcardSetDetailsForm form={form} onChange={setForm} />
+          <InlineFlashcardSetEditor
+            cards={cards.map((card) => ({
+              term: card.front,
+              meaning: card.back,
+              example: card.example,
+              commonError: card.commonMistake,
+            }))}
+            loading={working}
+            onAddCard={addCard}
+            onChangeCard={(index, patch) => {
+              const fieldMap = { term: 'front', meaning: 'back', example: 'example', commonError: 'commonMistake' };
+              Object.entries(patch).forEach(([field, value]) => updateCard(index, fieldMap[field], value));
+            }}
+            onExport={() => setTransferMode('EXPORT')}
+            onImport={openImport}
+            onRemoveCard={removeCard}
+            onSave={saveSet}
+            onSetTitleChange={(title) => setForm((current) => ({ ...current, title }))}
+            setInfo={{
+              lessonTitle: form.title || 'Bộ flashcard mới',
+              courseTitle: 'Ngân hàng flashcard',
+              moduleTitle: 'Bộ thẻ dùng chung',
+            }}
+          />
+        </div>
+      ) : null}
 
-                <div className="space-y-3">
-                  {cards.map((card, index) => (
-                    <article key={index} className="rounded-[22px] border border-[#ead8d6] bg-white/85 p-4">
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <h5 className="font-['Manrope'] text-base font-extrabold text-slate-900">Thẻ {index + 1}</h5>
-                        <button type="button" onClick={() => removeCard(index)} className={DANGER_BUTTON_CLASS}>
-                          <Trash2 className="h-3.5 w-3.5" /> Xóa thẻ
-                        </button>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <label className="block">
-                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Thuật ngữ</span>
-                          <input value={card.front} onChange={(event) => updateCard(index, 'front', event.target.value)} className={FIELD_CLASS} />
-                        </label>
-                        <FlashcardDictionaryAssistant
-                          example={card.example}
-                          exampleInputClassName={TEXTAREA_CLASS}
-                          meaning={card.back}
-                          meaningInputClassName={FIELD_CLASS}
-                          onExampleChange={(example) => updateCard(index, 'example', example)}
-                          onMeaningChange={(back) => updateCard(index, 'back', back)}
-                          showLabels
-                          term={card.front}
-                        />
-                        <label className="block">
-                          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Lỗi thường gặp</span>
-                          <textarea value={card.commonMistake} onChange={(event) => updateCard(index, 'commonMistake', event.target.value)} rows={3} className={TEXTAREA_CLASS} />
-                        </label>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        </FlashcardEditorModal>
-      )}
-
+      {!editorRoute && (
+        <>
       <div className="grid gap-6 md:grid-cols-4">
             {stats.map((item) => {
               const Icon = item.icon;
@@ -779,7 +760,7 @@ export default function ContentManagerFlashcardsPage() {
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
                     {['Tên bộ thẻ', 'Danh mục', 'Kỹ năng', 'Số thẻ', 'Trạng thái', 'Cập nhật lần cuối', 'Thao tác'].map((heading) => (
                       <th
-                        className={`px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-[#8e7371] ${heading === 'Số thẻ' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
+                        className={`px-6 py-4 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] ${heading === 'Số thẻ' ? 'text-center' : ''} ${heading === 'Thao tác' ? 'text-right' : ''}`}
                         key={heading}
                       >
                         {heading}
@@ -856,6 +837,8 @@ export default function ContentManagerFlashcardsPage() {
           </div>
         )}
           </section>
+        </>
+      )}
 
       {transferMode === 'IMPORT' ? (
         <ImportDialog
@@ -1237,26 +1220,163 @@ function TransferSelect({ label, value, onChange, options }) {
   );
 }
 
-function FlashcardEditorModal({ children, onClose }) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
+function FlashcardEditorModal({ children, onClose, page = false }) {
+  if (page) {
+    return (
+      <div className="rounded-[28px] border border-[#dcc0bf]/35 bg-white p-6 shadow-sm">
+        {children}
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[1000px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-        {children}
+      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[1000px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/35 bg-[#fafafa] shadow-2xl pointer-events-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+          {children}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function FlashcardSetDetailsForm({ form, onChange }) {
+  const update = (patch) => onChange((current) => ({ ...current, ...patch }));
+
+  return (
+    <Panel className="border border-[#f0e3e4] p-6">
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Thông tin bộ thẻ</p>
+        <p className="mt-1 text-sm text-[#584140]">Thiết lập thông tin để học viên và người biên soạn nhận diện đúng bộ thẻ dùng chung.</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextField label="Tên bộ thẻ" onChange={(event) => update({ title: event.target.value })} value={form.title} />
+        <TextField label="Nhãn gợi ý" onChange={(event) => update({ tags: event.target.value })} value={form.tags} />
+        <div className="md:col-span-2">
+          <RichTextEditor
+            label="Mô tả"
+            onChange={(description) => update({ description })}
+            placeholder="Mô tả mục tiêu học, ngữ cảnh sử dụng hoặc phạm vi từ vựng của bộ thẻ."
+            size="compact"
+            value={form.description}
+          />
+        </div>
+        <label className="block space-y-2">
+          <span className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Nhóm thi</span>
+          <BrandedSelect onChange={(event) => update({ examCategory: event.target.value })} options={examOptions} value={form.examCategory} />
+        </label>
+        <label className="block space-y-2">
+          <span className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Trạng thái</span>
+          <BrandedSelect onChange={(event) => update({ status: event.target.value })} options={statusOptions} value={form.status} />
+        </label>
+      </div>
+    </Panel>
+  );
+}
+
+function LegacyFlashcardSetEditor({
+  cards,
+  form,
+  loading,
+  onAddCard,
+  onBack,
+  onChangeCard,
+  onChangeForm,
+  onExport,
+  onImport,
+  onRemoveCard,
+  onSave,
+}) {
+  return (
+    <div className="space-y-6">
+      <button
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#730014] hover:underline"
+        onClick={onBack}
+        type="button"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Quay lại ngân hàng flashcard
+      </button>
+
+      <Panel className="flex min-h-[420px] flex-col overflow-hidden">
+        <div className="border-b border-[#f0e3e4] px-6 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Biên soạn bộ thẻ</p>
+              <input
+                className="mt-2 w-full max-w-2xl border-0 bg-transparent font-['Manrope'] text-2xl font-extrabold text-[#1a1c1c] outline-none placeholder:text-[#a88d8b]"
+                onChange={(event) => onChangeForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Tên bộ flashcard"
+                value={form.title}
+              />
+              <p className="mt-2 text-sm text-[#584140]">Bộ thẻ dùng chung. Mọi nơi đang gắn bộ thẻ này sẽ nhận cùng nội dung cập nhật.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-4 py-2.5 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" onClick={onImport} type="button">
+                <FileUp className="h-4 w-4" /> Nhập thẻ
+              </button>
+              <button className="inline-flex items-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-4 py-2.5 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" onClick={onExport} type="button">
+                <Download className="h-4 w-4" /> Xuất thẻ
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mb-5 grid gap-4 rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4 md:grid-cols-2">
+            <TextField label="Mô tả" onChange={(event) => onChangeForm((current) => ({ ...current, description: event.target.value }))} value={form.description} />
+            <TextField label="Nhãn gợi ý" onChange={(event) => onChangeForm((current) => ({ ...current, tags: event.target.value }))} value={form.tags} />
+          </div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-[#584140]">Bạn đang chỉnh sửa toàn bộ thẻ của bộ này trong một lần lưu.</p>
+            <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd]/65 bg-white px-4 py-3 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3]" onClick={onAddCard} type="button">
+              <Plus className="h-4 w-4" /> Thêm thẻ mới
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {cards.map((card, index) => (
+              <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-5" key={`${index}-${card.front}-${card.back}`}>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h3 className="font-semibold text-[#4b0009]">Thẻ {index + 1}</h3>
+                  <button className="inline-flex items-center gap-2 rounded-xl border border-[#f0d4d7] px-3 py-2 text-sm font-medium text-[#93000a] transition hover:bg-[#fff6f7]" onClick={() => onRemoveCard(index)} type="button">
+                    <Trash2 className="h-4 w-4" /> Xóa thẻ
+                  </button>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <TextField label="Thuật ngữ" onChange={(event) => onChangeCard(index, { front: event.target.value })} value={card.front} />
+                  <FlashcardDictionaryAssistant
+                    example={card.example}
+                    exampleInputClassName={TEXTAREA_CLASS}
+                    meaning={card.back}
+                    meaningInputClassName={FIELD_CLASS}
+                    onExampleChange={(example) => onChangeCard(index, { example })}
+                    onMeaningChange={(back) => onChangeCard(index, { back })}
+                    showLabels
+                    term={card.front}
+                  />
+                  <div className="md:col-span-2">
+                    <TextField label="Lỗi thường gặp" onChange={(event) => onChangeCard(index, { commonMistake: event.target.value })} rows={4} textarea value={card.commonMistake} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-[#f0e3e4] bg-[#fffafb] px-6 py-4">
+          <p className="text-sm text-[#584140]">Toàn bộ thay đổi sẽ được cập nhật cho mọi khóa học và giáo trình đang dùng bộ thẻ này.</p>
+          <button className="rounded-2xl bg-[#4b0009] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#730014] disabled:opacity-60" disabled={loading} onClick={onSave} type="button">
+            {loading ? 'Đang lưu...' : 'Lưu bộ thẻ'}
+          </button>
+        </div>
+      </Panel>
     </div>
   );
 }

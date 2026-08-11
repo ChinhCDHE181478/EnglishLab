@@ -9,7 +9,6 @@ import {
   LifeBuoy,
   LogOut,
   Settings2,
-  Video,
   UserRoundCheck,
   ChartNoAxesCombined,
 } from 'lucide-react';
@@ -24,10 +23,8 @@ const trainingOperationsNav = [
       { label: 'Bảng điều khiển', href: '/staff', icon: LayoutDashboard, end: true, staffOnly: true },
       { label: 'Lớp học', href: '/staff/classrooms', icon: CalendarDays, staffOnly: true },
       { label: 'Yêu cầu đăng ký', href: '/staff/enrollment-requests', icon: ClipboardList, staffOnly: true },
-      { label: 'Đề xuất mở lớp', href: '/staff/classroom-proposals', icon: CalendarDays, staffOnly: true },
       { label: 'Duyệt yêu cầu', href: '/staff/requests', icon: CheckSquare, staffOnly: true },
-      { label: 'Hạ tầng lớp học', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
-      { label: 'Quản lý ghi hình', href: '/staff/recordings', icon: Video, staffOnly: true },
+      { label: 'Cơ sở vật chất', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
       { label: 'Hồ sơ giáo viên', href: '/staff/teachers', icon: UserRoundCheck, staffOnly: true },
       { label: 'Duyệt đề xuất lớp', href: '/manager/classroom-proposals', icon: CalendarDays, managerOnly: true },
       { label: 'Ghi danh online', href: '/manager/online-enrollments', icon: ClipboardList, managerOnly: true },
@@ -62,12 +59,6 @@ function resolvePageMeta(pathname) {
       subtitle: 'Thông tin học viên đăng ký tư vấn từ lịch khai giảng và danh sách chờ xếp lớp.',
     };
   }
-  if (pathname.startsWith('/staff/classroom-proposals')) {
-    return {
-      title: 'Đề xuất mở lớp',
-      subtitle: 'Thiết lập lịch học, giáo viên, phòng học và sức chứa dự kiến.',
-    };
-  }
   if (pathname.startsWith('/staff/requests')) {
     return {
       title: 'Duyệt yêu cầu thay đổi',
@@ -76,14 +67,8 @@ function resolvePageMeta(pathname) {
   }
   if (pathname.startsWith('/staff/infrastructure')) {
     return {
-      title: 'Hạ tầng cơ sở vật chất',
-      subtitle: 'Quản lý hệ thống phòng học offline và thông tin phòng trực tuyến.',
-    };
-  }
-  if (pathname.startsWith('/staff/recordings')) {
-    return {
-      title: 'Quản lý ghi hình buổi học',
-      subtitle: 'Danh sách video record các buổi học trực tuyến đồng bộ từ hệ thống.',
+      title: 'Cơ sở vật chất',
+      subtitle: 'Quản lý phòng học tại cơ sở trung tâm để xếp lịch cho các lớp học trực tiếp.',
     };
   }
   if (pathname.startsWith('/staff/teachers')) {
@@ -392,10 +377,9 @@ function formatCrumbLabel(crumbs, index) {
   const dictionary = {
     classrooms: 'Lớp học',
     requests: 'Yêu cầu',
-    infrastructure: 'Hạ tầng',
+    infrastructure: 'Cơ sở vật chất',
     'classroom-proposals': 'Đề xuất lớp',
     'enrollment-requests': 'Yêu cầu đăng ký',
-    recordings: 'Quản lý ghi hình',
     'support-tickets': 'Yêu cầu hỗ trợ',
     'online-enrollments': 'Ghi danh online',
   };

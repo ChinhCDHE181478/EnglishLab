@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, Plus, RefreshCw, Search, Users, X } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronRight, Edit3, GraduationCap, RefreshCw, Search, Users, X } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
-import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState, StatusBadge } from '../../components/classroom/ClassroomUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
@@ -64,7 +64,6 @@ const initialClassroomForm = {
 export default function StaffClassroomsPage() {
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState([]);
-  const [teachers, setTeachers] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [trainingPrograms, setTrainingPrograms] = useState([]);
   const [classroomForm, setClassroomForm] = useState(initialClassroomForm);
@@ -82,14 +81,12 @@ export default function StaffClassroomsPage() {
     setLoading(true);
     setError('');
     try {
-      const [data, teacherData, roomData, programData] = await Promise.all([
+      const [data, roomData, programData] = await Promise.all([
         classroomApi.getStaffClassrooms(),
-        classroomApi.getStaffTeachers(),
         classroomApi.getStaffRooms(),
         classroomApi.getStaffPrograms(),
       ]);
       setClassrooms(data);
-      setTeachers(teacherData);
       setRooms(roomData);
       setTrainingPrograms(programData);
     } catch (err) {
@@ -103,11 +100,6 @@ export default function StaffClassroomsPage() {
   useEffect(() => {
     loadClassrooms();
   }, []);
-
-  const teacherOptions = useMemo(() => [
-    { label: 'Chưa chọn giáo viên', value: '' },
-    ...teachers.map((item) => ({ label: item.label, value: String(item.id) })),
-  ], [teachers]);
 
   const roomOptions = useMemo(() => [
     { label: 'Chưa chọn phòng', value: '' },
@@ -278,10 +270,6 @@ export default function StaffClassroomsPage() {
           <button aria-label="Làm mới danh sách lớp" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-[#730014] hover:bg-slate-50 transition" onClick={loadClassrooms} type="button">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          <button className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 text-xs font-extrabold text-white hover:bg-[#730014] transition active:scale-95 whitespace-nowrap shadow-sm" onClick={() => navigate('/staff/classroom-proposals')} type="button">
-            <Plus className="h-4 w-4" />
-            Đề xuất lớp mới
-          </button>
         </div>
       </section>
 
@@ -305,7 +293,7 @@ export default function StaffClassroomsPage() {
                     <td className="px-5 py-4 text-[#584140]">{item.trainingProgramTitle || item.curriculumProgramTitle || 'Chưa gắn'}</td>
                     <td className="px-5 py-4">{formatClassroomDate(item.startDate)}</td>
                     <td className="px-5 py-4 font-bold">{formatClassroomPrice(item.salePrice ?? item.price ?? 0)}</td>
-                    <td className="px-5 py-4"><span className="rounded-lg bg-[#fff0f1] px-3 py-1.5 text-xs font-extrabold text-[#730014]">{formatOfferingStatus(item.classroomStatus)}</span></td>
+                    <td className="whitespace-nowrap px-5 py-4"><StatusBadge status={item.classroomStatus} /></td>
                     <td className="px-5 py-4"><div className="flex justify-end gap-2"><button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] px-3 py-2 text-xs font-bold text-[#730014]" disabled={working} onClick={() => openEdit(item)} type="button"><Edit3 className="h-3.5 w-3.5" />Sửa</button><button className="inline-flex items-center gap-1.5 rounded-lg bg-[#4b0009] px-3 py-2 text-xs font-bold text-white" onClick={() => navigate(`/staff/classrooms/${item.id}`)} type="button">Quản lý<ChevronRight className="h-3.5 w-3.5" /></button></div></td>
                   </tr>
                 ))}
@@ -325,7 +313,7 @@ export default function StaffClassroomsPage() {
             <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5"><div><h3 className="font-['Manrope'] text-xl font-extrabold text-[#2b2828]">Chỉnh sửa thông tin vận hành</h3><p className="mt-1 text-xs text-[#8b706e]">Cập nhật các thông tin phục vụ vận hành lớp.</p></div><button aria-label="Đóng" className="rounded-xl border border-gray-200 p-2 text-[#584140] disabled:opacity-50" disabled={working} onClick={() => setEditorOpen(false)} type="button"><X className="h-5 w-5" /></button></div>
             <div className="min-h-0 flex-1 overflow-y-auto p-6">
               {message ? <div className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700" role="alert">{message}</div> : null}
-              <ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} teacherOptions={teacherOptions} trainingProgramOptions={trainingProgramOptions} />
+              <ClassroomFormFields form={classroomForm} onChange={updateClassroomForm} roomOptions={roomOptions} trainingProgramOptions={trainingProgramOptions} />
             </div>
             <div className="flex justify-end gap-3 border-t border-gray-100 px-6 py-4"><button className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-[#584140] disabled:opacity-50" disabled={working} onClick={() => setEditorOpen(false)} type="button">Hủy</button><button className="rounded-xl bg-[#4b0009] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={working} type="submit">{working ? 'Đang lưu...' : 'Lưu thay đổi'}</button></div>
           </form>
@@ -335,7 +323,7 @@ export default function StaffClassroomsPage() {
   );
 }
 
-function ClassroomFormFields({ form, onChange, roomOptions, teacherOptions, trainingProgramOptions }) {
+function ClassroomFormFields({ form, onChange, roomOptions, trainingProgramOptions }) {
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Field label="Tên lớp"><input className={inputClass} onChange={(event) => onChange('title', event.target.value)} required value={form.title} /></Field>
@@ -346,8 +334,7 @@ function ClassroomFormFields({ form, onChange, roomOptions, teacherOptions, trai
       <Field label="Sĩ số tối đa"><input className={inputClass} min="1" onChange={(event) => onChange('maxCapacity', event.target.value)} required type="number" value={form.maxCapacity} /></Field>
       <Field label="Ngày khai giảng"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('startDate', value)} required value={form.startDate} /></Field>
       <Field label="Ngày kết thúc dự kiến"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('endDate', value)} value={form.endDate} /></Field>
-      <Field label="Giáo viên chính"><BrandedSelect onChange={(event) => onChange('primaryTeacherId', event.target.value)} options={teacherOptions} value={form.primaryTeacherId} /></Field>
-      {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('defaultRoomId', event.target.value)} options={roomOptions} value={form.defaultRoomId} /></Field> : <div />}
+      {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('defaultRoomId', event.target.value)} options={roomOptions} value={form.defaultRoomId} /></Field> : null}
       <Field label="Học phí"><input className={inputClass} min="0" onChange={(event) => onChange('price', event.target.value)} type="number" value={form.price} /></Field>
       <Field label="Giá ưu đãi"><input className={inputClass} min="0" onChange={(event) => onChange('salePrice', event.target.value)} type="number" value={form.salePrice} /></Field>
       {form.deliveryMode === 'OFFLINE' ? <Field label="Địa điểm học"><input className={inputClass} onChange={(event) => onChange('offlineAddress', event.target.value)} value={form.offlineAddress} /></Field> : null}

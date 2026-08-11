@@ -23,6 +23,7 @@ import classroomApi from '../../api/classroomApi';
 import { ContentManagerLoadingState, HeaderActions, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import FileDropzone from '../../components/ui/FileDropzone';
 import Pagination from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
@@ -406,25 +407,16 @@ export default function ContentManagerMaterialsPage() {
               value={form.description}
             />
 
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-[0.16em] text-[#8b706e]">Tải tệp lên</label>
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-[#dfbfbd]/75 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014] transition hover:border-[#730014]">
-                  <Upload className="h-4 w-4" />
-                  {uploading ? 'Đang tải...' : 'Chọn tệp'}
-                  <input
-                    className="hidden"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                    onChange={(event) => {
-                      handleUpload(event.target.files?.[0] || null);
-                      event.target.value = '';
-                    }}
-                  />
-                </label>
-                <span className="text-sm text-[#8b706e]">Hoặc dán liên kết ở ô bên dưới nếu học liệu nằm trên nền tảng ngoài.</span>
-              </div>
-            </div>
+            <FileDropzone
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png,.mp3,.mp4"
+              fileName={form.title && form.fileUrl ? `${form.title}` : ''}
+              fileUrl={form.fileUrl}
+              hint="Kéo & thả tệp tài liệu, bài giảng vào đây hoặc nhấp để tải từ máy tính"
+              label="Tải tệp học liệu lên *"
+              onClear={() => setForm((current) => ({ ...current, fileUrl: '', fileType: '' }))}
+              onFileSelect={(file) => handleUpload(file)}
+              uploading={uploading}
+            />
 
             <TextInput
               label="Liên kết tệp *"
@@ -544,14 +536,14 @@ export default function ContentManagerMaterialsPage() {
               <table className="w-full min-w-[1180px] table-fixed border-collapse text-left">
                 <thead>
                   <tr className="border-b border-[#dcc0bf]/30 bg-[#fbf3f4]">
-                    <th className="sticky left-0 z-10 w-[28%] bg-[#fbf3f4] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371] shadow-[1px_0_0_rgba(220,192,191,0.3)]">Học liệu</th>
-                    <th className="w-[11%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Loại</th>
-                    <th className="w-[9%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỹ năng</th>
-                    <th className="w-[10%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Kỳ thi / mức</th>
-                    <th className="w-[9%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Nguồn</th>
-                    <th className="w-[10%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Trạng thái</th>
-                    <th className="w-[7%] px-3 py-3 text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Cập nhật</th>
-                    <th className="w-[16%] px-3 py-3 text-right text-xs font-bold uppercase tracking-[0.1em] text-[#8e7371]">Thao tác</th>
+                    <th className="sticky left-0 z-10 w-[28%] bg-[#fbf3f4] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371] shadow-[1px_0_0_rgba(220,192,191,0.3)]">Học liệu</th>
+                    <th className="w-[11%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Loại</th>
+                    <th className="w-[9%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Kỹ năng</th>
+                    <th className="w-[10%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Kỳ thi / mức</th>
+                    <th className="w-[9%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Nguồn</th>
+                    <th className="w-[10%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Trạng thái</th>
+                    <th className="w-[7%] px-3 py-3 text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Cập nhật</th>
+                    <th className="w-[16%] px-3 py-3 text-right text-[11px] font-extrabold uppercase tracking-wider text-[#8e7371]">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#dcc0bf]/15">
@@ -791,15 +783,17 @@ function MaterialEditorModal({ children, onClose }) {
   }, []);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute -inset-10 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[800px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-        {children}
+      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[800px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/35 bg-[#fafafa] shadow-2xl pointer-events-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+          {children}
+        </div>
       </div>
     </div>,
     document.body
