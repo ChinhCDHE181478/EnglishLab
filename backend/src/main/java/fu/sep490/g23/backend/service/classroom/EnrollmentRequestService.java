@@ -41,5 +41,7 @@ public interface EnrollmentRequestService {
             String staffEmail
     );
 
+    List<Long> listAvailableClassroomIds(Long requestId, String staffEmail);
+
     List<EnrollmentDemandReportResponse> getDemandReport(String managerEmail);
 }

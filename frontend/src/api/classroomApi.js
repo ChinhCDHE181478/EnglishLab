@@ -424,6 +424,33 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async updateStaffClassroomSession(sessionId, payload) {
+    const response = await axiosClient.put(`/api/staff/classrooms/sessions/${sessionId}`, payload);
+    return unwrapData(response);
+  },
+
+  async getStaffAvailableTeachers(params) {
+    const response = await axiosClient.get('/api/staff/classrooms/availability/teachers', { params });
+    return asList(unwrapData(response));
+  },
+
+  async getStaffAvailableRooms(params) {
+    const response = await axiosClient.get('/api/staff/classrooms/availability/rooms', { params });
+    return asList(unwrapData(response));
+  },
+
+  async getAvailableReplacementTeachers(classroomId) {
+    const response = await axiosClient.get(`/api/staff/classrooms/${classroomId}/available-replacement-teachers`);
+    return asList(unwrapData(response));
+  },
+
+  async replaceClassroomTeacher(classroomId, oldTeacherId, newTeacherId) {
+    const response = await axiosClient.post(
+      `/api/staff/classrooms/${classroomId}/teachers/${oldTeacherId}/replace/${newTeacherId}`,
+    );
+    return unwrapData(response);
+  },
+
   async syncStaffVirtualSessionMeeting(sessionId) {
     const response = await axiosClient.post(`/api/staff/classrooms/sessions/${sessionId}/sync-google-meet`);
     return unwrapData(response);

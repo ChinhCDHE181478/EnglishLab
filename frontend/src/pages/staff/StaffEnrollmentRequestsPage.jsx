@@ -93,6 +93,7 @@ export default function StaffEnrollmentRequestsPage() {
   const [classroomLoadError, setClassroomLoadError] = useState('');
   const [success, setSuccess] = useState('');
   const [action, setAction] = useState(initialAction);
+  const [assignmentAvailability, setAssignmentAvailability] = useState({ loading: false, ids: null });
   const [centerEnrollmentOpen, setCenterEnrollmentOpen] = useState(false);
 
   const load = async () => {
@@ -196,13 +197,25 @@ export default function StaffEnrollmentRequestsPage() {
     }
   };
 
-  const openAction = (type, item) => {
+  const openAction = async (type, item) => {
     setAction({
       ...initialAction,
       type,
       item,
       note: item.staffNote || '',
     });
+    if (type !== 'ASSIGN') {
+      setAssignmentAvailability({ loading: false, ids: null });
+      return;
+    }
+    setAssignmentAvailability({ loading: true, ids: null });
+    try {
+      const availableIds = await enrollmentRequestApi.getAvailableClassroomIds(item.id);
+      setAssignmentAvailability({ loading: false, ids: new Set(availableIds.map(String)) });
+    } catch (availabilityError) {
+      setAssignmentAvailability({ loading: false, ids: new Set() });
+      setClassroomLoadError('Không thể kiểm tra lớp phù hợp cho học viên. Vui lòng tải lại.');
+    }
   };
 
   const scheduleTest = () => {
@@ -490,6 +503,7 @@ export default function StaffEnrollmentRequestsPage() {
       {action.type ? (
         <ActionModal
           action={action}
+          assignmentAvailability={assignmentAvailability}
           classroomLoadError={classroomLoadError}
           classrooms={classrooms}
           onChange={setAction}
@@ -526,7 +540,7 @@ function ActionButton({ danger = false, icon: Icon, label, onClick, success = fa
   );
 }
 
-function ActionModal({ action, classroomLoadError, classrooms, onChange, onClose, onConfirm, working }) {
+function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, onChange, onClose, onConfirm, working }) {
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá tại trung tâm.'],
@@ -585,17 +599,18 @@ function ActionModal({ action, classroomLoadError, classrooms, onChange, onClose
             <div>
               <FieldLabel>Lớp phù hợp *</FieldLabel>
               <BrandedSelect
+                disabled={assignmentAvailability.loading}
                 onChange={(event) => onChange({ ...action, classroomId: event.target.value })}
-                options={classrooms.map((item) => ({
+                options={classrooms.filter((item) => assignmentAvailability.ids?.has(String(item.id))).map((item) => ({
                   value: String(item.id),
                   label: item.title,
                   description: `${item.trainingProgramTitle || 'Chưa gắn khóa học'} · Đầu vào ${item.entryLevel || 'chưa xác định'} · Mục tiêu ${item.targetScore || 'chưa xác định'} · ${formatClassroomDate(item.startDate)} · ${item.enrolledCount || 0}/${item.maxCapacity || '∞'} học viên`,
                 }))}
-                placeholder={classrooms.length ? 'Chọn lớp đang tuyển sinh' : 'Chưa có lớp phù hợp'}
+                placeholder={assignmentAvailability.loading ? 'Đang loại lớp trùng lịch...' : assignmentAvailability.ids?.size ? 'Chọn lớp không trùng lịch' : 'Chưa có lớp phù hợp'}
                 searchable
                 value={action.classroomId}
               />
-              {!classrooms.length ? <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{classroomLoadError || 'Chưa có lớp đang tuyển sinh và còn chỗ.'}</p> : null}
+              {!assignmentAvailability.loading && assignmentAvailability.ids && !assignmentAvailability.ids.size ? <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">{classroomLoadError || 'Không có lớp nào vừa còn chỗ, chưa ghi danh và không trùng lịch hiện tại của học viên.'}</p> : null}
             </div>
           ) : null}
 

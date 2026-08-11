@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest
 import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.request.classroom.EnrollStudentRequest;
 import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
+import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentRequestHistoryResponse;
@@ -18,6 +19,7 @@ import fu.sep490.g23.backend.entity.classroom.EnrollmentRequestStatusHistory;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
@@ -28,6 +30,7 @@ import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
 import fu.sep490.g23.backend.service.assessment.PlacementEligibilityService;
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
@@ -38,6 +41,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -61,15 +65,24 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             EnrollmentRequestStatus.CANCELLED,
             EnrollmentRequestStatus.CLASS_ASSIGNED
     );
+    private static final Set<ClassroomSessionStatus> ACTIVE_SESSION_STATUSES = Set.of(
+            ClassroomSessionStatus.SCHEDULED,
+            ClassroomSessionStatus.OPEN,
+            ClassroomSessionStatus.IN_PROGRESS,
+            ClassroomSessionStatus.RESCHEDULED,
+            ClassroomSessionStatus.MAKEUP
+    );
 
     private final EnrollmentRequestRepository enrollmentRequestRepository;
     private final EnrollmentRequestStatusHistoryRepository historyRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomOfferingRepository classroomOfferingRepository;
+    private final ClassroomSessionRepository classroomSessionRepository;
     private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
     private final UserRepository userRepository;
     private final PlacementEligibilityService placementEligibilityService;
     private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomConflictService classroomConflictService;
     private final EnrollmentRequestMailService enrollmentRequestMailService;
     private final AuthTokenService authTokenService;
     private final AuthMailService authMailService;
@@ -387,6 +400,23 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Long> listAvailableClassroomIds(Long requestId, String staffEmail) {
+        User staff = requireUser(staffEmail);
+        assertStaff(staff);
+        EnrollmentRequest request = requireRequest(requestId);
+        if (request.getStatus() != EnrollmentRequestStatus.WAITING_FOR_CLASS || request.getLearner() == null) {
+            return List.of();
+        }
+        Long learnerId = request.getLearner().getId();
+        return classroomOfferingRepository.findAll().stream()
+                .filter(this::isAssignableClassroom)
+                .filter(offering -> isAvailableForLearner(offering, learnerId))
+                .map(ClassroomOffering::getId)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<EnrollmentDemandReportResponse> getDemandReport(String managerEmail) {
         User manager = requireUser(managerEmail);
         if (!TrainingRolePolicy.canApprove(manager)) {
@@ -592,11 +622,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private ClassroomOffering requireAssignableClassroom(Long classroomId) {
         ClassroomOffering target = classroomOfferingRepository.findById(classroomId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp cần xếp."));
-        if (target.getLearningPackage() == null
-                || target.getStatus() != ClassroomOfferingStatus.UPCOMING
-                || target.getStartDate() == null
-                || !target.getStartDate().isAfter(LocalDate.now())
-                || target.getLearningPackage().getStatus() != PackageStatus.PUBLISHED) {
+        if (!isAssignableClassroom(target)) {
             throw new IllegalArgumentException(
                     "Chỉ có thể xếp vào lớp đã công bố, còn chỗ và có ngày khai giảng trong tương lai."
             );

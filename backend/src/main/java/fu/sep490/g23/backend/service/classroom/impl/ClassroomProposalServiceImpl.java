@@ -36,6 +36,8 @@ import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 @Service
@@ -133,6 +136,66 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         applyProposalFields(proposal, payload, 0);
         validateProposal(proposal, true);
         return checkScheduleConflicts(proposal, excludeProposalId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ClassroomProposalAvailabilityResponse getAvailability(
+            CreateClassroomProposalRequest payload,
+            Long excludeProposalId,
+            String staffEmail
+    ) {
+        validateProposalPayload(payload);
+        requireStaff(staffEmail);
+        TrainingProgram courseOffering = requirePublishedOffering(payload.getCourseOfferingId());
+        ClassroomProposal proposal = ClassroomProposal.builder()
+                .courseOffering(courseOffering)
+                .deliveryType(courseOffering.getDeliveryMode())
+                .approvalStatus(ClassroomApprovalStatus.DRAFT)
+                .build();
+        applyProposalFields(proposal, payload, 0);
+        validateProposal(proposal, false);
+
+        proposal.setRoom(null);
+        List<ClassroomPickerOptionResponse> availableTeachers = userRepository
+                .findDistinctByRoles_CodeIn(Set.of(RoleEnum.TEACHER))
+                .stream()
+                .sorted(Comparator.comparing(User::getFullName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .filter(teacher -> {
+                    proposal.setPrimaryTeacher(teacher);
+                    return checkScheduleConflicts(proposal, excludeProposalId).getConflicts().stream()
+                            .noneMatch(conflict -> conflict.getType() == ConflictType.TEACHER_SCHEDULE
+                                    || conflict.getType() == ConflictType.LARK_TEACHER_OVERLAP);
+                })
+                .map(teacher -> ClassroomPickerOptionResponse.builder()
+                        .id(teacher.getId())
+                        .label((StringUtils.hasText(teacher.getFullName()) ? teacher.getFullName() : teacher.getEmail())
+                                + " - " + teacher.getEmail())
+                        .build())
+                .toList();
+
+        proposal.setPrimaryTeacher(null);
+        List<ClassroomPickerOptionResponse> availableRooms = proposal.getDeliveryType() == ClassroomDeliveryMode.VIRTUAL
+                ? List.of()
+                : roomRepository.findByActiveTrue().stream()
+                .filter(room -> room.getCapacity() == null || room.getCapacity() >= proposal.getCapacity())
+                .sorted(Comparator.comparing(ClassroomRoom::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .filter(room -> {
+                    proposal.setRoom(room);
+                    return checkScheduleConflicts(proposal, excludeProposalId).getConflicts().stream()
+                            .noneMatch(conflict -> conflict.getType() == ConflictType.ROOM_SCHEDULE);
+                })
+                .map(room -> ClassroomPickerOptionResponse.builder()
+                        .id(room.getId())
+                        .label(room.getName())
+                        .capacity(room.getCapacity())
+                        .build())
+                .toList();
+
+        return ClassroomProposalAvailabilityResponse.builder()
+                .teachers(availableTeachers)
+                .rooms(availableRooms)
+                .build();
     }
 
     @Override

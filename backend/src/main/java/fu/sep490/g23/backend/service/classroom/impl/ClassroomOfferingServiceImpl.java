@@ -111,6 +111,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
     private static final Set<ClassroomRegistrationStatus> HAS_LEARNING_ACCESS = ClassroomRegistrationSupport.HAS_LEARNING_ACCESS;
     private static final int EMPTY_ROOM_GRACE_MINUTES = 5;
+    private static final int SUBSTITUTE_PREPARATION_DAYS = 3;
+    private static final int SUBSTITUTE_WRAP_UP_DAYS = 1;
     private static final int VIRTUAL_MEETING_RETRY_BATCH_SIZE = 8;
     private static final Set<ClassroomSessionStatus> VIRTUAL_MEETING_RETRY_SESSION_STATUSES = Set.of(
             ClassroomSessionStatus.SCHEDULED,
@@ -334,6 +336,14 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 ? request.getSalePrice() : trainingProgram == null ? null : trainingProgram.getSalePrice();
         validatePrices(effectivePrice, effectiveSalePrice);
         User primaryTeacher = resolveTeacher(request.getPrimaryTeacherId());
+        Long previousPrimaryTeacherId = getPrimaryTeacherId(offering);
+        Long requestedPrimaryTeacherId = primaryTeacher == null ? null : primaryTeacher.getId();
+        boolean primaryTeacherChanged = !Objects.equals(previousPrimaryTeacherId, requestedPrimaryTeacherId);
+        if (primaryTeacherChanged && primaryTeacher == null) {
+            throw new IllegalArgumentException(
+                    "Không thể bỏ giáo viên chính khỏi lớp. Hãy chọn giáo viên thay thế để giữ lịch học liên tục."
+            );
+        }
         ClassroomRoom defaultRoom = request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
                 ? resolveRoom(request.getDefaultRoomId()) : null;
         validateOfferingResources(request, primaryTeacher, defaultRoom);
@@ -384,7 +394,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         offering.setStartDate(request.getStartDate());
         offering.setEndDate(request.getEndDate());
-        offering.setPrimaryTeacher(primaryTeacher);
+        if (!primaryTeacherChanged) {
+            offering.setPrimaryTeacher(primaryTeacher);
+        }
         offering.setDefaultRoom(defaultRoom);
         offering.setOfflineAddress(request.getOfflineAddress());
         offering.setLocationNote(request.getLocationNote());
@@ -400,6 +412,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         offering.setInteractionActivities(curriculumProgram == null ? null : curriculumProgram.getInteractionActivities());
 
         ClassroomOffering saved = offeringRepository.save(offering);
+        if (primaryTeacherChanged) {
+            replaceTeacher(saved.getId(), previousPrimaryTeacherId, requestedPrimaryTeacherId);
+            saved = findOffering(saved.getId());
+        }
         classroomMaterialSyncService.synchronizeMandatoryMaterials(saved, null);
         return mapper.toOfferingResponse(saved, true, null, null, true);
     }
@@ -491,6 +507,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         ClassroomSession session = buildSession(offering, request, teacher, room, deliveryMode);
         session = sessionRepository.save(session);
+        synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
                 && needsManagedVirtualMeetingSync(session)) {
             syncVirtualMeetingSafely(session);
@@ -553,6 +570,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         applySessionRequest(session, request, teacher, room, deliveryMode);
+        session = sessionRepository.save(session);
+        synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
             syncVirtualMeetingSafely(session);
         }
@@ -581,6 +600,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
 
         applySessionRequest(session, request, teacher, room, deliveryMode);
+        session = sessionRepository.save(session);
+        synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
             syncVirtualMeetingSafely(session);
         }
@@ -597,6 +618,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new RuntimeException("Buổi học đã khóa nên không thể xóa.");
         }
         deleteVirtualMeetingSafely(session);
+        teacherAssignmentRepository.findByClassroomSessionId(sessionId)
+                .ifPresent(teacherAssignmentRepository::delete);
         sessionRepository.delete(session);
     }
 
@@ -1257,16 +1280,16 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         ClassroomTeacherRole resolvedRole = role == null ? ClassroomTeacherRole.PRIMARY : role;
         Long previousPrimaryTeacherId = getPrimaryTeacherId(offering);
+        if (resolvedRole == ClassroomTeacherRole.PRIMARY
+                && !teacher.getId().equals(previousPrimaryTeacherId)) {
+            return replaceTeacher(offeringId, previousPrimaryTeacherId, teacher.getId());
+        }
         if (resolvedRole == ClassroomTeacherRole.PRIMARY) {
             deactivateOtherPrimaryTeachers(offering, teacher.getId(), "Thay đổi giáo viên chính");
             offering.setPrimaryTeacher(teacher);
             offeringRepository.save(offering);
         }
         ClassroomTeacherSummaryResponse response = assignTeacherInternal(offering, teacher, resolvedRole, null);
-        if (resolvedRole == ClassroomTeacherRole.PRIMARY
-                && !teacher.getId().equals(previousPrimaryTeacherId)) {
-            updateUpcomingSessionsForTeacherChange(offering, previousPrimaryTeacherId, teacher);
-        }
         return response;
     }
 
@@ -1281,13 +1304,19 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             return assignTeacherInternal(offering, newTeacher, ClassroomTeacherRole.PRIMARY, "Tiếp tục phân công");
         }
 
-        teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offeringId, oldTeacherId)
-                .filter(this::isTeacherAssignmentActive)
-                .ifPresent(assignment -> {
-                    assignment.setEffectiveTo(LocalDate.now().minusDays(1));
-                    assignment.setReason("Kết thúc phân công do thay giáo viên");
-                    teacherAssignmentRepository.save(assignment);
-                });
+        validateReplacementTeacherAvailability(offering, oldTeacherId, newTeacher);
+
+        if (oldTeacherId != null) {
+            teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offeringId, oldTeacherId).stream()
+                    .filter(this::isTeacherAssignmentActive)
+                    .filter(assignment -> assignment.getClassroomSession() == null)
+                    .findFirst()
+                    .ifPresent(assignment -> {
+                        assignment.setEffectiveTo(LocalDate.now().minusDays(1));
+                        assignment.setReason("Kết thúc phân công do thay giáo viên");
+                        teacherAssignmentRepository.save(assignment);
+                    });
+        }
         deactivateOtherPrimaryTeachers(offering, newTeacherId, "Kết thúc phân công do thay giáo viên");
         offering.setPrimaryTeacher(newTeacher);
         offeringRepository.save(offering);
@@ -1469,7 +1498,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             String reason
     ) {
         ClassroomTeacherAssignment assignment = teacherAssignmentRepository
-                .findByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId())
+                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId())
+                .stream()
+                .filter(this::isTeacherAssignmentActive)
+                .filter(candidate -> candidate.getClassroomSession() == null)
+                .filter(candidate -> candidate.getRole() == role)
+                .findFirst()
                 .orElseGet(() -> ClassroomTeacherAssignment.builder()
                         .classroomOffering(offering)
                         .teacher(teacher)
@@ -1497,6 +1531,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         teacherAssignmentRepository.findByClassroomOfferingId(offering.getId()).stream()
                 .filter(this::isTeacherAssignmentActive)
                 .filter(assignment -> assignment.getRole() == ClassroomTeacherRole.PRIMARY)
+                .filter(assignment -> assignment.getClassroomSession() == null)
                 .filter(assignment -> !assignment.getTeacher().getId().equals(activeTeacherId))
                 .forEach(assignment -> {
                     assignment.setEffectiveTo(endedOn);
@@ -1532,6 +1567,63 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         sessionRepository.saveAll(sessions);
     }
 
+    private void validateReplacementTeacherAvailability(
+            ClassroomOffering offering,
+            Long oldTeacherId,
+            User newTeacher
+    ) {
+        LocalDate today = LocalDate.now();
+        boolean hasConflict = sessionRepository
+                .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
+                .stream()
+                .filter(session -> !session.getSessionDate().isBefore(today))
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.COMPLETED)
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .filter(session -> oldTeacherId == null
+                        || session.getTeacher() == null
+                        || oldTeacherId.equals(session.getTeacher().getId()))
+                .anyMatch(session -> !sessionRepository.findTeacherConflicts(
+                        newTeacher.getId(),
+                        session.getSessionDate(),
+                        session.getStartTime(),
+                        session.getEndTime(),
+                        VIRTUAL_MEETING_RETRY_SESSION_STATUSES,
+                        session.getId()
+                ).isEmpty());
+        if (hasConflict) {
+            throw new IllegalArgumentException(
+                    "Giáo viên mới có lịch dạy khác trùng với một hoặc nhiều buổi sắp tới của lớp."
+            );
+        }
+    }
+
+    private void synchronizeSubstituteAssignment(ClassroomSession session) {
+        ClassroomOffering offering = session.getClassroomOffering();
+        User sessionTeacher = session.getTeacher();
+        Long primaryTeacherId = getPrimaryTeacherId(offering);
+        boolean usesPrimaryTeacher = sessionTeacher == null
+                || (primaryTeacherId != null && primaryTeacherId.equals(sessionTeacher.getId()));
+
+        if (usesPrimaryTeacher) {
+            teacherAssignmentRepository.findByClassroomSessionId(session.getId())
+                    .ifPresent(teacherAssignmentRepository::delete);
+            return;
+        }
+
+        ClassroomTeacherAssignment assignment = teacherAssignmentRepository
+                .findByClassroomSessionId(session.getId())
+                .orElseGet(() -> ClassroomTeacherAssignment.builder()
+                        .classroomOffering(offering)
+                        .classroomSession(session)
+                        .build());
+        assignment.setTeacher(sessionTeacher);
+        assignment.setRole(ClassroomTeacherRole.SUBSTITUTE);
+        assignment.setEffectiveFrom(session.getSessionDate().minusDays(SUBSTITUTE_PREPARATION_DAYS));
+        assignment.setEffectiveTo(session.getSessionDate().plusDays(SUBSTITUTE_WRAP_UP_DAYS));
+        assignment.setReason("Dạy thay buổi ngày " + session.getSessionDate());
+        teacherAssignmentRepository.save(assignment);
+    }
+
     private User assertCanManageVirtualSession(ClassroomSession session, String actorEmail) {
         User actor = accessHelper.requireUser(actorEmail);
         accessHelper.assertTeacher(actor);
@@ -1562,9 +1654,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     private boolean hasActiveTeacherAssignment(ClassroomOffering offering, User actor) {
         return teacherAssignmentRepository
-                .findByClassroomOfferingIdAndTeacherId(offering.getId(), actor.getId())
-                .filter(this::isTeacherAssignmentActive)
-                .isPresent();
+                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), actor.getId())
+                .stream()
+                .anyMatch(this::isTeacherAssignmentActive);
     }
 
     private void inviteTeacherSafely(ClassroomSession session, User teacher) {

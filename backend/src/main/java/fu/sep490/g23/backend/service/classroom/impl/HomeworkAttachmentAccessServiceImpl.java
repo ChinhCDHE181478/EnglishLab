@@ -142,9 +142,9 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
         }
         LocalDate today = LocalDate.now();
         return teacherAssignmentRepository
-                .findByClassroomOfferingIdAndTeacherId(offering.getId(), requester.getId())
-                .filter(assignment -> isActive(assignment, today))
-                .isPresent();
+                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), requester.getId())
+                .stream()
+                .anyMatch(assignment -> isActive(assignment, today));
     }
 
     private boolean isActive(ClassroomTeacherAssignment assignment, LocalDate today) {

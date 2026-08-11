@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -47,8 +48,8 @@ class ClassroomAttendanceDisputeServiceImplTest {
         when(teacher.getId()).thenReturn(17L);
         when(accessHelper.requireUser("teacher@englishlab.vn")).thenReturn(teacher);
         when(offeringRepository.findById(7L)).thenReturn(Optional.empty());
-        when(teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(7L, 17L))
-                .thenReturn(Optional.empty());
+        when(teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(7L, 17L))
+                .thenReturn(List.of());
 
         assertThatThrownBy(() -> service.listForClass(7L, "teacher@englishlab.vn"))
                 .isInstanceOf(RuntimeException.class)

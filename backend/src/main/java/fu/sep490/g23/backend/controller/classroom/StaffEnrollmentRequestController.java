@@ -96,4 +96,15 @@ public class StaffEnrollmentRequestController {
                 authentication.getName()
         ));
     }
+
+    @GetMapping("/{requestId}/available-classrooms")
+    public ResponseEntity<List<Long>> listAvailableClassrooms(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.listAvailableClassroomIds(
+                requestId,
+                authentication.getName()
+        ));
+    }
 }

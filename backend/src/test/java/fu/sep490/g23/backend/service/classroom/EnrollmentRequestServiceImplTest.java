@@ -21,6 +21,7 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
@@ -58,10 +59,12 @@ class EnrollmentRequestServiceImplTest {
     @Mock private EnrollmentRequestStatusHistoryRepository historyRepository;
     @Mock private TrainingProgramRepository trainingProgramRepository;
     @Mock private ClassroomOfferingRepository classroomOfferingRepository;
+    @Mock private ClassroomSessionRepository classroomSessionRepository;
     @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private PlacementEligibilityService placementEligibilityService;
     @Mock private ClassroomOfferingService classroomOfferingService;
+    @Mock private ClassroomConflictService classroomConflictService;
     @Mock private EnrollmentRequestMailService enrollmentRequestMailService;
     @Mock private AuthTokenService authTokenService;
     @Mock private AuthMailService authMailService;
@@ -82,10 +85,12 @@ class EnrollmentRequestServiceImplTest {
                 historyRepository,
                 trainingProgramRepository,
                 classroomOfferingRepository,
+                classroomSessionRepository,
                 classroomEnrollmentRepository,
                 userRepository,
                 placementEligibilityService,
                 classroomOfferingService,
+                classroomConflictService,
                 enrollmentRequestMailService,
                 authTokenService,
                 authMailService,

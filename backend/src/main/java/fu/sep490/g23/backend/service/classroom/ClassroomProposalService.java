@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.dto.request.classroom.RejectClassroomProposalReques
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 
 import java.util.List;
 
@@ -14,6 +15,12 @@ public interface ClassroomProposalService {
     ClassroomProposalResponse update(Long proposalId, CreateClassroomProposalRequest request, String staffEmail);
 
     ConflictCheckResultResponse validateSchedule(
+            CreateClassroomProposalRequest request,
+            Long excludeProposalId,
+            String staffEmail
+    );
+
+    ClassroomProposalAvailabilityResponse getAvailability(
             CreateClassroomProposalRequest request,
             Long excludeProposalId,
             String staffEmail

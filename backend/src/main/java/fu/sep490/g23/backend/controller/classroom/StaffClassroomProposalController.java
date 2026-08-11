@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +51,19 @@ public class StaffClassroomProposalController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(classroomProposalService.validateSchedule(
+                request,
+                excludeProposalId,
+                authentication.getName()
+        ));
+    }
+
+    @PostMapping("/availability")
+    public ResponseEntity<ClassroomProposalAvailabilityResponse> getAvailability(
+            @Valid @RequestBody CreateClassroomProposalRequest request,
+            @RequestParam(required = false) Long excludeProposalId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomProposalService.getAvailability(
                 request,
                 excludeProposalId,
                 authentication.getName()

@@ -32,6 +32,7 @@ import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,6 +45,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @RestController
 @RequestMapping("/api/staff/classrooms")
@@ -54,19 +57,22 @@ public class StaffClassroomController {
     private final TrainingProgramService trainingProgramService;
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
+    private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
 
     public StaffClassroomController(
             ClassroomOfferingService classroomOfferingService,
             TuitionProofService tuitionProofService,
             TrainingProgramService trainingProgramService,
             UserRepository userRepository,
-            ClassroomRoomRepository roomRepository
+            ClassroomRoomRepository roomRepository,
+            ClassroomScheduleAvailabilityService scheduleAvailabilityService
     ) {
         this.classroomOfferingService = classroomOfferingService;
         this.tuitionProofService = tuitionProofService;
         this.trainingProgramService = trainingProgramService;
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
+        this.scheduleAvailabilityService = scheduleAvailabilityService;
     }
 
     @GetMapping
@@ -100,6 +106,37 @@ public class StaffClassroomController {
                         .build())
                 .toList();
         return ResponseEntity.ok(options);
+    }
+
+    @GetMapping("/availability/teachers")
+    public ResponseEntity<List<AvailableTeacherOptionResponse>> listAvailableTeachers(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime,
+            @RequestParam(required = false) Long excludeSessionId
+    ) {
+        return ResponseEntity.ok(scheduleAvailabilityService.listAvailableTeachers(
+                sessionDate, startTime, endTime, excludeSessionId
+        ));
+    }
+
+    @GetMapping("/availability/rooms")
+    public ResponseEntity<List<AvailableRoomOptionResponse>> listAvailableRooms(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sessionDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startTime,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTime,
+            @RequestParam(required = false) Long excludeSessionId
+    ) {
+        return ResponseEntity.ok(scheduleAvailabilityService.listAvailableRooms(
+                sessionDate, startTime, endTime, excludeSessionId
+        ));
+    }
+
+    @GetMapping("/{id}/available-replacement-teachers")
+    public ResponseEntity<List<AvailableTeacherOptionResponse>> listAvailableReplacementTeachers(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(scheduleAvailabilityService.listAvailableReplacementTeachers(id));
     }
 
     @GetMapping("/training-programs")

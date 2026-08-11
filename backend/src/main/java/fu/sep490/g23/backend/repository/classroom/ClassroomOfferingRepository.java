@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface ClassroomOfferingRepository extends JpaRepository<ClassroomOffering, Long> {
@@ -51,4 +52,6 @@ public interface ClassroomOfferingRepository extends JpaRepository<ClassroomOffe
     Optional<ClassroomOffering> findByIdForUpdate(@Param("id") Long id);
 
     List<ClassroomOffering> findByEndDateBetween(LocalDate from, LocalDate to);
+
+    List<ClassroomOffering> findByStatusIn(Collection<ClassroomOfferingStatus> statuses);
 }

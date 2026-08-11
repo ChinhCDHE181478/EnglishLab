@@ -683,14 +683,15 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     // ── Teacher assignment ────────────────────────────────────────────────────
 
     private void ensureTeacherAssignment(ClassroomOffering offering, User teacher) {
-        teacherAssignmentRepository.findByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId())
-                .orElseGet(() -> teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
+        if (teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()).isEmpty()) {
+            teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
                         .classroomOffering(offering)
                         .teacher(teacher)
                         .role(ClassroomTeacherRole.PRIMARY)
                         .effectiveFrom(offering.getStartDate())
                         .reason("Giáo viên phụ trách lớp IELTS test Chinh")
-                        .build()));
+                        .build());
+        }
     }
 
     // ── Enrollment & tuition ──────────────────────────────────────────────────
