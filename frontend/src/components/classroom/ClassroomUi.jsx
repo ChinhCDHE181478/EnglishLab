@@ -170,13 +170,13 @@ export const StatusBadge = ({ status }) => {
     CANCELLED: { text: 'Đã hủy', bg: 'bg-gray-100 border-gray-200 text-gray-500' },
 
     // Classroom Offering Statuses
-    DRAFT: { text: 'Bản nháp', bg: 'bg-gray-50 border-gray-100 text-gray-600' },
-    UPCOMING: { text: 'Sắp khai giảng', bg: 'bg-blue-50 border-blue-100 text-blue-700' },
-    OPEN: { text: 'Đang mở đăng ký', bg: 'bg-emerald-50 border-emerald-100 text-emerald-700' },
-    FULL: { text: 'Đã đủ chỗ', bg: 'bg-amber-50 border-amber-100 text-amber-700' },
-    ACTIVE: { text: 'Đang học', bg: 'bg-rose-50 border-rose-100 text-[#730014] font-extrabold' },
-    IN_PROGRESS: { text: 'Đang học', bg: 'bg-rose-50 border-rose-100 text-[#730014] font-extrabold' },
-    COMPLETED: { text: 'Đã kết thúc', bg: 'bg-emerald-50 border-emerald-100 text-emerald-700' },
+    DRAFT: { text: 'Bản nháp', bg: 'bg-gray-100 border-gray-200 text-gray-600' },
+    UPCOMING: { text: 'Sắp khai giảng', bg: 'bg-blue-50 border-blue-200 text-blue-700 font-extrabold' },
+    OPEN: { text: 'Đang mở đăng ký', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700 font-extrabold' },
+    FULL: { text: 'Đã đủ chỗ', bg: 'bg-amber-50 border-amber-200 text-amber-700' },
+    ACTIVE: { text: 'Đang học', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800 font-extrabold' },
+    IN_PROGRESS: { text: 'Đang học', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800 font-extrabold' },
+    COMPLETED: { text: 'Đã kết thúc', bg: 'bg-slate-100 border-slate-200 text-slate-700 font-semibold' },
     CLOSED: { text: 'Đã đóng', bg: 'bg-gray-100 border-gray-200 text-gray-500' },
 
     // Change Request Statuses
@@ -194,7 +194,7 @@ export const StatusBadge = ({ status }) => {
   const config = configMap[status] || { text: status || 'Đang cập nhật', bg: 'bg-gray-50 border-gray-100 text-gray-600' };
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold tracking-wide ${config.bg}`}>
+    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold tracking-wide whitespace-nowrap ${config.bg}`}>
       {config.text}
     </span>
   );

@@ -13,6 +13,7 @@ import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState } from '../../components/classroom/ClassroomUi';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import FileDropzone from '../../components/ui/FileDropzone';
 import Pagination, { usePagination } from '../ui/Pagination';
 import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
@@ -341,22 +342,17 @@ function SupplementaryMaterialForm({
 
       <div className="grid gap-4">
         <TextInput label="Tiêu đề *" onChange={(value) => onChange('title', value)} placeholder="Ví dụ: Worksheet ôn tập buổi 3" value={form.title} />
-        <div className="space-y-2">
-          <span className="block text-xs font-extrabold uppercase tracking-[0.16em] text-[#584140]">Tệp đính kèm</span>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#dfbfbd] bg-[#fffafb] px-4 py-3 text-xs font-extrabold text-[#730014] hover:border-[#730014]">
-              <Paperclip className="h-4 w-4" />
-              Chọn tệp
-              <input
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
-                className="hidden"
-                onChange={(event) => onAttachmentChange(event.target.files?.[0] || null)}
-                type="file"
-              />
-            </label>
-            <span className="text-xs text-[#8a7a78]">{attachmentFile?.name || 'PDF, Word, PowerPoint, Excel hoặc ảnh; tối đa 20 MB'}</span>
-          </div>
-        </div>
+        <FileDropzone
+          accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
+          fileName={attachmentFile?.name || ''}
+          fileSize={attachmentFile?.size}
+          fileUrl={form.fileUrl}
+          hint="PDF, Word, PowerPoint, Excel, ZIP hoặc hình ảnh (tối đa 20MB)"
+          label="Tệp đính kèm tài liệu"
+          maxSizeMB={20}
+          onClear={() => { onAttachmentChange(null); onChange('fileUrl', ''); }}
+          onFileSelect={(file) => onAttachmentChange(file)}
+        />
         <TextInput disabled={Boolean(attachmentFile)} label="Hoặc dán liên kết" onChange={(value) => onChange('fileUrl', value)} placeholder="https://..." value={form.fileUrl} />
         <TextArea label="Mô tả ngắn" onChange={(value) => onChange('description', value)} placeholder="Mục đích sử dụng của tài liệu." value={form.description} />
         <FilterSelect label="Gắn với buổi học" onChange={(value) => onChange('sessionId', value)} options={sessionOptions} value={form.sessionId} />

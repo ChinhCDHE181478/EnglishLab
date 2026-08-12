@@ -1,0 +1,41 @@
+package fu.sep490.g23.backend.service.course;
+
+import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReactionRequest;
+import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
+import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReportRequest;
+import fu.sep490.g23.backend.dto.request.course.CourseDiscussionThreadRequest;
+import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseDiscussionReactionResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseDiscussionReplyResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseDiscussionThreadResponse;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+public interface CourseDiscussionService {
+    Page<CourseDiscussionThreadResponse> getCourseDiscussions(Long courseId, Long moduleId, String filter, String email, Pageable pageable);
+
+    Page<CourseDiscussionThreadResponse> getLessonDiscussions(Long courseId, Long lessonId, String filter, String email, Pageable pageable);
+
+    CourseDiscussionThreadResponse createThread(Long courseId, CourseDiscussionThreadRequest request, String email);
+
+    CourseDiscussionThreadResponse createLessonThread(Long courseId, Long lessonId, CourseDiscussionThreadRequest request, String email);
+
+    CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email);
+
+    CourseDiscussionReplyResponse toggleHelpful(Long replyId, String email);
+
+    CourseDiscussionThreadResponse toggleThreadReaction(Long threadId, CourseDiscussionReactionRequest request, String email);
+
+    CourseDiscussionReplyResponse toggleReplyReaction(Long replyId, CourseDiscussionReactionRequest request, String email);
+
+    List<CourseDiscussionReactionResponse> getThreadReactions(Long threadId);
+
+    List<CourseDiscussionReactionResponse> getReplyReactions(Long replyId);
+
+    CourseDiscussionThreadResponse markResolved(Long threadId, Long replyId, String email);
+
+    ApiResponse reportContent(CourseDiscussionReportTarget targetType, Long targetId, CourseDiscussionReportRequest request, String email);
+}

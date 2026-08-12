@@ -645,15 +645,17 @@ function RubricEditorModal({ children, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-3 py-4 sm:px-6 animate-fade-in" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
       <button
         aria-label="Đóng modal"
-        className="absolute inset-0 bg-[#1a0004]/45 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
       />
-      <div className="relative z-10 w-full max-w-[800px] pointer-events-auto bg-[#fafafa] rounded-3xl border border-[#dcc0bf]/35 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-        {children}
+      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[800px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/35 bg-[#fafafa] shadow-2xl pointer-events-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
+          {children}
+        </div>
       </div>
     </div>
   );

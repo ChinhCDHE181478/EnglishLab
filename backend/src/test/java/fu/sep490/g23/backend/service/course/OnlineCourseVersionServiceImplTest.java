@@ -1,0 +1,494 @@
+package fu.sep490.g23.backend.service.course;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sep490.g23.backend.dto.response.course.LessonResponse;
+import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewWarningResponse;
+import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
+import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
+import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
+import fu.sep490.g23.backend.service.course.impl.OnlineCourseVersionServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+@ExtendWith(MockitoExtension.class)
+class OnlineCourseVersionServiceImplTest {
+    @Mock
+    private OnlineCourseRepository onlineCourseRepository;
+    @Mock
+    private OnlineCourseVersionRepository versionRepository;
+    @Mock
+    private CourseAssessmentRepository courseAssessmentRepository;
+    @Mock
+    private LessonProgressRepository lessonProgressRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private OnlineCourseMapper mapper;
+    @Mock
+    private OnlineCoursePreviewValidator previewValidator;
+
+    private OnlineCourseVersionServiceImpl service;
+    private OnlineCourse course;
+    private OnlineCourseVersion versionOne;
+    private OnlineCourseVersion versionTwo;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        service = new OnlineCourseVersionServiceImpl(
+                onlineCourseRepository,
+                versionRepository,
+                courseAssessmentRepository,
+                lessonProgressRepository,
+                userRepository,
+                mapper,
+                previewValidator
+        );
+        LearningPackage learningPackage = LearningPackage.builder()
+                .id(11L)
+                .title("IELTS Foundation")
+                .status(PackageStatus.PUBLISHED)
+                .build();
+        course = OnlineCourse.builder()
+                .id(21L)
+                .learningPackage(learningPackage)
+                .modules(new ArrayList<>())
+                .build();
+        versionOne = OnlineCourseVersion.builder()
+                .id(31L)
+                .onlineCourse(course)
+                .versionNumber(1)
+                .status(CourseVersionStatus.PUBLISHED)
+                .contentSnapshotJson(new ObjectMapper().writeValueAsString(
+                        OnlineCourseResponse.builder().id(21L).title("Nội dung v1").modules(new ArrayList<>()).build()
+                ))
+                .totalRequiredLessons(10)
+                .build();
+        versionTwo = OnlineCourseVersion.builder()
+                .id(32L)
+                .onlineCourse(course)
+                .versionNumber(2)
+                .status(CourseVersionStatus.DRAFT)
+                .contentSnapshotJson("{}")
+                .build();
+    }
+
+    @Test
+    void previewReturnsExactlyTheSelectedVersionSnapshot() {
+        User contentManager = User.builder().id(4L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionOne.getId(), course.getId()))
+                .thenReturn(Optional.of(versionOne));
+        when(courseAssessmentRepository.findAllById(anyList())).thenReturn(List.of());
+        when(previewValidator.validate(any(), anyList())).thenReturn(List.of());
+
+        var preview = service.getVersionPreview(course.getId(), versionOne.getId(), contentManager.getEmail());
+
+        assertThat(preview.getCourse().getTitle()).isEqualTo("Nội dung v1");
+        assertThat(preview.getModules()).isEmpty();
+        assertThat(preview.isPreviewMode()).isTrue();
+    }
+
+    @Test
+    void previewCanReadSnapshotContainingFlashcardSets() throws Exception {
+        User contentManager = User.builder().id(4L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        FlashcardSetResponse flashcardSet = FlashcardSetResponse.builder()
+                .id(71L)
+                .title("IELTS Listening Vocabulary")
+                .cardsJson("[]")
+                .build();
+        LessonResponse lesson = LessonResponse.builder()
+                .id(61L)
+                .title("Lesson có flashcard")
+                .flashcardSets(List.of(flashcardSet))
+                .transcriptSegments(List.of())
+                .build();
+        ModuleResponse module = ModuleResponse.builder()
+                .id(51L)
+                .title("Module 1")
+                .lessons(List.of(lesson))
+                .build();
+        versionOne.setContentSnapshotJson(new ObjectMapper().findAndRegisterModules().writeValueAsString(
+                OnlineCourseResponse.builder()
+                        .id(course.getId())
+                        .title("Nội dung có flashcard")
+                        .modules(List.of(module))
+                        .build()
+        ));
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionOne.getId(), course.getId()))
+                .thenReturn(Optional.of(versionOne));
+        when(courseAssessmentRepository.findAllById(anyList())).thenReturn(List.of());
+        when(previewValidator.validate(any(), anyList())).thenReturn(List.of());
+
+        var preview = service.getVersionPreview(course.getId(), versionOne.getId(), contentManager.getEmail());
+
+        assertThat(preview.getModules()).singleElement()
+                .satisfies(item -> assertThat(item.getLessons()).singleElement()
+                        .satisfies(snapshotLesson -> assertThat(snapshotLesson.getFlashcardSets()).singleElement()
+                                .extracting(FlashcardSetResponse::getTitle)
+                                .isEqualTo("IELTS Listening Vocabulary")));
+    }
+
+    @Test
+    void previewIgnoresFieldsFromOlderSnapshotSchema() {
+        User contentManager = User.builder().id(4L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        versionOne.setContentSnapshotJson(
+                "{\"id\":21,\"title\":\"Nội dung cũ\",\"legacyField\":\"không còn dùng\",\"modules\":[]}"
+        );
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionOne.getId(), course.getId()))
+                .thenReturn(Optional.of(versionOne));
+        when(courseAssessmentRepository.findAllById(anyList())).thenReturn(List.of());
+        when(previewValidator.validate(any(), anyList())).thenReturn(List.of());
+
+        var preview = service.getVersionPreview(course.getId(), versionOne.getId(), contentManager.getEmail());
+
+        assertThat(preview.getCourse().getTitle()).isEqualTo("Nội dung cũ");
+    }
+
+    @Test
+    void invalidDraftSnapshotFallsBackToCurrentEditableContent() {
+        User contentManager = User.builder().id(4L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        versionTwo.setContentSnapshotJson("{invalid-json");
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionTwo.getId(), course.getId()))
+                .thenReturn(Optional.of(versionTwo));
+        when(mapper.toResponse(course)).thenReturn(
+                OnlineCourseResponse.builder().id(course.getId()).title("Nội dung bản nháp hiện tại").build()
+        );
+
+        var version = service.getVersion(course.getId(), versionTwo.getId(), contentManager.getEmail());
+
+        assertThat(version.getContent().getTitle()).isEqualTo("Nội dung bản nháp hiện tại");
+    }
+
+    @Test
+    void publishRetiresOldVersionWhileExistingEnrollmentReceivesLatestContentAndKeepsProgress() {
+        User contentManager = User.builder().id(3L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionTwo.getId(), course.getId()))
+                .thenReturn(Optional.of(versionTwo));
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionOne), Optional.of(versionTwo));
+        when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course)).thenReturn(0L);
+        when(mapper.toResponse(course)).thenReturn(
+                OnlineCourseResponse.builder().id(course.getId()).title("Nội dung v2").modules(new ArrayList<>()).build()
+        );
+
+        service.publish(course.getId(), versionTwo.getId(), contentManager.getEmail());
+
+        PackageEnrollment existingEnrollment = PackageEnrollment.builder()
+                .id(41L)
+                .courseVersion(versionOne)
+                .progressPercent(80)
+                .build();
+        OnlineCourseResponse oldContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
+        PackageEnrollment newEnrollment = PackageEnrollment.builder()
+                .id(42L)
+                .courseVersion(service.requirePublishedVersion(course))
+                .progressPercent(0)
+                .build();
+
+        assertThat(versionOne.getStatus()).isEqualTo(CourseVersionStatus.RETIRED);
+        assertThat(versionTwo.getStatus()).isEqualTo(CourseVersionStatus.PUBLISHED);
+        assertThat(existingEnrollment.getCourseVersion()).isSameAs(versionOne);
+        assertThat(newEnrollment.getCourseVersion()).isSameAs(versionTwo);
+        assertThat(oldContent.getTitle()).isEqualTo("Nội dung v2");
+        assertThat(oldContent.getProgressPercent()).isEqualTo(80);
+    }
+
+    @Test
+    void learnerCanMarkEarlierLessonIncompleteWhileUsingLatestPublishedVersion() throws Exception {
+        LessonResponse firstLesson = LessonResponse.builder().id(61L).title("Bài 1").build();
+        LessonResponse secondLesson = LessonResponse.builder().id(62L).title("Bài 2").build();
+        ModuleResponse module = ModuleResponse.builder()
+                .id(51L)
+                .title("Module mới nhất")
+                .lessons(List.of(firstLesson, secondLesson))
+                .build();
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setContentSnapshotJson(new ObjectMapper().writeValueAsString(
+                OnlineCourseResponse.builder().id(course.getId()).modules(List.of(module)).build()
+        ));
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .id(41L)
+                .learningPackage(course.getLearningPackage())
+                .courseVersion(versionOne)
+                .progressPercent(80)
+                .build();
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
+
+        assertThatCode(() -> service.assertLessonProgressTransitionAllowed(enrollment, firstLesson.getId(), false))
+                .doesNotThrowAnyException();
+        verifyNoInteractions(lessonProgressRepository);
+    }
+
+    @Test
+    void newlyInsertedLessonBeforeCompletedContentDoesNotRelockLearnerProgress() throws Exception {
+        LessonResponse insertedLesson = LessonResponse.builder().id(61L).title("Bài mới").build();
+        LessonResponse completedLaterLesson = LessonResponse.builder().id(62L).title("Bài đã học").build();
+        ModuleResponse module = ModuleResponse.builder()
+                .id(51L)
+                .title("Module mới nhất")
+                .lessons(List.of(insertedLesson, completedLaterLesson))
+                .build();
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setContentSnapshotJson(new ObjectMapper().writeValueAsString(
+                OnlineCourseResponse.builder().id(course.getId()).modules(List.of(module)).build()
+        ));
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .id(41L)
+                .learningPackage(course.getLearningPackage())
+                .courseVersion(versionOne)
+                .build();
+        LessonProgress completedProgress = LessonProgress.builder()
+                .enrollment(enrollment)
+                .lesson(Lesson.builder().id(completedLaterLesson.getId()).build())
+                .status(LessonProgressStatus.COMPLETED)
+                .build();
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of(completedProgress));
+
+        assertThatCode(() -> service.assertLessonProgressTransitionAllowed(
+                enrollment,
+                insertedLesson.getId(),
+                true
+        )).doesNotThrowAnyException();
+    }
+
+    @Test
+    void publishedAssessmentIdsAreProtectedFromDraftMutation() {
+        versionOne.setAssessmentIdsJson("[91]");
+        versionTwo.setAssessmentIdsJson("[92]");
+        when(versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course))
+                .thenReturn(List.of(versionTwo, versionOne));
+
+        assertThat(service.isAssessmentReferencedByPublishedHistory(course, 91L)).isTrue();
+        assertThat(service.isAssessmentReferencedByPublishedHistory(course, 92L)).isFalse();
+    }
+
+    @Test
+    void legacyAssessmentRowsReceiveTheSameProgressKeyAcrossPublishedVersions() {
+        CourseAssessment oldAssessment = new CourseAssessment();
+        oldAssessment.setId(91L);
+        oldAssessment.setOnlineCourse(course);
+        oldAssessment.setDisplayOrder(1);
+        oldAssessment.setProgressKey(null);
+        CourseAssessment latestAssessment = new CourseAssessment();
+        latestAssessment.setId(92L);
+        latestAssessment.setOnlineCourse(course);
+        latestAssessment.setDisplayOrder(1);
+        latestAssessment.setProgressKey(null);
+        versionOne.setStatus(CourseVersionStatus.RETIRED);
+        versionOne.setAssessmentIdsJson("[91]");
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setAssessmentIdsJson("[92]");
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .courseVersion(versionOne)
+                .learningPackage(course.getLearningPackage())
+                .build();
+
+        when(versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course))
+                .thenReturn(List.of(versionTwo, versionOne));
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
+        when(courseAssessmentRepository.findAllById(List.of(91L))).thenReturn(List.of(oldAssessment));
+        when(courseAssessmentRepository.findAllById(List.of(92L))).thenReturn(List.of(latestAssessment));
+
+        assertThat(service.getLatestPublishedAssessmentIds(enrollment)).containsExactly(92L);
+        assertThat(oldAssessment.getProgressKey()).isNotBlank();
+        assertThat(latestAssessment.getProgressKey()).isEqualTo(oldAssessment.getProgressKey());
+        verify(courseAssessmentRepository).saveAll(org.mockito.ArgumentMatchers.argThat(items ->
+                java.util.stream.StreamSupport.stream(items.spliterator(), false).count() == 2
+        ));
+    }
+
+    @Test
+    void managerCannotPublishContentManagerCourseVersion() {
+        User manager = User.builder().id(5L).email("manager@test.com").fullName("Manager").build();
+        manager.setRole(RoleEnum.MANAGER);
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+
+        assertThatThrownBy(() -> service.publish(course.getId(), versionTwo.getId(), manager.getEmail()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("chỉnh sửa phiên bản khóa học");
+    }
+
+    @Test
+    void directPublishStillBlocksInvalidContent() {
+        User contentManager = User.builder().id(6L).email("content@test.com").fullName("Content Manager").build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.findByIdAndOnlineCourseId(versionTwo.getId(), course.getId()))
+                .thenReturn(Optional.of(versionTwo));
+        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course))
+                .thenReturn(List.of());
+        when(mapper.toResponse(course)).thenReturn(OnlineCourseResponse.builder().modules(new ArrayList<>()).build());
+        when(previewValidator.validate(any(), anyList())).thenReturn(List.of(
+                OnlineCoursePreviewWarningResponse.builder()
+                        .severity("ERROR")
+                        .message("Khóa học chưa có mô-đun nào.")
+                        .build()
+        ));
+
+        assertThatThrownBy(() -> service.publish(course.getId(), versionTwo.getId(), contentManager.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Khóa học chưa có mô-đun nào");
+    }
+
+    @Test
+    void pendingVersionFromLegacyFlowRemainsEditable() {
+        User contentManager = User.builder()
+                .id(4L)
+                .email("content@test.com")
+                .fullName("Content Manager")
+                .build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        versionTwo.setStatus(CourseVersionStatus.PENDING_REVIEW);
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.DRAFT
+        )).thenReturn(Optional.empty());
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PENDING_REVIEW
+        )).thenReturn(Optional.of(versionTwo));
+
+        service.assertEditableDraft(course, contentManager.getEmail());
+    }
+
+    @Test
+    void synchronizeDraftSnapshotAlsoUpdatesLegacyPendingVersion() {
+        versionTwo.setStatus(CourseVersionStatus.PENDING_REVIEW);
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.DRAFT
+        )).thenReturn(Optional.empty());
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PENDING_REVIEW
+        )).thenReturn(Optional.of(versionTwo));
+        when(mapper.toResponse(course)).thenReturn(
+                OnlineCourseResponse.builder().id(course.getId()).title("Nội dung vừa lưu").modules(new ArrayList<>()).build()
+        );
+        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course))
+                .thenReturn(List.of());
+
+        service.synchronizeDraftSnapshot(course);
+
+        assertThat(versionTwo.getContentSnapshotJson()).contains("Nội dung vừa lưu");
+    }
+
+    @Test
+    void createDraftClonesAssessmentsAndPreservesPublishedAssessmentIds() {
+        User contentManager = User.builder()
+                .id(4L)
+                .email("content@test.com")
+                .fullName("Content Manager")
+                .build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        CourseAssessment publishedAssessment = CourseAssessment.builder()
+                .id(51L)
+                .onlineCourse(course)
+                .title("Mock test v1")
+                .displayOrder(1)
+                .active(true)
+                .build();
+        versionOne.setTotalRequiredAssessments(1);
+
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.existsByOnlineCourseAndStatusIn(course, java.util.List.of(
+                CourseVersionStatus.DRAFT,
+                CourseVersionStatus.PENDING_REVIEW
+        ))).thenReturn(false);
+        when(versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course)).thenReturn(java.util.List.of(versionOne));
+        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course))
+                .thenReturn(java.util.List.of(publishedAssessment));
+        when(courseAssessmentRepository.saveAll(anyList())).thenAnswer(invocation -> {
+            java.util.List<?> rawItems = invocation.getArgument(0);
+            java.util.List<CourseAssessment> items = rawItems.stream()
+                    .map(CourseAssessment.class::cast)
+                    .toList();
+            items.stream().filter(item -> item.getId() == null).forEach(item -> item.setId(61L));
+            return items;
+        });
+        when(versionRepository.save(org.mockito.ArgumentMatchers.any(OnlineCourseVersion.class)))
+                .thenAnswer(invocation -> {
+                    OnlineCourseVersion version = invocation.getArgument(0);
+                    version.setId(32L);
+                    return version;
+                });
+
+        CreateCourseVersionRequest request = new CreateCourseVersionRequest();
+        request.setChangeNote("Cập nhật mock test");
+        service.createDraft(course.getId(), request, contentManager.getEmail());
+
+        ArgumentCaptor<OnlineCourseVersion> versionCaptor = ArgumentCaptor.forClass(OnlineCourseVersion.class);
+        verify(versionRepository).save(versionCaptor.capture());
+        assertThat(versionOne.getAssessmentIdsJson()).isEqualTo("[51]");
+        assertThat(publishedAssessment.isActive()).isFalse();
+        assertThat(versionCaptor.getValue().getAssessmentIdsJson()).isEqualTo("[61]");
+        assertThat(versionCaptor.getValue().getChangeNote()).isEqualTo("Cập nhật mock test");
+    }
+}

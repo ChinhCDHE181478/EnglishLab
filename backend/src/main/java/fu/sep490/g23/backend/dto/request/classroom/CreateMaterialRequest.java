@@ -1,0 +1,39 @@
+package fu.sep490.g23.backend.dto.request.classroom;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CreateMaterialRequest {
+
+    @NotBlank(message = "Tiêu đề tài liệu không được để trống")
+    @Size(max = 220)
+    private String title;
+
+    @Size(max = 700)
+    private String fileUrl;
+
+    @Size(max = 80)
+    private String fileType;
+
+    @Size(max = 2000)
+    private String description;
+
+    @Size(max = 80)
+    private String materialType;
+
+    @Size(max = 120)
+    private String provider;
+
+    private String visibility;
+    private String sourceType;
+    private Long centerMaterialId;
+    private Long sessionId;
+}

@@ -1,0 +1,110 @@
+package fu.sep490.g23.backend.controller.classroom;
+
+import fu.sep490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
+import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
+import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
+import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/staff/enrollment-requests")
+@RequiredArgsConstructor
+public class StaffEnrollmentRequestController {
+    private final EnrollmentRequestService enrollmentRequestService;
+
+    @GetMapping
+    public ResponseEntity<List<CourseEnrollmentRequestResponse>> list(
+            @RequestParam(required = false) EnrollmentRequestStatus status,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.listForStaff(status, authentication.getName()));
+    }
+
+    @PostMapping("/center")
+    public ResponseEntity<CourseEnrollmentRequestResponse> createAtCenter(
+            @Valid @RequestBody CreateCenterEnrollmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.createAtCenter(request, authentication.getName()));
+    }
+
+    @PatchMapping("/{requestId}/schedule-test")
+    public ResponseEntity<CourseEnrollmentRequestResponse> scheduleTest(
+            @PathVariable Long requestId,
+            @Valid @RequestBody ScheduleEnrollmentTestRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.scheduleTest(
+                requestId,
+                request,
+                authentication.getName()
+        ));
+    }
+
+    @PatchMapping("/{requestId}/complete-test")
+    public ResponseEntity<CourseEnrollmentRequestResponse> completeTest(
+            @PathVariable Long requestId,
+            @Valid @RequestBody CompleteEnrollmentTestRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.completeTest(
+                requestId,
+                request,
+                authentication.getName()
+        ));
+    }
+
+    @PatchMapping("/{requestId}/reject")
+    public ResponseEntity<CourseEnrollmentRequestResponse> reject(
+            @PathVariable Long requestId,
+            @Valid @RequestBody RejectEnrollmentRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.reject(
+                requestId,
+                request,
+                authentication.getName()
+        ));
+    }
+
+    @PatchMapping("/{requestId}/assign-class")
+    public ResponseEntity<CourseEnrollmentRequestResponse> assignClass(
+            @PathVariable Long requestId,
+            @Valid @RequestBody AssignEnrollmentClassRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.assignClass(
+                requestId,
+                request,
+                authentication.getName()
+        ));
+    }
+
+    @GetMapping("/{requestId}/available-classrooms")
+    public ResponseEntity<List<Long>> listAvailableClassrooms(
+            @PathVariable Long requestId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(enrollmentRequestService.listAvailableClassroomIds(
+                requestId,
+                authentication.getName()
+        ));
+    }
+}

@@ -1,0 +1,55 @@
+package fu.sep490.g23.backend.dto.response.classroom;
+
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
+import lombok.Builder;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+public class ClassroomEnrollmentResponse {
+    private Long id;
+    private Long studentId;
+    private String studentName;
+    private String studentEmail;
+    private Long classroomOfferingId;
+    private String classroomTitle;
+    private ClassroomDeliveryMode deliveryMode;
+    private String deliveryModeLabel;
+    private ClassroomRegistrationStatus registrationStatus;
+    private String registrationStatusLabel;
+    private boolean holdSpot;
+    private Integer waitlistPriority;
+    private Integer waitlistPosition;
+    private Integer waitlistSize;
+    private BigDecimal tuitionAmountDue;
+    private BigDecimal tuitionAmountPaid;
+    private BigDecimal tuitionDepositPaid;
+    private BigDecimal tuitionRemaining;
+    private TuitionSettlementType tuitionSettlementType;
+    private String tuitionSettlementTypeLabel;
+    private String tuitionSettlementNote;
+    private TuitionSettlementStatus tuitionSettlementStatus;
+    private String tuitionSettlementStatusLabel;
+    private LocalDateTime tuitionSettlementResolvedAt;
+    private String tuitionSettlementResolvedByName;
+    private String tuitionSettlementResolutionNote;
+    private boolean hasClassAccess;
+    private Long transferredFromEnrollmentId;
+    private LocalDateTime enrolledAt;
+    private LocalDateTime assignedAt;
+    private String assignedByName;
+    private String assignmentNote;
+    private LocalDateTime confirmedAt;
+    private String confirmedByName;
+    private LocalDateTime tuitionRecordedAt;
+    private String tuitionRecordedByName;
+    private String note;
+    private List<ClassroomTuitionPaymentResponse> tuitionPayments;
+}
