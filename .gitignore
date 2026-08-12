@@ -15,6 +15,7 @@ scripts/
 .cursor/
 
 # Local IDE / runtime artifacts
+.vscode/
 .idea/
 frontend/dist/
 frontend/*.log

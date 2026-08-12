@@ -301,6 +301,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .description(trimOrNull(request.getDescription()))
                 .sessionPlan(trimOrNull(request.getSessionPlan()))
                 .build();
+        program.addUnit(unit);
         return toUnitResponse(unitRepository.save(unit));
     }
 

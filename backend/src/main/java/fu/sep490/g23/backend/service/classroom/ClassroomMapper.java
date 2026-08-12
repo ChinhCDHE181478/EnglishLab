@@ -422,17 +422,52 @@ public class ClassroomMapper {
     }
 
     public ClassroomAttendanceResponse toAttendanceResponse(ClassroomAttendance attendance) {
+        ClassroomSession session = attendance.getSession();
+        ClassroomOffering offering = session.getClassroomOffering();
         return ClassroomAttendanceResponse.builder()
                 .id(attendance.getId())
-                .sessionId(attendance.getSession().getId())
+                .sessionId(session.getId())
                 .studentId(attendance.getStudent().getId())
                 .studentName(attendance.getStudent().getFullName())
+                .studentEmail(attendance.getStudent().getEmail())
                 .status(attendance.getStatus())
                 .note(attendance.getNote())
                 .joinTime(attendance.getJoinTime())
                 .leaveTime(attendance.getLeaveTime())
                 .durationMinutes(attendance.getDurationMinutes())
                 .teacherConfirmed(attendance.isTeacherConfirmed())
+                .sessionDate(session.getSessionDate())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .classroomTitle(offering.getLearningPackage() != null ? offering.getLearningPackage().getTitle() : null)
+                .classroomOfferingId(offering.getId())
+                .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
+                .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
+                .larkMeetingUrl(session.getLarkMeetingUrl())
+                .larkSyncError(session.getLarkSyncError())
+                .build();
+    }
+
+    /**
+     * Build a placeholder attendance response for an enrolled student who does not
+     * yet have an attendance record for the given session.
+     */
+    public ClassroomAttendanceResponse toPlaceholderAttendanceResponse(ClassroomSession session, User student) {
+        ClassroomOffering offering = session.getClassroomOffering();
+        return ClassroomAttendanceResponse.builder()
+                .sessionId(session.getId())
+                .studentId(student.getId())
+                .studentName(student.getFullName())
+                .studentEmail(student.getEmail())
+                .sessionDate(session.getSessionDate())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .classroomTitle(offering.getLearningPackage() != null ? offering.getLearningPackage().getTitle() : null)
+                .classroomOfferingId(offering.getId())
+                .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
+                .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
+                .larkMeetingUrl(session.getLarkMeetingUrl())
+                .larkSyncError(session.getLarkSyncError())
                 .build();
     }
 

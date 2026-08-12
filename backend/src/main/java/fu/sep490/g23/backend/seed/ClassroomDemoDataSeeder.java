@@ -937,6 +937,105 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         jdbcTemplate.update("delete from users where id = ?", userId);
     }
 
+    /*
+     * Session-template persistence was removed from the current classroom model.
+     * Keep the former demo data below disabled until the feature is reintroduced.
+    private void seedSessionTemplates() {
+        User staff = userRepository.findByEmail("staff@englishlab.vn").orElse(null);
+
+        ensureSessionTemplate(
+                "Tối 246 (18:30–20:30)",
+                """
+                [{"dayOfWeek":1,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":3,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":5,"startTime":"18:30","endTime":"20:30"}]
+                """.trim(),
+                "Lịch tối Thứ 2-4-6. Dùng khi demo sinh lịch cho lớp IELTS/TOEIC tại trung tâm.",
+                "Warm-up 10 phút → giảng mới 50 phút → luyện tập 40 phút → nhận xét & giao bài 20 phút.",
+                "Pair work, role-play, error correction board.",
+                "Làm bài tập củng cố trong workbook và nộp trước buổi kế tiếp.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Tối 357 (18:30–20:30)",
+                """
+                [{"dayOfWeek":2,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":4,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":6,"startTime":"18:30","endTime":"20:30"}]
+                """.trim(),
+                "Lịch tối Thứ 3-5-7. Phù hợp lớp ca tối xen kẽ với ca 246.",
+                "Ôn nhanh 10 phút → input 45 phút → practice 45 phút → wrap-up 20 phút.",
+                "Group discussion, peer feedback, mini presentation.",
+                "Ôn từ vựng buổi học và làm 1 bài listening ngắn.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Sáng cuối tuần (08:00–10:00)",
+                """
+                [{"dayOfWeek":6,"startTime":"08:00","endTime":"10:00"},{"dayOfWeek":7,"startTime":"08:00","endTime":"10:00"}]
+                """.trim(),
+                "Lịch sáng Thứ 7 và Chủ nhật. Phù hợp học viên đi học cuối tuần.",
+                "Check-in 10 phút → skill focus 60 phút → workshop 40 phút → homework brief 10 phút.",
+                "Speaking circle, writing clinic, mock quiz.",
+                "Hoàn thành worksheet cuối tuần và mang lại buổi kế tiếp.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Chiều 246 (14:00–16:00)",
+                """
+                [{"dayOfWeek":1,"startTime":"14:00","endTime":"16:00"},{"dayOfWeek":3,"startTime":"14:00","endTime":"16:00"},{"dayOfWeek":5,"startTime":"14:00","endTime":"16:00"}]
+                """.trim(),
+                "Lịch chiều Thứ 2-4-6. Dùng cho lớp học sinh/sinh viên học ca chiều.",
+                "Review homework 15 phút → giảng mới 50 phút → practice 40 phút → Q&A 15 phút.",
+                "Board race, vocabulary games, short reading race.",
+                "Làm 1 unit workbook và ghi lại 5 lỗi cần sửa.",
+                120,
+                staff
+        );
+
+        log.info("Classroom session templates are ready for demo.");
+    }
+
+    private void ensureSessionTemplate(
+            String name,
+            String slotsJson,
+            String description,
+            String teacherGuide,
+            String interactionActivities,
+            String postSessionHomework,
+            Integer defaultDurationMinutes,
+            User createdBy
+    ) {
+        sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
+            existing.setSlotsJson(slotsJson);
+            existing.setDescription(description);
+            existing.setTeacherGuide(teacherGuide);
+            existing.setInteractionActivities(interactionActivities);
+            existing.setPostSessionHomework(postSessionHomework);
+            existing.setDefaultDurationMinutes(defaultDurationMinutes);
+            existing.setActive(true);
+            if (existing.getCreatedBy() == null && createdBy != null) {
+                existing.setCreatedBy(createdBy);
+            }
+            sessionTemplateRepository.save(existing);
+        }, () -> sessionTemplateRepository.save(ClassroomSessionTemplate.builder()
+                .name(name)
+                .slotsJson(slotsJson)
+                .description(description)
+                .teacherGuide(teacherGuide)
+                .interactionActivities(interactionActivities)
+                .postSessionHomework(postSessionHomework)
+                .defaultDurationMinutes(defaultDurationMinutes)
+                .active(true)
+                .createdBy(createdBy)
+                .build()));
+    }
+
+    }
+    */
+
     private User ensureUser(String email, String fullName, RoleEnum role) {
         User user = userRepository.findByEmail(email).map(existing -> {
             userRoleService.replaceRoles(existing, role);

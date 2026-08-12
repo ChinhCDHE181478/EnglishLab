@@ -145,6 +145,33 @@ export default function TeacherClassroomPage() {
 
   // Build a beautiful student roster using gradebook entries
   const studentRoster = useMemo(() => {
+    const gradebookByStudentId = new Map(
+      gradebook.map((entry) => [String(entry.studentId || entry.id), entry]),
+    );
+    const enrolledLearners = (classroom?.enrollments || []).filter(
+      (enrollment) => enrollment.registrationStatus === 'ASSIGNED',
+    );
+
+    // Gradebook rows are created after enrollment. Read the class roster first
+    // so learners in every new classroom remain visible before grading begins.
+    if (enrolledLearners.length) {
+      return enrolledLearners.map((enrollment) => {
+        const entry = gradebookByStudentId.get(String(enrollment.studentId));
+        return {
+          id: enrollment.studentId || enrollment.id,
+          name: enrollment.studentName || entry?.studentName || `Learner #${enrollment.studentId}`,
+          email: enrollment.studentEmail || entry?.studentEmail || 'Not available',
+          attendance: entry?.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
+          assignmentScore: entry?.homeworkAverage ?? '—',
+          result: entry ? formatGradebookFinalResult(entry.finalResult) : '—',
+          isAtRisk: entry?.attendancePercent != null && entry.attendancePercent < 80,
+        };
+      });
+    }
+
+    // Gradebook data is supplemental and must never create roster members.
+    return [];
+    /* Legacy gradebook fallback intentionally disabled.
     if (!gradebook.length) return [];
     return gradebook.map((entry) => ({
       id: entry.studentId || entry.id,
@@ -155,7 +182,8 @@ export default function TeacherClassroomPage() {
       result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
     }));
-  }, [gradebook]);
+    */
+  }, [classroom?.enrollments, gradebook]);
 
   // Group sessions into upcoming vs past
   const { upcomingSessions, pastSessions } = useMemo(() => {
@@ -167,12 +195,12 @@ export default function TeacherClassroomPage() {
 
   // Teacher-level stats
   const teacherStats = useMemo(() => ({
-    enrolled: gradebook.length,
-    atRisk: gradebook.filter((e) => e.attendancePercent != null && e.attendancePercent < 80).length,
+    enrolled: studentRoster.length,
+    atRisk: studentRoster.filter((student) => student.isAtRisk).length,
     pendingGrading: homework.reduce((sum, item) => sum + (item.pendingGradingCount || 0), 0),
     completed: pastSessions.length,
     upcoming: upcomingSessions.length,
-  }), [gradebook, homework, pastSessions, upcomingSessions]);
+  }), [studentRoster, homework, pastSessions, upcomingSessions]);
 
   const renderChangeRequestForm = () => (
     <TeacherChangeRequestForm
