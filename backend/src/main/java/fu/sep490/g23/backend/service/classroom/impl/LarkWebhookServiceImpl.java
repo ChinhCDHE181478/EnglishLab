@@ -1,13 +1,14 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.service.classroom.LarkProperties;
 import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import fu.sep490.g23.backend.service.classroom.LarkWebhookService;
 
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
@@ -211,6 +212,6 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
             return null;
         }
         String openId = participantKey.substring("open_id:".length());
-        return userRepository.findByLarkOpenId(openId).map(fu.sep490.g23.backend.entity.User::getId).orElse(null);
+        return userRepository.findByLarkOpenId(openId).map(User::getId).orElse(null);
     }
 }

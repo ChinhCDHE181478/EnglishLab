@@ -1,17 +1,23 @@
 package fu.sep490.g23.backend.service.curriculum.impl;
 
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumAssessmentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumExerciseRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumFlashcardRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -37,6 +43,8 @@ class CurriculumProgramServiceImplTest {
 
     @Mock private CurriculumProgramRepository programRepository;
     @Mock private CurriculumUnitRepository unitRepository;
+    @Mock private CurriculumSessionPlanRepository sessionPlanRepository;
+    @Mock private ClassroomSessionRepository classroomSessionRepository;
     @Mock private CurriculumMaterialRefRepository materialRefRepository;
     @Mock private CurriculumExerciseRefRepository exerciseRefRepository;
     @Mock private CurriculumAssessmentRefRepository assessmentRefRepository;
@@ -159,6 +167,194 @@ class CurriculumProgramServiceImplTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("IELTS, TOEIC hoặc General English");
         verify(programRepository, never()).save(any());
+    }
+
+    @Test
+    void createSessionPlanPersistsAndSynchronizesTotalSessions() {
+        CurriculumUnit unit = unit(10L, program(1L));
+        CurriculumSessionPlanRequest request = sessionPlanRequest(1, "Reading Overview");
+        when(unitRepository.findById(10L)).thenReturn(Optional.of(unit));
+        when(sessionPlanRepository.existsDuplicateSessionNumber(1L, 1, null)).thenReturn(false);
+        when(sessionPlanRepository.save(any(CurriculumSessionPlan.class))).thenAnswer(invocation -> {
+            CurriculumSessionPlan saved = invocation.getArgument(0);
+            saved.setId(101L);
+            return saved;
+        });
+        when(sessionPlanRepository.countByProgramId(1L)).thenReturn(1L);
+
+        var response = service.createSessionPlan(10L, request);
+
+        assertThat(response.getSessionNumber()).isEqualTo(1);
+        assertThat(response.getTitle()).isEqualTo("Reading Overview");
+        assertThat(unit.getProgram().getTotalSessions()).isEqualTo(1);
+        verify(programRepository).save(unit.getProgram());
+    }
+
+    @Test
+    void updateSessionPlanPersistsChanges() {
+        CurriculumSessionPlan plan = plan(101L, unit(10L, program(1L)), 1, "Cũ");
+        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(plan));
+        when(sessionPlanRepository.existsDuplicateSessionNumber(1L, 2, 101L)).thenReturn(false);
+        when(sessionPlanRepository.save(plan)).thenReturn(plan);
+
+        var response = service.updateSessionPlan(101L, sessionPlanRequest(2, "Scanning + Keywords"));
+
+        assertThat(response.getSessionNumber()).isEqualTo(2);
+        assertThat(response.getTitle()).isEqualTo("Scanning + Keywords");
+    }
+
+    @Test
+    void createSessionPlanRejectsNumberBelowOne() {
+        when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
+
+        assertThatThrownBy(() -> service.createSessionPlan(10L, sessionPlanRequest(0, "Sai")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("bắt đầu từ 1");
+        verify(sessionPlanRepository, never()).save(any());
+    }
+
+    @Test
+    void createSessionPlanRejectsDuplicateNumberInsideProgram() {
+        when(unitRepository.findById(10L)).thenReturn(Optional.of(unit(10L, program(1L))));
+        when(sessionPlanRepository.existsDuplicateSessionNumber(1L, 1, null)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createSessionPlan(10L, sessionPlanRequest(1, "Trùng")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Buổi 1 đã tồn tại");
+    }
+
+    @Test
+    void differentProgramsMayBothUseSessionNumberOne() {
+        CurriculumUnit firstUnit = unit(10L, program(1L));
+        CurriculumUnit secondUnit = unit(20L, program(2L));
+        when(unitRepository.findById(10L)).thenReturn(Optional.of(firstUnit));
+        when(unitRepository.findById(20L)).thenReturn(Optional.of(secondUnit));
+        when(sessionPlanRepository.existsDuplicateSessionNumber(any(), any(), any())).thenReturn(false);
+        when(sessionPlanRepository.save(any(CurriculumSessionPlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.createSessionPlan(10L, sessionPlanRequest(1, "Program A"));
+        service.createSessionPlan(20L, sessionPlanRequest(1, "Program B"));
+
+        verify(sessionPlanRepository).existsDuplicateSessionNumber(1L, 1, null);
+        verify(sessionPlanRepository).existsDuplicateSessionNumber(2L, 1, null);
+    }
+
+    @Test
+    void deleteUnusedSessionPlanSucceedsAndSynchronizesTotal() {
+        CurriculumProgram program = program(1L);
+        CurriculumSessionPlan plan = plan(101L, unit(10L, program), 1, "Reading");
+        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(plan));
+        when(classroomSessionRepository.existsByCurriculumSessionPlanId(101L)).thenReturn(false);
+        when(sessionPlanRepository.countByProgramId(1L)).thenReturn(0L);
+
+        service.deleteSessionPlan(101L);
+
+        verify(sessionPlanRepository).delete(plan);
+        assertThat(program.getTotalSessions()).isZero();
+    }
+
+    @Test
+    void deleteUsedSessionPlanIsRejected() {
+        CurriculumSessionPlan plan = plan(101L, unit(10L, program(1L)), 5, "Multiple Choice");
+        when(sessionPlanRepository.findById(101L)).thenReturn(Optional.of(plan));
+        when(classroomSessionRepository.existsByCurriculumSessionPlanId(101L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.deleteSessionPlan(101L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Buổi 5 đã được sử dụng trong lớp học và không thể xóa.");
+        verify(sessionPlanRepository, never()).delete(any());
+    }
+
+    @Test
+    void publishStructuredCurriculumWithContinuousSessionsSucceeds() {
+        CurriculumProgram program = publishableProgram(1, 2, 3);
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+        when(accessHelper.requireUser("manager@englishlab.vn")).thenReturn(User.builder().id(99L).build());
+        when(programRepository.save(program)).thenReturn(program);
+
+        service.publishProgram(1L, "manager@englishlab.vn");
+
+        assertThat(program.getStatus()).isEqualTo("PUBLISHED");
+        assertThat(program.getTotalSessions()).isEqualTo(3);
+    }
+
+    @Test
+    void publishStructuredCurriculumRejectsMissingSessionNumber() {
+        CurriculumProgram program = publishableProgram(1, 2, 4);
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+
+        assertThatThrownBy(() -> service.publishProgram(1L, "manager@englishlab.vn"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("thiếu buổi 3");
+    }
+
+    @Test
+    void publishStructuredCurriculumRejectsMismatchedTotalSessions() {
+        CurriculumProgram program = publishableProgram(1, 2, 3);
+        program.setTotalSessions(4);
+        when(programRepository.findById(1L)).thenReturn(Optional.of(program));
+
+        assertThatThrownBy(() -> service.publishProgram(1L, "manager@englishlab.vn"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("phải bằng 3");
+    }
+
+    private CurriculumProgram publishableProgram(int... sessionNumbers) {
+        CurriculumProgram program = program(1L);
+        program.setTitle("General English Foundation");
+        program.setCode("GE-A1");
+        program.setSlug("general-english-a1");
+        program.setStatus("DRAFT");
+        program.setExamCategory("GENERAL_ENGLISH");
+        program.setProgramTrack("GENERAL_ENGLISH_FOUNDATION");
+        program.setFocusSkills("LISTENING,READING");
+        program.setEntryLevel("A1");
+        program.setOutcomes("Hoàn thành nền tảng A1.");
+        CurriculumUnit unit = unit(10L, program);
+        program.getUnits().add(unit);
+        for (int number : sessionNumbers) {
+            unit.addSessionPlan(plan((long) number, unit, number, "Buổi " + number));
+        }
+        program.setTotalSessions(sessionNumbers.length);
+        return program;
+    }
+
+    private CurriculumProgram program(Long id) {
+        return CurriculumProgram.builder()
+                .id(id)
+                .deliveryMode(ClassroomDeliveryMode.OFFLINE)
+                .status("DRAFT")
+                .totalSessions(0)
+                .build();
+    }
+
+    private CurriculumUnit unit(Long id, CurriculumProgram program) {
+        return CurriculumUnit.builder()
+                .id(id)
+                .program(program)
+                .title("Reading Fundamentals")
+                .displayOrder(1)
+                .build();
+    }
+
+    private CurriculumSessionPlan plan(Long id, CurriculumUnit unit, int number, String title) {
+        return CurriculumSessionPlan.builder()
+                .id(id)
+                .unit(unit)
+                .sessionNumber(number)
+                .displayOrder(number)
+                .title(title)
+                .build();
+    }
+
+    private CurriculumSessionPlanRequest sessionPlanRequest(int number, String title) {
+        CurriculumSessionPlanRequest request = new CurriculumSessionPlanRequest();
+        request.setSessionNumber(number);
+        request.setDisplayOrder(number);
+        request.setTitle(title);
+        request.setDescription("Mô tả");
+        request.setLearningObjectives("Mục tiêu");
+        return request;
     }
 
     private CurriculumProgramRequest validIeltsRequest() {

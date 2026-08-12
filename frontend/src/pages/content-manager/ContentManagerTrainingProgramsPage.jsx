@@ -23,83 +23,11 @@ import {
   ERROR_NOTICE_CLASS,
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
-
-const downloadProgramExcelTemplate = async () => {
-  const XLSX = await import('@e965/xlsx');
-  const rows = [
-    ['Tên chương trình đào tạo / Khóa học', 'Tên unit/buổi học', 'Mô tả & Mục tiêu buổi học'],
-    ['IELTS Intensive 6.5+', 'Buổi 1: Tổng quan IELTS Writing Task 2', 'Phân tích dạng đề Opinion Essay và tiêu chí Task Response.'],
-    ['', 'Buổi 2: Phương pháp phát triển ý tưởng', 'Học kỹ thuật PEEL (Point, Explanation, Example, Link)'],
-    ['', 'Buổi 3: Vocabulary & Collocations về Topic Education', 'Tích lũy 25 collocations C1/C2 chủ đề Giáo dục'],
-    ['', 'Buổi 4: IELTS Speaking Part 2 Strategy', 'Luyện tập Mindmap và cách kéo dài câu trả lời 2 phút.'],
-  ];
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
-  worksheet['!cols'] = [{ wch: 30 }, { wch: 45 }, { wch: 60 }];
-  worksheet['!autofilter'] = { ref: 'A1:C5' };
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Khung_Chuong_Trinh');
-  XLSX.writeFile(workbook, 'Mau_Import_Chuong_Trinh_Dao_Tao.xlsx');
-};
-
-const parseProgramExcelFile = async (file) => {
-  const XLSX = await import('@e965/xlsx');
-  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-
-  if (!rows || rows.length < 2) {
-    throw new Error('Tệp Excel không chứa dữ liệu hoặc sai định dạng.');
-  }
-
-  let programTitle = '';
-  const units = [];
-  const secondHeader = String(rows[0]?.[1] || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-  const hasLegacyCodeColumn = secondHeader.includes('ma giao trinh')
-    || secondHeader.includes('ma chuong trinh');
-  const unitColumn = hasLegacyCodeColumn ? 2 : 1;
-  const descriptionColumn = hasLegacyCodeColumn ? 3 : 2;
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row || !row.length) continue;
-    const c0 = String(row[0] || '').trim();
-    const unitTitle = String(row[unitColumn] || '').trim();
-    const description = String(row[descriptionColumn] || '').trim();
-
-    if (c0 && !programTitle) programTitle = c0;
-
-    if (unitTitle) {
-      units.push({
-        displayOrder: units.length + 1,
-        title: unitTitle,
-        description: description || null,
-      });
-    } else if (c0) {
-      if (!programTitle) {
-        programTitle = c0;
-      } else if (c0 !== programTitle) {
-        units.push({
-          displayOrder: units.length + 1,
-          title: c0,
-          description: description || null,
-        });
-      }
-    }
-  }
-
-  if (!programTitle && !units.length) {
-    throw new Error('Không tìm thấy tên khóa học hoặc danh sách unit trong tệp Excel.');
-  }
-
-  return {
-    programTitle: programTitle || file.name.replace(/\.[^/.]+$/, ''),
-    units,
-    fileName: file.name,
-  };
-};
+import {
+  downloadCurriculumExcelTemplate,
+  importCurriculumUnitsWithSessionPlans,
+  parseCurriculumExcelFile,
+} from '../../utils/curriculumExcel';
 
 const modeConfig = {
   OFFLINE: {
@@ -225,7 +153,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     setExcelError('');
     setParsedExcel(null);
     try {
-      const parsed = await parseProgramExcelFile(file);
+      const parsed = await parseCurriculumExcelFile(file);
       setParsedExcel(parsed);
     } catch (err) {
       setExcelError(err.message || 'Không đọc được tệp Excel.');
@@ -240,27 +168,28 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     setExcelError('');
     try {
       const curriculum = await curriculumApi.createCurriculumProgram({
-        title: parsedExcel.programTitle,
+        title: parsedExcel.title,
         examCategory: 'GENERAL_ENGLISH',
         programTrack: 'GENERAL_ENGLISH_COMMUNICATION',
         focusSkills: 'LISTENING,SPEAKING,VOCABULARY,COMMUNICATION',
         entryLevel: 'B1',
         deliveryMode: config.deliveryMode,
         outcomes: 'Nội dung khởi tạo từ tệp Excel',
-        totalSessions: parsedExcel.units.length,
+        totalSessions: 0,
         status: 'DRAFT',
       });
 
-      if (parsedExcel.units?.length) {
-        for (const unit of parsedExcel.units) {
-          try {
-            await curriculumApi.createCurriculumUnit(curriculum.id, unit);
-          } catch {}
-        }
+      const importResult = await importCurriculumUnitsWithSessionPlans(
+        curriculumApi,
+        curriculum.id,
+        parsedExcel.units,
+      );
+      if (importResult.failures.length) {
+        throw new Error(importResult.failures.join(' '));
       }
 
       const createdProgram = await classroomApi.createContentManagerProgram({
-        title: parsedExcel.programTitle,
+        title: parsedExcel.title,
         deliveryType: config.deliveryMode,
         curriculumProgramId: curriculum.id,
         status: 'DRAFT',
@@ -272,7 +201,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
       setParsedExcel(null);
       navigate(`${detailBasePath}/${createdProgram.id}/builder`);
     } catch (err) {
-      setExcelError(err?.response?.data?.message || 'Chưa thể tạo khóa học từ Excel. Bạn vẫn có thể tạo thủ công.');
+      setExcelError(err?.response?.data?.message || err?.message || 'Chưa thể tạo khóa học từ Excel. Bạn vẫn có thể tạo thủ công.');
     } finally {
       setExcelImporting(false);
     }
@@ -503,10 +432,6 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
               </button>
             </div>
 
-            <p className="text-xs leading-5 text-[#584140]">
-              Tải lên tệp Excel (.xlsx). Hệ thống sẽ trích xuất {config.deliveryMode === 'CURRICULUM' ? 'Tên chương trình' : 'Tên khóa học'} và danh sách Unit/Buổi học để tạo bản nháp ngay lập tức.
-            </p>
-
             <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#dfbfbd] bg-[#fffafb] p-6 text-center transition hover:border-[#8a0018]">
               <UploadCloud className="h-10 w-10 text-[#8a0018]" />
               <p className="mt-3 text-sm font-bold text-[#2b2828]">Chọn hoặc kéo thả tệp Excel vào đây</p>
@@ -527,7 +452,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8a0018] hover:underline"
-                onClick={downloadProgramExcelTemplate}
+                onClick={downloadCurriculumExcelTemplate}
               >
                 <Download className="h-3.5 w-3.5" /> Tải bản mẫu Excel chuẩn
               </button>
@@ -551,9 +476,10 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Đã đọc tệp thành công: {parsedExcel.fileName}
                 </div>
                 <div className="text-xs text-slate-700 space-y-1 pl-6">
-                  <p><strong>Tên khóa học:</strong> {parsedExcel.programTitle}</p>
+                  <p><strong>Tên chương trình:</strong> {parsedExcel.title}</p>
                   <p><strong>Mã:</strong> Hệ thống sẽ tự tạo khi khởi tạo</p>
-                  <p><strong>Số lượng Unit trích xuất:</strong> {parsedExcel.units.length} buổi học</p>
+                  <p><strong>Số Unit:</strong> {parsedExcel.units.length}</p>
+                  <p><strong>Tổng số buổi:</strong> {parsedExcel.units.reduce((total, unit) => total + unit.sessionPlans.length, 0)}</p>
                 </div>
               </div>
             )}

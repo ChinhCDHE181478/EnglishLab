@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.service.curriculum.impl;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
@@ -10,6 +11,7 @@ import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
@@ -26,17 +28,20 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumAssessmentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumExerciseRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumFlashcardRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.entity.User;
@@ -96,6 +101,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     private final CurriculumProgramRepository programRepository;
     private final CurriculumUnitRepository unitRepository;
+    private final CurriculumSessionPlanRepository sessionPlanRepository;
+    private final ClassroomSessionRepository classroomSessionRepository;
     private final CurriculumMaterialRefRepository materialRefRepository;
     private final CurriculumExerciseRefRepository exerciseRefRepository;
     private final CurriculumAssessmentRefRepository assessmentRefRepository;
@@ -141,7 +148,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         applyEnglishProfile(program, request);
         applyVirtualConfig(program, request);
         if ("PUBLISHED".equals(program.getStatus())) {
-            throw new RuntimeException("Giáo trình mới tạo chưa có unit/buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
+            throw new RuntimeException("Giáo trình mới tạo chưa có Unit và buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
         }
         return toProgramResponse(programRepository.save(program), true);
     }
@@ -163,7 +170,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setOutcomes(trimOrNull(request.getOutcomes()));
         program.setTeacherGuide(trimOrNull(request.getTeacherGuide()));
         program.setInteractionActivities(trimOrNull(request.getInteractionActivities()));
-        program.setTotalSessions(defaultInt(request.getTotalSessions()));
+        program.setTotalSessions(resolveTotalSessions(program, request.getTotalSessions()));
         String previousStatus = program.getStatus();
         String nextStatus = defaultText(request.getStatus(), "DRAFT").toUpperCase(Locale.ROOT);
         if ("PUBLISHED".equals(nextStatus) && !"PUBLISHED".equals(previousStatus)) {
@@ -202,10 +209,11 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .targetBand(source.getTargetBand())
                 .targetScore(source.getTargetScore())
                 .entryLevel(source.getEntryLevel())
+                .entryPlacementLevel(source.getEntryPlacementLevel())
                 .outcomes(source.getOutcomes())
                 .teacherGuide(source.getTeacherGuide())
                 .interactionActivities(source.getInteractionActivities())
-                .totalSessions(source.getTotalSessions())
+                .totalSessions(resolveTotalSessions(source, source.getTotalSessions()))
                 .status("DRAFT")
                 .displayOrder(source.getDisplayOrder())
                 .virtualPlatform(source.getVirtualPlatform())
@@ -254,6 +262,13 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                     .displayOrder(ref.getDisplayOrder())
                     .note(ref.getNote())
                     .build()));
+            unit.getSessionPlans().forEach(sessionPlan -> unitClone.addSessionPlan(CurriculumSessionPlan.builder()
+                    .sessionNumber(sessionPlan.getSessionNumber())
+                    .displayOrder(sessionPlan.getDisplayOrder())
+                    .title(sessionPlan.getTitle())
+                    .description(sessionPlan.getDescription())
+                    .learningObjectives(sessionPlan.getLearningObjectives())
+                    .build()));
         }
         return toProgramResponse(programRepository.save(clone), true);
     }
@@ -282,7 +297,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         CurriculumUnit unit = CurriculumUnit.builder()
                 .program(program)
                 .displayOrder(defaultInt(request.getDisplayOrder()))
-                .title(requireText(request.getTitle(), "Tên unit/buổi học không được để trống."))
+                .title(requireText(request.getTitle(), "Tên Unit không được để trống."))
                 .description(trimOrNull(request.getDescription()))
                 .sessionPlan(trimOrNull(request.getSessionPlan()))
                 .build();
@@ -293,7 +308,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     public CurriculumUnitResponse updateUnit(Long unitId, CurriculumUnitRequest request) {
         CurriculumUnit unit = findUnit(unitId);
         unit.setDisplayOrder(defaultInt(request.getDisplayOrder()));
-        unit.setTitle(requireText(request.getTitle(), "Tên unit/buổi học không được để trống."));
+        unit.setTitle(requireText(request.getTitle(), "Tên Unit không được để trống."));
         unit.setDescription(trimOrNull(request.getDescription()));
         unit.setSessionPlan(trimOrNull(request.getSessionPlan()));
         return toUnitResponse(unitRepository.save(unit));
@@ -301,7 +316,69 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     @Override
     public void deleteUnit(Long unitId) {
-        unitRepository.delete(findUnit(unitId));
+        CurriculumUnit unit = findUnit(unitId);
+        if (classroomSessionRepository.existsByCurriculumSessionPlanUnitId(unitId)) {
+            throw new IllegalArgumentException("Unit đã có buổi học được sử dụng trong lớp và không thể xóa.");
+        }
+        CurriculumProgram program = unit.getProgram();
+        unitRepository.delete(unit);
+        unitRepository.flush();
+        synchronizeTotalSessions(program);
+    }
+
+    @Override
+    public CurriculumSessionPlanResponse createSessionPlan(
+            Long unitId,
+            CurriculumSessionPlanRequest request
+    ) {
+        CurriculumUnit unit = findUnit(unitId);
+        validateSessionPlanRequest(request);
+        assertSessionNumberAvailable(unit.getProgram().getId(), request.getSessionNumber(), null);
+        CurriculumSessionPlan sessionPlan = CurriculumSessionPlan.builder()
+                .unit(unit)
+                .sessionNumber(request.getSessionNumber())
+                .displayOrder(defaultInt(request.getDisplayOrder()))
+                .title(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."))
+                .description(trimOrNull(request.getDescription()))
+                .learningObjectives(trimOrNull(request.getLearningObjectives()))
+                .build();
+        sessionPlan = sessionPlanRepository.save(sessionPlan);
+        synchronizeTotalSessions(unit.getProgram());
+        return toSessionPlanResponse(sessionPlan);
+    }
+
+    @Override
+    public CurriculumSessionPlanResponse updateSessionPlan(
+            Long sessionPlanId,
+            CurriculumSessionPlanRequest request
+    ) {
+        CurriculumSessionPlan sessionPlan = findSessionPlan(sessionPlanId);
+        validateSessionPlanRequest(request);
+        assertSessionNumberAvailable(
+                sessionPlan.getUnit().getProgram().getId(),
+                request.getSessionNumber(),
+                sessionPlanId
+        );
+        sessionPlan.setSessionNumber(request.getSessionNumber());
+        sessionPlan.setDisplayOrder(defaultInt(request.getDisplayOrder()));
+        sessionPlan.setTitle(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."));
+        sessionPlan.setDescription(trimOrNull(request.getDescription()));
+        sessionPlan.setLearningObjectives(trimOrNull(request.getLearningObjectives()));
+        return toSessionPlanResponse(sessionPlanRepository.save(sessionPlan));
+    }
+
+    @Override
+    public void deleteSessionPlan(Long sessionPlanId) {
+        CurriculumSessionPlan sessionPlan = findSessionPlan(sessionPlanId);
+        if (classroomSessionRepository.existsByCurriculumSessionPlanId(sessionPlanId)) {
+            throw new IllegalArgumentException(
+                    "Buổi " + sessionPlan.getSessionNumber() + " đã được sử dụng trong lớp học và không thể xóa."
+            );
+        }
+        CurriculumProgram program = sessionPlan.getUnit().getProgram();
+        sessionPlanRepository.delete(sessionPlan);
+        sessionPlanRepository.flush();
+        synchronizeTotalSessions(program);
     }
 
     @Override
@@ -534,7 +611,12 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     private CurriculumUnit findUnit(Long id) {
         return unitRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy unit/buổi học trong giáo trình."));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Unit trong giáo trình."));
+    }
+
+    private CurriculumSessionPlan findSessionPlan(Long id) {
+        return sessionPlanRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học trong giáo trình."));
     }
 
     private AssessmentBankItem findAssessment(Long id) {
@@ -561,10 +643,11 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .targetBand(program.getTargetBand())
                 .targetScore(program.getTargetScore())
                 .entryLevel(program.getEntryLevel())
+                .entryPlacementLevel(program.getEntryPlacementLevel())
                 .outcomes(program.getOutcomes())
                 .teacherGuide(program.getTeacherGuide())
                 .interactionActivities(program.getInteractionActivities())
-                .totalSessions(program.getTotalSessions())
+                .totalSessions(resolveTotalSessions(program, program.getTotalSessions()))
                 .totalUnits(program.getUnits().size())
                 .status(program.getStatus())
                 .statusLabel(programStatusLabel(program.getStatus()))
@@ -629,6 +712,10 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     private void validateReadyForPublish(CurriculumProgram program) {
+        if (("IELTS".equals(program.getExamCategory()) || "TOEIC".equals(program.getExamCategory()))
+                && program.getEntryPlacementLevel() == null) {
+            throw new IllegalArgumentException("Hãy chọn trình độ Placement đầu vào trước khi xuất bản giáo trình.");
+        }
         validateEnglishProfile(
                 program.getExamCategory(),
                 program.getProgramTrack(),
@@ -641,11 +728,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             throw new RuntimeException("Giáo trình phải mô tả chuẩn đầu ra tiếng Anh trước khi xuất bản.");
         }
         if (program.getUnits() == null || program.getUnits().isEmpty()) {
-            throw new RuntimeException("Giáo trình chưa có unit/buổi học nào. Hãy thêm nội dung trước khi xuất bản.");
+            throw new RuntimeException("Giáo trình chưa có Unit nào. Hãy thêm nội dung trước khi xuất bản.");
         }
-        if (program.getTotalSessions() == null || program.getTotalSessions() <= 0) {
-            throw new RuntimeException("Giáo trình chưa khai báo số buổi học. Hãy cập nhật trước khi xuất bản.");
-        }
+        validateStructuredSessionPlans(program);
         boolean hasUnpublishedMaterial = program.getUnits().stream()
                 .flatMap(unit -> unit.getMaterialRefs().stream())
                 .map(CurriculumMaterialRef::getMaterial)
@@ -654,6 +739,96 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             throw new RuntimeException("Giáo trình chỉ được sử dụng học liệu trung tâm đã xuất bản.");
         }
         validateFocusedSkillAssessments(program);
+    }
+
+    private void validateStructuredSessionPlans(CurriculumProgram program) {
+        List<CurriculumSessionPlan> sessionPlans = program.getUnits().stream()
+                .flatMap(unit -> unit.getSessionPlans().stream())
+                .sorted(Comparator.comparing(CurriculumSessionPlan::getSessionNumber))
+                .toList();
+        if (sessionPlans.isEmpty()) {
+            if (program.getTotalSessions() == null || program.getTotalSessions() <= 0) {
+                throw new RuntimeException("Giáo trình chưa khai báo số buổi học. Hãy cập nhật trước khi xuất bản.");
+            }
+            return;
+        }
+
+        program.getUnits().stream()
+                .filter(unit -> unit.getSessionPlans().isEmpty())
+                .findFirst()
+                .ifPresent(unit -> {
+                    throw new IllegalArgumentException(
+                            "Unit “" + unit.getTitle() + "” chưa có buổi học. Hãy thêm ít nhất một buổi trước khi xuất bản."
+                    );
+                });
+
+        Set<Integer> uniqueNumbers = new LinkedHashSet<>();
+        for (CurriculumSessionPlan sessionPlan : sessionPlans) {
+            if (!uniqueNumbers.add(sessionPlan.getSessionNumber())) {
+                throw new IllegalArgumentException(
+                        "Buổi " + sessionPlan.getSessionNumber() + " đang bị trùng trong giáo trình."
+                );
+            }
+        }
+
+        for (int index = 0; index < sessionPlans.size(); index++) {
+            int expectedNumber = index + 1;
+            if (!Integer.valueOf(expectedNumber).equals(sessionPlans.get(index).getSessionNumber())) {
+                String currentNumbers = sessionPlans.stream()
+                        .map(CurriculumSessionPlan::getSessionNumber)
+                        .map(String::valueOf)
+                        .collect(java.util.stream.Collectors.joining(", "));
+                throw new IllegalArgumentException(
+                        "Thứ tự buổi học chưa liên tục. Giáo trình hiện có buổi "
+                                + currentNumbers + " nhưng thiếu buổi " + expectedNumber + "."
+                );
+            }
+        }
+
+        if (!Integer.valueOf(sessionPlans.size()).equals(program.getTotalSessions())) {
+            throw new IllegalArgumentException(
+                    "Tổng số buổi của giáo trình phải bằng " + sessionPlans.size() + " buổi đã tạo."
+            );
+        }
+    }
+
+    private void validateSessionPlanRequest(CurriculumSessionPlanRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Dữ liệu buổi học không được để trống.");
+        }
+        if (request.getSessionNumber() == null || request.getSessionNumber() < 1) {
+            throw new IllegalArgumentException("Số buổi phải bắt đầu từ 1.");
+        }
+        if (request.getDisplayOrder() != null && request.getDisplayOrder() < 0) {
+            throw new IllegalArgumentException("Thứ tự hiển thị không được âm.");
+        }
+        requireText(request.getTitle(), "Tiêu đề buổi học không được để trống.");
+    }
+
+    private void assertSessionNumberAvailable(Long programId, Integer sessionNumber, Long excludeId) {
+        if (sessionPlanRepository.existsDuplicateSessionNumber(programId, sessionNumber, excludeId)) {
+            throw new IllegalArgumentException(
+                    "Buổi " + sessionNumber + " đã tồn tại trong giáo trình."
+            );
+        }
+    }
+
+    private void synchronizeTotalSessions(CurriculumProgram program) {
+        int totalSessions = Math.toIntExact(sessionPlanRepository.countByProgramId(program.getId()));
+        program.setTotalSessions(totalSessions);
+        programRepository.save(program);
+    }
+
+    private int resolveTotalSessions(CurriculumProgram program, Integer legacyTotalSessions) {
+        if (program != null && program.getUnits() != null) {
+            int structuredCount = program.getUnits().stream()
+                    .mapToInt(unit -> unit.getSessionPlans() == null ? 0 : unit.getSessionPlans().size())
+                    .sum();
+            if (structuredCount > 0) {
+                return structuredCount;
+            }
+        }
+        return defaultInt(legacyTotalSessions);
     }
 
     private void applyEnglishProfile(CurriculumProgram program, CurriculumProgramRequest request) {
@@ -674,6 +849,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setTargetBand(request.getTargetBand());
         program.setTargetScore(request.getTargetScore());
         program.setEntryLevel(request.getEntryLevel().trim());
+        program.setEntryPlacementLevel(request.getEntryPlacementLevel());
     }
 
     private String normalizeExamCategory(String value) {
@@ -926,12 +1102,35 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .title(unit.getTitle())
                 .description(unit.getDescription())
                 .sessionPlan(unit.getSessionPlan())
+                .sessionPlans(unit.getSessionPlans().stream()
+                        .sorted(Comparator.comparing(CurriculumSessionPlan::getSessionNumber)
+                                .thenComparing(CurriculumSessionPlan::getDisplayOrder)
+                                .thenComparing(CurriculumSessionPlan::getId, Comparator.nullsLast(Long::compareTo)))
+                        .map(this::toSessionPlanResponse)
+                        .toList())
                 .createdAt(unit.getCreatedAt())
                 .updatedAt(unit.getUpdatedAt())
                 .materials(unit.getMaterialRefs().stream().map(this::toMaterialRef).toList())
                 .exercises(unit.getExerciseRefs().stream().map(this::toExerciseRef).toList())
                 .assessments(unit.getAssessmentRefs().stream().map(this::toAssessmentRef).toList())
                 .flashcards(unit.getFlashcardRefs().stream().map(this::toFlashcardRef).toList())
+                .build();
+    }
+
+    private CurriculumSessionPlanResponse toSessionPlanResponse(CurriculumSessionPlan sessionPlan) {
+        CurriculumUnit unit = sessionPlan.getUnit();
+        return CurriculumSessionPlanResponse.builder()
+                .id(sessionPlan.getId())
+                .unitId(unit.getId())
+                .unitTitle(unit.getTitle())
+                .programId(unit.getProgram().getId())
+                .sessionNumber(sessionPlan.getSessionNumber())
+                .displayOrder(sessionPlan.getDisplayOrder())
+                .title(sessionPlan.getTitle())
+                .description(sessionPlan.getDescription())
+                .learningObjectives(sessionPlan.getLearningObjectives())
+                .createdAt(sessionPlan.getCreatedAt())
+                .updatedAt(sessionPlan.getUpdatedAt())
                 .build();
     }
 

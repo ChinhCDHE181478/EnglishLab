@@ -1,6 +1,8 @@
 package fu.sep490.g23.backend.entity.payment;
 import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 
+import fu.sep490.g23.backend.entity.payment.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

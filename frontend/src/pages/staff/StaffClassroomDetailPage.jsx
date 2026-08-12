@@ -22,6 +22,8 @@ import {
   formatOfferingStatus,
   formatRegistrationStatus,
   formatSessionStatus,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
 } from '../../utils/classroomHelpers';
 
 const detailTabs = [
@@ -43,6 +45,7 @@ const initialSessionForm = {
   deliveryMode: 'OFFLINE',
   teacherId: '',
   roomId: '',
+  curriculumSessionPlanId: '',
   sessionContent: 'Buổi học',
   note: '',
 };
@@ -95,6 +98,20 @@ export default function StaffClassroomDetailPage() {
     }))],
     [availableResources.rooms],
   );
+
+  const sessionPlanOptions = useMemo(() => [
+    {
+      label: editingSessionId ? 'Không thay đổi liên kết giáo trình' : 'Buổi đặc biệt / chưa gắn giáo trình',
+      value: '',
+    },
+    ...(classroom?.curriculumProgram?.units || []).flatMap((unit) => (
+      (unit.sessionPlans || []).map((plan) => ({
+        label: `Buổi ${plan.sessionNumber} — ${plan.title}`,
+        value: String(plan.id),
+        description: unit.displayOrder != null ? `Unit ${unit.displayOrder}: ${unit.title}` : unit.title,
+      }))
+    )),
+  ], [classroom?.curriculumProgram?.units, editingSessionId]);
 
   const assignedStudents = useMemo(
     () => (classroom?.enrollments || []).filter((item) => item.registrationStatus === 'ASSIGNED'),
@@ -203,6 +220,7 @@ export default function StaffClassroomDetailPage() {
         ...sessionForm,
         teacherId: sessionForm.teacherId ? Number(sessionForm.teacherId) : null,
         roomId: sessionForm.roomId ? Number(sessionForm.roomId) : null,
+        curriculumSessionPlanId: sessionForm.curriculumSessionPlanId ? Number(sessionForm.curriculumSessionPlanId) : null,
       };
       const created = editingSessionId
         ? await classroomApi.updateStaffClassroomSession(editingSessionId, payload)
@@ -329,6 +347,7 @@ export default function StaffClassroomDetailPage() {
       deliveryMode: session.deliveryMode || classroom.deliveryMode || 'OFFLINE',
       teacherId: session.teacherId ? String(session.teacherId) : '',
       roomId: session.roomId ? String(session.roomId) : '',
+      curriculumSessionPlanId: session.curriculumSessionPlanId ? String(session.curriculumSessionPlanId) : '',
       sessionContent: session.sessionContent || 'Buổi học',
       note: session.note || '',
     });
@@ -428,6 +447,16 @@ export default function StaffClassroomDetailPage() {
           </Field>
         ) : null}
       </div>
+      {sessionPlanOptions.length > 1 ? (
+        <Field label="Buổi học trong giáo trình">
+          <BrandedSelect
+            onChange={(event) => setSessionForm((current) => ({ ...current, curriculumSessionPlanId: event.target.value }))}
+            options={sessionPlanOptions}
+            searchable
+            value={sessionForm.curriculumSessionPlanId}
+          />
+        </Field>
+      ) : null}
     </>
   );
 
@@ -649,7 +678,10 @@ export default function StaffClassroomDetailPage() {
                       <tr className="transition hover:bg-[#fffafb]" key={session.id}>
                         <td className="px-5 py-4">
                           <p className="font-bold text-[#0b1c30]">{formatClassroomDate(session.sessionDate)}</p>
-                          <p className="mt-1 text-xs text-slate-500">{session.sessionContent || `Buổi học #${session.id}`}</p>
+                          <p className="mt-1 text-xs font-bold text-[#4b0009]">
+                            {session.sessionNumber != null ? `Buổi ${session.sessionNumber} — ` : ''}{getClassroomSessionTitle(session, `Buổi học #${session.id}`)}
+                          </p>
+                          {getClassroomSessionUnitLabel(session) ? <p className="mt-1 text-xs text-slate-500">{getClassroomSessionUnitLabel(session)}</p> : null}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#584140]">{session.startTime} - {session.endTime}</td>
                         <td className="whitespace-nowrap px-5 py-4">{formatDeliveryMode(session.deliveryMode, session.deliveryModeLabel)}</td>
@@ -834,7 +866,7 @@ function CurriculumOverview({ curriculum }) {
             {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Badge>{units.length} unit/buổi</Badge>
+        <Badge>{units.length} Unit · {curriculum.totalSessions || 0} buổi</Badge>
       </div>
       {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
       {units.length ? (
@@ -861,7 +893,16 @@ function CurriculumOverview({ curriculum }) {
               {expandedUnitIds.has(unit.id) ? (
                 <div className="space-y-4 border-t border-[#f0e4e2] p-4">
                   {unit.description ? <p className="text-sm leading-6 text-[#584140]">{unit.description}</p> : null}
-                  {unit.sessionPlan ? <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-6 text-[#584140]"><p className="mb-1 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Kế hoạch buổi học</p>{unit.sessionPlan}</div> : null}
+                  {unit.sessionPlans?.length ? (
+                    <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      {unit.sessionPlans.map((plan) => (
+                        <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                          <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <CurriculumUnitResources label="Học liệu" items={unit.materials} />
                     <CurriculumUnitResources label="Bài tập" items={unit.exercises} />
@@ -874,7 +915,7 @@ function CurriculumOverview({ curriculum }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có unit/buổi học.</p>
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có Unit.</p>
       )}
     </section>
   );

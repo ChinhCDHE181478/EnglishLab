@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.course.impl;
+import java.util.LinkedHashMap;
 
 import fu.sep490.g23.backend.dto.request.course.LearningPathCoursesRequest;
 import fu.sep490.g23.backend.dto.request.course.LearningPathRequest;
@@ -19,6 +20,12 @@ import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.service.course.LearningPathManagementService;
+import fu.sep490.g23.backend.service.course.LearningPathRecommendationService;
+import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
+import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContextFactory;
+import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,11 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.math.BigDecimal;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +50,9 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     private final OnlineCourseRepository onlineCourseRepository;
     private final UserRepository userRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
+    private final PlacementTestAttemptRepository placementAttemptRepository;
+    private final PlacementRecommendationContextFactory recommendationContextFactory;
+    private final LearningPathRecommendationService learningPathRecommendationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +69,11 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         LearningPath path = learningPathRepository.save(LearningPath.builder()
                 .code(code)
                 .name(required(request.getName(), "Tên lộ trình"))
+                .examCategory(normalizeExamCategory(request.getExamCategory()))
+                .targetBand(request.getTargetBand())
+                .targetScore(request.getTargetScore())
                 .build());
+        validateTarget(path);
         return toResponse(path);
     }
 
@@ -71,6 +86,10 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .ifPresent(existing -> { throw new RuntimeException("Mã lộ trình đã tồn tại."); });
         path.setCode(code);
         path.setName(required(request.getName(), "Tên lộ trình"));
+        path.setExamCategory(normalizeExamCategory(request.getExamCategory()));
+        path.setTargetBand(request.getTargetBand());
+        path.setTargetScore(request.getTargetScore());
+        validateTarget(path);
         return toResponse(learningPathRepository.save(path));
     }
 
@@ -127,27 +146,20 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
     public LearnerLearningPathResponse getMyLearningPath(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
-        Map<Long, PackageEnrollment> enrollmentsByPackageId = enrollmentRepository
-                .findByStudentOrderByRegisteredAtDesc(student)
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        enrollment -> enrollment.getLearningPackage().getId(), enrollment -> enrollment, (first, ignored) -> first));
-
-        List<LearnerLearningPathResponse.PathOverview> allPaths = learningPathRepository.findAll().stream()
-                .map(path -> toLearnerPath(path, enrollmentsByPackageId))
-                .filter(path -> !path.getCourses().isEmpty())
-                .sorted(Comparator.comparing(LearnerLearningPathResponse.PathOverview::getCode))
-                .toList();
-        List<LearnerLearningPathResponse.PathOverview> paths = allPaths.stream()
-                .filter(path -> path.getCourses().stream().anyMatch(course -> !"NOT_ENROLLED".equals(course.getEnrollmentStatus())))
-                .findFirst()
-                .map(List::of)
-                .orElseGet(() -> allPaths.isEmpty() ? List.of() : List.of(allPaths.getFirst()));
+        PlacementTestAttempt attempt = placementAttemptRepository
+                .findTopByStudentAndEvaluationStatusOrderBySubmittedAtDesc(student, PlacementEvaluationStatus.ELIGIBLE)
+                .orElse(null);
+        PlacementRecommendationContext context = attempt == null
+                ? profileContext(student)
+                : recommendationContextFactory.fromAttempt(student, attempt, attempt.getRecommendedLevel());
+        LearnerLearningPathResponse.PathOverview path = learningPathRecommendationService.recommend(student, context, true);
         return LearnerLearningPathResponse.builder()
                 .currentBand(student.getCurrentBand())
+                .examType(context.getExamType())
+                .currentScore(context.getOverallScore())
                 .targetExam(student.getTargetExam())
                 .targetScore(student.getTargetScore())
-                .paths(paths)
+                .paths(path == null ? List.of() : List.of(path))
                 .build();
     }
 
@@ -213,7 +225,15 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                         .displayOrder(ref.getDisplayOrder())
                         .build())
                 .toList();
-        return LearningPathResponse.builder().id(path.getId()).code(path.getCode()).name(path.getName()).courses(courses).build();
+        return LearningPathResponse.builder()
+                .id(path.getId())
+                .code(path.getCode())
+                .name(path.getName())
+                .examCategory(path.getExamCategory())
+                .targetBand(path.getTargetBand())
+                .targetScore(path.getTargetScore())
+                .courses(courses)
+                .build();
     }
 
     private PackageEnrollment activeEnrollment(PackageEnrollment enrollment) {
@@ -228,5 +248,50 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         String result = value == null ? "" : value.trim();
         if (result.isEmpty()) throw new RuntimeException(field + " không được để trống.");
         return result;
+    }
+
+    private String normalizeExamCategory(String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("IELTS", "TOEIC").contains(normalized)) {
+            throw new IllegalArgumentException("Kỳ thi của lộ trình chỉ hỗ trợ IELTS hoặc TOEIC.");
+        }
+        return normalized;
+    }
+
+    private void validateTarget(LearningPath path) {
+        if ("IELTS".equals(path.getExamCategory())) {
+            if (path.getTargetScore() != null) throw new IllegalArgumentException("Lộ trình IELTS không sử dụng điểm TOEIC.");
+            if (path.getTargetBand() != null && path.getTargetBand().remainder(BigDecimal.valueOf(0.5)).compareTo(BigDecimal.ZERO) != 0) {
+                throw new IllegalArgumentException("Band mục tiêu IELTS phải tăng theo bước 0.5.");
+            }
+        } else if ("TOEIC".equals(path.getExamCategory())) {
+            if (path.getTargetBand() != null) throw new IllegalArgumentException("Lộ trình TOEIC không sử dụng band IELTS.");
+            if (path.getTargetScore() != null && path.getTargetScore() % 5 != 0) {
+                throw new IllegalArgumentException("Điểm mục tiêu TOEIC phải tăng theo bước 5.");
+            }
+        } else if (path.getTargetBand() != null || path.getTargetScore() != null) {
+            throw new IllegalArgumentException("Hãy chọn kỳ thi trước khi nhập mục tiêu.");
+        }
+    }
+
+    private PlacementRecommendationContext profileContext(User student) {
+        String rawExam = student.getTargetExam() == null ? "" : student.getTargetExam().trim().toUpperCase(Locale.ROOT);
+        String exam = Set.of("IELTS", "TOEIC").contains(rawExam) ? rawExam : "IELTS";
+        BigDecimal target = parseDecimal(student.getTargetScore());
+        return PlacementRecommendationContext.builder()
+                .learnerId(student.getId())
+                .examType(exam)
+                .overallScore(student.getCurrentBand() == null ? null : BigDecimal.valueOf(student.getCurrentBand()))
+                .targetExam(exam)
+                .targetScore(target)
+                .weakSkills(Set.of())
+                .build();
+    }
+
+    private BigDecimal parseDecimal(String value) {
+        if (value == null) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+)?)").matcher(value);
+        return matcher.find() ? new BigDecimal(matcher.group(1)) : null;
     }
 }

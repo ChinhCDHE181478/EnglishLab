@@ -1,10 +1,8 @@
 package fu.sep490.g23.backend.service.assessment.impl;
 import fu.sep490.g23.backend.dto.response.assessment.RubricCriterionResponse;
 import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
-import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.dto.response.assessment.AiAssessmentSubmissionResponse;
 import fu.sep490.g23.backend.service.assessment.AssessmentPassingThresholdResolver;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
@@ -12,8 +10,6 @@ import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.service.assessment.AiAssessmentService;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sep490.g23.backend.service.assessment.AssessmentAudioStorageService;
-import fu.sep490.g23.backend.entity.assessment.AssessmentSubmission;
-import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -23,6 +19,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fu.sep490.g23.backend.dto.request.assessment.AssessmentSubmissionRequest;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.AssessmentSubmission;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.Lesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;

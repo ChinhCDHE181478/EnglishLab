@@ -96,6 +96,33 @@ class PlacementEligibilityServiceImplTest {
     }
 
     @Test
+    void preservesUnderReviewStatus() {
+        PlacementTestAttempt attempt = baseAttempt()
+                .aiFeedbackJson("{\"examType\":\"IELTS\"}")
+                .listeningScore(BigDecimal.valueOf(5.5))
+                .readingScore(BigDecimal.valueOf(5))
+                .overallScore(BigDecimal.valueOf(5))
+                .evaluationStatus(PlacementEvaluationStatus.UNDER_REVIEW)
+                .build();
+        when(attemptRepository.findById(1L)).thenReturn(Optional.of(attempt));
+
+        PlacementEligibilityResult result = service.evaluateEligibility(learner.getId(), 1L);
+
+        assertThat(result.isEligible()).isFalse();
+        assertThat(result.getStatus()).isEqualTo(PlacementEvaluationStatus.UNDER_REVIEW);
+    }
+
+    @Test
+    void rejectsAttemptOwnedByAnotherLearner() {
+        PlacementTestAttempt attempt = baseAttempt().build();
+        when(attemptRepository.findById(1L)).thenReturn(Optional.of(attempt));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.evaluateEligibility(99L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Kết quả placement test không thuộc học viên này.");
+    }
+
+    @Test
     void staffReviewFinalizesRecommendedLevelAndAuditFields() {
         User staff = User.builder().id(20L).fullName("Nhân viên A").email("staff@example.com").build();
         staff.setRole(RoleEnum.STAFF);

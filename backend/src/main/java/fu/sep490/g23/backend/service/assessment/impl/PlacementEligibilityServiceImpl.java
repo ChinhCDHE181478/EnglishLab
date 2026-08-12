@@ -114,7 +114,9 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         if (!terminal && !toeic && status != PlacementEvaluationStatus.ELIGIBLE) {
             missing.add("WRITING_REVIEW");
             missing.add("SPEAKING_REVIEW");
-            status = PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED;
+            if (status != PlacementEvaluationStatus.UNDER_REVIEW) {
+                status = PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED;
+            }
         }
 
         PlacementLevel recommendedLevel = attempt.getRecommendedLevel();

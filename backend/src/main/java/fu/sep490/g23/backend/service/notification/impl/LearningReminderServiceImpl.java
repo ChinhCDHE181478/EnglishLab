@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.notification.impl;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
@@ -13,6 +12,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.service.notification.LearningReminderService;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;

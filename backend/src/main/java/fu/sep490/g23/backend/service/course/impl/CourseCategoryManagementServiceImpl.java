@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.course.impl;
-import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
 
 import fu.sep490.g23.backend.dto.request.course.CourseCategoryRequest;
 import fu.sep490.g23.backend.dto.response.course.CourseCategoryResponse;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

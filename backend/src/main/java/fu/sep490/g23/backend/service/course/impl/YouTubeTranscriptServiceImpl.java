@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.service.course.impl;
-import fu.sep490.g23.backend.service.course.TranscriptSegmentNormalizer;
-import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
+import fu.sep490.g23.backend.service.course.TranscriptSegmentNormalizer;
+import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;

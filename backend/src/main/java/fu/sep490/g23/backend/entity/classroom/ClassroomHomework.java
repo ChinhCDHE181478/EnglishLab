@@ -3,6 +3,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;

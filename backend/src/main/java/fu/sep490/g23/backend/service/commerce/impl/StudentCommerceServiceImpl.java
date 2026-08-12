@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.commerce.impl;
+import java.util.Locale;
 
 import fu.sep490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
 import fu.sep490.g23.backend.entity.User;
@@ -23,7 +24,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 @Service

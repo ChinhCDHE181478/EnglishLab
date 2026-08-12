@@ -1,32 +1,25 @@
 package fu.sep490.g23.backend.service.classroom;
-
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
-
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
-
 import fu.sep490.g23.backend.dto.request.classroom.TransferEnrollmentRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
-
 import fu.sep490.g23.backend.dto.request.classroom.ReorderWaitlistRequest;
 import fu.sep490.g23.backend.dto.request.classroom.AssignToClassRequest;
-
 import fu.sep490.g23.backend.dto.request.classroom.ResolveTuitionSettlementRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
-
 import fu.sep490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
-
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.request.classroom.EnrollStudentRequest;
-
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
-
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 
+import fu.sep490.g23.backend.dto.request.classroom.*;
+import fu.sep490.g23.backend.dto.response.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
@@ -59,6 +52,8 @@ public interface ClassroomOfferingService {
     ClassroomOfferingResponse closeOffering(Long id, String actorEmail);
 
     List<ClassroomSessionResponse> getSessions(Long offeringId);
+
+    ClassroomSessionResponse getSession(Long sessionId);
 
     List<ClassroomSessionResponse> getLearnerSessions(Long offeringId, String learnerEmail);
 

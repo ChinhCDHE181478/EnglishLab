@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.auth.impl;
+
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.auth.FacebookAuthService;
-
 import fu.sep490.g23.backend.service.user.UserRoleService;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

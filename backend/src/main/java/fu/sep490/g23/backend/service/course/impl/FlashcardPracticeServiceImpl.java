@@ -17,6 +17,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.commerce.WishlistItem;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
+import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.WishlistItemRepository;

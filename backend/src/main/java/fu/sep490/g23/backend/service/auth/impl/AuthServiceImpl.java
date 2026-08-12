@@ -1,6 +1,4 @@
 package fu.sep490.g23.backend.service.auth.impl;
-import fu.sep490.g23.backend.service.auth.AuthTokenService;
-import fu.sep490.g23.backend.service.auth.AuthService;
 
 import fu.sep490.g23.backend.dto.request.LoginRequest;
 import fu.sep490.g23.backend.dto.request.RegisterRequest;
@@ -15,6 +13,8 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.security.JwtService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.service.auth.AuthService;
+import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;

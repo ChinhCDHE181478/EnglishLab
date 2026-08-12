@@ -74,7 +74,10 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.service.assessment.IeltsBandScale;
+import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
+import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContextFactory;
 import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
+import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.exception.CourseUnavailableException;
@@ -86,6 +89,7 @@ import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
+import fu.sep490.g23.backend.service.course.*;
 import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
@@ -149,6 +153,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final PlacementTestAttemptRepository placementTestAttemptRepository;
+    private final PlacementRecommendationContextFactory placementRecommendationContextFactory;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final OnlineCourseVersionService onlineCourseVersionService;
@@ -656,6 +661,25 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     public List<OnlineCourseResponse> getRecommendedCourses(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
+        PlacementTestAttempt latestAttempt = placementTestAttemptRepository
+                .findTopByStudentOrderBySubmittedAtDesc(student)
+                .orElse(null);
+        PlacementRecommendationContext context = latestAttempt == null
+                ? PlacementRecommendationContext.builder()
+                    .learnerId(student.getId())
+                    .examType(safe(student.getTargetExam()).toUpperCase(Locale.ROOT))
+                    .overallScore(student.getCurrentBand() == null ? null : BigDecimal.valueOf(student.getCurrentBand()))
+                    .targetExam(student.getTargetExam())
+                    .targetScore(parseBand(student.getTargetScore()) == null ? null : BigDecimal.valueOf(parseBand(student.getTargetScore())))
+                    .weakSkills(Set.of())
+                    .build()
+                : placementRecommendationContextFactory.fromAttempt(student, latestAttempt, latestAttempt.getRecommendedLevel());
+        return recommendCourses(student, context);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context) {
         List<OnlineCourse> publishedCourses = onlineCourseRepository
                 .findAll(courseSpec(null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
                 .getContent();
@@ -667,24 +691,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         enrollment -> enrollment,
                         (first, ignored) -> first
                 ));
-        PlacementTestAttempt latestAttempt = placementTestAttemptRepository
-                .findTopByStudentOrderBySubmittedAtDesc(student)
-                .orElse(null);
-        Set<AssessmentSkill> weakSkills = resolveWeakSkills(latestAttempt);
-        Double currentBand = student.getCurrentBand() != null
-                ? student.getCurrentBand()
-                : decimalToDouble(latestAttempt == null ? null : latestAttempt.getOverallScore());
-        Double targetBand = parseBand(student.getTargetScore());
-
         return publishedCourses.stream()
                 .filter(course -> !isCompletedEnrollment(enrollmentsByPackage.get(course.getLearningPackage().getId())))
+                .filter(course -> isExamCompatible(course, context.getExamType()))
                 .map(course -> scoreRecommendation(
                         course,
                         enrollmentsByPackage.get(course.getLearningPackage().getId()),
-                        student.getTargetExam(),
-                        currentBand,
-                        targetBand,
-                        weakSkills
+                        context
                 ))
                 .sorted(Comparator.comparingDouble(ScoredRecommendation::score).reversed()
                         .thenComparing(item -> defaultInt(item.course().getLearningPathOrder()))
@@ -697,10 +710,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private ScoredRecommendation scoreRecommendation(
             OnlineCourse course,
             PackageEnrollment enrollment,
-            String targetExam,
-            Double currentBand,
-            Double targetBand,
-            Set<AssessmentSkill> weakSkills
+            PlacementRecommendationContext context
     ) {
         OnlineCourseResponse response = mapper.toPublicResponse(course);
         if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
@@ -718,13 +728,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 safe(course.getLearningPathCode()),
                 safe(course.getLearningPathName())
         ).toUpperCase(Locale.ROOT);
-        String normalizedExam = safe(targetExam).toUpperCase(Locale.ROOT);
+        String normalizedExam = safe(context.getExamType()).toUpperCase(Locale.ROOT);
         boolean examMatches = !normalizedExam.isBlank() && searchableCourse.contains(normalizedExam);
         if (examMatches) score += 6;
 
+        if (context.getRecommendedLevel() != null && course.getLevel() != null) {
+            score += context.getRecommendedLevel().name().equals(course.getLevel().name()) ? 15 : -3;
+        }
+
         Double minBand = course.getRecommendedCurrentBandMin();
         Double maxBand = course.getRecommendedCurrentBandMax();
-        if (currentBand != null && minBand != null && maxBand != null) {
+        Double currentBand = decimalToDouble(context.getOverallScore());
+        Double targetBand = decimalToDouble(context.getTargetScore());
+        if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null && maxBand != null) {
             if (currentBand >= minBand && currentBand <= maxBand) {
                 score += 6;
             } else {
@@ -732,14 +748,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 score += Math.max(-2, 3 - distance * 2);
             }
         }
-        if (targetBand != null && course.getTargetBand() != null) {
+        if ("IELTS".equals(normalizedExam) && targetBand != null && course.getTargetBand() != null) {
             score += Math.max(-1, 5 - Math.abs(targetBand - course.getTargetBand()) * 2);
         }
 
         Set<AssessmentSkill> matchedWeakSkills = response.getFocusSkills().stream()
                 .map(this::parseAssessmentSkill)
                 .filter(java.util.Objects::nonNull)
-                .filter(weakSkills::contains)
+                .filter(context.getWeakSkills()::contains)
                 .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
         score += matchedWeakSkills.size() * 8D;
         if (course.getLearningPackage().isFeatured()) score += 1;
@@ -747,11 +763,18 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         response.setRecommendationReason(buildRecommendationReason(
                 matchedWeakSkills,
                 examMatches,
-                targetExam,
+                context.getExamType(),
                 currentBand,
                 targetBand
         ));
         return new ScoredRecommendation(course, response, score);
+    }
+
+    private boolean isExamCompatible(OnlineCourse course, String examType) {
+        String category = course.getCategory() == null ? "" : safe(course.getCategory().getCode()).toUpperCase(Locale.ROOT);
+        String normalizedExam = safe(examType).toUpperCase(Locale.ROOT);
+        if (Set.of("IELTS", "TOEIC").contains(category)) return category.equals(normalizedExam);
+        return true;
     }
 
     private Set<AssessmentSkill> resolveWeakSkills(PlacementTestAttempt attempt) {
@@ -1936,7 +1959,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             if (skill != null) {
                 String skillToken = skill.name().toLowerCase(Locale.ROOT);
                 var assessmentSubquery = query.subquery(Long.class);
-                var assessmentRoot = assessmentSubquery.from(fu.sep490.g23.backend.entity.assessment.CourseAssessment.class);
+                var assessmentRoot = assessmentSubquery.from(CourseAssessment.class);
                 assessmentSubquery.select(assessmentRoot.get("id"));
                 assessmentSubquery.where(
                         criteriaBuilder.equal(assessmentRoot.get("onlineCourse"), root),

@@ -4,8 +4,16 @@ import { Link } from 'react-router-dom';
 import courseApi from '../api/courseApi';
 import Header from '../components/ai-learning/Header';
 import { CourseFooter, CourseGlobalStyles } from '../components/course';
+import {
+  countActuallyCompletedSteps,
+  getLearningPathStepLabel,
+  getPlacementScoreLabel,
+} from '../utils/placementRecommendation';
 
 const statusInfo = (course, path) => {
+  if (course.stepStatus === 'PLACEMENT_WAIVED') return { label: getLearningPathStepLabel(course.stepStatus), tone: 'bg-sky-50 text-sky-700 border-sky-200', icon: CheckCircle2 };
+  if (course.stepStatus === 'CURRENT') return { label: getLearningPathStepLabel(course.stepStatus), tone: 'bg-amber-50 text-amber-700 border-amber-200', icon: Circle };
+  if (course.stepStatus === 'NEXT') return { label: getLearningPathStepLabel(course.stepStatus), tone: 'bg-[#fff0f1] text-[#8a0018] border-[#e5bcc2]', icon: ArrowRight };
   if (course.completed) return { label: 'Đã hoàn thành', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle2 };
   if (['ACTIVE', 'COMPLETED'].includes(course.enrollmentStatus)) return { label: 'Đang học', tone: 'bg-amber-50 text-amber-700 border-amber-200', icon: Circle };
   if (String(course.courseId) === String(path.nextCourseId)) return { label: 'Tiếp theo', tone: 'bg-[#fff0f1] text-[#8a0018] border-[#e5bcc2]', icon: ArrowRight };
@@ -16,6 +24,7 @@ const actionInfo = (course) => {
   if (course.completed || ['ACTIVE', 'COMPLETED'].includes(course.enrollmentStatus)) {
     return { label: course.completed ? 'Xem lại khóa học' : 'Tiếp tục học', to: `/courses/${course.slug}/learn` };
   }
+  if (course.stepStatus === 'PLACEMENT_WAIVED') return { label: 'Xem khóa học', to: `/courses/${course.slug}` };
   return { label: 'Đăng ký', to: `/courses/${course.slug}` };
 };
 
@@ -44,8 +53,9 @@ const LearningPathPage = () => {
     const paths = data?.paths || [];
     return paths.reduce((result, path) => ({
       courses: result.courses + Number(path.totalCourses || 0),
-      completed: result.completed + Number(path.completedCourses || 0),
-    }), { courses: 0, completed: 0 });
+      completed: result.completed + countActuallyCompletedSteps(path.courses || []),
+      waived: result.waived + Number(path.waivedCourses || 0),
+    }), { courses: 0, completed: 0, waived: 0 });
   }, [data]);
   const progress = totals.courses ? Math.round((totals.completed / totals.courses) * 100) : 0;
 
@@ -66,7 +76,7 @@ const LearningPathPage = () => {
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#584140]">Theo dõi từng giai đoạn, tiếp tục khóa đang học và biết chính xác khóa học nên bắt đầu tiếp theo.</p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">{data?.targetExam || 'Chưa chọn kỳ thi'}</span>
-                <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">Band hiện tại: {data?.currentBand ?? 'Chưa cập nhật'}</span>
+                <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">{getPlacementScoreLabel(data?.examType)} hiện tại: {data?.currentScore ?? data?.currentBand ?? 'Chưa cập nhật'}</span>
                 <span className="rounded-full border border-[#e6c8cc] bg-white px-4 py-2 text-sm font-bold text-[#730014]">Mục tiêu: {data?.targetScore || 'Chưa cập nhật'}</span>
               </div>
             </div>
@@ -77,6 +87,7 @@ const LearningPathPage = () => {
               </div>
               <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#f2e4e5]"><div className="h-full rounded-full bg-[#8a0018] transition-all" style={{ width: `${progress}%` }} /></div>
               <p className="mt-3 text-xs font-semibold text-[#8c716f]">Đã hoàn thành {totals.completed}/{totals.courses} khóa học</p>
+              {totals.waived ? <p className="mt-1 text-xs font-semibold text-sky-700">{totals.waived} giai đoạn được bỏ qua theo Placement</p> : null}
             </div>
           </div>
         </section>
@@ -94,13 +105,14 @@ const LearningPathPage = () => {
 
         <div className="mt-8 space-y-8">
           {(data?.paths || []).map((path) => {
-            const pathProgress = path.totalCourses ? Math.round((path.completedCourses / path.totalCourses) * 100) : 0;
+            const actualCompleted = countActuallyCompletedSteps(path.courses || []);
+            const pathProgress = path.totalCourses ? Math.round((actualCompleted / path.totalCourses) * 100) : 0;
             return (
               <section key={path.code} className="overflow-hidden rounded-3xl border border-[#ead9db] bg-white shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0e3e4] px-6 py-5 md:px-8">
                   <div className="flex items-center gap-3">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]"><Target className="h-6 w-6" /></span>
-                    <div><h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{path.name || path.code}</h2><p className="mt-1 text-xs font-semibold text-[#8c716f]">{path.completedCourses}/{path.totalCourses} khóa · {pathProgress}% hoàn thành</p></div>
+                    <div><h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{path.name || path.code}</h2><p className="mt-1 text-xs font-semibold text-[#8c716f]">{actualCompleted}/{path.totalCourses} khóa · {pathProgress}% hoàn thành</p></div>
                   </div>
                   <span className="rounded-full bg-[#fff2f3] px-3 py-1.5 text-xs font-bold text-[#730014]">{path.code}</span>
                 </div>
