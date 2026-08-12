@@ -8,7 +8,6 @@ import lombok.Data;
 @Data
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Mật khẩu hiện tại là bắt buộc")
     @Size(max = 255, message = "Mật khẩu hiện tại không hợp lệ")
     private String currentPassword;
 

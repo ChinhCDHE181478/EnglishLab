@@ -154,11 +154,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ClassroomPracticeAttemptRepository practiceAttemptRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
-
-    @Value("${app.seed.chinh-test.enabled:true}")
-    private boolean chinhTestEnabled;
 
     record IeltsUnitSeed(
             String title,
@@ -230,7 +227,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled || !chinhTestEnabled) {
+        if (!seedEnabled) {
             return;
         }
 

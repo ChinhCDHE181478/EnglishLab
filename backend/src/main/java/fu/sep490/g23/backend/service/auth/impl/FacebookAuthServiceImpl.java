@@ -77,6 +77,7 @@ public class FacebookAuthServiceImpl implements FacebookAuthService {
                     .email(email)
                     .facebookId(facebookId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .passwordSet(false)
                     .emailVerified(true)
                     .build();
             userRoleService.assignRole(user, RoleEnum.LEARNER);
@@ -124,6 +125,7 @@ public class FacebookAuthServiceImpl implements FacebookAuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .avatarUrl(user.getAvatarUrl())
+                .passwordSet(user.isPasswordSet())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

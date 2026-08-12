@@ -125,7 +125,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final JdbcTemplate jdbcTemplate;
     private final DemoLearnerOnboardingSupport demoLearnerOnboardingSupport;
 
-    @Value("${app.seed.classroom-demo.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override
