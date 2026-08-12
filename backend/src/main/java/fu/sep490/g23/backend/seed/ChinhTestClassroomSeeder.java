@@ -223,11 +223,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled || !chinhTestEnabled) {
-            return;
-        }
-
-        log.info("[ChinhTestSeeder] Bắt đầu seed / đồng bộ dữ liệu test cho {}...", LEARNER_EMAIL);
+        log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
 
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new IllegalStateException("CLASSROOM package type chưa tồn tại. Hãy chạy OnlineCourseDataSeeder trước."));
@@ -244,7 +240,15 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         // 2. Tạo hoặc đồng bộ Training Program
         TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
 
-        // 3. Tạo hoặc cập nhật Lớp học (ClassroomOffering)
+        // 3. Liên kết Giáo trình cho tất cả lớp đang học của Nguyễn Văn Teacher (bao gồm ielts-intermediate-live)
+        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(interOffering -> {
+            interOffering.setCurriculumProgram(curriculum);
+            interOffering.setTrainingProgram(trainingProgram);
+            offeringRepository.save(interOffering);
+            log.info("[ChinhTestSeeder] Đã liên kết giáo trình ID: {} cho lớp IELTS Intermediate (ID: {})", curriculum.getId(), interOffering.getId());
+        });
+
+        // 4. Tạo hoặc cập nhật Lớp học chính (ClassroomOffering)
         Optional<ClassroomOffering> existingOffering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG);
         ClassroomOffering offering;
         if (existingOffering.isPresent()) {
@@ -261,10 +265,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ClassroomEnrollment enrollment = ensureEnrollment(offering, learner, teacher);
         ensureTuitionPayments(enrollment, teacher);
 
-        // 4. Tạo thêm 3 học sinh cùng tham gia lớp
+        // 5. Tạo thêm 3 học sinh cùng tham gia lớp
         ensureAdditionalStudents(offering, teacher);
 
-        // 5. Buổi học (Sessions)
+        // 6. Buổi học (Sessions)
         List<ClassroomSession> sessions;
         if (existingOffering.isPresent()) {
             sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
@@ -283,6 +287,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             createAnnouncements(offering, teacher);
         }
 
+        // Đảm bảo có buổi học HÔM NAY cho cả 2 lớp
+        alignTodaySession(offering);
+        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(this::alignTodaySession);
+
         // 6. Tạo/đồng bộ Bài tập & Bài nộp & Chấm điểm
         createHomework(offering, sessions, units, teacher, learner);
 
@@ -293,6 +301,23 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ensurePracticeAttempts(offering, units, learner);
 
         log.info("[ChinhTestSeeder] ✅ Seed/Cập nhật hoàn tất! Email: {} | Đã liên kết Giáo trình, Flashcards, Bài luyện tập!", LEARNER_EMAIL);
+    }
+
+    private void alignTodaySession(ClassroomOffering offering) {
+        LocalDate today = LocalDate.now();
+        List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        if (sessions.isEmpty()) return;
+
+        boolean hasToday = sessions.stream().anyMatch(s -> today.equals(s.getSessionDate()));
+        if (!hasToday) {
+            ClassroomSession todaySess = sessions.stream()
+                    .filter(s -> s.getStatus() == ClassroomSessionStatus.OPEN || s.getStatus() == ClassroomSessionStatus.SCHEDULED)
+                    .findFirst()
+                    .orElse(sessions.get(0));
+            todaySess.setSessionDate(today);
+            todaySess.setStatus(ClassroomSessionStatus.OPEN);
+            sessionRepository.save(todaySess);
+        }
     }
 
     // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
