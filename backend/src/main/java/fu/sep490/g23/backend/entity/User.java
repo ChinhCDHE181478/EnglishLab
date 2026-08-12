@@ -65,6 +65,10 @@ public class User implements UserDetails {
     @Column(length = 255)
     private String password;
 
+    @Column(name = "password_set", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean passwordSet = true;
+
     @Column(name = "phone_number", length = 30)
     private String phoneNumber;
 

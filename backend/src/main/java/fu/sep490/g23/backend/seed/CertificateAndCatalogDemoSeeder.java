@@ -59,7 +59,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final PackageEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override

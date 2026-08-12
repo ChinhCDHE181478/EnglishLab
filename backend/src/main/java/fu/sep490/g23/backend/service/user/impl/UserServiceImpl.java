@@ -93,16 +93,19 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void changePassword(String email, ChangePasswordRequest request) {
         User user = requireUser(email);
-        if (user.getPassword() == null || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+        if (user.isPasswordSet() && (user.getPassword() == null
+                || request.getCurrentPassword() == null
+                || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword()))) {
             throw new IllegalArgumentException("Mật khẩu hiện tại không đúng.");
         }
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new IllegalArgumentException("Mật khẩu xác nhận không khớp.");
         }
-        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+        if (user.isPasswordSet() && passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Mật khẩu mới phải khác mật khẩu hiện tại.");
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordSet(true);
         userRepository.save(user);
     }
 
@@ -119,6 +122,7 @@ public class UserServiceImpl implements UserService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .avatarUrl(user.getAvatarUrl())
+                .passwordSet(user.isPasswordSet())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

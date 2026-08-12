@@ -76,6 +76,9 @@ export default function TeacherClassroomPage() {
   const [gradebook, setGradebook] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [announcementComposerOpen, setAnnouncementComposerOpen] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -108,6 +111,28 @@ export default function TeacherClassroomPage() {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  const createAnnouncement = async () => {
+    const title = announcementForm.title.trim();
+    const content = announcementForm.content.trim();
+    if (!title || !content) {
+      setActionMessage('Vui lòng nhập tiêu đề và nội dung thông báo.');
+      return;
+    }
+
+    setSavingAnnouncement(true);
+    try {
+      const created = await classroomApi.createTeacherAnnouncement(id, { title, content });
+      setAnnouncements((current) => [created, ...current]);
+      setAnnouncementForm({ title: '', content: '' });
+      setAnnouncementComposerOpen(false);
+      setActionMessage('Đã gửi thông báo tới lớp học.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể gửi thông báo.'));
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
@@ -476,33 +501,60 @@ export default function TeacherClassroomPage() {
     }
 
     if (activeTab === 'announcements') {
-      if (!announcements.length) {
-        return (
-          <ClassroomEmptyState
-            description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
-            title="Chưa có thông báo"
-          />
-        );
-      }
       return (
         <div className="space-y-4">
-          {announcements.map((announcement) => (
+          <div className="flex justify-end">
+            <button
+              className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#59000b] active:scale-[0.98]"
+              onClick={() => setAnnouncementComposerOpen((open) => !open)}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              {announcementComposerOpen ? 'Đóng soạn thông báo' : 'Tạo thông báo'}
+            </button>
+          </div>
+
+          {announcementComposerOpen ? (
+            <section className="space-y-4 rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb] p-5 shadow-sm">
+              <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Thông báo mới</h3>
+              <input
+                className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
+                maxLength={220}
+                onChange={(event) => setAnnouncementForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Tiêu đề thông báo"
+                value={announcementForm.title}
+              />
+              <textarea
+                className="min-h-32 w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm leading-6 text-[#2b2828] outline-none transition focus:border-[#730014]"
+                onChange={(event) => setAnnouncementForm((current) => ({ ...current, content: event.target.value }))}
+                placeholder="Nội dung thông báo"
+                value={announcementForm.content}
+              />
+              <div className="flex justify-end gap-3">
+                <button className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2.5 text-sm font-bold text-[#584140] transition hover:bg-white" onClick={() => setAnnouncementComposerOpen(false)} type="button">Hủy</button>
+                <button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#59000b] disabled:cursor-wait disabled:opacity-60" disabled={savingAnnouncement} onClick={createAnnouncement} type="button">{savingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}</button>
+              </div>
+            </section>
+          ) : null}
+
+          {!announcements.length ? (
+            <ClassroomEmptyState
+              description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
+              title="Chưa có thông báo"
+            />
+          ) : announcements.map((announcement) => (
             <article
               key={announcement.id}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 hover:border-[#dfbfbd]/30 transition"
+              className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-[#dfbfbd]/30"
             >
               <div className="flex items-center justify-between gap-3">
-                <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] flex items-center gap-2">
+                <h4 className="flex items-center gap-2 font-['Manrope'] text-base font-extrabold text-[#2b2828]">
                   <Bell className="h-4.5 w-4.5 text-[#730014]" />
                   {announcement.title}
                 </h4>
-                <span className="text-[10px] font-bold text-gray-400">
-                  {formatClassroomDateTime(announcement.createdAt)}
-                </span>
+                <span className="text-[10px] font-bold text-gray-400">{formatClassroomDateTime(announcement.createdAt)}</span>
               </div>
-              <p className="text-sm leading-7 text-[#584140] whitespace-pre-wrap">
-                {announcement.content || announcement.body}
-              </p>
+              <p className="whitespace-pre-wrap text-sm leading-7 text-[#584140]">{announcement.content || announcement.body}</p>
             </article>
           ))}
         </div>

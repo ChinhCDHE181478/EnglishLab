@@ -263,11 +263,16 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
                         teacher.getId(),
                         TeacherEvaluationStatus.PUBLISHED
                 );
-        BigDecimal latestScore = evaluationEntities.stream()
+        List<BigDecimal> publishedScores = evaluationEntities.stream()
                 .filter(item -> item.getStatus() == TeacherEvaluationStatus.PUBLISHED)
                 .map(TeacherPerformanceEvaluation::getOverallScore)
-                .findFirst()
-                .orElse(null);
+                .filter(Objects::nonNull)
+                .toList();
+        BigDecimal averageScore = publishedScores.isEmpty()
+                ? null
+                : publishedScores.stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(publishedScores.size()), 2, RoundingMode.HALF_UP);
         return TeacherProfessionalResponse.builder()
                 .teacherId(teacher.getId())
                 .fullName(teacher.getFullName())
@@ -284,7 +289,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
                 .assignedClassrooms(assignmentRepository.findByTeacherId(teacher.getId()).size())
                 .totalSessions(sessionRepository.countByTeacherId(teacher.getId()))
                 .completedSessions(sessionRepository.countByTeacherIdAndStatus(teacher.getId(), ClassroomSessionStatus.COMPLETED))
-                .latestPerformanceScore(latestScore)
+                .averagePerformanceScore(averageScore)
                 .verifiedCredentials(credentialRepository.findByTeacherIdOrderByIssuedDateDescIdDesc(teacher.getId()).stream()
                         .map(this::normalizeExpiry)
                         .filter(item -> item.getVerificationStatus() == CredentialVerificationStatus.VERIFIED)

@@ -4,6 +4,7 @@ import fu.sep490.g23.backend.dto.request.classroom.AssignToClassRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
 import fu.sep490.g23.backend.dto.request.classroom.EnrollStudentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RecordTuitionPaymentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
@@ -13,6 +14,7 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
@@ -29,6 +31,7 @@ import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
+import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleAvailabilityService;
 import fu.sep490.g23.backend.service.classroom.TuitionProofService;
 import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
@@ -61,6 +64,7 @@ public class StaffClassroomController {
     private final UserRepository userRepository;
     private final ClassroomRoomRepository roomRepository;
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
+    private final ClassroomContentService classroomContentService;
 
     public StaffClassroomController(
             ClassroomOfferingService classroomOfferingService,
@@ -68,7 +72,8 @@ public class StaffClassroomController {
             TrainingProgramService trainingProgramService,
             UserRepository userRepository,
             ClassroomRoomRepository roomRepository,
-            ClassroomScheduleAvailabilityService scheduleAvailabilityService
+            ClassroomScheduleAvailabilityService scheduleAvailabilityService,
+            ClassroomContentService classroomContentService
     ) {
         this.classroomOfferingService = classroomOfferingService;
         this.tuitionProofService = tuitionProofService;
@@ -76,11 +81,26 @@ public class StaffClassroomController {
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
         this.scheduleAvailabilityService = scheduleAvailabilityService;
+        this.classroomContentService = classroomContentService;
     }
 
     @GetMapping
     public ResponseEntity<List<ClassroomOfferingResponse>> listOfferings() {
         return ResponseEntity.ok(classroomOfferingService.getStaffOfferings());
+    }
+
+    @GetMapping("/{id}/announcements")
+    public ResponseEntity<List<ClassroomAnnouncementResponse>> getAnnouncements(@PathVariable Long id) {
+        return ResponseEntity.ok(classroomContentService.getAnnouncements(id));
+    }
+
+    @PostMapping("/{id}/announcements")
+    public ResponseEntity<ClassroomAnnouncementResponse> createAnnouncement(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateAnnouncementRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(classroomContentService.createAnnouncement(id, request, authentication.getName()));
     }
 
     @GetMapping("/teachers")

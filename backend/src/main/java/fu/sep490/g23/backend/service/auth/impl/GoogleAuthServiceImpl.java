@@ -72,6 +72,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
                     .email(email)
                     .googleId(googleId)
                     .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .passwordSet(false)
                     .emailVerified(true)
                     .build();
             userRoleService.assignRole(user, RoleEnum.LEARNER);
@@ -158,6 +159,7 @@ public class GoogleAuthServiceImpl implements GoogleAuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .avatarUrl(user.getAvatarUrl())
+                .passwordSet(user.isPasswordSet())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

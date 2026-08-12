@@ -35,7 +35,7 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     private final CourseCategoryRepository courseCategoryRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override

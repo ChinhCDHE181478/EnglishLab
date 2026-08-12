@@ -57,7 +57,6 @@ const emptyAttach = {
   unitId: '',
   type: 'MATERIAL',
   resourceId: '',
-  displayOrder: 0,
   note: '',
 };
 
@@ -914,7 +913,7 @@ export default function ContentManagerSyllabusBuilderPage() {
     setSuccess('');
     const payload = {
       resourceId: Number(attachForm.resourceId),
-      displayOrder: Number(attachForm.displayOrder || 0),
+      displayOrder: selectedAttachUnit?.[selectedGroup?.key]?.length || 0,
       note: attachForm.note,
     };
     try {
@@ -934,10 +933,9 @@ export default function ContentManagerSyllabusBuilderPage() {
       setAttachForm((current) => ({
         ...current,
         resourceId: '',
-        displayOrder: Number(current.displayOrder || 0) + 1,
         note: '',
       }));
-      setSuccess(`Đã gắn ${typeOptions.find((option) => option.value === attachForm.type)?.label?.toLowerCase() || 'tài nguyên'} vào unit.`);
+      setSuccess(`Đã thêm ${typeOptions.find((option) => option.value === attachForm.type)?.label?.toLowerCase() || 'nội dung'} vào bài học.`);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không gắn được tài nguyên.');
     } finally {
@@ -1126,24 +1124,20 @@ export default function ContentManagerSyllabusBuilderPage() {
           <section className="space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Gắn tài nguyên vào unit</h3>
+                <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Thêm nội dung vào bài học</h3>
                 <p className="mt-1 text-sm font-semibold text-[#584140]">
-                  {selectedAttachUnit ? `${selectedAttachUnit.displayOrder}. ${selectedAttachUnit.title}` : 'Chọn unit nhận nội dung'}
+                  {selectedAttachUnit ? `${selectedAttachUnit.displayOrder}. ${selectedAttachUnit.title}` : 'Chọn bài học nhận nội dung'}
                 </p>
               </div>
               <button className="rounded-lg border border-[#dcc0bf]/40 px-3 py-2 text-sm font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={closeResourcePanel} type="button">
                 Đóng
               </button>
             </div>
-            <div className="mt-4 grid gap-4 lg:grid-cols-4">
-              <FieldSelect label="Unit nhận tài nguyên" value={attachForm.unitId} onChange={selectAttachUnit} options={unitOptions} placeholder="Chọn unit" />
-              <FieldSelect label="Loại tài nguyên" value={attachForm.type} onChange={(value) => setAttachForm({ ...attachForm, type: value, resourceId: '' })} options={typeOptions} />
-              <FieldSelect label="Tài nguyên" value={attachForm.resourceId} onChange={(value) => setAttachForm({ ...attachForm, resourceId: value })} options={resourceOptions} placeholder={resourceOptions.length ? 'Chọn tài nguyên' : 'Kho này đang trống'} disabled={!resourceOptions.length} />
-              <label className="block">
-                <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Thứ tự</span>
-                <input type="number" min="0" value={attachForm.displayOrder} onChange={(event) => setAttachForm({ ...attachForm, displayOrder: event.target.value })} className={FIELD_CLASS} />
-              </label>
-              <label className="block lg:col-span-4">
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              <FieldSelect label="Bài học nhận nội dung" value={attachForm.unitId} onChange={selectAttachUnit} options={unitOptions} placeholder="Chọn bài học" />
+              <FieldSelect label="Loại nội dung" value={attachForm.type} onChange={(value) => setAttachForm({ ...attachForm, type: value, resourceId: '' })} options={typeOptions} />
+              <FieldSelect label="Nội dung" value={attachForm.resourceId} onChange={(value) => setAttachForm({ ...attachForm, resourceId: value })} options={resourceOptions} placeholder={resourceOptions.length ? 'Chọn nội dung' : 'Kho này đang trống'} disabled={!resourceOptions.length} searchable />
+              <label className="block lg:col-span-3">
                 <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Ghi chú</span>
                 <textarea value={attachForm.note} onChange={(event) => setAttachForm({ ...attachForm, note: event.target.value })} rows={3} className={TEXTAREA_CLASS} />
               </label>
@@ -1153,21 +1147,21 @@ export default function ContentManagerSyllabusBuilderPage() {
                 <p className="text-sm font-extrabold text-[#26364a]">{selectedResource.title}</p>
                 <p className="mt-1 text-xs leading-5 text-[#584140]">
                   {[...new Set([getReadableResourceText(selectedResource.description), getReadableResourceText(selectedResource.prompt), selectedResource.skill, selectedResource.examCategory]
-                    .filter(Boolean))].join(' · ') || 'Tài nguyên đã sẵn sàng để gắn vào unit.'}
+                    .filter(Boolean))].join(' · ') || 'Nội dung đã sẵn sàng để thêm vào bài học.'}
                 </p>
               </div>
             ) : null}
             {!resourceOptions.length && selectedAttachUnit ? (
               <p className="mt-4 border border-[#dcc0bf]/30 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold text-[#584140]">
-                Tất cả tài nguyên thuộc loại này đã được gắn vào unit, hoặc kho tài nguyên đang trống.
+                Tất cả nội dung thuộc loại này đã được thêm vào bài học, hoặc kho nội dung đang trống.
               </p>
             ) : null}
             <button type="button" onClick={attachResource} disabled={working || !attachForm.unitId || !attachForm.resourceId} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:opacity-60">
-              <Link2 className="h-4 w-4" /> Gắn tài nguyên
+              <Link2 className="h-4 w-4" /> Thêm vào bài học
             </button>
             {selectedAttachUnit ? (
               <div className="mt-6 border-t border-[#dcc0bf]/25 pt-5">
-                <h4 className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#8b706e]">Nội dung hiện có trong unit</h4>
+                <h4 className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#8b706e]">Nội dung hiện có trong bài học</h4>
                 <UnitResourceGroups
                   onDetach={detachResource}
                   unit={selectedAttachUnit}
@@ -1220,7 +1214,7 @@ export default function ContentManagerSyllabusBuilderPage() {
           <section>
             <div className="flex items-start justify-between gap-4 border-b border-[#dcc0bf]/30 pb-5">
               <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8e7371]">Tài nguyên của unit</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8e7371]">Nội dung của bài học</p>
                 <h3 className="mt-2 font-['Manrope'] text-xl font-extrabold text-[#0b1c30]">
                   {resourceDetailUnit.displayOrder ?? 0}. {resourceDetailUnit.title}
                 </h3>
@@ -1281,12 +1275,12 @@ export default function ContentManagerSyllabusBuilderPage() {
                                 {unit.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]">{unit.description}</p> : null}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-extrabold text-[#4b0009]">{sessionPlans.length} buổi học</span>
-                                  <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-[#8b706e]">{resourceCount} tài nguyên chung</span>
+                                  <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-[#8b706e]">{resourceCount} nội dung</span>
                                 </div>
                               </div>
                               <div className="flex shrink-0 flex-wrap gap-2">
                                 <button className="rounded-lg border border-[#dcc0bf]/50 bg-white px-3 py-2 text-xs font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => openEditUnit(unit)} type="button">Sửa Unit</button>
-                                <button className="rounded-lg border border-[#dcc0bf]/50 bg-white px-3 py-2 text-xs font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => openResourcePanel(unit.id)} type="button">Tài nguyên</button>
+                                <button className="rounded-lg border border-[#dcc0bf]/50 bg-white px-3 py-2 text-xs font-bold text-[#4b0009] hover:bg-[#fff7f7]" onClick={() => openResourcePanel(unit.id)} type="button">Nội dung</button>
                                 <button aria-label={`Xóa Unit ${unit.title}`} className="rounded-lg border border-rose-200 bg-white p-2 text-rose-700 hover:bg-rose-50 disabled:opacity-50" disabled={working} onClick={() => deleteUnit(unit)} type="button"><Trash2 className="h-4 w-4" /></button>
                               </div>
                             </div>
@@ -1334,7 +1328,7 @@ function InfoTile({ label, value }) {
   );
 }
 
-function FieldSelect({ label, value, options, onChange, placeholder, disabled }) {
+function FieldSelect({ label, value, options, onChange, placeholder, disabled, searchable = false }) {
   return (
     <div>
       <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{label}</span>
@@ -1344,6 +1338,7 @@ function FieldSelect({ label, value, options, onChange, placeholder, disabled })
         options={options}
         placeholder={placeholder}
         disabled={disabled}
+        searchable={searchable}
       />
     </div>
   );

@@ -97,6 +97,19 @@ class UserServiceImplTest {
     }
 
     @Test
+    void changePassword_ForSocialAccount_AllowsInitialPasswordWithoutCurrentPassword() {
+        user.setPasswordSet(false);
+        ChangePasswordRequest request = passwordRequest(null, "NextPassword123!", "NextPassword123!");
+        when(passwordEncoder.encode("NextPassword123!")).thenReturn("encoded-next");
+
+        service.changePassword(user.getEmail(), request);
+
+        assertEquals("encoded-next", user.getPassword());
+        assertEquals(true, user.isPasswordSet());
+        verify(userRepository).save(user);
+    }
+
+    @Test
     void updateAvatar_ReplacesStoredAvatarAndReturnsUpdatedUser() {
         user.setAvatarUrl("http://localhost:8080/api/user/avatars/avatar-old.png");
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1});
