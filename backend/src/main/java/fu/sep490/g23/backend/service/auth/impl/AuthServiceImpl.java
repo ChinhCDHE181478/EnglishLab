@@ -177,6 +177,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordSet(true);
         user.setEmailVerified(true);
         userRepository.save(user);
         authTokenService.markUsed(resetToken);
@@ -200,6 +201,7 @@ public class AuthServiceImpl implements AuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .avatarUrl(user.getAvatarUrl())
+                .passwordSet(user.isPasswordSet())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

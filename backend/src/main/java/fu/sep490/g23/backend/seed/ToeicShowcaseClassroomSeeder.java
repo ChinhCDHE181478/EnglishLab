@@ -171,7 +171,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
 
-    @Value("${app.seed.showcase-classroom.enabled:true}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean enabled;
 
     @Override

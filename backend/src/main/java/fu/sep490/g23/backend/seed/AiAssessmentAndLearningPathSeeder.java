@@ -43,7 +43,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override

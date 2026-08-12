@@ -367,7 +367,7 @@ export default function TeacherManagementPage({ mode = 'STAFF' }) {
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     <MiniMetric label="Lớp" value={teacher.assignedClassrooms} />
                     <MiniMetric label="Buổi" value={teacher.totalSessions} />
-                    <MiniMetric label="Điểm" value={teacher.latestPerformanceScore ?? '—'} />
+                    <MiniMetric label="Điểm TB" value={teacher.averagePerformanceScore ?? '—'} />
                   </div>
                 </button>
               ))}
@@ -418,7 +418,7 @@ export default function TeacherManagementPage({ mode = 'STAFF' }) {
                 <StatCard icon={BookOpenCheck} label="Lớp phụ trách" value={detail.assignedClassrooms} />
                 <StatCard icon={BriefcaseBusiness} label="Buổi đã lên lịch" value={detail.totalSessions} />
                 <StatCard icon={CheckCircle2} label="Buổi hoàn thành" value={detail.completedSessions} />
-                <StatCard icon={Star} label="Điểm gần nhất" value={detail.latestPerformanceScore ?? '—'} />
+                <StatCard icon={Star} label="Điểm trung bình" value={detail.averagePerformanceScore ?? '—'} />
               </div>
 
               <div className="grid gap-5 lg:grid-cols-2">

@@ -1067,6 +1067,9 @@ export default function MyClassroomDetailPage() {
               {paginatedHomeworkList.map((item) => {
               const hasSubmission = !!item.mySubmission;
               const isGraded = hasSubmission && item.mySubmission.score != null;
+              const teacherFeedback = getSubmissionFeedback(item.mySubmission);
+              const annotationCount = item.mySubmission?.annotations?.length || 0;
+              const hasTeacherEvaluation = isGraded || Boolean(teacherFeedback) || annotationCount > 0;
               const isOverdue = item.overdue && !hasSubmission;
               const canSubmit = canResubmitHomework(item);
               
@@ -1135,6 +1138,24 @@ export default function MyClassroomDetailPage() {
                         </div>
                       )}
 
+                      {hasTeacherEvaluation && (
+                        <div className="rounded-xl border border-[#dfbfbd]/35 bg-[#fffafb] p-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            Đánh giá của giảng viên
+                          </div>
+                          {teacherFeedback ? (
+                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{teacherFeedback}</p>
+                          ) : null}
+                          {annotationCount > 0 ? (
+                            <p className="mt-2 text-[11px] font-bold text-[#8b706e]">{annotationCount} nhận xét trực tiếp trên bài làm</p>
+                          ) : null}
+                          {!teacherFeedback && annotationCount === 0 ? (
+                            <p className="mt-2 text-xs text-[#8b706e]">Giảng viên đã công bố điểm, chưa có nhận xét chi tiết.</p>
+                          ) : null}
+                        </div>
+                      )}
+
                       {/* Submitted but not graded block */}
                       {hasSubmission && !isGraded && (
                         <div className="rounded-xl border border-blue-150 bg-blue-50/10 p-3 flex items-center justify-between">
@@ -1157,7 +1178,7 @@ export default function MyClassroomDetailPage() {
                           {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                           {item.activityType === 'FLASHCARD_REVIEW'
                             ? 'Học flashcard theo unit'
-                            : hasSubmission && canSubmit ? 'Làm lại bài tập' : 'Bắt đầu làm bài'}
+                            : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
                         </button>
                       ) : (
                         <button
@@ -1177,7 +1198,7 @@ export default function MyClassroomDetailPage() {
                           ) : (
                             <>
                               <FileText className="h-4 w-4 text-[#730014]" />
-                              Xem chi tiết bài làm
+                              {hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Xem chi tiết bài làm'}
                             </>
                           )}
                         </button>

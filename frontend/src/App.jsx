@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import AuthLayout from './components/auth/AuthLayout';
+import AccountOnboardingPrompts from './components/auth/AccountOnboardingPrompts';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AppDialogProvider } from './components/ui/AppDialog';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -148,7 +149,7 @@ function AppRoutes() {
       </Route>
 
       {/* Shared authenticated routes */}
-      <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/dictionary" element={<DictionaryPage />} />
         <Route path="/home" element={<HomeRoute />} />
@@ -187,7 +188,7 @@ function AppRoutes() {
           <Route path="/manager/support-tickets" element={<ManagerSupportTicketsPage />} />
         </Route>
       </Route>
-      <Route element={<ProtectedRoute requireCompleteProfile={false} requirePlacementTest />}>
+      <Route element={<ProtectedRoute requireCompleteProfile={false} />}>
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/profile" element={<CompleteProfile />} />
       </Route>
@@ -210,6 +211,7 @@ function App() {
         <AuthProvider>
           <LearnerExperienceProvider>
             <AppRoutes />
+            <AccountOnboardingPrompts />
           </LearnerExperienceProvider>
         </AuthProvider>
       </AppDialogProvider>

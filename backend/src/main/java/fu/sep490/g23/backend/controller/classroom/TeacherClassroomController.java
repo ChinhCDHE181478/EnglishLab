@@ -17,6 +17,7 @@ import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateMaterialRequest;
 import fu.sep490.g23.backend.service.classroom.TeacherClassroomAuthorizationService;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
@@ -343,6 +344,16 @@ public class TeacherClassroomController {
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(contentService.getAnnouncements(id));
+    }
+
+    @PostMapping("/{id}/announcements")
+    public ResponseEntity<ClassroomAnnouncementResponse> createAnnouncement(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateAnnouncementRequest request,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
+        return ResponseEntity.ok(contentService.createAnnouncement(id, request, authentication.getName()));
     }
 
     @PostMapping("/requests/check-conflict")

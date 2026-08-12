@@ -45,7 +45,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final YouTubeTranscriptService youTubeTranscriptService;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override

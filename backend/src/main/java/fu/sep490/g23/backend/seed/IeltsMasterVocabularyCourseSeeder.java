@@ -55,7 +55,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override

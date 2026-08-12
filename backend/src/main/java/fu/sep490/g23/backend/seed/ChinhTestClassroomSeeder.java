@@ -62,12 +62,10 @@ import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
-import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -154,11 +152,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ClassroomPracticeAttemptRepository practiceAttemptRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
-
-    @Value("${app.seed.chinh-test.enabled:true}")
-    private boolean chinhTestEnabled;
 
     record IeltsUnitSeed(
             String title,
