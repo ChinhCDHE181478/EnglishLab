@@ -422,6 +422,7 @@ function ProposalModal({
           <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={working} onClick={onClose} type="button">
             <X className="h-5 w-5" />
           </button>
+        </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
           {error ? <div className={`${ERROR_NOTICE_CLASS} mb-4`} role="alert">{error}</div> : null}
 

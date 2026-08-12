@@ -101,7 +101,7 @@ export default function StaffEnrollmentRequestsPage() {
     setError('');
     setClassroomLoadError('');
     const result = await loadStaffEnrollmentData(
-      () => enrollmentRequestApi.listForStaff(view),
+      () => enrollmentRequestApi.listForStaff(),
       () => classroomApi.getStaffClassrooms(),
     );
     if (result.requestError) {
@@ -123,6 +123,9 @@ export default function StaffEnrollmentRequestsPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
     setAction(initialAction);
   }, [view]);
 
@@ -146,6 +149,7 @@ export default function StaffEnrollmentRequestsPage() {
   const filteredRequests = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi-VN');
     return requests.filter((item) => {
+      const matchesView = view === 'ALL' || item.status === view;
       const matchesKeyword = !normalized || [
         item.learnerName,
         item.learnerEmail,
@@ -163,9 +167,9 @@ export default function StaffEnrollmentRequestsPage() {
       const matchesTrack = trackFilter === 'ALL' || item.consultationTrack === trackFilter;
       const matchesSource = sourceFilter === 'ALL' || (item.requestSource || 'ONLINE') === sourceFilter;
 
-      return matchesKeyword && matchesTrack && matchesSource;
+      return matchesView && matchesKeyword && matchesTrack && matchesSource;
     });
-  }, [keyword, requests, trackFilter, sourceFilter]);
+  }, [keyword, requests, sourceFilter, trackFilter, view]);
 
   const resetKey = `${keyword}|${view}|${trackFilter}|${sourceFilter}`;
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
@@ -175,11 +179,7 @@ export default function StaffEnrollmentRequestsPage() {
   );
 
   const applyTransition = (updated) => {
-    setRequests((current) => (
-      view === 'ALL'
-        ? current.map((item) => (item.id === updated.id ? updated : item))
-        : current.filter((item) => item.id !== updated.id)
-    ));
+    setRequests((current) => current.map((item) => (item.id === updated.id ? updated : item)));
   };
 
   const runAction = async (operation, successMessage, fallbackMessage) => {

@@ -109,13 +109,12 @@ export default function StaffClassroomsPage() {
   const trainingProgramOptions = useMemo(() => [
     { label: 'Chọn chương trình đã xuất bản', value: '' },
     ...trainingPrograms
-      .filter((program) => program.deliveryMode === classroomForm.deliveryMode)
       .map((program) => ({
         label: program.title,
         value: String(program.id),
         description: [program.code, program.examCategory, program.entryLevel, program.targetScore ? `Đầu ra ${program.targetScore}` : null].filter(Boolean).join(' · '),
       })),
-  ], [classroomForm.deliveryMode, trainingPrograms]);
+  ], [trainingPrograms]);
 
   const programFilterOptions = useMemo(() => {
     const seen = new Set();
@@ -166,7 +165,6 @@ export default function StaffClassroomsPage() {
       const next = { ...current, [field]: value };
       if (field === 'deliveryMode') {
         next.studyMode = value === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm';
-        next.trainingProgramId = '';
         next.defaultRoomId = '';
       }
       if (field === 'trainingProgramId') {

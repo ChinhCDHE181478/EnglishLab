@@ -245,11 +245,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         PackageType packageType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new RuntimeException("Thiếu loại gói CLASSROOM trong hệ thống."));
-        CurriculumProgram curriculumProgram = resolveCurriculumProgram(
-                request.getCurriculumProgramId(),
-                request.getDeliveryMode()
-        );
-        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId(), request.getDeliveryMode());
+        CurriculumProgram curriculumProgram = resolveCurriculumProgram(request.getCurriculumProgramId());
+        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId());
         if (trainingProgram != null) {
             curriculumProgram = trainingProgram.getCurriculumProgram();
         }
@@ -326,11 +323,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         accessHelper.assertStaffOperator(actor);
         ClassroomOffering offering = findOffering(id);
         LearningPackage learningPackage = offering.getLearningPackage();
-        CurriculumProgram curriculumProgram = resolveCurriculumProgram(
-                request.getCurriculumProgramId(),
-                request.getDeliveryMode()
-        );
-        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId(), request.getDeliveryMode());
+        CurriculumProgram curriculumProgram = resolveCurriculumProgram(request.getCurriculumProgramId());
+        TrainingProgram trainingProgram = resolveTrainingProgram(request.getTrainingProgramId());
         if (trainingProgram != null) {
             curriculumProgram = trainingProgram.getCurriculumProgram();
         }
@@ -2237,15 +2231,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return sessionPlan;
     }
 
-    private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId, ClassroomDeliveryMode deliveryMode) {
+    private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId) {
         if (curriculumProgramId == null) {
             return null;
         }
         CurriculumProgram program = curriculumProgramRepository.findById(curriculumProgramId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo trình."));
-        if (deliveryMode != null && program.getDeliveryMode() != deliveryMode) {
-            throw new RuntimeException("Giáo trình không khớp với hình thức đào tạo của lớp.");
-        }
         if ("ARCHIVED".equalsIgnoreCase(program.getStatus())) {
             throw new RuntimeException("Giáo trình đã lưu trữ, không thể gắn vào lớp.");
         }
@@ -2255,15 +2246,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         return program;
     }
 
-    private TrainingProgram resolveTrainingProgram(Long trainingProgramId, ClassroomDeliveryMode deliveryMode) {
+    private TrainingProgram resolveTrainingProgram(Long trainingProgramId) {
         if (trainingProgramId == null) {
             return null;
         }
         TrainingProgram program = trainingProgramRepository.findById(trainingProgramId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy chương trình học."));
-        if (deliveryMode != null && program.getDeliveryMode() != deliveryMode) {
-            throw new RuntimeException("Chương trình học không khớp với hình thức đào tạo của lớp.");
-        }
         if (program.getStatus() == PackageStatus.ARCHIVED) {
             throw new RuntimeException("Chương trình học đã lưu trữ, không thể gắn vào lớp.");
         }
