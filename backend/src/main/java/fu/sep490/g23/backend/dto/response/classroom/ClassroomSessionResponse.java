@@ -48,6 +48,14 @@ public class ClassroomSessionResponse {
     private LocalDateTime recordingPublishedAt;
     private LocalDateTime recordingExpiresAt;
     private String sessionContent;
+    private Long curriculumSessionPlanId;
+    private Integer sessionNumber;
+    private String sessionPlanTitle;
+    private String sessionPlanDescription;
+    private String learningObjectives;
+    private Long curriculumUnitId;
+    private Integer curriculumUnitDisplayOrder;
+    private String curriculumUnitTitle;
     private String note;
     private boolean locked;
     private boolean rescheduled;

@@ -20,7 +20,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
@@ -34,7 +33,6 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestReposito
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
-import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
@@ -47,9 +45,17 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepo
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 
+import fu.sep490.g23.backend.entity.classroom.*;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.*;
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+import fu.sep490.g23.backend.entity.course.*;
+import fu.sep490.g23.backend.entity.course.enums.*;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;

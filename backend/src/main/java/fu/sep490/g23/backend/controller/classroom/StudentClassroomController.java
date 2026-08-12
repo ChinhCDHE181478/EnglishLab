@@ -25,6 +25,7 @@ import fu.sep490.g23.backend.service.classroom.ClassroomGradebookService;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 
+import fu.sep490.g23.backend.service.classroom.*;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;

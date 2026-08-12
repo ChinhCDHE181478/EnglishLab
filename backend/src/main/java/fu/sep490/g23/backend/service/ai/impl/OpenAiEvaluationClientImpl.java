@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.ai.impl;
-import fu.sep490.g23.backend.service.ai.AiEvaluationException;
-import fu.sep490.g23.backend.service.ai.OpenAiEvaluationClient;
-import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
-import fu.sep490.g23.backend.service.ai.AiProviderProperties;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import fu.sep490.g23.backend.service.ai.AiEvaluationException;
+import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
+import fu.sep490.g23.backend.service.ai.AiProviderProperties;
+import fu.sep490.g23.backend.service.ai.OpenAiEvaluationClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

@@ -40,6 +40,9 @@ import {
   formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
+  getClassroomSessionNumber,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
 } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION_CARD_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
@@ -214,7 +217,7 @@ export default function TeacherClassroomPage() {
               <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl font-['Manrope'] text-sm font-extrabold ${
                 isLive ? 'bg-emerald-100 text-emerald-800' : isPast ? 'bg-gray-100 text-gray-500' : 'bg-rose-50 text-[#730014]'
               }`}>
-                {sessions.indexOf(session) + 1}
+                {getClassroomSessionNumber(session, sessions.indexOf(session) + 1)}
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -225,9 +228,17 @@ export default function TeacherClassroomPage() {
                   )}
                   <StatusBadge status={session.status} />
                 </div>
+                {session.sessionNumber != null ? (
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">
+                    Buổi {session.sessionNumber}
+                  </p>
+                ) : null}
                 <h3 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
-                  {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+                  {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
                 </h3>
+                {getClassroomSessionUnitLabel(session) ? (
+                  <p className="text-xs font-semibold text-[#8b706e]">{getClassroomSessionUnitLabel(session)}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#584140]">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5 text-[#730014]" />
@@ -730,7 +741,16 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
       {expanded ? (
         <div className="space-y-4 border-t border-gray-100 bg-[#fafafa]/50 p-5">
           {unit.description ? <p className="text-sm text-[#584140]">{unit.description}</p> : null}
-          {unit.sessionPlan ? <p className="whitespace-pre-wrap rounded-xl border border-gray-100 bg-white p-4 text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+          {unit.sessionPlans?.length ? (
+            <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
+              {unit.sessionPlans.map((plan) => (
+                <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                  <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             <CurriculumRefList title="Học liệu" refs={unit.materials} />
             <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />

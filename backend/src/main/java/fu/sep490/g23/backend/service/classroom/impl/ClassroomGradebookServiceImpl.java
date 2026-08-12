@@ -1,6 +1,4 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkScoreCalculator;
-import fu.sep490.g23.backend.service.classroom.ClassroomGradebookService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 
 
@@ -22,6 +20,8 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.ClassroomGradebookService;
+import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkScoreCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

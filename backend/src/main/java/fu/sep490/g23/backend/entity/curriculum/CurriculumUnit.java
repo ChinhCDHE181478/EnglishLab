@@ -41,6 +41,11 @@ public class CurriculumUnit {
     private String sessionPlan;
 
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sessionNumber ASC, displayOrder ASC, id ASC")
+    @Builder.Default
+    private List<CurriculumSessionPlan> sessionPlans = new ArrayList<>();
+
+    @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC, id ASC")
     @Builder.Default
     private List<CurriculumMaterialRef> materialRefs = new ArrayList<>();
@@ -67,4 +72,9 @@ public class CurriculumUnit {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void addSessionPlan(CurriculumSessionPlan sessionPlan) {
+        sessionPlans.add(sessionPlan);
+        sessionPlan.setUnit(this);
+    }
 }

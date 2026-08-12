@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.entity.curriculum;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -57,6 +58,10 @@ public class CurriculumProgram {
 
     @Column(length = 120)
     private String entryLevel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "entry_placement_level", length = 30)
+    private PlacementLevel entryPlacementLevel;
 
     @Column(columnDefinition = "text")
     private String outcomes;

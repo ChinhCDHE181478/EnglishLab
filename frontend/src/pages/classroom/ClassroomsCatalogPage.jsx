@@ -173,6 +173,18 @@ export default function ClassroomsCatalogPage() {
     [activeRequests],
   );
 
+  useEffect(() => {
+    const requestedProgramId = new URLSearchParams(location.search).get('programId');
+    if (!requestedProgramId || !programs.length || activeProgramIds.has(String(requestedProgramId))) return;
+    const requestedProgram = programs.find((program) => String(program.id) === String(requestedProgramId));
+    if (!requestedProgram) return;
+    setForm((current) => String(current.courseOfferingId) === String(requestedProgramId) ? current : ({
+      ...current,
+      courseOfferingId: String(requestedProgram.id),
+      consultationTrack: suggestedTrack(requestedProgram),
+    }));
+  }, [activeProgramIds, location.search, programs]);
+
   const programOptions = useMemo(() => programs
     .filter((program) => !activeProgramIds.has(String(program.id)))
     .map((program) => ({

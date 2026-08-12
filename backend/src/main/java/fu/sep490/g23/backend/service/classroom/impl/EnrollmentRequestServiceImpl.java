@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
+import lombok.extern.slf4j.Slf4j;
 
 import fu.sep490.g23.backend.dto.request.classroom.CompleteEnrollmentTestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateCenterEnrollmentRequest;
@@ -7,8 +8,8 @@ import fu.sep490.g23.backend.dto.request.classroom.RejectEnrollmentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ScheduleEnrollmentTestRequest;
 import fu.sep490.g23.backend.dto.request.classroom.AssignEnrollmentClassRequest;
 import fu.sep490.g23.backend.dto.request.classroom.EnrollStudentRequest;
-import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
+import fu.sep490.g23.backend.dto.response.assessment.PlacementEligibilityResult;
 import fu.sep490.g23.backend.dto.response.classroom.CourseEnrollmentRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentDemandReportResponse;
 import fu.sep490.g23.backend.dto.response.classroom.EnrollmentRequestHistoryResponse;
@@ -37,13 +38,12 @@ import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.classroom.EnrollmentRequestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
-import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +57,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -67,13 +66,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             EnrollmentRequestStatus.CANCELLED,
             EnrollmentRequestStatus.CLASS_ASSIGNED
     );
-
-    private static final Set<EnrollmentRequestStatus> READ_ONLY_STATUSES = Set.of(
-            EnrollmentRequestStatus.REJECTED,
-            EnrollmentRequestStatus.CANCELLED,
-            EnrollmentRequestStatus.CLASS_ASSIGNED
-    );
-
     private static final Set<ClassroomSessionStatus> ACTIVE_SESSION_STATUSES = Set.of(
             ClassroomSessionStatus.SCHEDULED,
             ClassroomSessionStatus.OPEN,
@@ -639,26 +631,18 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         return target;
     }
 
-    private String placementLevelLabel(fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel level) {
-        return switch (level) {
-            case BEGINNER -> "Cơ bản";
-            case INTERMEDIATE -> "Trung cấp";
-            case ADVANCED -> "Nâng cao";
-        };
-    }
-
     private boolean isAssignableClassroom(ClassroomOffering target) {
         return target.getLearningPackage() != null
-                && target.getStatus() == fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus.UPCOMING
+                && target.getStatus() == ClassroomOfferingStatus.UPCOMING
                 && target.getStartDate() != null
-                && target.getStartDate().isAfter(java.time.LocalDate.now())
-                && target.getLearningPackage().getStatus() == fu.sep490.g23.backend.entity.course.enums.PackageStatus.PUBLISHED;
+                && target.getStartDate().isAfter(LocalDate.now())
+                && target.getLearningPackage().getStatus() == PackageStatus.PUBLISHED;
     }
 
     private boolean isAvailableForLearner(ClassroomOffering offering, Long learnerId) {
-        var classResult = classroomConflictService.check(fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest.builder()
+        var classResult = classroomConflictService.check(ConflictCheckRequest.builder()
                 .classroomOfferingId(offering.getId())
-                .learnerIds(java.util.List.of(learnerId))
+                .learnerIds(List.of(learnerId))
                 .checkCapacity(true)
                 .build());
         if (classResult.isHasBlockingConflict()) {
@@ -669,12 +653,20 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId())
                 .stream()
                 .filter(session -> ACTIVE_SESSION_STATUSES.contains(session.getStatus()))
-                .allMatch(session -> !classroomConflictService.check(fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest.builder()
+                .allMatch(session -> !classroomConflictService.check(ConflictCheckRequest.builder()
                         .sessionDate(session.getSessionDate())
                         .startTime(session.getStartTime())
                         .endTime(session.getEndTime())
-                        .learnerIds(java.util.List.of(learnerId))
+                        .learnerIds(List.of(learnerId))
                         .checkCapacity(false)
                         .build()).isHasBlockingConflict());
+    }
+
+    private String placementLevelLabel(fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel level) {
+        return switch (level) {
+            case BEGINNER -> "Cơ bản";
+            case INTERMEDIATE -> "Trung cấp";
+            case ADVANCED -> "Nâng cao";
+        };
     }
 }

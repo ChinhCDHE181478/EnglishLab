@@ -29,6 +29,10 @@ public class LearningPathSchemaMigration {
 
                 CREATE INDEX IF NOT EXISTS idx_learning_path_courses_path_order
                     ON learning_path_courses(learning_path_id, display_order, id);
+
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS exam_category VARCHAR(30);
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_band NUMERIC(3,1);
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_score INTEGER;
                 """);
 
         jdbcTemplate.execute("""

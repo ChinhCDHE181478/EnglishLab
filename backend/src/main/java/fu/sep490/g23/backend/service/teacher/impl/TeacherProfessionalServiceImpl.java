@@ -1,12 +1,9 @@
 package fu.sep490.g23.backend.service.teacher.impl;
 import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
-import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherEvaluationResponse;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherEvaluationRequest;
-import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
-import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCredentialRequest;
 import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.dto.request.teacher.UpdateTeacherProfileRequest;
@@ -18,6 +15,9 @@ import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepo
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
+import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
+import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;

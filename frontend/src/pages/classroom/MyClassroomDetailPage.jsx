@@ -50,6 +50,7 @@ import {
   ProgressRing,
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
 import {
@@ -64,6 +65,8 @@ import {
   isGradebookPassed,
   downloadClassroomMaterial,
   formatSessionStatus,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
   getHomeworkMaxScore,
   getSubmissionFeedback,
 } from '../../utils/classroomHelpers';
@@ -593,9 +596,17 @@ export default function MyClassroomDetailPage() {
                         Đang diễn ra
                       </span>
                     )}
+                    {nextSession.sessionNumber != null && (
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                        Buổi {nextSession.sessionNumber}{getClassroomSessionUnitLabel(nextSession) ? ` · ${getClassroomSessionUnitLabel(nextSession)}` : ''}
+                      </p>
+                    )}
                     <h4 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c]">
-                      {nextSession.sessionContent || `Buổi học ngày ${formatClassroomDate(nextSession.sessionDate)}`}
+                      {getClassroomSessionTitle(nextSession, `Buổi học ngày ${formatClassroomDate(nextSession.sessionDate)}`)}
                     </h4>
+                    {nextSession.sessionPlanDescription && (
+                      <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={nextSession.sessionPlanDescription} />
+                    )}
                     
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#584140]">
                       <span className="flex items-center gap-1.5">
@@ -861,9 +872,17 @@ export default function MyClassroomDetailPage() {
                           )}
                         </div>
 
+                        {session.sessionNumber != null && (
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                            Buổi {session.sessionNumber}{getClassroomSessionUnitLabel(session) ? ` · ${getClassroomSessionUnitLabel(session)}` : ''}
+                          </p>
+                        )}
                         <h3 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c]">
-                          {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+                          {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
                         </h3>
+                        {session.sessionPlanDescription && (
+                          <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={session.sessionPlanDescription} />
+                        )}
 
                         <div className="grid gap-x-6 gap-y-2 text-xs text-[#584140] sm:grid-cols-2">
                           <div className="flex items-center gap-1.5">
@@ -2366,10 +2385,15 @@ function LearnerCurriculumPanel({
                         </p>
                       )}
                       
-                      {unit.sessionPlan && (
-                        <div className="text-[11px] whitespace-pre-wrap leading-relaxed text-gray-500 bg-white border border-gray-100 p-4 rounded-xl">
-                          <span className="font-bold text-slate-700 block mb-1 text-[10px] uppercase tracking-wider">Kế hoạch buổi học:</span>
-                          {unit.sessionPlan}
+                      {unit.sessionPlans?.length > 0 && (
+                        <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các buổi học</span>
+                          {unit.sessionPlans.map((plan) => (
+                            <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                              <p className="text-xs font-bold text-[#1a1c1c]">{plan.title}</p>
+                            </div>
+                          ))}
                         </div>
                       )}
                       

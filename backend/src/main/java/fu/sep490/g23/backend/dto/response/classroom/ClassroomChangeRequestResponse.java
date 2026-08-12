@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.dto.response.classroom;
-
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 

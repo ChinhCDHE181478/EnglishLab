@@ -34,7 +34,7 @@ import {
   StatusBadge,
 } from '../../components/classroom/ClassroomUi';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
-import { formatClassroomDate, formatClassroomTime } from '../../utils/classroomHelpers';
+import { formatClassroomDate, formatClassroomTime, getClassroomSessionTitle } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_SCHEDULE_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 
 // ─── Calendar constants ───────────────────────────────────────────────────────
@@ -499,8 +499,8 @@ function SessionGridCard({ session, onClick }) {
     >
       <div>
         <h4 className="text-[10px] font-extrabold leading-tight text-[#2b2828] line-clamp-2">{session.classroomTitle}</h4>
-        {session.sessionContent && (
-          <p className="mt-0.5 text-[9px] text-[#8b706e] line-clamp-1">{session.sessionContent}</p>
+        {getClassroomSessionTitle(session, '') && (
+          <p className="mt-0.5 text-[9px] text-[#8b706e] line-clamp-1">{getClassroomSessionTitle(session, '')}</p>
         )}
         <p className="mt-1 flex items-center gap-0.5 text-[9px] text-[#8b706e]">
           {isVirtual
@@ -560,8 +560,8 @@ function SessionListRow({ session, onClick }) {
           ) : (
             <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{session.roomName || 'Đang xếp phòng'}</span>
           )}
-          {session.sessionContent && (
-            <span className="flex items-center gap-1"><User className="h-3 w-3" />{session.sessionContent}</span>
+          {getClassroomSessionTitle(session, '') && (
+            <span className="flex items-center gap-1"><User className="h-3 w-3" />{getClassroomSessionTitle(session, '')}</span>
           )}
         </p>
       </div>
@@ -683,7 +683,7 @@ function SessionDetailContent({ session, onSubmitted, onSessionUpdated }) {
       <div className="space-y-3">
         <p className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">{session.classroomTitle}</p>
         <h3 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-          {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+          {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
         </h3>
         <div className="flex flex-wrap gap-2">
           <ClassroomTypeBadge mode={session.deliveryMode} />
@@ -875,7 +875,6 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
     .filter(({ index }) => slotStatus[index]?.available)
     .map(({ slot, index }) => ({ label: slot.label, value: String(index) }));
 
-  const removedCount = TIME_SLOTS.length - availableOptions.length;
   const hasChecked = Object.keys(slotStatus).length > 0;
   const noSlotAvailable = hasChecked && availableOptions.length === 0;
 
@@ -957,20 +956,12 @@ function RescheduleForm({ session, onCancel, onSubmitted }) {
             Ngày này không còn khung giờ nào trống cho học viên của lớp. Hãy chọn ngày khác.
           </div>
         ) : (
-          <>
-            <BrandedSelect
-              value={slotIndex != null ? String(slotIndex) : ''}
-              onChange={(e) => setSlotIndex(Number(e.target.value))}
-              options={availableOptions}
-              placeholder="Chọn khung giờ"
-            />
-            {removedCount > 0 && (
-              <p className="flex items-center gap-1 text-[11px] text-[#8b706e]">
-                <AlertCircle className="h-3 w-3" />
-                Đã ẩn {removedCount} khung giờ bị trùng lịch học viên.
-              </p>
-            )}
-          </>
+          <BrandedSelect
+            value={slotIndex != null ? String(slotIndex) : ''}
+            onChange={(e) => setSlotIndex(Number(e.target.value))}
+            options={availableOptions}
+            placeholder="Chọn khung giờ"
+          />
         )}
       </div>
 

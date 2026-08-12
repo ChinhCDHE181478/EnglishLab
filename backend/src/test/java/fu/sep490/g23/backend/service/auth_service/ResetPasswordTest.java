@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.auth_service;
+import java.util.Set;
 
 import fu.sep490.g23.backend.dto.request.ResetPasswordRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
@@ -18,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;

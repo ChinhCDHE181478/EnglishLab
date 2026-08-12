@@ -54,6 +54,21 @@ export const curriculumApi = {
     return unwrapData(response);
   },
 
+  async createCurriculumSessionPlan(unitId, payload) {
+    const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/session-plans`, payload);
+    return unwrapData(response);
+  },
+
+  async updateCurriculumSessionPlan(sessionPlanId, payload) {
+    const response = await axiosClient.put(`/api/content-manager/curriculum-session-plans/${sessionPlanId}`, payload);
+    return unwrapData(response);
+  },
+
+  async deleteCurriculumSessionPlan(sessionPlanId) {
+    const response = await axiosClient.delete(`/api/content-manager/curriculum-session-plans/${sessionPlanId}`);
+    return unwrapData(response);
+  },
+
   async attachUnitMaterial(unitId, payload) {
     const response = await axiosClient.post(`/api/content-manager/curriculum-units/${unitId}/materials`, payload);
     return unwrapData(response);

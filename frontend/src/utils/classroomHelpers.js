@@ -180,6 +180,19 @@ export const formatAttendanceStatus = (status) => {
   return map[status] || status || 'Chưa ghi nhận';
 };
 
+export const getClassroomSessionTitle = (session, fallback = 'Nội dung buổi học đang cập nhật') =>
+  session?.sessionPlanTitle || session?.sessionContent || fallback;
+
+export const getClassroomSessionNumber = (session, legacyNumber = null) =>
+  session?.sessionNumber ?? legacyNumber;
+
+export const getClassroomSessionUnitLabel = (session) => {
+  if (!session?.curriculumUnitTitle) return '';
+  return session.curriculumUnitDisplayOrder != null
+    ? `Unit ${session.curriculumUnitDisplayOrder}: ${session.curriculumUnitTitle}`
+    : session.curriculumUnitTitle;
+};
+
 export const formatAttendanceDisputeStatus = (status) => {
   const labels = {
     PENDING: 'Đang chờ giáo viên xử lý',

@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.service.user.impl;
-import fu.sep490.g23.backend.service.user.UserRoleService;
 
 import fu.sep490.g23.backend.entity.Role;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.RoleRepository;
+import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import java.util.Collection;
 import org.springframework.stereotype.Service;

@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.mail.impl;
-import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
+import fu.sep490.g23.backend.service.mail.CourseEnrollmentMailService;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

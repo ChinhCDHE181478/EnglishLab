@@ -284,6 +284,11 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getTeacherSession(sessionId) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/sessions/${sessionId}`);
+    return unwrapData(response);
+  },
+
   async saveHomeworkAnnotations(homeworkId, studentId, annotations) {
     const response = await axiosClient.put(
       `/api/teacher/classrooms/homework/${homeworkId}/students/${studentId}/annotations`,

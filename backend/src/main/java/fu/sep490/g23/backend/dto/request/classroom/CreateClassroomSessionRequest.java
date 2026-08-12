@@ -32,6 +32,7 @@ public class CreateClassroomSessionRequest {
     private ClassroomSessionStatus status;
     private ClassroomDeliveryMode deliveryMode;
     private Long roomId;
+    private Long curriculumSessionPlanId;
 
     @Size(max = 700, message = "Đường dẫn phòng học trực tuyến không được vượt quá 700 ký tự")
     private String larkMeetingUrl;

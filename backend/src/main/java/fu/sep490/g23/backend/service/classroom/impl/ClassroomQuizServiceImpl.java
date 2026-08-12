@@ -23,6 +23,7 @@ import fu.sep490.g23.backend.dto.response.classroom.QuizQuestionResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomQuizStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
+import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomQuizService;
 import lombok.RequiredArgsConstructor;

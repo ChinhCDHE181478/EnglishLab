@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.service.classroom.CenterMaterialLibraryService;
 
 
 import fu.sep490.g23.backend.dto.request.classroom.CenterMaterialLibraryUpsertRequest;
@@ -9,6 +8,7 @@ import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumMaterialRefRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.CenterMaterialLibraryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

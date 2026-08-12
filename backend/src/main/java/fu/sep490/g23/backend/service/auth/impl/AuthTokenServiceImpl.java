@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.auth.impl;
+
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 
 import fu.sep490.g23.backend.entity.AuthToken;

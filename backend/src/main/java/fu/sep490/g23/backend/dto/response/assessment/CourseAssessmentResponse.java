@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.dto.response.assessment;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 

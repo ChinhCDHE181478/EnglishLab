@@ -1,6 +1,8 @@
 package fu.sep490.g23.backend.entity.assessment;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 
+import fu.sep490.g23.backend.entity.assessment.enums.*;
+
 import jakarta.persistence.*;
 import lombok.*;
 

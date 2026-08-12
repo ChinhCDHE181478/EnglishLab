@@ -1,7 +1,4 @@
 package fu.sep490.g23.backend.service.course.impl;
-import fu.sep490.g23.backend.service.course.CourseDiscussionNotificationService;
-import fu.sep490.g23.backend.service.course.CourseDiscussionService;
-import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 
 
 import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
@@ -35,6 +32,9 @@ import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.LessonRepository;
+import fu.sep490.g23.backend.service.course.CourseDiscussionNotificationService;
+import fu.sep490.g23.backend.service.course.CourseDiscussionService;
+import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;

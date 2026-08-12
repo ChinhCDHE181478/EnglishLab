@@ -1,8 +1,6 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
-import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
-import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 
 
 import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
@@ -26,6 +24,8 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.ClassroomContentService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

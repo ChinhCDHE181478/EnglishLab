@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.auth.impl;
+
 import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.auth.GoogleAuthService;
-
 import fu.sep490.g23.backend.service.user.UserRoleService;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
