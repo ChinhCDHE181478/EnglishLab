@@ -73,7 +73,7 @@ public final class ClassroomRegistrationSupport {
     }
 
     @SuppressWarnings("deprecation")
-    public static void syncLegacyStatus(fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment enrollment) {
+    public static void syncLegacyStatus(ClassroomEnrollment enrollment) {
         ClassroomRegistrationStatus registrationStatus = enrollment.getRegistrationStatus();
         if (registrationStatus == null) {
             return;

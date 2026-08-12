@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.dto.request.curriculum;
 
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -46,6 +47,8 @@ public class CurriculumProgramRequest {
 
     @Size(max = 120)
     private String entryLevel;
+
+    private PlacementLevel entryPlacementLevel;
 
     private String outcomes;
     private String teacherGuide;

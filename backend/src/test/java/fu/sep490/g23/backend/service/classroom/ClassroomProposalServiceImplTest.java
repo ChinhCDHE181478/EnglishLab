@@ -1,10 +1,11 @@
 package fu.sep490.g23.backend.service.classroom;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
+import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
 
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomProposalRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectClassroomProposalRequest;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
@@ -13,7 +14,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
-import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
 import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
@@ -22,6 +22,9 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -32,6 +35,7 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomProposalServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,6 +73,7 @@ class ClassroomProposalServiceImplTest {
     @Mock private ClassroomConflictService conflictService;
     @Mock private ClassroomScheduleLockService scheduleLockService;
     @Mock private ClassroomOfferingService classroomOfferingService;
+    @Mock private CurriculumSessionPlanRepository curriculumSessionPlanRepository;
 
     private ClassroomProposalServiceImpl service;
     private User learner;
@@ -89,7 +94,8 @@ class ClassroomProposalServiceImplTest {
                 userRepository,
                 conflictService,
                 scheduleLockService,
-                classroomOfferingService
+                classroomOfferingService,
+                curriculumSessionPlanRepository
         );
         learner = user(1L, "learner@example.com", RoleEnum.LEARNER);
         staff = user(2L, "staff@example.com", RoleEnum.STAFF);
@@ -210,10 +216,13 @@ class ClassroomProposalServiceImplTest {
         assertThat(response.getApprovedClassroomId()).isEqualTo(classroom.getId());
         assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(scheduleLockService).lockDates(any());
-        verify(classroomOfferingService, times(2)).createSession(
-                any(),
-                any(CreateClassroomSessionRequest.class)
-        );
+        ArgumentCaptor<CreateClassroomSessionRequest> sessionCaptor =
+                ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
+        verify(classroomOfferingService, times(2)).createSession(any(), sessionCaptor.capture());
+        assertThat(sessionCaptor.getAllValues()).allSatisfy(request -> {
+            assertThat(request.getCurriculumSessionPlanId()).isNull();
+            assertThat(request.getSessionContent()).isEqualTo(courseOffering.getTitle());
+        });
         verify(classroomOfferingService, never()).enrollStudent(any(), any());
     }
 
@@ -248,6 +257,58 @@ class ClassroomProposalServiceImplTest {
                     assertThat(request.getDeliveryMode()).isEqualTo(ClassroomDeliveryMode.VIRTUAL);
                     assertThat(request.getLarkMeetingUrl()).isNull();
                 });
+    }
+
+    @Test
+    void managerApprovalMapsFiveDatesToFiveStructuredSessionPlans() {
+        ClassroomProposal proposal = structuredPendingProposal(5);
+        ClassroomOffering classroom = ClassroomOffering.builder().id(102L).build();
+        List<CurriculumSessionPlan> plans = structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5);
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+        when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
+        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L)).thenReturn(plans);
+        when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
+                .thenReturn(ClassroomOfferingResponse.builder().id(classroom.getId()).build());
+        when(offeringRepository.findById(classroom.getId())).thenReturn(Optional.of(classroom));
+        when(proposalRepository.save(proposal)).thenReturn(proposal);
+
+        service.approve(proposal.getId(), manager.getEmail());
+
+        ArgumentCaptor<CreateClassroomSessionRequest> captor = ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
+        verify(classroomOfferingService, times(5)).createSession(any(), captor.capture());
+        assertThat(captor.getAllValues()).hasSize(5);
+        assertThat(captor.getAllValues().get(0).getCurriculumSessionPlanId()).isEqualTo(1L);
+        assertThat(captor.getAllValues().get(0).getSessionContent()).isEqualTo("Nội dung buổi 1");
+        assertThat(captor.getAllValues().get(4).getCurriculumSessionPlanId()).isEqualTo(5L);
+        assertThat(captor.getAllValues().get(4).getSessionContent()).isEqualTo("Nội dung buổi 5");
+    }
+
+    @Test
+    void managerApprovalRejectsFourDatesForFiveStructuredPlans() {
+        ClassroomProposal proposal = structuredPendingProposal(4);
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+        when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
+        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L))
+                .thenReturn(structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5));
+
+        assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("tạo ra 4 buổi nhưng giáo trình yêu cầu 5 buổi");
+        verify(classroomOfferingService, never()).createOffering(any(), any());
+    }
+
+    @Test
+    void managerApprovalRejectsSixDatesForFiveStructuredPlans() {
+        ClassroomProposal proposal = structuredPendingProposal(6);
+        when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
+        when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
+        when(curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(77L))
+                .thenReturn(structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5));
+
+        assertThatThrownBy(() -> service.approve(proposal.getId(), manager.getEmail()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("tạo ra 6 buổi nhưng giáo trình yêu cầu 5 buổi");
+        verify(classroomOfferingService, never()).createOffering(any(), any());
     }
 
     @Test
@@ -291,6 +352,33 @@ class ClassroomProposalServiceImplTest {
                 .submittedBy(staff)
                 .build();
         return proposal;
+    }
+
+    private ClassroomProposal structuredPendingProposal(int dateCount) {
+        ClassroomProposal proposal = pendingProposal();
+        LocalDate firstMonday = nextMonday();
+        proposal.setPlannedStartDate(firstMonday);
+        proposal.setPlannedEndDate(firstMonday.plusDays(dateCount - 1L));
+        proposal.setScheduleWeekdays("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY");
+        courseOffering.setCurriculumProgram(CurriculumProgram.builder().id(77L).build());
+        return proposal;
+    }
+
+    private List<CurriculumSessionPlan> structuredPlans(CurriculumProgram program, int count) {
+        CurriculumUnit unit = CurriculumUnit.builder()
+                .id(88L)
+                .program(program)
+                .title("Reading Fundamentals")
+                .build();
+        return java.util.stream.IntStream.rangeClosed(1, count)
+                .mapToObj(number -> CurriculumSessionPlan.builder()
+                        .id((long) number)
+                        .unit(unit)
+                        .sessionNumber(number)
+                        .displayOrder(number)
+                        .title("Nội dung buổi " + number)
+                        .build())
+                .toList();
     }
 
     private CreateClassroomProposalRequest proposalPayload() {

@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
 
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomOfferingRequest;
@@ -9,6 +8,8 @@ import fu.sep490.g23.backend.dto.request.classroom.RejectClassroomProposalReques
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalMemberResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
+import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sep490.g23.backend.entity.User;
@@ -25,6 +26,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -32,13 +34,12 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomProposalRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.classroom.ClassroomProposalService;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomProposalAvailabilityResponse;
-import fu.sep490.g23.backend.dto.response.classroom.ClassroomPickerOptionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +71,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private final ClassroomConflictService conflictService;
     private final ClassroomScheduleLockService scheduleLockService;
     private final ClassroomOfferingService classroomOfferingService;
+    private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
 
     @Override
     public ClassroomProposalResponse create(CreateClassroomProposalRequest payload, String staffEmail) {
@@ -251,11 +253,27 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
 
+        List<LocalDate> dates = sessionDates(proposal);
+        List<CurriculumSessionPlan> sessionPlans = proposal.getCourseOffering().getCurriculumProgram() == null
+                ? List.of()
+                : curriculumSessionPlanRepository.findByProgramIdOrderBySessionNumberAsc(
+                        proposal.getCourseOffering().getCurriculumProgram().getId()
+                );
+        if (!sessionPlans.isEmpty() && dates.size() != sessionPlans.size()) {
+            throw new IllegalArgumentException(
+                    "Lịch lớp hiện tạo ra " + dates.size() + " buổi nhưng giáo trình yêu cầu "
+                            + sessionPlans.size()
+                            + " buổi. Vui lòng điều chỉnh ngày bắt đầu, ngày kết thúc hoặc lịch học trước khi duyệt."
+            );
+        }
+
         ClassroomOfferingResponse created = classroomOfferingService.createOffering(
                 toOfferingRequest(proposal),
                 managerEmail
         );
-        for (LocalDate sessionDate : sessionDates(proposal)) {
+        for (int index = 0; index < dates.size(); index++) {
+            LocalDate sessionDate = dates.get(index);
+            CurriculumSessionPlan sessionPlan = sessionPlans.isEmpty() ? null : sessionPlans.get(index);
             classroomOfferingService.createSession(created.getId(), CreateClassroomSessionRequest.builder()
                     .sessionDate(sessionDate)
                     .startTime(proposal.getSessionStartTime())
@@ -265,7 +283,10 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .deliveryMode(proposal.getDeliveryType())
                     .roomId(proposal.getRoom() == null ? null : proposal.getRoom().getId())
                     .larkMeetingUrl(null)
-                    .sessionContent(proposal.getCourseOffering().getTitle())
+                    .curriculumSessionPlanId(sessionPlan == null ? null : sessionPlan.getId())
+                    .sessionContent(sessionPlan == null
+                            ? proposal.getCourseOffering().getTitle()
+                            : sessionPlan.getTitle())
                     .note("Sinh từ đề xuất " + proposal.getProposalCode())
                     .build());
         }

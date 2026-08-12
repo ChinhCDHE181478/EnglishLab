@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.dto.response.curriculum;
 
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.Builder;
 import lombok.Data;
 
@@ -24,6 +25,7 @@ public class CurriculumProgramResponse {
     private BigDecimal targetBand;
     private Integer targetScore;
     private String entryLevel;
+    private PlacementLevel entryPlacementLevel;
     private String outcomes;
     private String teacherGuide;
     private String interactionActivities;

@@ -13,6 +13,8 @@ import CourseFooter from '../components/course/CourseFooter';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { useAppDialog } from '../components/ui/AppDialog';
 import { formatBandValue } from '../utils/selfPacedHelpers';
+import PlacementRecommendationSection from '../components/placement/PlacementRecommendationSection';
+import { getPlacementLevelLabel } from '../utils/placementRecommendation';
 
 const SKILLS = [
   { key: 'listening', label: 'Listening', icon: Headphones },
@@ -654,6 +656,9 @@ export default function PlacementTestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [result, setResult] = useState(null);
+  const [recommendation, setRecommendation] = useState(null);
+  const [recommendationLoading, setRecommendationLoading] = useState(false);
+  const [recommendationError, setRecommendationError] = useState('');
   const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
   const activeSkills = selectedExamType === 'TOEIC' ? TOEIC_SKILLS : SKILLS;
@@ -667,6 +672,43 @@ export default function PlacementTestPage() {
   const resultExamType = result?.examType || selectedExamType || 'IELTS';
   const isToeicResult = resultExamType === 'TOEIC';
   const resultSkills = isToeicResult ? TOEIC_SKILLS : SKILLS;
+
+  const retryRecommendations = async () => {
+    if (!result?.id) return;
+    setRecommendationLoading(true);
+    setRecommendationError('');
+    try {
+      const current = await placementTestApi.getCurrent();
+      if (String(current?.latestAttempt?.id) === String(result.id)) {
+        setResult(current.latestAttempt);
+        setTest((existing) => existing ? { ...existing, ...current } : current);
+      }
+      setRecommendation(await placementTestApi.getRecommendations(result.id));
+    } catch (error) {
+      setRecommendationError(error?.response?.data?.message || 'Không thể tải gợi ý học tập.');
+    } finally {
+      setRecommendationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (stage !== 'result' || !result?.id) return;
+    let active = true;
+    const loadRecommendations = async () => {
+      setRecommendationLoading(true);
+      setRecommendationError('');
+      try {
+        const response = await placementTestApi.getRecommendations(result.id);
+        if (active) setRecommendation(response);
+      } catch (error) {
+        if (active) setRecommendationError(error?.response?.data?.message || 'Không thể tải gợi ý học tập.');
+      } finally {
+        if (active) setRecommendationLoading(false);
+      }
+    };
+    void loadRecommendations();
+    return () => { active = false; };
+  }, [result?.id, stage]);
 
   useEffect(() => {
     const loadCurrentTest = async () => {
@@ -917,6 +959,7 @@ export default function PlacementTestPage() {
     localStorage.removeItem(DRAFT_KEY);
     setDraft(cleanDraft);
     setResult(null);
+    setRecommendation(null);
     setSubmitError('');
     setSkillIndex(0);
     setDeviceCheck(null);
@@ -1070,7 +1113,7 @@ export default function PlacementTestPage() {
     return (
       <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
         <Header />
-        <main className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-12">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 items-start px-4 py-12">
           <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
             <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">
@@ -1078,6 +1121,11 @@ export default function PlacementTestPage() {
                 ? `TOEIC tổng: ${result.overallScore != null ? Math.round(Number(result.overallScore)) : 'Đang chấm'}`
                 : `Band tổng quan: ${result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}`}
             </h1>
+            {(recommendation?.recommendedLevel || result.recommendedLevel) ? (
+              <p className="mt-3 text-sm font-bold text-[#584140]">
+                Trình độ đề xuất: <span className="text-[#8a0018]">{getPlacementLevelLabel(recommendation?.recommendedLevel || result.recommendedLevel)}</span>
+              </p>
+            ) : null}
 
             <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${isToeicResult ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
               {resultSkills.map((skill) => (
@@ -1086,7 +1134,7 @@ export default function PlacementTestPage() {
                   <p className="mt-2 text-3xl font-black text-[#8a0018]">
                     {result[`${skill.key}Score`] != null
                       ? (isToeicResult ? Math.round(Number(result[`${skill.key}Score`])) : formatBandValue(result[`${skill.key}Score`]))
-                      : 'â€”'}
+                      : '—'}
                   </p>
                 </div>
               ))}
@@ -1127,6 +1175,12 @@ export default function PlacementTestPage() {
                 Tiếp tục hoàn thiện hồ sơ
               </button>
             </div>
+            <PlacementRecommendationSection
+              error={recommendationError}
+              loading={recommendationLoading}
+              onRetry={retryRecommendations}
+              recommendation={recommendation}
+            />
           </div>
         </main>
         <CourseFooter />

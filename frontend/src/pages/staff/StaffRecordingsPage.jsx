@@ -15,6 +15,7 @@ import {
 import classroomApi from '../../api/classroomApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import { getClassroomSessionTitle } from '../../utils/classroomHelpers';
 import {
   EMPTY_STATE_CLASS,
   ERROR_NOTICE_CLASS,
@@ -253,7 +254,7 @@ export default function TrainingManagerRecordingsPage({ classroomId = null }) {
                     <h3 className="font-['Manrope'] text-base font-extrabold text-slate-900">
                       Buổi {session.sessionDate} · {session.startTime?.slice(0, 5)} - {session.endTime?.slice(0, 5)}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-600">{session.sessionContent || 'Nội dung buổi học đang cập nhật'}</p>
+                    <p className="mt-1 text-sm text-slate-600">{getClassroomSessionTitle(session)}</p>
                   </div>
                   <button
                     type="button"

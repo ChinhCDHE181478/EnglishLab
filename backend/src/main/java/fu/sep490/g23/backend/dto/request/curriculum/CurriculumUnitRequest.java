@@ -12,7 +12,7 @@ public class CurriculumUnitRequest {
     @Min(0)
     private Integer displayOrder;
 
-    @NotBlank(message = "Tên unit/buổi học không được để trống.")
+    @NotBlank(message = "Tên Unit không được để trống.")
     @Size(max = 180)
     private String title;
 

@@ -19,6 +19,7 @@ import {
 } from "../../components/content-manager/ContentManagerUi";
 import Pagination, { usePagination } from "../../components/ui/Pagination";
 import { useAppDialog } from "../../components/ui/AppDialog";
+import BrandedSelect from "../../components/ui/BrandedSelect";
 
 export default function ContentManagerLearningPathsPage() {
   const { confirm: confirmDialog } = useAppDialog();
@@ -26,7 +27,7 @@ export default function ContentManagerLearningPathsPage() {
   const [paths, setPaths] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ code: "", name: "" });
+  const [form, setForm] = useState({ code: "", name: "", examCategory: "IELTS", targetBand: "", targetScore: "" });
   const [courseIds, setCourseIds] = useState([]);
   const [modalSearch, setModalSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -89,6 +90,9 @@ export default function ContentManagerLearningPathsPage() {
     setForm({
       code: group?.code || "",
       name: group?.name || "",
+      examCategory: group?.examCategory || "IELTS",
+      targetBand: group?.targetBand ?? "",
+      targetScore: group?.targetScore ?? "",
     });
     setCourseIds(mode === "edit" ? group?.courses.map((course) => course.courseId) || [] : []);
     setModalSearch("");
@@ -119,6 +123,13 @@ export default function ContentManagerLearningPathsPage() {
   const savePath = async () => {
     const code = form.code.trim();
     const name = form.name.trim();
+    const pathPayload = {
+      code,
+      name,
+      examCategory: form.examCategory || null,
+      targetBand: form.examCategory === "IELTS" && form.targetBand !== "" ? Number(form.targetBand) : null,
+      targetScore: form.examCategory === "TOEIC" && form.targetScore !== "" ? Number(form.targetScore) : null,
+    };
     if (modal.mode === "create" && (!code || !name)) {
       setError("Nhập mã và tên lộ trình.");
       return;
@@ -130,12 +141,12 @@ export default function ContentManagerLearningPathsPage() {
     setSaving(true);
     try {
       if (modal.mode === "create") {
-        await courseApi.createManagedLearningPath({ code, name });
+        await courseApi.createManagedLearningPath(pathPayload);
       } else if (modal.mode === "add") {
         await courseApi.addManagedLearningPathCourses(modal.group.id, courseIds);
       } else {
         await Promise.all([
-          courseApi.updateManagedLearningPath(modal.group.id, { code, name }),
+          courseApi.updateManagedLearningPath(modal.group.id, pathPayload),
           courseApi.reorderManagedLearningPathCourses(modal.group.id, courseIds),
         ]);
       }
@@ -210,7 +221,8 @@ export default function ContentManagerLearningPathsPage() {
                     {group.name}
                   </span>
                   <span className="mt-0.5 block text-xs text-[#8b706e]">
-                    {group.courses.length} khóa học
+                    {group.courses.length} khóa học · {group.examCategory || "Chưa chọn kỳ thi"}
+                    {group.targetBand != null ? ` · Band ${group.targetBand}` : group.targetScore != null ? ` · ${group.targetScore} điểm` : ""}
                   </span>
                 </span>
               </button>
@@ -344,6 +356,34 @@ export default function ContentManagerLearningPathsPage() {
                     }
                     value={form.name}
                   />
+                  <label className="block space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Kỳ thi</span>
+                    <BrandedSelect
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        examCategory: event.target.value,
+                        targetBand: "",
+                        targetScore: "",
+                      }))}
+                      options={[{ value: "IELTS", label: "IELTS" }, { value: "TOEIC", label: "TOEIC" }]}
+                      value={form.examCategory}
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{form.examCategory === "TOEIC" ? "Điểm mục tiêu" : "Band mục tiêu"}</span>
+                    <input
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014]"
+                      min={form.examCategory === "TOEIC" ? 10 : 0}
+                      max={form.examCategory === "TOEIC" ? 990 : 9}
+                      step={form.examCategory === "TOEIC" ? 5 : 0.5}
+                      onChange={(event) => setForm((current) => ({
+                        ...current,
+                        [form.examCategory === "TOEIC" ? "targetScore" : "targetBand"]: event.target.value,
+                      }))}
+                      type="number"
+                      value={form.examCategory === "TOEIC" ? form.targetScore : form.targetBand}
+                    />
+                  </label>
                 </div>
               ) : null}
 

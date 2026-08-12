@@ -15,6 +15,7 @@ public class CurriculumUnitResponse {
     private String title;
     private String description;
     private String sessionPlan;
+    private List<CurriculumSessionPlanResponse> sessionPlans;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CurriculumReferenceResponse> materials;

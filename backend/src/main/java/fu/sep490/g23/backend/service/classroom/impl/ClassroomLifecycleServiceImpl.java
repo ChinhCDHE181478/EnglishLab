@@ -1,11 +1,4 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSession;

@@ -1,11 +1,7 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
-import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttempt;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -15,6 +11,10 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResp
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttempt;
+import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomPracticeService;

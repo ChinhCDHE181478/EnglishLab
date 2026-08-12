@@ -20,6 +20,28 @@ public class ClassroomHomeworkGradingSchemaMigration {
                         ALTER TABLE classroom_homework
                             ADD COLUMN IF NOT EXISTS grading_mode VARCHAR(20) NOT NULL DEFAULT 'TEACHER';
 
+                        IF EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'classroom_homework_grading_mode_check'
+                              AND conrelid = 'classroom_homework'::regclass
+                              AND pg_get_constraintdef(oid) NOT LIKE '%AUTO%'
+                        ) THEN
+                            ALTER TABLE classroom_homework
+                                DROP CONSTRAINT classroom_homework_grading_mode_check;
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'classroom_homework_grading_mode_check'
+                              AND conrelid = 'classroom_homework'::regclass
+                        ) THEN
+                            ALTER TABLE classroom_homework
+                                ADD CONSTRAINT classroom_homework_grading_mode_check
+                                CHECK (grading_mode IN ('TEACHER', 'AI', 'AUTO'));
+                        END IF;
+
                         ALTER TABLE classroom_homework
                             ADD COLUMN IF NOT EXISTS skill VARCHAR(30);
 

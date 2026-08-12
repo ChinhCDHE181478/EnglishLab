@@ -7,6 +7,9 @@ import fu.sep490.g23.backend.dto.response.teacher.TeacherProfessionalResponse;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherEvaluationResponse;
 import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
 
+import fu.sep490.g23.backend.dto.request.teacher.*;
+import fu.sep490.g23.backend.dto.response.teacher.*;
+
 import java.util.List;
 
 public interface TeacherProfessionalService {

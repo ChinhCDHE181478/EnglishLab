@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
-import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ConflictType;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
@@ -13,6 +12,7 @@ import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

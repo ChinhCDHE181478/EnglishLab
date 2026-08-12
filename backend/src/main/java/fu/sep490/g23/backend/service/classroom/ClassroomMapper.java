@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionTiming;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTuitionPaymentResponse;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
-import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
@@ -48,14 +47,19 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumReferenceResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.notification.AppNotification;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
+import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
+import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkObjectiveGrader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -63,6 +67,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -252,6 +257,8 @@ public class ClassroomMapper {
 
     private ClassroomSessionResponse toSessionResponse(ClassroomSession session, boolean includeHiddenRecording) {
         User teacher = session.getTeacher();
+        CurriculumSessionPlan sessionPlan = session.getCurriculumSessionPlan();
+        CurriculumUnit curriculumUnit = sessionPlan == null ? null : sessionPlan.getUnit();
         LarkMeetingStatus larkStatus = session.getLarkMeetingStatus();
         boolean recordingExpired = session.getRecordingExpiresAt() != null
                 && !session.getRecordingExpiresAt().isAfter(LocalDateTime.now());
@@ -295,6 +302,14 @@ public class ClassroomMapper {
                 .recordingPublishedAt(session.getRecordingPublishedAt())
                 .recordingExpiresAt(session.getRecordingExpiresAt())
                 .sessionContent(session.getSessionContent())
+                .curriculumSessionPlanId(sessionPlan == null ? null : sessionPlan.getId())
+                .sessionNumber(sessionPlan == null ? null : sessionPlan.getSessionNumber())
+                .sessionPlanTitle(sessionPlan == null ? null : sessionPlan.getTitle())
+                .sessionPlanDescription(sessionPlan == null ? null : sessionPlan.getDescription())
+                .learningObjectives(sessionPlan == null ? null : sessionPlan.getLearningObjectives())
+                .curriculumUnitId(curriculumUnit == null ? null : curriculumUnit.getId())
+                .curriculumUnitDisplayOrder(curriculumUnit == null ? null : curriculumUnit.getDisplayOrder())
+                .curriculumUnitTitle(curriculumUnit == null ? null : curriculumUnit.getTitle())
                 .note(session.getNote())
                 .locked(session.isLocked())
                 .rescheduled(session.getStatus() == ClassroomSessionStatus.RESCHEDULED)
@@ -500,8 +515,7 @@ public class ClassroomMapper {
                         ? homework.getAssessmentBankItem().getObjectiveAnswerKey() : null)
                 .aiReviewEnabled(homework.isAiReviewEnabled())
                 .status(homework.getStatus())
-                .gradingMode(homeworkObjectiveGrader.supports(homework)
-                        ? HomeworkGradingMode.AUTO : homework.getGradingMode())
+                .gradingMode(homework.getGradingMode())
                 .skill(homework.getSkill())
                 .rubricId(homework.getRubric() == null ? null : homework.getRubric().getId())
                 .rubricName(homework.getRubric() == null ? null : homework.getRubric().getName())
@@ -724,12 +738,35 @@ public class ClassroomMapper {
                 .title(unit.getTitle())
                 .description(unit.getDescription())
                 .sessionPlan(unit.getSessionPlan())
+                .sessionPlans(unit.getSessionPlans().stream()
+                        .sorted(Comparator.comparing(CurriculumSessionPlan::getSessionNumber)
+                                .thenComparing(CurriculumSessionPlan::getDisplayOrder)
+                                .thenComparing(CurriculumSessionPlan::getId, Comparator.nullsLast(Long::compareTo)))
+                        .map(this::toCurriculumSessionPlanResponse)
+                        .toList())
                 .createdAt(unit.getCreatedAt())
                 .updatedAt(unit.getUpdatedAt())
                 .materials(unit.getMaterialRefs().stream().map(this::toCurriculumMaterialRef).toList())
                 .exercises(unit.getExerciseRefs().stream().map(this::toCurriculumExerciseRef).toList())
                 .assessments(unit.getAssessmentRefs().stream().map(this::toCurriculumAssessmentRef).toList())
                 .flashcards(unit.getFlashcardRefs().stream().map(this::toCurriculumFlashcardRef).toList())
+                .build();
+    }
+
+    private CurriculumSessionPlanResponse toCurriculumSessionPlanResponse(CurriculumSessionPlan sessionPlan) {
+        CurriculumUnit unit = sessionPlan.getUnit();
+        return CurriculumSessionPlanResponse.builder()
+                .id(sessionPlan.getId())
+                .unitId(unit.getId())
+                .unitTitle(unit.getTitle())
+                .programId(unit.getProgram().getId())
+                .sessionNumber(sessionPlan.getSessionNumber())
+                .displayOrder(sessionPlan.getDisplayOrder())
+                .title(sessionPlan.getTitle())
+                .description(sessionPlan.getDescription())
+                .learningObjectives(sessionPlan.getLearningObjectives())
+                .createdAt(sessionPlan.getCreatedAt())
+                .updatedAt(sessionPlan.getUpdatedAt())
                 .build();
     }
 

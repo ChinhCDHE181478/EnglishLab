@@ -3,6 +3,8 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 
+import fu.sep490.g23.backend.entity.course.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

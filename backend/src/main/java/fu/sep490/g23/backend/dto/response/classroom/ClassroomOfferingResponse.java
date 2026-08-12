@@ -1,9 +1,7 @@
 package fu.sep490.g23.backend.dto.response.classroom;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
-
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 

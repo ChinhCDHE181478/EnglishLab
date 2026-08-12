@@ -30,6 +30,7 @@ import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatClassroomDate,
   formatClassroomTime,
+  getClassroomSessionTitle,
   openLarkMeeting,
 } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_SCHEDULE_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
@@ -520,8 +521,8 @@ function SessionGridCard({ session, onClick, onLark }) {
     >
       <div>
         <h4 className="text-[10px] font-extrabold leading-tight text-[#2b2828] line-clamp-2">{session.classroomTitle}</h4>
-        {session.sessionContent && (
-          <p className="mt-0.5 text-[9px] text-[#8b706e] line-clamp-1">{session.sessionContent}</p>
+        {getClassroomSessionTitle(session, '') && (
+          <p className="mt-0.5 text-[9px] text-[#8b706e] line-clamp-1">{getClassroomSessionTitle(session, '')}</p>
         )}
         {/* Room / location */}
         <p className="mt-1 flex items-center gap-0.5 text-[9px] text-[#8b706e]">
@@ -741,7 +742,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       <div className="space-y-3">
         <p className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">{session.classroomTitle}</p>
         <h3 className="font-['Manrope'] text-2xl font-extrabold text-[#2b2828]">
-          {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+          {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
         </h3>
         <div className="flex flex-wrap gap-2">
           <ClassroomTypeBadge mode={session.deliveryMode} />

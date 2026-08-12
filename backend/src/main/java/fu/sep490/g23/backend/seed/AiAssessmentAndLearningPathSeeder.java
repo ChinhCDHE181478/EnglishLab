@@ -1,13 +1,15 @@
 package fu.sep490.g23.backend.seed;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
-import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
-import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
-import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fu.sep490.g23.backend.entity.assessment.*;
+import fu.sep490.g23.backend.entity.assessment.enums.*;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
+import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;

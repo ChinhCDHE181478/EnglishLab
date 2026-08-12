@@ -17,6 +17,7 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -155,7 +156,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private PlacementTestAttemptResponse submitToeicPlacement(
             PlacementTestSubmissionRequest request,
             User student,
-            fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition definition
+            PlacementTestDefinition definition
     ) {
         JsonNode toeicConfig = definitionService.getConfig(definition, "toeic");
         JsonNode answerKey = toeicConfig.path("answerKey");

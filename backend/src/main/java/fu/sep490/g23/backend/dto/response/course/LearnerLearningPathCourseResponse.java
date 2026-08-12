@@ -15,4 +15,5 @@ public class LearnerLearningPathCourseResponse {
     private Integer progressPercent;
     private boolean completed;
     private String lockedReason;
+    private String stepStatus;
 }

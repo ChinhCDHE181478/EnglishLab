@@ -4,7 +4,10 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -137,6 +140,10 @@ public class ClassroomSession {
 
     @Column(name = "session_content", columnDefinition = "text")
     private String sessionContent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curriculum_session_plan_id")
+    private CurriculumSessionPlan curriculumSessionPlan;
 
     @Column(length = 500)
     private String note;

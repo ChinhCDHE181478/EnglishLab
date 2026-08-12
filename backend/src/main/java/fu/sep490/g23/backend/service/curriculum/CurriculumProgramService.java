@@ -3,10 +3,12 @@ package fu.sep490.g23.backend.service.curriculum;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -35,6 +37,12 @@ public interface CurriculumProgramService {
     CurriculumUnitResponse updateUnit(Long unitId, CurriculumUnitRequest request);
 
     void deleteUnit(Long unitId);
+
+    CurriculumSessionPlanResponse createSessionPlan(Long unitId, CurriculumSessionPlanRequest request);
+
+    CurriculumSessionPlanResponse updateSessionPlan(Long sessionPlanId, CurriculumSessionPlanRequest request);
+
+    void deleteSessionPlan(Long sessionPlanId);
 
     CurriculumUnitResponse attachMaterial(Long unitId, CurriculumReferenceRequest request);
 
