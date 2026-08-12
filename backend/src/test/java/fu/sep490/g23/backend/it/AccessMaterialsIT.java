@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -33,23 +34,46 @@ public class AccessMaterialsIT {
     void itAccess01() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
         // chưa enroll => 403/404 vẫn chứng minh security/service wiring
-        mockMvc.perform(get("/api/student/online-courses/1/content")
+        long courseId = enrolledCourseId(token);
+        mockMvc.perform(get("/api/student/online-courses/" + courseId + "/content")
                         .header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 403 || s == 404, "unexpected " + s);
-                });
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(courseId))
+                .andExpect(jsonPath("$.modules").isArray());
+        mockMvc.perform(get("/api/student/online-courses/" + courseId + "/content"))
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
     @DisplayName("IT_ACCESS_02")
     void itAccess02() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(get("/api/student/online-courses/1/progress")
+        long courseId = enrolledCourseId(token);
+        MvcResult content = mockMvc.perform(get("/api/student/online-courses/" + courseId + "/content")
                         .header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 403 || s == 404, "unexpected " + s);
-                });
+                .andExpect(status().isOk()).andReturn();
+        long lessonId = 0;
+        for (JsonNode module : json(content).path("modules")) {
+            if (!module.path("lessons").isEmpty()) {
+                lessonId = module.path("lessons").get(0).path("id").asLong();
+                break;
+            }
+        }
+        if (lessonId == 0) throw new AssertionError("An enrolled course with a lesson is required");
+        mockMvc.perform(patch("/api/student/online-courses/" + courseId + "/lessons/" + lessonId + "/progress")
+                        .param("completed", "true")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.completedLessonIds").isArray())
+                .andExpect(jsonPath("$.completedLessonIds[?(@ == " + lessonId + ")]").exists());
+    }
+
+    private long enrolledCourseId(String token) throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/student/online-courses/my-enrollments")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn();
+        JsonNode enrollments = items(json(result));
+        assertFalse(enrollments.isEmpty(), "An enrolled learner fixture is required");
+        return enrollments.get(0).path("courseId").asLong();
     }
 }

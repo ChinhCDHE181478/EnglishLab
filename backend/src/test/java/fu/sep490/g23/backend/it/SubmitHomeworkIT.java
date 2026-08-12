@@ -31,42 +31,75 @@ public class SubmitHomeworkIT {
     @Test
     @DisplayName("IT_HOMEWORK_01")
     void itHomework01() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/student/classrooms/my-classrooms").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/student/classrooms/" + id + "/homework")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long homeworkId = createHomework(teacherToken, classroomId, LocalDateTime.now().plusDays(2));
+        mockMvc.perform(post("/api/student/classrooms/homework/" + homeworkId + "/submit")
+                        .header("Authorization", bearer(learnerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"textAnswer\":\"IT_HOMEWORK_01 answer\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homeworkId").value(homeworkId))
+                .andExpect(jsonPath("$.submitted").value(true))
+                .andExpect(jsonPath("$.status").value("SUBMITTED"));
     }
 
     @Test
     @DisplayName("IT_HOMEWORK_02")
     void itHomework02() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/student/classrooms/my-classrooms").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/student/classrooms/" + id + "/homework")
-                        .header("Authorization", bearer(token)))
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long homeworkId = createHomework(teacherToken, classroomId, LocalDateTime.now().plusDays(2));
+        mockMvc.perform(post("/api/student/classrooms/homework/" + homeworkId + "/submit")
+                        .header("Authorization", bearer(learnerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"textAnswer\":\"Persisted own submission\"}"))
                 .andExpect(status().isOk());
+        mockMvc.perform(get("/api/student/classrooms/my-homework")
+                        .header("Authorization", bearer(learnerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + homeworkId + ")].mySubmission.textAnswer")
+                        .value("Persisted own submission"));
     }
 
     @Test
     @DisplayName("IT_HOMEWORK_03")
     void itHomework03() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/student/classrooms/my-classrooms").header("Authorization", bearer(token)))
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long studentId = currentUserId(mockMvc, learnerToken);
+        long homeworkId = createHomework(teacherToken, classroomId, LocalDateTime.now().minusMinutes(1));
+        mockMvc.perform(post("/api/student/classrooms/homework/" + homeworkId + "/submit")
+                        .header("Authorization", bearer(learnerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"textAnswer\":\"Late submission must fail\"}"))
+                .andExpect(status().is4xxClientError());
+        mockMvc.perform(get("/api/teacher/classrooms/homework/" + homeworkId + "/submissions")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.studentId == " + studentId + ")].submitted").value(false));
+    }
+
+    private long createHomework(String teacherToken, long classroomId, LocalDateTime deadline) throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/teacher/classrooms/" + classroomId + "/homework")
+                        .header("Authorization", bearer(teacherToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title":"IT learner homework %s",
+                                  "instruction":"Submit a text answer",
+                                  "deadline":"%s",
+                                  "maxScore":10,
+                                  "allowResubmission":false,
+                                  "status":"OPEN",
+                                  "activityType":"TEXT_RESPONSE",
+                                  "gradingMode":"TEACHER"
+                                }
+                                """.formatted(UUID.randomUUID(), deadline.withNano(0))))
                 .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/student/classrooms/" + id + "/homework")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        return json(result).path("id").asLong();
     }
 }

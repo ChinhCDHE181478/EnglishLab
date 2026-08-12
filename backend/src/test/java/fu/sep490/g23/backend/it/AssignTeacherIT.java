@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -28,6 +31,9 @@ public class AssignTeacherIT {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ClassroomTeacherAssignmentRepository assignmentRepository;
+
     @Test
     @DisplayName("IT_ASNTEACH_01")
     void itAsnteach01() throws Exception {
@@ -35,18 +41,21 @@ public class AssignTeacherIT {
         MvcResult list = mockMvc.perform(get("/api/staff/classrooms").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode items = mapper().readTree(list.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
+        assertFalse(items.isEmpty(), "A classroom fixture is required");
         long oid = items.get(0).path("id").asLong();
         MvcResult teachers = mockMvc.perform(get("/api/staff/classrooms/teachers")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode tarr = mapper().readTree(teachers.getResponse().getContentAsString());
-        Assumptions.assumeTrue(tarr.size() > 0);
+        assertFalse(tarr.isEmpty(), "A teacher fixture is required");
         long tid = tarr.get(0).path("id").asLong();
         mockMvc.perform(post("/api/staff/classrooms/" + oid + "/teachers/" + tid + "/assign")
-                        .param("role", "PRIMARY")
+                        .param("role", "SUBSTITUTE")
                         .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.teacherId").value(tid))
+                .andExpect(jsonPath("$.role").value("SUBSTITUTE"));
+        assertFalse(assignmentRepository.findAllByClassroomOfferingIdAndTeacherId(oid, tid).isEmpty());
     }
 
     @Test
@@ -56,11 +65,18 @@ public class AssignTeacherIT {
         MvcResult list = mockMvc.perform(get("/api/staff/classrooms").header("Authorization", bearer(staff)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode items = mapper().readTree(list.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
+        assertFalse(items.isEmpty(), "A classroom fixture is required");
         long oid = items.get(0).path("id").asLong();
+        JsonNode teachers = json(mockMvc.perform(get("/api/staff/classrooms/teachers")
+                        .header("Authorization", bearer(staff)))
+                .andExpect(status().isOk()).andReturn());
+        assertFalse(teachers.isEmpty(), "A teacher fixture is required");
+        long teacherId = teachers.get(0).path("id").asLong();
+        long before = assignmentRepository.count();
         String learner = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(post("/api/staff/classrooms/" + oid + "/teachers/28/assign")
+        mockMvc.perform(post("/api/staff/classrooms/" + oid + "/teachers/" + teacherId + "/assign")
                         .header("Authorization", bearer(learner)))
                 .andExpect(status().isForbidden());
+        assertEquals(before, assignmentRepository.count());
     }
 }

@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,7 +44,7 @@ public class TimetableIT {
         MvcResult r = mockMvc.perform(get("/api/student/classrooms/my-classrooms").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0, "Learner chưa có lớp");
+        assertFalse(items.isEmpty(), "A learner classroom fixture is required");
         long id = items.get(0).path("id").asLong();
         mockMvc.perform(get("/api/student/classrooms/" + id + "/sessions")
                         .header("Authorization", bearer(token)))

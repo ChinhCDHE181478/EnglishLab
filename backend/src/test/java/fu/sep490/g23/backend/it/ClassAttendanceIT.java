@@ -31,40 +31,40 @@ public class ClassAttendanceIT {
     @Test
     @DisplayName("IT_ATTEND_01")
     void itAttend01() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        MvcResult sessions = mockMvc.perform(get("/api/teacher/classrooms/" + id + "/sessions")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode sess = mapper().readTree(sessions.getResponse().getContentAsString());
-        Assumptions.assumeTrue(sess.isArray() && sess.size() > 0, "Cần session");
-        long sid = sess.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/sessions/" + sid + "/attendance")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long sessionId = firstSessionId(mockMvc, teacherToken, classroomId);
+        long studentId = currentUserId(mockMvc, learnerToken);
+        saveAttendance(teacherToken, sessionId, studentId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.studentId == " + studentId + ")].status").value("PRESENT"));
     }
 
     @Test
     @DisplayName("IT_ATTEND_02")
     void itAttend02() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        MvcResult sessions = mockMvc.perform(get("/api/teacher/classrooms/" + id + "/sessions")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode sess = mapper().readTree(sessions.getResponse().getContentAsString());
-        Assumptions.assumeTrue(sess.isArray() && sess.size() > 0, "Cần session");
-        long sid = sess.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/sessions/" + sid + "/attendance")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long sessionId = firstSessionId(mockMvc, teacherToken, classroomId);
+        long studentId = currentUserId(mockMvc, learnerToken);
+        saveAttendance(teacherToken, sessionId, studentId).andExpect(status().isOk());
+        mockMvc.perform(get("/api/teacher/classrooms/sessions/" + sessionId + "/attendance")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.studentId == " + studentId + ")].status").value("PRESENT"))
+                .andExpect(jsonPath("$[?(@.studentId == " + studentId + ")].note").value("IT attendance"));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions saveAttendance(
+            String teacherToken, long sessionId, long studentId
+    ) throws Exception {
+        return mockMvc.perform(post("/api/teacher/classrooms/attendance")
+                .header("Authorization", bearer(teacherToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"sessionId":%d,"records":[{"studentId":%d,"status":"PRESENT","note":"IT attendance"}]}
+                        """.formatted(sessionId, studentId)));
     }
 }

@@ -12,8 +12,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.Map;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -31,56 +33,107 @@ public class ClassroomQuizIT {
     @Test
     @DisplayName("IT_QUIZ_01")
     void itQuiz01() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/" + id + "/quizzes")
-                        .header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "quizzes " + s);
-                });
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        QuizFixture quiz = createQuiz(teacherToken, classroomId);
+        mockMvc.perform(get("/api/teacher/classrooms/" + classroomId + "/quizzes")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + quiz.quizId() + ")]").exists());
     }
 
     @Test
     @DisplayName("IT_QUIZ_02")
     void itQuiz02() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/" + id + "/quizzes")
-                        .header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "quizzes " + s);
-                });
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        QuizFixture quiz = createQuiz(teacherToken, classroomId);
+        mockMvc.perform(delete("/api/teacher/quizzes/" + quiz.quizId())
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/teacher/classrooms/" + classroomId + "/quizzes")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + quiz.quizId() + ")]").isEmpty());
     }
 
     @Test
     @DisplayName("IT_QUIZ_03")
     void itQuiz03() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(get("/api/student/classrooms/quizzes").header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "student quizzes " + s);
-                });
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        QuizFixture quiz = createQuiz(teacherToken, classroomId);
+        openQuiz(teacherToken, quiz.quizId());
+        MvcResult learnerQuizzes = mockMvc.perform(get("/api/student/classrooms/quizzes")
+                        .header("Authorization", bearer(learnerToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + quiz.quizId() + ")]").exists())
+                .andReturn();
+        JsonNode listedQuiz = null;
+        for (JsonNode row : items(json(learnerQuizzes))) {
+            if (row.path("id").asLong() == quiz.quizId()) listedQuiz = row;
+        }
+        assertTrue(listedQuiz != null
+                        && listedQuiz.path("questions").get(0).path("correctAnswer").isNull(),
+                "Learner quiz payload must not expose the answer key");
     }
 
     @Test
     @DisplayName("IT_QUIZ_04")
     void itQuiz04() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(get("/api/student/classrooms/quizzes").header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "student quizzes " + s);
-                });
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        QuizFixture quiz = createQuiz(teacherToken, classroomId);
+        openQuiz(teacherToken, quiz.quizId());
+        String answersJson = mapper().writeValueAsString(Map.of(String.valueOf(quiz.questionId()), "A"));
+        String requestBody = mapper().writeValueAsString(Map.of("answersJson", answersJson));
+        mockMvc.perform(post("/api/student/quizzes/" + quiz.quizId() + "/submit")
+                        .header("Authorization", bearer(learnerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.submitted").value(true))
+                .andExpect(jsonPath("$.myScore").value(10.0));
+    }
+
+    private QuizFixture createQuiz(String teacherToken, long classroomId) throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/teacher/classrooms/" + classroomId + "/quizzes")
+                        .header("Authorization", bearer(teacherToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title":"IT Quiz %s",
+                                  "description":"Integration quiz",
+                                  "timeLimitMinutes":15,
+                                  "passingScore":50,
+                                  "dueAt":"%s",
+                                  "questions":[{
+                                    "sortOrder":1,
+                                    "prompt":"Choose A",
+                                    "optionsJson":"[\\\"A\\\",\\\"B\\\"]",
+                                    "correctAnswer":"A",
+                                    "explanation":"A is correct"
+                                  }]
+                                }
+                                """.formatted(UUID.randomUUID(), LocalDateTime.now().plusDays(1).withNano(0))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andReturn();
+        JsonNode body = json(created);
+        return new QuizFixture(body.path("id").asLong(), body.path("questions").get(0).path("id").asLong());
+    }
+
+    private void openQuiz(String teacherToken, long quizId) throws Exception {
+        mockMvc.perform(patch("/api/teacher/quizzes/" + quizId + "/open")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"));
+    }
+
+    private record QuizFixture(long quizId, long questionId) {
     }
 }

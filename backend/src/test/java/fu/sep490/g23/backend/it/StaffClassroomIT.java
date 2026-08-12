@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -44,7 +45,7 @@ public class StaffClassroomIT {
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode arr = mapper().readTree(progs.getResponse().getContentAsString());
-        Assumptions.assumeTrue(arr.isArray() && arr.size() > 0, "Cần training program");
+        assertFalse(arr.isEmpty(), "A published training program fixture is required");
         long pid = arr.get(0).path("id").asLong();
         LocalDate start = LocalDate.now().plusDays(21);
         LocalDate end = start.plusDays(28);
@@ -75,33 +76,53 @@ public class StaffClassroomIT {
         MvcResult list = mockMvc.perform(get("/api/staff/classrooms").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode items = mapper().readTree(list.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.isArray() && items.size() > 0);
-        long oid = items.get(0).path("id").asLong();
+        if (!items.isArray() || items.isEmpty()) throw new AssertionError("A classroom fixture is required");
+        long oid = 0;
+        JsonNode detail = null;
         for (JsonNode o : items) {
             MvcResult d = mockMvc.perform(get("/api/staff/classrooms/" + o.path("id").asLong())
                             .header("Authorization", bearer(token)))
                     .andExpect(status().isOk()).andReturn();
-            JsonNode detail = mapper().readTree(d.getResponse().getContentAsString());
-            if ("OFFLINE".equals(detail.path("deliveryMode").asText())
-                    && detail.path("trainingProgramId").isMissingNode()) {
+            JsonNode candidate = mapper().readTree(d.getResponse().getContentAsString());
+            if (candidate.path("primaryTeacherId").canConvertToLong()) {
                 oid = o.path("id").asLong();
+                detail = candidate;
                 break;
             }
         }
-        MvcResult detailR = mockMvc.perform(get("/api/staff/classrooms/" + oid)
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode detail = mapper().readTree(detailR.getResponse().getContentAsString());
-        String title = detail.path("title").asText("IT Class");
-        String mode = detail.path("deliveryMode").asText("OFFLINE");
-        int cap = detail.path("maxCapacity").asInt(20);
-        String body = """
-                {"title":"%s","deliveryMode":"%s","maxCapacity":%d,"price":0,"shortDescription":"IT update"}
-                """.formatted(title, mode, cap);
+        if (detail == null) throw new AssertionError("A classroom with a primary teacher is required");
+        String updatedTitle = detail.path("title").asText("IT Class") + " - IT update";
+        var body = mapper().createObjectNode();
+        body.put("title", updatedTitle);
+        body.put("deliveryMode", detail.path("deliveryMode").asText());
+        body.put("maxCapacity", detail.path("maxCapacity").asInt(20));
+        body.put("primaryTeacherId", detail.path("primaryTeacherId").asLong());
+        body.put("shortDescription", "IT_CLASS_03 persisted update");
+        copyIfPresent(detail, body, "classroomStatus", "classroomStatus");
+        copyIfPresent(detail, body, "packageStatus", "packageStatus");
+        copyIfPresent(detail, body, "trainingProgramId", "trainingProgramId");
+        copyIfPresent(detail, body, "curriculumProgramId", "curriculumProgramId");
+        copyIfPresent(detail, body, "startDate", "startDate");
+        copyIfPresent(detail, body, "endDate", "endDate");
+        copyIfPresent(detail, body, "roomId", "defaultRoomId");
+        copyIfPresent(detail, body, "offlineAddress", "offlineAddress");
+        copyIfPresent(detail, body, "price", "price");
+        copyIfPresent(detail, body, "salePrice", "salePrice");
         mockMvc.perform(put("/api/staff/classrooms/" + oid)
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isOk());
+                        .content(body.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value(updatedTitle));
+        mockMvc.perform(get("/api/staff/classrooms/" + oid)
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value(updatedTitle));
+    }
+
+    private void copyIfPresent(JsonNode source, com.fasterxml.jackson.databind.node.ObjectNode target,
+                               String sourceField, String targetField) {
+        JsonNode value = source.get(sourceField);
+        if (value != null && !value.isNull() && !value.isMissingNode()) target.set(targetField, value);
     }
 }

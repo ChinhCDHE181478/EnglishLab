@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,7 +44,7 @@ public class TeachingScheduleIT {
         MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
+        assertFalse(items.isEmpty(), "A teacher classroom fixture is required");
         long id = items.get(0).path("id").asLong();
         mockMvc.perform(get("/api/teacher/classrooms/" + id + "/sessions")
                         .header("Authorization", bearer(token)))

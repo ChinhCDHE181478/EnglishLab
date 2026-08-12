@@ -1,6 +1,8 @@
 package fu.sep490.g23.backend.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import fu.sep490.g23.backend.repository.AuthTokenRepository;
+import fu.sep490.g23.backend.repository.UserRepository;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,12 +30,51 @@ public class EnrollCourseIT {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private AuthTokenRepository authTokenRepository;
+
     @Test
     @DisplayName("IT_ENROLL_01")
     void itEnroll01() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(post("/api/student/enrollment-requests")
+        String email = registerVerifiedLearner(mockMvc, userRepository, authTokenRepository, "enroll");
+        String token = login(mockMvc, email, PASSWORD);
+        String staffToken = login(mockMvc, STAFF, PASSWORD);
+        MvcResult programsResult = mockMvc.perform(get("/api/staff/classrooms/training-programs")
+                        .header("Authorization", bearer(staffToken)))
+                .andExpect(status().isOk()).andReturn();
+        JsonNode programs = items(json(programsResult));
+        if (programs.isEmpty()) throw new AssertionError("A published training program is required");
+        long programId = programs.get(0).path("id").asLong();
+        MvcResult created = mockMvc.perform(post("/api/student/course-enrollment-requests")
                         .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "courseOfferingId":%d,
+                                  "contactName":"IT Enrollment Learner",
+                                  "contactEmail":"%s",
+                                  "contactPhone":"0900000002",
+                                  "consultationTrack":"IELTS",
+                                  "studyWorkGoal":"Integration testing"
+                                }
+                                """.formatted(programId, email)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUBMITTED"))
+                .andReturn();
+        long requestId = json(created).path("id").asLong();
+        mockMvc.perform(get("/api/student/course-enrollment-requests/my")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + requestId + ")]").exists());
+        mockMvc.perform(post("/api/student/course-enrollment-requests")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/student/course-enrollment-requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().is4xxClientError());

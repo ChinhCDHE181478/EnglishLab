@@ -40,41 +40,41 @@ public class OnlineCourseCmIT {
     @DisplayName("IT_ONLINE_02")
     void itOnline02() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        String body = """
-                {"title":"IT Online %s","slug":"it-online-%s","price":100000,"status":"DRAFT"}
-                """.formatted(UUID.randomUUID().toString().substring(0, 6),
-                        UUID.randomUUID().toString().substring(0, 8));
-        mockMvc.perform(post("/api/content-manager/online-courses")
+        String title = "IT Online " + UUID.randomUUID().toString().substring(0, 8);
+        MvcResult created = mockMvc.perform(post("/api/content-manager/online-courses")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 201 || s == 400, "create course " + s);
-                });
+                        .content(courseBody(title)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value(title))
+                .andReturn();
+        long courseId = json(created).path("id").asLong();
+        mockMvc.perform(get("/api/content-manager/online-courses/" + courseId)
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value(title));
     }
 
     @Test
     @DisplayName("IT_ONLINE_03")
     void itOnline03() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        MvcResult list = mockMvc.perform(get("/api/content-manager/online-courses")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode root = mapper().readTree(list.getResponse().getContentAsString());
-        JsonNode items = root.isArray() ? root : root.path("content");
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
+        MvcResult created = mockMvc.perform(post("/api/content-manager/online-courses")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(courseBody("IT Online before")))
+                .andExpect(status().isCreated()).andReturn();
+        long id = json(created).path("id").asLong();
         mockMvc.perform(put("/api/content-manager/online-courses/" + id)
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"IT Online Upd","price":100000}
-                                """))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 400, "update " + s);
-                });
+                        .content(courseBody("IT Online updated")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("IT Online updated"));
+        mockMvc.perform(get("/api/content-manager/online-courses/" + id)
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("IT Online updated"));
     }
 
     @Test
@@ -83,5 +83,26 @@ public class OnlineCourseCmIT {
         String token = login(mockMvc, LEARNER, PASSWORD);
         mockMvc.perform(get("/api/content-manager/online-courses").header("Authorization", bearer(token)))
                 .andExpect(status().isForbidden());
+    }
+
+    private String courseBody(String title) {
+        return """
+                {
+                  "title":"%s",
+                  "shortDescription":"Integration-tested course",
+                  "description":"Created by OnlineCourseCmIT",
+                  "category":"IELTS",
+                  "level":"BEGINNER",
+                  "status":"DRAFT",
+                  "targetScore":"6.5",
+                  "targetBand":6.5,
+                  "price":100000,
+                  "totalLessons":0,
+                  "totalHours":0,
+                  "displayOrder":99,
+                  "featured":false,
+                  "modules":[]
+                }
+                """.formatted(title);
     }
 }

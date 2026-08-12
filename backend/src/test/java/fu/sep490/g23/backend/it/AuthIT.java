@@ -5,7 +5,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.enums.AuthTokenType;
 import fu.sep490.g23.backend.repository.AuthTokenRepository;
 import fu.sep490.g23.backend.repository.UserRepository;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -47,6 +47,8 @@ public class AuthIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().is2xxSuccessful());
+        User saved = userRepository.findByEmail(email).orElseThrow();
+        assertNotEquals(PASSWORD, saved.getPassword());
     }
 
     @Test
@@ -106,6 +108,18 @@ public class AuthIT {
     @Test
     @DisplayName("IT_AUTH_05")
     void itAuth05() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(LEARNER, PASSWORD)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("IT_AUTH_06")
+    void itAuth06() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
         mockMvc.perform(get("/api/user/me").header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
@@ -113,20 +127,14 @@ public class AuthIT {
     }
 
     @Test
-    @DisplayName("IT_AUTH_06")
-    void itAuth06() throws Exception {
+    @DisplayName("IT_AUTH_07")
+    void itAuth07() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email":"%s","password":"WrongPass999!"}
                                 """.formatted(LEARNER)))
                 .andExpect(status().is4xxClientError());
-    }
-
-    @Test
-    @DisplayName("IT_AUTH_07")
-    void itAuth07() throws Exception {
-        mockMvc.perform(get("/api/user/me")).andExpect(status().is4xxClientError());
     }
 
     @Test
@@ -186,17 +194,22 @@ public class AuthIT {
                                 """.formatted(email, newPassword)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"%s","password":"%s"}
+                                """.formatted(email, oldPassword)))
+                .andExpect(status().is4xxClientError())
+                .andExpect(jsonPath("$.accessToken").doesNotExist());
     }
 
     /** Đọc OTP mới nhất còn hiệu lực từ auth_tokens theo email + type. */
     private String latestOtp(String email, AuthTokenType type) {
-        User user = userRepository.findByEmail(email.trim().toLowerCase())
-                .orElse(null);
-        Assumptions.assumeTrue(user != null, "User chưa được persist sau register/forgot");
-        AuthToken token = authTokenRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, type)
-                .orElse(null);
-        Assumptions.assumeTrue(token != null, "Không thấy OTP type=" + type + " trong auth_tokens");
-        Assumptions.assumeTrue(!token.isExpired() && !token.isUsed(), "OTP hết hạn hoặc đã dùng");
+        User user = userRepository.findByEmail(email.trim().toLowerCase()).orElseThrow();
+        AuthToken token = authTokenRepository.findTopByUserAndTypeOrderByCreatedAtDesc(user, type).orElseThrow();
+        assertFalse(token.isExpired(), "OTP must not be expired");
+        assertFalse(token.isUsed(), "OTP must not be used");
         return token.getToken();
     }
 }

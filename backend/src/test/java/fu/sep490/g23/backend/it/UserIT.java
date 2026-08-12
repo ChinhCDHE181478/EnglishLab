@@ -39,35 +39,51 @@ public class UserIT {
     @Test
     @DisplayName("IT_USER_02")
     void itUser02() throws Exception {
-        String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(put("/api/user/me")
-                        .header("Authorization", bearer(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"fullName":"IT User Updated"}
-                                """))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/user/me"))
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
     @DisplayName("IT_USER_03")
     void itUser03() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
-        mockMvc.perform(put("/api/user/me/password")
+        String fullName = "IT User " + UUID.randomUUID().toString().substring(0, 8);
+        mockMvc.perform(put("/api/user/me")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"currentPassword":"WrongOld!","newPassword":"Password123!"}
-                                """))
-                .andExpect(status().is4xxClientError());
+                                {
+                                  "fullName":"%s",
+                                  "phoneNumber":"0900000001",
+                                  "targetExam":"IELTS",
+                                  "targetScore":"6.5",
+                                  "currentBand":6.0,
+                                  "studyGoal":"Integration test"
+                                }
+                                """.formatted(fullName)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value(fullName));
+        mockMvc.perform(get("/api/user/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value(fullName));
     }
 
     @Test
     @DisplayName("IT_USER_04")
     void itUser04() throws Exception {
         String token = login(mockMvc, LEARNER, PASSWORD);
-        // endpoint wired — multipart thường 400 nếu thiếu file
-        mockMvc.perform(post("/api/user/me/avatar").header("Authorization", bearer(token)))
-                .andExpect(status().is4xxClientError());
+        MvcResult before = mockMvc.perform(get("/api/user/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn();
+        String originalName = json(before).path("fullName").asText();
+        mockMvc.perform(put("/api/user/me")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fullName":"","phoneNumber":"","targetExam":""}
+                                """))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/user/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value(originalName));
     }
 }

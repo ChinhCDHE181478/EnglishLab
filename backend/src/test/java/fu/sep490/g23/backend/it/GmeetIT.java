@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static fu.sep490.g23.backend.it.ItSupport.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,20 +45,19 @@ public class GmeetIT {
                 break;
             }
         }
-        Assumptions.assumeTrue(virtual != null, "Teacher không có lớp VIRTUAL");
+        assertNotNull(virtual, "A VIRTUAL teacher classroom fixture is required");
         long id = virtual.path("id").asLong();
         MvcResult sessions = mockMvc.perform(get("/api/teacher/classrooms/" + id + "/sessions")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode sess = mapper().readTree(sessions.getResponse().getContentAsString());
-        Assumptions.assumeTrue(sess.size() > 0);
+        assertTrue(sess.size() > 0, "A virtual classroom session fixture is required");
         long sid = sess.get(0).path("id").asLong();
         mockMvc.perform(post("/api/teacher/classrooms/sessions/" + sid + "/open")
                         .header("Authorization", bearer(token)))
                 .andExpect(result -> {
                     int s = result.getResponse().getStatus();
-                    // 200 OK hoặc 400/503 khi Google Meet provider chưa bật (env N/A)
-                    Assumptions.assumeTrue(s == 200 || s == 400 || s == 503, "open meet " + s);
+                    assertTrue(s == 200 || s == 400 || s == 409 || s == 503, "open meet " + s);
                 });
     }
 
@@ -75,19 +76,19 @@ public class GmeetIT {
                 break;
             }
         }
-        Assumptions.assumeTrue(virtual != null, "Learner không có lớp VIRTUAL");
+        assertNotNull(virtual, "A VIRTUAL learner classroom fixture is required");
         long id = virtual.path("id").asLong();
         MvcResult sessions = mockMvc.perform(get("/api/student/classrooms/" + id + "/sessions")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
         JsonNode sess = mapper().readTree(sessions.getResponse().getContentAsString());
-        Assumptions.assumeTrue(sess.size() > 0);
+        assertTrue(sess.size() > 0, "A virtual classroom session fixture is required");
         long sid = sess.get(0).path("id").asLong();
         mockMvc.perform(post("/api/student/classrooms/sessions/" + sid + "/join")
                         .header("Authorization", bearer(token)))
                 .andExpect(result -> {
                     int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 400 || s == 503, "join meet " + s);
+                    assertTrue(s == 200 || s == 400 || s == 409 || s == 503, "join meet " + s);
                 });
     }
 

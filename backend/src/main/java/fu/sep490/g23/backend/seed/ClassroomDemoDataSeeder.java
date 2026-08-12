@@ -111,7 +111,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     private final ClassroomChangeRequestRepository changeRequestRepository;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
     private final ClassroomRoomRepository roomRepository;
-    private final ClassroomSessionTemplateRepository sessionTemplateRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final UserRepository userRepository;
@@ -130,7 +129,6 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         syncGoogleMeetLabels();
         syncTeacher2Account();
         clearLegacyDemoLarkLinks();
-        seedSessionTemplates();
 
         if (!seedEnabled) {
             return;
@@ -933,6 +931,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         jdbcTemplate.update("delete from users where id = ?", userId);
     }
 
+    /*
+     * Session-template persistence was removed from the current classroom model.
+     * Keep the former demo data below disabled until the feature is reintroduced.
     private void seedSessionTemplates() {
         User staff = userRepository.findByEmail("staff@englishlab.vn").orElse(null);
 
@@ -1025,6 +1026,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
                 .createdBy(createdBy)
                 .build()));
     }
+
+    }
+    */
 
     private User ensureUser(String email, String fullName, RoleEnum role) {
         User user = userRepository.findByEmail(email).map(existing -> {

@@ -35,9 +35,44 @@ public class ClassroomAttendanceServiceImpl implements ClassroomAttendanceServic
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomAttendanceResponse> getBySession(Long sessionId) {
-        return attendanceRepository.findBySessionId(sessionId).stream()
-                .map(mapper::toAttendanceResponse)
-                .toList();
+        ClassroomSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
+
+        Long offeringId = session.getClassroomOffering().getId();
+
+        // 1. Existing attendance records for this session
+        List<ClassroomAttendance> existingRecords = attendanceRepository.findBySessionId(sessionId);
+        java.util.Map<Long, ClassroomAttendance> byStudentId = new java.util.LinkedHashMap<>();
+        for (ClassroomAttendance record : existingRecords) {
+            byStudentId.put(record.getStudent().getId(), record);
+        }
+
+        // 2. All enrolled students with class access (ASSIGNED)
+        List<fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment> enrollments =
+                enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
+                        offeringId,
+                        java.util.Set.of(fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus.ASSIGNED)
+                );
+
+        // 3. Merge: existing records first, then placeholders for students without records
+        List<ClassroomAttendanceResponse> responses = new ArrayList<>();
+        java.util.Set<Long> includedStudentIds = new java.util.HashSet<>(byStudentId.keySet());
+
+        // Add existing attendance records
+        for (ClassroomAttendance record : existingRecords) {
+            responses.add(mapper.toAttendanceResponse(record));
+        }
+
+        // Add placeholder responses for enrolled students who don't have a record yet
+        for (var enrollment : enrollments) {
+            Long studentId = enrollment.getStudent().getId();
+            if (!includedStudentIds.contains(studentId)) {
+                responses.add(mapper.toPlaceholderAttendanceResponse(session, enrollment.getStudent()));
+                includedStudentIds.add(studentId);
+            }
+        }
+
+        return responses;
     }
 
     @Override

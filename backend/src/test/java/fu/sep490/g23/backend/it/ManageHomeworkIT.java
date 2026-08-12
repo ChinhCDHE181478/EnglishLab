@@ -31,28 +31,63 @@ public class ManageHomeworkIT {
     @Test
     @DisplayName("IT_MNGHW_01")
     void itMnghw01() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
-                .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/" + id + "/homework")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        MvcResult created = createHomework(teacherToken, classroomId, LocalDateTime.now().plusDays(2))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andReturn();
+        long homeworkId = json(created).path("id").asLong();
+        mockMvc.perform(get("/api/teacher/classrooms/" + classroomId + "/homework")
+                        .header("Authorization", bearer(teacherToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + homeworkId + ")]").exists());
     }
 
     @Test
     @DisplayName("IT_MNGHW_02")
     void itMnghw02() throws Exception {
-        String token = login(mockMvc, TEACHER, PASSWORD);
-        MvcResult r = mockMvc.perform(get("/api/teacher/classrooms/assigned").header("Authorization", bearer(token)))
+        String teacherToken = login(mockMvc, TEACHER, PASSWORD);
+        String learnerToken = login(mockMvc, LEARNER, PASSWORD);
+        long classroomId = sharedClassroomId(mockMvc, teacherToken, learnerToken);
+        long studentId = currentUserId(mockMvc, learnerToken);
+        MvcResult created = createHomework(teacherToken, classroomId, LocalDateTime.now().plusDays(2))
                 .andExpect(status().isOk()).andReturn();
-        JsonNode items = mapper().readTree(r.getResponse().getContentAsString());
-        Assumptions.assumeTrue(items.size() > 0);
-        long id = items.get(0).path("id").asLong();
-        mockMvc.perform(get("/api/teacher/classrooms/" + id + "/gradebook")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        long homeworkId = json(created).path("id").asLong();
+        mockMvc.perform(post("/api/student/classrooms/homework/" + homeworkId + "/submit")
+                        .header("Authorization", bearer(learnerToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"textAnswer\":\"IT learner submission\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentId").value(studentId));
+        mockMvc.perform(post("/api/teacher/classrooms/homework/" + homeworkId + "/students/" + studentId + "/grade")
+                        .header("Authorization", bearer(teacherToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"score\":8.5,\"teacherFeedback\":\"Good integration result\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.score").value(8.5))
+                .andExpect(jsonPath("$.teacherFeedback").value("Good integration result"))
+                .andExpect(jsonPath("$.status").value("GRADED"));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions createHomework(
+            String teacherToken, long classroomId, LocalDateTime deadline
+    ) throws Exception {
+        return mockMvc.perform(post("/api/teacher/classrooms/" + classroomId + "/homework")
+                .header("Authorization", bearer(teacherToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "title":"IT Homework %s",
+                          "instruction":"Complete the integration exercise",
+                          "deadline":"%s",
+                          "maxScore":10,
+                          "allowResubmission":false,
+                          "status":"OPEN",
+                          "activityType":"TEXT_RESPONSE",
+                          "gradingMode":"TEACHER"
+                        }
+                        """.formatted(UUID.randomUUID(), deadline.withNano(0))));
     }
 }

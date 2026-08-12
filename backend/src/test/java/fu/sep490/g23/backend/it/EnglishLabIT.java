@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Meta-annotation cho mọi *IT: SpringBootTest + MockMvc + timezone initializer (IDE-safe).
@@ -17,5 +18,6 @@ import org.springframework.test.context.ContextConfiguration;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ContextConfiguration(initializers = ItTimezoneInitializer.class)
+@Transactional
 public @interface EnglishLabIT {
 }

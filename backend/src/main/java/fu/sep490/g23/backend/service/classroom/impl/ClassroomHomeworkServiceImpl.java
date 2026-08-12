@@ -256,6 +256,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (homework.getStatus() != HomeworkStatus.OPEN) {
             throw new RuntimeException("Bài tập chưa mở để nộp.");
         }
+        if (homework.getDeadline() != null && LocalDateTime.now().isAfter(homework.getDeadline())) {
+            throw new IllegalArgumentException("Bài tập đã quá hạn nộp.");
+        }
         ClassroomHomeworkSubmission submission = submissionRepository
                 .findByHomeworkIdAndStudentId(homeworkId, learner.getId())
                 .orElseGet(() -> ClassroomHomeworkSubmission.builder()

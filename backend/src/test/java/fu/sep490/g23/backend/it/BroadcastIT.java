@@ -46,36 +46,45 @@ public class BroadcastIT {
     @DisplayName("IT_BROADCAST_02")
     void itBroadcast02() throws Exception {
         String token = login(mockMvc, ADMIN, PASSWORD);
-        mockMvc.perform(get("/api/admin/broadcasts").param("page", "0").param("size", "10")
-                        .header("Authorization", bearer(token)))
-                .andExpect(status().isOk());
+        MvcResult created = mockMvc.perform(post("/api/admin/broadcasts")
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"IT Broadcast update source","message":"before","sendInApp":true,"sendEmail":false}
+                                """))
+                .andExpect(status().isOk()).andReturn();
+        long broadcastId = json(created).path("id").asLong();
+        mockMvc.perform(put("/api/admin/broadcasts/" + broadcastId)
+                        .header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"IT Broadcast updated","message":"after","sendInApp":true,"sendEmail":false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("IT Broadcast updated"))
+                .andExpect(jsonPath("$.message").value("after"));
     }
 
     @Test
     @DisplayName("IT_BROADCAST_03")
     void itBroadcast03() throws Exception {
         String token = login(mockMvc, ADMIN, PASSWORD);
+        String title = "IT Broadcast list " + UUID.randomUUID();
         mockMvc.perform(post("/api/admin/broadcasts")
                         .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"IT Broadcast upd src","message":"x","sendInApp":true,"sendEmail":false}
-                                """))
+                                {"title":"%s","message":"list me","sendInApp":true,"sendEmail":false}
+                                """.formatted(title)))
                 .andExpect(status().isOk());
         MvcResult list = mockMvc.perform(get("/api/admin/broadcasts").param("page", "0").param("size", "10")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk()).andReturn();
-        JsonNode root = mapper().readTree(list.getResponse().getContentAsString());
-        JsonNode items = root.isArray() ? root : root.path("content");
-        Assumptions.assumeTrue(items.size() > 0);
-        long bid = items.get(0).path("id").asLong();
-        mockMvc.perform(put("/api/admin/broadcasts/" + bid)
-                        .header("Authorization", bearer(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"title":"IT Broadcast updated","message":"updated","sendInApp":true,"sendEmail":false}
-                                """))
-                .andExpect(status().isOk());
+        boolean found = false;
+        for (JsonNode item : items(json(list))) {
+            if (title.equals(item.path("title").asText())) found = true;
+        }
+        if (!found) throw new AssertionError("Created broadcast must appear in the admin list");
     }
 
     @Test

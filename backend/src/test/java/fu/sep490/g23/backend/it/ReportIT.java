@@ -33,20 +33,15 @@ public class ReportIT {
     void itReport01() throws Exception {
         String token = login(mockMvc, STAFF, PASSWORD);
         mockMvc.perform(get("/api/staff/dashboard").header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "dashboard " + s);
-                });
+                .andExpect(status().isOk());
     }
 
     @Test
     @DisplayName("IT_REPORT_02")
     void itReport02() throws Exception {
         String token = login(mockMvc, CM, PASSWORD);
-        mockMvc.perform(get("/api/content-manager/revenue").header("Authorization", bearer(token)))
-                .andExpect(result -> {
-                    int s = result.getResponse().getStatus();
-                    Assumptions.assumeTrue(s == 200 || s == 404, "revenue " + s);
-                });
+        mockMvc.perform(get("/api/content-manager/revenue/analytics")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
     }
 }
