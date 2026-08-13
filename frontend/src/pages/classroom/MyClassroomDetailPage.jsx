@@ -56,7 +56,6 @@ import { requestExamFullscreen } from '../../utils/examFullscreen';
 import {
   formatAttendanceStatus,
   formatAttendanceDisputeStatus,
-  formatAssessmentType,
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomPrice,
@@ -2346,7 +2345,7 @@ function LearnerCurriculumPanel({
           <div className="space-y-3">
             {units.map((unit) => {
               const isExpanded = expandedUnits.has(unit.id);
-              const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.assessments?.length ?? 0) + (unit.flashcards?.length ?? 0);
+              const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.flashcards?.length ?? 0);
               
               return (
                 <article
@@ -2418,7 +2417,7 @@ function LearnerCurriculumPanel({
                         </div>
                       )}
                       
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-1">
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                         <LearnerRefList
                           title="Học liệu học tập"
                           refs={unit.materials}
@@ -2431,12 +2430,6 @@ function LearnerCurriculumPanel({
                           type="exercises"
                           unitId={unit.id}
                           onOpenPractice={onOpenPractice}
-                        />
-                        <LearnerRefList
-                          title="Bài đánh giá theo Unit"
-                          refs={unit.assessments}
-                          type="assessments"
-                          unitId={unit.id}
                         />
                         <LearnerRefList
                           title="Flashcards học từ"
@@ -2492,14 +2485,14 @@ function LearnerRefList({
                       <p className="font-extrabold text-xs text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors">{ref.title}</p>
                       <Download className="h-3.5 w-3.5 text-gray-400 group-hover:text-[#730014] shrink-0 transition-colors" />
                     </div>
-                    {ref.subtitle && <p className="mt-1 text-[10px] text-[#8b706e] leading-none">{type === 'assessments' ? formatAssessmentType(ref.subtitle) : ref.subtitle}</p>}
+                    {ref.subtitle && <p className="mt-1 text-[10px] text-[#8b706e] leading-none">{ref.subtitle}</p>}
                   </AuthenticatedFileLink>
                 );
               }
               return (
                 <div key={`${ref.type || 'material'}-${ref.id}`} className="rounded-xl bg-white border border-gray-100/50 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] opacity-85">
                   <p className="font-bold text-xs text-slate-500 leading-snug">{ref.title}</p>
-                  {ref.subtitle && <p className="mt-1 text-[10px] text-slate-400 leading-none">{type === 'assessments' ? formatAssessmentType(ref.subtitle) : ref.subtitle}</p>}
+                  {ref.subtitle && <p className="mt-1 text-[10px] text-slate-400 leading-none">{ref.subtitle}</p>}
                 </div>
               );
             }

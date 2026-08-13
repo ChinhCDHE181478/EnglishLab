@@ -37,7 +37,6 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
-  formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
   getClassroomSessionNumber,
@@ -796,7 +795,6 @@ function TeacherCurriculumPanel({ curriculum }) {
 function CurriculumUnitCard({ expanded, onToggle, unit }) {
   const totalResources = (unit.materials?.length ?? 0)
     + (unit.exercises?.length ?? 0)
-    + (unit.assessments?.length ?? 0)
     + (unit.flashcards?.length ?? 0);
 
   return (
@@ -834,7 +832,6 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
           <div className="grid gap-3 md:grid-cols-2">
             <CurriculumRefList title="Học liệu" refs={unit.materials} />
             <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
-            <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
             <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
           </div>
         </div>
@@ -854,7 +851,7 @@ function CurriculumRefList({ title, refs = [] }) {
               <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
               <p className="mt-0.5 text-[#8b706e]">{[
                 ref.skill,
-                ref.type === 'ASSESSMENT' ? formatAssessmentType(ref.subtitle) : ref.subtitle,
+                ref.subtitle,
                 ref.status,
               ].filter(Boolean).join(' · ')}</p>
               {ref.fileUrl ? (
