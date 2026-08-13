@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.service.home.impl;
-import fu.sep490.g23.backend.service.home.HomeService;
 
 import fu.sep490.g23.backend.dto.response.ApiResponse;
+import fu.sep490.g23.backend.service.home.HomeService;
 import org.springframework.stereotype.Service;
 
 @Service

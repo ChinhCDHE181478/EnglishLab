@@ -1,5 +1,7 @@
 package fu.sep490.g23.backend.entity.classroom;
 
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

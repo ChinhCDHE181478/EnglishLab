@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowRightLeft, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2, UserRoundCheck, Users, Video, X, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Bell, ChevronDown, ChevronUp, Pencil, Plus, RefreshCw, Trash2, UserRoundCheck, Users, Video, X, XCircle } from 'lucide-react';
 import classroomApi from '../../api/classroomApi';
 import {
   ClassroomEmptyState,
@@ -22,12 +22,15 @@ import {
   formatOfferingStatus,
   formatRegistrationStatus,
   formatSessionStatus,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
 } from '../../utils/classroomHelpers';
 
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
   { id: 'students', label: 'Học viên' },
   { id: 'schedule', label: 'Lịch học' },
+  { id: 'announcements', label: 'Thông báo' },
   { id: 'recordings', label: 'Ghi hình' },
 ];
 
@@ -43,6 +46,7 @@ const initialSessionForm = {
   deliveryMode: 'OFFLINE',
   teacherId: '',
   roomId: '',
+  curriculumSessionPlanId: '',
   sessionContent: 'Buổi học',
   note: '',
 };
@@ -58,6 +62,10 @@ export default function StaffClassroomDetailPage() {
   const activeTab = detailTabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'overview';
 
   const [classroom, setClassroom] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementComposerOpen, setAnnouncementComposerOpen] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [syncingSessionId, setSyncingSessionId] = useState(null);
   const [allClassrooms, setAllClassrooms] = useState([]);
   const [transfer, setTransfer] = useState({ enrollment: null, targetId: '' });
@@ -96,6 +104,20 @@ export default function StaffClassroomDetailPage() {
     [availableResources.rooms],
   );
 
+  const sessionPlanOptions = useMemo(() => [
+    {
+      label: editingSessionId ? 'Không thay đổi liên kết giáo trình' : 'Buổi đặc biệt / chưa gắn giáo trình',
+      value: '',
+    },
+    ...(classroom?.curriculumProgram?.units || []).flatMap((unit) => (
+      (unit.sessionPlans || []).map((plan) => ({
+        label: `Buổi ${plan.sessionNumber} — ${plan.title}`,
+        value: String(plan.id),
+        description: unit.displayOrder != null ? `Unit ${unit.displayOrder}: ${unit.title}` : unit.title,
+      }))
+    )),
+  ], [classroom?.curriculumProgram?.units, editingSessionId]);
+
   const assignedStudents = useMemo(
     () => (classroom?.enrollments || []).filter((item) => item.registrationStatus === 'ASSIGNED'),
     [classroom],
@@ -114,12 +136,14 @@ export default function StaffClassroomDetailPage() {
     setLoading(true);
     setError('');
     try {
-      const [data, classroomData] = await Promise.all([
+      const [data, classroomData, announcementsData] = await Promise.all([
         classroomApi.getStaffClassroom(id),
         classroomApi.getStaffClassrooms(),
+        classroomApi.getStaffClassroomAnnouncements(id),
       ]);
       setClassroom(data);
       setAllClassrooms(classroomData);
+      setAnnouncements(announcementsData);
       setSessionForm((current) => ({
         ...current,
         sessionDate: current.sessionDate || data.startDate || '',
@@ -132,6 +156,31 @@ export default function StaffClassroomDetailPage() {
       setError(getClassroomErrorMessage(err, 'Không thể tải chi tiết lớp.'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createAnnouncement = async () => {
+    const title = announcementForm.title.trim();
+    const content = announcementForm.content.trim();
+    if (!title || !content) {
+      setActionTone('error');
+      setActionMessage('Vui lòng nhập tiêu đề và nội dung thông báo.');
+      return;
+    }
+
+    setSavingAnnouncement(true);
+    try {
+      const created = await classroomApi.createStaffClassroomAnnouncement(id, { title, content });
+      setAnnouncements((current) => [created, ...current]);
+      setAnnouncementForm({ title: '', content: '' });
+      setAnnouncementComposerOpen(false);
+      setActionTone('success');
+      setActionMessage('Đã gửi thông báo tới lớp học.');
+    } catch (err) {
+      setActionTone('error');
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể gửi thông báo.'));
+    } finally {
+      setSavingAnnouncement(false);
     }
   };
 
@@ -203,6 +252,7 @@ export default function StaffClassroomDetailPage() {
         ...sessionForm,
         teacherId: sessionForm.teacherId ? Number(sessionForm.teacherId) : null,
         roomId: sessionForm.roomId ? Number(sessionForm.roomId) : null,
+        curriculumSessionPlanId: sessionForm.curriculumSessionPlanId ? Number(sessionForm.curriculumSessionPlanId) : null,
       };
       const created = editingSessionId
         ? await classroomApi.updateStaffClassroomSession(editingSessionId, payload)
@@ -329,6 +379,7 @@ export default function StaffClassroomDetailPage() {
       deliveryMode: session.deliveryMode || classroom.deliveryMode || 'OFFLINE',
       teacherId: session.teacherId ? String(session.teacherId) : '',
       roomId: session.roomId ? String(session.roomId) : '',
+      curriculumSessionPlanId: session.curriculumSessionPlanId ? String(session.curriculumSessionPlanId) : '',
       sessionContent: session.sessionContent || 'Buổi học',
       note: session.note || '',
     });
@@ -428,6 +479,16 @@ export default function StaffClassroomDetailPage() {
           </Field>
         ) : null}
       </div>
+      {sessionPlanOptions.length > 1 ? (
+        <Field label="Buổi học trong giáo trình">
+          <BrandedSelect
+            onChange={(event) => setSessionForm((current) => ({ ...current, curriculumSessionPlanId: event.target.value }))}
+            options={sessionPlanOptions}
+            searchable
+            value={sessionForm.curriculumSessionPlanId}
+          />
+        </Field>
+      ) : null}
     </>
   );
 
@@ -649,7 +710,10 @@ export default function StaffClassroomDetailPage() {
                       <tr className="transition hover:bg-[#fffafb]" key={session.id}>
                         <td className="px-5 py-4">
                           <p className="font-bold text-[#0b1c30]">{formatClassroomDate(session.sessionDate)}</p>
-                          <p className="mt-1 text-xs text-slate-500">{session.sessionContent || `Buổi học #${session.id}`}</p>
+                          <p className="mt-1 text-xs font-bold text-[#4b0009]">
+                            {session.sessionNumber != null ? `Buổi ${session.sessionNumber} — ` : ''}{getClassroomSessionTitle(session, `Buổi học #${session.id}`)}
+                          </p>
+                          {getClassroomSessionUnitLabel(session) ? <p className="mt-1 text-xs text-slate-500">{getClassroomSessionUnitLabel(session)}</p> : null}
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 font-semibold text-[#584140]">{session.startTime} - {session.endTime}</td>
                         <td className="whitespace-nowrap px-5 py-4">{formatDeliveryMode(session.deliveryMode, session.deliveryModeLabel)}</td>
@@ -689,6 +753,46 @@ export default function StaffClassroomDetailPage() {
             )}
           </section>
         </div>
+      ) : null}
+
+      {activeTab === 'announcements' ? (
+        <section className="space-y-5 rounded-xl border border-[#dfbfbd]/35 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Thông báo lớp học</h3>
+              <p className="mt-1 text-sm text-[#8b706e]">Gửi cho học viên và giáo viên của lớp.</p>
+            </div>
+            <button className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#59000f]" onClick={() => setAnnouncementComposerOpen((open) => !open)} type="button">
+              <Plus className="h-4 w-4" />
+              {announcementComposerOpen ? 'Đóng soạn thông báo' : 'Tạo thông báo'}
+            </button>
+          </div>
+
+          {announcementComposerOpen ? (
+            <div className="space-y-4 rounded-xl border border-[#dfbfbd]/60 bg-[#fffafb] p-4">
+              <input className={inputClass} maxLength={220} onChange={(event) => setAnnouncementForm((current) => ({ ...current, title: event.target.value }))} placeholder="Tiêu đề thông báo" value={announcementForm.title} />
+              <textarea className={`${inputClass} min-h-32`} onChange={(event) => setAnnouncementForm((current) => ({ ...current, content: event.target.value }))} placeholder="Nội dung thông báo" value={announcementForm.content} />
+              <div className="flex justify-end gap-2">
+                <button className="rounded-xl border border-[#dfbfbd] px-4 py-2.5 text-sm font-bold text-[#584140] hover:bg-white" disabled={savingAnnouncement} onClick={() => setAnnouncementComposerOpen(false)} type="button">Hủy</button>
+                <button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#59000f] disabled:cursor-wait disabled:opacity-60" disabled={savingAnnouncement} onClick={createAnnouncement} type="button">{savingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}</button>
+              </div>
+            </div>
+          ) : null}
+
+          {announcements.length ? (
+            <div className="space-y-3">
+              {announcements.map((announcement) => (
+                <article className="rounded-xl border border-[#dfbfbd]/35 p-4" key={announcement.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <h4 className="flex items-center gap-2 font-['Manrope'] text-base font-extrabold text-[#0b1c30]"><Bell className="h-4 w-4 text-[#730014]" />{announcement.title}</h4>
+                    <span className="whitespace-nowrap text-xs text-[#8b706e]">{formatClassroomDate(announcement.createdAt)}</span>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{announcement.content || announcement.body}</p>
+                </article>
+              ))}
+            </div>
+          ) : <ClassroomEmptyState title="Chưa có thông báo" description="Tạo thông báo đầu tiên cho lớp học." />}
+        </section>
       ) : null}
 
       {activeTab === 'recordings' ? <StaffRecordingsPage classroomId={id} /> : null}
@@ -834,7 +938,7 @@ function CurriculumOverview({ curriculum }) {
             {[curriculum.code, curriculum.examCategory, curriculum.targetBand ? `Band ${curriculum.targetBand}` : null, curriculum.targetScore ? `Target ${curriculum.targetScore}` : null].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <Badge>{units.length} unit/buổi</Badge>
+        <Badge>{units.length} Unit · {curriculum.totalSessions || 0} buổi</Badge>
       </div>
       {curriculum.outcomes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-[#584140]">{curriculum.outcomes}</p> : null}
       {units.length ? (
@@ -861,7 +965,16 @@ function CurriculumOverview({ curriculum }) {
               {expandedUnitIds.has(unit.id) ? (
                 <div className="space-y-4 border-t border-[#f0e4e2] p-4">
                   {unit.description ? <p className="text-sm leading-6 text-[#584140]">{unit.description}</p> : null}
-                  {unit.sessionPlan ? <div className="rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm leading-6 text-[#584140]"><p className="mb-1 text-xs font-bold uppercase tracking-wider text-[#8b706e]">Kế hoạch buổi học</p>{unit.sessionPlan}</div> : null}
+                  {unit.sessionPlans?.length ? (
+                    <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                      {unit.sessionPlans.map((plan) => (
+                        <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                          <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <CurriculumUnitResources label="Học liệu" items={unit.materials} />
                     <CurriculumUnitResources label="Bài tập" items={unit.exercises} />
@@ -874,7 +987,7 @@ function CurriculumOverview({ curriculum }) {
           ))}
         </div>
       ) : (
-        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có unit/buổi học.</p>
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">Giáo trình này chưa có Unit.</p>
       )}
     </section>
   );

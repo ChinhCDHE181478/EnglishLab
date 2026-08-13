@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.auth_service;
+import java.util.Set;
 
 import fu.sep490.g23.backend.dto.request.LoginRequest;
 import fu.sep490.g23.backend.dto.response.AuthResponse;
@@ -19,7 +20,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;

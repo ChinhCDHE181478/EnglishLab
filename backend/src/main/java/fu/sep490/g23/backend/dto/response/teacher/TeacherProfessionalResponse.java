@@ -26,7 +26,7 @@ public class TeacherProfessionalResponse {
     private long assignedClassrooms;
     private long totalSessions;
     private long completedSessions;
-    private BigDecimal latestPerformanceScore;
+    private BigDecimal averagePerformanceScore;
     private long verifiedCredentials;
     private List<TeacherCredentialResponse> credentials;
     private List<TeacherEvaluationResponse> evaluations;

@@ -4,6 +4,8 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import jakarta.persistence.*;

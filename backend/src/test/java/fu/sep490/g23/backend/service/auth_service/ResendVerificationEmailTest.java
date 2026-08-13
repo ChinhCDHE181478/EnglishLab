@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.service.auth_service;
+import java.util.Set;
 
 import fu.sep490.g23.backend.dto.response.AuthResponse;
 import fu.sep490.g23.backend.entity.AuthToken;
@@ -17,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

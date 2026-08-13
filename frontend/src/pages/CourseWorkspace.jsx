@@ -759,7 +759,7 @@ const CourseWorkspace = () => {
                 onSelectLesson={handleSelectLesson}
                 onToggleComplete={handleToggleComplete}
                 onOpenNotes={() => setRightPanelMode('notes')}
-                onSaveLessonNote={({ content, selectedText }) => saveLessonNote({
+                onSaveLessonNote={async ({ content, selectedText }) => saveLessonNote({
                   courseId: course.id,
                   lessonId: activeWorkspaceItem?.id,
                   content,

@@ -14,6 +14,10 @@ const placementTestApi = {
     return unwrapData(await axiosClient.post('/api/student/placement-tests/current/submit', payload));
   },
 
+  async getRecommendations(attemptId) {
+    return unwrapData(await axiosClient.get(`/api/student/placement-tests/${attemptId}/recommendations`));
+  },
+
   async getManagedDefinition() {
     return unwrapData(await axiosClient.get('/api/content-manager/placement-test'));
   },

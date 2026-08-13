@@ -155,6 +155,7 @@ const WorkspaceLessonPanel = ({
   const [selectedLessonText, setSelectedLessonText] = useState('');
   const [selectionButton, setSelectionButton] = useState(null);
   const [lessonNoteMessage, setLessonNoteMessage] = useState('');
+  const [savingSelectedNote, setSavingSelectedNote] = useState(false);
   const iframeSrc = useMemo(() => {
     if (!embedUrl) return '';
     if (!iframeStartSeconds) return embedUrl;
@@ -207,7 +208,7 @@ const WorkspaceLessonPanel = ({
     setLessonNoteMessage('');
   };
 
-  const saveSelectedLessonText = () => {
+  const saveSelectedLessonText = async () => {
     if (!canPersist) {
       setLessonNoteMessage('Bạn cần đăng nhập để lưu ghi chú.');
       return;
@@ -217,15 +218,29 @@ const WorkspaceLessonPanel = ({
       return;
     }
 
-    onSaveLessonNote?.({
-      content: selectedLessonText.trim(),
-      selectedText: selectedLessonText.trim(),
-    });
-    setSelectedLessonText('');
-    setSelectionButton(null);
-    window.getSelection?.()?.removeAllRanges?.();
-    setLessonNoteMessage('Đã lưu đoạn đã chọn vào ghi chú.');
-    onOpenNotes?.();
+    if (!onSaveLessonNote) {
+      setLessonNoteMessage('Không thể lưu ghi chú. Vui lòng tải lại trang và thử lại.');
+      return;
+    }
+
+    setSavingSelectedNote(true);
+    try {
+      const savedNote = await onSaveLessonNote({
+        content: selectedLessonText.trim(),
+        selectedText: selectedLessonText.trim(),
+      });
+      if (!savedNote) {
+        setLessonNoteMessage('Không thể lưu ghi chú. Vui lòng thử lại.');
+        return;
+      }
+      setSelectedLessonText('');
+      setSelectionButton(null);
+      window.getSelection?.()?.removeAllRanges?.();
+      setLessonNoteMessage('Đã lưu đoạn đã chọn vào ghi chú.');
+      onOpenNotes?.();
+    } finally {
+      setSavingSelectedNote(false);
+    }
   };
 
   return (
@@ -288,13 +303,14 @@ const WorkspaceLessonPanel = ({
           <LessonContent content={lessonContent} />
           {selectionButton ? (
             <button
-              className="absolute z-10 rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(75,0,9,0.22)] transition hover:bg-[#730014]"
+              className="absolute z-10 rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(75,0,9,0.22)] transition hover:bg-[#730014] disabled:cursor-wait disabled:opacity-65"
               style={{ top: selectionButton.top, left: selectionButton.left }}
               type="button"
+              disabled={savingSelectedNote}
               onMouseDown={(event) => event.preventDefault()}
               onClick={saveSelectedLessonText}
             >
-              Lưu ghi chú
+              {savingSelectedNote ? 'Đang lưu...' : 'Lưu ghi chú'}
             </button>
           ) : null}
         </div>

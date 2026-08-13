@@ -1,5 +1,4 @@
 package fu.sep490.g23.backend.service.classroom.impl;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
@@ -7,19 +6,13 @@ import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
 import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
-import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
-import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.dto.request.classroom.CreateChangeRequestRequest;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.dto.request.classroom.ReviewChangeRequestRequest;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
@@ -30,9 +23,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
+import fu.sep490.g23.backend.service.classroom.ClassroomChangeRequestService;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
+import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -265,7 +266,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             };
             return objectMapper.writeValueAsString(values);
         } catch (Exception ex) {
-            return null;
+            throw new RuntimeException("Không thể lưu lịch hiện tại của buổi học vào yêu cầu thay đổi.", ex);
         }
     }
 
@@ -273,15 +274,17 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         if (session == null) {
             return Map.of();
         }
-        return Map.of(
-                "sessionDate", session.getSessionDate().toString(),
-                "startTime", session.getStartTime().toString(),
-                "endTime", session.getEndTime().toString(),
-                "teacherId", session.getTeacher() == null ? null : session.getTeacher().getId(),
-                "roomId", session.getRoom() == null ? null : session.getRoom().getId(),
-                "larkMeetingUrl", session.getLarkMeetingUrl(),
-                "status", session.getStatus().name()
-        );
+        // LinkedHashMap cho phép value = null; Map.of() thì không
+        // (roomId / teacherId / larkMeetingUrl thường null với lớp online hoặc chưa gán phòng).
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("sessionDate", session.getSessionDate() == null ? null : session.getSessionDate().toString());
+        values.put("startTime", session.getStartTime() == null ? null : session.getStartTime().toString());
+        values.put("endTime", session.getEndTime() == null ? null : session.getEndTime().toString());
+        values.put("teacherId", session.getTeacher() == null ? null : session.getTeacher().getId());
+        values.put("roomId", session.getRoom() == null ? null : session.getRoom().getId());
+        values.put("larkMeetingUrl", session.getLarkMeetingUrl());
+        values.put("status", session.getStatus() == null ? null : session.getStatus().name());
+        return values;
     }
 
     private ConflictCheckRequest buildConflictRequest(CreateChangeRequestRequest request, ClassroomOffering offering, ClassroomSession session) {

@@ -19,6 +19,8 @@ import fu.sep490.g23.backend.dto.response.course.PackageEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.VocabularyTermResponse;
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import java.util.List;
@@ -56,6 +58,7 @@ public interface OnlineCourseService {
 
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
+    List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);
     CourseCertificateResponse getCourseCertificate(Long courseId, String studentEmail);

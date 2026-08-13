@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { login, loginWithFacebook, loginWithGoogle } from '../api/authApi';
+import { login, loginWithGoogle } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { getDefaultAuthenticatedPath } from '../utils/auth';
 
 const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
-const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -14,15 +13,6 @@ const GoogleIcon = () => (
     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
     <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" />
     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06L5.84 9.9C6.71 7.3 9.14 5.38 12 5.38z" />
-  </svg>
-);
-
-const FacebookIcon = () => (
-  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-      fill="#1877F2"
-    />
   </svg>
 );
 
@@ -37,7 +27,6 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const [facebookLoading, setFacebookLoading] = useState(false);
 
   const resolvePostLoginPath = (user) => {
     const defaultPath = getDefaultAuthenticatedPath(user);
@@ -70,23 +59,6 @@ const Login = () => {
       document.body.appendChild(script);
     } else {
       setGoogleReady(true);
-    }
-
-    if (FACEBOOK_APP_ID && !document.querySelector('script[src="https://connect.facebook.net/en_US/sdk.js"]')) {
-      window.fbAsyncInit = () => {
-        window.FB.init({
-          appId: FACEBOOK_APP_ID,
-          cookie: true,
-          xfbml: false,
-          version: 'v20.0',
-        });
-      };
-
-      const script = document.createElement('script');
-      script.src = 'https://connect.facebook.net/en_US/sdk.js';
-      script.async = true;
-      script.defer = true;
-      document.body.appendChild(script);
     }
 
     return undefined;
@@ -123,40 +95,6 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleFacebookLogin = () => {
-    setError('');
-
-    if (!FACEBOOK_APP_ID) {
-      setError('Chưa cấu hình VITE_FACEBOOK_APP_ID cho Facebook Login.');
-      return;
-    }
-
-    if (!window.FB) {
-      setError('Facebook SDK chưa sẵn sàng. Vui lòng thử lại sau vài giây.');
-      return;
-    }
-
-    setFacebookLoading(true);
-    window.FB.login(
-      async (fbResponse) => {
-        if (!fbResponse.authResponse?.accessToken) {
-          setFacebookLoading(false);
-          return;
-        }
-
-        try {
-          const response = await loginWithFacebook(fbResponse.authResponse.accessToken);
-          handleSaveSession(response);
-        } catch (err) {
-          setError(err.response?.data?.message || 'Đăng nhập Facebook thất bại. Vui lòng thử lại.');
-        } finally {
-          setFacebookLoading(false);
-        }
-      },
-      { scope: 'public_profile,email' }
-    );
   };
 
   const handleGoogleLogin = () => {
@@ -288,35 +226,15 @@ const Login = () => {
         </button>
       </form>
 
-      <div className="relative mt-8">
-        <div aria-hidden="true" className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-[#E5E2E0]" />
-        </div>
-        <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-2 text-xs font-[600] uppercase leading-none tracking-[0.1em] text-[#584140]">
-            Hoặc tiếp tục với
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-8 grid grid-cols-2 gap-4">
+      <div className="mt-8">
         <button
-          className="group flex min-h-[42px] cursor-pointer items-center justify-center rounded border border-[#E5E2E0] bg-white px-4 py-2.5 text-sm font-[600] leading-none text-[#1A1C1C] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#730014]/30 hover:bg-[#fff8f7] hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={googleLoading || facebookLoading || loading}
+          className="group flex min-h-[56px] w-full cursor-pointer items-center justify-center rounded border border-[#e7c9be] bg-[linear-gradient(105deg,#fffdf9_0%,#fff3ed_42%,#f2f7ff_100%)] px-5 py-3 font-['Manrope'] text-lg font-extrabold leading-none text-[#3d1f20] shadow-[0_10px_24px_rgba(115,0,20,0.10)] transition-all duration-300 hover:-translate-y-1 hover:border-[#d99b84] hover:shadow-[0_16px_30px_rgba(115,0,20,0.18)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={googleLoading || loading}
           onClick={handleGoogleLogin}
           type="button"
         >
           <GoogleIcon />
-          {googleLoading ? 'Đang xử lý...' : 'Google'}
-        </button>
-        <button
-          className="group flex min-h-[42px] cursor-pointer items-center justify-center rounded border border-[#E5E2E0] bg-white px-4 py-2.5 text-sm font-[600] leading-none text-[#1A1C1C] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1877F2]/30 hover:bg-blue-50 hover:shadow-md active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
-          disabled={googleLoading || facebookLoading || loading}
-          onClick={handleFacebookLogin}
-          type="button"
-        >
-          <FacebookIcon />
-          {facebookLoading ? 'Đang mở...' : 'Facebook'}
+          {googleLoading ? 'Đang xử lý...' : 'Đăng nhập với Google'}
         </button>
       </div>
 

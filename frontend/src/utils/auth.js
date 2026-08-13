@@ -36,11 +36,6 @@ export const needsProfileCompletion = (user) => {
   return !user.profileCompleted || !user.fullName || !user.phoneNumber || !user.targetExam || !user.targetScore;
 };
 
-export const needsPlacementTest = (user) => {
-  if (!user || hasAnyUserRole(user, STAFF_ROLES)) return false;
-  return !user.profileCompleted && !user.placementTestCompleted;
-};
-
 export const isContentManagerUser = (user) =>
   hasAnyUserRole(user, ['CONTENT_MANAGER', 'MANAGER', 'ADMIN']);
 
@@ -50,7 +45,6 @@ export const getDefaultAuthenticatedPath = (user) => {
   if (hasAnyUserRole(user, ['CONTENT_MANAGER'])) return '/content-manager/dashboard';
   if (hasAnyUserRole(user, ['STAFF'])) return '/staff';
   if (hasAnyUserRole(user, ['TEACHER'])) return '/teacher';
-  if (needsPlacementTest(user)) return '/placement-test';
   if (needsProfileCompletion(user)) return '/complete-profile';
   return '/home';
 };

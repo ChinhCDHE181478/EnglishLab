@@ -20,6 +20,7 @@ public class UserResponse {
     private Double currentBand;
     private String studyGoal;
     private String avatarUrl;
+    private boolean passwordSet;
     private boolean profileCompleted;
     private boolean placementTestCompleted;
 }

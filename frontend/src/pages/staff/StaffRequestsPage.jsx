@@ -234,7 +234,7 @@ export default function StaffRequestsPage() {
                         {diffRows.map((row) => (
                           <div className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[140px_1fr_24px_1fr]" key={row.key}>
                             <span className="font-bold text-[#8b706e]">{row.label}</span>
-                            <span className="text-[#584140] line-through decoration-rose-300">{row.oldValue}</span>
+                            <span className="text-[#584140]">{row.oldValue}</span>
                             <ArrowRight className="hidden h-4 w-4 text-[#730014] sm:block" />
                             <span className="font-extrabold text-[#2b2828]">{row.newValue}</span>
                           </div>

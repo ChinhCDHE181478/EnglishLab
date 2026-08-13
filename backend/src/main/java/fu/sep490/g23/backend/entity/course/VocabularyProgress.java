@@ -1,6 +1,8 @@
 package fu.sep490.g23.backend.entity.course;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 
+import fu.sep490.g23.backend.entity.course.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

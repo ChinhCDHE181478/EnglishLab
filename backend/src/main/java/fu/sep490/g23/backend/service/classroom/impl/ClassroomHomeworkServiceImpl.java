@@ -38,12 +38,14 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.*;
 import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -255,6 +257,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         }
         if (homework.getStatus() != HomeworkStatus.OPEN) {
             throw new RuntimeException("Bài tập chưa mở để nộp.");
+        }
+        if (homework.getDeadline() != null && LocalDateTime.now().isAfter(homework.getDeadline())) {
+            throw new IllegalArgumentException("Bài tập đã quá hạn nộp.");
         }
         ClassroomHomeworkSubmission submission = submissionRepository
                 .findByHomeworkIdAndStudentId(homeworkId, learner.getId())

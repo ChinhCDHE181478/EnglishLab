@@ -3,10 +3,12 @@ package fu.sep490.g23.backend.controller.curriculum;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CurriculumSessionPlanRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumUnitRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.FlashcardSetRequest;
 import fu.sep490.g23.backend.dto.response.curriculum.AssessmentBankItemResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumProgramResponse;
+import fu.sep490.g23.backend.dto.response.curriculum.CurriculumSessionPlanResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.CurriculumUnitResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
@@ -100,6 +102,28 @@ public class ContentManagerCurriculumController {
     @DeleteMapping("/curriculum-units/{unitId}")
     public ResponseEntity<Void> deleteUnit(@PathVariable Long unitId) {
         curriculumProgramService.deleteUnit(unitId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/curriculum-units/{unitId}/session-plans")
+    public ResponseEntity<CurriculumSessionPlanResponse> createSessionPlan(
+            @PathVariable Long unitId,
+            @Valid @RequestBody CurriculumSessionPlanRequest request
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.createSessionPlan(unitId, request));
+    }
+
+    @PutMapping("/curriculum-session-plans/{sessionPlanId}")
+    public ResponseEntity<CurriculumSessionPlanResponse> updateSessionPlan(
+            @PathVariable Long sessionPlanId,
+            @Valid @RequestBody CurriculumSessionPlanRequest request
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.updateSessionPlan(sessionPlanId, request));
+    }
+
+    @DeleteMapping("/curriculum-session-plans/{sessionPlanId}")
+    public ResponseEntity<Void> deleteSessionPlan(@PathVariable Long sessionPlanId) {
+        curriculumProgramService.deleteSessionPlan(sessionPlanId);
         return ResponseEntity.noContent().build();
     }
 

@@ -6,6 +6,7 @@ import fu.sep490.g23.backend.service.ai.GeminiAiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
 import fu.sep490.g23.backend.service.ai.AiProviderProperties;
 
+import fu.sep490.g23.backend.service.ai.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

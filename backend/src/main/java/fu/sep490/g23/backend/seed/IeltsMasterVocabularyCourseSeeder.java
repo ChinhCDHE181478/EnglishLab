@@ -55,7 +55,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override
@@ -127,14 +127,14 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setTotalHours(seed.totalDurationSeconds() == null ? 8 : Math.max(1, (int) Math.ceil(seed.totalDurationSeconds() / 3600.0)));
 
         for (ModuleSeed moduleSeed : seed.modules()) {
-            upsertModule(onlineCourse, moduleSeed);
+            upsertModule(onlineCourse, seed.slug(), moduleSeed);
         }
 
         onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
         onlineCourseRepository.save(onlineCourse);
     }
 
-    private void upsertModule(OnlineCourse onlineCourse, ModuleSeed moduleSeed) {
+    private void upsertModule(OnlineCourse onlineCourse, String courseSlug, ModuleSeed moduleSeed) {
         CourseModule module = onlineCourse.getModules().stream()
                 .filter(existingModule -> existingModule.getDisplayOrder() != null && existingModule.getDisplayOrder().equals(moduleSeed.order()))
                 .findFirst()
@@ -149,13 +149,13 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         module.setDisplayOrder(moduleSeed.order());
 
         for (LessonSeed lessonSeed : moduleSeed.lessons()) {
-            upsertLesson(module, lessonSeed);
+            upsertLesson(module, courseSlug, lessonSeed);
         }
 
         module.getLessons().sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
     }
 
-    private void upsertLesson(CourseModule module, LessonSeed lessonSeed) {
+    private void upsertLesson(CourseModule module, String courseSlug, LessonSeed lessonSeed) {
         Lesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder().equals(lessonSeed.order()))
                 .findFirst()
@@ -174,6 +174,8 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         lesson.setDurationMinutes(toMinutes(lessonSeed.durationSeconds()));
         lesson.setDisplayOrder(lessonSeed.order());
         lesson.setPreview(Boolean.TRUE.equals(lessonSeed.isPreview()));
+        int moduleOrder = module.getDisplayOrder() == null ? 0 : module.getDisplayOrder();
+        lesson.setLessonKey("%s-m%d-l%d".formatted(courseSlug, moduleOrder, lessonSeed.order()));
 
         upsertFlashcardSetForVocabularyLesson(module, lesson);
     }

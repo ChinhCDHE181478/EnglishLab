@@ -1,11 +1,12 @@
 package fu.sep490.g23.backend.entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import java.util.List;
 
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,7 +32,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 @Data
@@ -64,6 +64,10 @@ public class User implements UserDetails {
 
     @Column(length = 255)
     private String password;
+
+    @Column(name = "password_set", nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean passwordSet = true;
 
     @Column(name = "phone_number", length = 30)
     private String phoneNumber;

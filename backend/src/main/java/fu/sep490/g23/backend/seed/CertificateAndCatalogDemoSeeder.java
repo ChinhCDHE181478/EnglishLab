@@ -59,7 +59,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final PackageEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override
@@ -197,6 +197,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     .durationMinutes(30)
                     .displayOrder(1)
                     .preview(true)
+                    .lessonKey("%s-m1-l1".formatted(slug))
                     .build());
             course.addModule(module);
         }

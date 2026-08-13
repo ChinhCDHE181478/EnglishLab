@@ -8,14 +8,11 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
-import fu.sep490.g23.backend.entity.course.PackageType;
-import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
@@ -26,8 +23,6 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
 import fu.sep490.g23.backend.service.classroom.ClassroomScheduleLockService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
-import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
-import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
 import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
@@ -50,7 +45,6 @@ import fu.sep490.g23.backend.dto.request.classroom.ConflictCheckRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.request.classroom.TransferStudentRequest;
-import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest;
 import fu.sep490.g23.backend.dto.request.classroom.RejectRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
@@ -62,14 +56,23 @@ import fu.sep490.g23.backend.dto.request.classroom.UpdateLarkLinkRequest;
 
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.classroom.*;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.PackageEnrollment;
+import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
+import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
+import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
@@ -137,6 +140,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final PackageTypeRepository packageTypeRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
+    private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomMaterialSyncService classroomMaterialSyncService;
     private final ClassroomRoomRepository roomRepository;
@@ -443,6 +447,12 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
     @Override
     @Transactional(readOnly = true)
+    public ClassroomSessionResponse getSession(Long sessionId) {
+        return mapper.toSessionResponse(findSession(sessionId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ClassroomSessionResponse> getLearnerSessions(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomEnrollment enrollment = enrollmentRepository
@@ -487,6 +497,10 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(offering));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, offering);
         ClassroomRoom room = resolveSessionRoom(request, offering, deliveryMode);
+        CurriculumSessionPlan sessionPlan = resolveCurriculumSessionPlan(
+                request.getCurriculumSessionPlanId(),
+                offering
+        );
         validateRoomCapacity(room, offering.getMaxCapacity());
         if (deliveryMode == ClassroomDeliveryMode.VIRTUAL) {
             ensureTeacherMeetingOwner(offering);
@@ -505,7 +519,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             conflictService.assertNoBlockingConflict(conflictRequest);
         }
 
-        ClassroomSession session = buildSession(offering, request, teacher, room, deliveryMode);
+        ClassroomSession session = buildSession(offering, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL
@@ -545,6 +559,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassroomOffering()));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassroomOffering());
         ClassroomRoom room = resolveSessionRoom(request, session.getClassroomOffering(), deliveryMode);
+        CurriculumSessionPlan sessionPlan = request.getCurriculumSessionPlanId() == null
+                ? session.getCurriculumSessionPlan()
+                : resolveCurriculumSessionPlan(request.getCurriculumSessionPlanId(), session.getClassroomOffering());
         validateRoomCapacity(room, session.getClassroomOffering().getMaxCapacity());
 
         ConflictCheckRequest conflictRequest = ConflictCheckRequest.builder()
@@ -569,7 +586,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             clearManagedVirtualMeetingData(session);
         }
 
-        applySessionRequest(session, request, teacher, room, deliveryMode);
+        applySessionRequest(session, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
@@ -590,6 +607,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         User teacher = resolveTeacher(request.getTeacherId() != null ? request.getTeacherId() : getPrimaryTeacherId(session.getClassroomOffering()));
         ClassroomDeliveryMode deliveryMode = resolveSessionDeliveryMode(request, session.getClassroomOffering());
         ClassroomRoom room = resolveSessionRoom(request, session.getClassroomOffering(), deliveryMode);
+        CurriculumSessionPlan sessionPlan = request.getCurriculumSessionPlanId() == null
+                ? session.getCurriculumSessionPlan()
+                : resolveCurriculumSessionPlan(request.getCurriculumSessionPlanId(), session.getClassroomOffering());
         validateRoomCapacity(room, session.getClassroomOffering().getMaxCapacity());
         boolean manualLarkLinkProvided = request.getLarkMeetingUrl() != null
                 && !request.getLarkMeetingUrl().isBlank()
@@ -599,7 +619,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             clearManagedVirtualMeetingData(session);
         }
 
-        applySessionRequest(session, request, teacher, room, deliveryMode);
+        applySessionRequest(session, request, teacher, room, deliveryMode, sessionPlan);
         session = sessionRepository.save(session);
         synchronizeSubstituteAssignment(session);
         if (session.getDeliveryMode() == ClassroomDeliveryMode.VIRTUAL && !manualLarkLinkProvided) {
@@ -1681,7 +1701,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             User teacher,
             ClassroomRoom room,
-            ClassroomDeliveryMode deliveryMode
+            ClassroomDeliveryMode deliveryMode,
+            CurriculumSessionPlan sessionPlan
     ) {
         String larkUrl = request.getLarkMeetingUrl();
         if (virtualMeetingService.isLegacyOrPlaceholderUrl(larkUrl)) {
@@ -1704,7 +1725,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .larkMeetingUrl(larkUrl)
                 .larkMeetingStatus(virtualMeetingService.resolveStatus(larkUrl))
                 .larkSyncStatus(larkUrl == null || larkUrl.isBlank() ? "PENDING" : "MANUAL")
-                .sessionContent(request.getSessionContent())
+                .curriculumSessionPlan(sessionPlan)
+                .sessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle())
                 .note(request.getNote())
                 .build();
     }
@@ -1714,7 +1736,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             CreateClassroomSessionRequest request,
             User teacher,
             ClassroomRoom room,
-            ClassroomDeliveryMode deliveryMode
+            ClassroomDeliveryMode deliveryMode,
+            CurriculumSessionPlan sessionPlan
     ) {
         ClassroomOffering offering = session.getClassroomOffering();
         session.setSessionDate(request.getSessionDate());
@@ -1745,7 +1768,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 session.setLarkMeetingStatus(virtualMeetingService.resolveStatus(defaultUrl));
             }
         }
-        session.setSessionContent(request.getSessionContent());
+        session.setCurriculumSessionPlan(sessionPlan);
+        session.setSessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle());
         session.setNote(request.getNote());
     }
 
@@ -2192,6 +2216,25 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             throw new IllegalArgumentException("Phòng học đã ngừng hoạt động.");
         }
         return room;
+    }
+
+    private CurriculumSessionPlan resolveCurriculumSessionPlan(
+            Long curriculumSessionPlanId,
+            ClassroomOffering offering
+    ) {
+        if (curriculumSessionPlanId == null) {
+            return null;
+        }
+        CurriculumSessionPlan sessionPlan = curriculumSessionPlanRepository.findById(curriculumSessionPlanId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học trong giáo trình."));
+        Long offeringProgramId = offering.getCurriculumProgram() == null
+                ? null
+                : offering.getCurriculumProgram().getId();
+        Long sessionPlanProgramId = sessionPlan.getUnit().getProgram().getId();
+        if (!Objects.equals(offeringProgramId, sessionPlanProgramId)) {
+            throw new IllegalArgumentException("Buổi học đã chọn không thuộc giáo trình của lớp này.");
+        }
+        return sessionPlan;
     }
 
     private CurriculumProgram resolveCurriculumProgram(Long curriculumProgramId, ClassroomDeliveryMode deliveryMode) {

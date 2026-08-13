@@ -5,11 +5,10 @@ import {
   getDefaultAuthenticatedPath,
   hasAccessToken,
   hasAnyUserRole,
-  needsPlacementTest,
   needsProfileCompletion,
 } from '../../utils/auth';
 
-const ProtectedRoute = ({ requireCompleteProfile = true, requirePlacementTest = false, allowedRoles = null }) => {
+const ProtectedRoute = ({ requireCompleteProfile = true, allowedRoles = null }) => {
   const location = useLocation();
   const { refreshUser, status, user } = useAuth();
 
@@ -43,10 +42,6 @@ const ProtectedRoute = ({ requireCompleteProfile = true, requirePlacementTest = 
         Đang kiểm tra tài khoản...
       </div>
     );
-  }
-
-  if (requirePlacementTest && needsPlacementTest(user)) {
-    return <Navigate to="/placement-test" replace />;
   }
 
   if (requireCompleteProfile && needsProfileCompletion(user)) {

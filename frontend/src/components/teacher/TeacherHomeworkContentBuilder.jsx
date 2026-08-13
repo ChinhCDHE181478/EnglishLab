@@ -62,6 +62,126 @@ const parseFlashcardSpreadsheetRows = (rows) => {
   return { cards, invalidRows };
 };
 
+const homeworkSpreadsheetDefinitions = {
+  QUIZ: {
+    dialogTitle: 'Nhập câu hỏi trắc nghiệm từ Excel',
+    fileName: 'mau-import-cau-hoi-trac-nghiem-englishlab.xlsx',
+    headers: ['Câu hỏi', 'Đáp án A', 'Đáp án B', 'Đáp án C', 'Đáp án D', 'Đáp án đúng'],
+    example: ['What is the synonym of rapid?', 'Slow', 'Quick', 'Weak', 'Late', 'B'],
+    instructions: 'Mỗi dòng gồm câu hỏi, bốn lựa chọn và đáp án đúng A, B, C hoặc D.',
+    itemLabel: 'câu hỏi',
+    sheetName: 'Câu hỏi trắc nghiệm',
+  },
+  WRITING: {
+    dialogTitle: 'Nhập đề tự luận từ Excel',
+    fileName: 'mau-import-de-tu-luan-englishlab.xlsx',
+    headers: ['Tên đề', 'Đề bài', 'Số từ tối thiểu', 'Thời gian gợi ý (phút)'],
+    example: ['Task 2', 'Discuss both views and give your opinion.', '250', '40'],
+    instructions: 'Mỗi dòng là một đề; số từ và thời gian có thể để trống để dùng giá trị mặc định.',
+    itemLabel: 'đề',
+    sheetName: 'Đề tự luận',
+  },
+  SPEAKING: {
+    dialogTitle: 'Nhập đề Speaking từ Excel',
+    fileName: 'mau-import-de-speaking-englishlab.xlsx',
+    headers: ['Tên phần', 'Câu hỏi', 'Thời gian trả lời (giây)'],
+    example: ['Part 1', 'Where are you from?', '90'],
+    instructions: 'Các dòng cùng tên phần sẽ được gom vào một phần Speaking.',
+    itemLabel: 'phần',
+    sheetName: 'Đề Speaking',
+  },
+};
+
+const normalizeSpreadsheetHeader = (value) => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]/g, '');
+
+const parsePositiveNumber = (value, fallback, allowZero = false) => {
+  if (String(value ?? '').trim() === '') return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && (allowZero ? parsed >= 0 : parsed > 0) ? parsed : null;
+};
+
+export const parseHomeworkSpreadsheetRows = (rows, kind) => {
+  const definition = homeworkSpreadsheetDefinitions[kind];
+  if (!definition || !Array.isArray(rows) || !rows.length) return { items: [], invalidRows: [] };
+
+  const normalizedHeaders = (rows[0] || []).map(normalizeSpreadsheetHeader);
+  const expectedHeaders = definition.headers.map(normalizeSpreadsheetHeader);
+  const hasHeader = expectedHeaders.every((header, index) => normalizedHeaders[index] === header);
+  const sourceRows = hasHeader ? rows.slice(1) : rows;
+  const invalidRows = [];
+
+  if (kind === 'QUIZ') {
+    const items = [];
+    sourceRows.forEach((row, index) => {
+      if (!Array.isArray(row) || row.every((cell) => !String(cell ?? '').trim())) return;
+      const values = row.map((cell) => String(cell ?? '').trim());
+      const [prompt, optionA, optionB, optionC, optionD, answerValue] = values;
+      const correctAnswer = String(answerValue || '').toUpperCase().replace(/^ĐÁP ÁN\s*/i, '').trim();
+      if (!prompt || [optionA, optionB, optionC, optionD].some((option) => !option) || !['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+        invalidRows.push(index + (hasHeader ? 2 : 1));
+        return;
+      }
+      items.push({ _key: draftKey(), prompt, options: [optionA, optionB, optionC, optionD], correctAnswer });
+    });
+    return { items, invalidRows };
+  }
+
+  if (kind === 'WRITING') {
+    const items = [];
+    sourceRows.forEach((row, index) => {
+      if (!Array.isArray(row) || row.every((cell) => !String(cell ?? '').trim())) return;
+      const [titleValue, questionValue, minimumWordsValue, recommendedMinutesValue] = row;
+      const title = String(titleValue ?? '').trim();
+      const question = String(questionValue ?? '').trim();
+      const minimumWords = parsePositiveNumber(minimumWordsValue, 150, true);
+      const recommendedMinutes = parsePositiveNumber(recommendedMinutesValue, 40);
+      if (!question || minimumWords === null || recommendedMinutes === null) {
+        invalidRows.push(index + (hasHeader ? 2 : 1));
+        return;
+      }
+      items.push({
+        _key: draftKey(),
+        title,
+        question,
+        minimumWords: String(minimumWords),
+        recommendedMinutes: String(recommendedMinutes),
+      });
+    });
+    return { items, invalidRows };
+  }
+
+  const groupedParts = new Map();
+  let previousTitle = '';
+  sourceRows.forEach((row, index) => {
+    if (!Array.isArray(row) || row.every((cell) => !String(cell ?? '').trim())) return;
+    const [titleValue, promptValue, answerSecondsValue] = row;
+    const title = String(titleValue ?? '').trim() || previousTitle;
+    const prompt = String(promptValue ?? '').trim();
+    const answerSeconds = parsePositiveNumber(answerSecondsValue, 120);
+    if (!title || !prompt || answerSeconds === null) {
+      invalidRows.push(index + (hasHeader ? 2 : 1));
+      return;
+    }
+    previousTitle = title;
+    const existing = groupedParts.get(title);
+    if (existing) {
+      existing.prompts.push(prompt);
+      return;
+    }
+    groupedParts.set(title, {
+      _key: draftKey(),
+      title,
+      prompts: [prompt],
+      answerSeconds: String(answerSeconds),
+    });
+  });
+  return { items: [...groupedParts.values()], invalidRows };
+};
+
 const validFlashcards = (cards) => cards.filter((card) => (
   card.term.trim() || card.meaning.trim() || card.example.trim() || card.commonMistake.trim()
 ));
@@ -204,6 +324,149 @@ const RemoveButton = ({ label, onClick }) => (
   </button>
 );
 
+function HomeworkExcelImportTools({ kind, onApply }) {
+  const definition = homeworkSpreadsheetDefinitions[kind];
+  const [importOpen, setImportOpen] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [strategy, setStrategy] = useState('APPEND');
+  const [spreadsheetImport, setSpreadsheetImport] = useState({ items: [], invalidRows: [], fileName: '' });
+  const [notice, setNotice] = useState('');
+
+  const downloadTemplate = async () => {
+    try {
+      const XLSX = await import('@e965/xlsx');
+      const worksheet = XLSX.utils.aoa_to_sheet([definition.headers, definition.example]);
+      worksheet['!cols'] = definition.headers.map((header) => ({ wch: Math.max(20, header.length + 4) }));
+      worksheet['!autofilter'] = { ref: `A1:${String.fromCharCode(64 + definition.headers.length)}2` };
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, definition.sheetName);
+      XLSX.writeFile(workbook, definition.fileName);
+    } catch {
+      setNotice('Không tạo được bản mẫu Excel. Hãy thử lại.');
+    }
+  };
+
+  const readSpreadsheet = async (file) => {
+    if (!file) return;
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      setNotice('Chỉ hỗ trợ tệp Excel .xlsx hoặc .xls.');
+      return;
+    }
+
+    setReading(true);
+    setNotice('');
+    try {
+      const XLSX = await import('@e965/xlsx');
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+      setSpreadsheetImport({ ...parseHomeworkSpreadsheetRows(rows, kind), fileName: file.name });
+    } catch {
+      setSpreadsheetImport({ items: [], invalidRows: [], fileName: file.name });
+      setNotice('Không đọc được tệp Excel. Hãy kiểm tra tệp có bị hỏng hoặc đặt mật khẩu hay không.');
+    } finally {
+      setReading(false);
+    }
+  };
+
+  const applyImport = () => {
+    if (!spreadsheetImport.items.length) return;
+    onApply(spreadsheetImport.items, strategy);
+    setImportOpen(false);
+    setNotice(`Đã đưa ${spreadsheetImport.items.length} ${definition.itemLabel} từ Excel vào trình chỉnh sửa.`);
+  };
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-extrabold text-[#730014]" onClick={() => { setImportOpen(true); setNotice(''); }} type="button">
+          <FileUp className="h-3.5 w-3.5" /> Nhập Excel
+        </button>
+        <button className="inline-flex items-center gap-1.5 rounded-lg border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-extrabold text-[#730014]" onClick={downloadTemplate} type="button">
+          <Download className="h-3.5 w-3.5" /> Tải mẫu
+        </button>
+      </div>
+      {notice ? <p className={`rounded-xl border px-4 py-3 text-sm ${notice.startsWith('Đã ') ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>{notice}</p> : null}
+      {importOpen ? (
+        <HomeworkExcelImportDialog
+          definition={definition}
+          fileName={spreadsheetImport.fileName}
+          invalidRows={spreadsheetImport.invalidRows}
+          onApply={applyImport}
+          onClose={() => setImportOpen(false)}
+          onDownloadTemplate={downloadTemplate}
+          onFileChange={readSpreadsheet}
+          onStrategyChange={setStrategy}
+          previewItems={spreadsheetImport.items}
+          reading={reading}
+          strategy={strategy}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function HomeworkExcelImportDialog({
+  definition,
+  fileName,
+  invalidRows,
+  onApply,
+  onClose,
+  onDownloadTemplate,
+  onFileChange,
+  onStrategyChange,
+  previewItems,
+  reading,
+  strategy,
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1a0004]/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+      <div className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#dcc0bf] bg-white p-6 shadow-[0_30px_90px_rgba(48,0,8,0.28)]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-['Manrope'] text-xl font-extrabold text-[#4b0009]">{definition.dialogTitle}</h2>
+            <p className="mt-1 text-sm leading-6 text-[#584140]">{definition.instructions}</p>
+          </div>
+          <button aria-label="Đóng" className="rounded-lg border border-[#dcc0bf]/50 p-2 text-[#4b0009] hover:bg-[#eff4ff]" onClick={onClose} type="button"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="mt-5 rounded-xl border border-dashed border-[#dcc0bf] bg-[#f8f9ff] p-6 text-center">
+          <FileUp className="mx-auto h-8 w-8 text-[#4b0009]" />
+          <p className="mt-3 font-bold text-[#4b0009]">Chọn tệp Excel theo đúng các cột trong bản mẫu</p>
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#4b0009] px-4 py-3 text-sm font-bold text-white">
+            <FileUp className="h-4 w-4" /> {reading ? 'Đang đọc tệp...' : 'Chọn tệp .xlsx hoặc .xls'}
+            <input accept=".xlsx,.xls" className="sr-only" disabled={reading} onChange={(event) => { onFileChange(event.target.files?.[0]); event.target.value = ''; }} type="file" />
+          </label>
+          <button className="ml-2 mt-4 inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf] bg-white px-4 py-3 text-sm font-bold text-[#4b0009] hover:bg-[#eff4ff]" onClick={onDownloadTemplate} type="button"><Download className="h-4 w-4" /> Tải bản mẫu Excel</button>
+          {fileName ? <p className="mt-3 text-sm font-bold text-[#4b0009]">{fileName}</p> : null}
+        </div>
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[#564241]">Cách nhập</p>
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#dcc0bf]/30 bg-[#eff4ff] p-1">
+            {[{ label: 'Nối thêm', value: 'APPEND' }, { label: 'Thay thế nội dung hiện tại', value: 'REPLACE' }].map((option) => (
+              <button className={`rounded-lg px-4 py-3 text-sm font-bold transition ${strategy === option.value ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-white'}`} key={option.value} onClick={() => onStrategyChange(option.value)} type="button">{option.label}</button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-5 rounded-xl border border-[#dcc0bf]/30 bg-[#f8f9ff] p-4">
+          <div className="flex items-center justify-between gap-3"><p className="font-bold text-[#4b0009]">Xem trước</p><span className="text-sm text-[#564241]">{previewItems.length} {definition.itemLabel} hợp lệ</span></div>
+          {invalidRows.length ? <p className="mt-2 text-sm text-[#93000a]">Dòng chưa đúng định dạng: {invalidRows.join(', ')}</p> : null}
+          <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+            {previewItems.slice(0, 20).map((item, index) => (
+              <div className="rounded-lg bg-white px-3 py-2 text-sm" key={item._key}>
+                <span className="font-bold text-[#0b1c30]">{item.prompt || item.question || item.title || `${definition.itemLabel} ${index + 1}`}</span>
+                {item.options ? <p className="mt-1 text-xs text-[#564241]">Đáp án đúng: {item.correctAnswer}</p> : null}
+                {item.prompts ? <p className="mt-1 text-xs text-[#564241]">{item.prompts.length} câu hỏi</p> : null}
+              </div>
+            ))}
+            {!previewItems.length ? <p className="text-sm text-[#564241]">Chưa có dữ liệu hợp lệ để xem trước.</p> : null}
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-3"><button className="rounded-lg border border-[#dcc0bf] px-4 py-3 text-sm font-bold text-[#4b0009]" onClick={onClose} type="button">Hủy</button><button className="rounded-lg bg-[#4b0009] px-5 py-3 text-sm font-bold text-white disabled:opacity-50" disabled={!previewItems.length} onClick={onApply} type="button">Nhập {previewItems.length || ''} {definition.itemLabel}</button></div>
+      </div>
+    </div>
+  );
+}
+
 export default function TeacherHomeworkContentBuilder({
   activityType,
   skill,
@@ -226,6 +489,14 @@ export default function TeacherHomeworkContentBuilder({
           description="Nhập nội dung, bốn lựa chọn và đáp án đúng. Hệ thống sẽ tự chấm khi học viên nộp."
           onAdd={() => setQuestions((current) => [...current, createEmptyQuestion()])}
           title="Biên soạn đề trắc nghiệm"
+        />
+        <HomeworkExcelImportTools
+          kind="QUIZ"
+          onApply={(items, strategy) => setQuestions((current) => (
+            strategy === 'REPLACE'
+              ? items
+              : [...current.filter((question) => question.prompt.trim() || question.options.some((option) => option.trim())), ...items]
+          ))}
         />
         {questions.map((question, questionIndex) => (
           <div className="space-y-3 rounded-xl border border-[#e5e7eb] bg-[#fffafb] p-4" key={question._key}>
@@ -281,6 +552,14 @@ export default function TeacherHomeworkContentBuilder({
     return (
       <div className="space-y-4 md:col-span-2">
         <SectionHeader addLabel="Thêm phần nói" description="Mỗi phần có thể chứa nhiều câu hỏi; học viên nghe hoặc đọc câu hỏi rồi ghi âm câu trả lời." onAdd={() => setSpeakingParts((current) => [...current, createEmptySpeakingPart()])} title="Biên soạn đề Speaking" />
+        <HomeworkExcelImportTools
+          kind="SPEAKING"
+          onApply={(items, strategy) => setSpeakingParts((current) => (
+            strategy === 'REPLACE'
+              ? items
+              : [...current.filter((part) => part.title.trim() || part.prompts.some((prompt) => prompt.trim())), ...items]
+          ))}
+        />
         {speakingParts.map((part, partIndex) => (
           <div className="space-y-3 rounded-xl border border-[#e5e7eb] bg-[#fffafb] p-4" key={part._key}>
             <div className="flex items-center justify-between gap-3">
@@ -308,6 +587,14 @@ export default function TeacherHomeworkContentBuilder({
   return (
     <div className="space-y-4 md:col-span-2">
       <SectionHeader addLabel="Thêm đề" description="Nhập đầy đủ yêu cầu học viên sẽ thấy trong phòng làm bài." onAdd={() => setWritingTasks((current) => [...current, createEmptyWritingTask()])} title={skill === 'WRITING' ? 'Biên soạn đề Writing' : 'Biên soạn đề tự luận'} />
+      <HomeworkExcelImportTools
+        kind="WRITING"
+        onApply={(items, strategy) => setWritingTasks((current) => (
+          strategy === 'REPLACE'
+            ? items
+            : [...current.filter((task) => task.title.trim() || task.question.trim()), ...items]
+        ))}
+      />
       {writingTasks.map((task, index) => (
         <div className="space-y-3 rounded-xl border border-[#e5e7eb] bg-[#fffafb] p-4" key={task._key}>
           <div className="flex items-center justify-between gap-3"><span className="text-xs font-extrabold text-[#730014]">Đề {index + 1}</span>{writingTasks.length > 1 ? <RemoveButton label={`Xóa đề ${index + 1}`} onClick={() => setWritingTasks((current) => current.filter((item) => item._key !== task._key))} /> : null}</div>

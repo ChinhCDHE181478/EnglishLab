@@ -37,6 +37,8 @@ import {
   formatClassroomDate,
   formatClassroomTime,
   formatSessionStatus,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
 } from '../../utils/classroomHelpers';
 import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 const attendanceOptions = [
@@ -60,9 +62,12 @@ export default function TeacherSessionPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getSessionAttendance(sessionId);
+      const [data, session] = await Promise.all([
+        classroomApi.getSessionAttendance(sessionId),
+        classroomApi.getTeacherSession(sessionId),
+      ]);
       setAttendance(data);
-      setSessionMeta(data[0] || null);
+      setSessionMeta(session);
       const initialRecords = {};
       data.forEach((item) => {
         initialRecords[item.studentId || item.enrollmentId] = item.status || 'PRESENT';
@@ -226,9 +231,19 @@ export default function TeacherSessionPage() {
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
               <p className="mb-2 text-xs font-semibold text-[#9a8b8a] uppercase tracking-wide">Điểm danh buổi học</p>
+              {sessionMeta?.sessionNumber != null ? (
+                <p className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+                  Buổi {sessionMeta.sessionNumber}
+                </p>
+              ) : null}
               <h1 className="font-['Manrope'] text-2xl font-extrabold tracking-tight text-[#1a1c1c] md:text-3xl">
-                {sessionMeta?.sessionDate ? formatClassroomDate(sessionMeta.sessionDate) : `Buổi học #${sessionId}`}
+                {sessionMeta
+                  ? getClassroomSessionTitle(sessionMeta, formatClassroomDate(sessionMeta.sessionDate))
+                  : `Buổi học #${sessionId}`}
               </h1>
+              {getClassroomSessionUnitLabel(sessionMeta) ? (
+                <p className="mt-1 text-sm font-semibold text-[#8b706e]">{getClassroomSessionUnitLabel(sessionMeta)}</p>
+              ) : null}
               {sessionMeta && (
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#6a5553]">
                   <span className="flex items-center gap-1.5">

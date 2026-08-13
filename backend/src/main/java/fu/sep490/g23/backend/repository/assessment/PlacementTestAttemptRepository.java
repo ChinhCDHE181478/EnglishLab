@@ -14,6 +14,11 @@ public interface PlacementTestAttemptRepository extends JpaRepository<PlacementT
 
     Optional<PlacementTestAttempt> findTopByStudentOrderBySubmittedAtDesc(User student);
 
+    Optional<PlacementTestAttempt> findTopByStudentAndEvaluationStatusOrderBySubmittedAtDesc(
+            User student,
+            PlacementEvaluationStatus evaluationStatus
+    );
+
     long countByStudentAndTestCode(User student, String testCode);
 
     boolean existsByStudentAndTestCode(User student, String testCode);

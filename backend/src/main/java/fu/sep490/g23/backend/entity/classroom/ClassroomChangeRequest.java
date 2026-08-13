@@ -2,6 +2,8 @@ package fu.sep490.g23.backend.entity.classroom;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
 
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;

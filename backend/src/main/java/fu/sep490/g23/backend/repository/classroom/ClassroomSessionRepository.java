@@ -26,6 +26,10 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);
 
+    boolean existsByCurriculumSessionPlanId(Long curriculumSessionPlanId);
+
+    boolean existsByCurriculumSessionPlanUnitId(Long unitId);
+
     List<ClassroomSession> findByDeliveryModeAndStatusIn(
             ClassroomDeliveryMode deliveryMode,
             Collection<ClassroomSessionStatus> statuses

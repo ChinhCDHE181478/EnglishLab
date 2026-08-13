@@ -20,7 +20,7 @@ export const HOMEWORK_ACTIVITY_TYPES = [
   {
     value: 'TEXT_RESPONSE',
     label: 'Làm bài trực tiếp',
-    description: 'Học viên viết câu trả lời ngay trong giao diện bài tập.',
+    description: 'Học viên viết hoặc ghi âm câu trả lời ngay trên hệ thống, không cần nộp tệp.',
   },
   {
     value: 'FILE_RESPONSE',
@@ -40,7 +40,7 @@ export const HOMEWORK_ACTIVITY_TYPES = [
   {
     value: 'MIXED',
     label: 'Bài tổng hợp',
-    description: 'Kết hợp hướng dẫn, phiếu trả lời, bài viết hoặc bài nói và tệp nộp kèm.',
+    description: 'Học viên làm bài trực tiếp trên hệ thống và nhận thêm tệp đề hoặc tài liệu giáo viên đính kèm.',
   },
 ];
 

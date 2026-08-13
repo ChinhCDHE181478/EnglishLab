@@ -284,6 +284,11 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getTeacherSession(sessionId) {
+    const response = await axiosClient.get(`/api/teacher/classrooms/sessions/${sessionId}`);
+    return unwrapData(response);
+  },
+
   async saveHomeworkAnnotations(homeworkId, studentId, annotations) {
     const response = await axiosClient.put(
       `/api/teacher/classrooms/homework/${homeworkId}/students/${studentId}/annotations`,
@@ -335,6 +340,11 @@ export const classroomApi = {
   async getTeacherAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/teacher/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
+  },
+
+  async createTeacherAnnouncement(classroomId, payload) {
+    const response = await axiosClient.post(`/api/teacher/classrooms/${classroomId}/announcements`, payload);
+    return unwrapData(response);
   },
 
   async checkTeacherChangeConflict(payload) {
@@ -394,6 +404,16 @@ export const classroomApi = {
 
   async getStaffClassroom(id) {
     const response = await axiosClient.get(`/api/staff/classrooms/${id}`);
+    return unwrapData(response);
+  },
+
+  async getStaffClassroomAnnouncements(classroomId) {
+    const response = await axiosClient.get(`/api/staff/classrooms/${classroomId}/announcements`);
+    return asList(unwrapData(response));
+  },
+
+  async createStaffClassroomAnnouncement(classroomId, payload) {
+    const response = await axiosClient.post(`/api/staff/classrooms/${classroomId}/announcements`, payload);
     return unwrapData(response);
   },
 

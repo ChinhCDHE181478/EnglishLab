@@ -37,9 +37,11 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
-  formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
+  getClassroomSessionNumber,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
 } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SECTION_CARD_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSection';
@@ -73,6 +75,9 @@ export default function TeacherClassroomPage() {
   const [gradebook, setGradebook] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [announcementComposerOpen, setAnnouncementComposerOpen] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '' });
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionMessage, setActionMessage] = useState('');
@@ -105,6 +110,28 @@ export default function TeacherClassroomPage() {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  const createAnnouncement = async () => {
+    const title = announcementForm.title.trim();
+    const content = announcementForm.content.trim();
+    if (!title || !content) {
+      setActionMessage('Vui lòng nhập tiêu đề và nội dung thông báo.');
+      return;
+    }
+
+    setSavingAnnouncement(true);
+    try {
+      const created = await classroomApi.createTeacherAnnouncement(id, { title, content });
+      setAnnouncements((current) => [created, ...current]);
+      setAnnouncementForm({ title: '', content: '' });
+      setAnnouncementComposerOpen(false);
+      setActionMessage('Đã gửi thông báo tới lớp học.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể gửi thông báo.'));
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
@@ -142,6 +169,33 @@ export default function TeacherClassroomPage() {
 
   // Build a beautiful student roster using gradebook entries
   const studentRoster = useMemo(() => {
+    const gradebookByStudentId = new Map(
+      gradebook.map((entry) => [String(entry.studentId || entry.id), entry]),
+    );
+    const enrolledLearners = (classroom?.enrollments || []).filter(
+      (enrollment) => enrollment.registrationStatus === 'ASSIGNED',
+    );
+
+    // Gradebook rows are created after enrollment. Read the class roster first
+    // so learners in every new classroom remain visible before grading begins.
+    if (enrolledLearners.length) {
+      return enrolledLearners.map((enrollment) => {
+        const entry = gradebookByStudentId.get(String(enrollment.studentId));
+        return {
+          id: enrollment.studentId || enrollment.id,
+          name: enrollment.studentName || entry?.studentName || `Learner #${enrollment.studentId}`,
+          email: enrollment.studentEmail || entry?.studentEmail || 'Not available',
+          attendance: entry?.attendancePercent != null ? `${entry.attendancePercent}%` : '—',
+          assignmentScore: entry?.homeworkAverage ?? '—',
+          result: entry ? formatGradebookFinalResult(entry.finalResult) : '—',
+          isAtRisk: entry?.attendancePercent != null && entry.attendancePercent < 80,
+        };
+      });
+    }
+
+    // Gradebook data is supplemental and must never create roster members.
+    return [];
+    /* Legacy gradebook fallback intentionally disabled.
     if (!gradebook.length) return [];
     return gradebook.map((entry) => ({
       id: entry.studentId || entry.id,
@@ -152,7 +206,8 @@ export default function TeacherClassroomPage() {
       result: formatGradebookFinalResult(entry.finalResult),
       isAtRisk: entry.attendancePercent != null && entry.attendancePercent < 80,
     }));
-  }, [gradebook]);
+    */
+  }, [classroom?.enrollments, gradebook]);
 
   // Group sessions into upcoming vs past
   const { upcomingSessions, pastSessions } = useMemo(() => {
@@ -164,12 +219,12 @@ export default function TeacherClassroomPage() {
 
   // Teacher-level stats
   const teacherStats = useMemo(() => ({
-    enrolled: gradebook.length,
-    atRisk: gradebook.filter((e) => e.attendancePercent != null && e.attendancePercent < 80).length,
+    enrolled: studentRoster.length,
+    atRisk: studentRoster.filter((student) => student.isAtRisk).length,
     pendingGrading: homework.reduce((sum, item) => sum + (item.pendingGradingCount || 0), 0),
     completed: pastSessions.length,
     upcoming: upcomingSessions.length,
-  }), [gradebook, homework, pastSessions, upcomingSessions]);
+  }), [studentRoster, homework, pastSessions, upcomingSessions]);
 
   const renderChangeRequestForm = () => (
     <TeacherChangeRequestForm
@@ -214,7 +269,7 @@ export default function TeacherClassroomPage() {
               <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl font-['Manrope'] text-sm font-extrabold ${
                 isLive ? 'bg-emerald-100 text-emerald-800' : isPast ? 'bg-gray-100 text-gray-500' : 'bg-rose-50 text-[#730014]'
               }`}>
-                {sessions.indexOf(session) + 1}
+                {getClassroomSessionNumber(session, sessions.indexOf(session) + 1)}
               </div>
               <div className="space-y-1.5 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -225,9 +280,17 @@ export default function TeacherClassroomPage() {
                   )}
                   <StatusBadge status={session.status} />
                 </div>
+                {session.sessionNumber != null ? (
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">
+                    Buổi {session.sessionNumber}
+                  </p>
+                ) : null}
                 <h3 className="font-['Manrope'] text-base font-extrabold text-[#2b2828]">
-                  {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+                  {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
                 </h3>
+                {getClassroomSessionUnitLabel(session) ? (
+                  <p className="text-xs font-semibold text-[#8b706e]">{getClassroomSessionUnitLabel(session)}</p>
+                ) : null}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#584140]">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5 text-[#730014]" />
@@ -437,33 +500,60 @@ export default function TeacherClassroomPage() {
     }
 
     if (activeTab === 'announcements') {
-      if (!announcements.length) {
-        return (
-          <ClassroomEmptyState
-            description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
-            title="Chưa có thông báo"
-          />
-        );
-      }
       return (
         <div className="space-y-4">
-          {announcements.map((announcement) => (
+          <div className="flex justify-end">
+            <button
+              className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#59000b] active:scale-[0.98]"
+              onClick={() => setAnnouncementComposerOpen((open) => !open)}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              {announcementComposerOpen ? 'Đóng soạn thông báo' : 'Tạo thông báo'}
+            </button>
+          </div>
+
+          {announcementComposerOpen ? (
+            <section className="space-y-4 rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb] p-5 shadow-sm">
+              <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Thông báo mới</h3>
+              <input
+                className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014]"
+                maxLength={220}
+                onChange={(event) => setAnnouncementForm((current) => ({ ...current, title: event.target.value }))}
+                placeholder="Tiêu đề thông báo"
+                value={announcementForm.title}
+              />
+              <textarea
+                className="min-h-32 w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-4 py-3 text-sm leading-6 text-[#2b2828] outline-none transition focus:border-[#730014]"
+                onChange={(event) => setAnnouncementForm((current) => ({ ...current, content: event.target.value }))}
+                placeholder="Nội dung thông báo"
+                value={announcementForm.content}
+              />
+              <div className="flex justify-end gap-3">
+                <button className="rounded-xl border border-[#dfbfbd]/70 px-4 py-2.5 text-sm font-bold text-[#584140] transition hover:bg-white" onClick={() => setAnnouncementComposerOpen(false)} type="button">Hủy</button>
+                <button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#59000b] disabled:cursor-wait disabled:opacity-60" disabled={savingAnnouncement} onClick={createAnnouncement} type="button">{savingAnnouncement ? 'Đang gửi...' : 'Gửi thông báo'}</button>
+              </div>
+            </section>
+          ) : null}
+
+          {!announcements.length ? (
+            <ClassroomEmptyState
+              description="Chưa có thông báo chính thức nào được gửi tới lớp học này."
+              title="Chưa có thông báo"
+            />
+          ) : announcements.map((announcement) => (
             <article
               key={announcement.id}
-              className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-3 hover:border-[#dfbfbd]/30 transition"
+              className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-[#dfbfbd]/30"
             >
               <div className="flex items-center justify-between gap-3">
-                <h4 className="font-['Manrope'] text-base font-extrabold text-[#2b2828] flex items-center gap-2">
+                <h4 className="flex items-center gap-2 font-['Manrope'] text-base font-extrabold text-[#2b2828]">
                   <Bell className="h-4.5 w-4.5 text-[#730014]" />
                   {announcement.title}
                 </h4>
-                <span className="text-[10px] font-bold text-gray-400">
-                  {formatClassroomDateTime(announcement.createdAt)}
-                </span>
+                <span className="text-[10px] font-bold text-gray-400">{formatClassroomDateTime(announcement.createdAt)}</span>
               </div>
-              <p className="text-sm leading-7 text-[#584140] whitespace-pre-wrap">
-                {announcement.content || announcement.body}
-              </p>
+              <p className="whitespace-pre-wrap text-sm leading-7 text-[#584140]">{announcement.content || announcement.body}</p>
             </article>
           ))}
         </div>
@@ -705,7 +795,6 @@ function TeacherCurriculumPanel({ curriculum }) {
 function CurriculumUnitCard({ expanded, onToggle, unit }) {
   const totalResources = (unit.materials?.length ?? 0)
     + (unit.exercises?.length ?? 0)
-    + (unit.assessments?.length ?? 0)
     + (unit.flashcards?.length ?? 0);
 
   return (
@@ -730,11 +819,19 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
       {expanded ? (
         <div className="space-y-4 border-t border-gray-100 bg-[#fafafa]/50 p-5">
           {unit.description ? <p className="text-sm text-[#584140]">{unit.description}</p> : null}
-          {unit.sessionPlan ? <p className="whitespace-pre-wrap rounded-xl border border-gray-100 bg-white p-4 text-sm leading-6 text-[#584140]">{unit.sessionPlan}</p> : null}
+          {unit.sessionPlans?.length ? (
+            <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
+              {unit.sessionPlans.map((plan) => (
+                <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                  <p className="text-sm font-bold text-[#2b2828]">{plan.title}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
             <CurriculumRefList title="Học liệu" refs={unit.materials} />
             <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
-            <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
             <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
           </div>
         </div>
@@ -754,7 +851,7 @@ function CurriculumRefList({ title, refs = [] }) {
               <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
               <p className="mt-0.5 text-[#8b706e]">{[
                 ref.skill,
-                ref.type === 'ASSESSMENT' ? formatAssessmentType(ref.subtitle) : ref.subtitle,
+                ref.subtitle,
                 ref.status,
               ].filter(Boolean).join(' · ')}</p>
               {ref.fileUrl ? (

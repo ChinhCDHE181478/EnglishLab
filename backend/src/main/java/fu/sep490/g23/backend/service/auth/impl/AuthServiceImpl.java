@@ -1,6 +1,4 @@
 package fu.sep490.g23.backend.service.auth.impl;
-import fu.sep490.g23.backend.service.auth.AuthTokenService;
-import fu.sep490.g23.backend.service.auth.AuthService;
 
 import fu.sep490.g23.backend.dto.request.LoginRequest;
 import fu.sep490.g23.backend.dto.request.RegisterRequest;
@@ -15,6 +13,8 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.security.JwtService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
+import fu.sep490.g23.backend.service.auth.AuthService;
+import fu.sep490.g23.backend.service.auth.AuthTokenService;
 import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -177,6 +177,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordSet(true);
         user.setEmailVerified(true);
         userRepository.save(user);
         authTokenService.markUsed(resetToken);
@@ -200,6 +201,7 @@ public class AuthServiceImpl implements AuthService {
                 .currentBand(user.getCurrentBand())
                 .studyGoal(user.getStudyGoal())
                 .avatarUrl(user.getAvatarUrl())
+                .passwordSet(user.isPasswordSet())
                 .profileCompleted(user.isProfileCompleted())
                 .placementTestCompleted(placementTestAttemptRepository.existsByStudentAndTestCode(user, PlacementTestDefinitionService.TEST_CODE))
                 .build();

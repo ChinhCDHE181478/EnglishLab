@@ -60,15 +60,22 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.classroom.*;
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.*;
+import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
+import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.curriculum.*;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -147,11 +154,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ClassroomPracticeAttemptRepository practiceAttemptRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
-
-    @Value("${app.seed.chinh-test.enabled:true}")
-    private boolean chinhTestEnabled;
 
     record IeltsUnitSeed(
             String title,
@@ -223,7 +227,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled || !chinhTestEnabled) {
+        if (!seedEnabled) {
             return;
         }
 
@@ -572,8 +576,12 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .description("Chương trình bám sát 4 kỹ năng IELTS chuẩn quốc tế, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
                         .price(BigDecimal.valueOf(5_200_000))
                         .salePrice(BigDecimal.valueOf(4_690_000))
+                        .duration("8 tuần")
+                        .studyMode("Virtual · Google Meet")
+                        .maxCapacity(20)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
+                        .featured(true)
                         .build()));
     }
 

@@ -50,12 +50,12 @@ import {
   ProgressRing,
 } from '../../components/classroom/ClassroomUi';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
 import {
   formatAttendanceStatus,
   formatAttendanceDisputeStatus,
-  formatAssessmentType,
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomPrice,
@@ -64,6 +64,8 @@ import {
   isGradebookPassed,
   downloadClassroomMaterial,
   formatSessionStatus,
+  getClassroomSessionTitle,
+  getClassroomSessionUnitLabel,
   getHomeworkMaxScore,
   getSubmissionFeedback,
 } from '../../utils/classroomHelpers';
@@ -593,9 +595,17 @@ export default function MyClassroomDetailPage() {
                         Đang diễn ra
                       </span>
                     )}
+                    {nextSession.sessionNumber != null && (
+                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                        Buổi {nextSession.sessionNumber}{getClassroomSessionUnitLabel(nextSession) ? ` · ${getClassroomSessionUnitLabel(nextSession)}` : ''}
+                      </p>
+                    )}
                     <h4 className="font-['Manrope'] text-base font-extrabold text-[#1a1c1c]">
-                      {nextSession.sessionContent || `Buổi học ngày ${formatClassroomDate(nextSession.sessionDate)}`}
+                      {getClassroomSessionTitle(nextSession, `Buổi học ngày ${formatClassroomDate(nextSession.sessionDate)}`)}
                     </h4>
+                    {nextSession.sessionPlanDescription && (
+                      <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={nextSession.sessionPlanDescription} />
+                    )}
                     
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#584140]">
                       <span className="flex items-center gap-1.5">
@@ -861,9 +871,17 @@ export default function MyClassroomDetailPage() {
                           )}
                         </div>
 
+                        {session.sessionNumber != null && (
+                          <p className="text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                            Buổi {session.sessionNumber}{getClassroomSessionUnitLabel(session) ? ` · ${getClassroomSessionUnitLabel(session)}` : ''}
+                          </p>
+                        )}
                         <h3 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c]">
-                          {session.sessionContent || `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`}
+                          {getClassroomSessionTitle(session, `Buổi học ngày ${formatClassroomDate(session.sessionDate)}`)}
                         </h3>
+                        {session.sessionPlanDescription && (
+                          <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={session.sessionPlanDescription} />
+                        )}
 
                         <div className="grid gap-x-6 gap-y-2 text-xs text-[#584140] sm:grid-cols-2">
                           <div className="flex items-center gap-1.5">
@@ -1048,6 +1066,9 @@ export default function MyClassroomDetailPage() {
               {paginatedHomeworkList.map((item) => {
               const hasSubmission = !!item.mySubmission;
               const isGraded = hasSubmission && item.mySubmission.score != null;
+              const teacherFeedback = getSubmissionFeedback(item.mySubmission);
+              const annotationCount = item.mySubmission?.annotations?.length || 0;
+              const hasTeacherEvaluation = isGraded || Boolean(teacherFeedback) || annotationCount > 0;
               const isOverdue = item.overdue && !hasSubmission;
               const canSubmit = canResubmitHomework(item);
               
@@ -1116,6 +1137,24 @@ export default function MyClassroomDetailPage() {
                         </div>
                       )}
 
+                      {hasTeacherEvaluation && (
+                        <div className="rounded-xl border border-[#dfbfbd]/35 bg-[#fffafb] p-3">
+                          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            Đánh giá của giảng viên
+                          </div>
+                          {teacherFeedback ? (
+                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{teacherFeedback}</p>
+                          ) : null}
+                          {annotationCount > 0 ? (
+                            <p className="mt-2 text-[11px] font-bold text-[#8b706e]">{annotationCount} nhận xét trực tiếp trên bài làm</p>
+                          ) : null}
+                          {!teacherFeedback && annotationCount === 0 ? (
+                            <p className="mt-2 text-xs text-[#8b706e]">Giảng viên đã công bố điểm, chưa có nhận xét chi tiết.</p>
+                          ) : null}
+                        </div>
+                      )}
+
                       {/* Submitted but not graded block */}
                       {hasSubmission && !isGraded && (
                         <div className="rounded-xl border border-blue-150 bg-blue-50/10 p-3 flex items-center justify-between">
@@ -1138,7 +1177,7 @@ export default function MyClassroomDetailPage() {
                           {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                           {item.activityType === 'FLASHCARD_REVIEW'
                             ? 'Học flashcard theo unit'
-                            : hasSubmission && canSubmit ? 'Làm lại bài tập' : 'Bắt đầu làm bài'}
+                            : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
                         </button>
                       ) : (
                         <button
@@ -1158,7 +1197,7 @@ export default function MyClassroomDetailPage() {
                           ) : (
                             <>
                               <FileText className="h-4 w-4 text-[#730014]" />
-                              Xem chi tiết bài làm
+                              {hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Xem chi tiết bài làm'}
                             </>
                           )}
                         </button>
@@ -2306,7 +2345,7 @@ function LearnerCurriculumPanel({
           <div className="space-y-3">
             {units.map((unit) => {
               const isExpanded = expandedUnits.has(unit.id);
-              const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.assessments?.length ?? 0) + (unit.flashcards?.length ?? 0);
+              const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.flashcards?.length ?? 0);
               
               return (
                 <article
@@ -2366,14 +2405,19 @@ function LearnerCurriculumPanel({
                         </p>
                       )}
                       
-                      {unit.sessionPlan && (
-                        <div className="text-[11px] whitespace-pre-wrap leading-relaxed text-gray-500 bg-white border border-gray-100 p-4 rounded-xl">
-                          <span className="font-bold text-slate-700 block mb-1 text-[10px] uppercase tracking-wider">Kế hoạch buổi học:</span>
-                          {unit.sessionPlan}
+                      {unit.sessionPlans?.length > 0 && (
+                        <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
+                          <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các buổi học</span>
+                          {unit.sessionPlans.map((plan) => (
+                            <div className="border-l-2 border-[#dfbfbd] pl-3" key={plan.id}>
+                              <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#730014]">Buổi {plan.sessionNumber}</p>
+                              <p className="text-xs font-bold text-[#1a1c1c]">{plan.title}</p>
+                            </div>
+                          ))}
                         </div>
                       )}
                       
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-1">
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                         <LearnerRefList
                           title="Học liệu học tập"
                           refs={unit.materials}
@@ -2386,12 +2430,6 @@ function LearnerCurriculumPanel({
                           type="exercises"
                           unitId={unit.id}
                           onOpenPractice={onOpenPractice}
-                        />
-                        <LearnerRefList
-                          title="Bài đánh giá theo Unit"
-                          refs={unit.assessments}
-                          type="assessments"
-                          unitId={unit.id}
                         />
                         <LearnerRefList
                           title="Flashcards học từ"
@@ -2447,14 +2485,14 @@ function LearnerRefList({
                       <p className="font-extrabold text-xs text-[#1a1c1c] leading-snug group-hover:text-[#730014] transition-colors">{ref.title}</p>
                       <Download className="h-3.5 w-3.5 text-gray-400 group-hover:text-[#730014] shrink-0 transition-colors" />
                     </div>
-                    {ref.subtitle && <p className="mt-1 text-[10px] text-[#8b706e] leading-none">{type === 'assessments' ? formatAssessmentType(ref.subtitle) : ref.subtitle}</p>}
+                    {ref.subtitle && <p className="mt-1 text-[10px] text-[#8b706e] leading-none">{ref.subtitle}</p>}
                   </AuthenticatedFileLink>
                 );
               }
               return (
                 <div key={`${ref.type || 'material'}-${ref.id}`} className="rounded-xl bg-white border border-gray-100/50 px-3 py-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.015)] opacity-85">
                   <p className="font-bold text-xs text-slate-500 leading-snug">{ref.title}</p>
-                  {ref.subtitle && <p className="mt-1 text-[10px] text-slate-400 leading-none">{type === 'assessments' ? formatAssessmentType(ref.subtitle) : ref.subtitle}</p>}
+                  {ref.subtitle && <p className="mt-1 text-[10px] text-slate-400 leading-none">{ref.subtitle}</p>}
                 </div>
               );
             }

@@ -263,10 +263,11 @@ export default function TeacherHomeworkSection({
     setSaving(true);
     onMessage?.('');
     try {
-      let attachmentUrl = form.activityType === 'FILE_RESPONSE'
+      const supportsTeacherAttachment = ['FILE_RESPONSE', 'MIXED'].includes(form.activityType);
+      let attachmentUrl = supportsTeacherAttachment
         ? editingHomework?.attachmentUrl || null
         : null;
-      if (form.activityType === 'FILE_RESPONSE' && attachmentFile) {
+      if (supportsTeacherAttachment && attachmentFile) {
         const uploaded = await classroomApi.uploadHomeworkAttachment(classroomId, attachmentFile);
         attachmentUrl = uploaded.url;
       }
@@ -533,7 +534,7 @@ export default function TeacherHomeworkSection({
               <BrandedSelect
                 onChange={(event) => {
                   const activityType = event.target.value;
-                  if (activityType !== 'FILE_RESPONSE') setAttachmentFile(null);
+                  if (!['FILE_RESPONSE', 'MIXED'].includes(activityType)) setAttachmentFile(null);
                   setForm((current) => ({
                     ...current,
                     activityType,
@@ -552,10 +553,10 @@ export default function TeacherHomeworkSection({
               </p>
             </label>
 
-            {form.activityType === 'FILE_RESPONSE' ? (
+            {['FILE_RESPONSE', 'MIXED'].includes(form.activityType) ? (
               <label className="block space-y-2 md:col-span-2">
                 <span className="text-xs font-bold text-[#8b706e]">
-                  Tệp giao bài * · tối đa 20 MB
+                  {form.activityType === 'FILE_RESPONSE' ? 'Tệp giao bài *' : 'Tệp đề / tài liệu kèm (không bắt buộc)'} · tối đa 20 MB
                 </span>
                 <input
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar,.jpg,.jpeg,.png"
@@ -564,7 +565,7 @@ export default function TeacherHomeworkSection({
                   type="file"
                 />
                 <p className="text-xs text-[#8b706e]">
-                  {attachmentFile ? `Sẽ tải lên: ${attachmentFile.name}` : editingHomework?.attachmentUrl ? 'Đang giữ tệp giao bài hiện tại.' : 'Hỗ trợ PDF, Office, TXT, ZIP/RAR và ảnh JPG/PNG.'}
+                  {attachmentFile ? `Sẽ tải lên: ${attachmentFile.name}` : editingHomework?.attachmentUrl ? 'Đang giữ tệp hiện tại.' : 'Hỗ trợ PDF, Office, TXT, ZIP/RAR và ảnh JPG/PNG.'}
                 </p>
               </label>
             ) : null}

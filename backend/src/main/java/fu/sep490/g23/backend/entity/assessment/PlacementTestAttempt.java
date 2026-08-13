@@ -2,6 +2,8 @@ package fu.sep490.g23.backend.entity.assessment;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 
+import fu.sep490.g23.backend.entity.assessment.enums.*;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

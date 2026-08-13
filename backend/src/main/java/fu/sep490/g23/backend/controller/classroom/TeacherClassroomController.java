@@ -17,6 +17,7 @@ import fu.sep490.g23.backend.dto.request.classroom.CreateClassroomSessionRequest
 import fu.sep490.g23.backend.service.classroom.HomeworkAttachmentStorageService;
 import fu.sep490.g23.backend.dto.response.classroom.HomeworkAttachmentUploadResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomAnnouncementResponse;
+import fu.sep490.g23.backend.dto.request.classroom.CreateAnnouncementRequest;
 import fu.sep490.g23.backend.dto.request.classroom.CreateMaterialRequest;
 import fu.sep490.g23.backend.service.classroom.TeacherClassroomAuthorizationService;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
@@ -35,6 +36,7 @@ import fu.sep490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.service.classroom.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -87,6 +89,15 @@ public class TeacherClassroomController {
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(classroomOfferingService.getSessions(id));
+    }
+
+    @GetMapping("/sessions/{sessionId}")
+    public ResponseEntity<ClassroomSessionResponse> getSession(
+            @PathVariable Long sessionId,
+            Authentication authentication
+    ) {
+        authorizationService.assertSessionAccess(sessionId, authentication.getName());
+        return ResponseEntity.ok(classroomOfferingService.getSession(sessionId));
     }
 
     @PostMapping("/{id}/sessions")
@@ -333,6 +344,16 @@ public class TeacherClassroomController {
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
         return ResponseEntity.ok(contentService.getAnnouncements(id));
+    }
+
+    @PostMapping("/{id}/announcements")
+    public ResponseEntity<ClassroomAnnouncementResponse> createAnnouncement(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateAnnouncementRequest request,
+            Authentication authentication
+    ) {
+        authorizationService.assertClassroomAccess(id, authentication.getName());
+        return ResponseEntity.ok(contentService.createAnnouncement(id, request, authentication.getName()));
     }
 
     @PostMapping("/requests/check-conflict")

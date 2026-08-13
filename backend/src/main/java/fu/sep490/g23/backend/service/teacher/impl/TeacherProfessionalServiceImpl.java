@@ -1,12 +1,9 @@
 package fu.sep490.g23.backend.service.teacher.impl;
 import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
-import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.dto.request.teacher.VerifyTeacherCredentialRequest;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherEvaluationResponse;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherEvaluationRequest;
-import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
-import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCredentialRequest;
 import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.dto.request.teacher.UpdateTeacherProfileRequest;
@@ -18,6 +15,9 @@ import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepo
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
+import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
+import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
@@ -263,11 +263,16 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
                         teacher.getId(),
                         TeacherEvaluationStatus.PUBLISHED
                 );
-        BigDecimal latestScore = evaluationEntities.stream()
+        List<BigDecimal> publishedScores = evaluationEntities.stream()
                 .filter(item -> item.getStatus() == TeacherEvaluationStatus.PUBLISHED)
                 .map(TeacherPerformanceEvaluation::getOverallScore)
-                .findFirst()
-                .orElse(null);
+                .filter(Objects::nonNull)
+                .toList();
+        BigDecimal averageScore = publishedScores.isEmpty()
+                ? null
+                : publishedScores.stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(publishedScores.size()), 2, RoundingMode.HALF_UP);
         return TeacherProfessionalResponse.builder()
                 .teacherId(teacher.getId())
                 .fullName(teacher.getFullName())
@@ -284,7 +289,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
                 .assignedClassrooms(assignmentRepository.findByTeacherId(teacher.getId()).size())
                 .totalSessions(sessionRepository.countByTeacherId(teacher.getId()))
                 .completedSessions(sessionRepository.countByTeacherIdAndStatus(teacher.getId(), ClassroomSessionStatus.COMPLETED))
-                .latestPerformanceScore(latestScore)
+                .averagePerformanceScore(averageScore)
                 .verifiedCredentials(credentialRepository.findByTeacherIdOrderByIssuedDateDescIdDesc(teacher.getId()).stream()
                         .map(this::normalizeExpiry)
                         .filter(item -> item.getVerificationStatus() == CredentialVerificationStatus.VERIFIED)

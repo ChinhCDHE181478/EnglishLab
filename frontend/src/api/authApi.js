@@ -1,6 +1,7 @@
 import axiosClient from './axiosClient';
 
-export const login = async (data) => axiosClient.post('/api/auth/login', data);
+// Failed sign-in is an expected form error, not an expired application session.
+export const login = async (data) => axiosClient.post('/api/auth/login', data, { skipAuthRedirect: true });
 
 export const register = async (data) => axiosClient.post('/api/auth/register', data);
 
@@ -37,6 +38,6 @@ export const updateCurrentUserNotificationPreferences = async (data) => (
 
 export const getHomeMessage = async () => axiosClient.get('/api/home');
 
-export const loginWithGoogle = async (accessToken) => axiosClient.post('/api/auth/google', { accessToken });
+export const loginWithGoogle = async (accessToken) => axiosClient.post('/api/auth/google', { accessToken }, { skipAuthRedirect: true });
 
-export const loginWithFacebook = async (accessToken) => axiosClient.post('/api/auth/facebook', { accessToken });
+export const loginWithFacebook = async (accessToken) => axiosClient.post('/api/auth/facebook', { accessToken }, { skipAuthRedirect: true });

@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.course;
+import fu.sep490.g23.backend.entity.course.LessonProgress;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.Lesson;
-import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;

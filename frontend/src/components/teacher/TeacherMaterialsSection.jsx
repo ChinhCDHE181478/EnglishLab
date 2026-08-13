@@ -17,7 +17,7 @@ import FileDropzone from '../../components/ui/FileDropzone';
 import Pagination, { usePagination } from '../ui/Pagination';
 import { useAppDialog } from '../ui/AppDialog';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
-import { formatClassroomDate, formatClassroomDateTime, formatClassroomTime } from '../../utils/classroomHelpers';
+import { formatClassroomDate, formatClassroomDateTime, formatClassroomTime, getClassroomSessionTitle } from '../../utils/classroomHelpers';
 
 const uploadFormInitial = {
   title: '',
@@ -39,7 +39,7 @@ const isMandatoryMaterial = (material) => (
 const sessionOptionsFor = (sessions) => ([
   { label: 'Không gắn buổi học cụ thể', value: '' },
   ...(sessions || []).map((session) => ({
-    label: `${session.title || session.sessionContent || `Buổi #${session.id}`} · ${formatSessionSummary(session)}`,
+    label: `${session.title || getClassroomSessionTitle(session, `Buổi #${session.id}`)} · ${formatSessionSummary(session)}`,
     value: String(session.id),
   })),
 ]);

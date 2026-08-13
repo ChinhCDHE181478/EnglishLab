@@ -45,7 +45,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final YouTubeTranscriptService youTubeTranscriptService;
 
-    @Value("${app.seed.enabled:false}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
     @Override
@@ -282,6 +282,8 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         lesson.setDurationMinutes(durationMinutes);
         lesson.setDisplayOrder(order);
         lesson.setPreview(preview);
+        int moduleOrder = module.getDisplayOrder() == null ? 0 : module.getDisplayOrder();
+        lesson.setLessonKey("%s-m%d-l%d".formatted(COURSE_SLUG, moduleOrder, order));
     }
 
     private String buildTextLessonContent(int moduleOrder, int lessonOrder, String heading, String description) {

@@ -17,6 +17,7 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -35,6 +36,15 @@ public class LearningPath {
 
     @Column(nullable = false, length = 180)
     private String name;
+
+    @Column(name = "exam_category", length = 30)
+    private String examCategory;
+
+    @Column(name = "target_band", precision = 3, scale = 1)
+    private BigDecimal targetBand;
+
+    @Column(name = "target_score")
+    private Integer targetScore;
 
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC, id ASC")

@@ -51,13 +51,19 @@ import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.classroom.*;
+import fu.sep490.g23.backend.entity.classroom.enums.*;
+import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.*;
+import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
+import fu.sep490.g23.backend.repository.classroom.*;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
@@ -165,7 +171,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
 
-    @Value("${app.seed.showcase-classroom.enabled:true}")
+    @Value("${app.seed.test.enabled:false}")
     private boolean enabled;
 
     @Override
@@ -514,6 +520,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .salePrice(BigDecimal.valueOf(3_490_000))
                         .duration("8 tuần")
                         .studyMode("Virtual · Google Meet")
+                        .maxCapacity(16)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
                         .featured(true)

@@ -127,6 +127,7 @@ class ToeicShowcaseClassroomSeederIntegrationTest {
                     assertThat(item.getActivityConfigJson()).contains("\"parts\"");
                     assertThat(item.getInstruction()).contains("kiểm tra tiến độ bắt buộc");
                     assertThat(item.getCurriculumUnit().getDisplayOrder()).isEqualTo(5);
+                    assertThat(item.getGradingMode()).isEqualTo(HomeworkGradingMode.AUTO);
                 });
         var quiz = classroomHomework.stream()
                 .filter(item -> "Unit 1 Quiz - Photographs".equals(item.getTitle()))
