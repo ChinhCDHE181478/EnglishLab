@@ -576,8 +576,12 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .description("Chương trình bám sát 4 kỹ năng IELTS chuẩn quốc tế, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
                         .price(BigDecimal.valueOf(5_200_000))
                         .salePrice(BigDecimal.valueOf(4_690_000))
+                        .duration("8 tuần")
+                        .studyMode("Virtual · Google Meet")
+                        .maxCapacity(20)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
+                        .featured(true)
                         .build()));
     }
 
