@@ -104,6 +104,30 @@ const getEffectiveSessionStatus = (session) => {
   return session.status || 'SCHEDULED';
 };
 
+/** Local YYYY-MM-DD for schedule focus / today highlight. */
+const toLocalDateStr = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+/** Resolve Google Meet URL from session or classroom default (legacy field: larkMeetingUrl). */
+const resolveGoogleMeetUrl = (session, classroom) =>
+  session?.larkMeetingUrl
+  || classroom?.defaultLarkMeetingUrl
+  || '';
+
+/** Show Meet join when a Google Meet link exists and the session is not past/cancelled. */
+const canJoinGoogleMeet = (session, classroom) => {
+  if (!session) return false;
+  const isVirtual = session.deliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
+  if (!isVirtual) return false;
+  if (!resolveGoogleMeetUrl(session, classroom)) return false;
+  const status = getEffectiveSessionStatus(session);
+  return status !== 'COMPLETED' && status !== 'CANCELLED';
+};
+
 const detailTabs = [
   { id: 'overview', label: 'Tổng quan' },
   { id: 'curriculum', label: 'Giáo trình' },
@@ -220,6 +244,35 @@ export default function MyClassroomDetailPage() {
     10,
     `sessions-${activeTab}`
   );
+
+  const SESSIONS_PAGE_SIZE = 10;
+
+  // When opening Lịch học, jump to today's session (or nearest upcoming) and scroll it into view.
+  useEffect(() => {
+    if (activeTab !== 'schedule' || !sessions.length) return;
+
+    const todayStr = toLocalDateStr();
+    let focusIndex = sessions.findIndex((s) => s.sessionDate === todayStr);
+    if (focusIndex < 0) {
+      focusIndex = sessions.findIndex((s) => (s.sessionDate || '') >= todayStr);
+    }
+    if (focusIndex < 0) focusIndex = sessions.length - 1;
+
+    const targetPage = Math.floor(focusIndex / SESSIONS_PAGE_SIZE) + 1;
+    setSessionsPage(targetPage);
+
+    const focusId = sessions[focusIndex]?.id;
+    if (!focusId) return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById(`classroom-session-${focusId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [activeTab, sessions, setSessionsPage]);
 
   const { page: homeworkPage, setPage: setHomeworkPage, totalPages: homeworkTotalPages, pageItems: paginatedHomeworkList, totalItems: homeworkTotalItems } = usePagination(
     filteredHomework,
@@ -518,14 +571,6 @@ export default function MyClassroomDetailPage() {
         <div className="space-y-8">
           {/* ── Quick Action Bar ── */}
           <div className="flex flex-wrap gap-2.5">
-            {isVirtual && nextSession?.larkJoinable && (nextSession.larkMeetingUrl || nextSession.id) && (
-              <VirtualJoinButton
-                classroomId={id}
-                sessionId={nextSession.id}
-                onBlocked={setLarkMessage}
-                url={nextSession.larkMeetingUrl}
-              />
-            )}
             <button
               className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95"
               onClick={() => setActiveTab('schedule')}
@@ -617,9 +662,9 @@ export default function MyClassroomDetailPage() {
                         {formatClassroomTime(nextSession.startTime)} – {formatClassroomTime(nextSession.endTime)}
                       </span>
                       {isVirtual ? (
-                        <span className="flex items-center gap-1.5 text-purple-700 font-semibold">
+                        <span className="flex items-center gap-1.5 text-sky-700 font-semibold">
                           <Video className="h-4 w-4" />
-                          Học trực tuyến
+                          Google Meet
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5">
@@ -631,13 +676,13 @@ export default function MyClassroomDetailPage() {
                   </div>
 
                   <div className="flex flex-shrink-0 flex-wrap gap-2">
-                    {isVirtual && nextSession.larkJoinable && (nextSession.larkMeetingUrl || nextSession.id) && (
+                    {canJoinGoogleMeet(nextSession, classroom) && (
                       <VirtualJoinButton
                         className="!px-4 !py-2.5 !text-xs"
                         classroomId={id}
                         sessionId={nextSession.id}
                         onBlocked={setLarkMessage}
-                        url={nextSession.larkMeetingUrl}
+                        url={resolveGoogleMeetUrl(nextSession, classroom)}
                       />
                     )}
                     {nextSession.recordingUrl && (
@@ -839,24 +884,34 @@ export default function MyClassroomDetailPage() {
           
           <div className="relative border-l-2 border-gray-200 pl-6 ml-4 space-y-6 py-2">
             {paginatedSessions.map((session) => {
-              const isVirtual = session.deliveryMode === 'VIRTUAL';
-              const isLarkJoinable = isVirtual && session.larkJoinable && (session.larkMeetingUrl || session.id);
+              const isVirtual = session.deliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
+              const meetUrl = resolveGoogleMeetUrl(session, classroom);
+              const canJoinMeet = canJoinGoogleMeet(session, classroom);
               const effStatus = getEffectiveSessionStatus(session);
               const isActive = effStatus === 'OPEN';
+              const isPastSession = effStatus === 'COMPLETED' || effStatus === 'CANCELLED';
+              const isToday = session.sessionDate === toLocalDateStr();
+              const isHighlighted = isToday || isActive;
 
               return (
-                <div key={session.id} className="relative">
+                <div
+                  key={session.id}
+                  className="relative scroll-mt-24"
+                  id={`classroom-session-${session.id}`}
+                >
                   {/* Timeline dot */}
                   <div className={`absolute -left-[33px] top-6 h-3.5 w-3.5 rounded-full border-2 bg-white transition ${
-                    isActive ? 'border-[#730014] ring-4 ring-[#730014]/10 scale-110' : 'border-gray-300'
+                    isHighlighted ? 'border-[#730014] ring-4 ring-[#730014]/10 scale-110' : 'border-gray-300'
                   }`} />
                   
                   {/* Card item */}
                   <div className={`rounded-2xl border p-5 bg-white transition shadow-[0_10px_25px_rgba(0,0,0,0.01)] ${
-                    isActive ? 'border-[#730014]/50 ring-2 ring-[#730014]/5' : 'border-gray-200/80'
+                    isHighlighted
+                      ? 'border-[#730014]/50 ring-2 ring-[#730014]/10 shadow-[0_12px_28px_rgba(115,0,20,0.08)]'
+                      : 'border-gray-200/80'
                   }`}>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-3">
+                      <div className="space-y-3 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
                             {isVirtual ? 'Google Meet' : 'Tại cơ sở'}
@@ -864,6 +919,11 @@ export default function MyClassroomDetailPage() {
                           <span className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200/70 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-gray-500">
                             {formatSessionStatus(effStatus)}
                           </span>
+                          {isToday && (
+                            <span className="rounded-full bg-[#730014] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-white">
+                              Hôm nay
+                            </span>
+                          )}
                           {isActive && (
                             <span className="rounded-full bg-[#fff0f1] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#730014] animate-pulse">
                               Đang mở
@@ -896,22 +956,28 @@ export default function MyClassroomDetailPage() {
                             <MapPin className="h-4 w-4 text-[#730014] shrink-0" />
                             <span className="truncate">
                               {isVirtual
-                                ? 'Phòng học trực tuyến'
+                                ? 'Phòng học Google Meet'
                                 : `${session.roomName || 'Đang xếp phòng'} · ${session.offlineAddress || 'Cơ sở Hà Nội'}`}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 flex items-center pt-2 sm:pt-0">
-                        {isLarkJoinable && (
+                      <div className="flex-shrink-0 flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                        {canJoinMeet && (
                           <VirtualJoinButton
                             className="!px-4 !py-2.5 !text-xs"
                             classroomId={id}
                             sessionId={session.id}
                             onBlocked={setLarkMessage}
-                            url={session.larkMeetingUrl}
+                            url={meetUrl}
                           />
+                        )}
+                        {isVirtual && isPastSession && meetUrl && !canJoinMeet && (
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-400">
+                            <Video className="h-4 w-4" />
+                            Google Meet đã đóng
+                          </span>
                         )}
                         {session.recordingUrl && (
                           <a
@@ -1764,14 +1830,6 @@ export default function MyClassroomDetailPage() {
               </div>
 
               <div className="flex flex-shrink-0 flex-wrap gap-2 pt-2 md:pt-0">
-                {classroom.deliveryMode === 'VIRTUAL' && nextSession?.larkJoinable && (nextSession.larkMeetingUrl || nextSession.id) && (
-                  <VirtualJoinButton
-                    classroomId={id}
-                    sessionId={nextSession.id}
-                    onBlocked={setLarkMessage}
-                    url={nextSession.larkMeetingUrl}
-                  />
-                )}
                 <Link
                   className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-5 py-3 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95 shadow-sm"
                   to="/my-classrooms"

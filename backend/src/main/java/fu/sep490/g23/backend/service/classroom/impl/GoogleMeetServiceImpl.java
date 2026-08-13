@@ -84,8 +84,12 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
 
     @Override
     public boolean isJoinable(String meetingUrl, LarkMeetingStatus status) {
+        // Google Meet links are ready as soon as a space is created (SCHEDULED).
+        // OPEN/IN_PROGRESS cover live rooms; ENDED/NOT_CREATED remain non-joinable.
         return isGoogleMeetUrl(meetingUrl)
-                && (status == LarkMeetingStatus.OPEN || status == LarkMeetingStatus.IN_PROGRESS);
+                && (status == LarkMeetingStatus.SCHEDULED
+                || status == LarkMeetingStatus.OPEN
+                || status == LarkMeetingStatus.IN_PROGRESS);
     }
 
     @Override
