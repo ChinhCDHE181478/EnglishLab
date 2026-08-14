@@ -5,7 +5,9 @@ import fu.sep490.g23.backend.dto.request.classroom.CreateHomeworkRequest;
 import fu.sep490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 import fu.sep490.g23.backend.dto.request.classroom.HomeworkTextAnnotationRequest;
 import fu.sep490.g23.backend.dto.request.classroom.SaveHomeworkAnnotationsRequest;
+import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
@@ -17,6 +19,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkAnnotationType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
+import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.dto.request.classroom.SubmitHomeworkRequest;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
@@ -212,6 +215,62 @@ class ClassroomHomeworkServiceImplTest {
         verify(homeworkRepository).save(homeworkCaptor.capture());
         assertThat(homeworkCaptor.getValue().getSkill()).isEqualTo(AssessmentSkill.SPEAKING);
         assertThat(homeworkCaptor.getValue().getGradingMode()).isEqualTo(HomeworkGradingMode.TEACHER);
+    }
+
+    @Test
+    void create_UsesTeacherSelectedRubricForAiHomework() {
+        User teacher = User.builder().id(1L).email("teacher@englishlab.vn").build();
+        ClassroomOffering offering = ClassroomOffering.builder().id(10L).build();
+        AssessmentRubric defaultRubric = AssessmentRubric.builder()
+                .id(1L)
+                .name("Default writing rubric")
+                .skill(AssessmentSkill.WRITING)
+                .build();
+        AssessmentRubric selectedRubric = AssessmentRubric.builder()
+                .id(2L)
+                .name("Teacher selected rubric")
+                .skill(AssessmentSkill.WRITING)
+                .build();
+        AssessmentBankItem assessment = AssessmentBankItem.builder()
+                .id(11L)
+                .title("IELTS Writing Task 2")
+                .type(AssessmentType.MODULE_TEST)
+                .status("PUBLISHED")
+                .active(true)
+                .skill(AssessmentSkill.WRITING)
+                .rubric(defaultRubric)
+                .uiConfigJson("{}")
+                .build();
+        CreateHomeworkRequest request = CreateHomeworkRequest.builder()
+                .title("AI writing homework")
+                .activityType(HomeworkActivityType.TEXT_RESPONSE)
+                .status(HomeworkStatus.DRAFT)
+                .aiReviewEnabled(true)
+                .assessmentBankItemId(assessment.getId())
+                .rubricId(selectedRubric.getId())
+                .build();
+
+        when(accessHelper.requireUser(teacher.getEmail())).thenReturn(teacher);
+        when(offeringRepository.findById(offering.getId())).thenReturn(Optional.of(offering));
+        when(assessmentBankItemRepository.findByIdAndTypeAndStatusAndActiveTrue(
+                assessment.getId(), AssessmentType.MODULE_TEST, "PUBLISHED"
+        )).thenReturn(Optional.of(assessment));
+        when(homeworkGradingCatalogService.requireActiveRubric(selectedRubric.getId()))
+                .thenReturn(selectedRubric);
+        when(homeworkRepository.save(any(ClassroomHomework.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.create(offering.getId(), request, teacher.getEmail());
+
+        ArgumentCaptor<ClassroomHomework> homeworkCaptor = ArgumentCaptor.forClass(ClassroomHomework.class);
+        verify(homeworkRepository).save(homeworkCaptor.capture());
+        ClassroomHomework savedHomework = homeworkCaptor.getValue();
+        assertThat(savedHomework.getAssessmentBankItem()).isEqualTo(assessment);
+        assertThat(savedHomework.getRubric()).isEqualTo(selectedRubric);
+        assertThat(savedHomework.getSkill()).isEqualTo(AssessmentSkill.WRITING);
+        assertThat(savedHomework.getGradingMode()).isEqualTo(HomeworkGradingMode.AI);
+        assertThat(savedHomework.isAiReviewEnabled()).isTrue();
+        verify(homeworkGradingCatalogService).requireActiveRubric(selectedRubric.getId());
     }
 
     @Test

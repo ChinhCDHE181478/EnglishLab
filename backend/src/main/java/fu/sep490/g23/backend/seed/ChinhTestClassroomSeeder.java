@@ -62,12 +62,10 @@ import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
-import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
-import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -125,6 +123,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private static final String CURRICULUM_SLUG = "ielts-650-complete-virtual-v1";
     private static final String TRAINING_PROGRAM_SLUG = "ielts-intensive-training-v1";
     private static final String MATERIAL_BASE_URL = "https://cdn.englishlab.vn/materials/ielts-650/";
+    private static final LocalTime SESSION_START = LocalTime.of(8, 0);
+    private static final LocalTime SESSION_END = LocalTime.of(10, 0);
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private final UserRepository userRepository;
@@ -227,11 +227,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (!seedEnabled) {
-            return;
-        }
-
-        log.info("[ChinhTestSeeder] Bắt đầu seed / đồng bộ dữ liệu test cho {}...", LEARNER_EMAIL);
+        log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
 
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new IllegalStateException("CLASSROOM package type chưa tồn tại. Hãy chạy OnlineCourseDataSeeder trước."));
@@ -248,7 +244,15 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         // 2. Tạo hoặc đồng bộ Training Program
         TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
 
-        // 3. Tạo hoặc cập nhật Lớp học (ClassroomOffering)
+        // 3. Liên kết Giáo trình cho tất cả lớp đang học của Nguyễn Văn Teacher (bao gồm ielts-intermediate-live)
+        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(interOffering -> {
+            interOffering.setCurriculumProgram(curriculum);
+            interOffering.setTrainingProgram(trainingProgram);
+            offeringRepository.save(interOffering);
+            log.info("[ChinhTestSeeder] Đã liên kết giáo trình ID: {} cho lớp IELTS Intermediate (ID: {})", curriculum.getId(), interOffering.getId());
+        });
+
+        // 4. Tạo hoặc cập nhật Lớp học chính (ClassroomOffering)
         Optional<ClassroomOffering> existingOffering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG);
         ClassroomOffering offering;
         if (existingOffering.isPresent()) {
@@ -265,10 +269,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ClassroomEnrollment enrollment = ensureEnrollment(offering, learner, teacher);
         ensureTuitionPayments(enrollment, teacher);
 
-        // 4. Tạo thêm 3 học sinh cùng tham gia lớp
+        // 5. Tạo thêm 3 học sinh cùng tham gia lớp
         ensureAdditionalStudents(offering, teacher);
 
-        // 5. Buổi học (Sessions)
+        // 6. Buổi học (Sessions) — ca sáng 08:00–10:00 để tránh trùng lịch lớp khác
         List<ClassroomSession> sessions;
         if (existingOffering.isPresent()) {
             sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
@@ -278,6 +282,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 createAttendance(sessions, learner, teacher);
                 createMaterials(offering, sessions, teacher);
                 createAnnouncements(offering, teacher);
+            } else {
+                sessions = syncSessionMorningSchedule(sessions);
             }
         } else {
             sessions = createSessions(offering, teacher);
@@ -286,6 +292,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             createMaterials(offering, sessions, teacher);
             createAnnouncements(offering, teacher);
         }
+
+        // Đảm bảo có buổi học HÔM NAY cho cả 2 lớp
+        alignTodaySession(offering);
+        offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(this::alignTodaySession);
 
         // 6. Tạo/đồng bộ Bài tập & Bài nộp & Chấm điểm
         createHomework(offering, sessions, units, teacher, learner);
@@ -297,6 +307,23 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         ensurePracticeAttempts(offering, units, learner);
 
         log.info("[ChinhTestSeeder] ✅ Seed/Cập nhật hoàn tất! Email: {} | Đã liên kết Giáo trình, Flashcards, Bài luyện tập!", LEARNER_EMAIL);
+    }
+
+    private void alignTodaySession(ClassroomOffering offering) {
+        LocalDate today = LocalDate.now();
+        List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        if (sessions.isEmpty()) return;
+
+        boolean hasToday = sessions.stream().anyMatch(s -> today.equals(s.getSessionDate()));
+        if (!hasToday) {
+            ClassroomSession todaySess = sessions.stream()
+                    .filter(s -> s.getStatus() == ClassroomSessionStatus.OPEN || s.getStatus() == ClassroomSessionStatus.SCHEDULED)
+                    .findFirst()
+                    .orElse(sessions.get(0));
+            todaySess.setSessionDate(today);
+            todaySess.setStatus(ClassroomSessionStatus.OPEN);
+            sessionRepository.save(todaySess);
+        }
     }
 
     // ── Curriculum Program, Units, Flashcards, Practice, Materials ───────────
@@ -576,8 +603,12 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .description("Chương trình bám sát 4 kỹ năng IELTS chuẩn quốc tế, tích hợp bài giảng, bài tập, flashcard và bài thi thử.")
                         .price(BigDecimal.valueOf(5_200_000))
                         .salePrice(BigDecimal.valueOf(4_690_000))
+                        .duration("8 tuần")
+                        .studyMode("Virtual · Google Meet")
+                        .maxCapacity(20)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
+                        .featured(true)
                         .build()));
     }
 
@@ -758,34 +789,50 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
     private List<ClassroomSession> createSessions(ClassroomOffering offering, User teacher) {
         LocalDate today = LocalDate.now();
-        ClassroomSession s1 = saveSession(offering, teacher, today.minusWeeks(5), 19, 21, ClassroomSessionStatus.COMPLETED,
+        ClassroomSession s1 = saveSession(offering, teacher, today.minusWeeks(5), ClassroomSessionStatus.COMPLETED,
                 "Buổi 1: Tổng quan IELTS & Listening Section 1-2");
-        ClassroomSession s2 = saveSession(offering, teacher, today.minusWeeks(4), 19, 21, ClassroomSessionStatus.COMPLETED,
+        ClassroomSession s2 = saveSession(offering, teacher, today.minusWeeks(4), ClassroomSessionStatus.COMPLETED,
                 "Buổi 2: Listening Section 3-4 & chiến thuật dự đoán đáp án");
-        ClassroomSession s3 = saveSession(offering, teacher, today.minusWeeks(3), 19, 21, ClassroomSessionStatus.COMPLETED,
+        ClassroomSession s3 = saveSession(offering, teacher, today.minusWeeks(3), ClassroomSessionStatus.COMPLETED,
                 "Buổi 3: Reading – Matching Headings & True/False/Not Given");
-        ClassroomSession s4 = saveSession(offering, teacher, today.minusWeeks(2), 19, 21, ClassroomSessionStatus.COMPLETED,
+        ClassroomSession s4 = saveSession(offering, teacher, today.minusWeeks(2), ClassroomSessionStatus.COMPLETED,
                 "Buổi 4: Writing Task 1 – Bar chart & Line graph");
-        ClassroomSession s5 = saveSession(offering, teacher, today, 19, 21, ClassroomSessionStatus.OPEN,
+        ClassroomSession s5 = saveSession(offering, teacher, today, ClassroomSessionStatus.OPEN,
                 "Buổi 5: Writing Task 2 – Opinion essay (Đang diễn ra – có thể Join)");
-        ClassroomSession s6 = saveSession(offering, teacher, today.plusDays(1), 19, 21, ClassroomSessionStatus.SCHEDULED,
+        ClassroomSession s6 = saveSession(offering, teacher, today.plusDays(1), ClassroomSessionStatus.SCHEDULED,
                 "Buổi 6: Speaking Part 1 & 2 – chiến thuật mở rộng ý");
-        ClassroomSession s7 = saveSession(offering, teacher, today.plusDays(3), 19, 21, ClassroomSessionStatus.SCHEDULED,
+        ClassroomSession s7 = saveSession(offering, teacher, today.plusDays(3), ClassroomSessionStatus.SCHEDULED,
                 "Buổi 7: Speaking Part 3 – thảo luận chủ đề xã hội");
-        ClassroomSession s8 = saveSession(offering, teacher, today.plusWeeks(1), 19, 21, ClassroomSessionStatus.SCHEDULED,
+        ClassroomSession s8 = saveSession(offering, teacher, today.plusWeeks(1), ClassroomSessionStatus.SCHEDULED,
                 "Buổi 8: Mock test toàn phần & tổng kết khóa học");
 
         return List.of(s1, s2, s3, s4, s5, s6, s7, s8);
     }
 
+    private List<ClassroomSession> syncSessionMorningSchedule(List<ClassroomSession> sessions) {
+        boolean changed = false;
+        for (ClassroomSession session : sessions) {
+            if (!SESSION_START.equals(session.getStartTime()) || !SESSION_END.equals(session.getEndTime())) {
+                session.setStartTime(SESSION_START);
+                session.setEndTime(SESSION_END);
+                changed = true;
+            }
+        }
+        if (changed) {
+            sessionRepository.saveAll(sessions);
+            log.info("[ChinhTestSeeder] Đã cập nhật lịch buổi học sang ca sáng {}–{}", SESSION_START, SESSION_END);
+        }
+        return sessions;
+    }
+
     private ClassroomSession saveSession(ClassroomOffering offering, User teacher,
-                                          LocalDate date, int startHour, int endHour,
+                                          LocalDate date,
                                           ClassroomSessionStatus status, String content) {
         return sessionRepository.save(ClassroomSession.builder()
                 .classroomOffering(offering)
                 .sessionDate(date)
-                .startTime(LocalTime.of(startHour, 30))
-                .endTime(LocalTime.of(endHour, 0))
+                .startTime(SESSION_START)
+                .endTime(SESSION_END)
                 .teacher(teacher)
                 .status(status)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
@@ -839,15 +886,15 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
 
         if (sessions.size() > 0) {
             saveAttendance(sessions.get(0), learner, teacher, ClassroomAttendanceStatus.PRESENT,
-                    sessions.get(0).getSessionDate().atTime(19, 32), sessions.get(0).getSessionDate().atTime(21, 0), 88, null);
+                    sessions.get(0).getSessionDate().atTime(8, 2), sessions.get(0).getSessionDate().atTime(10, 0), 88, null);
         }
         if (sessions.size() > 1) {
             saveAttendance(sessions.get(1), learner, teacher, ClassroomAttendanceStatus.PRESENT,
-                    sessions.get(1).getSessionDate().atTime(19, 28), sessions.get(1).getSessionDate().atTime(21, 0), 92, null);
+                    sessions.get(1).getSessionDate().atTime(7, 58), sessions.get(1).getSessionDate().atTime(10, 0), 92, null);
         }
         if (sessions.size() > 2) {
             saveAttendance(sessions.get(2), learner, teacher, ClassroomAttendanceStatus.LATE,
-                    sessions.get(2).getSessionDate().atTime(19, 45), sessions.get(2).getSessionDate().atTime(21, 0), 75, "Đến trễ 15 phút do kẹt xe");
+                    sessions.get(2).getSessionDate().atTime(8, 15), sessions.get(2).getSessionDate().atTime(10, 0), 75, "Đến trễ 15 phút do kẹt xe");
         }
         if (sessions.size() > 3) {
             saveAttendance(sessions.get(3), learner, teacher, ClassroomAttendanceStatus.ABSENT,
@@ -855,7 +902,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         }
         if (sessions.size() > 4) {
             saveAttendance(sessions.get(4), learner, teacher, ClassroomAttendanceStatus.PRESENT,
-                    today.atTime(19, 33), null, null, "Tham gia buổi hôm nay qua Google Meet");
+                    today.atTime(8, 3), null, null, "Tham gia buổi hôm nay qua Google Meet");
         }
     }
 
@@ -946,8 +993,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 "📝 Nhắc nhở: Nộp bài Writing Task 1 trước hôm nay 23:59",
                 "Bài Writing Task 1 (Buổi 4) đến hạn hôm nay lúc 23:59. Các bạn chưa nộp vui lòng hoàn thành gấp trong mục Bài tập.");
         saveAnnouncement(offering, teacher,
-                "🎯 Buổi 5 tối nay – Writing Task 2 Opinion Essay",
-                "Tối nay 19:30 chúng ta học Writing Task 2. Các bạn chuẩn bị sẵn 1 chủ đề yêu thích để luyện outline ngay tại lớp. Link Google Meet sẽ mở lúc 19:25.");
+                "🎯 Buổi 5 sáng nay – Writing Task 2 Opinion Essay",
+                "Sáng nay 08:00 chúng ta học Writing Task 2. Các bạn chuẩn bị sẵn 1 chủ đề yêu thích để luyện outline ngay tại lớp. Link Google Meet sẽ mở lúc 07:55.");
         saveAnnouncement(offering, teacher,
                 "🔔 Lịch thi thử Mock Test – Buổi 8",
                 "Buổi 8 sẽ là mock test toàn phần 2h45m theo format thi thật. Các bạn cần chuẩn bị tai nghe và đường truyền mạng ổn định.");

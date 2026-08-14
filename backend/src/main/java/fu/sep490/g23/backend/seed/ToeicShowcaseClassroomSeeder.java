@@ -520,6 +520,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .salePrice(BigDecimal.valueOf(3_490_000))
                         .duration("8 tuần")
                         .studyMode("Virtual · Google Meet")
+                        .maxCapacity(16)
                         .status(PackageStatus.PUBLISHED)
                         .displayOrder(1)
                         .featured(true)

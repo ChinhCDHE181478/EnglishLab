@@ -196,6 +196,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                     .durationMinutes(30)
                     .displayOrder(1)
                     .preview(true)
+                    .lessonKey("%s-m1-l1".formatted(slug))
                     .build());
             course.addModule(module);
         }

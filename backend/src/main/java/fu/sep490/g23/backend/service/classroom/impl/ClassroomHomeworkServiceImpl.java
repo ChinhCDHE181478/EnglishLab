@@ -258,6 +258,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (homework.getStatus() != HomeworkStatus.OPEN) {
             throw new RuntimeException("Bài tập chưa mở để nộp.");
         }
+        if (homework.getDeadline() != null && LocalDateTime.now().isAfter(homework.getDeadline())) {
+            throw new IllegalArgumentException("Bài tập đã quá hạn nộp.");
+        }
         ClassroomHomeworkSubmission submission = submissionRepository
                 .findByHomeworkIdAndStudentId(homeworkId, learner.getId())
                 .orElseGet(() -> ClassroomHomeworkSubmission.builder()
@@ -482,10 +485,13 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
             throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ MODULE_TEST Writing hoặc Speaking.");
         }
-        if (assessment.getRubric() == null) {
+        Long rubricId = request.getRubricId() != null
+                ? request.getRubricId()
+                : assessment.getRubric() == null ? null : assessment.getRubric().getId();
+        if (rubricId == null) {
             throw new RuntimeException("MODULE_TEST đã chọn chưa có bộ tiêu chí chấm AI.");
         }
-        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(assessment.getRubric().getId());
+        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(rubricId);
         if (rubric.getSkill() != assessment.getSkill()) {
             throw new RuntimeException("Bộ tiêu chí của MODULE_TEST không khớp với kỹ năng bài thi.");
         }

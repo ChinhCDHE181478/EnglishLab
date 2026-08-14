@@ -57,21 +57,14 @@ export default function VirtualJoinButton({
   if (!url && !sessionId) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <button
-        className={`inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-sky-700 disabled:opacity-60 ${className}`}
-        disabled={joining || disabled}
-        onClick={handleJoin}
-        type="button"
-      >
-        <Video className="h-4 w-4" />
-        {joining ? 'Đang mở Google Meet...' : label}
-      </button>
-      {url ? (
-        <a className="text-sm font-semibold text-sky-700 underline" href={url} rel="noreferrer" target="_blank">
-          Mở liên kết thủ công
-        </a>
-      ) : null}
-    </div>
+    <button
+      className={`inline-flex items-center gap-2 rounded-2xl bg-sky-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-sky-700 disabled:opacity-60 ${className}`}
+      disabled={joining || disabled}
+      onClick={handleJoin}
+      type="button"
+    >
+      <Video className="h-4 w-4" />
+      {joining ? 'Đang mở Google Meet...' : label}
+    </button>
   );
 }

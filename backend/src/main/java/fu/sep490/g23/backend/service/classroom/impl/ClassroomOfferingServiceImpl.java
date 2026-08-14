@@ -458,10 +458,6 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
 
         return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offeringId).stream()
                 .map(mapper::toSessionResponse)
-                .peek(response -> {
-                    response.setLarkMeetingUrl(null);
-                    response.setLarkJoinable(false);
-                })
                 .toList();
     }
 

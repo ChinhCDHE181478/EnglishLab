@@ -124,6 +124,22 @@ class GoogleMeetServiceImplTest {
     }
 
     @Test
+    void treatsScheduledGoogleMeetLinksAsJoinable() {
+        VirtualMeetingService service = new GoogleMeetServiceImpl(
+                new GoogleMeetProperties(),
+                mock(TeacherGoogleMeetConnectionService.class)
+        );
+        String meetUrl = "https://meet.google.com/abc-defg-hij";
+
+        assertThat(service.isJoinable(meetUrl, LarkMeetingStatus.SCHEDULED)).isTrue();
+        assertThat(service.isJoinable(meetUrl, LarkMeetingStatus.OPEN)).isTrue();
+        assertThat(service.isJoinable(meetUrl, LarkMeetingStatus.IN_PROGRESS)).isTrue();
+        assertThat(service.isJoinable(meetUrl, LarkMeetingStatus.ENDED)).isFalse();
+        assertThat(service.isJoinable(meetUrl, LarkMeetingStatus.NOT_CREATED)).isFalse();
+        assertThat(service.isJoinable("https://example.com/fake-room", LarkMeetingStatus.SCHEDULED)).isFalse();
+    }
+
+    @Test
     void reportsMissingOAuthConfigurationInsteadOfCreatingFakeLink() {
         GoogleMeetProperties properties = new GoogleMeetProperties();
         properties.setEnabled(true);
