@@ -135,6 +135,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         syncGoogleMeetLabels();
         syncTeacher2Account();
         clearLegacyDemoLarkLinks();
+        syncTodayTeacher1Data();
 
         if (!seedEnabled) {
             return;
@@ -1014,6 +1015,79 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             existing.setTeacherGuide(teacherGuide);
             existing.setInteractionActivities(interactionActivities);
             existing.setPostSessionHomework(postSessionHomework);
+        User staff = userRepository.findByEmail("staff@englishlab.vn").orElse(null);
+
+        ensureSessionTemplate(
+                "Tối 246 (18:30–20:30)",
+                """
+                [{"dayOfWeek":1,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":3,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":5,"startTime":"18:30","endTime":"20:30"}]
+                """.trim(),
+                "Lịch tối Thứ 2-4-6. Dùng khi demo sinh lịch cho lớp IELTS/TOEIC tại trung tâm.",
+                "Warm-up 10 phút → giảng mới 50 phút → luyện tập 40 phút → nhận xét & giao bài 20 phút.",
+                "Pair work, role-play, error correction board.",
+                "Làm bài tập củng cố trong workbook và nộp trước buổi kế tiếp.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Tối 357 (18:30–20:30)",
+                """
+                [{"dayOfWeek":2,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":4,"startTime":"18:30","endTime":"20:30"},{"dayOfWeek":6,"startTime":"18:30","endTime":"20:30"}]
+                """.trim(),
+                "Lịch tối Thứ 3-5-7. Phù hợp lớp ca tối xen kẽ với ca 246.",
+                "Ôn nhanh 10 phút → input 45 phút → practice 45 phút → wrap-up 20 phút.",
+                "Group discussion, peer feedback, mini presentation.",
+                "Ôn từ vựng buổi học và làm 1 bài listening ngắn.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Sáng cuối tuần (08:00–10:00)",
+                """
+                [{"dayOfWeek":6,"startTime":"08:00","endTime":"10:00"},{"dayOfWeek":7,"startTime":"08:00","endTime":"10:00"}]
+                """.trim(),
+                "Lịch sáng Thứ 7 và Chủ nhật. Phù hợp học viên đi học cuối tuần.",
+                "Check-in 10 phút → skill focus 60 phút → workshop 40 phút → homework brief 10 phút.",
+                "Speaking circle, writing clinic, mock quiz.",
+                "Hoàn thành worksheet cuối tuần và mang lại buổi kế tiếp.",
+                120,
+                staff
+        );
+
+        ensureSessionTemplate(
+                "Chiều 246 (14:00–16:00)",
+                """
+                [{"dayOfWeek":1,"startTime":"14:00","endTime":"16:00"},{"dayOfWeek":3,"startTime":"14:00","endTime":"16:00"},{"dayOfWeek":5,"startTime":"14:00","endTime":"16:00"}]
+                """.trim(),
+                "Lịch chiều Thứ 2-4-6. Dùng cho lớp học sinh/sinh viên học ca chiều.",
+                "Review homework 15 phút → giảng mới 50 phút → practice 40 phút → Q&A 15 phút.",
+                "Board race, vocabulary games, short reading race.",
+                "Làm 1 unit workbook và ghi lại 5 lỗi cần sửa.",
+                120,
+                staff
+        );
+
+        log.info("Classroom session templates are ready for demo.");
+    }
+
+    private void ensureSessionTemplate(
+            String name,
+            String slotsJson,
+            String description,
+            String teacherGuide,
+            String interactionActivities,
+            String postSessionHomework,
+            Integer defaultDurationMinutes,
+            User createdBy
+    ) {
+        sessionTemplateRepository.findByNameIgnoreCase(name).ifPresentOrElse(existing -> {
+            existing.setSlotsJson(slotsJson);
+            existing.setDescription(description);
+            existing.setTeacherGuide(teacherGuide);
+            existing.setInteractionActivities(interactionActivities);
+            existing.setPostSessionHomework(postSessionHomework);
             existing.setDefaultDurationMinutes(defaultDurationMinutes);
             existing.setActive(true);
             if (existing.getCreatedBy() == null && createdBy != null) {
@@ -1055,5 +1129,116 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             return demoLearnerOnboardingSupport.ensureReady(user);
         }
         return user;
+    }
+
+    private void syncTodayTeacher1Data() {
+        try {
+            User teacher1 = userRepository.findByEmail("classroom.teacher1@englishlab.vn").orElse(null);
+            if (teacher1 == null) return;
+
+            User manager = userRepository.findByEmail("classroom.manager@englishlab.vn").orElse(null);
+            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Học Viên Một", RoleEnum.LEARNER);
+            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Học Viên Hai", RoleEnum.LEARNER);
+            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
+
+            Optional<ClassroomOffering> offeringOpt = offeringRepository.findByLearningPackageSlug(SLUG_OFFLINE_IN_PROGRESS);
+            if (offeringOpt.isEmpty()) return;
+
+            ClassroomOffering offering = offeringOpt.get();
+
+            boolean assigned = teacherAssignmentRepository.findByClassroomOfferingId(offering.getId()).stream()
+                    .anyMatch(a -> a.getTeacher().getId().equals(teacher1.getId()));
+            if (!assigned) {
+                teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
+                        .classroomOffering(offering)
+                        .teacher(teacher1)
+                        .role(ClassroomTeacherRole.PRIMARY)
+                        .effectiveFrom(LocalDate.now().minusWeeks(4))
+                        .build());
+            }
+
+            enrollAssigned(offering, learner1, manager);
+            enrollAssigned(offering, learner2, manager);
+            enrollAssigned(offering, learner3, manager);
+
+            LocalDate today = LocalDate.now();
+            java.util.List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+            boolean hasTodaySession = sessions.stream().anyMatch(s -> today.equals(s.getSessionDate()));
+
+            if (!hasTodaySession) {
+                if (sessions.isEmpty()) {
+                    saveOfflineSession(offering, teacher1, today, 19, 21, ClassroomSessionStatus.OPEN, "Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
+                } else {
+                    ClassroomSession targetSession = sessions.stream()
+                            .filter(s -> s.getStatus() == ClassroomSessionStatus.OPEN || s.getStatus() == ClassroomSessionStatus.SCHEDULED)
+                            .findFirst()
+                            .orElse(sessions.get(0));
+                    targetSession.setSessionDate(today);
+                    targetSession.setStatus(ClassroomSessionStatus.OPEN);
+                    targetSession.setSessionContent("Buổi 5: Writing Task 2 – Opinion essay (Hôm nay)");
+                    sessionRepository.save(targetSession);
+                }
+            }
+
+            seedRichSubmissionsForAllHomeworks(offering, learner1, learner2, learner3);
+            offeringRepository.findByLearningPackageSlug("ielts-intensive-chinh-test-v1")
+                    .ifPresent(chinhOffering -> seedRichSubmissionsForAllHomeworks(chinhOffering, learner1, learner2, learner3));
+        } catch (Exception ex) {
+            log.warn("syncTodayTeacher1Data warning: {}", ex.getMessage());
+        }
+    }
+
+    private void seedRichSubmissionsForAllHomeworks(ClassroomOffering offering, User learner1, User learner2, User learner3) {
+        java.util.List<ClassroomHomework> homeworks = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId());
+        if (homeworks.isEmpty()) return;
+
+        String essay1 = """
+                In the contemporary era, technological advancements have reshaped human society in unprecedented ways. While some individuals argue that these innovations have complicated daily routines, I firmly believe that technology ultimately simplifies modern living by improving communication, automating labor-intensive tasks, and enhancing global accessibility.
+
+                On the one hand, critics contend that rapid technological proliferation introduces unnecessary complexity into our lives. Constant notifications, social media overload, and the steep learning curve required to master new software can cause mental fatigue and anxiety. For instance, elderly populations often struggle to navigate online banking platforms or digital government services, leading to a sense of exclusion and confusion. Furthermore, the blur between work and personal life caused by instant messaging applications often results in elevated stress levels among modern professionals.
+
+                On the other hand, the primary function of technology is to streamline human endeavors and optimize productivity. Firstly, modern communication channels such as video conferencing and electronic mail allow individuals to collaborate across geographic boundaries seamlessly. Secondly, household automation—ranging from smart appliances to online grocery delivery—saves considerable time and physical effort, allowing people to focus on personal development and leisure activities. Finally, healthcare technological breakthroughs have significantly improved diagnostic accuracy and treatment efficiency, saving millions of lives worldwide.
+
+                In conclusion, although the misapplication of digital devices can occasionally generate stress and confusion, the overarching benefits of technology far outweigh its drawbacks. By establishing healthy digital boundaries, society can harness technological progress to foster a more efficient, connected, and convenient world.
+                """.trim();
+
+        String essay2 = """
+                The primary objective of higher education has been a topic of intense debate in recent years. While some argue that universities should exclusively train students for immediate employment skills, I am convinced that a balanced curriculum integrating both theoretical foundations and practical applications is essential for long-term career success and personal growth.
+
+                Proponents of vocational training argue that the modern job market demands specialized skills. In rapidly evolving industries such as software engineering, data analytics, and digital marketing, employers prioritize candidates who possess hands-on proficiency with tools and frameworks over those who only understand abstract concepts. Consequently, universities that emphasize practical workshops and industry internships help graduates secure employment faster and reduce retraining costs for corporations.
+
+                However, theoretical knowledge remains the cornerstone of critical thinking and adaptability. Without a solid understanding of fundamental principles, professionals risk becoming obsolete when technology or market demands shift. For example, a civil engineer must thoroughly comprehend structural mechanics and physics before applying design software; otherwise, catastrophic structural failures could occur. Furthermore, academic research and theoretical exploration drive innovation, inspiring breakthroughs that transform entire industries rather than merely maintaining the status quo.
+
+                To conclude, prioritizing job skills at the expense of theoretical learning would be short-sighted. Educational institutions should strive to offer a holistic education that equips students with both fundamental theoretical insights and practical competencies, ensuring they remain versatile and innovative throughout their professional careers.
+                """.trim();
+
+        String essay3 = """
+                Infrastructure investment is a crucial responsibility of modern governments. While expanding road networks may temporarily relieve traffic congestion, I strongly advocate for prioritizing public transportation funding because it offers a more sustainable solution to urban traffic problems, reduces environmental pollution, and promotes social equity.
+
+                Firstly, investing heavily in public transit systems like subways, light rail, and electric buses provides a high-capacity solution to urban mobility. Constructing new highways often triggers induced demand—a phenomenon where new lanes attract more private vehicle users, quickly returning congestion to previous levels. In contrast, efficient metro systems can transport tens of thousands of commuters per hour without clogging city streets, thereby significantly reducing travel times for urban residents.
+
+                Secondly, public transportation investment yields substantial environmental and economic advantages. Private vehicles are major contributors to greenhouse gas emissions and urban air pollution. By transitioning commuters to clean electric transit, cities can dramatically lower carbon footprints and improve public health outcomes. Furthermore, accessible public transportation enables lower-income citizens to access employment and educational opportunities across the city without the burdensome costs of vehicle ownership and fuel.
+
+                In conclusion, while road maintenance remains necessary, allocating primary financial resources toward public transportation is a superior strategy for urban development. A robust public transit network creates cleaner, more efficient, and inclusive cities for future generations.
+                """.trim();
+
+        for (ClassroomHomework hw : homeworks) {
+            saveOrUpdateSubmission(hw, learner1, essay1, HomeworkSubmissionStatus.SUBMITTED);
+            saveOrUpdateSubmission(hw, learner2, essay2, HomeworkSubmissionStatus.SUBMITTED);
+            saveOrUpdateSubmission(hw, learner3, essay3, HomeworkSubmissionStatus.SUBMITTED);
+        }
+    }
+
+    private void saveOrUpdateSubmission(ClassroomHomework hw, User student, String content, HomeworkSubmissionStatus status) {
+        if (student == null) return;
+        ClassroomHomeworkSubmission sub = homeworkSubmissionRepository.findByHomeworkIdAndStudentId(hw.getId(), student.getId())
+                .orElseGet(() -> ClassroomHomeworkSubmission.builder()
+                        .homework(hw)
+                        .student(student)
+                        .build());
+        sub.setTextAnswer(content);
+        sub.setStatus(status);
+        sub.setSubmittedAt(LocalDateTime.now().minusHours(2));
+        homeworkSubmissionRepository.save(sub);
     }
 }
