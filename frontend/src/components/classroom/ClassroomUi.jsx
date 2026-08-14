@@ -911,17 +911,12 @@ export const LarkJoinButton = ({ url, label = 'Tham gia Google Meet', className 
   if (!url) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <button
-        className={`rounded-2xl bg-sky-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-sky-700 ${className}`}
-        onClick={handleClick}
-        type="button"
-      >
-        {label}
-      </button>
-      <a className="text-sm font-semibold text-sky-700 underline" href={url} rel="noreferrer" target="_blank">
-        Mở liên kết thủ công
-      </a>
-    </div>
+    <button
+      className={`rounded-2xl bg-sky-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-sky-700 ${className}`}
+      onClick={handleClick}
+      type="button"
+    >
+      {label}
+    </button>
   );
 };

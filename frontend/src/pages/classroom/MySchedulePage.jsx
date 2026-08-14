@@ -117,6 +117,14 @@ const getEffectiveStatus = (session) => {
   return 'SCHEDULED';
 };
 
+/** Join Meet when a link exists and the session is not past/cancelled. */
+const canJoinGoogleMeet = (session) => {
+  if (!session || session.deliveryMode !== 'VIRTUAL') return false;
+  if (!session.larkMeetingUrl) return false;
+  const status = getEffectiveStatus(session);
+  return status !== 'COMPLETED' && status !== 'CANCELLED';
+};
+
 const getSessionStyle = (session) => {
   const s = getEffectiveStatus(session);
   if (s === 'COMPLETED')
@@ -555,7 +563,7 @@ function SessionListRow({ session, onClick, onLark }) {
   const style = getSessionStyle(session);
   const isLive = getEffectiveStatus(session) === 'IN_PROGRESS';
   const isVirtual = session.deliveryMode === 'VIRTUAL';
-  const isLarkJoinable = isVirtual && session.larkJoinable && session.larkMeetingUrl;
+  const isLarkJoinable = canJoinGoogleMeet(session);
 
   return (
     <div className={`flex flex-col gap-3 rounded-2xl border p-4 transition sm:flex-row sm:items-center ${
@@ -705,10 +713,12 @@ function TodayTimeline({ sessions, onSelect, onLark }) {
 
 function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate }) {
   const isVirtual = session.deliveryMode === 'VIRTUAL';
+  const canJoinMeet = canJoinGoogleMeet(session);
+  const isPastSession = ['COMPLETED', 'CANCELLED'].includes(getEffectiveStatus(session));
   const [joining, setJoining] = useState(false);
 
   const handleJoinVirtualClass = async () => {
-    if (joining) return;
+    if (joining || !canJoinMeet) return;
 
     const popup = window.open('about:blank', '_blank');
     setJoining(true);
@@ -792,6 +802,19 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-sky-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
           </h4>
+          {canJoinMeet ? (
+            <p className="text-xs leading-6 text-[#8b706e]">
+              Liên kết phòng học đã sẵn sàng. Bạn có thể vào Google Meet từ đây.
+            </p>
+          ) : isPastSession && session.larkMeetingUrl ? (
+            <p className="text-xs leading-6 text-[#8b706e]">
+              Buổi học đã kết thúc. Link Google Meet không còn mở để tham gia.
+            </p>
+          ) : (
+            <p className="text-xs leading-6 text-[#8b706e]">
+              Staff chưa tạo liên kết Google Meet cho buổi học này.
+            </p>
+          )}
           {larkMessage && <p className="text-xs font-semibold text-rose-700">{larkMessage}</p>}
         </div>
       )}
@@ -814,8 +837,8 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       )}
 
       {/* CTA */}
-      <div className={`grid gap-3 border-t border-gray-100 pt-4 ${isVirtual ? 'sm:grid-cols-2' : ''}`}>
-        {isVirtual && (
+      <div className={`grid gap-3 border-t border-gray-100 pt-4 ${canJoinMeet || (isVirtual && isPastSession && session.larkMeetingUrl) ? 'sm:grid-cols-2' : ''}`}>
+        {canJoinMeet && (
           <button
             className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-sky-600 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-sky-700 active:scale-95 disabled:cursor-wait disabled:opacity-60"
             disabled={joining}
@@ -823,6 +846,16 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
             type="button"
           >
             {joining ? 'Đang mở Google Meet...' : 'Vào Google Meet'}
+            <Video className="h-4 w-4" />
+          </button>
+        )}
+        {isVirtual && isPastSession && session.larkMeetingUrl && !canJoinMeet && (
+          <button
+            className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-gray-50 py-3.5 text-sm font-extrabold text-gray-400"
+            disabled
+            type="button"
+          >
+            Google Meet đã đóng
             <Video className="h-4 w-4" />
           </button>
         )}

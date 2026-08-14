@@ -37,7 +37,6 @@ import {
   formatClassroomDate,
   formatClassroomDateTime,
   formatClassroomTime,
-  formatAssessmentType,
   formatGradebookFinalResult,
   formatSessionStatus,
   getClassroomSessionNumber,
@@ -49,13 +48,16 @@ import TeacherHomeworkSection from '../../components/teacher/TeacherHomeworkSect
 import TeacherMaterialsSection from '../../components/teacher/TeacherMaterialsSection';
 import TeacherChangeRequestForm from '../../components/teacher/TeacherChangeRequestForm';
 import TeacherAttendanceDisputesSection from '../../components/teacher/TeacherAttendanceDisputesSection';
+import TeacherGradebookSection from '../../components/teacher/TeacherGradebookSection';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
+import { downloadCsv, sanitizeCsvFilename } from '../../utils/csvExport';
 
 const teacherTabs = [
   { id: 'sessions', label: 'Buổi học' },
   { id: 'curriculum', label: 'Giáo trình' },
   { id: 'students', label: 'Học viên' },
   { id: 'homework', label: 'Bài tập' },
+  { id: 'gradebook', label: 'Bảng điểm' },
   { id: 'materials', label: 'Tài liệu' },
   { id: 'announcements', label: 'Thông báo' },
   { id: 'attendance-disputes', label: 'Khiếu nại điểm danh' },
@@ -66,7 +68,7 @@ export default function TeacherClassroomPage() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedInitialTab = searchParams.get('tab');
-  const initialTab = ['quizzes', 'gradebook'].includes(requestedInitialTab) ? 'homework' : requestedInitialTab;
+  const initialTab = requestedInitialTab === 'quizzes' ? 'homework' : requestedInitialTab;
   const [activeTab, setActiveTab] = useState(() => (
     teacherTabs.some((tab) => tab.id === initialTab) ? initialTab : 'sessions'
   ));
@@ -136,10 +138,10 @@ export default function TeacherClassroomPage() {
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    const tab = ['quizzes', 'gradebook'].includes(requestedTab) ? 'homework' : requestedTab;
+    const tab = requestedTab === 'quizzes' ? 'homework' : requestedTab;
     if (tab && teacherTabs.some((item) => item.id === tab)) {
       setActiveTab(tab);
-      if (['quizzes', 'gradebook'].includes(requestedTab)) {
+      if (requestedTab === 'quizzes') {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'homework');
         setSearchParams(nextParams, { replace: true });
@@ -166,6 +168,44 @@ export default function TeacherClassroomPage() {
       nextParams.set('action', 'create');
     }
     setSearchParams(nextParams, { replace: true });
+  };
+
+  const handlePublishGradebook = async () => {
+    setActionMessage('');
+    try {
+      const data = await classroomApi.publishGradebook(id);
+      setGradebook(data);
+      setActionMessage('Đã công bố bảng điểm thành công.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể công bố bảng điểm.'));
+    }
+  };
+
+  const handleUnpublishGradebook = async () => {
+    setActionMessage('');
+    try {
+      const data = await classroomApi.unpublishGradebook(id);
+      setGradebook(data);
+      setActionMessage('Đã thu hồi công bố bảng điểm.');
+    } catch (err) {
+      setActionMessage(getClassroomErrorMessage(err, 'Không thể thu hồi công bố bảng điểm.'));
+    }
+  };
+
+  const handleExportGradebook = () => {
+    const rows = gradebook.map((entry) => [
+      entry.studentName || `Học viên #${entry.studentId}`,
+      entry.studentEmail || '',
+      entry.attendancePercent ?? '',
+      entry.homeworkAverage ?? '',
+      entry.finalResult ?? '',
+      entry.status || '',
+    ]);
+    downloadCsv(
+      `${sanitizeCsvFilename(`bang-diem-${classroom?.title || id}`)}.csv`,
+      ['Tên học viên', 'Email', 'Chuyên cần (%)', 'Điểm TB bài tập', 'Điểm/Kết quả cuối', 'Trạng thái'],
+      rows,
+    );
   };
 
   // Build a beautiful student roster using gradebook entries
@@ -475,6 +515,23 @@ export default function TeacherClassroomPage() {
             setSearchParams(nextParams, { replace: true });
           }}
           selectedHomeworkId={searchParams.get('homeworkId')}
+          sessions={sessions}
+        />
+      );
+    }
+
+    if (activeTab === 'gradebook') {
+      return (
+        <TeacherGradebookSection
+          classroomId={id}
+          curriculumUnits={classroom?.curriculumProgram?.units || []}
+          gradebook={gradebook}
+          homework={homework}
+          onExport={handleExportGradebook}
+          onGradebookChange={setGradebook}
+          onMessage={setActionMessage}
+          onPublish={handlePublishGradebook}
+          onUnpublish={handleUnpublishGradebook}
           sessions={sessions}
         />
       );
@@ -796,7 +853,6 @@ function TeacherCurriculumPanel({ curriculum }) {
 function CurriculumUnitCard({ expanded, onToggle, unit }) {
   const totalResources = (unit.materials?.length ?? 0)
     + (unit.exercises?.length ?? 0)
-    + (unit.assessments?.length ?? 0)
     + (unit.flashcards?.length ?? 0);
 
   return (
@@ -834,7 +890,6 @@ function CurriculumUnitCard({ expanded, onToggle, unit }) {
           <div className="grid gap-3 md:grid-cols-2">
             <CurriculumRefList title="Học liệu" refs={unit.materials} />
             <CurriculumRefList title="Luyện tập trong giáo trình" refs={unit.exercises} />
-            <CurriculumRefList title="Bài đánh giá theo Unit" refs={unit.assessments} />
             <CurriculumRefList title="Flashcard" refs={unit.flashcards} />
           </div>
         </div>
@@ -854,7 +909,7 @@ function CurriculumRefList({ title, refs = [] }) {
               <p className="font-extrabold text-[#2b2828]">{ref.title}</p>
               <p className="mt-0.5 text-[#8b706e]">{[
                 ref.skill,
-                ref.type === 'ASSESSMENT' ? formatAssessmentType(ref.subtitle) : ref.subtitle,
+                ref.subtitle,
                 ref.status,
               ].filter(Boolean).join(' · ')}</p>
               {ref.fileUrl ? (
