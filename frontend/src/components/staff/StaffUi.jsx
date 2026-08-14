@@ -39,7 +39,7 @@ function resolvePageMeta(pathname) {
   if (pathname === '/staff' || pathname === '/staff/') {
     return {
       title: 'Việc cần làm hôm nay',
-      subtitle: 'Tổng hợp hồ sơ đăng ký chờ xử lý, yêu cầu thay đổi và các lớp học cần lưu ý.',
+      subtitle: 'Tổng hợp hồ sơ đăng ký, tư vấn, điểm giáo viên, điểm học viên và lớp cần lưu ý.',
     };
   }
   if (pathname === '/staff/classrooms' || pathname === '/staff/classrooms/') {

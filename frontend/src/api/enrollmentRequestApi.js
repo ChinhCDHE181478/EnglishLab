@@ -2,6 +2,13 @@ import axiosClient from './axiosClient';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
+const asList = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+};
+
 const enrollmentRequestApi = {
   async getCourseOfferings(deliveryType) {
     const response = await axiosClient.get('/api/course-offerings', {
@@ -27,8 +34,7 @@ const enrollmentRequestApi = {
     const response = await axiosClient.get('/api/staff/enrollment-requests', {
       params: status && status !== 'ALL' ? { status } : undefined,
     });
-    const data = unwrapData(response);
-    return Array.isArray(data) ? data : [];
+    return asList(unwrapData(response));
   },
 
   async createAtCenter(payload) {

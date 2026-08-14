@@ -11,7 +11,9 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
+import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
@@ -19,13 +21,21 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
+import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
+import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomChangeRequestType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomTeacherRole;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
+import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
+import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
@@ -42,13 +52,19 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
+import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
+import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
+import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
@@ -56,12 +72,17 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
+import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
+import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
+import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
@@ -133,7 +154,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
+    private final ClassroomChangeRequestRepository changeRequestRepository;
+    private final EnrollmentRequestRepository enrollmentRequestRepository;
+    private final TrainingProgramRepository trainingProgramRepository;
+    private final CurriculumProgramRepository curriculumProgramRepository;
+    private final TeacherProfessionalProfileRepository teacherProfileRepository;
+    private final TeacherPerformanceEvaluationRepository teacherEvaluationRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
@@ -164,6 +192,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         ensureUser("classroom.admin@englishlab.vn", "Nguyễn Admin", RoleEnum.ADMIN);
         ensureUser("classroom.manager@englishlab.vn", "Quản lý lớp học", RoleEnum.MANAGER);
         ensureUser("staff@englishlab.vn", "Nhân viên đào tạo", RoleEnum.STAFF);
+        User staff = userRepository.findByEmail("staff@englishlab.vn").orElseThrow();
 
         User alien = ensureExistingOrCreate(TEACHER_EMAIL, "Alien Teacher", RoleEnum.TEACHER);
         List<User> teachers = new ArrayList<>();
@@ -195,6 +224,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         List<ClassroomOffering> offerings = seedClasses(teachers, rooms, learners, showcaseLearner, alien);
         seedShowcaseOnlineProgress(showcaseLearner);
         seedAlienClassExtras(offerings, alien, showcaseLearner);
+        seedStaffOperationsData(staff, teachers, learners, offerings, alien, showcaseLearner);
         log.info("[CenterSheet] Xong. GV {} | HV {} | lop {}", TEACHER_EMAIL, LEARNER_EMAIL, offerings.size());
         } catch (Exception ex) {
             log.error("[CenterSheet] Seeder gap, da giu phan data tao duoc trong transaction hien tai neu loi da duoc bat. Chi tiet:", ex);
@@ -287,6 +317,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             }
             for (User learner : classLearners) {
                 ensureClassroomEnrollment(offering, learner, teacher, start);
+                ensureGradebook(offering, learner, teacher, classIndex);
             }
             seedAttendance(offering, classLearners);
             offerings.add(offering);
@@ -651,6 +682,336 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
         answerKey.fields().forEachRemaining(entry -> answers.put(entry.getKey(), entry.getValue().asText()));
         return answers;
+    }
+
+    private void seedStaffOperationsData(
+            User staff,
+            List<User> teachers,
+            List<User> learners,
+            List<ClassroomOffering> offerings,
+            User alien,
+            User showcaseLearner
+    ) {
+        try {
+            seedTeacherProfilesAndScores(staff, teachers);
+        } catch (Exception ex) {
+            log.warn("[CenterSheet] Khong nap duoc diem giao vien: {}", ex.getMessage());
+        }
+        try {
+            seedEnrollmentRequests(staff, learners, offerings, showcaseLearner);
+        } catch (Exception ex) {
+            log.warn("[CenterSheet] Khong nap duoc ho so dang ky: {}", ex.getMessage(), ex);
+        }
+        try {
+            seedChangeRequests(alien, offerings);
+        } catch (Exception ex) {
+            log.warn("[CenterSheet] Khong nap duoc yeu cau van hanh: {}", ex.getMessage());
+        }
+        try {
+            seedUpcomingAlertClass(teachers, learners);
+        } catch (Exception ex) {
+            log.warn("[CenterSheet] Khong nap duoc lop sap khai giang: {}", ex.getMessage());
+        }
+    }
+
+    private void seedTeacherProfilesAndScores(User staff, List<User> teachers) {
+        String[] headlines = {
+                "Giáo viên IELTS ca tối",
+                "Giáo viên TOEIC và giao tiếp",
+                "Giáo viên Writing và Speaking"
+        };
+        for (int i = 0; i < teachers.size(); i++) {
+            User teacher = teachers.get(i);
+            TeacherProfessionalProfile profile = teacherProfileRepository.findByTeacherId(teacher.getId())
+                    .orElseGet(() -> TeacherProfessionalProfile.builder().teacher(teacher).build());
+            profile.setHeadline(headlines[i % headlines.length]);
+            profile.setBiography("Giảng dạy ca tối tại EnglishLab Hai Bà Trưng, theo dõi tiến độ học viên từng buổi.");
+            profile.setSpecializations("IELTS, TOEIC, giao tiếp công sở");
+            profile.setTeachingLanguages("Tiếng Anh, tiếng Việt");
+            profile.setYearsOfExperience(3 + (i % 8));
+            profile.setHighestQualification(i % 2 == 0 ? "CELTA" : "IELTS 8.0");
+            profile.setPublicProfile(true);
+            teacherProfileRepository.save(profile);
+
+            if (teacherEvaluationRepository.findByTeacherIdOrderByPeriodEndDescIdDesc(teacher.getId()).isEmpty()) {
+                BigDecimal delivery = BigDecimal.valueOf(3.8 + (i % 10) * 0.1);
+                BigDecimal support = BigDecimal.valueOf(3.7 + ((i + 3) % 10) * 0.1);
+                BigDecimal grading = BigDecimal.valueOf(3.6 + ((i + 5) % 10) * 0.1);
+                BigDecimal professionalism = BigDecimal.valueOf(3.9 + ((i + 2) % 8) * 0.1);
+                BigDecimal overall = delivery.add(support).add(grading).add(professionalism)
+                        .divide(BigDecimal.valueOf(4), 2, java.math.RoundingMode.HALF_UP);
+                teacherEvaluationRepository.save(TeacherPerformanceEvaluation.builder()
+                        .teacher(teacher)
+                        .evaluator(staff)
+                        .periodStart(LocalDate.now().minusMonths(3))
+                        .periodEnd(LocalDate.now().minusDays(7))
+                        .lessonDeliveryScore(delivery)
+                        .learnerSupportScore(support)
+                        .gradingTimelinessScore(grading)
+                        .professionalismScore(professionalism)
+                        .overallScore(overall)
+                        .strengths("Dẫn dắt lớp ca tối rõ ràng, phản hồi bài tập đúng hạn.")
+                        .improvementAreas("Cần thêm ví dụ collocation trong buổi Speaking.")
+                        .actionPlan("Bổ sung 1 hoạt động giao tiếp mỗi tuần.")
+                        .status(TeacherEvaluationStatus.PUBLISHED)
+                        .publishedAt(LocalDateTime.now().minusDays(6))
+                        .build());
+            }
+        }
+    }
+
+    private void seedEnrollmentRequests(
+            User staff,
+            List<User> learners,
+            List<ClassroomOffering> offerings,
+            User showcaseLearner
+    ) {
+        TrainingProgram ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
+        TrainingProgram toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
+        if (enrollmentRequestRepository.count() > 0) {
+            for (EnrollmentRequest existing : enrollmentRequestRepository.findAll()) {
+                if (existing.getCourseOffering() == null) {
+                    boolean toeic = "TOEIC_2_SKILLS".equals(existing.getConsultationTrack());
+                    existing.setCourseOffering(toeic ? toeicProgram : ieltsProgram);
+                    enrollmentRequestRepository.save(existing);
+                }
+            }
+            return;
+        }
+        List<User> prospects = new ArrayList<>();
+        for (int i = 1; i <= 36; i++) {
+            String name = LAST_NAMES[i % LAST_NAMES.length] + " " + FIRST_NAMES[i % FIRST_NAMES.length] + " Tư vấn " + i;
+            prospects.add(ensureUser("hs.consult.%03d@englishlab.vn".formatted(i), name, RoleEnum.LEARNER));
+        }
+        EnrollmentRequestStatus[] statuses = {
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.SUBMITTED,
+                EnrollmentRequestStatus.INVITATION_SENT,
+                EnrollmentRequestStatus.INVITATION_SENT,
+                EnrollmentRequestStatus.TEST_SCHEDULED,
+                EnrollmentRequestStatus.TEST_SCHEDULED,
+                EnrollmentRequestStatus.TEST_SCHEDULED,
+                EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.UNDER_STAFF_REVIEW,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.WAITING_FOR_CLASS,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.CLASS_ASSIGNED,
+                EnrollmentRequestStatus.REJECTED,
+                EnrollmentRequestStatus.REJECTED
+        };
+        ClassroomOffering assigned = offerings.isEmpty() ? null : offerings.getFirst();
+        for (int i = 0; i < prospects.size(); i++) {
+            User learner = prospects.get(i);
+            EnrollmentRequestStatus status = statuses[i];
+            EnrollmentRequest.EnrollmentRequestBuilder builder = EnrollmentRequest.builder()
+                    .learner(learner)
+                    .contactName(learner.getFullName())
+                    .contactEmail(learner.getEmail())
+                    .contactPhone("09" + String.format("%08d", 68000000 + i))
+                    .consultationTrack(i % 2 == 0 ? "IELTS_4_SKILLS" : "TOEIC_2_SKILLS")
+                    .studyWorkGoal("Muốn học ca tối để đi làm ban ngày.")
+                    .preferredSchedule("Thứ 2-4-6 · Tối")
+                    .campusPreference(CAMPUS_NAME)
+                    .learnerNote("Đăng ký tư vấn từ lịch khai giảng sheet.")
+                    .requestSource(EnrollmentRequestSource.ONLINE)
+                    .courseOffering(i % 2 == 0 ? ieltsProgram : toeicProgram)
+                    .status(status)
+                    .version(0L)
+                    .createdAt(LocalDateTime.now().minusDays(12 - (i % 10)))
+                    .updatedAt(LocalDateTime.now().minusHours(i));
+            if (status != EnrollmentRequestStatus.SUBMITTED) {
+                builder.reviewedBy(staff).reviewedAt(LocalDateTime.now().minusDays(3));
+                builder.invitationSentAt(LocalDateTime.now().minusDays(5));
+                builder.staffNote("Đã gọi điện tư vấn ca tối và hướng dẫn bài xếp lớp.");
+            }
+            if (status == EnrollmentRequestStatus.TEST_SCHEDULED
+                    || status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
+                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
+                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
+                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
+                builder.testAppointmentAt(LocalDateTime.now().minusDays(2));
+                builder.testLocation(ADDRESS);
+            }
+            if (status == EnrollmentRequestStatus.PLACEMENT_TEST_COMPLETED
+                    || status == EnrollmentRequestStatus.UNDER_STAFF_REVIEW
+                    || status == EnrollmentRequestStatus.WAITING_FOR_CLASS
+                    || status == EnrollmentRequestStatus.CLASS_ASSIGNED) {
+                builder.testCompletedAt(LocalDateTime.now().minusDays(1));
+                builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
+            }
+            if (status == EnrollmentRequestStatus.CLASS_ASSIGNED && assigned != null) {
+                builder.assignedClassroom(assigned);
+                builder.requestedClassroom(assigned);
+            }
+            if (status == EnrollmentRequestStatus.REJECTED) {
+                builder.rejectionReason("Chưa phù hợp lịch ca tối hiện tại.");
+            }
+            enrollmentRequestRepository.save(builder.build());
+        }
+        if (showcaseLearner != null && assigned != null) {
+            enrollmentRequestRepository.save(EnrollmentRequest.builder()
+                    .learner(showcaseLearner)
+                    .contactName(showcaseLearner.getFullName())
+                    .contactEmail(showcaseLearner.getEmail())
+                    .consultationTrack("IELTS_4_SKILLS")
+                    .courseOffering(ieltsProgram)
+                    .studyWorkGoal("Học viên showcase đã được tư vấn và xếp lớp.")
+                    .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
+                    .requestSource(EnrollmentRequestSource.CENTER)
+                    .assignedClassroom(assigned)
+                    .requestedClassroom(assigned)
+                    .reviewedBy(staff)
+                    .reviewedAt(LocalDateTime.now().minusDays(8))
+                    .confirmedLevel(PlacementLevel.INTERMEDIATE)
+                    .staffNote("Đã tư vấn trực tiếp và xếp vào lớp 01.")
+                    .version(0L)
+                    .createdAt(LocalDateTime.now().minusDays(14))
+                    .updatedAt(LocalDateTime.now().minusDays(8))
+                    .build());
+        }
+    }
+
+    private TrainingProgram ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
+        return trainingProgramRepository.findBySlug(slug).orElseGet(() -> {
+            boolean toeic = slug.contains("toeic");
+            String curriculumSlug = slug + "-curriculum";
+            String codeBase = slug.replace("center-sheet-", "").replace("-", "_").toUpperCase();
+            CurriculumProgram curriculum = curriculumProgramRepository.findBySlug(curriculumSlug)
+                    .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
+                            .title(title)
+                            .code("CS_" + codeBase)
+                            .slug(curriculumSlug)
+                            .deliveryMode(mode)
+                            .examCategory(toeic ? "TOEIC" : "IELTS")
+                            .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
+                            .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
+                            .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
+                            .totalSessions(36)
+                            .status("APPROVED")
+                            .displayOrder(1)
+                            .build()));
+            return trainingProgramRepository.save(TrainingProgram.builder()
+                    .title(title)
+                    .code("TP_" + codeBase)
+                    .slug(slug)
+                    .deliveryMode(mode)
+                    .curriculumProgram(curriculum)
+                    .shortDescription(title)
+                    .description("Chương trình ca tối tại " + CAMPUS_NAME + ".")
+                    .price(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
+                    .duration("12 tuần")
+                    .studyMode("Offline · Ca tối")
+                    .maxCapacity(18)
+                    .plannedSchedule("Thứ 2-4-6 hoặc 3-5-7 · 18:00–21:15")
+                    .status(PackageStatus.PUBLISHED)
+                    .displayOrder(1)
+                    .featured(true)
+                    .build());
+        });
+    }
+
+    private void seedChangeRequests(User alien, List<ClassroomOffering> offerings) {
+        if (offerings.isEmpty() || changeRequestRepository.count() > 0) {
+            return;
+        }
+        ClassroomOffering offering = offerings.getFirst();
+        List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        ClassroomSession session = sessions.isEmpty() ? null : sessions.getFirst();
+        changeRequestRepository.save(ClassroomChangeRequest.builder()
+                .requestType(ClassroomChangeRequestType.RESCHEDULE_SESSION)
+                .requester(alien)
+                .requesterRole(RoleEnum.TEACHER)
+                .classroomOffering(offering)
+                .targetSession(session)
+                .reason("Trùng lịch họp phụ huynh, xin dời buổi học ca 1.")
+                .status(ClassroomChangeRequestStatus.PENDING)
+                .build());
+        changeRequestRepository.save(ClassroomChangeRequest.builder()
+                .requestType(ClassroomChangeRequestType.CHANGE_ROOM)
+                .requester(alien)
+                .requesterRole(RoleEnum.TEACHER)
+                .classroomOffering(offering)
+                .reason("Phòng P001 đang bảo trì loa, xin chuyển phòng.")
+                .status(ClassroomChangeRequestStatus.PENDING)
+                .build());
+    }
+
+    private void seedUpcomingAlertClass(List<User> teachers, List<User> learners) {
+        if (offeringRepository.findByLearningPackageSlug("center-sheet-class-31").isPresent()) {
+            return;
+        }
+        PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM).orElse(null);
+        if (classroomType == null || teachers.size() < 2 || learners.size() < 4) {
+            return;
+        }
+        User teacher = teachers.get(1);
+        ClassroomOffering offering = upsertOffering(
+                classroomType,
+                "center-sheet-class-31",
+                "IELTS Center K4 T2-4-6 Ca 1",
+                false,
+                LocalDate.now().plusDays(6),
+                LocalDate.now().plusWeeks(12),
+                teacher,
+                roomRepository.findByActiveTrue().stream().findFirst().orElse(null),
+                false
+        );
+        offering.setMaxCapacity(10);
+        offering.setStatus(ClassroomOfferingStatus.UPCOMING);
+        offeringRepository.save(offering);
+        ensureTeacherAssignment(offering, teacher);
+        ensureClassroomEnrollment(offering, learners.get(1), teacher, LocalDate.now());
+        ensureClassroomEnrollment(offering, learners.get(2), teacher, LocalDate.now());
+        ensureGradebook(offering, learners.get(1), teacher, 30);
+        ensureGradebook(offering, learners.get(2), teacher, 30);
+    }
+
+    private void ensureGradebook(ClassroomOffering offering, User learner, User teacher, int salt) {
+        BigDecimal homework = BigDecimal.valueOf(6.5 + (salt + learner.getId().intValue()) % 30 * 0.1)
+                .min(BigDecimal.TEN);
+        BigDecimal quiz = BigDecimal.valueOf(6.8 + (salt * 2 + learner.getId().intValue()) % 28 * 0.1)
+                .min(BigDecimal.TEN);
+        BigDecimal attendance = BigDecimal.valueOf(78 + (salt + learner.getId().intValue()) % 20);
+        BigDecimal participation = BigDecimal.valueOf(7.0 + (salt + 4) % 25 * 0.1).min(BigDecimal.TEN);
+        BigDecimal finalResult = homework.add(quiz).add(participation)
+                .divide(BigDecimal.valueOf(3), 2, java.math.RoundingMode.HALF_UP);
+        ClassroomGradebookEntry entry = gradebookEntryRepository
+                .findByClassroomOfferingIdAndStudentId(offering.getId(), learner.getId())
+                .orElseGet(() -> ClassroomGradebookEntry.builder()
+                        .classroomOffering(offering)
+                        .student(learner)
+                        .build());
+        entry.setHomeworkScore(homework);
+        entry.setQuizScore(quiz);
+        entry.setAttendancePercent(attendance);
+        entry.setParticipationScore(participation);
+        entry.setFinalResult(finalResult);
+        entry.setTeacherComment("Tiến độ đều, cần giữ phong độ bài tập về nhà.");
+        entry.setStatus(GradebookEntryStatus.PUBLISHED);
+        entry.setUpdatedBy(teacher);
+        gradebookEntryRepository.save(entry);
     }
 
     private User ensureUser(String email, String fullName, RoleEnum role) {

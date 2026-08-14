@@ -257,7 +257,7 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
             EnrollmentRequestStatus status,
             String staffEmail
     ) {
-        assertStaff(requireUser(staffEmail));
+        assertStaffViewer(requireUser(staffEmail));
         List<EnrollmentRequest> requests = status == null
                 ? enrollmentRequestRepository.findAllByOrderByCreatedAtDesc()
                 : enrollmentRequestRepository.findByStatusOrderByCreatedAtAsc(status);
@@ -597,6 +597,12 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
     private void assertStaff(User user) {
         if (!TrainingRolePolicy.canPerformStaffAction(user)) {
             throw new IllegalArgumentException("Bạn không có quyền xử lý yêu cầu đăng ký.");
+        }
+    }
+
+    private void assertStaffViewer(User user) {
+        if (!TrainingRolePolicy.canOperate(user)) {
+            throw new IllegalArgumentException("Bạn không có quyền xem yêu cầu đăng ký.");
         }
     }
 
