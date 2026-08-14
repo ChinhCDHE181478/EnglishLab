@@ -128,6 +128,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
@@ -137,7 +140,7 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
         clearLegacyDemoLarkLinks();
         syncTodayTeacher1Data();
 
-        if (!seedEnabled) {
+        if (!seedEnabled || sheetEnabled) {
             return;
         }
 

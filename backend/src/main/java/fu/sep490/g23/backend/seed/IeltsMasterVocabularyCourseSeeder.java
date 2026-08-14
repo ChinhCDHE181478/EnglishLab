@@ -20,6 +20,7 @@ import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +55,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -131,6 +133,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
 
         onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
         onlineCourseRepository.save(onlineCourse);
+        onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
     }
 
     private void upsertModule(OnlineCourse onlineCourse, String courseSlug, ModuleSeed moduleSeed) {

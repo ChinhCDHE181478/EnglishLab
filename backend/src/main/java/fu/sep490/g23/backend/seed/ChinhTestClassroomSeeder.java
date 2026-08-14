@@ -157,6 +157,9 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetEnabled;
+
     record IeltsUnitSeed(
             String title,
             String description,
@@ -227,6 +230,9 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (sheetEnabled) {
+            return;
+        }
         log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
 
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)

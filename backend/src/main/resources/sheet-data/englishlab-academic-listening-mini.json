@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "englishlab_academic_listening_mini_1",
+  "title": "EnglishLab Academic Listening Mini Test 1",
+  "sourceLabel": "Original EnglishLab practice item",
+  "durationMinutes": 12,
+  "audioLabel": "Mini lecture on study habits",
+  "audioUrl": "",
+  "rules": [
+    "Complete all questions in one sitting.",
+    "Write no more than two words and/or a number."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Campus orientation",
+      "summary": "A student adviser explains how new learners should plan evening classes.",
+      "questionGroups": [
+        {
+          "title": "Questions 1-8",
+          "instructions": "Complete the notes. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "type": "text",
+          "questions": [
+            {"number": 1, "promptBefore": "The centre opens evening classes at"},
+            {"number": 2, "promptBefore": "Each course lasts"},
+            {"number": 3, "promptBefore": "Learners attend"},
+            {"number": 4, "promptBefore": "Sunday is"},
+            {"number": 5, "promptBefore": "A typical class has"},
+            {"number": 6, "promptBefore": "Teachers usually handle"},
+            {"number": 7, "promptBefore": "Online groups use"},
+            {"number": 8, "promptBefore": "Placement results are stored in"}
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "18:00",
+    "2": "3 months",
+    "3": "3 sessions",
+    "4": "closed",
+    "5": "10 students",
+    "6": "2 classes",
+    "7": "Google Meet",
+    "8": "the API"
+  }
+}

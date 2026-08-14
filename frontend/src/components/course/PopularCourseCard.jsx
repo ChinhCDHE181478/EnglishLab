@@ -7,7 +7,7 @@ import { stripRichTextToPlain } from '../../utils/lessonRichText';
 const PopularCourseCard = ({ course }) => (
   <div className="course-card flex flex-col overflow-hidden rounded-xl border border-[#dfbfbd]/20 bg-white shadow-sm">
     <div className="relative h-48 overflow-hidden bg-[#e2e2e2]">
-      <img alt={course.title} className="h-full w-full object-cover grayscale-[20%] transition-all duration-500 hover:grayscale-0" src={course.thumbnailUrl} />
+      <img alt={course.title} className="h-full w-full object-cover grayscale-[20%] transition-all duration-500 hover:grayscale-0" src={course.thumbnailUrl || '/course-covers/classroom-offline.png'} />
       <div className="absolute left-4 top-4 flex gap-2">
         <span className="rounded bg-[#4b0009] px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.1em] text-white">
           {course.featured ? 'Phổ biến' : course.categoryName || categoryLabels[course.category] || course.category}

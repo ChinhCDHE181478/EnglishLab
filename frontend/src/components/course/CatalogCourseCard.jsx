@@ -51,7 +51,7 @@ const CatalogCourseCard = ({ course, compact = false }) => {
         <img
           alt={course.title}
           className={`w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] ${compact ? 'h-[150px]' : 'h-[180px]'}`}
-          src={course.thumbnailUrl}
+          src={course.thumbnailUrl || '/course-covers/classroom-offline.png'}
         />
       </div>
 

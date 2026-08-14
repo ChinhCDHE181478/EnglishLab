@@ -38,23 +38,28 @@ public class OnlineCourseDataSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
         repairLegacyCourseCategories();
+        if (seedEnabled || sheetEnabled) {
+            seedPackageTypes();
+            seedCourseCategories();
+            backfillMissingCourseCategories();
+        }
         if (!seedEnabled) {
             return;
         }
-
-        seedPackageTypes();
-        seedCourseCategories();
-        backfillMissingCourseCategories();
         cleanupPlaceholderCourses();
     }
 
     private void seedPackageTypes() {
         seedPackageType(PackageTypeCode.ONLINE_COURSE, "Online Course", "Self-paced or mentor-supported online learning package.");
         seedPackageType(PackageTypeCode.CLASSROOM, "Classroom", "Offline or blended classroom package.");
+        seedPackageType(PackageTypeCode.BUNDLE, "Bundle", "Combined learning package.");
         seedPackageType(PackageTypeCode.MOCK_TEST, "Mock Test", "Certification exam simulation package.");
         seedPackageType(PackageTypeCode.SUBSCRIPTION, "Subscription", "Recurring access package.");
     }
