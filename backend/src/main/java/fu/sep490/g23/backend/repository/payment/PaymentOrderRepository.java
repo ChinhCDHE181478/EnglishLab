@@ -28,7 +28,7 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     Long sumAmountByStatus(@Param("status") PaymentOrderStatus status);
 
     @Query("""
-            select coalesce(sum(coalesce(paymentOrder.systemDiscountAmount, 0) + coalesce(paymentOrder.couponDiscountAmount, 0)), 0)
+            select coalesce(sum(coalesce(paymentOrder.systemDiscountAmount, 0) + coalesce(paymentOrder.learningPathDiscountAmount, 0) + coalesce(paymentOrder.couponDiscountAmount, 0)), 0)
             from PaymentOrder paymentOrder
             where paymentOrder.status = :status
             """)

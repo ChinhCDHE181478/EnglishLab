@@ -52,10 +52,6 @@ public class OnlineCourseRequest {
 
     @DecimalMin(value = "0.0")
     @DecimalMax(value = "9.0")
-    private Double recommendedCurrentBandMax;
-
-    @DecimalMin(value = "0.0")
-    @DecimalMax(value = "9.0")
     private Double targetBand;
 
     @Size(max = 80)
@@ -76,9 +72,6 @@ public class OnlineCourseRequest {
     @Size(max = 80)
     private String duration;
 
-    @Size(max = 120)
-    private String studyMode;
-
     @DecimalMin(value = "0.00")
     private BigDecimal price;
 
@@ -87,12 +80,6 @@ public class OnlineCourseRequest {
 
     @Size(max = 700)
     private String thumbnailUrl;
-
-    @Min(0)
-    private Integer totalLessons;
-
-    @Min(0)
-    private Integer totalHours;
 
     @Min(0)
     private Integer displayOrder;

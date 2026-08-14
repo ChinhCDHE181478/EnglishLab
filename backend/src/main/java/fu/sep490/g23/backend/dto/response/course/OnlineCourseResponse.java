@@ -29,7 +29,6 @@ public class OnlineCourseResponse {
     private PackageStatus status;
     private String targetScore;
     private Double recommendedCurrentBandMin;
-    private Double recommendedCurrentBandMax;
     private Double targetBand;
     private String learningPathCode;
     private String learningPathName;

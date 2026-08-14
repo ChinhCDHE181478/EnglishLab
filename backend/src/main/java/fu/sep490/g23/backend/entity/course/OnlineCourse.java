@@ -36,9 +36,6 @@ public class OnlineCourse {
     @Column(name = "recommended_current_band_min")
     private Double recommendedCurrentBandMin;
 
-    @Column(name = "recommended_current_band_max")
-    private Double recommendedCurrentBandMax;
-
     @Column(name = "target_band")
     private Double targetBand;
 

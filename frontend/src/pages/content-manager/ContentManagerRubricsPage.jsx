@@ -11,6 +11,7 @@ import {
 } from '../../components/content-manager/ManagerListUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { usePagination } from '../../components/ui/Pagination';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
 
@@ -275,8 +276,8 @@ export default function ContentManagerRubricsPage() {
 
   return (
     <div className="space-y-6">
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      {success ? <Notice tone="success">{success}</Notice> : null}
+      {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật rubric" />
 
       {editorOpen && (
         <RubricEditorModal onClose={() => resetForm(false)}>

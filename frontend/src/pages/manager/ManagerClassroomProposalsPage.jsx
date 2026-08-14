@@ -16,11 +16,11 @@ import {
 } from 'lucide-react';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 import {
   ERROR_NOTICE_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
@@ -40,6 +40,19 @@ const deliveryLabels = {
   OFFLINE: 'Offline',
   VIRTUAL: 'Virtual',
 };
+
+function StatusBadge({ status }) {
+  const meta = statusMeta[status] || {
+    label: status || 'Không rõ',
+    className: 'border-slate-200 bg-slate-50 text-slate-600',
+  };
+
+  return (
+    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-extrabold ${meta.className}`}>
+      {meta.label}
+    </span>
+  );
+}
 
 export default function ManagerClassroomProposalsPage() {
   const [activeStatus, setActiveStatus] = useState('PENDING_APPROVAL');
@@ -164,6 +177,8 @@ export default function ManagerClassroomProposalsPage() {
 
   return (
     <div className="space-y-5">
+      {!selectedProposal ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã xử lý đề xuất" />
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between gap-3">
@@ -268,9 +283,6 @@ export default function ManagerClassroomProposalsPage() {
         </button>
       </section>
 
-      {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}
-      {success ? <div className={SUCCESS_NOTICE_CLASS}>{success}</div> : null}
-
       {loading ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
@@ -361,6 +373,112 @@ function ProposalCard({ proposal, onOpen }) {
     </article>
   );
 }
+
+function ProposalDetailsModal({ action, error, onBeginReview, onClose, onReasonChange, onSubmit, proposal, reason, submitting }) {
+  const canReview = proposal.approvalStatus === 'PENDING_APPROVAL';
+  const isVirtual = proposal.deliveryType === 'VIRTUAL';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+      <section aria-modal="true" className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[28px] bg-white shadow-2xl" role="dialog">
+        <header className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 px-6 py-5 backdrop-blur">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={proposal.approvalStatus} />
+              <span className="text-xs font-bold text-slate-400">{proposal.proposalCode}</span>
+            </div>
+            <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{proposal.title}</h2>
+            <p className="mt-1 text-sm text-slate-500">{proposal.courseOfferingTitle}</p>
+          </div>
+          <button aria-label="Đóng" className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100" disabled={submitting} onClick={onClose} type="button">
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        {error ? <div className={`mx-6 mt-6 ${ERROR_NOTICE_CLASS}`}>{error}</div> : null}
+
+        <div className="grid gap-6 p-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="space-y-5">
+            <Section title="Kế hoạch lớp học">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Detail icon={Users} label="Sức chứa" value={`${proposal.capacity} học viên`} />
+                <Detail icon={Clock3} label="Số buổi dự kiến" value={`${proposal.plannedSessionCount || 0} buổi`} />
+                <Detail icon={CalendarDays} label="Ngày học" value={`${formatDate(proposal.plannedStartDate)} – ${formatDate(proposal.plannedEndDate)}`} />
+                <Detail icon={Clock3} label="Lịch lặp" value={`${formatWeekdays(proposal.weekdays)} · ${formatTime(proposal.sessionStartTime)}–${formatTime(proposal.sessionEndTime)}`} />
+                <Detail icon={GraduationCap} label="Giáo viên" value={proposal.primaryTeacherName || 'Chưa chọn'} />
+                <Detail
+                  icon={isVirtual ? Link2 : Building2}
+                  label={isVirtual ? 'Phòng học Virtual' : 'Phòng học Offline'}
+                  value={isVirtual
+                    ? 'Tự động tạo theo từng buổi'
+                    : proposal.roomName || 'Chưa chọn phòng'}
+                />
+              </div>
+            </Section>
+          </div>
+
+          <div className="space-y-5">
+            <Section title="Thông tin trình duyệt">
+              <div className="space-y-3 text-sm">
+                <ReviewRow label="Người tạo" value={proposal.createdByName || 'Không rõ'} />
+                <ReviewRow label="Gửi duyệt lúc" value={formatDateTime(proposal.submittedAt)} />
+                <ReviewRow label="Ghi chú đề xuất" value={proposal.staffNote || 'Không có ghi chú'} />
+                {proposal.reviewedAt ? <ReviewRow label="Người duyệt" value={proposal.reviewedByName || 'Không rõ'} /> : null}
+                {proposal.reviewedAt ? <ReviewRow label="Duyệt lúc" value={formatDateTime(proposal.reviewedAt)} /> : null}
+                {proposal.reviewNote ? <ReviewRow label="Phản hồi" value={proposal.reviewNote} /> : null}
+              </div>
+            </Section>
+
+            {canReview ? (
+              <Section title="Quyết định phê duyệt">
+                {!action ? (
+                  <div className="space-y-3">
+                    <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700" onClick={() => onBeginReview('approve')} type="button">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Duyệt và tạo lớp chính thức
+                    </button>
+                    <button className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-3 text-sm font-extrabold text-rose-700 transition hover:bg-rose-50" onClick={() => onBeginReview('reject')} type="button">
+                      <XCircle className="h-4 w-4" />
+                      Từ chối đề xuất
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {action === 'reject' ? (
+                      <label className="block">
+                        <span className="mb-2 block text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Lý do từ chối</span>
+                        <textarea
+                          autoFocus
+                          className={TEXTAREA_CLASS}
+                          onChange={(event) => onReasonChange(event.target.value)}
+                          placeholder="Nêu rõ nội dung cần điều chỉnh..."
+                          rows={5}
+                          value={reason}
+                        />
+                      </label>
+                    ) : null}
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button className={SECONDARY_BUTTON_CLASS} disabled={submitting} onClick={() => onBeginReview(null)} type="button">Quay lại</button>
+                      <button
+                        className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-extrabold text-white transition disabled:opacity-60 ${action === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}
+                        disabled={submitting}
+                        onClick={onSubmit}
+                        type="button"
+                      >
+                        {submitting ? 'Đang xử lý...' : action === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </Section>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function Metric({ icon: Icon, label, value }) {
   return <div className="rounded-2xl bg-slate-50 p-3"><div className="flex items-center gap-2 text-slate-400"><Icon className="h-4 w-4" /><span className="text-[10px] font-extrabold uppercase tracking-[0.1em]">{label}</span></div><p className="mt-2 text-sm font-extrabold text-slate-800">{value}</p></div>;
 }

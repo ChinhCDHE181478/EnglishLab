@@ -23,6 +23,7 @@ import classroomApi from '../../api/classroomApi';
 import { ContentManagerLoadingState, HeaderActions, Panel, SectionTitle, StatusBadge } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import FileDropzone from '../../components/ui/FileDropzone';
 import Pagination from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
@@ -103,6 +104,7 @@ export default function ContentManagerMaterialsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [editorError, setEditorError] = useState('');
   const [downloadingId, setDownloadingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -186,6 +188,7 @@ export default function ContentManagerMaterialsPage() {
   const resetForm = (open = false) => {
     setEditingId(null);
     setForm(emptyForm);
+    setEditorError('');
     setComposerOpen(open);
   };
 
@@ -209,12 +212,14 @@ export default function ContentManagerMaterialsPage() {
       status: item.status || 'DRAFT',
     });
     setMessage('');
+    setEditorError('');
   };
 
   const handleUpload = async (file) => {
     if (!file) return;
     setUploading(true);
     setMessage('');
+    setEditorError('');
     try {
       const uploaded = await classroomApi.uploadContentManagerMaterialLibraryFile(file);
       const nextUrl = uploaded.url || '';
@@ -228,7 +233,7 @@ export default function ContentManagerMaterialsPage() {
       setMessage('Đã tải tệp lên kho học liệu. Bạn có thể lưu ngay hoặc chỉnh thêm mô tả.');
       setComposerOpen(true);
     } catch (err) {
-      setMessage(getClassroomErrorMessage(err, 'Không thể tải tệp học liệu lên.'));
+      setEditorError(getClassroomErrorMessage(err, 'Không thể tải tệp học liệu lên.'));
     } finally {
       setUploading(false);
     }
@@ -237,13 +242,14 @@ export default function ContentManagerMaterialsPage() {
   const handleSave = async () => {
     const validationMessage = validateMaterialForm(form);
     if (validationMessage) {
-      setMessage(validationMessage);
+      setEditorError(validationMessage);
       setComposerOpen(true);
       return;
     }
 
     setSaving(true);
     setMessage('');
+    setEditorError('');
     try {
       const payload = toRequestPayload(form);
       let saved;
@@ -266,7 +272,7 @@ export default function ContentManagerMaterialsPage() {
       resetForm(false);
       await loadItems();
     } catch (err) {
-      setMessage(getClassroomErrorMessage(err, 'Không thể lưu học liệu trung tâm.'));
+      setEditorError(getClassroomErrorMessage(err, 'Không thể lưu học liệu trung tâm.'));
       setComposerOpen(true);
     } finally {
       setSaving(false);
@@ -353,17 +359,12 @@ export default function ContentManagerMaterialsPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: 'easeOut' }}
     >
-      {message ? (
-        <div
-          className={`rounded-2xl border px-4 py-3 text-sm ${
-            /^Đã /.test(message)
-              ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
-              : 'border-rose-100 bg-rose-50 text-rose-800'
-          }`}
-        >
-          {message}
-        </div>
-      ) : null}
+      <ManagementToast
+        message={message}
+        onClose={() => setMessage('')}
+        tone={/^Đã /.test(message) ? 'success' : 'error'}
+        title={/^Đã /.test(message) ? 'Đã cập nhật học liệu' : undefined}
+      />
 
       <HeaderActions>
         <button
@@ -393,6 +394,7 @@ export default function ContentManagerMaterialsPage() {
           </div>
 
           <div className="space-y-4">
+            {editorError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{editorError}</div> : null}
             <TextInput
               label="Tên học liệu *"
               value={form.title}

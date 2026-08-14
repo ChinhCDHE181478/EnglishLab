@@ -45,6 +45,7 @@ public class PaymentReceiptPdfService {
             document.add(line("Khoa hoc", courseTitles(order), labelFont, bodyFont));
             document.add(line("Gia goc", formatVnd(order.getOriginalAmount()), labelFont, bodyFont));
             document.add(line("Giam he thong", formatVnd(order.getSystemDiscountAmount()), labelFont, bodyFont));
+            document.add(line("Giảm lộ trình", formatVnd(order.getLearningPathDiscountAmount()), labelFont, bodyFont));
             document.add(line("Giam ma", formatVnd(order.getCouponDiscountAmount()), labelFont, bodyFont));
             document.add(line("Ma giam gia", nullToDash(order.getDiscountCodeText()), labelFont, bodyFont));
             document.add(line("Thanh toan", formatVnd(order.getAmount()), labelFont, bodyFont));

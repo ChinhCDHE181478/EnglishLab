@@ -60,7 +60,7 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         learningPackageRepository.findBySlugAndDeletedFalse("ielts-master-vocabulary-band-7-plus")
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(course -> {
-                    configurePath(course, 1, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 6.5, 7.0,
+                    configurePath(course, 1, "IELTS 5.5 to 7.0 Self-Paced Path", 5.5, 7.0,
                             "Learner can use band-7 topic vocabulary, collocations, and examples in IELTS Speaking/Writing responses.",
                             "e2-ielts-practice-tests");
                     seedVocabularyAssessments(course, vocabularyRubric);
@@ -69,19 +69,18 @@ public class AiAssessmentAndLearningPathSeeder implements CommandLineRunner {
         learningPackageRepository.findBySlugAndDeletedFalse("e2-ielts-practice-tests")
                 .flatMap(onlineCourseRepository::findByLearningPackage)
                 .ifPresent(course -> {
-                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0, 7.0,
+                    configurePath(course, 2, "IELTS 5.5 to 7.0 Self-Paced Path", 6.0, 7.0,
                             "Learner can complete IELTS-style practice tests, analyze mistakes, and follow AI recommendations for final review.",
                             null);
                     seedPracticeTestAssessments(course, writingRubric, speakingRubric);
                 });
     }
 
-    private void configurePath(OnlineCourse course, int order, String name, double minBand, double maxBand, double targetBand, String outcome, String nextSlug) {
+    private void configurePath(OnlineCourse course, int order, String name, double minBand, double targetBand, String outcome, String nextSlug) {
         course.setLearningPathCode("IELTS_BAND_55_TO_70");
         course.setLearningPathName(name);
         course.setLearningPathOrder(order);
         course.setRecommendedCurrentBandMin(minBand);
-        course.setRecommendedCurrentBandMax(maxBand);
         course.setTargetBand(targetBand);
         course.setTargetOutcome(outcome);
         course.setRecommendedNextCourseSlug(nextSlug);

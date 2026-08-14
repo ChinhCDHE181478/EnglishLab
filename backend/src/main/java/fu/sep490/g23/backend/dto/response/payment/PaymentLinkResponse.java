@@ -13,7 +13,9 @@ public class PaymentLinkResponse {
     private String status;
     private Long originalAmount;
     private Long systemDiscountAmount;
+    private Long learningPathDiscountAmount;
     private Long couponDiscountAmount;
     private Long totalAmount;
     private String couponCode;
+    private Long learningPathId;
 }

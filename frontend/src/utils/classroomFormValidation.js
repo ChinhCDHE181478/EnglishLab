@@ -24,8 +24,8 @@ export function validateClassroomOfferingForm(form) {
     if (!form.primaryTeacherId) {
       return 'Lớp sắp mở hoặc đang hoạt động phải có giáo viên chính.';
     }
-    if (form.deliveryMode === 'OFFLINE' && !form.defaultRoomId && !form.offlineAddress?.trim()) {
-      return 'Lớp học trực tiếp phải có phòng học hoặc địa chỉ học.';
+    if (form.deliveryMode === 'OFFLINE' && !form.defaultRoomId) {
+      return 'Lớp học trực tiếp phải có phòng học.';
     }
   }
   return '';

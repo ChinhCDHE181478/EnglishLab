@@ -49,6 +49,12 @@ const normalizePage = (payload) => {
 };
 
 export const courseApi = {
+  async uploadOnlineCourseThumbnail(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return unwrapData(await axiosClient.post('/api/content-manager/online-courses/thumbnail', formData));
+  },
+
   async getOnlineCourses(params = {}) {
     const response = await axiosClient.get('/api/online-courses', {
       params,
@@ -299,6 +305,16 @@ export const courseApi = {
   async getManagedLearningPaths(params = {}) {
     const response = await axiosClient.get('/api/content-manager/learning-paths', { params });
     return normalizePage(unwrapData(response));
+  },
+
+  async getLearningPathOffers() {
+    const response = await axiosClient.get('/api/learning-paths');
+    return unwrapData(response) ?? [];
+  },
+
+  async getLearningPathOffer(code) {
+    const response = await axiosClient.get(`/api/learning-paths/${encodeURIComponent(code)}`);
+    return unwrapData(response);
   },
 
   async createManagedLearningPath(payload) {

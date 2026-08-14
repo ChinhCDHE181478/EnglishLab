@@ -15,5 +15,7 @@ public class LearningPathResponse {
     private String examCategory;
     private BigDecimal targetBand;
     private Integer targetScore;
+    private Integer discountPercent;
+    private Integer minimumCoursesForDiscount;
     private List<LearningPathCourseResponse> courses;
 }

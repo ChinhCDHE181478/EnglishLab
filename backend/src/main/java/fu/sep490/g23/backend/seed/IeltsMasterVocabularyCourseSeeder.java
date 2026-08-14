@@ -116,7 +116,6 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.ADVANCED);
         onlineCourse.setRecommendedCurrentBandMin(5.5);
-        onlineCourse.setRecommendedCurrentBandMax(6.5);
         onlineCourse.setTargetBand(7.0);
         onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
         onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");

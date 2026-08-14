@@ -7,6 +7,7 @@ import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { validateClassroomOfferingForm } from '../../utils/classroomFormValidation';
 import {
@@ -53,7 +54,6 @@ const initialClassroomForm = {
   studyMode: '',
   primaryTeacherId: '',
   defaultRoomId: '',
-  offlineAddress: '',
   locationNote: '',
   defaultLarkMeetingUrl: '',
   shortDescription: '',
@@ -207,7 +207,7 @@ export default function StaffClassroomsPage() {
     defaultRoomId: classroomForm.deliveryMode === 'OFFLINE' && classroomForm.defaultRoomId ? Number(classroomForm.defaultRoomId) : null,
     price: classroomForm.price ? Number(classroomForm.price) : 0,
     salePrice: classroomForm.salePrice ? Number(classroomForm.salePrice) : null,
-    offlineAddress: classroomForm.deliveryMode === 'OFFLINE' ? classroomForm.offlineAddress : '',
+    offlineAddress: null,
     defaultLarkMeetingUrl: '',
   });
 
@@ -244,7 +244,7 @@ export default function StaffClassroomsPage() {
 
   return (
     <div className="space-y-5">
-      {message && !editorOpen ? <div className="rounded-xl border border-[#dfbfbd]/50 bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014]" role="alert">{message}</div> : null}
+      {!editorOpen ? <ManagementToast message={message} onClose={() => setMessage('')} tone="success" title="Đã cập nhật lớp học" /> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={GraduationCap} label="Tổng lớp" value={stats.total} />
@@ -325,17 +325,16 @@ function ClassroomFormFields({ form, onChange, roomOptions, trainingProgramOptio
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Field label="Tên lớp"><input className={inputClass} onChange={(event) => onChange('title', event.target.value)} required value={form.title} /></Field>
-      <Field label="Khóa học theo lịch"><BrandedSelect onChange={(event) => onChange('trainingProgramId', event.target.value)} options={trainingProgramOptions} required value={form.trainingProgramId} /></Field>
+      <Field label="Khung chương trình"><BrandedSelect onChange={(event) => onChange('trainingProgramId', event.target.value)} options={trainingProgramOptions} required value={form.trainingProgramId} /></Field>
       <Field label="Hình thức"><BrandedSelect onChange={(event) => onChange('deliveryMode', event.target.value)} options={deliveryModeOptions} value={form.deliveryMode} /></Field>
-      <Field label="Trạng thái"><BrandedSelect onChange={(event) => onChange('classroomStatus', event.target.value)} options={statusOptions} value={form.classroomStatus} /></Field>
       <Field label="Level đầu vào"><BrandedSelect onChange={(event) => onChange('entryLevel', event.target.value)} options={levelOptions} value={form.entryLevel} /></Field>
       <Field label="Sĩ số tối đa"><input className={inputClass} min="1" onChange={(event) => onChange('maxCapacity', event.target.value)} required type="number" value={form.maxCapacity} /></Field>
       <Field label="Ngày khai giảng"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('startDate', value)} required value={form.startDate} /></Field>
       <Field label="Ngày kết thúc dự kiến"><VietnameseDateInput className={inputClass} onChange={(value) => onChange('endDate', value)} value={form.endDate} /></Field>
       {form.deliveryMode === 'OFFLINE' ? <Field label="Phòng học"><BrandedSelect onChange={(event) => onChange('defaultRoomId', event.target.value)} options={roomOptions} value={form.defaultRoomId} /></Field> : null}
+      <Field label="Trạng thái"><BrandedSelect onChange={(event) => onChange('classroomStatus', event.target.value)} options={statusOptions} value={form.classroomStatus} /></Field>
       <Field label="Học phí"><input className={inputClass} min="0" onChange={(event) => onChange('price', event.target.value)} type="number" value={form.price} /></Field>
       <Field label="Giá ưu đãi"><input className={inputClass} min="0" onChange={(event) => onChange('salePrice', event.target.value)} type="number" value={form.salePrice} /></Field>
-      {form.deliveryMode === 'OFFLINE' ? <Field label="Địa điểm học"><input className={inputClass} onChange={(event) => onChange('offlineAddress', event.target.value)} value={form.offlineAddress} /></Field> : null}
       <Field label="Mô tả ngắn" wide>
         <RichTextEditor
           helperText=""
@@ -369,7 +368,6 @@ function mapClassroomToForm(item) {
     studyMode: item.studyMode || '',
     primaryTeacherId: item.primaryTeacherId ? String(item.primaryTeacherId) : '',
     defaultRoomId: item.roomId ? String(item.roomId) : '',
-    offlineAddress: item.offlineAddress || '',
     locationNote: item.locationNote || '',
     shortDescription: item.shortDescription || '',
     description: item.description || '',

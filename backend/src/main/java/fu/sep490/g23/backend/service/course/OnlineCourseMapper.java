@@ -76,7 +76,6 @@ public class OnlineCourseMapper {
                 .status(learningPackage.getStatus())
                 .targetScore(learningPackage.getTargetScore())
                 .recommendedCurrentBandMin(course.getRecommendedCurrentBandMin())
-                .recommendedCurrentBandMax(course.getRecommendedCurrentBandMax())
                 .targetBand(course.getTargetBand())
                 .learningPathCode(course.getLearningPathCode())
                 .learningPathName(course.getLearningPathName())

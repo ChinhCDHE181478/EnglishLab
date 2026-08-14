@@ -33,6 +33,8 @@ public class LearningPathSchemaMigration {
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS exam_category VARCHAR(30);
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_band NUMERIC(3,1);
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_score INTEGER;
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS discount_percent INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS minimum_courses_for_discount INTEGER NOT NULL DEFAULT 2;
                 """);
 
         jdbcTemplate.execute("""

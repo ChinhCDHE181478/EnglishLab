@@ -5,7 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
-  Edit3,
+  Pencil,
   Filter,
   Layers,
   RefreshCw,
@@ -225,8 +225,8 @@ export function ProgramTable({
                         onClick={() => onEdit(program)}
                         type="button"
                       >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        Builder
+                        <Pencil className="h-3.5 w-3.5" />
+                        Chỉnh sửa
                       </button>
                       <button
                         aria-label={`Nhân bản ${program.title}`}

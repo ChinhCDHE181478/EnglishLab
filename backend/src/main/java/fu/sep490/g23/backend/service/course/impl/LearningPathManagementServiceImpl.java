@@ -7,6 +7,8 @@ import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathCourseRespon
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.dto.response.course.LearningPathCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.LearningPathResponse;
+import fu.sep490.g23.backend.dto.response.course.LearningPathOfferCourseResponse;
+import fu.sep490.g23.backend.dto.response.course.LearningPathOfferResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearningPath;
 import fu.sep490.g23.backend.entity.course.LearningPathCourse;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Locale;
 
 @Service
@@ -72,6 +75,8 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .examCategory(normalizeExamCategory(request.getExamCategory()))
                 .targetBand(request.getTargetBand())
                 .targetScore(request.getTargetScore())
+                .discountPercent(defaultDiscountPercent(request.getDiscountPercent()))
+                .minimumCoursesForDiscount(defaultMinimumCourses(request.getMinimumCoursesForDiscount()))
                 .build());
         validateTarget(path);
         return toResponse(path);
@@ -89,6 +94,8 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
         path.setExamCategory(normalizeExamCategory(request.getExamCategory()));
         path.setTargetBand(request.getTargetBand());
         path.setTargetScore(request.getTargetScore());
+        path.setDiscountPercent(defaultDiscountPercent(request.getDiscountPercent()));
+        path.setMinimumCoursesForDiscount(defaultMinimumCourses(request.getMinimumCoursesForDiscount()));
         validateTarget(path);
         return toResponse(learningPathRepository.save(path));
     }
@@ -163,6 +170,29 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .build();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<LearningPathOfferResponse> getPublicOffers(String studentEmail) {
+        User student = optionalStudent(studentEmail);
+        return learningPathRepository.findAll().stream()
+                .sorted(Comparator.comparing(LearningPath::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(path -> toOfferResponse(path, student))
+                .filter(offer -> offer.getTotalCourses() > 0)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LearningPathOfferResponse getPublicOffer(String code, String studentEmail) {
+        LearningPath path = learningPathRepository.findByCodeIgnoreCase(required(code, "Mã lộ trình"))
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lộ trình."));
+        LearningPathOfferResponse offer = toOfferResponse(path, optionalStudent(studentEmail));
+        if (offer.getTotalCourses() == 0) {
+            throw new RuntimeException("Lộ trình chưa có khóa học đang mở bán.");
+        }
+        return offer;
+    }
+
     private LearnerLearningPathResponse.PathOverview toLearnerPath(
             LearningPath path, Map<Long, PackageEnrollment> enrollmentsByPackageId) {
         List<LearningPathCourse> refs = learningPathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId())
@@ -232,8 +262,95 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
                 .examCategory(path.getExamCategory())
                 .targetBand(path.getTargetBand())
                 .targetScore(path.getTargetScore())
+                .discountPercent(defaultDiscountPercent(path.getDiscountPercent()))
+                .minimumCoursesForDiscount(defaultMinimumCourses(path.getMinimumCoursesForDiscount()))
                 .courses(courses)
                 .build();
+    }
+
+    private LearningPathOfferResponse toOfferResponse(LearningPath path, User student) {
+        Set<Long> ownedPackageIds = student == null
+                ? Set.of()
+                : enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
+                        .filter(enrollment -> enrollment.getStatus() == EnrollmentStatus.ACTIVE
+                                || enrollment.getStatus() == EnrollmentStatus.COMPLETED)
+                        .map(enrollment -> enrollment.getLearningPackage().getId())
+                        .collect(java.util.stream.Collectors.toSet());
+        List<LearningPathOfferCourseResponse> courses = learningPathCourseRepository
+                .findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
+                .filter(ref -> ref.getOnlineCourse().getLearningPackage() != null
+                        && ref.getOnlineCourse().getLearningPackage().isPublished())
+                .map(ref -> {
+                    OnlineCourse course = ref.getOnlineCourse();
+                    BigDecimal originalPrice = safePrice(course.getLearningPackage().getPrice());
+                    BigDecimal currentPrice = resolveCurrentPrice(originalPrice, course.getLearningPackage().getSalePrice());
+                    return LearningPathOfferCourseResponse.builder()
+                            .courseId(course.getId())
+                            .slug(course.getLearningPackage().getSlug())
+                            .title(course.getLearningPackage().getTitle())
+                            .thumbnailUrl(course.getLearningPackage().getThumbnailUrl())
+                            .shortDescription(course.getLearningPackage().getShortDescription())
+                            .displayOrder(ref.getDisplayOrder())
+                            .originalPrice(originalPrice)
+                            .currentPrice(currentPrice)
+                            .owned(ownedPackageIds.contains(course.getLearningPackage().getId()))
+                            .build();
+                })
+                .toList();
+        List<LearningPathOfferCourseResponse> remaining = courses.stream()
+                .filter(course -> !course.isOwned())
+                .toList();
+        long originalAmount = remaining.stream().mapToLong(course -> toVnd(course.getOriginalPrice())).sum();
+        long subtotalAmount = remaining.stream().mapToLong(course -> toVnd(course.getCurrentPrice())).sum();
+        int discountPercent = defaultDiscountPercent(path.getDiscountPercent());
+        int minimumCourses = defaultMinimumCourses(path.getMinimumCoursesForDiscount());
+        boolean discountApplied = discountPercent > 0 && remaining.size() >= minimumCourses;
+        long pathDiscount = discountApplied
+                ? BigDecimal.valueOf(subtotalAmount)
+                        .multiply(BigDecimal.valueOf(discountPercent))
+                        .divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP)
+                        .longValue()
+                : 0L;
+        return LearningPathOfferResponse.builder()
+                .id(path.getId())
+                .code(path.getCode())
+                .name(path.getName())
+                .examCategory(path.getExamCategory())
+                .targetBand(path.getTargetBand())
+                .targetScore(path.getTargetScore())
+                .discountPercent(discountPercent)
+                .minimumCoursesForDiscount(minimumCourses)
+                .totalCourses(courses.size())
+                .ownedCourses(courses.size() - remaining.size())
+                .remainingCourses(remaining.size())
+                .originalAmount(originalAmount)
+                .subtotalAmount(subtotalAmount)
+                .learningPathDiscountAmount(pathDiscount)
+                .totalAmount(Math.max(0L, subtotalAmount - pathDiscount))
+                .discountApplied(discountApplied)
+                .purchaseAvailable(!remaining.isEmpty())
+                .courses(courses)
+                .build();
+    }
+
+    private User optionalStudent(String studentEmail) {
+        if (studentEmail == null || studentEmail.isBlank()) return null;
+        return userRepository.findByEmail(studentEmail).orElse(null);
+    }
+
+    private BigDecimal safePrice(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value.max(BigDecimal.ZERO);
+    }
+
+    private BigDecimal resolveCurrentPrice(BigDecimal originalPrice, BigDecimal salePrice) {
+        if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) < 0 || salePrice.compareTo(originalPrice) >= 0) {
+            return originalPrice;
+        }
+        return salePrice;
+    }
+
+    private long toVnd(BigDecimal value) {
+        return safePrice(value).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     private PackageEnrollment activeEnrollment(PackageEnrollment enrollment) {
@@ -242,6 +359,14 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
 
     private int defaultInt(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private int defaultDiscountPercent(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private int defaultMinimumCourses(Integer value) {
+        return value == null ? 2 : Math.max(2, value);
     }
 
     private String required(String value, String field) {

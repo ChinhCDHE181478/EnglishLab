@@ -60,29 +60,16 @@ export const formatBandValue = (value) => {
 
 const isUnavailableCourse = (course) => ['PAUSED', 'UNAVAILABLE'].includes(String(course?.status || '').toUpperCase());
 
-const isCourseTooEasy = (course, currentBand) => {
-  const current = toNumber(currentBand);
-  const max = toNumber(course?.recommendedCurrentBandMax);
-  const target = toNumber(course?.targetBand);
-
-  if (current == null || max == null) return false;
-  if (current <= max) return false;
-  if (target != null && target > current) return false;
-  return true;
-};
-
 export const formatBandRangeText = (course) => {
   const min = toNumber(course?.recommendedCurrentBandMin);
-  const max = toNumber(course?.recommendedCurrentBandMax);
-  if (min == null || max == null) {
+  if (min == null) {
     return 'Khóa học này chưa có thông tin trình độ khuyến nghị.';
   }
-  return `Phù hợp với học viên Band ${formatBandValue(min)} đến ${formatBandValue(max)}`;
+  return `Phù hợp với học viên từ Band ${formatBandValue(min)}`;
 };
 
 export const getBandFitInfo = (course, currentBand) => {
   const min = toNumber(course?.recommendedCurrentBandMin);
-  const max = toNumber(course?.recommendedCurrentBandMax);
   const current = toNumber(currentBand);
 
   if (current == null || current <= 0) {
@@ -92,7 +79,7 @@ export const getBandFitInfo = (course, currentBand) => {
     };
   }
 
-  if (min == null || max == null) {
+  if (min == null) {
     return {
       tone: 'neutral',
       message: 'Khóa học này chưa có thông tin trình độ khuyến nghị.',
@@ -103,13 +90,6 @@ export const getBandFitInfo = (course, currentBand) => {
     return {
       tone: 'warning',
       message: 'Bạn nên học khóa nền tảng trước khi bắt đầu khóa này.',
-    };
-  }
-
-  if (current > max) {
-    return {
-      tone: 'soft',
-      message: 'Khóa học này có thể hơi dễ so với trình độ hiện tại của bạn.',
     };
   }
 
@@ -254,12 +234,11 @@ export const calculateCompletionStatus = ({ course, enrollment, assessments = []
 
 export const buildRecommendationReason = ({ course, currentBand, targetBand = null }) => {
   const min = toNumber(course?.recommendedCurrentBandMin);
-  const max = toNumber(course?.recommendedCurrentBandMax);
   const courseTargetBand = toNumber(course?.targetBand);
   const current = toNumber(currentBand);
   const learnerTargetBand = toNumber(targetBand);
 
-  if (current != null && min != null && max != null && current >= min && current <= max) {
+  if (current != null && min != null && current >= min) {
     return 'Phù hợp với band hiện tại của bạn.';
   }
 
@@ -279,7 +258,7 @@ export const recommendCoursesForLearner = ({ courses, enrollments, currentBand, 
   const learnerTargetBand = toNumber(targetBand);
 
   return (courses || [])
-    .filter((course) => !registeredIds.has(String(course.id)) && !isUnavailableCourse(course) && !isCourseTooEasy(course, currentBand))
+    .filter((course) => !registeredIds.has(String(course.id)) && !isUnavailableCourse(course))
     .map((course) => {
       const fit = getBandFitInfo(course, currentBand);
       const courseTargetBand = toNumber(course?.targetBand);

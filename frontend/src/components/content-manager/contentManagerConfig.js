@@ -28,7 +28,7 @@ export const contentManagerNav = [
     title: 'Không gian làm việc',
     items: [
       { label: 'Tổng quan', href: '/content-manager/dashboard', icon: LayoutDashboard },
-      { label: 'Khóa học online', href: '/content-manager/courses', icon: BookOpen },
+      { label: 'Khóa học Online', href: '/content-manager/courses', icon: BookOpen },
       { label: 'Khóa học Offline', href: '/content-manager/offline-programs', icon: Building2 },
       { label: 'Khóa học Virtual', href: '/content-manager/virtual-programs', icon: Video },
       { label: 'Chương trình đào tạo', href: '/content-manager/syllabus-builder', icon: BookMarked },
@@ -94,12 +94,12 @@ export const contentManagerPageMeta = {
     searchPlaceholder: 'Tìm bài tập hoặc kỹ năng...',
   },
   '/content-manager/courses/new': {
-    title: 'Tạo khóa học online',
+    title: 'Tạo khóa học Online',
     subtitle: 'Thiết lập thông tin khóa học, cấu trúc học tập và các nội dung cần thiết trước khi xuất bản.',
     searchPlaceholder: 'Tìm trường dữ liệu hoặc thiết lập...',
   },
   '/content-manager/courses/:slugOrId/edit': {
-    title: 'Chỉnh sửa khóa học online',
+    title: 'Chỉnh sửa khóa học Online',
     subtitle: 'Cập nhật thông tin khóa học, đầu ra, mô-đun và trạng thái sẵn sàng xuất bản của khóa học.',
     searchPlaceholder: 'Tìm trường dữ liệu hoặc thiết lập...',
   },

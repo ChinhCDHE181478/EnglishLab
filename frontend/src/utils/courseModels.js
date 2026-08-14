@@ -20,7 +20,6 @@ export const normalizeCourse = (course = {}) => {
     level: course.level ?? 'BEGINNER',
     duration: normalizeText(course.duration ?? course.durationText, 'Tự học linh hoạt'),
     recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? course.currentBandMin ?? null,
-    recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? course.currentBandMax ?? null,
     targetBand: course.targetBand ?? null,
     learningPathCode: course.learningPathCode ?? null,
     learningPathName: course.learningPathName ?? null,

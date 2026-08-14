@@ -6,7 +6,6 @@ import curriculumApi from '../../api/curriculumApi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
-import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
@@ -27,12 +26,8 @@ const emptyForm = (mode) => ({
   salePrice: '',
   duration: '',
   studyMode: mode === 'VIRTUAL' ? 'Virtual với giảng viên' : 'Offline tại trung tâm',
-  capacity: 30,
-  plannedStartDate: '',
-  plannedSchedule: '',
   thumbnailUrl: '',
   status: 'DRAFT',
-  displayOrder: 0,
   featured: false,
 });
 
@@ -81,12 +76,8 @@ const toForm = (program, mode) => ({
   salePrice: program.salePrice ?? '',
   duration: program.duration || '',
   studyMode: program.studyMode || (mode === 'VIRTUAL' ? 'Virtual với giảng viên' : 'Offline tại trung tâm'),
-  capacity: program.capacity ?? program.maxCapacity ?? 30,
-  plannedStartDate: program.plannedStartDate || '',
-  plannedSchedule: program.plannedSchedule || '',
   thumbnailUrl: program.thumbnailUrl || '',
   status: program.status || 'DRAFT',
-  displayOrder: program.displayOrder ?? 0,
   featured: Boolean(program.featured),
 });
 
@@ -148,10 +139,6 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
       setError('Vui lòng chọn chương trình đào tạo được sử dụng trước khi xuất bản.');
       return;
     }
-    if (!Number.isInteger(Number(form.capacity)) || Number(form.capacity) < 1) {
-      setError('Sức chứa dự kiến phải là số nguyên lớn hơn 0.');
-      return;
-    }
     setSaving(true);
     setError('');
     setSuccess('');
@@ -164,9 +151,6 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
       curriculumProgramId: Number(form.curriculumProgramId),
       price: form.price === '' ? 0 : Number(form.price),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice),
-      capacity: Number(form.capacity),
-      plannedStartDate: form.plannedStartDate || null,
-      displayOrder: Number(form.displayOrder || 0),
       featured: Boolean(form.featured),
     };
     try {
@@ -175,7 +159,7 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
         : await classroomApi.updateContentManagerProgram(id, payload);
       setForm(toForm(saved, mode));
       setSuccess(isNew ? 'Đã tạo khóa học.' : 'Đã lưu khóa học.');
-      if (isNew) navigate(`${basePath}/${saved.id}/builder`, { replace: true });
+      if (isNew) navigate(`${basePath}/${saved.id}/edit`, { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || 'Không lưu được khóa học.');
     } finally {
@@ -216,20 +200,9 @@ export default function ContentManagerTrainingProgramBuilderPage({ mode = 'OFFLI
               <ReadOnlyField label="Hình thức triển khai" value={mode === 'VIRTUAL' ? 'Virtual' : 'Offline tại trung tâm'} />
               <TextInput label="Thời lượng triển khai" placeholder="Ví dụ: 12 tuần" value={form.duration} onChange={(value) => updateForm({ duration: value })} />
               <TextInput label="Cách tổ chức học" placeholder="Ví dụ: 3 buổi/tuần" value={form.studyMode} onChange={(value) => updateForm({ studyMode: value })} />
-              <TextInput label="Sức chứa dự kiến" min="1" type="number" value={form.capacity} onChange={(value) => updateForm({ capacity: value })} />
-              <label className="block">
-                <FieldLabel>Ngày khai giảng dự kiến</FieldLabel>
-                <VietnameseDateInput
-                  className={FIELD_CLASS}
-                  onChange={(value) => updateForm({ plannedStartDate: value })}
-                  value={form.plannedStartDate}
-                />
-              </label>
-              <TextInput label="Lịch học dự kiến" placeholder="Ví dụ: Thứ 2, 4, 6 · 18:30–20:30" value={form.plannedSchedule} onChange={(value) => updateForm({ plannedSchedule: value })} />
               <TextInput label="Học phí" min="0" type="number" value={form.price} onChange={(value) => updateForm({ price: value })} />
               <TextInput label="Giá ưu đãi" min="0" type="number" value={form.salePrice} onChange={(value) => updateForm({ salePrice: value })} />
               <div><FieldLabel>Trạng thái</FieldLabel><BrandedSelect onChange={(event) => updateForm({ status: event.target.value })} options={statusOptions} value={form.status} /></div>
-              <TextInput label="Thứ tự hiển thị" min="0" type="number" value={form.displayOrder} onChange={(value) => updateForm({ displayOrder: value })} />
               <label className="flex items-center gap-3 rounded-xl border border-[#dcc0bf]/35 bg-[#fcfbfb] px-4 py-3 text-sm font-bold text-[#584140]"><input checked={form.featured} className="h-4 w-4 accent-[#730014]" onChange={(event) => updateForm({ featured: event.target.checked })} type="checkbox" />Đánh dấu khóa học nổi bật</label>
             </div>
           </BuilderSection>

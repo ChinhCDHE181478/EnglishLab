@@ -151,9 +151,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 for (int index = 0; index < refs.size(); index++) {
                     OnlineCourse course = refs.get(index).getOnlineCourse();
                     if (course.getLevel() == desired && course.getRecommendedCurrentBandMin() != null
-                            && course.getRecommendedCurrentBandMax() != null
-                            && current >= course.getRecommendedCurrentBandMin()
-                            && current <= course.getRecommendedCurrentBandMax()) {
+                            && current >= course.getRecommendedCurrentBandMin()) {
                         desiredIndex = index;
                         break;
                     }

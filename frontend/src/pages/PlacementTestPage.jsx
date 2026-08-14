@@ -1,6 +1,24 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BookOpen, Headphones, Mic, PenLine } from 'lucide-react';
+import {
+  ArrowRight,
+  Award,
+  BarChart3,
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  FileCheck,
+  Headphones,
+  Mic,
+  PenLine,
+  RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Trophy,
+  Zap,
+} from 'lucide-react';
 import placementTestApi from '../api/placementTestApi';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
@@ -1110,71 +1128,162 @@ export default function PlacementTestPage() {
   }
 
   if (stage === 'result') {
+    const recommendedLevel = recommendation?.recommendedLevel || result?.recommendedLevel;
+    const levelLabel = recommendedLevel ? getPlacementLevelLabel(recommendedLevel) : 'Chưa phân loại';
+    const weakSkills = recommendation?.weakSkills || [];
+
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
+      <div className="flex min-h-[100dvh] flex-col bg-[#fcf9f8]">
         <Header />
-        <main className="mx-auto flex w-full max-w-6xl flex-1 items-start px-4 py-12">
-          <div className="w-full rounded-[34px] border border-[#dfbfbd]/40 bg-white p-7 shadow-xl md:p-10">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#8a0018]">Kết quả đánh giá đầu vào</p>
-            <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">
-              {isToeicResult
-                ? `TOEIC tổng: ${result.overallScore != null ? Math.round(Number(result.overallScore)) : 'Đang chấm'}`
-                : `Band tổng quan: ${result.overallScore != null ? formatBandValue(result.overallScore) : 'Đang chấm'}`}
-            </h1>
-            {(recommendation?.recommendedLevel || result.recommendedLevel) ? (
-              <p className="mt-3 text-sm font-bold text-[#584140]">
-                Trình độ đề xuất: <span className="text-[#8a0018]">{getPlacementLevelLabel(recommendation?.recommendedLevel || result.recommendedLevel)}</span>
-              </p>
-            ) : null}
+        <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-8 sm:px-6 lg:px-8 space-y-7">
+          {/* Main Clean Card Container */}
+          <div className="rounded-[28px] border border-[#ead9db] bg-white p-6 sm:p-9 shadow-sm space-y-7">
+            {/* Header Title Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#ead9db] pb-6">
+              <div>
+                <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
+                  Kết quả đánh giá đầu vào
+                </span>
+                <h1 className="mt-1.5 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30] sm:text-3xl">
+                  {isToeicResult ? 'Kết quả Placement TOEIC' : 'Kết quả Placement IELTS'}
+                </h1>
+                <p className="mt-1 text-xs text-[#584140]">
+                  Ngày thực hiện: {new Date(result.submittedAt || Date.now()).toLocaleDateString('vi-VN')} · Lần thử {attemptCount}/{maxAttempts}
+                </p>
+              </div>
 
-            <div className={`mt-7 grid gap-4 sm:grid-cols-2 ${isToeicResult ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
-              {resultSkills.map((skill) => (
-                <div className="rounded-2xl bg-[#fff0f1] p-5" key={skill.key}>
-                  <p className="text-sm font-bold text-[#7a4a4e]">{skill.label}</p>
-                  <p className="mt-2 text-3xl font-black text-[#8a0018]">
-                    {result[`${skill.key}Score`] != null
-                      ? (isToeicResult ? Math.round(Number(result[`${skill.key}Score`])) : formatBandValue(result[`${skill.key}Score`]))
-                      : '—'}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-6 rounded-2xl border border-[#ead7d5] bg-[#fffaf9] p-5 text-sm leading-7 text-[#584140]">
-              {isToeicResult
-                ? `Listening: ${result.correctListening ?? 0} câu đúng · Reading: ${result.correctReading ?? 0} câu đúng. Kết quả TOEIC đã được lưu theo bài Listening & Reading.`
-                : (
-                  <>
-                    Listening: {result.correctListening}/40 câu đúng · Reading: {result.correctReading}/40 câu đúng.
-                    {result.status === 'OBJECTIVE_EVALUATED'
-                      ? ' Writing và Speaking chưa có điểm do dịch vụ AI tạm thời không sẵn sàng. Bản nháp vẫn được giữ để bạn nộp lại.'
-                      : ' Kết quả đã được lưu vào hồ sơ đánh giá đầu vào.'}
-                  </>
-                )}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
-                onClick={() => {
-                  setResult(null);
-                  setStage('select');
-                  setSearchParams({}, { replace: true });
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                type="button"
-              >
-                Quay lại chọn đề
-              </button>
-              {canRetake ? (
-                <button className="rounded-2xl border border-[#8a0018]/25 px-6 py-4 font-black text-[#8a0018] transition hover:bg-[#fff0f1]" onClick={startRetake} type="button">
-                  Làm lại ({attemptCount + 1}/{maxAttempts})
+              {/* Action CTAs inside Header */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white px-4 py-2.5 text-xs font-bold text-[#730014] shadow-xs transition hover:bg-[#fff0f1] active:scale-95"
+                  onClick={() => {
+                    setResult(null);
+                    setStage('select');
+                    setSearchParams({}, { replace: true });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  type="button"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Chọn lại đề
                 </button>
-              ) : null}
-              <button className="rounded-2xl bg-[#8a0018] px-6 py-4 font-black text-white" onClick={() => navigate('/complete-profile')} type="button">
-                Tiếp tục hoàn thiện hồ sơ
-              </button>
+
+                {canRetake ? (
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/30 bg-white px-4 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
+                    onClick={startRetake}
+                    type="button"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Làm lại ({attemptCount + 1}/{maxAttempts})
+                  </button>
+                ) : null}
+
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#730014] px-4.5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#8a0018] active:scale-95"
+                  onClick={() => navigate('/complete-profile')}
+                  type="button"
+                >
+                  Hoàn thiện hồ sơ <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
+
+            {/* Score & Evaluation Summary Box */}
+            <div className="grid gap-5">
+              {/* Left Score Card */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 rounded-2xl border border-[#f5d0d3] bg-[#fff8f9] p-5 sm:p-6">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#8c716f]">
+                    {isToeicResult ? 'Điểm TOEIC Tổng' : 'Band Điểm Tổng Quan'}
+                  </p>
+                  <div className="mt-1 flex items-baseline gap-1.5">
+                    <span className="font-['Manrope'] text-4xl sm:text-5xl font-black text-[#730014]">
+                      {result.overallScore != null
+                        ? (isToeicResult ? Math.round(Number(result.overallScore)) : formatBandValue(result.overallScore))
+                        : '—'}
+                    </span>
+                    <span className="text-sm font-bold text-[#8c716f]">
+                      {isToeicResult ? '/ 990' : '/ 9.0'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-start sm:items-end gap-2 border-t sm:border-t-0 sm:border-l border-[#ead9db] pt-3 sm:pt-0 sm:pl-6">
+                  {recommendedLevel ? (
+                    <div>
+                      <span className="text-xs font-semibold text-slate-500">Trình độ đề xuất: </span>
+                      <span className="font-extrabold text-[#730014]">{levelLabel}</span>
+                    </div>
+                  ) : null}
+
+                  {weakSkills.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <span className="font-semibold text-slate-500">Cần cải thiện:</span>
+                      {weakSkills.map((sk) => (
+                        <span className="rounded-md bg-[#fff0f1] border border-[#f5d0d3] px-2 py-0.5 font-bold text-[#730014]" key={sk}>
+                          {sk}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Hồ sơ đánh giá đã được lưu
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Skill Cards */}
+            <div className="space-y-3">
+              <h2 className="font-['Manrope'] text-lg font-bold text-[#0b1c30]">Kết quả từng kỹ năng</h2>
+              <div className={`grid gap-4 sm:grid-cols-2 ${isToeicResult ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
+                {resultSkills.map((skill) => {
+                  const Icon = skill.icon;
+                  const rawScore = result[`${skill.key}Score`];
+                  const displayScore = rawScore != null
+                    ? (isToeicResult ? Math.round(Number(rawScore)) : formatBandValue(rawScore))
+                    : '—';
+
+                  return (
+                    <div
+                      className="flex flex-col justify-between rounded-2xl border border-[#ead9db] bg-[#fffaf9] p-4.5 transition hover:border-[#730014]"
+                      key={skill.key}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#730014] border border-[#f5d0d3] shadow-xs">
+                            <Icon className="h-4.5 w-4.5" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-[#0b1c30]">{skill.label}</h3>
+                            <p className="text-[11px] text-slate-500">
+                              {isToeicResult ? 'Tối đa 495' : 'Band 9.0'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-baseline justify-between">
+                        <span className="font-['Manrope'] text-3xl font-black text-[#730014]">
+                          {displayScore}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-500">
+                          {skill.key === 'listening' ? (
+                            `${result.correctListening ?? 0}/40 câu`
+                          ) : skill.key === 'reading' ? (
+                            `${result.correctReading ?? 0}/40 câu`
+                          ) : (
+                            'AI đánh giá'
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recommendations Subsection */}
             <PlacementRecommendationSection
               error={recommendationError}
               loading={recommendationLoading}
@@ -1352,7 +1461,7 @@ export default function PlacementTestPage() {
             </ul>
 
             <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
-              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount + 1}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
+              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
             </button>
 
             <button

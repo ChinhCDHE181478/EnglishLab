@@ -103,7 +103,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
         onlineCourse.setRecommendedCurrentBandMin(6.0);
-        onlineCourse.setRecommendedCurrentBandMax(7.0);
         onlineCourse.setTargetBand(7.0);
         onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
         onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");

@@ -12,10 +12,24 @@ const hasSafeHref = (value = '') => {
   return /^(https?:|mailto:|tel:|\/|#)/i.test(href);
 };
 
-export const looksLikeRichTextHtml = (value = '') => /<\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i.test(String(value));
+const RICH_TEXT_TAG_PATTERN = /<\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
+const ESCAPED_RICH_TEXT_TAG_PATTERN = /&lt;\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
+
+const decodeEscapedRichText = (value = '') => {
+  const raw = String(value || '');
+  if (!ESCAPED_RICH_TEXT_TAG_PATTERN.test(raw) || typeof window === 'undefined') return raw;
+  const textarea = window.document.createElement('textarea');
+  textarea.innerHTML = raw;
+  return textarea.value;
+};
+
+export const looksLikeRichTextHtml = (value = '') => {
+  const raw = String(value || '');
+  return RICH_TEXT_TAG_PATTERN.test(raw) || ESCAPED_RICH_TEXT_TAG_PATTERN.test(raw);
+};
 
 /** Strip HTML tags for card/list previews that expect plain text. */
-export const stripRichTextToPlain = (value = '') => String(value || '')
+export const stripRichTextToPlain = (value = '') => decodeEscapedRichText(value)
   .replace(/<br\s*\/?>/gi, '\n')
   .replace(/<\/(p|div|h[1-6]|li|blockquote)>/gi, '\n')
   .replace(/<[^>]+>/g, ' ')
@@ -25,6 +39,7 @@ export const stripRichTextToPlain = (value = '') => String(value || '')
   .replace(/&gt;/gi, '>')
   .replace(/&quot;/gi, '"')
   .replace(/\s+\n/g, '\n')
+  .replace(/\n[ \t]+/g, '\n')
   .replace(/\n{3,}/g, '\n\n')
   .replace(/[ \t]{2,}/g, ' ')
   .trim();
@@ -34,7 +49,7 @@ export const sanitizeLessonHtml = (value = '') => {
   const purifier = typeof createDOMPurify?.sanitize === 'function'
     ? createDOMPurify
     : createDOMPurify(window);
-  const sanitized = purifier.sanitize(String(value), {
+  const sanitized = purifier.sanitize(decodeEscapedRichText(value), {
     ALLOWED_ATTR: ['href', 'style'],
     ALLOWED_TAGS,
     ALLOW_DATA_ATTR: false,

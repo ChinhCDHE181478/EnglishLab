@@ -10,6 +10,7 @@ import {
   ClassroomTabBar,
 } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import ManagementToast from '../../components/ui/ManagementToast';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import StaffRecordingsPage from './StaffRecordingsPage';
@@ -532,19 +533,12 @@ export default function StaffClassroomDetailPage() {
         </div>
       </div>
 
-      {actionMessage ? (
-        <div
-          aria-live="polite"
-          className={`fixed bottom-6 right-6 z-[70] max-w-[min(420px,calc(100vw-2rem))] rounded-2xl border px-4 py-3 text-sm font-semibold shadow-xl ${
-          actionTone === 'error'
-            ? 'border-red-200 bg-red-50 text-red-800'
-            : actionTone === 'warning'
-              ? 'border-amber-200 bg-amber-50 text-amber-800'
-              : 'border-emerald-100 bg-emerald-50 text-emerald-800'
-        }`}
-        >
-          {actionMessage}
-        </div>
+      {!sessionModalOpen && !replacement.open && !transfer.enrollment ? (
+        <ManagementToast
+          message={actionMessage}
+          onClose={() => setActionMessage('')}
+          tone={actionTone === 'success' ? 'success' : 'error'}
+        />
       ) : null}
 
       <section className="rounded-xl border border-[#dfbfbd]/35 bg-white p-5 shadow-sm">
@@ -635,6 +629,7 @@ export default function StaffClassroomDetailPage() {
               </div>
               <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" disabled={replacingTeacher} onClick={() => setReplacement({ open: false, teacherId: '', options: [], loading: false })} type="button"><X className="h-5 w-5" /></button>
             </div>
+            {actionMessage && actionTone === 'error' ? <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}
             <div className="mt-5">
               <Field label="Giáo viên mới">
                 <BrandedSelect
@@ -655,7 +650,7 @@ export default function StaffClassroomDetailPage() {
         </div>
       ) : null}
 
-      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Học viên sẽ được chuyển sang lớp đã chọn.</p><div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
+      {transfer.enrollment ? <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black text-[#2b2828]">Chuyển lớp cho {transfer.enrollment.studentName || transfer.enrollment.studentEmail}</h2><p className="mt-2 text-sm leading-6 text-[#584140]">Học viên sẽ được chuyển sang lớp đã chọn.</p>{actionMessage && actionTone === 'error' ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}<div className="mt-5"><BrandedSelect onChange={(event) => setTransfer((current) => ({ ...current, targetId: event.target.value }))} options={allClassrooms.filter((item) => String(item.id) !== String(id) && ['UPCOMING', 'ACTIVE'].includes(item.classroomStatus)).map((item) => ({ value: String(item.id), label: item.title, description: `${formatClassroomDate(item.startDate)} · ${item.primaryTeacherName || 'Chưa có giáo viên'}` }))} placeholder="Chọn lớp đích" searchable value={transfer.targetId} /></div><div className="mt-6 flex justify-end gap-2"><button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold" onClick={() => setTransfer({ enrollment: null, targetId: '' })} type="button">Hủy</button><button className="rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" disabled={!transfer.targetId || studentActionId === transfer.enrollment.id} onClick={handleTransferStudent} type="button">Xác nhận chuyển lớp</button></div></section></div> : null}
 
       {sessionModalOpen && typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-[100] flex min-h-[100dvh] w-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
@@ -668,6 +663,7 @@ export default function StaffClassroomDetailPage() {
               <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={creatingSession} onClick={closeSessionModal} type="button"><X className="h-5 w-5" /></button>
             </div>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              {actionMessage && actionTone === 'error' ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}
               {sessionFormFields}
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">

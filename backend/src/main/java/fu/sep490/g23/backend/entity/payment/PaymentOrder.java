@@ -67,6 +67,12 @@ public class PaymentOrder {
     @Column(name = "course_titles", columnDefinition = "text")
     private String courseTitles;
 
+    @Column(name = "learning_path_id")
+    private Long learningPathId;
+
+    @Column(name = "learning_path_code", length = 80)
+    private String learningPathCode;
+
     @Column(name = "amount_vnd", nullable = false)
     private Long amount;
 
@@ -77,6 +83,10 @@ public class PaymentOrder {
     @Column(name = "system_discount_amount_vnd", nullable = false)
     @Builder.Default
     private Long systemDiscountAmount = 0L;
+
+    @Column(name = "learning_path_discount_amount_vnd", nullable = false)
+    @Builder.Default
+    private Long learningPathDiscountAmount = 0L;
 
     @Column(name = "coupon_discount_amount_vnd", nullable = false)
     @Builder.Default

@@ -5,7 +5,7 @@ import { login, loginWithGoogle } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { getDefaultAuthenticatedPath } from '../utils/auth';
 
-const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -99,6 +99,11 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     setError('');
+
+    if (!GOOGLE_CLIENT_ID) {
+      setError('Đăng nhập Google chưa được cấu hình.');
+      return;
+    }
 
     if (!googleReady || !window.google?.accounts?.oauth2) {
       setError('Google SDK chưa sẵn sàng. Vui lòng thử lại sau vài giây.');

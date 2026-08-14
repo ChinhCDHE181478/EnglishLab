@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter, Pencil, RefreshCw } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
-import ContentManagerCourseEditorPage from './ContentManagerCourseEditorPage';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -22,7 +21,8 @@ const sortOptions = [
 
 export default function ContentManagerCoursesPage() {
   const { confirm: confirmDialog } = useAppDialog();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
@@ -33,16 +33,17 @@ export default function ContentManagerCoursesPage() {
   const [success, setSuccess] = useState('');
   const [workingId, setWorkingId] = useState(null);
 
-  const isCreateOpen = searchParams.get('new') === '1';
-  const editingSlug = searchParams.get('edit');
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      navigate('/content-manager/courses/new', { replace: true });
+      return;
+    }
 
-  const handleCloseModal = () => {
-    setSearchParams((prev) => {
-      prev.delete('new');
-      prev.delete('edit');
-      return prev;
-    });
-  };
+    const editingSlug = searchParams.get('edit');
+    if (editingSlug) {
+      navigate(`/content-manager/courses/${editingSlug}/edit`, { replace: true });
+    }
+  }, [navigate, searchParams]);
 
   const loadCourses = async (activeRef = { current: true }) => {
     setLoading(true);
@@ -242,14 +243,13 @@ export default function ContentManagerCoursesPage() {
                           <Eye className="h-3.5 w-3.5" />
                           Xem trước
                         </Link>
-                        <button
+                        <Link
                           className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#dcc0bf]/50 bg-white px-3 text-xs font-bold text-[#4b0009] whitespace-nowrap transition hover:bg-[#fff2f3] active:scale-95"
-                          onClick={() => setSearchParams((prev) => { prev.set('edit', course.slug); return prev; })}
-                          type="button"
+                          to={`/content-manager/courses/${course.slug}/edit`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Chỉnh sửa
-                        </button>
+                        </Link>
                         <Link
                           className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-[#4b0009] px-3 text-xs font-bold text-white whitespace-nowrap transition hover:bg-[#730014] active:scale-95"
                           to={`/content-manager/courses/${course.slug}/builder`}
@@ -308,56 +308,6 @@ export default function ContentManagerCoursesPage() {
           />
         </div>
       </Panel>
-
-      {isCreateOpen && (
-        <EditorModal onClose={handleCloseModal}>
-          <ContentManagerCourseEditorPage
-            onClose={handleCloseModal}
-            onSave={() => {
-              loadCourses();
-              handleCloseModal();
-            }}
-          />
-        </EditorModal>
-      )}
-
-      {editingSlug && (
-        <EditorModal onClose={handleCloseModal}>
-          <ContentManagerCourseEditorPage
-            slugOrId={editingSlug}
-            onClose={handleCloseModal}
-            onSave={() => {
-              loadCourses();
-            }}
-          />
-        </EditorModal>
-      )}
-    </div>
-  );
-}
-
-function EditorModal({ children, onClose }) {
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden p-4 sm:p-6 backdrop-blur-sm bg-black/45 animate-fade-in" role="dialog" aria-modal="true">
-      <button
-        aria-label="Đóng modal"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-        type="button"
-      />
-      <div className="relative z-10 flex max-h-[calc(100dvh-2.5rem)] w-full max-w-[1200px] min-h-0 flex-col overflow-hidden rounded-3xl border border-[#dcc0bf]/35 bg-[#fafafa] shadow-2xl pointer-events-auto">
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
-          {children}
-        </div>
-      </div>
     </div>
   );
 }

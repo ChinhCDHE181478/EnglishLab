@@ -2,20 +2,21 @@ import axiosClient from './axiosClient';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 
-const paymentBody = (courseIds = [], couponCode = '', classroomOfferingIds = []) => ({
+const paymentBody = (courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null) => ({
   courseIds,
   classroomOfferingIds,
+  learningPathId,
   couponCode,
 });
 
 export const paymentApi = {
-  async quotePayment(courseIds = [], couponCode = '', classroomOfferingIds = []) {
-    const response = await axiosClient.post('/api/student/payments/quote', paymentBody(courseIds, couponCode, classroomOfferingIds));
+  async quotePayment(courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null) {
+    const response = await axiosClient.post('/api/student/payments/quote', paymentBody(courseIds, couponCode, classroomOfferingIds, learningPathId));
     return unwrapData(response);
   },
 
-  async createPayosLink(courseIds = [], couponCode = '', classroomOfferingIds = []) {
-    const response = await axiosClient.post('/api/student/payments/payos/link', paymentBody(courseIds, couponCode, classroomOfferingIds));
+  async createPayosLink(courseIds = [], couponCode = '', classroomOfferingIds = [], learningPathId = null) {
+    const response = await axiosClient.post('/api/student/payments/payos/link', paymentBody(courseIds, couponCode, classroomOfferingIds, learningPathId));
     return unwrapData(response);
   },
 

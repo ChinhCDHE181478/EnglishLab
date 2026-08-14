@@ -16,6 +16,8 @@ public class CreatePaymentLinkRequest {
 
     private List<@NotNull(message = "Mã lớp học không hợp lệ.") Long> classroomOfferingIds;
 
+    private Long learningPathId;
+
     @Size(max = 40)
     private String couponCode;
 }

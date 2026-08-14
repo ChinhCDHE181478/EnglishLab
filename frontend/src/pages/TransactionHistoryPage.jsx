@@ -130,7 +130,7 @@ const TransactionHistoryPage = () => {
                       Giá gốc: <strong className="text-[#2b2828]">{formatMoney(order.originalAmount)}</strong>
                     </div>
                     <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
-                      Giảm giá: <strong className="text-[#2b2828]">{formatMoney((order.systemDiscountAmount || 0) + (order.couponDiscountAmount || 0))}</strong>
+                      Giảm giá: <strong className="text-[#2b2828]">{formatMoney((order.systemDiscountAmount || 0) + (order.learningPathDiscountAmount || 0) + (order.couponDiscountAmount || 0))}</strong>
                     </div>
                     <div className="rounded-2xl bg-[#fcf8f8] px-4 py-3 text-sm text-[#584140]">
                       Mã giảm: <strong className="text-[#2b2828]">{order.discountCodeText || 'Không có'}</strong>

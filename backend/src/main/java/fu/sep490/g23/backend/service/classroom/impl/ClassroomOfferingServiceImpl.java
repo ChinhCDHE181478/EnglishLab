@@ -2124,10 +2124,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         if (primaryTeacher == null) {
             throw new IllegalArgumentException("Lớp sắp mở hoặc đang hoạt động phải có giáo viên chính.");
         }
-        if (request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE
-                && defaultRoom == null
-                && !StringUtils.hasText(request.getOfflineAddress())) {
-            throw new IllegalArgumentException("Lớp học trực tiếp phải có phòng học hoặc địa chỉ học.");
+        if (request.getDeliveryMode() == ClassroomDeliveryMode.OFFLINE && defaultRoom == null) {
+            throw new IllegalArgumentException("Lớp học trực tiếp phải có phòng học.");
         }
     }
 

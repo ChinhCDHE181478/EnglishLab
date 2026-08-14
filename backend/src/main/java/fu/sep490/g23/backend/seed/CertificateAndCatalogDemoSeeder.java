@@ -174,7 +174,6 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setCategory(category);
         course.setLevel(CourseLevel.BEGINNER);
         course.setRecommendedCurrentBandMin(3.0);
-        course.setRecommendedCurrentBandMax(4.5);
         course.setTargetBand(5.5);
         course.setLearningPathCode("IELTS_FOUNDATION_REVIEW");
         course.setLearningPathName("Lộ trình IELTS Foundation");

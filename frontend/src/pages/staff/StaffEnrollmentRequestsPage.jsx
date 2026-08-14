@@ -17,6 +17,7 @@ import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import { EnrollmentStatusBadge } from '../../components/classroom/EnrollmentRequestUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { formatClassroomDate, formatClassroomDateTime } from '../../utils/classroomHelpers';
 import {
@@ -198,6 +199,7 @@ export default function StaffEnrollmentRequestsPage() {
   };
 
   const openAction = async (type, item) => {
+    setError('');
     setAction({
       ...initialAction,
       type,
@@ -313,9 +315,9 @@ export default function StaffEnrollmentRequestsPage() {
   return (
     <div className="space-y-5">
       {/* Top Notifications */}
-      {error ? <div className={ERROR_NOTICE_CLASS}>{error}</div> : null}
+      {!action.type && !centerEnrollmentOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
       {classroomLoadError ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{classroomLoadError}</div> : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{success}</div> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật hồ sơ" />
 
       {/* Metric Cards Summary */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -393,7 +395,7 @@ export default function StaffEnrollmentRequestsPage() {
           </button>
           <button
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#4b0009] px-5 text-xs font-extrabold text-white transition hover:bg-[#730014] active:scale-95 whitespace-nowrap shadow-sm"
-            onClick={() => setCenterEnrollmentOpen(true)}
+            onClick={() => { setError(''); setCenterEnrollmentOpen(true); }}
             type="button"
           >
             <UserPlus className="h-4 w-4" />
@@ -506,6 +508,7 @@ export default function StaffEnrollmentRequestsPage() {
           assignmentAvailability={assignmentAvailability}
           classroomLoadError={classroomLoadError}
           classrooms={classrooms}
+          error={error}
           onChange={setAction}
           onClose={() => setAction(initialAction)}
           onConfirm={confirmHandlers[action.type]}
@@ -517,6 +520,7 @@ export default function StaffEnrollmentRequestsPage() {
         <CenterEnrollmentModal
           classroomLoadError={classroomLoadError}
           classrooms={classrooms}
+          error={error}
           onClose={() => setCenterEnrollmentOpen(false)}
           onSubmit={createAtCenter}
           working={working}
@@ -540,7 +544,7 @@ function ActionButton({ danger = false, icon: Icon, label, onClick, success = fa
   );
 }
 
-function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, onChange, onClose, onConfirm, working }) {
+function ActionModal({ action, assignmentAvailability, classroomLoadError, classrooms, error, onChange, onClose, onConfirm, working }) {
   const titles = {
     SCHEDULE: ['Xác nhận lịch hẹn', 'Chọn ngày, giờ và địa điểm. Email xác nhận được gửi cùng lịch hẹn.'],
     COMPLETE_TEST: ['Ghi nhận kết quả đầu vào', 'Nhập kết quả thực tế của buổi đánh giá tại trung tâm.'],
@@ -563,6 +567,7 @@ function ActionModal({ action, assignmentAvailability, classroomLoadError, class
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+          {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
           {action.type === 'SCHEDULE' ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <label>
@@ -640,7 +645,7 @@ const initialCenterEnrollment = {
   note: '',
 };
 
-function CenterEnrollmentModal({ classroomLoadError, classrooms, onClose, onSubmit, working }) {
+function CenterEnrollmentModal({ classroomLoadError, classrooms, error, onClose, onSubmit, working }) {
   const [form, setForm] = useState(initialCenterEnrollment);
   const [validationError, setValidationError] = useState('');
 
@@ -683,6 +688,7 @@ function CenterEnrollmentModal({ classroomLoadError, classrooms, onClose, onSubm
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
+          {error ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label>
               <FieldLabel>Họ và tên *</FieldLabel>

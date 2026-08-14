@@ -78,6 +78,7 @@ class ClassroomRequestValidationTest {
         CreateClassroomProposalRequest request = new CreateClassroomProposalRequest();
         request.setTitle("IELTS Evening");
         request.setCourseOfferingId(1L);
+        request.setDeliveryType(fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode.OFFLINE);
         request.setCapacity(20);
         request.setPlannedStartDate(LocalDate.of(2026, 9, 1));
         request.setPlannedEndDate(LocalDate.of(2026, 8, 31));
