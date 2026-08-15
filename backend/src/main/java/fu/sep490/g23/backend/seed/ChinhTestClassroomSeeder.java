@@ -230,7 +230,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (sheetEnabled) {
+        if (!seedEnabled || sheetEnabled) {
             return;
         }
         log.info("[ChinhTestSeeder] Bắt đầu đồng bộ giáo trình và dữ liệu lớp học cho {}...", LEARNER_EMAIL);
