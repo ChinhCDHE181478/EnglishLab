@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Award,
   CheckCircle2,
@@ -69,6 +70,31 @@ const homeworkStatusOptions = [
   { label: 'Đóng bài (CLOSED)', value: 'CLOSED' },
 ];
 
+const readHomeworkDraft = (key) => {
+  try {
+    const storedDraft = window.sessionStorage.getItem(key);
+    return storedDraft ? JSON.parse(storedDraft) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeHomeworkDraft = (key, draft) => {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    // Browser storage may be unavailable; the in-memory draft still remains usable.
+  }
+};
+
+const clearHomeworkDraft = (key) => {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // Resetting the in-memory form is still sufficient when storage is unavailable.
+  }
+};
+
 const statusTone = (status) => {
   if (status === 'OPEN') return 'bg-emerald-50 text-emerald-700';
   if (status === 'DRAFT') return 'bg-gray-100 text-gray-600';
@@ -102,6 +128,7 @@ export default function TeacherHomeworkSection({
   const [aiAssessmentOptionsLoading, setAiAssessmentOptionsLoading] = useState(false);
   const [rubrics, setRubrics] = useState([]);
   const [rubricsLoading, setRubricsLoading] = useState(false);
+  const homeworkDraftStorageKey = `englishlab.teacher.classroom.${classroomId}.homework-draft`;
 
   const [gradingHomework, setGradingHomework] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -212,6 +239,26 @@ export default function TeacherHomeworkSection({
   }, [formOpen]);
 
   useEffect(() => {
+    if (!formOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [formOpen]);
+
+  useEffect(() => {
+    if (!formOpen || editingHomework) return;
+    writeHomeworkDraft(homeworkDraftStorageKey, {
+      form,
+      questionDrafts,
+      writingTaskDrafts,
+      speakingPartDrafts,
+      flashcardDrafts,
+    });
+  }, [editingHomework, flashcardDrafts, form, formOpen, homeworkDraftStorageKey, questionDrafts, speakingPartDrafts, writingTaskDrafts]);
+
+  useEffect(() => {
     if (!formOpen || !selectedAiAssessment?.skill) {
       setRubrics([]);
       return undefined;
@@ -253,6 +300,9 @@ export default function TeacherHomeworkSection({
   }, [form.rubricId, rubrics, selectedAiAssessment]);
 
   const resetForm = () => {
+    if (!editingHomework) {
+      clearHomeworkDraft(homeworkDraftStorageKey);
+    }
     setForm(emptyForm);
     setEditingHomework(null);
     setFormOpen(false);
@@ -263,14 +313,31 @@ export default function TeacherHomeworkSection({
     setFlashcardDrafts([createEmptyFlashcard()]);
   };
 
-  const openCreateForm = () => {
+  const dismissForm = () => {
+    if (!editingHomework) {
+      writeHomeworkDraft(homeworkDraftStorageKey, {
+        form,
+        questionDrafts,
+        writingTaskDrafts,
+        speakingPartDrafts,
+        flashcardDrafts,
+      });
+    } else {
+      setAttachmentFile(null);
+    }
     setEditingHomework(null);
-    setForm(emptyForm);
-    setAttachmentFile(null);
-    setQuestionDrafts([createEmptyQuestion()]);
-    setWritingTaskDrafts([createEmptyWritingTask()]);
-    setSpeakingPartDrafts([createEmptySpeakingPart()]);
-    setFlashcardDrafts([createEmptyFlashcard()]);
+    setFormOpen(false);
+  };
+
+  const openCreateForm = () => {
+    const draft = readHomeworkDraft(homeworkDraftStorageKey);
+    setEditingHomework(null);
+    setForm(draft?.form && typeof draft.form === 'object' ? { ...emptyForm, ...draft.form } : emptyForm);
+    if (!draft) setAttachmentFile(null);
+    setQuestionDrafts(Array.isArray(draft?.questionDrafts) && draft.questionDrafts.length ? draft.questionDrafts : [createEmptyQuestion()]);
+    setWritingTaskDrafts(Array.isArray(draft?.writingTaskDrafts) && draft.writingTaskDrafts.length ? draft.writingTaskDrafts : [createEmptyWritingTask()]);
+    setSpeakingPartDrafts(Array.isArray(draft?.speakingPartDrafts) && draft.speakingPartDrafts.length ? draft.speakingPartDrafts : [createEmptySpeakingPart()]);
+    setFlashcardDrafts(Array.isArray(draft?.flashcardDrafts) && draft.flashcardDrafts.length ? draft.flashcardDrafts : [createEmptyFlashcard()]);
     setFormOpen(true);
   };
 
@@ -392,16 +459,21 @@ export default function TeacherHomeworkSection({
           flashcards: flashcardDrafts,
         });
       const payload = buildPayload(attachmentUrl, activityConfigJson);
-      if (editingHomework?.id) {
-        await classroomApi.updateHomework(editingHomework.id, payload);
-        onMessage?.('Đã cập nhật bài tập.');
-      } else {
-        await classroomApi.createHomework(classroomId, payload);
-        onMessage?.('Đã giao bài tập mới.');
-      }
-      const refreshed = await classroomApi.getTeacherHomework(classroomId);
-      onHomeworkChange?.(refreshed);
+      const savedHomework = editingHomework?.id
+        ? await classroomApi.updateHomework(editingHomework.id, payload)
+        : await classroomApi.createHomework(classroomId, payload);
+      onHomeworkChange?.(editingHomework?.id
+        ? homework.map((item) => (item.id === savedHomework.id ? savedHomework : item))
+        : [savedHomework, ...homework]);
       resetForm();
+      onMessage?.(editingHomework?.id ? 'Đã cập nhật bài tập.' : 'Đã giao bài tập mới.');
+
+      try {
+        const refreshed = await classroomApi.getTeacherHomework(classroomId);
+        onHomeworkChange?.(refreshed);
+      } catch {
+        // The save succeeded; keep the server response instead of reporting a false save error.
+      }
     } catch (err) {
       onMessage?.(getClassroomErrorMessage(err, 'Không thể lưu bài tập.'));
     } finally {
@@ -620,17 +692,19 @@ export default function TeacherHomeworkSection({
         </button>
       </div>
 
-      {formOpen && (
-        <div className="rounded-2xl border border-[#dfbfbd]/25 bg-white p-6 shadow-sm space-y-5">
-          <div className="flex items-center justify-between gap-3">
-            <h5 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]">
+      {formOpen && typeof document !== 'undefined' ? createPortal(
+        <div className="fixed inset-0 z-[100] flex min-h-[100dvh] w-screen items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+          <section aria-labelledby="homework-editor-title" aria-modal="true" className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog">
+          <header className="flex items-center justify-between gap-3 border-b border-[#dfbfbd]/25 px-6 py-5">
+            <h5 className="font-['Manrope'] text-lg font-extrabold text-[#2b2828]" id="homework-editor-title">
               {editingHomework ? 'Chỉnh sửa bài tập' : 'Tạo bài tập mới'}
             </h5>
-            <button className="rounded-lg p-2 text-[#8b706e] hover:bg-gray-100" onClick={resetForm} type="button">
+            <button aria-label="Đóng và giữ bản nháp" className="rounded-lg p-2 text-[#8b706e] hover:bg-gray-100" onClick={dismissForm} type="button">
               <X className="h-4 w-4" />
             </button>
-          </div>
+          </header>
 
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 md:col-span-2">
               <span className="text-xs font-bold text-[#8b706e]">Tiêu đề bài tập *</span>
@@ -879,7 +953,9 @@ export default function TeacherHomeworkSection({
             </label>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-3">
+          </div>
+
+          <footer className="flex flex-wrap justify-end gap-3 border-t border-[#dfbfbd]/25 px-6 py-4">
             <button className="rounded-xl border border-gray-200 px-5 py-3 text-xs font-extrabold text-[#584140]" onClick={resetForm} type="button">
               Hủy
             </button>
@@ -891,9 +967,10 @@ export default function TeacherHomeworkSection({
             >
               {saving ? 'Đang lưu...' : editingHomework ? 'Lưu thay đổi' : 'Giao bài tập'}
             </button>
-          </div>
+          </footer>
+          </section>
         </div>
-      )}
+        , document.body) : null}
 
       {!homework.length ? (
         <ClassroomEmptyState

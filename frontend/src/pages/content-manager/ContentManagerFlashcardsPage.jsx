@@ -21,7 +21,10 @@ import {
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
+const createCardKey = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 const createEmptyCard = () => ({
+  _key: createCardKey(),
   front: '',
   back: '',
   example: '',
@@ -89,6 +92,7 @@ const parseCards = (cardsJson) => {
     const parsed = JSON.parse(cardsJson || '[]');
     if (!Array.isArray(parsed)) return [createEmptyCard()];
     const normalized = parsed.map((card) => ({
+      _key: createCardKey(),
       front: card.front ?? card.term ?? '',
       back: card.back ?? card.definition ?? '',
       example: card.example ?? card.exampleSentence ?? '',
@@ -435,8 +439,11 @@ function FlashcardBankPage({ editorRoute }) {
     }
     setCards((current) => (
       importStrategy === 'REPLACE'
-        ? activeImportPreview.cards
-        : [...current.filter((card) => card.front.trim() || card.back.trim() || card.example.trim() || card.commonMistake.trim()), ...activeImportPreview.cards]
+        ? activeImportPreview.cards.map((card) => ({ ...card, _key: createCardKey() }))
+        : [
+          ...current.filter((card) => card.front.trim() || card.back.trim() || card.example.trim() || card.commonMistake.trim()),
+          ...activeImportPreview.cards.map((card) => ({ ...card, _key: createCardKey() })),
+        ]
     ));
     setTransferMode(null);
     setSuccess(`Đã đưa ${activeImportPreview.cards.length} thẻ vào trình chỉnh sửa. Hãy lưu bộ thẻ để hoàn tất.`);
@@ -676,6 +683,7 @@ function FlashcardBankPage({ editorRoute }) {
           <FlashcardSetDetailsForm form={form} onChange={setForm} />
           <InlineFlashcardSetEditor
             cards={cards.map((card) => ({
+              _key: card._key,
               term: card.front,
               meaning: card.back,
               example: card.example,
@@ -1342,7 +1350,7 @@ function LegacyFlashcardSetEditor({
 
           <div className="space-y-4">
             {cards.map((card, index) => (
-              <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-5" key={`${index}-${card.front}-${card.back}`}>
+              <div className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-5" key={card._key || index}>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="font-semibold text-[#4b0009]">Thẻ {index + 1}</h3>
                   <button className="inline-flex items-center gap-2 rounded-xl border border-[#f0d4d7] px-3 py-2 text-sm font-medium text-[#93000a] transition hover:bg-[#fff6f7]" onClick={() => onRemoveCard(index)} type="button">

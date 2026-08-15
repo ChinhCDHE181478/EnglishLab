@@ -21,6 +21,7 @@ import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import {
   ManagerEmptyState,
   ManagerFilterBar,
@@ -576,7 +577,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
             <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
               <td className="px-6 py-5">
                 <p className="max-w-[360px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
-                {item.description ? <p className="mt-1 max-w-[360px] truncate text-xs text-[#564241]">{item.description}</p> : null}
+                {item.description ? <RichTextHtml asPlain className="mt-1 max-w-[360px] truncate text-xs text-[#564241]" value={item.description} /> : null}
               </td>
               {!isSkillLocked ? (
                 <>

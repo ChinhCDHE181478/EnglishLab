@@ -105,7 +105,7 @@ class SubmitAssessmentTest {
         assessment.setSkill(AssessmentSkill.WRITING);
 
         request = new AssessmentSubmissionRequest();
-        request.setSubmittedText("My answer");
+        request.setSubmittedText("My answer develops a clear argument with relevant evidence.");
     }
 
     /**
@@ -185,6 +185,31 @@ class SubmitAssessmentTest {
             aiAssessmentService.submitAssessment(assessment.getId(), request, student.getEmail());
         });
         assertEquals("Vui lòng nhập nội dung bài làm trước khi nộp.", exception.getMessage());
+    }
+
+    @Test
+    void submitAssessment_InsufficientWriting_ReturnsZeroWithoutCallingAi() {
+        request.setSubmittedText("1");
+        assessment.setAiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND);
+        when(userRepository.findByEmail(student.getEmail())).thenReturn(Optional.of(student));
+        when(courseAssessmentRepository.findById(assessment.getId())).thenReturn(Optional.of(assessment));
+        when(courseEnrollmentAccessPolicy.requireAssessmentAccess(student, course)).thenReturn(enrollment);
+        when(enrollmentRepository.findByStudentAndLearningPackage(student, learningPackage)).thenReturn(Optional.empty());
+        when(submissionRepository.save(any(AssessmentSubmission.class))).thenAnswer(invocation -> {
+            AssessmentSubmission saved = invocation.getArgument(0);
+            saved.setId(1001L);
+            return saved;
+        });
+
+        AiAssessmentSubmissionResponse result = aiAssessmentService.submitAssessment(
+                assessment.getId(),
+                request,
+                student.getEmail()
+        );
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(result.getAiScore()));
+        assertTrue(result.getAiFeedbackJson().contains("Bài làm quá ngắn"));
+        verify(aiEvaluationClient, never()).evaluate(anyString());
     }
 
     /**

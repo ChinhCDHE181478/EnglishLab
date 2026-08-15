@@ -12,6 +12,14 @@ describe('sanitizeLessonHtml', () => {
     expect(stripRichTextToPlain(escaped)).toBe('Tiêu đề\nNội dung');
   });
 
+  it('khôi phục rich text bị escape nhiều lớp', () => {
+    const escaped = '&amp;lt;p&amp;gt;Nội dung đã lưu&amp;lt;/p&amp;gt;';
+
+    expect(looksLikeRichTextHtml(escaped)).toBe(true);
+    expect(sanitizeLessonHtml(escaped)).toBe('<p>Nội dung đã lưu</p>');
+    expect(stripRichTextToPlain(escaped)).toBe('Nội dung đã lưu');
+  });
+
   it('lọc lại phần tử con sau khi loại bỏ thẻ không được phép', () => {
     const sanitized = sanitizeLessonHtml('<abc><img src=x onerror="alert(1)"></abc><p>Nội dung an toàn</p>');
 
