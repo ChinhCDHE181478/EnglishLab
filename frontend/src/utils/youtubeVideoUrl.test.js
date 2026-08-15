@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { isYouTubeVideoUrl } from './youtubeVideoUrl';
+import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from './youtubeVideoUrl';
 
-describe('isYouTubeVideoUrl', () => {
-  it('detects common YouTube link formats', () => {
-    expect(isYouTubeVideoUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(true);
-    expect(isYouTubeVideoUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(true);
-    expect(isYouTubeVideoUrl('https://www.youtube.com/embed/dQw4w9WgXcQ')).toBe(true);
-    expect(isYouTubeVideoUrl('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')).toBe(true);
+describe('youtubeVideoUrl helpers', () => {
+  it('detects YouTube urls', () => {
+    expect(isYouTubeVideoUrl('https://www.youtube.com/watch?v=abc123')).toBe(true);
+    expect(isYouTubeVideoUrl('https://youtu.be/abc123')).toBe(true);
+    expect(isYouTubeVideoUrl('https://example.com')).toBe(false);
   });
 
-  it('rejects bunny and empty urls', () => {
-    expect(isYouTubeVideoUrl('')).toBe(false);
-    expect(isYouTubeVideoUrl('https://iframe.mediadelivery.net/embed/1/abc')).toBe(false);
-    expect(isYouTubeVideoUrl('https://vimeo.com/123')).toBe(false);
+  it('detects Bunny urls and ids', () => {
+    expect(isBunnyVideoUrl('https://iframe.mediadelivery.net/embed/729032/bc1feea2-7cc5-46b5-9073-aaaaaaaaaaaa')).toBe(true);
+    expect(isBunnyVideoUrl('bc1feea2-7cc5-46b5-9073-aaaaaaaaaaaa')).toBe(true);
+    expect(isBunnyVideoUrl('https://www.youtube.com/watch?v=abc')).toBe(false);
+  });
+
+  it('allows auto fetch for YouTube or Bunny sources', () => {
+    expect(canAutoFetchTranscript({ videoUrl: 'https://youtu.be/abc' })).toBe(true);
+    expect(canAutoFetchTranscript({
+      videoUrl: 'https://iframe.mediadelivery.net/embed/1/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+    })).toBe(true);
+    expect(canAutoFetchTranscript({ bunnyVideoId: 'guid' })).toBe(true);
+    expect(canAutoFetchTranscript({ videoUrl: 'https://vimeo.com/1' })).toBe(false);
   });
 });

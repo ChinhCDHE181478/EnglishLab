@@ -531,12 +531,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             throw new RuntimeException("Bài học không thuộc khóa học này.");
         }
 
-        List<TranscriptSegmentResponse> segments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+        List<TranscriptSegmentResponse> segments = resolveAutoTranscriptSegments(lesson);
         if (segments.isEmpty()) {
-            if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isEmpty()) {
-                throw new IllegalArgumentException("Chỉ lấy tự động bản chép lời từ liên kết YouTube. Video tải lên hệ thống cần nhập bản chép lời thủ công.");
+            if (canAutoFetchTranscript(lesson)) {
+                throw new IllegalArgumentException("Chưa lấy được bản chép lời từ video này. Với Bunny, caption có thể vẫn đang xử lý — thử lại sau vài phút.");
             }
-            throw new IllegalArgumentException("Video này không có caption YouTube công khai. Bản chép lời hiện tại được giữ nguyên.");
+            throw new IllegalArgumentException("Chỉ lấy tự động từ YouTube hoặc video Bunny. Hãy dán link phù hợp hoặc tải video lên hệ thống trước.");
         }
         lesson.setTranscriptSegmentsJson(writeTranscriptSegments(segments));
         lessonRepository.save(lesson);
@@ -1917,10 +1917,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 || lesson.getTranscriptSegmentsJson().isBlank()
                 || "[]".equals(lesson.getTranscriptSegmentsJson().trim());
 
-        // Empty transcript payload from the editor should still auto-fetch YouTube captions.
-        if ((videoChanged || missingTranscript) && youTubeTranscriptService.extractVideoId(nextVideoUrl).isPresent()) {
-            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(youTubeTranscriptService.fetchTranscriptSegments(nextVideoUrl)));
-            return;
+        // Empty transcript payload from the editor should still auto-fetch YouTube/Bunny captions.
+        if (videoChanged || missingTranscript) {
+            Lesson probe = new Lesson();
+            probe.setVideoUrl(nextVideoUrl);
+            probe.setBunnyVideoId(lesson.getBunnyVideoId());
+            probe.setBunnyLibraryId(lesson.getBunnyLibraryId());
+            if (canAutoFetchTranscript(probe)) {
+                List<TranscriptSegmentResponse> autoSegments = resolveAutoTranscriptSegments(probe);
+                if (!autoSegments.isEmpty()) {
+                    lesson.setTranscriptSegmentsJson(writeTranscriptSegments(autoSegments));
+                    return;
+                }
+            }
         }
         if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
             lesson.setTranscriptSegmentsJson(null);
@@ -1929,6 +1938,41 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (requestedSegments != null) {
             lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(requestedSegments)));
         }
+    }
+
+    private boolean canAutoFetchTranscript(Lesson lesson) {
+        if (lesson == null) {
+            return false;
+        }
+        if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isPresent()) {
+            return true;
+        }
+        return bunnyStreamService.resolveVideoRef(
+                lesson.getVideoUrl(),
+                lesson.getBunnyVideoId(),
+                lesson.getBunnyLibraryId()
+        ).isPresent();
+    }
+
+    private List<TranscriptSegmentResponse> resolveAutoTranscriptSegments(Lesson lesson) {
+        if (lesson == null) {
+            return List.of();
+        }
+
+        if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isPresent()) {
+            List<TranscriptSegmentResponse> youtubeSegments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+            if (!youtubeSegments.isEmpty()) {
+                return youtubeSegments;
+            }
+        }
+
+        return bunnyStreamService.resolveVideoRef(
+                        lesson.getVideoUrl(),
+                        lesson.getBunnyVideoId(),
+                        lesson.getBunnyLibraryId()
+                )
+                .map(ref -> bunnyStreamService.fetchTranscriptSegments(ref.libraryId(), ref.videoId()))
+                .orElseGet(List::of);
     }
 
     private List<TranscriptSegmentResponse> toTranscriptResponses(List<TranscriptSegmentRequest> segments) {

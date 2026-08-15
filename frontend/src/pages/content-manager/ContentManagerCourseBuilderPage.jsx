@@ -21,7 +21,7 @@ import { persistOptimisticReorder, reorderItems } from '../../utils/courseReorde
 import { createCourseBuilderFingerprint } from '../../utils/courseBuilderState';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
-import { isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
+import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -775,8 +775,11 @@ export default function ContentManagerCourseBuilderPage() {
       pushToast('Hãy chọn bài học video trước.', 'warning');
       return;
     }
-    if (!isYouTubeVideoUrl(activeLesson.videoUrl)) {
-      pushToast('Dán liên kết YouTube vào ô video (chế độ Dùng liên kết) rồi bấm lấy bản chép lời.', 'warning');
+    if (!canAutoFetchTranscript({
+      videoUrl: activeLesson.videoUrl,
+      bunnyVideoId: activeLesson.bunnyVideoId,
+    })) {
+      pushToast('Dán link YouTube/Bunny hoặc tải video lên hệ thống trước khi lấy bản chép lời.', 'warning');
       return;
     }
     if (!activeLesson.id) {
@@ -796,9 +799,12 @@ export default function ContentManagerCourseBuilderPage() {
       if (updatedLesson) {
         patchActiveLesson({ transcriptSegments: updatedLesson.transcriptSegments || [] });
       }
+      const sourceLabel = isYouTubeVideoUrl(activeLesson.videoUrl)
+        ? 'YouTube'
+        : (activeLesson.bunnyVideoId || isBunnyVideoUrl(activeLesson.videoUrl) ? 'Bunny' : 'video');
       pushToast(segmentCount
-        ? `Đã lấy ${segmentCount} đoạn bản chép lời từ YouTube.`
-        : 'Video chưa có caption công khai. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
+        ? `Đã lấy ${segmentCount} đoạn bản chép lời từ ${sourceLabel}.`
+        : 'Video chưa có caption. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
       segmentCount ? 'success' : 'warning');
     } catch (refreshError) {
       const message = refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.';
@@ -1774,7 +1780,7 @@ function LessonEditorModal({
                         </div>
                         <div>
                           <p className="text-xs font-extrabold text-[#1a1c1c]">Dùng liên kết</p>
-                          <p className="mt-1 text-[10px] leading-4 text-slate-500">YouTube để lấy bản chép lời tự động.</p>
+                          <p className="mt-1 text-[10px] leading-4 text-slate-500">YouTube hoặc Bunny (mediadelivery).</p>
                         </div>
                       </button>
 
@@ -1805,22 +1811,7 @@ function LessonEditorModal({
 
                   {videoSource === 'LINK' ? (
                     <div className="space-y-3">
-                      <TextField label="Liên kết video (YouTube để lấy bản chép lời tự động)" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          className="inline-flex items-center gap-2 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-50"
-                          disabled={refreshingTranscript || !isYouTubeVideoUrl(activeLesson.videoUrl) || !activeLesson.id}
-                          onClick={onRefreshTranscript}
-                          type="button"
-                        >
-                          {refreshingTranscript ? 'Đang lấy bản chép lời...' : 'Lấy bản chép lời tự động'}
-                        </button>
-                        {!isYouTubeVideoUrl(activeLesson.videoUrl) ? (
-                          <p className="text-xs font-semibold text-[#8b706e]">Dán link YouTube để bật nút này.</p>
-                        ) : !activeLesson.id ? (
-                          <p className="text-xs font-semibold text-[#93000a]">Bấm Lưu thay đổi trước, rồi lấy bản chép lời.</p>
-                        ) : null}
-                      </div>
+                      <TextField label="Liên kết video (YouTube hoặc Bunny)" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
@@ -1861,6 +1852,7 @@ function LessonEditorModal({
                   )}
 
                   <TranscriptEditor
+                    bunnyVideoId={activeLesson.bunnyVideoId}
                     lessonSaved={Boolean(activeLesson.id)}
                     onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
                     onRefresh={onRefreshTranscript}
@@ -1898,9 +1890,17 @@ function LessonEditorModal({
   );
 }
 
-function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl, lessonSaved = false }) {
+function TranscriptEditor({
+  segments,
+  onChange,
+  onRefresh,
+  refreshing,
+  videoUrl,
+  bunnyVideoId = '',
+  lessonSaved = false,
+}) {
   const normalizedSegments = normalizeTranscriptSegments(segments, true);
-  const canRefreshYouTube = isYouTubeVideoUrl(videoUrl);
+  const canRefresh = canAutoFetchTranscript({ videoUrl, bunnyVideoId });
   const updateSegment = (index, field, value) => {
     const next = normalizedSegments.map((segment, segmentIndex) => (
       segmentIndex === index
@@ -1916,20 +1916,20 @@ function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl,
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#730014]">Bản chép lời video</p>
           <p className="mt-1 text-sm leading-6 text-[#584140]">
-            Chọn "Dùng liên kết", dán YouTube, lưu bài học, rồi bấm lấy tự động — hoặc thêm đoạn thủ công.
+            Lấy tự động từ YouTube hoặc Bunny, hoặc thêm đoạn thủ công bên dưới.
           </p>
         </div>
         <button
           className="shrink-0 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={refreshing || !canRefreshYouTube || !lessonSaved}
+          disabled={refreshing || !canRefresh || !lessonSaved}
           onClick={onRefresh}
           type="button"
         >
           {refreshing ? 'Đang lấy...' : 'Lấy bản chép lời tự động'}
         </button>
       </div>
-      {!canRefreshYouTube ? (
-        <p className="mt-3 text-xs font-semibold text-[#8b706e]">Cần link YouTube (chế độ Dùng liên kết). Video tải lên thì nhập tay bên dưới.</p>
+      {!canRefresh ? (
+        <p className="mt-3 text-xs font-semibold text-[#8b706e]">Dán link YouTube/Bunny hoặc tải video lên hệ thống để bật nút này.</p>
       ) : !lessonSaved ? (
         <p className="mt-3 text-xs font-semibold text-[#93000a]">Bấm Lưu thay đổi trước, rồi lấy bản chép lời.</p>
       ) : null}
