@@ -84,7 +84,7 @@ export default function LearningPathCatalogPage() {
                   <h3 className="mt-2 font-['Manrope'] text-xl font-extrabold leading-snug text-[#2b2828] line-clamp-1">
                     {path.name}
                   </h3>
-                  <ol className="mt-4 space-y-2 flex-1">
+                  <ol className="mt-4 space-y-2">
                     {path.courses.slice(0, 3).map((course, index) => (
                       <li className="flex items-center gap-2 text-sm text-[#584140]" key={course.id}>
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff0f2] text-xs font-extrabold text-[#8a0018]">
@@ -99,7 +99,7 @@ export default function LearningPathCatalogPage() {
                       </li>
                     )}
                   </ol>
-                  <div className="mt-5 border-t border-[#f0e3e4] pt-4">
+                  <div className="mt-auto border-t border-[#f0e3e4] pt-4">
                     {path.discountApplied ? (
                       <p className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700">
                         <BadgePercent className="h-4 w-4" /> Giảm {path.discountPercent}% khi mua từ {path.minimumCoursesForDiscount} khóa

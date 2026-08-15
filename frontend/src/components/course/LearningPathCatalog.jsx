@@ -81,7 +81,7 @@ export default function LearningPathCatalog({ courses = [] }) {
               )}
             </ol>
             <Link
-              className="mt-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] active:scale-95 shadow-sm"
+              className="mt-auto pt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b0009] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#730014] active:scale-95 shadow-sm"
               to={`/learning-paths/${encodeURIComponent(path.code)}`}
             >
               Xem lộ trình
