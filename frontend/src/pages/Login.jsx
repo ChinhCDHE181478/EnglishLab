@@ -166,6 +166,7 @@ const Login = () => {
               <Mail size={20} />
             </span>
             <input
+              autoComplete="username"
               className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-4 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors duration-200 placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="email"
               name="email"
@@ -186,6 +187,7 @@ const Login = () => {
               <Lock size={20} />
             </span>
             <input
+              autoComplete="current-password"
               className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-10 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors duration-200 placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="password"
               name="password"
