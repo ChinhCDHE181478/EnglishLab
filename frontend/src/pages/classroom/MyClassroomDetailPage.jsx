@@ -686,6 +686,12 @@ export default function MyClassroomDetailPage() {
                         url={resolveGoogleMeetUrl(nextSession, classroom)}
                       />
                     )}
+                    {isVirtual && !canJoinGoogleMeet(nextSession, classroom) && !resolveGoogleMeetUrl(nextSession, classroom) && (
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-500">
+                        <Video className="h-4 w-4" />
+                        Hiện chưa có link Google Meet cho buổi học này
+                      </span>
+                    )}
                     {nextSession.recordingUrl && (
                       <a
                         className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition active:scale-95"
@@ -978,6 +984,12 @@ export default function MyClassroomDetailPage() {
                           <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-400">
                             <Video className="h-4 w-4" />
                             Google Meet đã đóng
+                          </span>
+                        )}
+                        {isVirtual && !canJoinMeet && !meetUrl && (
+                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-500">
+                            <Video className="h-4 w-4" />
+                            Hiện chưa có link Google Meet cho buổi học này
                           </span>
                         )}
                         {session.recordingUrl && (
