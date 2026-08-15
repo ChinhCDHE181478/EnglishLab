@@ -1,0 +1,411 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2026_january_listening_practice_test_1",
+  "title": "IELTS Mock Test 2026 January Listening Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2026de1.html",
+  "durationMinutes": 32,
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-8",
+          "instructions": "Choose the correct letter A, B or C.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 1,
+              "prompt": "The centre has enough accommodation for",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "20 people."
+                }
+              ]
+            },
+            {
+              "number": 2,
+              "prompt": "The meeting room is currently",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "flooded"
+                }
+              ]
+            },
+            {
+              "number": 3,
+              "prompt": "Visitors must tell the centre in advance if they want to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "have meals cooked for them."
+                }
+              ]
+            },
+            {
+              "number": 4,
+              "prompt": "All visitors on the tour of the farm can",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "help to feed the animals"
+                }
+              ]
+            },
+            {
+              "number": 5,
+              "prompt": "On the survival course people have to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "find their own food."
+                }
+              ]
+            },
+            {
+              "number": 6,
+              "prompt": "From the centre it is easy to walk to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "the beach"
+                }
+              ]
+            },
+            {
+              "number": 7,
+              "prompt": "If the weather is bad visitors can go to a",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "theatre"
+                }
+              ]
+            },
+            {
+              "number": 8,
+              "prompt": "Groups who wish to stay at the centre must pay",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "all of the cost in advance."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 9-10",
+          "instructions": "Questions 9-10",
+          "type": "text",
+          "questions": [
+            {
+              "number": 9,
+              "promptBefore": "lete the notes below. Write ONE WORD AND/OR NUMBERS for each answer. Address: Winsham Farm",
+              "promptAfter": "Rd Near Sherbome 10 <input type=\"text\" cla"
+            },
+            {
+              "number": 10,
+              "promptBefore": "Rd Near Sherbome",
+              "promptAfter": "<div class=\"test-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 11-16",
+          "instructions": "Questions 11-16",
+          "type": "text",
+          "questions": [
+            {
+              "number": 11,
+              "promptBefore": " for each answer. Vacation Job Main advantage Main disadvantage Recommendation Stocktaking",
+              "promptAfter": "Tiring 12 <input type=\"text\" class=\"io"
+            },
+            {
+              "number": 12,
+              "promptBefore": "Tiring",
+              "promptAfter": "Office work Air-conditioning <span class=\"test-panel__question-num\""
+            },
+            {
+              "number": 13,
+              "promptBefore": "Office work Air-conditioning",
+              "promptAfter": "Choose a 14 <input type=\"text\" class=\"iot-ques"
+            },
+            {
+              "number": 14,
+              "promptBefore": "Choose a",
+              "promptAfter": "theme park attendant 15 <inpu"
+            },
+            {
+              "number": 15,
+              "promptBefore": "theme park attendant",
+              "promptAfter": "Rude customers 16 <input type=\"text\" c"
+            },
+            {
+              "number": 16,
+              "promptBefore": "Rude customers",
+              "promptAfter": "<div class=\"test-panel__question\" bis_s"
+            }
+          ]
+        },
+        {
+          "title": "Questions 17-20",
+          "instructions": "Choose the correct letter, A, B or C .",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 17,
+              "prompt": "Peter learned about the job",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "on the computer"
+                }
+              ]
+            },
+            {
+              "number": 18,
+              "prompt": "Peter mainly enjoyed the job because it was",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "challenging"
+                }
+              ]
+            },
+            {
+              "number": 19,
+              "prompt": "The job's most interesting aspect was",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "working with children"
+                }
+              ]
+            },
+            {
+              "number": 20,
+              "prompt": "Peter has decided that next vacation he",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will work at the zoo."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 21-22",
+          "instructions": "Questions 21-22",
+          "type": "text",
+          "questions": [
+            {
+              "number": 21,
+              "promptBefore": " Study Syndicates: teaching one another is a good way to learn it gives the opportunity to",
+              "promptAfter": "shared reading means fuller notes You can do"
+            },
+            {
+              "number": 22,
+              "promptBefore": "shared reading means fuller notes You can do",
+              "promptAfter": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 23-25",
+          "instructions": "Questions 23-25",
+          "type": "text",
+          "questions": [
+            {
+              "number": 23,
+              "promptBefore": "BER for each answer. PLAN FOR STUDY SYNDICATE Date Geology Topic Name of Presenter 9th May",
+              "promptAfter": "Bob 24 <input type=\"text\" cla"
+            },
+            {
+              "number": 24,
+              "promptBefore": "Bob",
+              "promptAfter": "glaciated areas Andy 23rd May rock formation Helen and John <span class=\""
+            },
+            {
+              "number": 25,
+              "promptBefore": "glaciated areas Andy 23rd May rock formation Helen and John",
+              "promptAfter": "Volcanoes John <div cla"
+            }
+          ]
+        },
+        {
+          "title": "Questions 26-30",
+          "instructions": "Questions 26-30",
+          "type": "text",
+          "questions": [
+            {
+              "number": 26,
+              "promptBefore": "te NO MORE THAN THREE WORDS AND/OR A NUMBER for each answer. Presentations should last for",
+              "promptAfter": "(plus time for 27 <input t"
+            },
+            {
+              "number": 27,
+              "promptBefore": "(plus time for",
+              "promptAfter": ") Sources of information bibliography library books <span class=\"te"
+            },
+            {
+              "number": 28,
+              "promptBefore": ") Sources of information bibliography library books",
+              "promptAfter": "29 <input type=\"text\" class=\"iot-question iot-"
+            },
+            {
+              "number": 29,
+              "promptBefore": "Question 29",
+              "promptAfter": "For the presentations, use: overhead projector whiteboard <"
+            },
+            {
+              "number": 30,
+              "promptBefore": "For the presentations, use: overhead projector whiteboard",
+              "promptAfter": "<div c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Part 1",
+          "instructions": "Part 1",
+          "type": "text",
+          "questions": [
+            {
+              "number": 31,
+              "promptBefore": "low. Write NO MORE THAN THREE WORDS for each answer. HEALTH ON THE NIGHT SHIFT Background:",
+              "promptAfter": "in number of night workers because of 24-hour shopping/services Need to examine "
+            },
+            {
+              "number": 32,
+              "promptBefore": "d sleep habits US and British research found these lead to health problems Main Causes: A)",
+              "promptAfter": "regulates daily life connected to behavioural pattems and cycles of <span class="
+            },
+            {
+              "number": 33,
+              "promptBefore": "regulates daily life connected to behavioural pattems and cycles of",
+              "promptAfter": "programmes us to be awake and asleep at certain times B) Sleep Debt impossible t"
+            },
+            {
+              "number": 34,
+              "promptBefore": " and asleep at certain times B) Sleep Debt impossible to get enough sleep during daytir C)",
+              "promptAfter": "different working/ sleeping times, 'dislocation' Effects: A) Physical <ul"
+            },
+            {
+              "number": 35,
+              "promptBefore": "different working/ sleeping times, 'dislocation' Effects: A) Physical higher incidence of",
+              "promptAfter": "problems more minor illnesses, suggesting that immunity of shift workers is affe"
+            },
+            {
+              "number": 36,
+              "promptBefore": "esses, suggesting that immunity of shift workers is affected B) Psychological most common:",
+              "promptAfter": "37 <input type=\"text\" class=\"iot-question iot-"
+            },
+            {
+              "number": 37,
+              "promptBefore": "Question 37",
+              "promptAfter": "affected, e.g. decision-making, planning, which regulate our"
+            },
+            {
+              "number": 38,
+              "promptBefore": "affected, e.g. decision-making, planning, which regulate our",
+              "promptAfter": "C) Social Night shift work can lead to: destruction of"
+            },
+            {
+              "number": 39,
+              "promptBefore": "C) Social Night shift work can lead to: destruction of",
+              "promptAfter": "and other relationships, e.g. 40 <input type=\"text\" cla"
+            },
+            {
+              "number": 40,
+              "promptBefore": "and other relationships, e.g.",
+              "promptAfter": "eventually, for individuals: social isolation <div class=\"test-panel__nav\" bis_s"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "C",
+    "2": "A",
+    "3": "B",
+    "4": "B",
+    "5": "B",
+    "6": "C",
+    "7": "C",
+    "8": "A",
+    "9": "COTEHELE",
+    "10": "SH12 1LQ",
+    "11": "travelling",
+    "12": "get good shoes",
+    "13": "wearing formal clothes",
+    "14": "large office",
+    "15": "good pay",
+    "16": "live nearby",
+    "17": "B",
+    "18": "C",
+    "19": "B",
+    "20": "A",
+    "21": "share ideas",
+    "22": "deeper research",
+    "23": "Mountain building",
+    "24": "17th May",
+    "25": "29th May",
+    "26": "30-40 minutes",
+    "27": "question(s); discussion",
+    "28": "articles (from journal)",
+    "29": "internet",
+    "30": "photocopy",
+    "31": "a huge increase",
+    "32": "internal clock",
+    "33": "light dark",
+    "34": "unsocial hours",
+    "35": "stomach",
+    "36": "depression",
+    "37": "mental ability",
+    "38": "performance",
+    "39": "family life",
+    "40": [
+      "peer group",
+      "friends"
+    ]
+  }
+}

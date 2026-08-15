@@ -1,0 +1,471 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2025_february_listening_practice_test_1",
+  "title": "IELTS Mock Test 2025 February Listening Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2025de3.html",
+  "durationMinutes": 32,
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-2",
+          "instructions": "Choose the correct letter A–C. Example: The customer went to South Africa A. last month B. last week C. last year.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 1,
+              "prompt": "The travel agent:",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "can personally recommend Vancouver"
+                }
+              ]
+            },
+            {
+              "number": 2,
+              "prompt": "The customer:",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "knows people living in Canada"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 3-6",
+          "instructions": "Questions 3-6",
+          "type": "text",
+          "questions": [
+            {
+              "number": 3,
+              "promptBefore": "MORE THAN TWO WORDS OR A NUMBER. The Travel Depot flight reservations Customer’s name: Jim",
+              "promptAfter": "Address 10 Allen Road, Oldham Destination Vancouver, Canada Contact numb"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Address 10 Allen Road, Oldham Destination Vancouver, Canada Contact number: 0151",
+              "promptAfter": "(home number) Flight number 5"
+            },
+            {
+              "number": 5,
+              "promptBefore": "(home number) Flight number",
+              "promptAfter": "Length of stay (nights): 6 <i"
+            },
+            {
+              "number": 6,
+              "promptBefore": "Length of stay (nights):",
+              "promptAfter": "<div class=\"test-panel__question\" bis_s"
+            }
+          ]
+        },
+        {
+          "title": "Questions 7-10",
+          "instructions": "Complete the sentences below USING NO MORE THAN TWO WORDS OR A NUMBER",
+          "type": "text",
+          "questions": [
+            {
+              "number": 7,
+              "promptBefore": "es below USING NO MORE THAN TWO WORDS OR A NUMBER The travel agent recommends some form of",
+              "promptAfter": "cover for peace of mind. There are two types of cover, but the best cover is off"
+            },
+            {
+              "number": 8,
+              "promptBefore": "er for peace of mind. There are two types of cover, but the best cover is offered with the",
+              "promptAfter": "Star policy. The client can see a play at the theatre for $ <span class=\"test-pa"
+            },
+            {
+              "number": 9,
+              "promptBefore": "Star policy. The client can see a play at the theatre for $",
+              "promptAfter": "The flight and the insurance together cost £ 10"
+            },
+            {
+              "number": 10,
+              "promptBefore": "The flight and the insurance together cost £",
+              "promptAfter": "<div class=\"test-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 11-15",
+          "instructions": "Select the correct answers A-D .",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 11,
+              "prompt": "Who is the speaker addressing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "People selling houses"
+                },
+                {
+                  "value": "C",
+                  "label": "People buying second homes"
+                }
+              ]
+            },
+            {
+              "number": 12,
+              "prompt": "Rental property in the city…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "is becoming more difficult to find"
+                },
+                {
+                  "value": "C",
+                  "label": "is often the only option"
+                }
+              ]
+            },
+            {
+              "number": 13,
+              "prompt": "Lisa Brown believes…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "there is a psychological factor involved in owning your own home"
+                },
+                {
+                  "value": "C",
+                  "label": "most young people need a deposit before they can buy a house."
+                }
+              ]
+            },
+            {
+              "number": 14,
+              "prompt": "Property in the countryside is becoming more popular because…",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "some parts of the city are becoming overcrowded"
+                },
+                {
+                  "value": "C",
+                  "label": "public transport is beginning to serve outlying areas."
+                }
+              ]
+            },
+            {
+              "number": 15,
+              "prompt": "What kind of properties does the speaker specialise in?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Investment"
+                },
+                {
+                  "value": "C",
+                  "label": "Rural"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 16-20",
+          "instructions": "Questions 16-20",
+          "type": "text",
+          "questions": [
+            {
+              "number": 16,
+              "promptBefore": "ions USING NO MORE THAN THREE WORDS OR A NUMBER What end of the market are the properties?",
+              "promptAfter": "What does the speaker compare buying houses with? <span class=\"test-panel__quest"
+            },
+            {
+              "number": 17,
+              "promptBefore": "What does the speaker compare buying houses with?",
+              "promptAfter": "What kind of equity can be the result of buying a property when the market is hi"
+            },
+            {
+              "number": 18,
+              "promptBefore": "What kind of equity can be the result of buying a property when the market is high?",
+              "promptAfter": "How does she describe the feeling of successful property investment? <span class"
+            },
+            {
+              "number": 19,
+              "promptBefore": "How does she describe the feeling of successful property investment?",
+              "promptAfter": "How can you ask the speaker a question? 20"
+            },
+            {
+              "number": 20,
+              "promptBefore": "How can you ask the speaker a question?",
+              "promptAfter": "<div class=\"test-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 21-24",
+          "instructions": "Questions 21-24",
+          "type": "text",
+          "questions": [
+            {
+              "number": 21,
+              "promptBefore": "ing questions USING NO MORE THAN THREE WORDS AND / OR A NUMBER How long is the radio show?",
+              "promptAfter": "What is the general focus of the programme? 22</s"
+            },
+            {
+              "number": 22,
+              "promptBefore": "What is the general focus of the programme?",
+              "promptAfter": "Where is Professor Ripley from? 23 <input"
+            },
+            {
+              "number": 23,
+              "promptBefore": "Where is Professor Ripley from?",
+              "promptAfter": "According to Professor Ripley, what animals do people most associate with the Af"
+            },
+            {
+              "number": 24,
+              "promptBefore": "ccording to Professor Ripley, what animals do people most associate with the African bush?",
+              "promptAfter": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 25-28",
+          "instructions": "Questions 25-28",
+          "type": "text",
+          "questions": [
+            {
+              "number": 25,
+              "promptBefore": "E WORDS OR A NUMBER. Threats Natural habitat Population African lions bush Estimated to be",
+              "promptAfter": "Tigers 26 <input type=\"text\""
+            },
+            {
+              "number": 26,
+              "promptBefore": "Tigers",
+              "promptAfter": "forests and plains fewer than 27 <inpu"
+            },
+            {
+              "number": 27,
+              "promptBefore": "forests and plains fewer than",
+              "promptAfter": "Snow leopards Expansion of <span class=\"test-panel__questi"
+            },
+            {
+              "number": 28,
+              "promptBefore": "Snow leopards Expansion of",
+              "promptAfter": "high-altitude pastures <div class=\"test-panel__item\" bis_skin_checked=\"1\""
+            }
+          ]
+        },
+        {
+          "title": "Questions 29-30",
+          "instructions": "Circle the appropriate letter A–D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 29,
+              "prompt": "Where is the WWF currently funding projects to help the snow leopard?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Nepal and Pakistan"
+                },
+                {
+                  "value": "C",
+                  "label": "Pakistan and Bhutan"
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "Listeners should telephone",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "during the commercial break"
+                },
+                {
+                  "value": "C",
+                  "label": "if they have any information regarding pumas or jaguars."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Question 31",
+          "instructions": "Circle the correct answer A–C.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 31,
+              "prompt": "The students are expecting",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Mr Mackenzie"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 32-36",
+          "instructions": "Questions 32-36",
+          "type": "text",
+          "questions": [
+            {
+              "number": 32,
+              "promptBefore": "Complete the table below using TWO WORDS OR A NUMBER. 42 million adults",
+              "promptAfter": "50 million adults have the reading ability of a 33</spa"
+            },
+            {
+              "number": 33,
+              "promptBefore": "million adults have the reading ability of a",
+              "promptAfter": "year-old. Increasing by around 34 <input type=\"t"
+            },
+            {
+              "number": 34,
+              "promptBefore": "year-old. Increasing by around",
+              "promptAfter": "and a quarter million per year. Illiteracy costs Unemployment Unrealised earning"
+            },
+            {
+              "number": 35,
+              "promptBefore": "ts Unemployment Unrealised earnings Literacy programmes cost (in billions of US dollars) $",
+              "promptAfter": "237 $ 36 <input type=\"text\" class=\"iot-"
+            },
+            {
+              "number": 36,
+              "promptBefore": "$",
+              "promptAfter": "<div class=\"test-panel__question\" bis_s"
+            }
+          ]
+        },
+        {
+          "title": "Question 37",
+          "instructions": "Circle the appropriate letter A–D.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 37,
+              "prompt": "Illiteracy is increasing because many young learners are",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "given word lists which are too long"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 38-40",
+          "instructions": "Questions 38-40",
+          "type": "text",
+          "questions": [
+            {
+              "number": 38,
+              "promptBefore": " the summary below USING NO MORE THAN TWO WORDS. English is made up of 26 letters, with 44",
+              "promptAfter": "and 70 ways of 39 <input type=\"text\" class=\"iot-questi"
+            },
+            {
+              "number": 39,
+              "promptBefore": "and 70 ways of",
+              "promptAfter": ". Unsuccessful teaching practices persist, however, because reading is <span cla"
+            },
+            {
+              "number": 40,
+              "promptBefore": ". Unsuccessful teaching practices persist, however, because reading is",
+              "promptAfter": ". <div class=\"test-panel__"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "B",
+    "2": "B",
+    "3": "Jackson",
+    "4": "433 398",
+    "5": "VN217",
+    "6": "20",
+    "7": [
+      "Travel insurance",
+      "Insurance"
+    ],
+    "8": "Gold",
+    "9": "54",
+    "10": "433",
+    "11": "D",
+    "12": "B",
+    "13": "B",
+    "14": "C",
+    "15": "B",
+    "16": "(the) cheaper (end)",
+    "17": "(having a) pension(s)",
+    "18": "Negative",
+    "19": "(Enormously) satisfying",
+    "20": [
+      "Raise (your",
+      "a) hand"
+    ],
+    "21": "1 hour",
+    "22": "Conservation (issues)",
+    "23": "(The) USA",
+    "24": "(Prides of) lions",
+    "25": "50,000",
+    "26": [
+      "Hunters",
+      "Hunting"
+    ],
+    "27": "6000",
+    "28": "Agriculture",
+    "29": "B",
+    "30": "C",
+    "31": "C",
+    "32": "Cannot read",
+    "33": "10",
+    "34": "2",
+    "35": "6",
+    "36": "10",
+    "37": "A",
+    "38": "Sounds",
+    "39": [
+      "Spelling",
+      "spelling sounds"
+    ],
+    "40": "big business"
+  }
+}

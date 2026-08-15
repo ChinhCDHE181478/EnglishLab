@@ -4,10 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
+import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
+import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
+import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
@@ -37,6 +40,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestSource;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
+import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
@@ -52,13 +56,21 @@ import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
+import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
+import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
@@ -75,16 +87,19 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepo
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
+import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherPerformanceEvaluationRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherProfessionalProfileRepository;
 import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
+import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
@@ -160,6 +175,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final EnrollmentRequestRepository enrollmentRequestRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
+    private final CurriculumUnitRepository curriculumUnitRepository;
     private final TeacherProfessionalProfileRepository teacherProfileRepository;
     private final TeacherPerformanceEvaluationRepository teacherEvaluationRepository;
     private final ClassroomAttendanceRepository attendanceRepository;
@@ -172,6 +188,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final PlacementTestDefinitionService placementTestDefinitionService;
     private final PlacementTestService placementTestService;
     private final CurriculumProgramService curriculumProgramService;
+    private final ClassroomMaterialSyncService classroomMaterialSyncService;
+    private final CenterMaterialLibraryItemRepository centerMaterialRepository;
+    private final ExerciseBankItemRepository exerciseBankItemRepository;
+    private final FlashcardSetRepository flashcardSetRepository;
     private final CenterSheetCourseCatalog courseCatalog;
     private final DemoLearnerOnboardingSupport onboardingSupport;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -284,24 +304,34 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     ) {
         PackageType classroomType = packageTypeRepository.findByCode(PackageTypeCode.CLASSROOM)
                 .orElseThrow(() -> new IllegalStateException("CLASSROOM package type missing"));
+        TrainingProgram ieltsOffline = ensureSheetTrainingProgram(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
+        TrainingProgram ieltsLive = ensureSheetTrainingProgram(
+                "center-sheet-ielts-live", "IELTS 4 kỹ năng Google Meet", ClassroomDeliveryMode.VIRTUAL);
+        TrainingProgram toeicOffline = ensureSheetTrainingProgram(
+                "center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
         List<ClassroomOffering> offerings = new ArrayList<>();
         int learnerCursor = 1;
-        for (int classIndex = 0; classIndex < 30; classIndex++) {
+        int[] classOrder = demoFirstClassIndexes(30);
+        for (int classIndex : classOrder) {
             boolean online = classIndex >= 24;
             int intake = classIndex % 3;
             LocalDate start = LocalDate.now().minusWeeks(10 - intake * 4L);
             LocalDate end = start.plusWeeks(12);
-            boolean mwf = (classIndex / 3) % 2 == 0;
-            boolean eveningTwo = classIndex % 2 == 1;
+            boolean mwf = classScheduleMwf(classIndex);
+            boolean eveningTwo = classScheduleEveningTwo(classIndex);
             ClassroomRoom room = online ? null : rooms.get(classIndex % 10);
             User teacher = (classIndex == 0 || classIndex == 24) ? alien : teachers.get(1 + (classIndex % 19));
             String slug = "center-sheet-class-%02d".formatted(classIndex + 1);
-            String title = (online ? "IELTS Live Meet " : "IELTS Center ")
+            boolean toeic = !online && intake == 2;
+            String title = (online ? "IELTS Live Meet " : (toeic ? "TOEIC Center " : "IELTS Center "))
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
             ClassroomOffering offering = upsertOffering(
                     classroomType, slug, title, online, start, end, teacher, room, eveningTwo);
+            TrainingProgram program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
+            attachCurriculum(offering, program);
             ensureTeacherAssignment(offering, teacher);
             seedSessions(offering, teacher, room, mwf, eveningTwo, online);
             List<User> classLearners = new ArrayList<>();
@@ -322,7 +352,21 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             seedAttendance(offering, classLearners);
             offerings.add(offering);
         }
+        offerings.sort(java.util.Comparator.comparing(ClassroomOffering::getId, java.util.Comparator.nullsLast(Long::compareTo)));
         return offerings;
+    }
+
+    private int[] demoFirstClassIndexes(int total) {
+        int[] order = new int[total];
+        order[0] = 0;
+        order[1] = 24;
+        int cursor = 2;
+        for (int index = 0; index < total; index++) {
+            if (index != 0 && index != 24) {
+                order[cursor++] = index;
+            }
+        }
+        return order;
     }
 
     private ClassroomOffering upsertOffering(
@@ -339,9 +383,12 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
         return offeringRepository.findByLearningPackageSlug(slug).map(existing -> {
             LearningPackage pack = existing.getLearningPackage();
+            pack.setTitle(title);
             pack.setThumbnailUrl(cover);
             learningPackageRepository.save(pack);
-            return existing;
+            existing.setPrimaryTeacher(teacher);
+            existing.setDefaultRoom(room);
+            return offeringRepository.save(existing);
         }).orElseGet(() -> {
             LearningPackage pack = LearningPackage.builder()
                     .packageType(classroomType)
@@ -390,6 +437,38 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
+    private boolean classScheduleMwf(int classIndex) {
+        if (classIndex == 24) {
+            return false;
+        }
+        return (classIndex / 3) % 2 == 0;
+    }
+
+    private boolean classScheduleEveningTwo(int classIndex) {
+        if (classIndex == 24) {
+            return true;
+        }
+        return classIndex % 2 == 1;
+    }
+
+    private void attachCurriculum(ClassroomOffering offering, TrainingProgram program) {
+        CurriculumProgram curriculum = program.getCurriculumProgram();
+        offering.setTrainingProgram(program);
+        offering.setCurriculumProgram(curriculum);
+        offering.setEntryLevel(curriculum.getEntryLevel());
+        offering.setTargetOutcome(curriculum.getOutcomes());
+        offering.setSyllabusSummary(curriculum.getOutcomes());
+        offering.setProgramOutcomes(curriculum.getOutcomes());
+        offering.setTeacherGuide(curriculum.getTeacherGuide());
+        offering.setInteractionActivities(curriculum.getInteractionActivities());
+        offeringRepository.save(offering);
+        User actor = offering.getPrimaryTeacher();
+        if (actor == null) {
+            actor = userRepository.findByEmail("content.manager@englishlab.vn").orElse(null);
+        }
+        classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, actor);
+    }
+
     private void seedSessions(
             ClassroomOffering offering,
             User teacher,
@@ -398,12 +477,38 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             boolean eveningTwo,
             boolean online
     ) {
-        if (sessionRepository.countByClassroomOfferingId(offering.getId()) > 0) {
-            return;
-        }
         Set<DayOfWeek> days = mwf ? MWF : TTS;
         LocalTime start = eveningTwo ? SLOT_2_START : SLOT_1_START;
         LocalTime end = eveningTwo ? SLOT_2_END : SLOT_1_END;
+        List<ClassroomSession> existing = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        List<LocalDate> dates = sessionDates(offering.getStartDate(), offering.getEndDate(), days);
+        if (!existing.isEmpty()) {
+            ClassroomSession first = existing.getFirst();
+            boolean sameSlot = first.getStartTime().equals(start)
+                    && days.contains(first.getSessionDate().getDayOfWeek());
+            if (sameSlot) {
+                return;
+            }
+            int limit = Math.min(existing.size(), dates.size());
+            for (int i = 0; i < limit; i++) {
+                ClassroomSession session = existing.get(i);
+                LocalDate date = dates.get(i);
+                session.setSessionDate(date);
+                session.setStartTime(start);
+                session.setEndTime(end);
+                session.setTeacher(teacher);
+                session.setRoom(room);
+                if (date.isBefore(LocalDate.now())) {
+                    session.setStatus(ClassroomSessionStatus.COMPLETED);
+                } else if (date.equals(LocalDate.now())) {
+                    session.setStatus(ClassroomSessionStatus.IN_PROGRESS);
+                } else {
+                    session.setStatus(ClassroomSessionStatus.SCHEDULED);
+                }
+                sessionRepository.save(session);
+            }
+            return;
+        }
         LocalDate cursor = offering.getStartDate();
         int index = 1;
         while (!cursor.isAfter(offering.getEndDate())) {
@@ -537,9 +642,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
 
     private void seedAlienClassExtras(List<ClassroomOffering> offerings, User teacher, User learner) {
         ClassroomOffering offering = offerings.get(0);
-        if (homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
+        ClassroomHomework speaking = upsertSpeakingHomework(offering, teacher);
+        if (homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+                .noneMatch(item -> "Writing Task 2 - Family".equalsIgnoreCase(item.getTitle()))) {
             ClassroomHomework overdue = saveHomework(offering, "Writing Task 2 - Family", LocalDateTime.now().minusDays(2));
-            ClassroomHomework today = saveHomework(offering, "Speaking Part 2 Cue Card", LocalDateTime.now().plusHours(8));
             saveHomework(offering, "Listening Section 1 Form", LocalDateTime.now().plusDays(5));
             homeworkSubmissionRepository.save(ClassroomHomeworkSubmission.builder()
                     .homework(overdue)
@@ -552,14 +658,20 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .submittedAt(LocalDateTime.now().minusDays(3))
                     .gradedAt(LocalDateTime.now().minusDays(1))
                     .build());
-            homeworkSubmissionRepository.save(ClassroomHomeworkSubmission.builder()
-                    .homework(today)
-                    .student(learner)
-                    .status(HomeworkSubmissionStatus.SUBMITTED)
-                    .textAnswer("I would talk about a teacher who helped me prepare for evening classes.")
-                    .submittedAt(LocalDateTime.now().minusHours(2))
-                    .build());
         }
+        homeworkSubmissionRepository.findByHomeworkIdAndStudentId(speaking.getId(), learner.getId())
+                .ifPresentOrElse(existing -> {
+                    existing.setAttachmentUrl("/sheet-speaking/sample-answer.wav");
+                    existing.setTextAnswer(null);
+                    existing.setStatus(HomeworkSubmissionStatus.SUBMITTED);
+                    homeworkSubmissionRepository.save(existing);
+                }, () -> homeworkSubmissionRepository.save(ClassroomHomeworkSubmission.builder()
+                        .homework(speaking)
+                        .student(learner)
+                        .status(HomeworkSubmissionStatus.SUBMITTED)
+                        .attachmentUrl("/sheet-speaking/sample-answer.wav")
+                        .submittedAt(LocalDateTime.now().minusHours(2))
+                        .build()));
         if (announcementRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
             announcementRepository.save(ClassroomAnnouncement.builder()
                     .classroomOffering(offering)
@@ -580,6 +692,38 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .visibility("LEARNERS_IN_CLASS")
                     .build());
         }
+    }
+
+    private ClassroomHomework upsertSpeakingHomework(ClassroomOffering offering, User teacher) {
+        String title = "Speaking Part 1-2 ghi âm";
+        String config = """
+                {"parts":[
+                  {"key":"part_1","title":"Part 1 · Interview","answerSeconds":60,"prompts":[
+                    {"text":"Where are you from?","audioUrl":"/sheet-speaking/p1-q1.wav"},
+                    {"text":"Who do you live with?","audioUrl":"/sheet-speaking/p1-q2.wav"}
+                  ]},
+                  {"key":"part_2","title":"Part 2 · Cue Card","prepSeconds":60,"answerSeconds":120,
+                   "audioUrl":"/sheet-speaking/p2-cue.wav",
+                   "cueCardTitle":"Describe an evening class you enjoy.",
+                   "cueCardBullets":["What the class is about","When and where you take it","Who you study with","Why you enjoy it"]}
+                ]}
+                """;
+        ClassroomHomework homework = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()) || "Speaking Part 2 Cue Card".equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseGet(() -> ClassroomHomework.builder().classroomOffering(offering).build());
+        homework.setTitle(title);
+        homework.setInstruction("Nghe câu hỏi ghi âm, rồi thu âm câu trả lời. Không gõ text thay cho bài nói.");
+        homework.setDeadline(LocalDateTime.now().plusHours(8));
+        homework.setMaxScore(BigDecimal.TEN);
+        homework.setActivityType(HomeworkActivityType.TEXT_RESPONSE);
+        homework.setActivityConfigJson(config);
+        homework.setSkill(AssessmentSkill.SPEAKING);
+        homework.setGradingMode(HomeworkGradingMode.TEACHER);
+        homework.setStatus(HomeworkStatus.OPEN);
+        homework.setCreatedBy(teacher);
+        homework.setAllowResubmission(true);
+        return homeworkRepository.save(homework);
     }
 
     private ClassroomHomework saveHomework(ClassroomOffering offering, String title, LocalDateTime deadline) {
@@ -619,23 +763,52 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 12,
                 "sheet-data/englishlab-academic-listening-mini.json",
                 true);
+        publishMock(
+                "EnglishLab IELTS Speaking Mock 1",
+                AssessmentSkill.SPEAKING,
+                14,
+                "sheet-data/englishlab-speaking-mock-1.json",
+                false);
+        JsonNode mockIndex = objectMapper.readTree(
+                new ClassPathResource("sheet-data/iot-mocks-index.json").getInputStream());
+        for (JsonNode item : mockIndex) {
+            publishMock(
+                    item.path("title").asText(),
+                    AssessmentSkill.valueOf(item.path("skill").asText()),
+                    item.path("minutes").asInt(),
+                    item.path("resource").asText(),
+                    item.path("needsKey").asBoolean(false));
+        }
     }
 
     private void publishMock(String title, AssessmentSkill skill, int minutes, String resource, boolean needsKey) throws Exception {
-        boolean exists = assessmentBankItemRepository
+        String json = new String(new ClassPathResource(resource).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        var existing = assessmentBankItemRepository
                 .findByTypeAndStatusAndActiveTrueOrderByDisplayOrderAscUpdatedAtDescIdDesc(AssessmentType.MOCK_TEST, "PUBLISHED")
                 .stream()
-                .anyMatch(item -> title.equalsIgnoreCase(item.getTitle()));
-        if (exists) {
+                .filter(item -> title.equalsIgnoreCase(item.getTitle()))
+                .findFirst();
+        if (existing.isPresent()) {
+            existing.get().setUiConfigJson(json);
+            existing.get().setTimeLimitMinutes(minutes);
+            if (skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING) {
+                existing.get().setAiEvaluationMode(AiEvaluationMode.ESTIMATED_BAND);
+            }
+            if (needsKey) {
+                JsonNode key = objectMapper.readTree(json).path("answerKey");
+                existing.get().setObjectiveAnswerKey(key.isMissingNode() ? "{}" : objectMapper.writeValueAsString(key));
+            }
+            assessmentBankItemRepository.save(existing.get());
             return;
         }
-        String json = new String(new ClassPathResource(resource).getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         AssessmentBankItemRequest request = new AssessmentBankItemRequest();
         request.setTitle(title);
         request.setDescription("Đề thi thử xuất bản qua API kho đề, không hard-code trên frontend.");
         request.setType(AssessmentType.MOCK_TEST);
         request.setSkill(skill);
-        request.setAiEvaluationMode(skill == AssessmentSkill.WRITING ? AiEvaluationMode.ESTIMATED_BAND : AiEvaluationMode.NONE);
+        request.setAiEvaluationMode(skill == AssessmentSkill.WRITING || skill == AssessmentSkill.SPEAKING
+                ? AiEvaluationMode.ESTIMATED_BAND
+                : AiEvaluationMode.NONE);
         request.setInstructions("Làm bài theo đúng giao diện thi thử EnglishLab.");
         request.setUiConfigJson(json);
         if (needsKey) {
@@ -894,42 +1067,418 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private TrainingProgram ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
-        return trainingProgramRepository.findBySlug(slug).orElseGet(() -> {
-            boolean toeic = slug.contains("toeic");
-            String curriculumSlug = slug + "-curriculum";
-            String codeBase = slug.replace("center-sheet-", "").replace("-", "_").toUpperCase();
-            CurriculumProgram curriculum = curriculumProgramRepository.findBySlug(curriculumSlug)
-                    .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
-                            .title(title)
-                            .code("CS_" + codeBase)
-                            .slug(curriculumSlug)
-                            .deliveryMode(mode)
-                            .examCategory(toeic ? "TOEIC" : "IELTS")
-                            .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
-                            .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
-                            .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
-                            .totalSessions(36)
-                            .status("APPROVED")
-                            .displayOrder(1)
-                            .build()));
-            return trainingProgramRepository.save(TrainingProgram.builder()
-                    .title(title)
-                    .code("TP_" + codeBase)
-                    .slug(slug)
-                    .deliveryMode(mode)
-                    .curriculumProgram(curriculum)
-                    .shortDescription(title)
-                    .description("Chương trình ca tối tại " + CAMPUS_NAME + ".")
-                    .price(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
-                    .duration("12 tuần")
-                    .studyMode("Offline · Ca tối")
-                    .maxCapacity(18)
-                    .plannedSchedule("Thứ 2-4-6 hoặc 3-5-7 · 18:00–21:15")
-                    .status(PackageStatus.PUBLISHED)
-                    .displayOrder(1)
-                    .featured(true)
-                    .build());
-        });
+        boolean toeic = slug.contains("toeic");
+        CurriculumProgram curriculum = ensureSheetCurriculum(slug + "-curriculum", title, mode, toeic);
+        return trainingProgramRepository.findBySlug(slug).orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
+                .title(title)
+                .code("TP_" + slug.replace("center-sheet-", "").replace("-", "_").toUpperCase())
+                .slug(slug)
+                .deliveryMode(mode)
+                .curriculumProgram(curriculum)
+                .shortDescription(title)
+                .description("Giáo trình ca tối tại " + CAMPUS_NAME + ", 12 tuần / 36 buổi.")
+                .price(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
+                .duration("12 tuần")
+                .studyMode(mode == ClassroomDeliveryMode.VIRTUAL ? "Google Meet · Ca tối" : "Offline · Ca tối")
+                .maxCapacity(18)
+                .plannedSchedule("Thứ 2-4-6 hoặc 3-5-7 · 18:00–21:15")
+                .status(PackageStatus.PUBLISHED)
+                .displayOrder(1)
+                .featured(true)
+                .build()));
+    }
+
+    private CurriculumProgram ensureSheetCurriculum(
+            String slug,
+            String title,
+            ClassroomDeliveryMode mode,
+            boolean toeic
+    ) {
+        String codeBase = slug.replace("center-sheet-", "").replace("-", "_").replace("_curriculum", "").toUpperCase();
+        CurriculumProgram program = curriculumProgramRepository.findBySlug(slug)
+                .orElseGet(() -> curriculumProgramRepository.save(CurriculumProgram.builder()
+                        .title(title)
+                        .code("CS_" + codeBase)
+                        .slug(slug)
+                        .deliveryMode(mode)
+                        .examCategory(toeic ? "TOEIC" : "IELTS")
+                        .programTrack(toeic ? "TOEIC_2_SKILLS" : "IELTS_4_SKILLS")
+                        .focusSkills(toeic ? "Listening, Reading" : "Listening, Reading, Writing, Speaking")
+                        .entryLevel(toeic ? "TOEIC 350+" : "IELTS 5.0")
+                        .outcomes(toeic
+                                ? "Hoàn thành 36 buổi TOEIC L&R: Part 1-7, chiến thuật làm bài, mục tiêu 650+."
+                                : "Hoàn thành 36 buổi IELTS 4 kỹ năng: Listening, Reading, Writing, Speaking, mục tiêu 6.0-6.5.")
+                        .teacherGuide("Mỗi unit gồm học liệu trung tâm, bài luyện tập, bộ flashcard và kế hoạch 4 buổi.")
+                        .interactionActivities(mode == ClassroomDeliveryMode.VIRTUAL
+                                ? "Breakout room, share screen, pair speaking trên Google Meet."
+                                : "Pair work, board work, role-play tại lớp ca tối.")
+                        .totalSessions(36)
+                        .status("APPROVED")
+                        .virtualPlatform(mode == ClassroomDeliveryMode.VIRTUAL ? "GOOGLE_MEET" : null)
+                        .displayOrder(1)
+                        .build()));
+        if (curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId()).isEmpty()) {
+            String[][] units = toeic ? toeicUnits() : ieltsUnits();
+            for (int i = 0; i < units.length; i++) {
+                CurriculumUnit unit = CurriculumUnit.builder()
+                        .program(program)
+                        .displayOrder(i + 1)
+                        .title(units[i][0])
+                        .description(units[i][1])
+                        .sessionPlan("Warm-up 10 phút; chiến thuật 25 phút; luyện có hướng dẫn 40 phút; chốt bài về nhà 15 phút.")
+                        .build();
+                for (int session = 1; session <= 4; session++) {
+                    unit.addSessionPlan(CurriculumSessionPlan.builder()
+                            .sessionNumber(i * 4 + session)
+                            .displayOrder(session)
+                            .title("Buổi " + (i * 4 + session) + " · " + units[i][0])
+                            .description(units[i][1])
+                            .learningObjectives(units[i][2])
+                            .build());
+                }
+                curriculumUnitRepository.save(unit);
+            }
+        }
+        List<CurriculumUnit> units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(program.getId());
+        User creator = userRepository.findByEmail("content.manager@englishlab.vn").orElse(null);
+        attachSheetUnitResources(units, toeic, creator);
+        return program;
+    }
+
+    private void attachSheetUnitResources(List<CurriculumUnit> units, boolean toeic, User creator) {
+        String[][] catalog = toeic ? toeicUnits() : ieltsUnits();
+        String exam = toeic ? "TOEIC" : "IELTS";
+        for (int i = 0; i < Math.min(units.size(), catalog.length); i++) {
+            int unitNumber = i + 1;
+            CurriculumUnit unit = units.get(i);
+            String title = catalog[i][0];
+            String description = catalog[i][1];
+            String skill = toeic ? toeicSkill(unitNumber) : ieltsSkill(unitNumber);
+            CenterMaterialLibraryItem material = ensureSheetMaterial(exam, unitNumber, title, description, skill, creator);
+            ExerciseBankItem exercise = ensureSheetExercise(exam, unitNumber, title, description, skill, creator);
+            FlashcardSet flashcards = ensureSheetFlashcards(exam, unitNumber, title, skill);
+            curriculumProgramService.attachMaterial(unit.getId(), sheetRef(material.getId(), "Học liệu chuẩn của unit"));
+            curriculumProgramService.attachExercise(unit.getId(), sheetRef(exercise.getId(), "Bài luyện tập trong giáo trình"));
+            curriculumProgramService.attachFlashcard(unit.getId(), sheetRef(flashcards.getId(), "Từ vựng ôn trước và sau buổi học"));
+        }
+    }
+
+    private CurriculumReferenceRequest sheetRef(Long resourceId, String note) {
+        CurriculumReferenceRequest request = new CurriculumReferenceRequest();
+        request.setResourceId(resourceId);
+        request.setDisplayOrder(1);
+        request.setNote(note);
+        return request;
+    }
+
+    private CenterMaterialLibraryItem ensureSheetMaterial(
+            String exam,
+            int unitNumber,
+            String title,
+            String description,
+            String skill,
+            User creator
+    ) {
+        String itemTitle = "Sheet " + exam + " · " + title;
+        String fileUrl = "/sheet-materials/" + exam.toLowerCase() + "-unit-" + unitNumber + ".txt";
+        return centerMaterialRepository.findAllByOrderByUpdatedAtDescIdDesc().stream()
+                .filter(item -> itemTitle.equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseGet(() -> {
+                    CenterMaterialLibraryItem.CenterMaterialLibraryItemBuilder builder = CenterMaterialLibraryItem.builder()
+                            .title(itemTitle)
+                            .description(description)
+                            .fileUrl(fileUrl)
+                            .fileType("TXT")
+                            .materialType("LESSON_NOTE")
+                            .provider("EnglishLab")
+                            .examCategory(exam)
+                            .skill(skill)
+                            .tags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber)
+                            .status("PUBLISHED")
+                            .createdBy(creator)
+                            .updatedBy(creator);
+                    if ("IELTS".equals(exam)) {
+                        builder.ieltsBandMin(BigDecimal.valueOf(5.0)).ieltsBandMax(BigDecimal.valueOf(6.5));
+                    } else {
+                        builder.toeicScoreMin(350).toeicScoreMax(750);
+                    }
+                    return centerMaterialRepository.save(builder.build());
+                });
+    }
+
+    private ExerciseBankItem ensureSheetExercise(
+            String exam,
+            int unitNumber,
+            String title,
+            String description,
+            String skill,
+            User creator
+    ) {
+        String itemTitle = "Sheet " + exam + " Unit " + unitNumber + " Practice";
+        ExerciseBankItem exercise = exerciseBankItemRepository.findAllByOrderByUpdatedAtDesc().stream()
+                .filter(item -> itemTitle.equalsIgnoreCase(item.getTitle()))
+                .findFirst()
+                .orElseGet(() -> ExerciseBankItem.builder()
+                        .title(itemTitle)
+                        .skill(skill)
+                        .level("IELTS".equals(exam) ? "IELTS 5.0-6.5" : "TOEIC 350-650")
+                        .prompt("Hoàn thành bài luyện tập " + title)
+                        .answerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
+                        .explanation("Đối chiếu đáp án và ghi lại lỗi sai trước khi làm lại.")
+                        .tags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber)
+                        .active(true)
+                        .createdBy(creator)
+                        .build());
+        exercise.setExerciseType("PRACTICE");
+        if (exercise.getPrompt() == null || !exercise.getPrompt().trim().startsWith("{")) {
+            exercise.setPrompt(buildSheetPracticeConfig(exam, unitNumber, title, description, skill));
+            exercise.setAnswerKey("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}");
+        }
+        return exerciseBankItemRepository.save(exercise);
+    }
+
+    private String buildSheetPracticeConfig(String exam, int unitNumber, String title, String description, String skill) {
+        String type = switch (skill) {
+            case "LISTENING" -> "ielts_listening_exam";
+            case "READING" -> "ielts_reading_exam";
+            case "WRITING" -> "ielts_writing_exam";
+            case "SPEAKING" -> "ielts_speaking_exam";
+            default -> "ielts_reading_exam";
+        };
+        return """
+                {
+                  "type":"%s",
+                  "key":"sheet-%s-unit-%d-practice",
+                  "title":"%s Unit %d Practice",
+                  "durationMinutes":10,
+                  "rules":["Mỗi câu chọn một đáp án","Có thể luyện lại nhiều lần","Kết quả không tính vào bảng điểm lớp"],
+                  "parts":[{
+                    "key":"part_1",
+                    "partNumber":%d,
+                    "title":"%s",
+                    "questionRange":"Questions 1-3",
+                    "passage":{"title":"Ngữ cảnh luyện tập","paragraphs":[{"label":"%s","text":"%s"}]},
+                    "questionGroups":[{
+                      "type":"single_choice",
+                      "title":"Chọn đáp án đúng nhất",
+                      "instructions":"Đọc kỹ yêu cầu rồi chọn A, B, C hoặc D.",
+                      "questions":[
+                        {"number":1,"prompt":"Chiến thuật quan trọng nhất của unit này là gì?","options":[{"value":"A","label":"Bỏ qua ngữ cảnh"},{"value":"B","label":"Xác định từ khóa và ngữ cảnh trước khi trả lời"},{"value":"C","label":"Chọn đáp án dài nhất"},{"value":"D","label":"Bỏ mọi câu khó"}]},
+                        {"number":2,"prompt":"Bạn nên làm gì trước khi chốt đáp án?","options":[{"value":"A","label":"Đối chiếu lại bằng chứng trong bài"},{"value":"B","label":"Đổi đáp án ngẫu nhiên"},{"value":"C","label":"Chỉ nhìn một từ"},{"value":"D","label":"Để trống"}]},
+                        {"number":3,"prompt":"Cách ôn hiệu quả sau bài luyện là gì?","options":[{"value":"A","label":"Bỏ qua câu sai"},{"value":"B","label":"Làm lại ngay mà không xem giải thích"},{"value":"C","label":"Phân loại lỗi và đọc lời giải"},{"value":"D","label":"Học thuộc thứ tự A B C D"}]}
+                      ]
+                    }]
+                  }]
+                }
+                """.formatted(type, exam.toLowerCase(), unitNumber, exam, unitNumber, unitNumber, title, skill, description);
+    }
+
+    private FlashcardSet ensureSheetFlashcards(String exam, int unitNumber, String title, String skill) {
+        String setTitle = "Sheet " + exam + " Unit " + unitNumber + " Flashcards";
+        FlashcardSet set = flashcardSetRepository.findByTitleIgnoreCase(setTitle)
+                .orElseGet(() -> FlashcardSet.builder().title(setTitle).build());
+        set.setDescription("Từ vựng trọng tâm cho " + title);
+        set.setExamCategory(exam);
+        set.setSkill(skill);
+        set.setTags("sheet," + exam.toLowerCase() + ",unit-" + unitNumber);
+        set.setCardsJson("IELTS".equals(exam) ? ieltsFlashcardsJson(unitNumber) : toeicFlashcardsJson(unitNumber));
+        set.setStatus("PUBLISHED");
+        set.setDisplayOrder(unitNumber);
+        return flashcardSetRepository.save(set);
+    }
+
+    private String ieltsSkill(int unitNumber) {
+        if (unitNumber <= 2) {
+            return "LISTENING";
+        }
+        if (unitNumber <= 4) {
+            return "READING";
+        }
+        if (unitNumber <= 6) {
+            return "WRITING";
+        }
+        return "SPEAKING";
+    }
+
+    private String toeicSkill(int unitNumber) {
+        return unitNumber <= 3 ? "LISTENING" : "READING";
+    }
+
+    private String ieltsFlashcardsJson(int unitNumber) {
+        return switch (unitNumber) {
+            case 1 -> """
+                    [{"front":"accommodation","back":"chỗ ở","example":"Student accommodation is close to campus."},
+                     {"front":"reservation","back":"đặt chỗ","example":"I confirmed my table reservation."},
+                     {"front":"departure","back":"khởi hành","example":"The departure was delayed by fog."},
+                     {"front":"itinerary","back":"lịch trình","example":"Check the itinerary before you leave."},
+                     {"front":"confirmation","back":"xác nhận","example":"You will receive a confirmation email."},
+                     {"front":"spelling","back":"chính tả","example":"Check spelling on names and addresses."}]
+                    """;
+            case 2 -> """
+                    [{"front":"methodology","back":"phương pháp nghiên cứu","example":"The methodology uses surveys."},
+                     {"front":"hypothesis","back":"giả thuyết","example":"The data supported the hypothesis."},
+                     {"front":"empirical","back":"dựa trên quan sát","example":"We need empirical evidence."},
+                     {"front":"lecture","back":"bài giảng","example":"The lecture focused on climate data."},
+                     {"front":"paraphrase","back":"diễn đạt lại","example":"Listen for paraphrase, not the same word."},
+                     {"front":"signpost","back":"từ dẫn dắt","example":"However is a useful signpost."}]
+                    """;
+            case 3 -> """
+                    [{"front":"contradiction","back":"mâu thuẫn","example":"False means there is a contradiction."},
+                     {"front":"not given","back":"không có thông tin","example":"Choose NG when the text is silent."},
+                     {"front":"proposition","back":"mệnh đề","example":"Compare the proposition with the paragraph."},
+                     {"front":"keyword","back":"từ khóa","example":"Underline keywords before scanning."},
+                     {"front":"skim","back":"đọc lướt","example":"Skim for the main idea first."},
+                     {"front":"scan","back":"đọc tìm chi tiết","example":"Scan for dates and names."}]
+                    """;
+            case 4 -> """
+                    [{"front":"heading","back":"tiêu đề đoạn","example":"Match the heading to the whole paragraph."},
+                     {"front":"distractor","back":"lựa chọn nhiễu","example":"A distractor repeats one word only."},
+                     {"front":"summary","back":"bản tóm tắt","example":"Complete the summary with paraphrases."},
+                     {"front":"topic sentence","back":"câu chủ đề","example":"The topic sentence often carries the idea."},
+                     {"front":"narrow","back":"quá hẹp","example":"Avoid headings that are too narrow."},
+                     {"front":"overview","back":"cái nhìn tổng quát","example":"The heading should give an overview."}]
+                    """;
+            case 5 -> """
+                    [{"front":"overview","back":"tổng quan biểu đồ","example":"Write a clear overview of two trends."},
+                     {"front":"peak","back":"đỉnh","example":"Sales peaked in July."},
+                     {"front":"fluctuate","back":"dao động","example":"The figure fluctuated throughout the year."},
+                     {"front":"remain stable","back":"ổn định","example":"Unemployment remained stable."},
+                     {"front":"significant","back":"đáng kể","example":"There was a significant rise in exports."},
+                     {"front":"compare","back":"so sánh","example":"Compare the highest and lowest figures."}]
+                    """;
+            case 6 -> """
+                    [{"front":"opinion","back":"quan điểm","example":"State your opinion in the introduction."},
+                     {"front":"discussion","back":"thảo luận hai phía","example":"A discussion essay covers both views."},
+                     {"front":"cohesion","back":"liên kết ý","example":"Use linking words for cohesion."},
+                     {"front":"example","back":"ví dụ","example":"Support each idea with an example."},
+                     {"front":"paraphrase","back":"viết lại đề","example":"Paraphrase the question, do not copy it."},
+                     {"front":"outline","back":"dàn ý","example":"Spend five minutes on an outline."}]
+                    """;
+            case 7 -> """
+                    [{"front":"cue card","back":"thẻ gợi ý Part 2","example":"Use one minute to plan the cue card."},
+                     {"front":"extend","back":"kéo dài câu trả lời","example":"Extend answers with reasons and examples."},
+                     {"front":"fluency","back":"độ trôi chảy","example":"Keep fluency by using fillers naturally."},
+                     {"front":"hesitation","back":"ngập ngừng","example":"Too much hesitation lowers the band."},
+                     {"front":"personal example","back":"ví dụ cá nhân","example":"A personal example makes Part 1 longer."},
+                     {"front":"follow-up","back":"câu hỏi nối","example":"Expect a follow-up after Part 1."}]
+                    """;
+            default -> """
+                    [{"front":"abstract","back":"trừu tượng","example":"Part 3 asks more abstract questions."},
+                     {"front":"justify","back":"giải thích quan điểm","example":"Justify your view with a reason."},
+                     {"front":"compare","back":"so sánh","example":"Compare city life and rural life."},
+                     {"front":"implication","back":"hệ quả","example":"Discuss the implications for education."},
+                     {"front":"band descriptor","back":"mô tả band điểm","example":"Check fluency against the band descriptor."},
+                     {"front":"self-assess","back":"tự chấm","example":"Self-assess after the mock speaking."}]
+                    """;
+        };
+    }
+
+    private String toeicFlashcardsJson(int unitNumber) {
+        return switch (unitNumber) {
+            case 1 -> """
+                    [{"front":"in the foreground","back":"ở tiền cảnh","example":"A bicycle is in the foreground."},
+                     {"front":"be seated","back":"đang ngồi","example":"People are seated around a table."},
+                     {"front":"stacked","back":"xếp chồng","example":"Boxes are stacked by the wall."},
+                     {"front":"railing","back":"lan can","example":"He is leaning against a railing."},
+                     {"front":"pedestrian","back":"người đi bộ","example":"Pedestrians are crossing the street."},
+                     {"front":"question-response","back":"hỏi đáp Part 2","example":"Listen to the question word first."}]
+                    """;
+            case 2 -> """
+                    [{"front":"available","back":"rảnh, có sẵn","example":"Is the manager available today?"},
+                     {"front":"reschedule","back":"đổi lịch","example":"Can we reschedule the meeting?"},
+                     {"front":"extension","back":"số máy lẻ","example":"What is her extension?"},
+                     {"front":"department","back":"phòng ban","example":"Which department handles refunds?"},
+                     {"front":"confirm","back":"xác nhận","example":"Please confirm the delivery date."},
+                     {"front":"appointment","back":"cuộc hẹn","example":"When is your appointment?"}]
+                    """;
+            case 3 -> """
+                    [{"front":"announcement","back":"thông báo","example":"The announcement concerns a gate change."},
+                     {"front":"shipment","back":"lô hàng","example":"The shipment arrives on Friday."},
+                     {"front":"invoice","back":"hóa đơn","example":"The invoice was emailed yesterday."},
+                     {"front":"venue","back":"địa điểm tổ chức","example":"The venue has changed."},
+                     {"front":"delay","back":"trì hoãn","example":"We apologize for the delay."},
+                     {"front":"proceed to","back":"đi tới","example":"Please proceed to platform six."}]
+                    """;
+            case 4 -> """
+                    [{"front":"efficiently","back":"một cách hiệu quả","example":"The system processes orders efficiently."},
+                     {"front":"provided that","back":"với điều kiện","example":"A refund is available provided that you have a receipt."},
+                     {"front":"responsible for","back":"chịu trách nhiệm","example":"She is responsible for training."},
+                     {"front":"prior to","back":"trước khi","example":"Submit the form prior to departure."},
+                     {"front":"approximately","back":"xấp xỉ","example":"The repair takes approximately two hours."},
+                     {"front":"word form","back":"dạng từ","example":"Check the word form before you choose."}]
+                    """;
+            case 5 -> """
+                    [{"front":"furthermore","back":"hơn nữa","example":"Furthermore, delivery is free."},
+                     {"front":"therefore","back":"vì vậy","example":"The road is closed; therefore use the east gate."},
+                     {"front":"in response to","back":"để phản hồi","example":"I am writing in response to your inquiry."},
+                     {"front":"enclosed","back":"đính kèm","example":"Please find the enclosed form."},
+                     {"front":"regarding","back":"về việc","example":"We received your note regarding the invoice."},
+                     {"front":"otherwise","back":"nếu không thì","example":"Pay by Friday; otherwise a fee applies."}]
+                    """;
+            case 6 -> """
+                    [{"front":"according to","back":"theo như","example":"According to the notice, the store closes at six."},
+                     {"front":"indicate","back":"cho biết","example":"The article indicates that sales rose."},
+                     {"front":"imply","back":"ngụ ý","example":"What is implied about the policy?"},
+                     {"front":"most likely","back":"có khả năng nhất","example":"Who most likely wrote the email?"},
+                     {"front":"purpose","back":"mục đích","example":"What is the purpose of the memo?"},
+                     {"front":"attached","back":"được đính kèm","example":"The schedule is attached."}]
+                    """;
+            case 7 -> """
+                    [{"front":"cross-text","back":"nối nhiều văn bản","example":"A cross-text item links email and schedule."},
+                     {"front":"not mentioned","back":"không được nhắc","example":"Choose the option that is not mentioned."},
+                     {"front":"correspond","back":"tương ứng","example":"Which date corresponds to the meeting?"},
+                     {"front":"refer to","back":"đề cập tới","example":"The second email refers to the invoice."},
+                     {"front":"schedule","back":"lịch","example":"Check the schedule against the email."},
+                     {"front":"notice","back":"thông báo","example":"The notice lists the new hours."}]
+                    """;
+            default -> """
+                    [{"front":"pacing","back":"phân bổ tốc độ","example":"Good pacing leaves time for Part 7."},
+                     {"front":"eliminate","back":"loại trừ","example":"Eliminate choices that contradict the text."},
+                     {"front":"distractor","back":"đáp án nhiễu","example":"A distractor repeats a word from the audio."},
+                     {"front":"review","back":"xem lại","example":"Review marked questions before submitting."},
+                     {"front":"accuracy","back":"độ chính xác","example":"Balance speed with accuracy."},
+                     {"front":"time allocation","back":"phân bổ thời gian","example":"Plan time allocation for every part."}]
+                    """;
+        };
+    }
+
+    private String[][] ieltsUnits() {
+        return new String[][]{
+                {"Unit 1 · Listening Section 1-2", "Form completion, map labelling, everyday conversations.", "Nghe lấy thông tin cụ thể và điền form không mất điểm spelling."},
+                {"Unit 2 · Listening Section 3-4", "Academic dialogue và lecture notes.", "Ghi chú bài giảng, nhận biết paraphrase trong lecture."},
+                {"Unit 3 · Reading True/False/Not Given", "Skimming, scanning, phân biệt NG với False.", "Tìm keyword và đối chiếu proposition với đoạn văn."},
+                {"Unit 4 · Reading Matching Headings", "Matching headings, summary completion.", "Tóm ý đoạn và loại heading nhiễu."},
+                {"Unit 5 · Writing Task 1", "Biểu đồ, quy trình, so sánh số liệu.", "Viết overview và chọn số liệu then chốt."},
+                {"Unit 6 · Writing Task 2", "Opinion, discussion, problem-solution.", "Lập dàn ý 4 đoạn và paraphrase đề."},
+                {"Unit 7 · Speaking Part 1-2", "Câu hỏi đời thường và cue card 2 phút.", "Kéo dài câu trả lời bằng example và reason."},
+                {"Unit 8 · Speaking Part 3 và mock test", "Câu hỏi trừu tượng, mock 4 kỹ năng.", "Phản hồi abstract idea và tự chấm theo band."}
+        };
+    }
+
+    private String[][] toeicUnits() {
+        return new String[][]{
+                {"Unit 1 · Photographs & Q-R", "Part 1 photographs, Part 2 question-response.", "Loại đáp án nhiễu về thì và từ đồng âm."},
+                {"Unit 2 · Conversations", "Part 3 hội thoại 3 người, bảng biểu.", "Nghe mục đích, chi tiết và implied meaning."},
+                {"Unit 3 · Talks", "Part 4 announcement, excerpt, voicemail.", "Bắt topic sentence và số liệu trong talk."},
+                {"Unit 4 · Incomplete sentences", "Part 5 grammar: thì, giới từ, word form.", "Chọn từ loại đúng trong 20 giây/câu."},
+                {"Unit 5 · Text completion", "Part 6 điền từ trong email/thông báo.", "Đọc ngữ cảnh trước-sau chỗ trống."},
+                {"Unit 6 · Reading single passages", "Part 7 bài đơn: email, article, advert.", "Câu inference và vocabulary in context."},
+                {"Unit 7 · Reading double-triple", "Part 7 bộ 2-3 văn bản.", "Nối thông tin giữa các văn bản."},
+                {"Unit 8 · Mini mock 650+", "Đề rút gọn Listening + Reading.", "Quản lý thời gian và review lỗi sai."}
+        };
+    }
+
+    private List<LocalDate> sessionDates(LocalDate start, LocalDate end, Set<DayOfWeek> days) {
+        List<LocalDate> dates = new ArrayList<>();
+        LocalDate cursor = start;
+        while (!cursor.isAfter(end)) {
+            if (days.contains(cursor.getDayOfWeek())) {
+                dates.add(cursor);
+            }
+            cursor = cursor.plusDays(1);
+        }
+        return dates;
     }
 
     private void seedChangeRequests(User alien, List<ClassroomOffering> offerings) {
@@ -981,6 +1530,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         offering.setMaxCapacity(10);
         offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         offeringRepository.save(offering);
+        attachCurriculum(offering, ensureSheetTrainingProgram(
+                "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE));
         ensureTeacherAssignment(offering, teacher);
         ensureClassroomEnrollment(offering, learners.get(1), teacher, LocalDate.now());
         ensureClassroomEnrollment(offering, learners.get(2), teacher, LocalDate.now());

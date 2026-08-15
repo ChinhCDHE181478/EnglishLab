@@ -1,0 +1,464 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2025_february_listening_practice_test_2",
+  "title": "IELTS Mock Test 2025 February Listening Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de4.html",
+  "durationMinutes": 32,
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-10",
+          "instructions": "Write ONE WORD ONLY for each answer.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 1,
+              "promptBefore": "month __The library now has a seating area with magazines an expanded section for books on",
+              "promptAfter": "a new section on local 2 <input type=\"text\" cl"
+            },
+            {
+              "number": 2,
+              "promptBefore": "a new section on local",
+              "promptAfter": "a community room for meetings (also possible to 3</sp"
+            },
+            {
+              "number": 3,
+              "promptBefore": "a community room for meetings (also possible to",
+              "promptAfter": "there) a new section of books for 4 <input typ"
+            },
+            {
+              "number": 4,
+              "promptBefore": "there) a new section of books for",
+              "promptAfter": "For younger children the next Science Club meeting: experiments using things fro"
+            },
+            {
+              "number": 5,
+              "promptBefore": "For younger children the next Science Club meeting: experiments using things from your",
+              "promptAfter": "Reading Challenge: read six books during the holidays For adults this Friday: a "
+            },
+            {
+              "number": 6,
+              "promptBefore": "ng the holidays For adults this Friday: a local author talks about a novel based on a real",
+              "promptAfter": "IT support is available on Tuesdays - no 7 <in"
+            },
+            {
+              "number": 7,
+              "promptBefore": "IT support is available on Tuesdays - no",
+              "promptAfter": "is necessary free check of blood 8 <input type"
+            },
+            {
+              "number": 8,
+              "promptBefore": "is necessary free check of blood",
+              "promptAfter": "and cholesterol levels (over 60s only) Other information the library shop sells "
+            },
+            {
+              "number": 9,
+              "promptBefore": "rol levels (over 60s only) Other information the library shop sells wall-charts, cards and",
+              "promptAfter": "evenings and weekends: free 10 <input type=\"te"
+            },
+            {
+              "number": 10,
+              "promptBefore": "evenings and weekends: free",
+              "promptAfter": "is available <section class=\"test-panel\" style=\"overflow-y: hidden;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 11-12",
+          "instructions": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            11,
+            12
+          ],
+          "maxSelections": 2,
+          "options": [
+            {
+              "value": "A",
+              "label": "16-30 years"
+            },
+            {
+              "value": "B",
+              "label": "31-42 years"
+            },
+            {
+              "value": "C",
+              "label": "43-54 years"
+            },
+            {
+              "value": "D",
+              "label": "55-64 years"
+            },
+            {
+              "value": "E",
+              "label": "over 65 years"
+            }
+          ],
+          "questions": [
+            {
+              "number": 11,
+              "prompt": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?"
+            },
+            {
+              "number": 12,
+              "prompt": "Choose TWO letters, A-E. Which TWO age groups are taking increasing numbers of holidays with BC Travel?"
+            }
+          ]
+        },
+        {
+          "title": "Questions 13-14",
+          "instructions": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?",
+          "type": "multi_select_letters",
+          "questionNumbers": [
+            13,
+            14
+          ],
+          "maxSelections": 2,
+          "options": [
+            {
+              "value": "A",
+              "label": "Clients make new friends."
+            },
+            {
+              "value": "B",
+              "label": "Clients learn a useful skill."
+            },
+            {
+              "value": "C",
+              "label": "Clients learn about a different culture."
+            },
+            {
+              "value": "D",
+              "label": "Clients are excited by the risk involved."
+            },
+            {
+              "value": "E",
+              "label": "Clients find them good value for money."
+            }
+          ],
+          "questions": [
+            {
+              "number": 13,
+              "prompt": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?"
+            },
+            {
+              "number": 14,
+              "prompt": "Choose TWO letters, A-E. Which TWO are the main reasons given for the popularity of activity holidays?"
+            }
+          ]
+        },
+        {
+          "title": "Questions 15-17",
+          "instructions": "Choose the correct letter, A, B or C .",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 15,
+              "prompt": "How does BC Travel plan to expand the painting holidays?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "by increasing the range of levels"
+                }
+              ]
+            },
+            {
+              "number": 16,
+              "prompt": "Why are BC Travel’s cooking holidays unusual?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They have an international focus."
+                }
+              ]
+            },
+            {
+              "number": 17,
+              "prompt": "What does the speaker say about the photography holidays?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The tutors are also trained guides."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 18-20",
+          "instructions": "Complete the table below.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 18,
+              "promptBefore": "ther comments Ireland and Italy general fitness personally designed programme also reduces",
+              "promptAfter": "Greece 19 <input type=\"text\""
+            },
+            {
+              "number": 19,
+              "promptBefore": "Greece",
+              "promptAfter": "control includes exercise on the beach Morocco mountain biking wide variety of l"
+            },
+            {
+              "number": 20,
+              "promptBefore": " Morocco mountain biking wide variety of levels one holiday that is specially designed for",
+              "promptAfter": "<section class=\"test-panel\" style=\"overflow-y: hidden; outline: none;\" tabinde"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 21-26",
+          "instructions": "Complete the flow-chart below.",
+          "type": "select",
+          "options": [
+            "A patterns",
+            "B names",
+            "C sources",
+            "D questions",
+            "E employees",
+            "F solutions",
+            "G headings",
+            "H officials"
+          ],
+          "questions": [
+            {
+              "number": 21,
+              "prompt": "Identify a problem or need Select interviewees - these may be site"
+            },
+            {
+              "number": 22,
+              "prompt": ", visitors or city"
+            },
+            {
+              "number": 23,
+              "prompt": "Prepare and carry out interviews. If possible, collect statistics. Check whether"
+            },
+            {
+              "number": 24,
+              "prompt": "of interviewees can be used ANALYSIS Select relevant information and try to identify"
+            },
+            {
+              "number": 25,
+              "prompt": "Decide on the best form of visuals WRITING THE CASE STUDY Give some background before writing the main sections Do NOT end with"
+            },
+            {
+              "number": 26,
+              "prompt": "Question 26"
+            }
+          ]
+        },
+        {
+          "title": "Questions 27-30",
+          "instructions": "Choose the correct letter, A, B or C . The Horton Castle site",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 27,
+              "prompt": "Natalie and Dave agree one reason why so few people visit Horton Castle is that",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "it is difficult to get to."
+                }
+              ]
+            },
+            {
+              "number": 28,
+              "prompt": "Natalie and Dave agree that the greatest problem with a visitor centre could be",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "finding a big enough space for it."
+                }
+              ]
+            },
+            {
+              "number": 29,
+              "prompt": "What does Dave say about conditions in the town of Horton?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "There are few people of working age."
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "According to Natalie, one way to prevent damage to the castle site would be to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "make visitors keep to the paths."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 31-40",
+          "instructions": "Complete the notes below.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 31,
+              "promptBefore": "r it may be consumed by fish It has also recently been found to affect birds which feed on",
+              "promptAfter": "Research on effects of mercury or binds Claire Varian-Ramos is investigating <l"
+            },
+            {
+              "number": 32,
+              "promptBefore": " on effects of mercury or binds Claire Varian-Ramos is investigating the effects on birds’",
+              "promptAfter": "or mental processes, e.g. memory the effects on bird song (usually learned from "
+            },
+            {
+              "number": 33,
+              "promptBefore": "or mental processes, e.g. memory the effects on bird song (usually learned from a bird’s",
+              "promptAfter": ") Findings songs learned by birds exposed to mercury are less <span"
+            },
+            {
+              "number": 34,
+              "promptBefore": ") Findings songs learned by birds exposed to mercury are less",
+              "promptAfter": "this may have a negative effect on birds’ 35 <"
+            },
+            {
+              "number": 35,
+              "promptBefore": "this may have a negative effect on birds’",
+              "promptAfter": "Lab-based studies allow more <span class=\"test-panel__question-num\""
+            },
+            {
+              "number": 36,
+              "promptBefore": "Lab-based studies allow more",
+              "promptAfter": "for the experimenter Implications for humans Migrating birds such as <span class"
+            },
+            {
+              "number": 37,
+              "promptBefore": "for the experimenter Implications for humans Migrating birds such as",
+              "promptAfter": "containing mercury may be eaten by humans Mercury also causes problems in learni"
+            },
+            {
+              "number": 38,
+              "promptBefore": "containing mercury may be eaten by humans Mercury also causes problems in learning",
+              "promptAfter": "Mercury in a mother’s body from 39 <input type"
+            },
+            {
+              "number": 39,
+              "promptBefore": "Mercury in a mother’s body from",
+              "promptAfter": "may affect the unborn child New regulations for mercury emissions will affect ev"
+            },
+            {
+              "number": 40,
+              "promptBefore": "ffect the unborn child New regulations for mercury emissions will affect everyone’s energy",
+              "promptAfter": "<div class=\"test-pa"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": [
+      "travel",
+      "travel(l)ing"
+    ],
+    "2": "history",
+    "3": "study",
+    "4": "teenagers",
+    "5": "kitchen",
+    "6": "crime",
+    "7": [
+      "appointment",
+      "booking"
+    ],
+    "8": "sugar",
+    "9": "stamps",
+    "10": "parking",
+    "11": [
+      "D",
+      "E"
+    ],
+    "13": [
+      "A",
+      "C"
+    ],
+    "15": "C",
+    "16": "B",
+    "17": "A",
+    "18": "stress",
+    "19": "weight",
+    "20": "families",
+    "21": "C",
+    "22": "E",
+    "23": "H",
+    "24": "B",
+    "25": "A",
+    "26": "F",
+    "27": "A",
+    "28": "C",
+    "29": "B",
+    "30": "B",
+    "31": "insects",
+    "32": [
+      "behaviour",
+      "behavior"
+    ],
+    "33": "father",
+    "34": [
+      "complex",
+      "complicated"
+    ],
+    "35": [
+      "reproduction",
+      "breeding"
+    ],
+    "36": "control",
+    "37": "duck(s)",
+    "38": "language",
+    "39": "food",
+    "40": "cost(s)",
+    "11-12": [
+      "D",
+      "E"
+    ],
+    "13-14": [
+      "A",
+      "C"
+    ]
+  }
+}

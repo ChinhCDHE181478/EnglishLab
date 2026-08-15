@@ -511,10 +511,14 @@ export default function TeacherClassroomPage() {
             const nextParams = new URLSearchParams(searchParams);
             nextParams.set('tab', 'homework');
             if (homeworkId) nextParams.set('homeworkId', String(homeworkId));
-            else nextParams.delete('homeworkId');
+            else {
+              nextParams.delete('homeworkId');
+              nextParams.delete('studentId');
+            }
             setSearchParams(nextParams, { replace: true });
           }}
           selectedHomeworkId={searchParams.get('homeworkId')}
+          selectedStudentId={searchParams.get('studentId')}
           sessions={sessions}
         />
       );
@@ -530,6 +534,14 @@ export default function TeacherClassroomPage() {
           onExport={handleExportGradebook}
           onGradebookChange={setGradebook}
           onMessage={setActionMessage}
+          onOpenHomeworkGrading={(homeworkId, studentId) => {
+            setActiveTab('homework');
+            const nextParams = new URLSearchParams();
+            nextParams.set('tab', 'homework');
+            nextParams.set('homeworkId', String(homeworkId));
+            nextParams.set('studentId', String(studentId));
+            setSearchParams(nextParams, { replace: true });
+          }}
           onPublish={handlePublishGradebook}
           onUnpublish={handleUnpublishGradebook}
           sessions={sessions}

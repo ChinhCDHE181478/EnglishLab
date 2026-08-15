@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionTiming;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +45,57 @@ class ClassroomMapperHomeworkSubmissionTest {
         assertThat(missing.getSubmissionTiming()).isEqualTo(HomeworkSubmissionTiming.NOT_SUBMITTED);
         assertThat(missing.isSubmitted()).isFalse();
         assertThat(missing.getStudentEmail()).isEqualTo("chi@example.com");
+    }
+
+    @Test
+    void toLearnerHomeworkSubmissionResponse_HidesDraftEvaluationUntilGradingCompletes() {
+        ClassroomHomework homework = ClassroomHomework.builder().id(10L).build();
+        User student = student(1L, "An Nguyễn");
+        ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
+                .homework(homework)
+                .student(student)
+                .textAnswer("I go to school yesterday.")
+                .teacherFeedback("Bản nhận xét đang soạn.")
+                .aiFeedbackJson("{\"summary\":\"Bản đánh giá AI đang soạn.\"}")
+                .teacherAnnotationsJson("[{\"id\":\"annotation-1\",\"type\":\"CORRECTION\",\"startOffset\":2,\"endOffset\":4,\"selectedText\":\"go\",\"replacementText\":\"went\"}]")
+                .score(BigDecimal.valueOf(8))
+                .gradedAt(LocalDateTime.now())
+                .status(HomeworkSubmissionStatus.SUBMITTED)
+                .build();
+
+        ClassroomHomeworkSubmissionResponse response = mapper.toLearnerHomeworkSubmissionResponse(submission);
+
+        assertThat(response.getTextAnswer()).isEqualTo(submission.getTextAnswer());
+        assertThat(response.getScore()).isNull();
+        assertThat(response.getTeacherFeedback()).isNull();
+        assertThat(response.getAiFeedbackJson()).isNull();
+        assertThat(response.getAnnotations()).isEmpty();
+        assertThat(response.getGradedAt()).isNull();
+    }
+
+    @Test
+    void toLearnerHomeworkSubmissionResponse_ReturnsCompletedTeacherEvaluation() {
+        ClassroomHomework homework = ClassroomHomework.builder().id(10L).build();
+        User student = student(1L, "An Nguyễn");
+        ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
+                .homework(homework)
+                .student(student)
+                .textAnswer("I go to school yesterday.")
+                .teacherFeedback("Dùng thì quá khứ đơn.")
+                .aiFeedbackJson("{\"summary\":\"Cần sửa thì của động từ.\"}")
+                .teacherAnnotationsJson("[{\"id\":\"annotation-1\",\"type\":\"CORRECTION\",\"startOffset\":2,\"endOffset\":4,\"selectedText\":\"go\",\"replacementText\":\"went\"}]")
+                .score(BigDecimal.valueOf(8))
+                .gradedAt(LocalDateTime.now())
+                .status(HomeworkSubmissionStatus.GRADED)
+                .build();
+
+        ClassroomHomeworkSubmissionResponse response = mapper.toLearnerHomeworkSubmissionResponse(submission);
+
+        assertThat(response.getScore()).isEqualByComparingTo("8");
+        assertThat(response.getTeacherFeedback()).isEqualTo("Dùng thì quá khứ đơn.");
+        assertThat(response.getAiFeedbackJson()).contains("Cần sửa thì của động từ");
+        assertThat(response.getAnnotations()).hasSize(1);
+        assertThat(response.getGradedAt()).isEqualTo(submission.getGradedAt());
     }
 
     private User student(Long id, String name) {

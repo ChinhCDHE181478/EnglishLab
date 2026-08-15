@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "type": "ielts_writing_exam",
+  "key": "ielts_mock_2025_february_writing_practice_test_2",
+  "title": "IELTS Mock Test 2025 February Writing Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de4w.html",
+  "durationMinutes": 60,
+  "rules": [
+    "Stay in full-screen mode until you submit the exam."
+  ],
+  "tasks": [
+    {
+      "key": "task_1",
+      "title": "Task 1",
+      "heading": "Writing Task 1",
+      "summary": "Complete Task 1 in at least 150 words.",
+      "recommendedMinutes": 20,
+      "minimumWords": 150,
+      "promptParagraphs": [
+        "You should spend about 20 minutes on this task. The Pie chart gives information about the country of birth of people living in Australia and the table shows where people born in these countries live.",
+        "Summarise the information by selecting and reporting the main features and make comparisons where relevant.",
+        "You should write at least 150 words."
+      ],
+      "imageUrl": "/sheet-exams/ielts-mock-2025-february-writing-practice-test-2/writing-task1.png"
+    },
+    {
+      "key": "task_2",
+      "title": "Task 2",
+      "heading": "Writing Task 2",
+      "summary": "Complete Task 2 in at least 250 words.",
+      "recommendedMinutes": 40,
+      "minimumWords": 250,
+      "promptParagraphs": [
+        "You should spend about 40 minutes on this task. People are having more and more sugar-based drinks. What are the reasons? What are the solutions to make people drink less.",
+        "You should write at least 250 words."
+      ]
+    }
+  ]
+}

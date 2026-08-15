@@ -26,6 +26,7 @@ public class ClassroomHomeworkSubmissionResponse {
     private HomeworkSubmissionStatus status;
     private BigDecimal score;
     private String teacherFeedback;
+    private String aiFeedbackJson;
     private List<HomeworkTextAnnotationResponse> annotations;
     private LocalDateTime gradedAt;
 }
