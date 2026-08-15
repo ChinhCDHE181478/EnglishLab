@@ -980,13 +980,7 @@ export default function MyClassroomDetailPage() {
                             url={meetUrl}
                           />
                         )}
-                        {isVirtual && isPastSession && meetUrl && !canJoinMeet && (
-                          <span className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-400">
-                            <Video className="h-4 w-4" />
-                            Google Meet đã đóng
-                          </span>
-                        )}
-                        {isVirtual && !canJoinMeet && !meetUrl && (
+                        {isVirtual && !canJoinMeet && !meetUrl && !isPastSession && (
                           <span className="inline-flex items-center gap-1.5 rounded-xl border border-sky-100 bg-sky-50 px-4 py-2.5 text-xs font-bold text-sky-500">
                             <Video className="h-4 w-4" />
                             Hiện chưa có link Google Meet cho buổi học này
