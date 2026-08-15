@@ -640,17 +640,17 @@ export default function MyClassroomDetailPage() {
                   <Award className="h-4.5 w-4.5" />
                 </div>
               </div>
-              <div className="flex items-center gap-5 pt-1">
+              <div className="flex flex-wrap items-center gap-x-2 lg:gap-x-4 gap-y-2 pt-1">
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">TB Bài tập</span>
-                  <p className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 whitespace-nowrap">TB Bài tập</span>
+                  <p className="font-['Manrope'] text-base lg:text-lg font-extrabold text-[#1a1c1c]">
                     {gradebook?.homeworkAverage != null ? `${gradebook.homeworkAverage}/10` : '--/10'}
                   </p>
                 </div>
-                <div className="h-7 w-px bg-gray-200 shrink-0"></div>
+                <div className="hidden sm:block h-7 w-px bg-gray-200 shrink-0"></div>
                 <div className="flex flex-col">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">Đánh giá</span>
-                  <p className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5 whitespace-nowrap">Đánh giá</span>
+                  <p className="font-['Manrope'] text-base lg:text-lg font-extrabold text-[#1a1c1c] break-words">
                     {(gradebook?.finalResult != null && gradebook.finalResult !== '') 
                       ? formatGradebookFinalResult(gradebook.finalResult) 
                       : '--/10'}
