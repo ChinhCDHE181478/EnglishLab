@@ -224,7 +224,6 @@ const Courses = () => {
       ) : (
         <>
           <CourseHero user={user} registeredCount={myEnrollments.length} />
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
           {error ? (
             <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
@@ -255,8 +254,11 @@ const Courses = () => {
             profileBased={isAuthenticated}
             onRetry={isAuthenticated ? loadRecommendations : loadCourses}
           />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <LearningPathCatalog courses={allCourses} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <PopularCourses courses={featuredCourses} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <CourseCatalog
             courses={visibleCourses}
             keyword={keyword}
