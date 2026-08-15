@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
@@ -43,7 +43,19 @@ const Courses = () => {
   const [recommendationError, setRecommendationError] = useState('');
   const [user, setUser] = useState(() => (hasAccessToken() ? getStoredUser() : null));
 
+  const location = useLocation();
+
   const isAuthenticated = Boolean(user && hasAccessToken());
+
+  useEffect(() => {
+    if (location.hash === '#recommended') {
+      const timer = setTimeout(() => {
+        document.getElementById('recommended')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [location.hash]);
 
   useEffect(() => {
     let active = true;
@@ -246,6 +258,7 @@ const Courses = () => {
               </Link>
             </div>
           ) : null}
+          <div id="recommended">
           <RecommendedCoursesSection
             courses={recommendedCourses}
             currentBand={user?.currentBand ?? null}
@@ -254,6 +267,8 @@ const Courses = () => {
             profileBased={isAuthenticated}
             onRetry={isAuthenticated ? loadRecommendations : loadCourses}
           />
+          </div>
+          <div className='mt-6'></div>
           <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <LearningPathCatalog courses={allCourses} />
           <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
