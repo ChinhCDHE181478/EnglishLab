@@ -139,19 +139,24 @@ const createSpeakingConfig = (assessment) => ({
   variants: [createSpeakingVariant(0)],
 });
 
-const createConfig = (assessment) => ({
-  version: 1,
-  type: getAssessmentSkill(assessment) === 'READING'
-    ? 'ielts_reading_exam'
-    : 'ielts_listening_exam',
-  key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
-  title: assessment.title || 'Bài thi mới',
-  durationMinutes: Number(assessment.timeLimitMinutes || 40),
-  audioLabel: 'Bản nghe',
-  audioUrl: '',
-  rules: [],
-  parts: [createPart(0, 1)],
-});
+const createConfig = (assessment) => {
+  const skill = getAssessmentSkill(assessment);
+  const examType = resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
+  return {
+    version: 1,
+    examType,
+    type: resolveObjectiveExamTypeLabel(examType, skill),
+    key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+    title: assessment.title || 'Bài thi mới',
+    durationMinutes: Number(assessment.timeLimitMinutes || 40),
+    audioLabel: 'Bản nghe',
+    audioUrl: '',
+    rules: [],
+    parts: [createPart(0, 1)],
+  };
+};
+
+const getAssessmentExamType = (assessment) => resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
 
 const safeParse = (value, fallback) => {
   try {
@@ -160,6 +165,23 @@ const safeParse = (value, fallback) => {
   } catch {
     return fallback;
   }
+};
+
+const resolveObjectiveExamType = (assessment, parsed = {}) => {
+  const fromProp = String(assessment?.examType || '').toUpperCase();
+  if (fromProp === 'TOEIC' || fromProp === 'IELTS') return fromProp;
+  const fromConfig = String(parsed?.examType || '').toUpperCase();
+  if (fromConfig === 'TOEIC' || fromConfig === 'IELTS') return fromConfig;
+  const type = String(parsed?.type || '').toLowerCase();
+  if (type.startsWith('toeic_')) return 'TOEIC';
+  return 'IELTS';
+};
+
+const resolveObjectiveExamTypeLabel = (examType, skill) => {
+  if (examType === 'TOEIC') {
+    return skill === 'READING' ? 'toeic_reading_exam' : 'toeic_listening_exam';
+  }
+  return skill === 'READING' ? 'ielts_reading_exam' : 'ielts_listening_exam';
 };
 
 const nextQuestionNumber = (parts) => {
@@ -274,7 +296,8 @@ const normalizeConfig = (assessment) => {
   return {
     ...fallback,
     ...safeConfig,
-    type: fallback.type,
+    examType: resolveObjectiveExamType(assessment, safeConfig),
+    type: resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
     parts: normalizedParts,
   };
 };
