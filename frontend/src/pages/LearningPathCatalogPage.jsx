@@ -84,7 +84,7 @@ export default function LearningPathCatalogPage() {
                   <h3 className="mt-2 font-['Manrope'] text-xl font-extrabold leading-snug text-[#2b2828] line-clamp-1">
                     {path.name}
                   </h3>
-                  <ol className="mt-4 space-y-2">
+                  <ol className="mt-4 space-y-2 flex-1">
                     {path.courses.slice(0, 3).map((course, index) => (
                       <li className="flex items-center gap-2 text-sm text-[#584140]" key={course.id}>
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fff0f2] text-xs font-extrabold text-[#8a0018]">
