@@ -519,9 +519,12 @@ export default function MyClassroomDetailPage() {
   };
 
   const handleSyllabusClick = (syllabusItem) => {
-    const matchingUnit = classroom?.curriculumProgram?.units?.find(
-      (unit) => unit.title.trim().toLowerCase() === syllabusItem.title.trim().toLowerCase()
-    );
+    const sTitle = syllabusItem.title.trim().toLowerCase();
+    const matchingUnit = classroom?.curriculumProgram?.units?.find((unit) => {
+      const uTitle = unit.title.trim().toLowerCase();
+      const normalizedSTitle = sTitle.replace(/^buổi\s*\d+\s*[-–:]\s*/, '').trim();
+      return uTitle === normalizedSTitle || normalizedSTitle.includes(uTitle) || uTitle.includes(normalizedSTitle);
+    });
 
     if (matchingUnit) {
       setActiveTab('curriculum');
@@ -531,7 +534,7 @@ export default function MyClassroomDetailPage() {
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, 300);
     } else {
       setActiveTab('curriculum');
     }
