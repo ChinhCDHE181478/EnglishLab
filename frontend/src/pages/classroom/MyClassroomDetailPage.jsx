@@ -491,8 +491,25 @@ export default function MyClassroomDetailPage() {
   }, [sessions]);
 
   const pendingHomework = useMemo(() =>
-    homework.filter((h) => !h.mySubmission).sort((a, b) => new Date(a.deadline) - new Date(b.deadline)),
+    homework.filter((h) => !h.mySubmission && !h.overdue).sort((a, b) => new Date(a.deadline) - new Date(b.deadline)),
     [homework]);
+
+  const handleDoPendingHomework = (item) => {
+    setActiveTab('homework');
+    const itemIndex = filteredHomework.findIndex(h => h.id === item.id);
+    if (itemIndex >= 0) {
+      const targetPage = Math.floor(itemIndex / 6) + 1;
+      setHomeworkPage(targetPage);
+      setTimeout(() => {
+        document.getElementById(`homework-card-${item.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (usesInteractiveHomeworkWorkspace(item)) {
+          openInteractiveHomework(item);
+        } else {
+          setSelectedHomeworkForSubmission(item);
+        }
+      }, 300);
+    }
+  };
 
   const canResubmitHomework = (item) => {
     if (!item || item.status !== 'OPEN') return false;
@@ -723,39 +740,36 @@ export default function MyClassroomDetailPage() {
                 </h3>
               </div>
               <div className="grid gap-3">
-                {pendingHomework.slice(0, 3).map((item) => {
+                {pendingHomework.map((item) => {
                   const deadline = item.deadline ? new Date(item.deadline) : null;
                   const hoursLeft = deadline ? Math.round((deadline - Date.now()) / 3600000) : null;
                   const isUrgent = hoursLeft != null && hoursLeft < 24 && hoursLeft > 0;
-                  const isOverdue = hoursLeft != null && hoursLeft <= 0;
 
                   return (
                     <div
                       key={item.id}
                       className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition ${
-                        isOverdue
-                          ? 'border-rose-100 bg-[#fff5f5]/30'
-                          : isUrgent
-                            ? 'border-amber-100 bg-amber-50/20'
-                            : 'border-gray-200/80 bg-white'
+                        isUrgent
+                          ? 'border-amber-100 bg-amber-50/20'
+                          : 'border-gray-200/80 bg-white'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
-                          isOverdue ? 'bg-rose-50 text-rose-700' : isUrgent ? 'bg-amber-50 text-amber-700' : 'bg-[#fff0f1] text-[#730014]'
+                          isUrgent ? 'bg-amber-50 text-amber-700' : 'bg-[#fff0f1] text-[#730014]'
                         }`}>
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-[#1a1c1c] truncate">{item.title}</p>
-                          <p className={`text-[10px] font-bold ${isOverdue ? 'text-rose-700' : isUrgent ? 'text-amber-700' : 'text-[#8b706e]'}`}>
-                            {isOverdue ? 'Đã quá hạn nộp' : isUrgent ? `Còn ${hoursLeft} giờ nộp bài` : `Hạn chót: ${formatClassroomDateTime(item.deadline)}`}
+                          <p className={`text-[10px] font-bold ${isUrgent ? 'text-amber-700' : 'text-[#8b706e]'}`}>
+                            {isUrgent ? `Còn ${hoursLeft} giờ nộp bài` : `Hạn chót: ${formatClassroomDateTime(item.deadline)}`}
                           </p>
                         </div>
                       </div>
                       <button
                         className="flex-shrink-0 rounded-xl border border-gray-200 hover:border-[#dfbfbd] bg-white px-4 py-2 text-xs font-bold text-gray-700 hover:text-[#730014] transition active:scale-95"
-                        onClick={() => setActiveTab('homework')}
+                        onClick={() => handleDoPendingHomework(item)}
                         type="button"
                       >
                         Làm bài
@@ -763,16 +777,6 @@ export default function MyClassroomDetailPage() {
                     </div>
                   );
                 })}
-                
-                {pendingHomework.length > 3 && (
-                  <button
-                    className="w-full rounded-2xl border border-dashed border-gray-200 py-3 text-xs font-bold text-[#8b706e] hover:border-[#dfbfbd] hover:text-[#730014] bg-white transition"
-                    onClick={() => setActiveTab('homework')}
-                    type="button"
-                  >
-                    Xem tất cả {pendingHomework.length} bài tập trong tab Bài tập →
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -1150,6 +1154,7 @@ export default function MyClassroomDetailPage() {
 
               return (
                 <article
+                  id={`homework-card-${item.id}`}
                   key={item.id}
                   className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${
                     isOverdue
