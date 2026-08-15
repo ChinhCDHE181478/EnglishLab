@@ -68,15 +68,13 @@ export default function AdminUsersPage() {
       email: user.email || '',
       phoneNumber: user.phoneNumber || '',
       password: '',
-      roles: user.roles || [],
+      roles: user.roles?.length ? [user.roles[0]] : [],
     });
     setPasswordError('');
   };
   const toggleRole = (value) => setForm((current) => ({
     ...current,
-    roles: current.roles.includes(value)
-      ? current.roles.filter((item) => item !== value)
-      : [...current.roles, value],
+    roles: [value],
   }));
 
   const save = async (event) => {
@@ -188,7 +186,7 @@ export default function AdminUsersPage() {
             <div className="flex flex-wrap gap-2">
               {ROLES.map((item) => (
                 <label className={`cursor-pointer rounded-full border px-3 py-2 text-xs font-bold ${form.roles.includes(item) ? 'border-[#730014] bg-[#fff1f2] text-[#730014]' : 'border-slate-200 text-[#564241]'}`} key={item}>
-                  <input checked={form.roles.includes(item)} className="sr-only" onChange={() => toggleRole(item)} type="checkbox" />
+                  <input checked={form.roles.includes(item)} className="sr-only" name="admin-user-role" onChange={() => toggleRole(item)} type="radio" />
                   {ROLE_LABELS[item]}
                 </label>
               ))}
