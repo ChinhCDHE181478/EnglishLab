@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Route } from 'lucide-react';
+import { ArrowRight, Route } from 'lucide-react';
+import Pagination, { usePagination } from '../ui/Pagination';
 
 const PAGE_SIZE = 3;
 
 export default function LearningPathCatalog({ courses = [] }) {
-  const [page, setPage] = useState(0);
-
   const paths = useMemo(() => {
     const groups = courses.reduce((acc, course) => {
       const code = String(course.learningPathCode || '').trim();
@@ -22,8 +21,11 @@ export default function LearningPathCatalog({ courses = [] }) {
     }));
   }, [courses]);
 
-  const totalPages = Math.max(1, Math.ceil(paths.length / PAGE_SIZE));
-  const visiblePaths = paths.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const { page, setPage, totalPages, pageItems: visiblePaths, totalItems } = usePagination(
+    paths,
+    PAGE_SIZE,
+    paths.map((path) => path.code).join('|'),
+  );
 
   if (!paths.length) return null;
 
@@ -89,29 +91,14 @@ export default function LearningPathCatalog({ courses = [] }) {
         ))}
       </div>
 
-      {totalPages > 1 ? (
-        <div className="mt-7 flex items-center justify-center gap-3">
-          <button
-            className="rounded-xl border border-[#dfbfbd] bg-white p-2 text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={page === 0}
-            onClick={() => setPage((current) => current - 1)}
-            type="button"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-bold text-[#584140]">
-            Trang {page + 1}/{totalPages}
-          </span>
-          <button
-            className="rounded-xl border border-[#dfbfbd] bg-white p-2 text-[#730014] transition hover:bg-[#fff4f5] disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={page === totalPages - 1}
-            onClick={() => setPage((current) => current + 1)}
-            type="button"
-          >
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
+      <Pagination
+        className="mt-7"
+        page={page}
+        totalPages={totalPages}
+        onChange={setPage}
+        totalItems={totalItems}
+        pageSize={PAGE_SIZE}
+      />
     </section>
   );
 }

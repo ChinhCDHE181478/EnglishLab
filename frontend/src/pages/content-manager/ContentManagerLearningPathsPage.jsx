@@ -20,6 +20,7 @@ import {
 import Pagination, { usePagination } from "../../components/ui/Pagination";
 import { useAppDialog } from "../../components/ui/AppDialog";
 import BrandedSelect from "../../components/ui/BrandedSelect";
+import ManagementToast from "../../components/ui/ManagementToast";
 
 export default function ContentManagerLearningPathsPage() {
   const { confirm: confirmDialog } = useAppDialog();
@@ -27,7 +28,10 @@ export default function ContentManagerLearningPathsPage() {
   const [paths, setPaths] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ code: "", name: "", examCategory: "IELTS", targetBand: "", targetScore: "" });
+  const [form, setForm] = useState({
+    code: "", name: "", examCategory: "IELTS", targetBand: "", targetScore: "",
+    discountPercent: "0", minimumCoursesForDiscount: "2",
+  });
   const [courseIds, setCourseIds] = useState([]);
   const [modalSearch, setModalSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -93,6 +97,8 @@ export default function ContentManagerLearningPathsPage() {
       examCategory: group?.examCategory || "IELTS",
       targetBand: group?.targetBand ?? "",
       targetScore: group?.targetScore ?? "",
+      discountPercent: String(group?.discountPercent ?? 0),
+      minimumCoursesForDiscount: String(group?.minimumCoursesForDiscount ?? 2),
     });
     setCourseIds(mode === "edit" ? group?.courses.map((course) => course.courseId) || [] : []);
     setModalSearch("");
@@ -129,6 +135,8 @@ export default function ContentManagerLearningPathsPage() {
       examCategory: form.examCategory || null,
       targetBand: form.examCategory === "IELTS" && form.targetBand !== "" ? Number(form.targetBand) : null,
       targetScore: form.examCategory === "TOEIC" && form.targetScore !== "" ? Number(form.targetScore) : null,
+      discountPercent: Number(form.discountPercent || 0),
+      minimumCoursesForDiscount: Number(form.minimumCoursesForDiscount || 2),
     };
     if (modal.mode === "create" && (!code || !name)) {
       setError("Nhập mã và tên lộ trình.");
@@ -136,6 +144,14 @@ export default function ContentManagerLearningPathsPage() {
     }
     if (modal.mode === "add" && !courseIds.length) {
       setError("Chọn ít nhất một khóa học để thêm.");
+      return;
+    }
+    if (pathPayload.discountPercent < 0 || pathPayload.discountPercent > 100) {
+      setError("Mức giảm lộ trình phải từ 0% đến 100%.");
+      return;
+    }
+    if (pathPayload.minimumCoursesForDiscount < 2) {
+      setError("Ưu đãi lộ trình chỉ áp dụng từ 2 khóa học trở lên.");
       return;
     }
     setSaving(true);
@@ -199,8 +215,8 @@ export default function ContentManagerLearningPathsPage() {
           Tạo lộ trình
         </button>
       </HeaderActions>
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      {success ? <Notice>{success}</Notice> : null}
+      {!modal ? <ManagementToast message={error} onClose={() => setError("")} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess("")} tone="success" title="Đã cập nhật lộ trình" />
       {pathPageItems.map((group) => {
         const isExpanded = expanded[group.code] !== false;
         return (
@@ -223,6 +239,7 @@ export default function ContentManagerLearningPathsPage() {
                   <span className="mt-0.5 block text-xs text-[#8b706e]">
                     {group.courses.length} khóa học · {group.examCategory || "Chưa chọn kỳ thi"}
                     {group.targetBand != null ? ` · Band ${group.targetBand}` : group.targetScore != null ? ` · ${group.targetScore} điểm` : ""}
+                    {group.discountPercent > 0 ? ` · Giảm ${group.discountPercent}% từ ${group.minimumCoursesForDiscount || 2} khóa` : " · Không giảm giá"}
                   </span>
                 </span>
               </button>
@@ -334,6 +351,7 @@ export default function ContentManagerLearningPathsPage() {
 
             {/* Scrollable Body */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 space-y-5">
+              {error ? <Notice tone="error">{error}</Notice> : null}
               {modal.mode !== "add" ? (
                 <div className="grid gap-4 md:grid-cols-2">
                   <TextField
@@ -382,6 +400,29 @@ export default function ContentManagerLearningPathsPage() {
                       }))}
                       type="number"
                       value={form.examCategory === "TOEIC" ? form.targetScore : form.targetBand}
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Giảm giá lộ trình (%)</span>
+                    <input
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014]"
+                      max="100"
+                      min="0"
+                      onChange={(event) => setForm((current) => ({ ...current, discountPercent: event.target.value }))}
+                      step="1"
+                      type="number"
+                      value={form.discountPercent}
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Số khóa tối thiểu được giảm</span>
+                    <input
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-[#730014]"
+                      min="2"
+                      onChange={(event) => setForm((current) => ({ ...current, minimumCoursesForDiscount: event.target.value }))}
+                      step="1"
+                      type="number"
+                      value={form.minimumCoursesForDiscount}
                     />
                   </label>
                 </div>

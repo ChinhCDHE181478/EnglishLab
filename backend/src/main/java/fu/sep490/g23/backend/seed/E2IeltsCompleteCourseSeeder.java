@@ -17,6 +17,7 @@ import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final YouTubeTranscriptService youTubeTranscriptService;
+    private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -103,7 +105,6 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.setCategory(category);
         onlineCourse.setLevel(CourseLevel.INTERMEDIATE);
         onlineCourse.setRecommendedCurrentBandMin(6.0);
-        onlineCourse.setRecommendedCurrentBandMax(7.0);
         onlineCourse.setTargetBand(7.0);
         onlineCourse.setLearningPathCode("IELTS_BAND_55_TO_70");
         onlineCourse.setLearningPathName("IELTS 5.5 to 7.0 Self-Paced Path");
@@ -175,6 +176,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
         backfillMissingVideoTranscripts(onlineCourse);
         onlineCourseRepository.save(onlineCourse);
+        onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
     }
 
     private void backfillMissingVideoTranscripts(OnlineCourse onlineCourse) {

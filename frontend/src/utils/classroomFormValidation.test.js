@@ -39,6 +39,13 @@ describe('classroom form validation', () => {
     })).toBe('Lớp sắp mở hoặc đang hoạt động phải có giáo viên chính.');
   });
 
+  it('requires offline operational classes to have a room', () => {
+    expect(validateClassroomOfferingForm({
+      ...validOffering,
+      defaultRoomId: '',
+    })).toBe('Lớp học trực tiếp phải có phòng học.');
+  });
+
   it('rejects a session whose end time is not after its start time', () => {
     expect(validateClassroomSessionForm({
       sessionDate: '2026-08-10',

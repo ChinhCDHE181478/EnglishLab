@@ -15,6 +15,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import Header from '../../components/ai-learning/Header';
 import CourseFooter from '../../components/course/CourseFooter';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import CourseGlobalStyles from '../../components/course/CourseGlobalStyles';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { getStoredUser, hasAccessToken } from '../../utils/auth';
@@ -469,7 +470,6 @@ function ProgramList({ onSelect, programs, registeredProgramIds, selectedProgram
                 <th className="px-4 py-3">Đầu vào</th>
                 <th className="px-4 py-3">Mục tiêu</th>
                 <th className="px-4 py-3">Thời lượng</th>
-                <th className="px-4 py-3">Sĩ số dự kiến</th>
                 <th className="w-28 px-4 py-3 text-center">Đăng ký</th>
               </tr>
             </thead>
@@ -519,9 +519,11 @@ function ProgramTableRow({ onSelect, program, registered, selected }) {
           {program.curriculumProgramExamCategory === 'GENERAL_ENGLISH' ? 'General English' : program.curriculumProgramExamCategory}
           {program.focusSkills ? ` · ${program.focusSkills.split(',').join(' · ')}` : ''}
         </p>
-        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-          {program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
-        </p>
+        <RichTextHtml
+          asPlain
+          className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500"
+          value={program.shortDescription || program.description || 'Lộ trình được thiết kế theo chuẩn đầu ra EnglishLab.'}
+        />
       </td>
       <td className="px-4 py-3 align-top">
         <DeliveryBadge virtual={virtual} />
@@ -529,7 +531,6 @@ function ProgramTableRow({ onSelect, program, registered, selected }) {
       <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.entryLevel || 'Test đầu vào'}</td>
       <td className="px-4 py-3 align-top font-semibold text-slate-700">{program.targetScore || 'Theo lộ trình'}</td>
       <td className="px-4 py-3 align-top text-slate-600">{program.duration || 'Đang cập nhật'}</td>
-      <td className="px-4 py-3 align-top text-slate-600">{program.maxCapacity || program.capacity || 30} học viên/lớp</td>
       <td className="px-4 py-3 text-center align-middle">
         <SelectProgramButton onSelect={onSelect} registered={registered} selected={selected} />
       </td>
@@ -556,7 +557,6 @@ function ProgramMobileRow({ onSelect, program, registered, selected }) {
         <ProgramDetail label="Đầu vào" value={program.entryLevel || 'Test đầu vào'} />
         <ProgramDetail label="Mục tiêu" value={program.targetScore || 'Theo lộ trình'} />
         <ProgramDetail label="Thời lượng" value={program.duration || 'Đang cập nhật'} />
-        <ProgramDetail label="Sĩ số" value={`${program.maxCapacity || program.capacity || 30} học viên/lớp`} />
       </dl>
       <SelectProgramButton className="mt-4 w-full" onSelect={onSelect} registered={registered} selected={selected} />
     </article>

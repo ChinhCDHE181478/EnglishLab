@@ -60,6 +60,7 @@ import ManagerOnlineEnrollmentsPage from './pages/manager/ManagerOnlineEnrollmen
 import ManagerSupportTicketsPage from './pages/manager/ManagerSupportTicketsPage';
 import SupportTicketsPage from './pages/SupportTicketsPage';
 import StaffEnrollmentRequestsPage from './pages/staff/StaffEnrollmentRequestsPage';
+import StaffClassroomProposalsPage from './pages/staff/StaffClassroomProposalsPage';
 import AdminRoutes from './pages/admin/AdminRoutes';
 import { getDefaultAuthenticatedPath } from './utils/auth';
 
@@ -171,6 +172,7 @@ function AppRoutes() {
           <Route path="/staff/classrooms" element={<StaffClassroomsPage />} />
           <Route path="/staff/classrooms/:id" element={<StaffClassroomDetailPage />} />
           <Route path="/staff/enrollment-requests" element={<StaffEnrollmentRequestsPage />} />
+          <Route path="/staff/classroom-proposals" element={<StaffClassroomProposalsPage />} />
           <Route path="/staff/requests" element={<StaffRequestsPage />} />
           <Route path="/staff/infrastructure" element={<StaffInfrastructurePage />} />
           <Route path="/staff/recordings" element={<Navigate replace to="/staff/classrooms" />} />

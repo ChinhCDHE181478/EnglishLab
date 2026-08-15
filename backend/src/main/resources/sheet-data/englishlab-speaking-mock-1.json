@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "englishlab_sheet_speaking_mock_1",
+  "title": "EnglishLab IELTS Speaking Mock 1",
+  "durationMinutes": 14,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 90,
+      "prompts": [
+        {
+          "text": "Where are you from?",
+          "audioUrl": "/sheet-speaking/p1-q1.wav"
+        },
+        {
+          "text": "Who do you live with?",
+          "audioUrl": "/sheet-speaking/p1-q2.wav"
+        },
+        {
+          "text": "What do you usually do in the evening?",
+          "audioUrl": "/sheet-speaking/p1-q3.wav"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Cue Card",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "audioUrl": "/sheet-speaking/p2-cue.wav",
+      "cueCardTitle": "Describe an evening class you enjoy.",
+      "cueCardBullets": [
+        "What the class is about",
+        "When and where you take it",
+        "Who you study with",
+        "Why you enjoy it"
+      ]
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 120,
+      "prompts": [
+        {
+          "text": "Do you think evening classes are useful for working adults?",
+          "audioUrl": "/sheet-speaking/p3-q1.wav"
+        },
+        {
+          "text": "How can teachers help students speak more confidently?",
+          "audioUrl": "/sheet-speaking/p3-q2.wav"
+        }
+      ]
+    }
+  ]
+}

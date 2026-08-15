@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookmarkPlus,
   BookOpenText,
@@ -6,6 +6,7 @@ import {
   Headphones,
   LoaderCircle,
   Layers3,
+  Languages,
   PencilLine,
   Search,
   Trash2,
@@ -24,6 +25,7 @@ import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { useAppDialog } from '../components/ui/AppDialog';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../components/ui/Pagination';
+import { speakEnglishText } from '../utils/pronunciation';
 
 const STATUS_OPTIONS = [
   { label: 'Tất cả trạng thái', value: '' },
@@ -71,6 +73,7 @@ export default function DictionaryPage() {
   const [editingNote, setEditingNote] = useState('');
   const [workingId, setWorkingId] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef(null);
 
   const loadSaved = useCallback(async () => {
     setSavedLoading(true);
@@ -93,6 +96,15 @@ export default function DictionaryPage() {
     const timer = window.setTimeout(loadSaved, 250);
     return () => window.clearTimeout(timer);
   }, [loadSaved]);
+
+  useEffect(() => {
+    setIsPlayingAudio(false);
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current = null;
+      window.speechSynthesis?.cancel();
+    };
+  }, [entry?.word]);
 
   const savedWordSet = useMemo(
     () => new Set(savedItems.map((item) => String(item.word || '').toLowerCase())),
@@ -149,15 +161,34 @@ export default function DictionaryPage() {
   };
 
   const playAudio = async () => {
-    if (!entry?.audioUrl || isPlayingAudio) return;
+    if (!entry?.word || isPlayingAudio) return;
     setIsPlayingAudio(true);
+    setLookupError('');
     try {
-      const audio = new Audio(entry.audioUrl);
-      audio.onended = () => setIsPlayingAudio(false);
-      audio.onerror = () => setIsPlayingAudio(false);
-      await audio.play();
+      if (entry.audioUrl) {
+        await new Promise((resolve, reject) => {
+          const audio = new Audio(entry.audioUrl);
+          audioRef.current = audio;
+          audio.onended = resolve;
+          audio.onerror = reject;
+          audio.onpause = reject;
+          audio.play().catch(reject);
+        });
+      } else {
+        await speakEnglishText(entry.word);
+      }
     } catch {
-      setLookupError('Trình duyệt không thể phát bản ghi phát âm này.');
+      if (!entry.audioUrl) {
+        setLookupError('Trình duyệt này không hỗ trợ phát âm. Hãy thử lại trên Chrome hoặc Edge.');
+      } else {
+        try {
+          await speakEnglishText(entry.word);
+        } catch {
+          setLookupError('Trình duyệt này không hỗ trợ phát âm. Hãy thử lại trên Chrome hoặc Edge.');
+        }
+      }
+    } finally {
+      audioRef.current = null;
       setIsPlayingAudio(false);
     }
   };
@@ -316,27 +347,29 @@ export default function DictionaryPage() {
                     <h3 className="font-['Manrope'] text-4xl font-black capitalize tracking-tight">{entry.word}</h3>
                     <p className="mt-1.5 text-sm font-bold text-pink-100/80">{entry.phonetic || 'Chưa có phiên âm'}</p>
                   </div>
-                  {entry.audioUrl ? (
-                    <button
-                      className={`inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white hover:text-[#4b0009] active:scale-95 ${isPlayingAudio ? 'animate-pulse bg-white/20' : ''}`}
-                      onClick={playAudio}
-                      type="button"
-                    >
-                      {isPlayingAudio ? (
-                        <Volume1 className="h-4 w-4 animate-bounce" />
-                      ) : (
-                        <Volume2 className="h-4 w-4" />
-                      )}
-                      Nghe phát âm
-                    </button>
-                  ) : null}
+                  <button
+                    aria-label={`Nghe phát âm từ ${entry.word}`}
+                    className={`inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white hover:text-[#4b0009] active:scale-95 disabled:cursor-wait disabled:opacity-70 ${isPlayingAudio ? 'animate-pulse bg-white/20' : ''}`}
+                    disabled={isPlayingAudio}
+                    onClick={playAudio}
+                    type="button"
+                  >
+                    {isPlayingAudio ? (
+                      <Volume1 className="h-4 w-4 animate-bounce" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                    {isPlayingAudio ? 'Đang phát...' : 'Nghe phát âm'}
+                  </button>
                 </div>
               </div>
 
               {/* Vietnamese Translation Banner */}
               {entry.vietnameseMeaningAvailable ? (
                 <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 px-5 py-4 flex items-start gap-3 shadow-sm">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800 font-bold text-sm">译</span>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800">
+                    <Languages className="h-4 w-4" />
+                  </span>
                   <div>
                     <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Nghĩa tiếng Việt cơ bản</p>
                     <p className="mt-1 text-lg font-bold text-slate-800">{entry.meaningVietnamese}</p>

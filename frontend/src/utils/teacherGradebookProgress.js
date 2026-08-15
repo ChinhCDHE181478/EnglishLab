@@ -162,3 +162,17 @@ export const getStudentLessonProgress = (entry, assignments) => {
     isComplete: results.length > 0 && gradedCount === results.length,
   };
 };
+
+const HOMEWORK_GRADING_PRIORITY = {
+  SUBMITTED: 0,
+  RETURNED: 1,
+  GRADED: 2,
+  NOT_SUBMITTED: 3,
+};
+
+export const orderHomeworkGradingChoices = (homeworks = []) => (
+  [...homeworks].sort((left, right) => (
+    (HOMEWORK_GRADING_PRIORITY[left.status] ?? 4)
+    - (HOMEWORK_GRADING_PRIORITY[right.status] ?? 4)
+  ))
+);

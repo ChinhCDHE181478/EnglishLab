@@ -135,9 +135,26 @@ class ClassroomProposalServiceImplTest {
 
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.DRAFT);
         assertThat(response.getLearnerCount()).isZero();
+        assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
         assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(scheduleLockService).lockDates(any());
         verify(enrollmentHistoryRepository, never()).save(any());
+    }
+
+    @Test
+    void createDraftUsesCourseDeliveryModeInsteadOfClientValue() {
+        courseOffering.setDeliveryMode(ClassroomDeliveryMode.VIRTUAL);
+        CreateClassroomProposalRequest payload = proposalPayload();
+        payload.setDeliveryType(ClassroomDeliveryMode.OFFLINE);
+        when(userRepository.findByEmail(staff.getEmail())).thenReturn(Optional.of(staff));
+        when(trainingProgramRepository.findById(courseOffering.getId())).thenReturn(Optional.of(courseOffering));
+        when(userRepository.findById(teacher.getId())).thenReturn(Optional.of(teacher));
+        when(proposalRepository.save(any(ClassroomProposal.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ClassroomProposalResponse response = service.create(payload, staff.getEmail());
+
+        assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.VIRTUAL);
+        verify(roomRepository, never()).findById(any());
     }
 
     @Test
@@ -386,6 +403,7 @@ class ClassroomProposalServiceImplTest {
         CreateClassroomProposalRequest payload = new CreateClassroomProposalRequest();
         payload.setTitle("IELTS Foundation A01");
         payload.setCourseOfferingId(courseOffering.getId());
+        payload.setDeliveryType(ClassroomDeliveryMode.OFFLINE);
         payload.setEnrollmentRequestIds(List.of());
         payload.setCapacity(20);
         payload.setPlannedStartDate(firstMonday);
@@ -395,7 +413,6 @@ class ClassroomProposalServiceImplTest {
         payload.setSessionEndTime(LocalTime.of(20, 30));
         payload.setPrimaryTeacherId(teacher.getId());
         payload.setRoomId(room.getId());
-        payload.setOfflineAddress("Cơ sở Cầu Giấy");
         return payload;
     }
 

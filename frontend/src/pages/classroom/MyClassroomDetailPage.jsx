@@ -40,7 +40,7 @@ import VirtualJoinButton from '../../components/classroom/VirtualJoinButton';
 import TuitionPaymentSection from '../../components/classroom/TuitionPaymentSection';
 import ClassroomFlashcardsPanel from '../../components/classroom/ClassroomFlashcardsPanel';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
-import HomeworkAnnotatedText from '../../components/classroom/HomeworkAnnotatedText';
+import HomeworkSubmissionReview, { hasHomeworkTeacherEvaluation } from '../../components/classroom/HomeworkSubmissionReview';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import {
@@ -53,6 +53,7 @@ import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 import {
   formatAttendanceStatus,
   formatAttendanceDisputeStatus,
@@ -1134,7 +1135,7 @@ export default function MyClassroomDetailPage() {
               const isGraded = hasSubmission && item.mySubmission.score != null;
               const teacherFeedback = getSubmissionFeedback(item.mySubmission);
               const annotationCount = item.mySubmission?.annotations?.length || 0;
-              const hasTeacherEvaluation = isGraded || Boolean(teacherFeedback) || annotationCount > 0;
+              const hasTeacherEvaluation = hasHomeworkTeacherEvaluation(item.mySubmission);
               const isOverdue = item.overdue && !hasSubmission;
               const canSubmit = canResubmitHomework(item);
               
@@ -1210,7 +1211,7 @@ export default function MyClassroomDetailPage() {
                             Đánh giá của giảng viên
                           </div>
                           {teacherFeedback ? (
-                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{teacherFeedback}</p>
+                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{stripRichTextToPlain(teacherFeedback)}</p>
                           ) : null}
                           {annotationCount > 0 ? (
                             <p className="mt-2 text-[11px] font-bold text-[#8b706e]">{annotationCount} nhận xét trực tiếp trên bài làm</p>
@@ -1233,7 +1234,17 @@ export default function MyClassroomDetailPage() {
                       )}
                     </div>
 
-                    <div className="border-t border-gray-100 pt-3">
+                    <div className="space-y-2 border-t border-gray-100 pt-3">
+                      {hasTeacherEvaluation && canSubmit ? (
+                        <button
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fffafb]"
+                          onClick={() => setSelectedHomeworkForSubmission(item)}
+                          type="button"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          Xem đánh giá của giảng viên
+                        </button>
+                      ) : null}
                       {usesInteractiveHomeworkWorkspace(item) ? (
                         <button
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014]"
@@ -2665,7 +2676,6 @@ function HomeworkSubmissionForm({
   canResubmitHomework,
 }) {
   const hasSubmission = !!homework.mySubmission;
-  const isGraded = hasSubmission && homework.mySubmission.score != null;
   const canSubmit = canResubmitHomework(homework);
 
   return (
@@ -2690,34 +2700,9 @@ function HomeworkSubmissionForm({
           </div>
         )}
 
-        {isGraded && (
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/15 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-widest flex items-center gap-1">
-                <Award className="h-4 w-4" />
-                Điểm chấm từ giảng viên
-              </span>
-              <strong className="text-emerald-700 text-xs font-extrabold">{homework.mySubmission.score} / {getHomeworkMaxScore(homework)} điểm</strong>
-            </div>
-            {getSubmissionFeedback(homework.mySubmission) && (
-              <p className="text-xs text-[#584140] italic leading-normal border-t border-emerald-500/10 pt-2 mt-2">
-                {getHomeworkFeedbackLabel(homework)}: "{getSubmissionFeedback(homework.mySubmission)}"
-              </p>
-            )}
-          </div>
-        )}
-
-        {hasSubmission && homework.mySubmission.attachmentUrl && (
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700">Tệp bài làm đã nộp:</span>
-            <AuthenticatedFileLink
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
-              url={homework.mySubmission.attachmentUrl}
-            >
-              <Download className="h-4 w-4" /> Tải về tệp đã nộp
-            </AuthenticatedFileLink>
-          </div>
-        )}
+        {hasSubmission ? (
+          <HomeworkSubmissionReview homework={homework} submission={homework.mySubmission} />
+        ) : null}
 
         {canSubmit ? (
           <div className="space-y-4">
@@ -2748,20 +2733,7 @@ function HomeworkSubmissionForm({
               />
             </div>
           </div>
-        ) : (
-          hasSubmission && (
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <span className="block text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Nội dung câu trả lời đã nộp:</span>
-                <HomeworkAnnotatedText
-                  annotations={homework.mySubmission.annotations || []}
-                  className="text-xs"
-                  text={homework.mySubmission.textAnswer || 'Không có nội dung trả lời dạng văn bản.'}
-                />
-              </div>
-            </div>
-          )
-        )}
+        ) : null}
       </div>
 
       <div className="mt-5 flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-3">

@@ -25,6 +25,7 @@ import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +59,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
+    private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -124,13 +126,13 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                 manager, packageType, category,
                 "ielts-foundation-listening", "IELTS Foundation Listening", 2,
                 "Build listening confidence with short IELTS-style practice and guided review.",
-                "https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg"
+                "/course-covers/ielts-listening.png"
         );
         upsertFoundationCourse(
                 manager, packageType, category,
                 "ielts-foundation-speaking", "IELTS Foundation Speaking", 3,
                 "Practice clear answers, useful vocabulary, and confident speaking routines.",
-                "https://i.ytimg.com/vi/9dSNvPayFDE/hqdefault.jpg"
+                "/course-covers/ielts-speaking.png"
         );
     }
 
@@ -174,7 +176,6 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setCategory(category);
         course.setLevel(CourseLevel.BEGINNER);
         course.setRecommendedCurrentBandMin(3.0);
-        course.setRecommendedCurrentBandMax(4.5);
         course.setTargetBand(5.5);
         course.setLearningPathCode("IELTS_FOUNDATION_REVIEW");
         course.setLearningPathName("Lộ trình IELTS Foundation");
@@ -202,6 +203,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
             course.addModule(module);
         }
         onlineCourseRepository.save(course);
+        onlineCourseVersionService.refreshPublishedSnapshot(course);
     }
 
     private void prepareCatalogAndCertificateDemo(OnlineCourse course) {

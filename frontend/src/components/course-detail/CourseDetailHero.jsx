@@ -34,10 +34,9 @@ const formatRatingSummary = (course) => {
 
 const formatBandCompactText = (course) => {
   const min = Number(course?.recommendedCurrentBandMin);
-  const max = Number(course?.recommendedCurrentBandMax);
 
-  if (Number.isFinite(min) && Number.isFinite(max) && min > 0 && max > 0) {
-    return `Band ${formatBandValue(min)} - ${formatBandValue(max)}`;
+  if (Number.isFinite(min) && min > 0) {
+    return `Từ Band ${formatBandValue(min)}`;
   }
 
   return 'Đang cập nhật';

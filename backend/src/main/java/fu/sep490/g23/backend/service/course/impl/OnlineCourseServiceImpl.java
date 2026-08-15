@@ -363,7 +363,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .description(request.getDescription())
                 .targetScore(request.getTargetScore())
                 .duration(request.getDuration())
-                .studyMode(request.getStudyMode())
+                .studyMode("Online")
                 .price(defaultBigDecimal(request.getPrice()))
                 .salePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()))
                 .thumbnailUrl(request.getThumbnailUrl())
@@ -379,17 +379,15 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .category(category)
                 .level(request.getLevel())
                 .recommendedCurrentBandMin(request.getRecommendedCurrentBandMin())
-                .recommendedCurrentBandMax(request.getRecommendedCurrentBandMax())
                 .targetBand(request.getTargetBand())
                 .learningPathCode(request.getLearningPathCode())
                 .learningPathName(request.getLearningPathName())
                 .learningPathOrder(request.getLearningPathOrder())
                 .targetOutcome(request.getTargetOutcome())
                 .recommendedNextCourseSlug(request.getRecommendedNextCourseSlug())
-                .totalLessons(defaultInt(request.getTotalLessons()))
-                .totalHours(defaultInt(request.getTotalHours()))
                 .build();
         rebuildModules(course, request.getModules());
+        refreshCourseTotals(course);
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         onlineCourseVersionService.createDraft(savedCourse.getId(), null, creatorEmail);
         return mapper.toResponse(savedCourse);
@@ -419,7 +417,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         learningPackage.setDescription(request.getDescription());
         learningPackage.setTargetScore(request.getTargetScore());
         learningPackage.setDuration(request.getDuration());
-        learningPackage.setStudyMode(request.getStudyMode());
+        learningPackage.setStudyMode("Online");
         learningPackage.setPrice(defaultBigDecimal(request.getPrice()));
         learningPackage.setSalePrice(resolveSalePrice(request.getPrice(), request.getSalePrice()));
         learningPackage.setThumbnailUrl(request.getThumbnailUrl());
@@ -429,18 +427,16 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         course.setCategory(category);
         course.setLevel(request.getLevel());
         course.setRecommendedCurrentBandMin(request.getRecommendedCurrentBandMin());
-        course.setRecommendedCurrentBandMax(request.getRecommendedCurrentBandMax());
         course.setTargetBand(request.getTargetBand());
         course.setLearningPathCode(request.getLearningPathCode());
         course.setLearningPathName(request.getLearningPathName());
         course.setLearningPathOrder(request.getLearningPathOrder());
         course.setTargetOutcome(request.getTargetOutcome());
         course.setRecommendedNextCourseSlug(request.getRecommendedNextCourseSlug());
-        course.setTotalLessons(defaultInt(request.getTotalLessons()));
-        course.setTotalHours(defaultInt(request.getTotalHours()));
         moveContentOrdersToTemporaryRange(course);
         onlineCourseRepository.flush();
         synchronizeModules(course, request.getModules());
+        refreshCourseTotals(course);
         OnlineCourse savedCourse = onlineCourseRepository.save(course);
         onlineCourseVersionService.synchronizeDraftSnapshot(savedCourse);
         return mapper.toResponse(savedCourse);
@@ -737,14 +733,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
 
         Double minBand = course.getRecommendedCurrentBandMin();
-        Double maxBand = course.getRecommendedCurrentBandMax();
         Double currentBand = decimalToDouble(context.getOverallScore());
         Double targetBand = decimalToDouble(context.getTargetScore());
-        if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null && maxBand != null) {
-            if (currentBand >= minBand && currentBand <= maxBand) {
+        if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null) {
+            if (currentBand >= minBand) {
                 score += 6;
             } else {
-                double distance = currentBand < minBand ? minBand - currentBand : currentBand - maxBand;
+                double distance = minBand - currentBand;
                 score += Math.max(-2, 3 - distance * 2);
             }
         }
@@ -1432,6 +1427,21 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         nextLessons.forEach(module::addLesson);
     }
 
+    private void refreshCourseTotals(OnlineCourse course) {
+        int lessonCount = 0;
+        int totalMinutes = 0;
+
+        for (CourseModule module : course.getModules()) {
+            for (Lesson lesson : module.getLessons()) {
+                lessonCount++;
+                totalMinutes += defaultInt(lesson.getDurationMinutes());
+            }
+        }
+
+        course.setTotalLessons(lessonCount);
+        course.setTotalHours(totalMinutes == 0 ? 0 : (int) Math.ceil(totalMinutes / 60.0));
+    }
+
     private void synchronizeAssessments(OnlineCourse course, List<ContentManagerCourseAssessmentRequest> requests) {
         List<CourseAssessment> existingAssessments = courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course);
         Set<Long> incomingAssessmentIds = new HashSet<>();
@@ -1936,19 +1946,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 ));
             }
             if (currentBand != null) {
-                Predicate hasBandInfo = criteriaBuilder.or(
+                predicates.add(criteriaBuilder.and(
                         criteriaBuilder.isNotNull(root.get("recommendedCurrentBandMin")),
-                        criteriaBuilder.isNotNull(root.get("recommendedCurrentBandMax"))
-                );
-                Predicate minMatches = criteriaBuilder.or(
-                        criteriaBuilder.isNull(root.get("recommendedCurrentBandMin")),
                         criteriaBuilder.lessThanOrEqualTo(root.get("recommendedCurrentBandMin"), currentBand)
-                );
-                Predicate maxMatches = criteriaBuilder.or(
-                        criteriaBuilder.isNull(root.get("recommendedCurrentBandMax")),
-                        criteriaBuilder.greaterThanOrEqualTo(root.get("recommendedCurrentBandMax"), currentBand)
-                );
-                predicates.add(criteriaBuilder.and(hasBandInfo, minMatches, maxMatches));
+                ));
             }
             if (targetBand != null) {
                 predicates.add(criteriaBuilder.and(
@@ -2058,15 +2059,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             );
         }
         Double minBand = request.getRecommendedCurrentBandMin();
-        Double maxBand = request.getRecommendedCurrentBandMax();
-        if (minBand != null && maxBand != null && minBand > maxBand) {
-            throw new IllegalArgumentException("Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.");
-        }
         validateCourseScoreProfile(
                 category,
                 request.getTargetScore(),
                 minBand,
-                maxBand,
                 request.getTargetBand()
         );
 
@@ -2101,7 +2097,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 category,
                 course.getLearningPackage().getTargetScore(),
                 course.getRecommendedCurrentBandMin(),
-                course.getRecommendedCurrentBandMax(),
                 course.getTargetBand()
         );
         if (course.getTargetOutcome() == null || course.getTargetOutcome().isBlank()) {
@@ -2118,7 +2113,6 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             String category,
             String targetScoreLabel,
             Double minBand,
-            Double maxBand,
             Double targetBand
     ) {
         if ("IELTS".equals(category)) {
@@ -2128,7 +2122,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             return;
         }
         if ("TOEIC".equals(category)) {
-            if (minBand != null || maxBand != null || targetBand != null) {
+            if (minBand != null || targetBand != null) {
                 throw new IllegalArgumentException("Khóa TOEIC không sử dụng thang band IELTS.");
             }
             int score;
@@ -2142,7 +2136,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             }
             return;
         }
-        if (minBand != null || maxBand != null || targetBand != null) {
+        if (minBand != null || targetBand != null) {
             throw new IllegalArgumentException("Khóa tiếng Anh giao tiếp/nền tảng không sử dụng band IELTS.");
         }
     }

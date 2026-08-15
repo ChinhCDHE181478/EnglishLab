@@ -270,6 +270,13 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     @Override
+    public void refreshPublishedSnapshot(OnlineCourse course) {
+        OnlineCourseVersion published = requirePublishedVersion(course);
+        synchronizeSnapshot(published, course);
+        versionRepository.save(published);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readLatestPublishedForEnrollment(PackageEnrollment enrollment, OnlineCourse liveCourse) {
         OnlineCourseVersion published = findLatestPublishedVersion(liveCourse);

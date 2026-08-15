@@ -29,4 +29,11 @@ public class LearningPathRequest {
     @Min(10)
     @Max(990)
     private Integer targetScore;
+
+    @Min(0)
+    @Max(100)
+    private Integer discountPercent;
+
+    @Min(2)
+    private Integer minimumCoursesForDiscount;
 }

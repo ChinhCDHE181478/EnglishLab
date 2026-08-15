@@ -174,10 +174,13 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     @Value("${app.seed.test.enabled:false}")
     private boolean enabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
-        if (!enabled) {
+        if (!enabled || sheetEnabled) {
             return;
         }
 

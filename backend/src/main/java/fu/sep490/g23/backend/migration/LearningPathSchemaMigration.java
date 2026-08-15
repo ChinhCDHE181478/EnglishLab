@@ -33,12 +33,22 @@ public class LearningPathSchemaMigration {
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS exam_category VARCHAR(30);
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_band NUMERIC(3,1);
                 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS target_score INTEGER;
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS discount_percent INTEGER;
+                ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS minimum_courses_for_discount INTEGER;
+                UPDATE learning_paths SET discount_percent = 0 WHERE discount_percent IS NULL;
+                UPDATE learning_paths SET minimum_courses_for_discount = 2 WHERE minimum_courses_for_discount IS NULL;
+                ALTER TABLE learning_paths ALTER COLUMN discount_percent SET DEFAULT 0;
+                ALTER TABLE learning_paths ALTER COLUMN discount_percent SET NOT NULL;
+                ALTER TABLE learning_paths ALTER COLUMN minimum_courses_for_discount SET DEFAULT 2;
+                ALTER TABLE learning_paths ALTER COLUMN minimum_courses_for_discount SET NOT NULL;
                 """);
 
         jdbcTemplate.execute("""
-                INSERT INTO learning_paths (code, name)
+                INSERT INTO learning_paths (code, name, discount_percent, minimum_courses_for_discount)
                 SELECT DISTINCT trim(learning_path_code),
-                       COALESCE(NULLIF(max(trim(learning_path_name)), ''), trim(learning_path_code))
+                       COALESCE(NULLIF(max(trim(learning_path_name)), ''), trim(learning_path_code)),
+                       0,
+                       2
                 FROM online_courses
                 WHERE learning_path_code IS NOT NULL
                   AND trim(learning_path_code) <> ''

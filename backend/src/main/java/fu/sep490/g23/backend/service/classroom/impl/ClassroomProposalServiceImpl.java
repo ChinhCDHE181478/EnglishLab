@@ -109,6 +109,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (!proposal.getCourseOffering().getId().equals(payload.getCourseOfferingId())) {
             throw new IllegalArgumentException("Không thể đổi khóa học của đề xuất đã tạo.");
         }
+        proposal.setDeliveryType(proposal.getCourseOffering().getDeliveryMode());
         applyProposalFields(proposal, payload, 0);
         scheduleLockService.lockDates(sessionDates(proposal));
         assertNoScheduleConflicts(proposal, proposal.getId());
@@ -346,7 +347,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         proposal.setPrimaryTeacher(resolveTeacher(payload.getPrimaryTeacherId()));
         boolean offline = proposal.getDeliveryType() == ClassroomDeliveryMode.OFFLINE;
         proposal.setRoom(offline ? resolveRoom(payload.getRoomId()) : null);
-        proposal.setOfflineAddress(offline ? trimOrNull(payload.getOfflineAddress()) : null);
+        proposal.setOfflineAddress(null);
         proposal.setVirtualMeetingUrl(null);
         proposal.setStaffNote(trimOrNull(payload.getNote()));
         validateProposal(proposal, false);
@@ -418,10 +419,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         }
         if (proposal.getDeliveryType() == ClassroomDeliveryMode.OFFLINE) {
             if (proposal.getRoom() == null) {
-                throw new IllegalArgumentException("Khóa Offline cần chọn phòng học.");
-            }
-            if (!StringUtils.hasText(proposal.getOfflineAddress())) {
-                throw new IllegalArgumentException("Khóa Offline cần có địa chỉ hoặc cơ sở học.");
+                throw new IllegalArgumentException("Lớp Offline cần chọn phòng học.");
             }
         }
     }

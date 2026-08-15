@@ -60,6 +60,9 @@ public class ClassroomHomeworkSubmission {
     @Column(name = "teacher_feedback", columnDefinition = "text")
     private String teacherFeedback;
 
+    @Column(name = "ai_feedback_json", columnDefinition = "text")
+    private String aiFeedbackJson;
+
     @Column(name = "teacher_annotations_json", columnDefinition = "text")
     private String teacherAnnotationsJson;
 

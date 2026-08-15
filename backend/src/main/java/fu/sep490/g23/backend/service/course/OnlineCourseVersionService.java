@@ -27,6 +27,8 @@ public interface OnlineCourseVersionService {
 
     OnlineCourseVersion requirePublishedVersion(OnlineCourse course);
 
+    void refreshPublishedSnapshot(OnlineCourse course);
+
     OnlineCourseResponse readLatestPublishedForEnrollment(PackageEnrollment enrollment, OnlineCourse liveCourse);
 
     OnlineCourseResponse readPublishedSnapshot(OnlineCourse course, boolean includeLessonContent);

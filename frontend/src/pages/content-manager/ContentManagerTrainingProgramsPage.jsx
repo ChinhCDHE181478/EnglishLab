@@ -67,7 +67,6 @@ const sortOptions = [
   { label: 'Mới cập nhật', value: 'UPDATED_DESC' },
   { label: 'Tên A-Z', value: 'TITLE_ASC' },
   { label: 'Nhiều lớp đang dùng', value: 'ACTIVE_DESC' },
-  { label: 'Thứ tự hiển thị', value: 'DISPLAY_ORDER' },
 ];
 
 const platformOptions = [
@@ -89,12 +88,8 @@ const toUpdatePayload = (program, deliveryType, status) => ({
   salePrice: program.salePrice ?? null,
   duration: program.duration || null,
   studyMode: program.studyMode || null,
-  capacity: program.capacity ?? program.maxCapacity ?? 30,
-  plannedStartDate: program.plannedStartDate || null,
-  plannedSchedule: program.plannedSchedule || null,
   thumbnailUrl: program.thumbnailUrl || null,
   status,
-  displayOrder: Number(program.displayOrder || 0),
   featured: Boolean(program.featured),
 });
 
@@ -193,13 +188,12 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
         deliveryType: config.deliveryMode,
         curriculumProgramId: curriculum.id,
         status: 'DRAFT',
-        capacity: 30,
         price: 0,
       });
 
       setExcelModalOpen(false);
       setParsedExcel(null);
-      navigate(`${detailBasePath}/${createdProgram.id}/builder`);
+      navigate(`${detailBasePath}/${createdProgram.id}/edit`);
     } catch (err) {
       setExcelError(err?.response?.data?.message || err?.message || 'Chưa thể tạo khóa học từ Excel. Bạn vẫn có thể tạo thủ công.');
     } finally {
@@ -241,9 +235,6 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     if (sortBy === 'ACTIVE_DESC') {
       return list.sort((a, b) => (b.activeClassroomCount ?? 0) - (a.activeClassroomCount ?? 0) || String(a.title).localeCompare(String(b.title)));
     }
-    if (sortBy === 'DISPLAY_ORDER') {
-      return list.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.title).localeCompare(String(b.title)));
-    }
     return list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0) || String(a.title).localeCompare(String(b.title)));
   }, [filteredPrograms, sortBy]);
 
@@ -273,7 +264,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
   };
 
   const openEdit = (program) => {
-    navigate(`${detailBasePath}/${program.id}/builder`);
+    navigate(`${detailBasePath}/${program.id}/edit`);
   };
 
   const cloneProgram = async (program) => {
@@ -282,7 +273,7 @@ export default function ContentManagerTrainingProgramsPage({ mode = 'OFFLINE' })
     setSuccess('');
     try {
       const clone = await classroomApi.cloneContentManagerProgram(program.id);
-      navigate(`${detailBasePath}/${clone.id}/builder`);
+      navigate(`${detailBasePath}/${clone.id}/edit`);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không nhân bản được khóa học.');
     } finally {

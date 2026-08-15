@@ -18,6 +18,7 @@ import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 import { ERROR_NOTICE_CLASS, FIELD_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '../../utils/formStyles';
 import { formatClassroomDate } from '../../utils/classroomHelpers';
 import { getClassroomErrorMessage, getConflictSummary } from '../../utils/classroomErrorMessages';
@@ -35,9 +36,9 @@ const weekdayOptions = [
 ];
 
 const emptyForm = {
-  title: '', courseOfferingId: '', enrollmentRequestIds: [], capacity: 20,
+  title: '', courseOfferingId: '', deliveryType: '', enrollmentRequestIds: [], capacity: '',
   plannedStartDate: '', plannedEndDate: '', weekdays: [], sessionStartTime: '18:30',
-  sessionEndTime: '20:30', primaryTeacherId: '', roomId: '', offlineAddress: '',
+  sessionEndTime: '20:30', primaryTeacherId: '', roomId: '',
   note: '',
 };
 
@@ -54,7 +55,7 @@ const buildProposalPayload = (form) => ({
   capacity: form.capacity === '' ? null : Number(form.capacity),
   primaryTeacherId: form.primaryTeacherId ? Number(form.primaryTeacherId) : null,
   roomId: form.roomId ? Number(form.roomId) : null,
-  offlineAddress: form.offlineAddress.trim() || null,
+  offlineAddress: null,
   note: form.note.trim() || null,
 });
 
@@ -96,10 +97,6 @@ export default function StaffClassroomProposalsPage() {
     load(status);
   }, [status]);
 
-  const selectedOffering = useMemo(() => courseOfferings.find(
-    (item) => String(item.id) === String(form.courseOfferingId),
-  ) || null, [courseOfferings, form.courseOfferingId]);
-
   const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
     proposals,
     8,
@@ -118,6 +115,7 @@ export default function StaffClassroomProposalsPage() {
     setForm({
       title: proposal.title,
       courseOfferingId: String(proposal.courseOfferingId),
+      deliveryType: proposal.deliveryType || 'OFFLINE',
       enrollmentRequestIds: proposal.members.map((item) => item.enrollmentRequestId),
       capacity: proposal.capacity,
       plannedStartDate: proposal.plannedStartDate,
@@ -127,7 +125,6 @@ export default function StaffClassroomProposalsPage() {
       sessionEndTime: String(proposal.sessionEndTime || '').slice(0, 5),
       primaryTeacherId: proposal.primaryTeacherId ? String(proposal.primaryTeacherId) : '',
       roomId: proposal.roomId ? String(proposal.roomId) : '',
-      offlineAddress: proposal.offlineAddress || '',
       note: proposal.staffNote || '',
     });
     setError('');
@@ -208,11 +205,10 @@ export default function StaffClassroomProposalsPage() {
         <div className="flex gap-1.5 overflow-x-auto">
           {statusTabs.map((tab) => (
             <button
-              className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${
-                status === tab.value
+              className={`shrink-0 rounded-xl px-4 py-2.5 text-xs font-extrabold transition ${status === tab.value
                   ? 'bg-[#4b0009] text-white shadow-sm'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
+                }`}
               key={tab.value}
               onClick={() => setStatus(tab.value)}
               type="button"
@@ -242,8 +238,8 @@ export default function StaffClassroomProposalsPage() {
         </div>
       </section>
 
-      {error && !modalOpen ? <div className={ERROR_NOTICE_CLASS} role="alert">{error}</div> : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{success}</div> : null}
+      {!modalOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật đề xuất" />
       {loading ? <div className="grid gap-4 xl:grid-cols-2">{Array.from({ length: 4 }).map((_, index) => <div className="h-64 animate-pulse rounded-2xl bg-slate-100" key={index} />)}</div> : null}
       {!loading && !pageItems.length ? <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white text-center"><CalendarDays className="h-12 w-12 text-slate-300" /><h2 className="mt-4 text-xl font-black text-[#0b1c30]">Không có đề xuất trong tab này</h2><p className="mt-2 text-sm text-slate-500">Draft, Pending và Rejected được tách riêng nên một đề xuất không xuất hiện trùng tab.</p></div> : null}
       {!loading && pageItems.length ? (
@@ -259,13 +255,15 @@ export default function StaffClassroomProposalsPage() {
               />
             ))}
           </div>
-          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-            <Pagination onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
-          </div>
+          {totalPages > 1 ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <Pagination onChange={setPage} page={page} pageSize={8} totalItems={totalItems} totalPages={totalPages} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} editingProposalId={editingProposal?.id} error={error} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} selectedOffering={selectedOffering} working={working} /> : null}
+      {modalOpen ? <ProposalModal courseOfferings={courseOfferings} editing={Boolean(editingProposal)} editingProposalId={editingProposal?.id} error={error} form={form} onClose={() => setModalOpen(false)} onSave={save} onToggleWeekday={toggleWeekday} onUpdate={updateForm} working={working} /> : null}
     </div>
   );
 }
@@ -286,36 +284,39 @@ function ProposalModal({
   onSave,
   onToggleWeekday,
   onUpdate,
-  selectedOffering,
   working,
 }) {
-  const isVirtual = (selectedOffering?.deliveryType || selectedOffering?.deliveryMode) === 'VIRTUAL';
+  const selectedCourse = useMemo(() => courseOfferings.find(
+    (item) => String(item.id) === String(form.courseOfferingId),
+  ) || null, [courseOfferings, form.courseOfferingId]);
+  const deliveryType = selectedCourse?.deliveryType || selectedCourse?.deliveryMode || form.deliveryType;
+  const isVirtual = deliveryType === 'VIRTUAL';
   const [scheduleValidation, setScheduleValidation] = useState({ status: 'idle', message: '' });
   const [resourceAvailability, setResourceAvailability] = useState({
     status: 'idle', teachers: [], rooms: [],
   });
   const validationPayload = useMemo(() => buildProposalPayload(form), [form]);
   const readyToLoadAvailability = Boolean(
-    validationPayload.title
-      && validationPayload.courseOfferingId
-      && validationPayload.capacity
-      && validationPayload.plannedStartDate
-      && validationPayload.plannedEndDate
-      && validationPayload.weekdays.length
-      && validationPayload.sessionStartTime
-      && validationPayload.sessionEndTime,
+    validationPayload.courseOfferingId
+    && validationPayload.deliveryType
+    && validationPayload.capacity
+    && validationPayload.plannedStartDate
+    && validationPayload.plannedEndDate
+    && validationPayload.weekdays.length
+    && validationPayload.sessionStartTime
+    && validationPayload.sessionEndTime,
   );
   const readyToValidate = Boolean(
-    validationPayload.title
-      && validationPayload.courseOfferingId
-      && validationPayload.capacity
-      && validationPayload.plannedStartDate
-      && validationPayload.plannedEndDate
-      && validationPayload.weekdays.length
-      && validationPayload.sessionStartTime
-      && validationPayload.sessionEndTime
-      && validationPayload.primaryTeacherId
-      && (isVirtual || (validationPayload.roomId && validationPayload.offlineAddress)),
+    validationPayload.courseOfferingId
+    && validationPayload.deliveryType
+    && validationPayload.capacity
+    && validationPayload.plannedStartDate
+    && validationPayload.plannedEndDate
+    && validationPayload.weekdays.length
+    && validationPayload.sessionStartTime
+    && validationPayload.sessionEndTime
+    && validationPayload.primaryTeacherId
+    && (isVirtual || validationPayload.roomId),
   );
 
   useEffect(() => {
@@ -356,13 +357,15 @@ function ProposalModal({
     if (!readyToValidate) {
       setScheduleValidation({
         status: 'idle',
-        message: 'Chọn đủ giáo viên, ngày, giờ và phòng học để hệ thống kiểm tra lịch.',
+        message: isVirtual
+          ? 'Chọn đủ lịch học và giáo viên để kiểm tra lịch.'
+          : 'Chọn đủ lịch học, giáo viên và phòng học để kiểm tra lịch.',
       });
       return undefined;
     }
 
     let active = true;
-    setScheduleValidation({ status: 'checking', message: 'Đang kiểm tra lịch giáo viên và phòng học...' });
+    setScheduleValidation({ status: 'checking', message: 'Đang kiểm tra nguồn lực theo lịch đã chọn...' });
     const timer = window.setTimeout(async () => {
       try {
         const result = await enrollmentRequestApi.validateClassroomProposalSchedule(
@@ -379,7 +382,9 @@ function ProposalModal({
         }
         setScheduleValidation({
           status: 'valid',
-          message: 'Giáo viên và phòng học đang trống trong toàn bộ lịch dự kiến.',
+          message: isVirtual
+            ? 'Giáo viên đang trống trong toàn bộ lịch dự kiến.'
+            : 'Giáo viên và phòng học đang trống trong toàn bộ lịch dự kiến.',
         });
       } catch (err) {
         if (!active) return;
@@ -394,7 +399,7 @@ function ProposalModal({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [editingProposalId, readyToValidate, validationPayload]);
+  }, [editingProposalId, isVirtual, readyToValidate, validationPayload]);
 
   const validationStyle = {
     idle: 'border-slate-200 bg-slate-50 text-slate-600',
@@ -422,42 +427,53 @@ function ProposalModal({
           <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={working} onClick={onClose} type="button">
             <X className="h-5 w-5" />
           </button>
+        </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-6 space-y-4">
           {error ? <div className={`${ERROR_NOTICE_CLASS} mb-4`} role="alert">{error}</div> : null}
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="space-y-4">
-              <TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} />
-              <div>
-                <FieldLabel>Khóa học nền</FieldLabel>
-                <BrandedSelect
-                  disabled={editing}
-                  onChange={(event) => onUpdate({ courseOfferingId: event.target.value, enrollmentRequestIds: [], primaryTeacherId: '', roomId: '' })}
-                  options={courseOfferings.map((item) => ({
-                    label: item.title,
-                    value: String(item.id),
-                    description: `${item.deliveryType || item.deliveryMode} · ${item.entryLevel || 'Mọi trình độ'}`,
-                  }))}
-                  placeholder="Chọn khóa học"
-                  searchable
-                  value={form.courseOfferingId}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value, roomId: '' })} type="number" value={form.capacity} />
+          <div className="space-y-6">
+            <FormSection number="01" title="Thông tin lớp">
+              <div className="grid gap-4 lg:grid-cols-2">
+                <TextField label="Tên lớp đề xuất" onChange={(value) => onUpdate({ title: value })} value={form.title} />
                 <div>
-                  <FieldLabel>Giáo viên dự kiến</FieldLabel>
+                  <FieldLabel>Khóa học</FieldLabel>
                   <BrandedSelect
-                    disabled={resourceAvailability.status !== 'ready'}
-                    onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })}
-                    options={resourceAvailability.teachers.map((item) => ({ label: item.label || item.fullName || item.email, value: String(item.id) }))}
-                    placeholder={resourceAvailability.status === 'loading' ? 'Đang tìm giáo viên rảnh...' : 'Chọn giáo viên'}
+                    disabled={editing}
+                    onChange={(event) => {
+                      const course = courseOfferings.find((item) => String(item.id) === event.target.value);
+                      onUpdate({
+                        courseOfferingId: event.target.value,
+                        deliveryType: course?.deliveryType || course?.deliveryMode || '',
+                        enrollmentRequestIds: [],
+                        primaryTeacherId: '',
+                        roomId: '',
+                      });
+                    }}
+                    options={courseOfferings.map((item) => ({
+                      label: item.title,
+                      value: String(item.id),
+                      description: [
+                        (item.deliveryType || item.deliveryMode) === 'VIRTUAL' ? 'Trực tuyến' : 'Tại trung tâm',
+                        item.entryLevel || 'Mọi trình độ',
+                      ].join(' · '),
+                    }))}
+                    placeholder="Chọn khóa học"
                     searchable
-                    value={form.primaryTeacherId}
+                    value={form.courseOfferingId}
                   />
                 </div>
+                <div>
+                  <FieldLabel>Hình thức tổ chức</FieldLabel>
+                  <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700">
+                    {selectedCourse ? (isVirtual ? 'Trực tuyến' : 'Tại trung tâm') : 'Chọn khóa học trước'}
+                  </div>
+                </div>
+                <TextField label="Sức chứa" min="1" onChange={(value) => onUpdate({ capacity: value, primaryTeacherId: '', roomId: '' })} type="number" value={form.capacity} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+            </FormSection>
+
+            <FormSection number="02" title="Lịch học dự kiến">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="Ngày bắt đầu" min={toLocalDateKey()} onChange={(value) => onUpdate({ plannedStartDate: value, primaryTeacherId: '', roomId: '' })} type="date" value={form.plannedStartDate} />
                 <TextField label="Ngày kết thúc" min={form.plannedStartDate || toLocalDateKey()} onChange={(value) => onUpdate({ plannedEndDate: value, primaryTeacherId: '', roomId: '' })} type="date" value={form.plannedEndDate} />
               </div>
@@ -476,23 +492,30 @@ function ProposalModal({
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <TextField label="Giờ bắt đầu" onChange={(value) => onUpdate({ sessionStartTime: value, primaryTeacherId: '', roomId: '' })} type="time" value={form.sessionStartTime} />
                 <TextField label="Giờ kết thúc" onChange={(value) => onUpdate({ sessionEndTime: value, primaryTeacherId: '', roomId: '' })} type="time" value={form.sessionEndTime} />
               </div>
-            </div>
+            </FormSection>
 
-            <div className="space-y-4">
-              {isVirtual ? (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                  <p className="font-extrabold">Phòng học Virtual được tạo tự động</p>
-                  <p className="mt-1 leading-6">
-                    Mỗi buổi học trực tuyến sử dụng một phòng Google Meet riêng
-                    và hiển thị trạng thái đồng bộ trong chi tiết lớp.
-                  </p>
+            <FormSection number="03" title="Giáo viên và phòng học">
+              <div className={`grid gap-4 ${isVirtual ? '' : 'lg:grid-cols-2'}`}>
+                <div>
+                  <FieldLabel>Giáo viên dự kiến</FieldLabel>
+                  <BrandedSelect
+                    disabled={resourceAvailability.status !== 'ready'}
+                    onChange={(event) => onUpdate({ primaryTeacherId: event.target.value })}
+                    options={resourceAvailability.teachers.map((item) => ({ label: item.label || item.fullName || item.email, value: String(item.id) }))}
+                    placeholder={resourceAvailability.status === 'loading' ? 'Đang tìm giáo viên rảnh...' : resourceAvailability.status === 'error' ? 'Không tải được giáo viên phù hợp' : 'Chọn giáo viên'}
+                    searchable
+                    value={form.primaryTeacherId}
+                  />
                 </div>
-              ) : (
-                <>
+                {isVirtual ? (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800">
+                    Google Meet sẽ được chuẩn bị cho từng buổi học.
+                  </div>
+                ) : (
                   <div>
                     <FieldLabel>Phòng học</FieldLabel>
                     <BrandedSelect
@@ -503,23 +526,23 @@ function ProposalModal({
                         value: String(item.id),
                         description: `${item.capacity || 0} chỗ`,
                       }))}
-                      placeholder={resourceAvailability.status === 'loading' ? 'Đang tìm phòng trống...' : 'Chọn phòng trống'}
+                      placeholder={resourceAvailability.status === 'loading' ? 'Đang tìm phòng trống...' : resourceAvailability.status === 'error' ? 'Không tải được phòng phù hợp' : 'Chọn phòng trống'}
                       searchable
                       value={form.roomId}
                     />
                   </div>
-                  <TextField label="Địa chỉ/cơ sở" onChange={(value) => onUpdate({ offlineAddress: value })} value={form.offlineAddress} />
-                </>
-              )}
+                )}
+              </div>
               <div className={`flex items-start gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${validationStyle}`}>
                 <ValidationIcon className={`mt-0.5 h-4 w-4 shrink-0 ${scheduleValidation.status === 'checking' ? 'animate-spin' : ''}`} />
                 <span>{scheduleValidation.message}</span>
               </div>
-              <label className="block">
-                <FieldLabel>Ghi chú xét duyệt</FieldLabel>
-                <RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} />
-              </label>
-            </div>
+            </FormSection>
+
+            <label className="block">
+              <FieldLabel>Ghi chú xét duyệt</FieldLabel>
+              <RichTextEditor helperText="" onChange={(value) => onUpdate({ note: value })} placeholder="Ghi chú / lý do đề xuất mở lớp..." size="form" value={form.note} />
+            </label>
           </div>
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-5">
@@ -540,6 +563,17 @@ function ProposalModal({
 }
 
 function FieldLabel({ children }) { return <span className="mb-2 block text-xs font-bold uppercase tracking-[0.1em] text-slate-500">{children}</span>; }
+function FormSection({ children, number, title }) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#730014] text-xs font-extrabold text-white">{number}</span>
+        <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h3>
+      </div>
+      {children}
+    </section>
+  );
+}
 function TextField({ label, onChange, value, type = 'text', min }) {
   return (
     <label className="block">

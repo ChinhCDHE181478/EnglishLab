@@ -5,7 +5,7 @@ import { login, loginWithGoogle } from '../api/authApi';
 import { useAuth } from '../context/AuthContext';
 import { getDefaultAuthenticatedPath } from '../utils/auth';
 
-const GOOGLE_CLIENT_ID = '550203681762-29kpjelfmfu7q62qfgh72qft0lgfun3f.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 const GoogleIcon = () => (
   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -100,6 +100,11 @@ const Login = () => {
   const handleGoogleLogin = () => {
     setError('');
 
+    if (!GOOGLE_CLIENT_ID) {
+      setError('Đăng nhập Google chưa được cấu hình.');
+      return;
+    }
+
     if (!googleReady || !window.google?.accounts?.oauth2) {
       setError('Google SDK chưa sẵn sàng. Vui lòng thử lại sau vài giây.');
       return;
@@ -161,6 +166,7 @@ const Login = () => {
               <Mail size={20} />
             </span>
             <input
+              autoComplete="username"
               className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-4 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors duration-200 placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="email"
               name="email"
@@ -181,6 +187,7 @@ const Login = () => {
               <Lock size={20} />
             </span>
             <input
+              autoComplete="current-password"
               className="w-full rounded border border-[#E5E2E0] bg-white py-3 pl-10 pr-10 text-base leading-[1.6] text-[#1A1C1C] outline-none transition-colors duration-200 placeholder:text-[#584140]/50 focus:border-[#730014] focus:ring-1 focus:ring-[#730014]"
               id="password"
               name="password"

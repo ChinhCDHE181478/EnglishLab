@@ -27,12 +27,15 @@ export default function RichTextEditor({
 }) {
   const { alert: alertDialog, prompt: promptDialog } = useAppDialog();
   const editorRef = useRef(null);
+  const lastEmittedHtmlRef = useRef('');
 
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || document.activeElement === editor) return;
+    if (!editor) return;
     const nextValue = sanitizeLessonHtml(value);
+    if (nextValue === lastEmittedHtmlRef.current) return;
     if (editor.innerHTML !== nextValue) editor.innerHTML = nextValue;
+    lastEmittedHtmlRef.current = nextValue;
   }, [value]);
 
   const emitChange = () => {
@@ -40,6 +43,7 @@ export default function RichTextEditor({
     if (!editor) return;
     const cleanHtml = sanitizeLessonHtml(editor.innerHTML);
     if (cleanHtml !== editor.innerHTML) editor.innerHTML = cleanHtml;
+    lastEmittedHtmlRef.current = cleanHtml;
     onChange(cleanHtml);
   };
 
@@ -47,6 +51,10 @@ export default function RichTextEditor({
     editorRef.current?.focus();
     document.execCommand(command, false, commandValue);
     emitChange();
+  };
+
+  const formatBlock = (tagName) => {
+    runCommand('formatBlock', tagName);
   };
 
   const addLink = async () => {
@@ -97,9 +105,9 @@ export default function RichTextEditor({
       {label ? <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b7d99]">{label}</span> : null}
       <div className="overflow-hidden rounded-2xl border border-[#d8e0eb] bg-[#f8faff] focus-within:border-[#730014] focus-within:ring-2 focus-within:ring-[#730014]/10">
         <div className="flex flex-wrap items-center gap-1 border-b border-[#d8e0eb] bg-[#fffafb] p-2" role="toolbar" aria-label="Công cụ định dạng nội dung">
-          <ToolbarButton label="Đoạn văn" onClick={() => runCommand('formatBlock', 'p')}>P</ToolbarButton>
-          <ToolbarButton label="Tiêu đề lớn" onClick={() => runCommand('formatBlock', 'h2')}>H2</ToolbarButton>
-          <ToolbarButton label="Tiêu đề nhỏ" onClick={() => runCommand('formatBlock', 'h3')}>H3</ToolbarButton>
+          <ToolbarButton label="Đoạn văn" onClick={() => formatBlock('p')}>P</ToolbarButton>
+          <ToolbarButton label="Tiêu đề lớn" onClick={() => formatBlock('h2')}>H2</ToolbarButton>
+          <ToolbarButton label="Tiêu đề nhỏ" onClick={() => formatBlock('h3')}>H3</ToolbarButton>
           <span className="mx-1 h-6 w-px bg-[#dfbfbd]" />
           <ToolbarButton label="In đậm" onClick={() => runCommand('bold')}><strong>B</strong></ToolbarButton>
           <ToolbarButton label="In nghiêng" onClick={() => runCommand('italic')}><em>I</em></ToolbarButton>
@@ -109,7 +117,7 @@ export default function RichTextEditor({
           <span className="mx-1 h-6 w-px bg-[#dfbfbd]" />
           <ToolbarButton label="Danh sách dấu đầu dòng" onClick={() => runCommand('insertUnorderedList')}><List className="h-4 w-4" /></ToolbarButton>
           <ToolbarButton label="Danh sách đánh số" onClick={() => runCommand('insertOrderedList')}><ListOrdered className="h-4 w-4" /></ToolbarButton>
-          <ToolbarButton label="Trích dẫn" onClick={() => runCommand('formatBlock', 'blockquote')}>❝</ToolbarButton>
+          <ToolbarButton label="Trích dẫn" onClick={() => formatBlock('blockquote')}>❝</ToolbarButton>
           <ToolbarButton label="Căn trái" onClick={() => runCommand('justifyLeft')}>≡</ToolbarButton>
           <ToolbarButton label="Căn giữa" onClick={() => runCommand('justifyCenter')}>≣</ToolbarButton>
           <ToolbarButton label="Căn phải" onClick={() => runCommand('justifyRight')}>≡</ToolbarButton>

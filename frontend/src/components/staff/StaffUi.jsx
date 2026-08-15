@@ -23,6 +23,7 @@ const trainingOperationsNav = [
       { label: 'Bảng điều khiển', href: '/staff', icon: LayoutDashboard, end: true, staffOnly: true },
       { label: 'Lớp học', href: '/staff/classrooms', icon: CalendarDays, staffOnly: true },
       { label: 'Yêu cầu đăng ký', href: '/staff/enrollment-requests', icon: ClipboardList, staffOnly: true },
+      { label: 'Đề xuất mở lớp', href: '/staff/classroom-proposals', icon: CalendarDays, staffOnly: true },
       { label: 'Duyệt yêu cầu', href: '/staff/requests', icon: CheckSquare, staffOnly: true },
       { label: 'Cơ sở vật chất', href: '/staff/infrastructure', icon: Settings2, staffOnly: true },
       { label: 'Hồ sơ giáo viên', href: '/staff/teachers', icon: UserRoundCheck, staffOnly: true },
@@ -38,7 +39,7 @@ function resolvePageMeta(pathname) {
   if (pathname === '/staff' || pathname === '/staff/') {
     return {
       title: 'Việc cần làm hôm nay',
-      subtitle: 'Tổng hợp hồ sơ đăng ký chờ xử lý, yêu cầu thay đổi và các lớp học cần lưu ý.',
+      subtitle: 'Tổng hợp hồ sơ đăng ký, tư vấn, điểm giáo viên, điểm học viên và lớp cần lưu ý.',
     };
   }
   if (pathname === '/staff/classrooms' || pathname === '/staff/classrooms/') {
@@ -57,6 +58,12 @@ function resolvePageMeta(pathname) {
     return {
       title: 'Yêu cầu đăng ký và xếp lớp',
       subtitle: 'Thông tin học viên đăng ký tư vấn từ lịch khai giảng và danh sách chờ xếp lớp.',
+    };
+  }
+  if (pathname.startsWith('/staff/classroom-proposals')) {
+    return {
+      title: 'Đề xuất mở lớp',
+      subtitle: 'Thiết lập lịch học, giáo viên, phòng học và sức chứa dự kiến.',
     };
   }
   if (pathname.startsWith('/staff/requests')) {

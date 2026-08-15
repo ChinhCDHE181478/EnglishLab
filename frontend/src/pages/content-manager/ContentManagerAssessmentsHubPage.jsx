@@ -33,6 +33,7 @@ import ListeningPracticeWorkspace from '../../components/content-manager/skill-p
 import ReadingPracticeWorkspace from '../../components/content-manager/skill-practice/ReadingPracticeWorkspace';
 import SkillPracticeShell from '../../components/content-manager/skill-practice/SkillPracticeShell';
 import SpeakingPracticeWorkspace from '../../components/content-manager/skill-practice/SpeakingPracticeWorkspace';
+import ManagementToast from '../../components/ui/ManagementToast';
 import WritingPracticeWorkspace from '../../components/content-manager/skill-practice/WritingPracticeWorkspace';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { usePagination } from '../../components/ui/Pagination';
@@ -42,7 +43,6 @@ import {
   PANEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  SUCCESS_NOTICE_CLASS,
   TEXTAREA_CLASS,
 } from '../../utils/formStyles';
 
@@ -640,8 +640,8 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   return (
     <div className="space-y-6">
-      {error && <div className={ERROR_NOTICE_CLASS}>{error}</div>}
-      {success && <div className={SUCCESS_NOTICE_CLASS}>{success}</div>}
+      {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật nội dung" />
 
       {editorOpen && (
         <AssessmentHubModal onClose={closeEditor}>
@@ -665,6 +665,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6" ref={editorRef}>
+            {error ? <div className={`${ERROR_NOTICE_CLASS} mb-5`} role="alert">{error}</div> : null}
             <div className="grid gap-6 xl:grid-cols-[minmax(0,440px)_1fr]">
               <div className="space-y-4">
                 <label className="block">

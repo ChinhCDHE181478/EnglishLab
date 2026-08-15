@@ -9,6 +9,8 @@ import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
+import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.payment.DiscountCodeRepository;
 import fu.sep490.g23.backend.repository.payment.PaymentOrderRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
@@ -38,6 +40,8 @@ class PaymentServiceImplRefundReceiptTest {
     @Mock private PaymentOrderRepository paymentOrderRepository;
     @Mock private DiscountCodeRepository discountCodeRepository;
     @Mock private OnlineCourseRepository onlineCourseRepository;
+    @Mock private LearningPathRepository learningPathRepository;
+    @Mock private LearningPathCourseRepository learningPathCourseRepository;
     @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private OnlineCourseService onlineCourseService;
@@ -57,6 +61,8 @@ class PaymentServiceImplRefundReceiptTest {
                 paymentOrderRepository,
                 discountCodeRepository,
                 onlineCourseRepository,
+                learningPathRepository,
+                learningPathCourseRepository,
                 classroomEnrollmentRepository,
                 userRepository,
                 onlineCourseService,

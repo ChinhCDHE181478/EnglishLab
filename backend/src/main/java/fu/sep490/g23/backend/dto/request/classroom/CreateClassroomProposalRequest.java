@@ -5,6 +5,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import lombok.Data;
 
 import java.time.DayOfWeek;
@@ -20,6 +21,9 @@ public class CreateClassroomProposalRequest {
 
     @NotNull(message = "Khóa học không được để trống")
     private Long courseOfferingId;
+
+    /** Trường tương thích dữ liệu cũ; hình thức được xác định từ khóa học đã chọn. */
+    private ClassroomDeliveryMode deliveryType;
 
     /** Trường tương thích dữ liệu cũ; đề xuất mở lớp không phụ thuộc danh sách học viên. */
     private List<Long> enrollmentRequestIds = List.of();

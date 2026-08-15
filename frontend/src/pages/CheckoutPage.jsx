@@ -7,6 +7,7 @@ import LearnerPageShell from '../components/learner/LearnerPageShell';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { readCart, removeCourseFromCart } from '../utils/commerceStore';
 import { buildCourseHomePath, normalizeCourse } from '../utils/courseModels';
+import { clearLearningPathCheckout, readLearningPathCheckout } from '../utils/learningPathCheckout';
 
 const isTruthyReturnValue = (value) => String(value || '').toLowerCase() === 'true';
 const CLASSROOM_TUITION_RETURN_KEY = 'englishlab.classroomTuitionReturn';
@@ -30,6 +31,7 @@ const CheckoutPage = () => {
   const [quoteMessage, setQuoteMessage] = useState('');
   const [autoFreeEnrollmentAttempted, setAutoFreeEnrollmentAttempted] = useState(false);
   const [classroomTuitionReturn] = useState(() => readClassroomTuitionReturn());
+  const [storedLearningPathCheckout] = useState(() => readLearningPathCheckout());
   const [paymentReturn, setPaymentReturn] = useState({
     checked: false,
     loading: false,
@@ -45,14 +47,24 @@ const CheckoutPage = () => {
     () => ['code', 'id', 'cancel', 'status', 'orderCode'].some((key) => returnParams.has(key)),
     [returnParams],
   );
+  const learningPathCheckout = useMemo(() => {
+    const requestedId = Number(returnParams.get('learningPathId'));
+    if (requestedId && Number(storedLearningPathCheckout?.learningPathId) === requestedId) {
+      return storedLearningPathCheckout;
+    }
+    return hasPaymentReturn ? storedLearningPathCheckout : null;
+  }, [hasPaymentReturn, returnParams, storedLearningPathCheckout]);
 
   const checkoutCourses = useMemo(() => {
     const rawCourse = location.state?.course;
     if (rawCourse) {
       return [normalizeCourse(rawCourse)];
     }
+    if (learningPathCheckout?.courses?.length) {
+      return learningPathCheckout.courses.map(normalizeCourse);
+    }
     return readCart().map(normalizeCourse);
-  }, [location.state]);
+  }, [learningPathCheckout, location.state]);
 
   const totalAmount = useMemo(
     () => checkoutCourses.reduce((sum, course) => sum + Number(course.salePrice || course.price || 0), 0),
@@ -63,12 +75,40 @@ const CheckoutPage = () => {
   const isZeroAmountCheckout = payableAmount <= 0;
   const systemDiscountAmount = Number(quote?.systemDiscountAmount ?? 0);
   const couponDiscountAmount = Number(quote?.couponDiscountAmount ?? 0);
+  const learningPathDiscountAmount = Number(quote?.learningPathDiscountAmount ?? 0);
   const successCourse = checkoutCourses[0] || null;
 
   const selectedCourseIds = useMemo(
     () => checkoutCourses.map((course) => course.id).filter(Boolean),
     [checkoutCourses],
   );
+
+  useEffect(() => {
+    if (!learningPathCheckout?.learningPathId || !selectedCourseIds.length || hasPaymentReturn) return undefined;
+    let active = true;
+    const loadLearningPathQuote = async () => {
+      setQuoteLoading(true);
+      setSubmitError('');
+      try {
+        const result = await paymentApi.quotePayment(
+          selectedCourseIds,
+          '',
+          [],
+          learningPathCheckout.learningPathId,
+        );
+        if (active) setQuote(result);
+      } catch (error) {
+        if (!active) return;
+        setSubmitError(error?.response?.data?.message || 'Không thể cập nhật giá lộ trình.');
+      } finally {
+        if (active) setQuoteLoading(false);
+      }
+    };
+    loadLearningPathQuote();
+    return () => {
+      active = false;
+    };
+  }, [hasPaymentReturn, learningPathCheckout, selectedCourseIds]);
 
   useEffect(() => {
     if (!hasPaymentReturn) {
@@ -129,6 +169,7 @@ const CheckoutPage = () => {
         const isClassroomTuition = Boolean(result?.classroomOfferingId || result?.enrollmentId || classroomTuitionReturn);
         if (paid && !isClassroomTuition) {
           checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
+          clearLearningPathCheckout();
         }
         if (paid && isClassroomTuition) {
           sessionStorage.removeItem(CLASSROOM_TUITION_RETURN_KEY);
@@ -178,11 +219,17 @@ const CheckoutPage = () => {
     setSubmitError('');
 
     try {
-      const result = await paymentApi.createPayosLink(selectedCourseIds, couponCode.trim());
+      const result = await paymentApi.createPayosLink(
+        selectedCourseIds,
+        couponCode.trim(),
+        [],
+        learningPathCheckout?.learningPathId || null,
+      );
       const paidDirectly = String(result?.status || '').toUpperCase() === 'PAID';
 
       if (paidDirectly) {
         checkoutCourses.forEach((course) => removeCourseFromCart(course.id));
+        clearLearningPathCheckout();
         setPaymentReturn({
           checked: true,
           loading: false,
@@ -251,7 +298,12 @@ const CheckoutPage = () => {
     setQuoteMessage('');
 
     try {
-      const result = await paymentApi.quotePayment(selectedCourseIds, couponCode.trim());
+      const result = await paymentApi.quotePayment(
+        selectedCourseIds,
+        couponCode.trim(),
+        [],
+        learningPathCheckout?.learningPathId || null,
+      );
       setQuote(result);
       setQuoteMessage(result?.couponMessage || (couponCode.trim() ? 'Mã giảm giá đã sẵn sàng áp dụng.' : 'Đã cập nhật tổng thanh toán.'));
     } catch (error) {
@@ -342,9 +394,9 @@ const CheckoutPage = () => {
           </div>
           <div className="flex items-center justify-center bg-[#fff8f6] p-6">
             <img
-              alt="Thanh toán thành công"
+              alt={paid ? 'Thanh toán thành công' : 'Thanh toán chưa hoàn tất'}
               className="max-h-[620px] w-full max-w-[560px] object-contain"
-              src="/course-success-hero.png"
+              src={paid ? '/course-success-hero.png' : '/course-payment-failed-hero-transparent.png'}
             />
           </div>
         </section>
@@ -378,14 +430,16 @@ const CheckoutPage = () => {
 
   return (
     <LearnerPageShell
-      title="Thanh toán"
-      description="Bạn sẽ xem lại các khóa học đã chọn và hoàn tất thanh toán tại đây."
+      title={learningPathCheckout ? 'Thanh toán lộ trình' : 'Thanh toán'}
+      description={learningPathCheckout
+        ? `Hoàn tất ${learningPathCheckout.name} với các khóa học bạn chưa sở hữu.`
+        : 'Bạn sẽ xem lại các khóa học đã chọn và hoàn tất thanh toán tại đây.'}
     >
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-[32px] border border-[#dfbfbd]/25 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Khóa học đã chọn</p>
-            <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Xác nhận thông tin khóa học</h2>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">{learningPathCheckout ? 'Lộ trình đã chọn' : 'Khóa học đã chọn'}</p>
+            <h2 className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">{learningPathCheckout?.name || 'Xác nhận thông tin khóa học'}</h2>
           </div>
 
           <div className="space-y-4">
@@ -445,13 +499,21 @@ const CheckoutPage = () => {
             {checkoutCourses.map((course) => (
               <div key={course.id} className="flex items-start justify-between gap-4 text-sm text-[#584140]">
                 <span>{course.title}</span>
-                <strong className="text-right text-[#2b2828]">{formatCoursePrice(course.salePrice || course.price)}</strong>
+                <strong className="text-right text-[#2b2828]">
+                  {formatCoursePrice(quote ? (course.originalPrice || course.salePrice || course.price) : (course.salePrice || course.price))}
+                </strong>
               </div>
             ))}
             {systemDiscountAmount > 0 ? (
               <div className="flex items-center justify-between border-t border-[#ead9db] pt-4 text-sm font-bold text-emerald-700">
                 <span>Ưu đãi hệ thống</span>
                 <span>-{formatCoursePrice(systemDiscountAmount)}</span>
+              </div>
+            ) : null}
+            {learningPathDiscountAmount > 0 ? (
+              <div className="flex items-center justify-between text-sm font-bold text-emerald-700">
+                <span>Ưu đãi lộ trình</span>
+                <span>-{formatCoursePrice(learningPathDiscountAmount)}</span>
               </div>
             ) : null}
             {couponDiscountAmount > 0 ? (
@@ -473,7 +535,7 @@ const CheckoutPage = () => {
                 className="min-w-0 flex-1 rounded-2xl border border-[#dfbfbd]/65 bg-[#fcfbfb] px-4 py-3 text-sm font-semibold uppercase text-[#1a1c1c] outline-none transition focus:border-[#730014]"
                 onChange={(event) => {
                   setCouponCode(event.target.value.toUpperCase());
-                  setQuote(null);
+                  if (!learningPathCheckout) setQuote(null);
                   setQuoteMessage('');
                 }}
                 placeholder="Nhập mã"

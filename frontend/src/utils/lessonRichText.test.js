@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from 'vitest';
-import { sanitizeLessonHtml } from './lessonRichText';
+import { looksLikeRichTextHtml, sanitizeLessonHtml, stripRichTextToPlain } from './lessonRichText';
 
 describe('sanitizeLessonHtml', () => {
+  it('khôi phục rich text cũ bị escape thay vì hiển thị thẻ HTML thô', () => {
+    const escaped = '&lt;h2&gt;Tiêu đề&lt;/h2&gt;&lt;p&gt;Nội dung&lt;/p&gt;';
+
+    expect(looksLikeRichTextHtml(escaped)).toBe(true);
+    expect(sanitizeLessonHtml(escaped)).toBe('<h2>Tiêu đề</h2><p>Nội dung</p>');
+    expect(stripRichTextToPlain(escaped)).toBe('Tiêu đề\nNội dung');
+  });
+
   it('lọc lại phần tử con sau khi loại bỏ thẻ không được phép', () => {
     const sanitized = sanitizeLessonHtml('<abc><img src=x onerror="alert(1)"></abc><p>Nội dung an toàn</p>');
 

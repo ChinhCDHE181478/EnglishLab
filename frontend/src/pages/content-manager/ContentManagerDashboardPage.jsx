@@ -43,7 +43,7 @@ export default function ContentManagerDashboardPage() {
   }, []);
 
   const statCards = [
-    { label: 'Khóa học online', value: stats?.totalCourses ?? '-', meta: 'Tổng số khóa hiện có' },
+    { label: 'Khóa học Online', value: stats?.totalCourses ?? '-', meta: 'Tổng số khóa hiện có' },
     { label: 'Đã xuất bản', value: stats?.publishedCourses ?? '-', meta: 'Đang hiển thị cho học viên' },
     { label: 'Bản nháp', value: stats?.draftCourses ?? '-', meta: 'Cần rà soát thêm' },
     { label: 'Lưu trữ', value: stats?.archivedCourses ?? '-', meta: 'Đã ẩn khỏi học viên' },

@@ -9,6 +9,7 @@ import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sep490.g23.backend.dto.response.ApiResponse;
 import fu.sep490.g23.backend.dto.response.course.BunnyVideoUploadResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseThumbnailUploadResponse;
 import fu.sep490.g23.backend.dto.response.course.CourseStatsResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
@@ -16,6 +17,7 @@ import fu.sep490.g23.backend.dto.response.course.LessonResponse;
 import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.CourseThumbnailStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,6 +40,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
 
@@ -46,6 +50,7 @@ import java.util.List;
 public class ContentManagerOnlineCourseController {
 
     private final OnlineCourseService onlineCourseService;
+    private final CourseThumbnailStorageService courseThumbnailStorageService;
 
     @GetMapping
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
@@ -119,6 +124,16 @@ public class ContentManagerOnlineCourseController {
     @GetMapping("/stats")
     public ResponseEntity<CourseStatsResponse> getStats() {
         return ResponseEntity.ok(onlineCourseService.getStats());
+    }
+
+    @PostMapping(value = "/thumbnail", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CourseThumbnailUploadResponse> uploadThumbnail(@RequestPart("file") MultipartFile file) {
+        String fileName = courseThumbnailStorageService.store(file);
+        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/course-thumbnails/")
+                .path(fileName)
+                .toUriString();
+        return ResponseEntity.ok(new CourseThumbnailUploadResponse(url));
     }
 
     @PostMapping

@@ -15,6 +15,7 @@ public class PaymentOrderSummaryResponse {
     private Long amount;
     private Long originalAmount;
     private Long systemDiscountAmount;
+    private Long learningPathDiscountAmount;
     private Long couponDiscountAmount;
     private String discountCodeText;
     private String description;
@@ -30,4 +31,6 @@ public class PaymentOrderSummaryResponse {
     private String refundReason;
     private String studentEmail;
     private String studentName;
+    private Long learningPathId;
+    private String learningPathCode;
 }

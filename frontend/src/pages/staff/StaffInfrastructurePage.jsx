@@ -17,6 +17,7 @@ import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import ManagementToast from '../../components/ui/ManagementToast';
 
 const emptyRoomForm = { name: '', capacity: '', active: true };
 
@@ -193,8 +194,8 @@ export default function StaffInfrastructurePage() {
   return (
     <div className="space-y-5">
       {/* Top Notifications */}
-      {error ? <Notice tone="error">{error}</Notice> : null}
-      {success ? <Notice tone="success">{success}</Notice> : null}
+      {!editorOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật phòng học" />
 
       {/* Metric Cards Grid */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

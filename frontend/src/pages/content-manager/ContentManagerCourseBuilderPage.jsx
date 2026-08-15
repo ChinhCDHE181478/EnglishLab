@@ -184,12 +184,17 @@ export default function ContentManagerCourseBuilderPage() {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     setToasts((current) => [...current, { id, message, type }]);
     window.setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id));
+      dismissToast(id);
     }, 3600);
   };
 
   const dismissToast = (id) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) => current.map((toast) => (
+      toast.id === id ? { ...toast, isLeaving: true } : toast
+    )));
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 260);
   };
 
   useEffect(() => {
@@ -830,7 +835,6 @@ export default function ContentManagerCourseBuilderPage() {
         status: course.status,
         targetScore: course.targetScore,
         recommendedCurrentBandMin: course.recommendedCurrentBandMin ?? null,
-        recommendedCurrentBandMax: course.recommendedCurrentBandMax ?? null,
         targetBand: course.targetBand ?? null,
         learningPathCode: course.learningPathCode ?? null,
         learningPathName: course.learningPathName ?? null,
@@ -838,11 +842,8 @@ export default function ContentManagerCourseBuilderPage() {
         targetOutcome: course.targetOutcome ?? null,
         recommendedNextCourseSlug: course.recommendedNextCourseSlug ?? null,
         duration: course.duration,
-        studyMode: course.studyMode,
         price: Number(course.price || 0),
         thumbnailUrl: course.thumbnailUrl,
-        totalLessons,
-        totalHours,
         displayOrder: Number(course.displayOrder || 0),
         featured: Boolean(course.featured),
         modules: modulesForSave.map((module, moduleIndex) => ({
@@ -1953,13 +1954,14 @@ function ToastStack({ toasts, onDismiss }) {
         return (
           <div
             key={toast.id}
-            className={`flex items-start gap-3 rounded-2xl border bg-white/95 px-4 py-3 shadow-[0_18px_45px_rgba(75,0,9,0.16)] backdrop-blur ${tone.border}`}
+            className={`flex items-start gap-3 rounded-2xl border bg-white/95 px-4 py-3 shadow-[0_18px_45px_rgba(75,0,9,0.16)] backdrop-blur ${tone.border} ${toast.isLeaving ? 'animate-toast-out' : 'animate-toast-in'}`}
           >
             <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone.iconBg} ${tone.iconText}`}>
               <Icon className="h-4 w-4" />
             </span>
             <p className="min-w-0 flex-1 pt-1 text-sm font-semibold leading-5 text-[#2b2828]">{toast.message}</p>
             <button
+              aria-label="Đóng thông báo"
               className="rounded-lg p-1 text-[#8b706e] transition hover:bg-[#fff2f3] hover:text-[#730014]"
               onClick={() => onDismiss(toast.id)}
               type="button"

@@ -746,7 +746,7 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
 
                 Course context:
                 - Course: %s
-                - Recommended current band: %s - %s
+                - Minimum recommended current band: %s
                 - Target band: %s
                 - Target outcome: %s
                 - Learning path: %s
@@ -782,7 +782,6 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                 safe(student.getStudyGoal()),
                 course.getLearningPackage().getTitle(),
                 safe(course.getRecommendedCurrentBandMin()),
-                safe(course.getRecommendedCurrentBandMax()),
                 safe(course.getTargetBand()),
                 safe(course.getTargetOutcome()),
                 safe(course.getLearningPathName()),

@@ -68,10 +68,13 @@ public class ReviewDataSeeder implements CommandLineRunner {
     @Value("${app.seed.review.enabled:false}")
     private boolean enabled;
 
+    @Value("${app.seed.sheet.enabled:false}")
+    private boolean sheetEnabled;
+
     @Override
     @Transactional
     public void run(String... args) {
-        if (!enabled) {
+        if (!enabled || sheetEnabled) {
             return;
         }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Brain, Eye } from 'lucide-react';
+import { ArrowLeft, Brain, Eye, ImagePlus, Upload } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
@@ -19,16 +19,12 @@ const emptyForm = {
   status: 'DRAFT',
   targetScore: '',
   recommendedCurrentBandMin: '',
-  recommendedCurrentBandMax: '',
   targetBand: '',
   targetOutcome: '',
   duration: '',
-  studyMode: 'Online',
   price: '0',
   salePrice: '',
   thumbnailUrl: '',
-  totalLessons: '0',
-  totalHours: '0',
   displayOrder: '0',
   featured: false,
   modules: [],
@@ -41,7 +37,6 @@ const courseProfileDefaults = (category) => {
     return {
       targetScore: '',
       recommendedCurrentBandMin: 4,
-      recommendedCurrentBandMax: 5,
       targetBand: 6.5,
     };
   }
@@ -49,14 +44,12 @@ const courseProfileDefaults = (category) => {
     return {
       targetScore: '650',
       recommendedCurrentBandMin: '',
-      recommendedCurrentBandMax: '',
       targetBand: '',
     };
   }
   return {
     targetScore: '',
     recommendedCurrentBandMin: '',
-    recommendedCurrentBandMax: '',
     targetBand: '',
   };
 };
@@ -75,16 +68,12 @@ const mapCourseToForm = (course = {}) => {
     status: course.status ?? 'DRAFT',
     targetScore: category === 'IELTS' ? '' : (course.targetScore ?? defaults.targetScore),
     recommendedCurrentBandMin: isIelts ? (course.recommendedCurrentBandMin ?? defaults.recommendedCurrentBandMin) : '',
-    recommendedCurrentBandMax: isIelts ? (course.recommendedCurrentBandMax ?? defaults.recommendedCurrentBandMax) : '',
     targetBand: isIelts ? (course.targetBand ?? defaults.targetBand) : '',
     targetOutcome: course.targetOutcome ?? '',
     duration: course.duration ?? '',
-    studyMode: course.studyMode ?? 'Online',
     price: course.price ?? '0',
     salePrice: course.salePrice && Number(course.salePrice) < Number(course.price || 0) ? String(course.salePrice) : '',
     thumbnailUrl: course.thumbnailUrl ?? '',
-    totalLessons: String(course.totalLessons ?? 0),
-    totalHours: String(course.totalHours ?? 0),
     displayOrder: String(course.displayOrder ?? 0),
     featured: Boolean(course.featured),
     modules: course.modules ?? [],
@@ -103,6 +92,7 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   const [loading, setLoading] = useState(editMode);
   const [saving, setSaving] = useState(false);
   const [savingAction, setSavingAction] = useState('');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState([]);
@@ -154,7 +144,10 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
     };
   }, [editMode, slugOrId]);
 
-  const hasNoStructure = useMemo(() => !form.modules?.length && Number(form.totalLessons || 0) === 0, [form.modules, form.totalLessons]);
+  const hasNoStructure = useMemo(
+    () => !(form.modules || []).some((module) => (module.lessons || []).length > 0),
+    [form.modules],
+  );
   const flashcardOverview = useMemo(() => getFlashcardOverview(form.modules), [form.modules]);
   const editableVersion = useMemo(() => findEditableCourseVersion(versions), [versions]);
   const hasPublishedVersion = useMemo(() => versions.some((version) => version.status === 'PUBLISHED'), [versions]);
@@ -179,6 +172,27 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
         ? { ...current, category: value, ...courseProfileDefaults(value) }
         : { ...current, [field]: value }
     ));
+  };
+
+  const handleThumbnailUpload = async (file) => {
+    if (!file) return;
+    if (!/^image\/(jpeg|png)$/i.test(file.type)) {
+      setError('Chỉ hỗ trợ ảnh JPG hoặc PNG cho ảnh bìa.');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    setError('');
+    try {
+      const uploaded = await courseApi.uploadOnlineCourseThumbnail(file);
+      if (!uploaded?.url) throw new Error('Máy chủ không trả về liên kết ảnh.');
+      setForm((current) => ({ ...current, thumbnailUrl: uploaded.url }));
+      setSuccess('Đã tải ảnh bìa lên.');
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Không thể tải ảnh bìa lên.');
+    } finally {
+      setUploadingThumbnail(false);
+    }
   };
 
   const handleSubmit = async (nextStatus = null) => {
@@ -213,16 +227,12 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
       targetScore: form.targetScore,
       targetOutcome: form.targetOutcome,
       duration: form.duration,
-      studyMode: form.studyMode,
       thumbnailUrl: form.thumbnailUrl,
       featured: form.featured,
       price: Number(form.price || 0),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice || 0),
       recommendedCurrentBandMin: form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin),
-      recommendedCurrentBandMax: form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax),
       targetBand: form.targetBand === '' ? null : Number(form.targetBand),
-      totalLessons: Number(form.totalLessons || 0),
-      totalHours: Number(form.totalHours || 0),
       displayOrder: Number(form.displayOrder || 0),
       status: targetStatus,
     };
@@ -340,26 +350,26 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
           />
         ) : null}
 
-        <Panel className="p-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
-            <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
-            <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
+        <div className="space-y-5">
+          <FormSection number="01" title="Thông tin khóa học">
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField label="Tên khóa học" onChange={handleChange('title')} value={form.title} />
+              <SelectField label="Danh mục" onChange={handleChange('category')} options={categoryOptions} value={form.category} />
+              <SelectField label="Trình độ" onChange={handleChange('level')} options={['BEGINNER', 'INTERMEDIATE', 'ADVANCED']} value={form.level} />
+              <TextField label="Thời gian hoàn thành dự kiến" onChange={handleChange('duration')} value={form.duration} />
+            </div>
+          </FormSection>
+
+          <FormSection number="02" title="Đầu vào và kết quả">
+            <div className="grid gap-4 md:grid-cols-2">
             {form.category === 'IELTS' ? (
               <>
                 <IeltsBandSelect
                   allowEmpty
-                  emptyLabel="Không giới hạn band tối thiểu"
-                  label="Band IELTS đầu vào tối thiểu"
+                  emptyLabel="Không giới hạn band đầu vào"
+                  label="Band IELTS đầu vào"
                   onChange={(value) => setForm((current) => ({ ...current, recommendedCurrentBandMin: value }))}
                   value={String(form.recommendedCurrentBandMin)}
-                />
-                <IeltsBandSelect
-                  allowEmpty
-                  emptyLabel="Không giới hạn band tối đa"
-                  label="Band IELTS đầu vào tối đa"
-                  onChange={(value) => setForm((current) => ({ ...current, recommendedCurrentBandMax: value }))}
-                  value={String(form.recommendedCurrentBandMax)}
                 />
                 <IeltsBandSelect
                   label="Band IELTS mục tiêu"
@@ -376,16 +386,57 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
               />
             ) : null}
             {['COMMUNICATION', 'FOUNDATION'].includes(form.category) ? <TextField label="Chuẩn đầu ra hiển thị" onChange={handleChange('targetScore')} value={form.targetScore} /> : null}
-            <TextField label="Thời lượng ước tính" onChange={handleChange('duration')} value={form.duration} />
-            <TextField label="Hình thức học" onChange={handleChange('studyMode')} value={form.studyMode} />
-            <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
-            <TextField label="Giá ưu đãi hệ thống" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
-            <TextField label="Liên kết ảnh bìa" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
-            <SelectField disabled label="Trạng thái khóa học" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
-            <TextField label="Tổng số bài học" onChange={handleChange('totalLessons')} value={String(form.totalLessons)} />
-            <TextField label="Tổng số giờ học" onChange={handleChange('totalHours')} value={String(form.totalHours)} />
-          </div>
-          <div className="mt-4 grid gap-4">
+            </div>
+            <div className="mt-4">
+              <RichTextEditor
+                label="Đầu ra / kết quả hoàn thành khóa học"
+                onChange={(html) => setForm((current) => ({ ...current, targetOutcome: html }))}
+                placeholder="Học viên đạt được gì sau khi hoàn thành khóa..."
+                size="compact"
+                value={form.targetOutcome}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection number="03" title="Giá bán và hiển thị">
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextField label="Giá bán" onChange={handleChange('price')} value={String(form.price)} />
+              <TextField label="Giá ưu đãi" onChange={handleChange('salePrice')} value={String(form.salePrice)} />
+              <SelectField disabled label="Trạng thái khóa học" onChange={handleChange('status')} options={['DRAFT', 'PUBLISHED', 'ARCHIVED']} value={form.status} />
+            </div>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px]">
+              <div className="space-y-3">
+                <TextField label="Liên kết ảnh bìa" onChange={handleChange('thumbnailUrl')} value={form.thumbnailUrl} />
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[#c99599] bg-[#fffafb] px-4 py-3 text-sm font-bold text-[#730014] transition hover:border-[#730014] hover:bg-[#fff2f3]">
+                  <Upload className="h-4 w-4" />
+                  {uploadingThumbnail ? 'Đang tải ảnh...' : 'Tải ảnh bìa lên'}
+                  <input
+                    accept="image/jpeg,image/png"
+                    className="hidden"
+                    disabled={uploadingThumbnail}
+                    onChange={(event) => {
+                      handleThumbnailUpload(event.target.files?.[0] || null);
+                      event.target.value = '';
+                    }}
+                    type="file"
+                  />
+                </label>
+              </div>
+              <CourseThumbnailPreview url={form.thumbnailUrl} />
+            </div>
+            <label className="mt-4 flex cursor-pointer items-center gap-3 border-t border-[#f4eeee] pt-4 text-sm text-[#1a1c1c]">
+              <input
+                className="h-4.5 w-4.5 rounded border-gray-300 text-[#4b0009] focus:ring-[#730014]"
+                checked={form.featured}
+                onChange={handleChange('featured')}
+                type="checkbox"
+              />
+              <span className="font-semibold text-slate-700">Đánh dấu là khóa học nổi bật</span>
+            </label>
+          </FormSection>
+
+          <FormSection number="04" title="Giới thiệu khóa học">
+            <div className="grid gap-4">
             <RichTextEditor
               label="Mô tả ngắn"
               onChange={(html) => setForm((current) => ({ ...current, shortDescription: html }))}
@@ -400,27 +451,9 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
               size="form"
               value={form.description}
             />
-            <RichTextEditor
-              label="Đầu ra / kết quả hoàn thành khóa học"
-              onChange={(html) => setForm((current) => ({ ...current, targetOutcome: html }))}
-              placeholder="Học viên đạt được gì sau khi hoàn thành khóa..."
-              size="compact"
-              value={form.targetOutcome}
-            />
-          </div>
-          
-          <div className="mt-5 border-t border-[#f4eeee] pt-4">
-            <label className="flex items-center gap-3 text-sm text-[#1a1c1c] cursor-pointer">
-              <input
-                className="h-4.5 w-4.5 rounded border-gray-300 text-[#4b0009] focus:ring-[#730014]"
-                checked={form.featured}
-                onChange={handleChange('featured')}
-                type="checkbox"
-              />
-              <span className="font-semibold text-slate-700">Đánh dấu là khóa học nổi bật</span>
-            </label>
-          </div>
-        </Panel>
+            </div>
+          </FormSection>
+        </div>
 
         {editMode && flashcardOverview.setCount > 0 ? (
           <Panel className="p-5 flex items-center justify-between gap-4">
@@ -480,12 +513,39 @@ export default function ContentManagerCourseEditorPage({ slugOrId: propSlugOrId,
   );
 }
 
+function CourseThumbnailPreview({ url }) {
+  return (
+    <div className="flex min-h-36 items-center justify-center overflow-hidden rounded-2xl border border-[#ead9db] bg-[#fffafb]">
+      {url ? (
+        <img alt="Xem trước ảnh bìa khóa học" className="h-36 w-full object-cover" src={url} />
+      ) : (
+        <div className="flex flex-col items-center gap-2 px-4 text-center text-xs font-semibold text-[#8b706e]">
+          <ImagePlus className="h-6 w-6 text-[#b99694]" />
+          Chưa có ảnh bìa
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SelectField({ label, value, onChange, options, disabled = false }) {
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">{label}</span>
       <BrandedSelect disabled={disabled} onChange={onChange} options={options} value={value} />
     </label>
+  );
+}
+
+function FormSection({ children, number, title }) {
+  return (
+    <Panel className="p-6">
+      <div className="mb-5 flex items-center gap-3 border-b border-[#f0e4e5] pb-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#4b0009] text-xs font-black text-white">{number}</span>
+        <h2 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{title}</h2>
+      </div>
+      {children}
+    </Panel>
   );
 }
 
@@ -496,17 +556,13 @@ function validateCourseForm(form, targetStatus, hasNoStructure) {
   }
 
   const minBand = form.recommendedCurrentBandMin === '' ? null : Number(form.recommendedCurrentBandMin);
-  const maxBand = form.recommendedCurrentBandMax === '' ? null : Number(form.recommendedCurrentBandMax);
   const targetBand = form.targetBand === '' ? null : Number(form.targetBand);
   if (form.category === 'IELTS') {
-    if ([minBand, maxBand, targetBand].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9 || !Number.isInteger(value * 2)))) {
+    if ([minBand, targetBand].some((value) => value != null && (!Number.isFinite(value) || value < 0 || value > 9 || !Number.isInteger(value * 2)))) {
       return 'Band IELTS phải từ 0 đến 9 và tăng theo bước 0.5.';
     }
     if (targetBand == null) return 'Khóa IELTS phải có band mục tiêu.';
-    if (minBand != null && maxBand != null && minBand > maxBand) {
-      return 'Band đầu vào tối thiểu không thể lớn hơn band đầu vào tối đa.';
-    }
-  } else if (minBand != null || maxBand != null || targetBand != null) {
+  } else if (minBand != null || targetBand != null) {
     return 'Chỉ khóa IELTS mới sử dụng thang band IELTS.';
   }
   if (form.category === 'TOEIC') {

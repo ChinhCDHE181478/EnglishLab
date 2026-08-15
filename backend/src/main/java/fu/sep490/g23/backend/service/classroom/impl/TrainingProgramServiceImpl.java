@@ -129,12 +129,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .salePrice(source.getSalePrice())
                 .duration(source.getDuration())
                 .studyMode(source.getStudyMode())
-                .maxCapacity(source.getMaxCapacity())
-                .plannedStartDate(source.getPlannedStartDate())
-                .plannedSchedule(source.getPlannedSchedule())
                 .thumbnailUrl(source.getThumbnailUrl())
                 .status(PackageStatus.DRAFT)
-                .displayOrder(source.getDisplayOrder())
                 .featured(false)
                 .build();
         return toResponse(programRepository.save(clone));
@@ -157,11 +153,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
         program.setSalePrice(request.getSalePrice());
         program.setDuration(trimOrNull(request.getDuration()));
         program.setStudyMode(trimOrNull(request.getStudyMode()));
-        program.setMaxCapacity(request.getCapacity() == null ? 30 : request.getCapacity());
-        program.setPlannedStartDate(request.getPlannedStartDate());
-        program.setPlannedSchedule(trimOrNull(request.getPlannedSchedule()));
         program.setThumbnailUrl(trimOrNull(request.getThumbnailUrl()));
-        program.setDisplayOrder(request.getDisplayOrder() == null ? 0 : request.getDisplayOrder());
         program.setFeatured(Boolean.TRUE.equals(request.getFeatured()));
     }
 

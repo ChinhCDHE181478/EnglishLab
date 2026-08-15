@@ -149,9 +149,16 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .findByTypeAndStatusAndActiveTrueAndSkillInOrderByDisplayOrderAscUpdatedAtDescIdDesc(
                         AssessmentType.MODULE_TEST,
                         "PUBLISHED",
-                        List.of(AssessmentSkill.WRITING, AssessmentSkill.SPEAKING)
+                    List.of(
+                            AssessmentSkill.LISTENING,
+                            AssessmentSkill.READING,
+                            AssessmentSkill.WRITING,
+                            AssessmentSkill.SPEAKING
+                    )
                 ).stream()
-                .filter(item -> item.getRubric() != null && item.getRubric().isActive())
+                .filter(item -> item.getSkill() == AssessmentSkill.LISTENING
+                        || item.getSkill() == AssessmentSkill.READING
+                        || (item.getRubric() != null && item.getRubric().isActive()))
                 .map(item -> HomeworkAiAssessmentOptionResponse.builder()
                         .id(item.getId())
                         .title(item.getTitle())
@@ -278,6 +285,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         submission.setStatus(HomeworkSubmissionStatus.SUBMITTED);
         submission.setScore(null);
         submission.setTeacherFeedback(null);
+        submission.setAiFeedbackJson(null);
         submission.setTeacherAnnotationsJson(null);
         submission.setGradedAt(null);
         submission.setGradedBy(null);
@@ -322,8 +330,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         }
         validateScore(request.getScore(), homework.getMaxScore());
         if (request.getAnnotations() != null && !request.getAnnotations().isEmpty()
-                && homework.getSkill() != AssessmentSkill.WRITING) {
-            throw new IllegalArgumentException("Ghi chú theo đoạn chỉ áp dụng cho bài Writing.");
+                && !hasText(submission.getTextAnswer())) {
+            throw new IllegalArgumentException("Bài nộp không có nội dung văn bản để ghi chú theo đoạn.");
         }
 
         submission.setScore(request.getScore());
@@ -350,16 +358,16 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     ) {
         User teacher = accessHelper.requireUser(teacherEmail);
         accessHelper.assertTeacher(teacher);
-        ClassroomHomework homework = findHomework(homeworkId);
-        if (homework.getSkill() != AssessmentSkill.WRITING) {
-            throw new IllegalArgumentException("Nhận xét theo đoạn chỉ áp dụng cho bài Writing.");
-        }
+        findHomework(homeworkId);
 
         ClassroomHomeworkSubmission submission = submissionRepository.findByHomeworkIdAndStudentId(homeworkId, studentId)
                 .orElseThrow(() -> new RuntimeException("Học viên chưa nộp bài tập."));
         if (submission.getStatus() != HomeworkSubmissionStatus.SUBMITTED
                 && submission.getStatus() != HomeworkSubmissionStatus.GRADED) {
             throw new RuntimeException("Bài nộp chưa sẵn sàng để nhận xét.");
+        }
+        if (!hasText(submission.getTextAnswer())) {
+            throw new IllegalArgumentException("Bài nộp không có nội dung văn bản để ghi chú theo đoạn.");
         }
 
         submission.setTeacherAnnotationsJson(homeworkTextAnnotationCodec.validateAndSerialize(
@@ -453,6 +461,14 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                     .findByIdAndTypeAndStatusAndActiveTrue(
                             request.getAssessmentBankItemId(), AssessmentType.MODULE_TEST, "PUBLISHED")
                     .orElseThrow(() -> new RuntimeException("Đề hệ thống không tồn tại hoặc chưa được xuất bản."));
+            if (request.getSkill() != null && request.getSkill() != assessment.getSkill()) {
+                throw new RuntimeException("Kỹ năng đã chọn không phù hợp với đề trong ngân hàng.");
+            }
+            if (homework.getActivityType() != HomeworkActivityType.TEXT_RESPONSE
+                    && homework.getActivityType() != HomeworkActivityType.SKILL_PRACTICE
+                    && homework.getActivityType() != HomeworkActivityType.MIXED) {
+                throw new RuntimeException("Hình thức bài tập này không hỗ trợ chọn đề từ ngân hàng.");
+            }
             homework.setAssessmentBankItem(assessment);
             homework.setSkill(assessment.getSkill());
             homework.setRubric(assessment.getRubric());
@@ -462,6 +478,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             homework.setSkill(request.getSkill());
             homework.setRubric(null);
         }
+
+        validateActivitySkillCompatibility(homework.getActivityType(), homework.getSkill());
 
         boolean aiEnabled = Boolean.TRUE.equals(request.getAiReviewEnabled());
         if (homework.getActivityType() == HomeworkActivityType.SKILL_PRACTICE) {
@@ -485,13 +503,31 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         if (assessment.getSkill() != AssessmentSkill.SPEAKING && assessment.getSkill() != AssessmentSkill.WRITING) {
             throw new RuntimeException("Chấm điểm AI chỉ hỗ trợ MODULE_TEST Writing hoặc Speaking.");
         }
-        if (assessment.getRubric() == null) {
+        Long rubricId = request.getRubricId() != null
+                ? request.getRubricId()
+                : assessment.getRubric() == null ? null : assessment.getRubric().getId();
+        if (rubricId == null) {
             throw new RuntimeException("MODULE_TEST đã chọn chưa có bộ tiêu chí chấm AI.");
         }
-        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(assessment.getRubric().getId());
+        AssessmentRubric rubric = homeworkGradingCatalogService.requireActiveRubric(rubricId);
         if (rubric.getSkill() != assessment.getSkill()) {
             throw new RuntimeException("Bộ tiêu chí của MODULE_TEST không khớp với kỹ năng bài thi.");
         }
         homework.setRubric(rubric);
+    }
+
+    private void validateActivitySkillCompatibility(HomeworkActivityType activityType, AssessmentSkill skill) {
+        if (activityType == null || skill == null) {
+            throw new RuntimeException("Vui lòng chọn hình thức bài tập và kỹ năng.");
+        }
+        if (activityType == HomeworkActivityType.FLASHCARD_REVIEW && skill != AssessmentSkill.VOCABULARY) {
+            throw new RuntimeException("Bài ôn flashcard chỉ hỗ trợ kỹ năng Vocabulary.");
+        }
+        if (activityType == HomeworkActivityType.SKILL_PRACTICE
+                && skill != AssessmentSkill.LISTENING
+                && skill != AssessmentSkill.READING
+                && skill != AssessmentSkill.VOCABULARY) {
+            throw new RuntimeException("Bài trắc nghiệm chỉ hỗ trợ kỹ năng Listening, Reading hoặc Vocabulary.");
+        }
     }
 }

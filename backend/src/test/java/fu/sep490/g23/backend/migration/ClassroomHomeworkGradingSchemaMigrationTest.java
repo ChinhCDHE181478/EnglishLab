@@ -22,6 +22,7 @@ class ClassroomHomeworkGradingSchemaMigrationTest {
         verify(jdbcTemplate).execute(sqlCaptor.capture());
         assertThat(sqlCaptor.getValue())
                 .contains("DROP CONSTRAINT classroom_homework_grading_mode_check")
-                .contains("CHECK (grading_mode IN ('TEACHER', 'AI', 'AUTO'))");
+                .contains("CHECK (grading_mode IN ('TEACHER', 'AI', 'AUTO'))")
+                .contains("ADD COLUMN IF NOT EXISTS ai_feedback_json TEXT");
     }
 }

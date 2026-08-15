@@ -46,6 +46,14 @@ public class LearningPath {
     @Column(name = "target_score")
     private Integer targetScore;
 
+    @Column(name = "discount_percent", nullable = false)
+    @Builder.Default
+    private Integer discountPercent = 0;
+
+    @Column(name = "minimum_courses_for_discount", nullable = false)
+    @Builder.Default
+    private Integer minimumCoursesForDiscount = 2;
+
     @OneToMany(mappedBy = "learningPath", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC, id ASC")
     @Builder.Default

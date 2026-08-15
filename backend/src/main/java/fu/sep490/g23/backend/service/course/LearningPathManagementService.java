@@ -5,6 +5,7 @@ import fu.sep490.g23.backend.dto.request.course.LearningPathRequest;
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.LearnerLearningPathResponse;
 import fu.sep490.g23.backend.dto.response.course.LearningPathResponse;
+import fu.sep490.g23.backend.dto.response.course.LearningPathOfferResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,4 +17,6 @@ public interface LearningPathManagementService {
     LearningPathResponse reorderCourses(Long pathId, LearningPathCoursesRequest request);
     void deletePath(Long pathId);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
+    java.util.List<LearningPathOfferResponse> getPublicOffers(String studentEmail);
+    LearningPathOfferResponse getPublicOffer(String code, String studentEmail);
 }
