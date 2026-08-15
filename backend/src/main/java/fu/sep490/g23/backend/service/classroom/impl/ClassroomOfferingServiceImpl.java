@@ -564,6 +564,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .learnerIds(resolveActiveLearnerIds(session.getClassroomOffering().getId()))
+                .checkCapacity(false)
                 .checkSessionLocked(true)
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
