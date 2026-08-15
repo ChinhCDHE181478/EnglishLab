@@ -121,7 +121,7 @@ const WorkspaceRightRail = ({
     const container = transcriptContainerRef.current;
 
     if (!text || !range || !container) {
-      setSelectionButton(null);
+      // Keep an already-captured selection; native ranges often collapse after setState.
       return;
     }
 

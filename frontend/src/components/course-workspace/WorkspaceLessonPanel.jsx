@@ -180,14 +180,18 @@ const WorkspaceLessonPanel = ({
     if (embedUrl) setIframeStartSeconds(seconds);
   }, [embedUrl, seekRequest]);
 
-  useEffect(() => {
+  const clearLessonSelectionUi = useCallback(() => {
     setSelectedLessonText('');
     setSelectionButton(null);
+  }, []);
+
+  useEffect(() => {
+    clearLessonSelectionUi();
     setLessonNoteMessage('');
     window.getSelection?.()?.removeAllRanges?.();
-  }, [activeLessonId]);
+  }, [activeLessonId, clearLessonSelectionUi]);
 
-  const captureLessonSelection = useCallback(() => {
+  const captureLessonSelection = useCallback((event) => {
     const selection = window.getSelection?.();
     const text = selection?.toString().trim();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
@@ -196,7 +200,13 @@ const WorkspaceLessonPanel = ({
     const ancestorElement = ancestor?.nodeType === Node.TEXT_NODE ? ancestor.parentElement : ancestor;
 
     if (!text || !range || !container || !ancestorElement || !container.contains(ancestorElement)) {
-      setSelectionButton(null);
+      // React re-render after a successful capture often collapses the native
+      // selection before this follow-up read. Only dismiss when the user
+      // actually clicked outside the lesson content.
+      const target = event?.target;
+      if (container && target instanceof Node && !container.contains(target)) {
+        clearLessonSelectionUi();
+      }
       return;
     }
 
@@ -214,22 +224,24 @@ const WorkspaceLessonPanel = ({
     setSelectedLessonText(text);
     setSelectionButton({ top: Math.max(8, top), left });
     setLessonNoteMessage('');
-  }, []);
+  }, [clearLessonSelectionUi]);
 
   useEffect(() => {
-    const handleMouseUp = () => {
-      window.requestAnimationFrame(captureLessonSelection);
+    const handleMouseUp = (event) => {
+      if (event.target?.closest?.('[data-lesson-note-save]')) return;
+      window.requestAnimationFrame(() => captureLessonSelection(event));
     };
     document.addEventListener('mouseup', handleMouseUp);
     return () => document.removeEventListener('mouseup', handleMouseUp);
   }, [captureLessonSelection]);
 
   const saveSelectedLessonText = async () => {
+    const noteText = selectedLessonText.trim();
     if (!canPersist) {
       setLessonNoteMessage('Bạn cần đăng nhập để lưu ghi chú.');
       return;
     }
-    if (!selectedLessonText.trim()) {
+    if (!noteText) {
       setLessonNoteMessage('Vui lòng bôi đen một đoạn trong bài học trước khi lưu.');
       return;
     }
@@ -242,15 +254,14 @@ const WorkspaceLessonPanel = ({
     setSavingSelectedNote(true);
     try {
       const savedNote = await onSaveLessonNote({
-        content: selectedLessonText.trim(),
-        selectedText: selectedLessonText.trim(),
+        content: noteText,
+        selectedText: noteText,
       });
       if (!savedNote) {
         setLessonNoteMessage('Không thể lưu ghi chú. Vui lòng thử lại.');
         return;
       }
-      setSelectedLessonText('');
-      setSelectionButton(null);
+      clearLessonSelectionUi();
       window.getSelection?.()?.removeAllRanges?.();
       setLessonNoteMessage('Đã lưu đoạn đã chọn vào ghi chú.');
       onOpenNotes?.();
@@ -315,11 +326,12 @@ const WorkspaceLessonPanel = ({
           </div>
         </div>
 
-        <div ref={lessonContentRef} className="relative select-text" onMouseUp={captureLessonSelection}>
+        <div ref={lessonContentRef} className="relative select-text">
           <LessonContent content={lessonContent} />
           {selectionButton ? (
             <button
               className="absolute z-10 rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(75,0,9,0.22)] transition hover:bg-[#730014] disabled:cursor-wait disabled:opacity-65"
+              data-lesson-note-save="true"
               style={{ top: selectionButton.top, left: selectionButton.left }}
               type="button"
               disabled={savingSelectedNote}
@@ -330,6 +342,34 @@ const WorkspaceLessonPanel = ({
             </button>
           ) : null}
         </div>
+
+        {selectedLessonText ? (
+          <div className="mt-3 flex flex-col gap-3 rounded-[8px] border border-[#dcb6bb] bg-[#fff8f8] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="min-w-0 flex-1 text-sm leading-6 text-[#584140]">
+              <span className="font-bold text-[#4b0009]">Đã chọn: </span>
+              <span className="line-clamp-2">“{selectedLessonText}”</span>
+            </p>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                className="rounded-[8px] border border-[#dcb6bb] bg-white px-3 py-2 text-xs font-extrabold text-[#8a0018] transition hover:bg-[#fff0f1]"
+                type="button"
+                onClick={clearLessonSelectionUi}
+              >
+                Hủy
+              </button>
+              <button
+                className="rounded-[8px] bg-[#4b0009] px-3 py-2 text-xs font-extrabold text-white transition hover:bg-[#730014] disabled:cursor-wait disabled:opacity-65"
+                data-lesson-note-save="true"
+                type="button"
+                disabled={savingSelectedNote}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={saveSelectedLessonText}
+              >
+                {savingSelectedNote ? 'Đang lưu...' : 'Lưu ghi chú'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {lessonNoteMessage ? (
           <p className="mt-3 text-sm font-semibold text-[#730014]">{lessonNoteMessage}</p>
