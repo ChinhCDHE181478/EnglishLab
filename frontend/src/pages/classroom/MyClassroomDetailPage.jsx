@@ -633,12 +633,31 @@ export default function MyClassroomDetailPage() {
               sub={attendanceStats.rate >= 80 ? 'Đạt chuyên cần' : 'Dưới chỉ tiêu (80%)'}
               icon={<Activity className="h-4.5 w-4.5" />}
             />
-            <KpiCard
-              label="Điểm tích lũy"
-              value={gradebook?.homeworkAverage != null ? `${gradebook.homeworkAverage}/10` : '—'}
-              sub={gradebook ? formatGradebookFinalResult(gradebook.finalResult) : 'Đang cập nhật'}
-              icon={<Award className="h-4.5 w-4.5" />}
-            />
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.015)] flex flex-col justify-between space-y-2 hover:border-[#dfbfbd] transition duration-300 h-full">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#8b706e]">Điểm tích lũy</span>
+                <div className="rounded-lg p-2 bg-[#fff0f1] text-[#730014] shrink-0">
+                  <Award className="h-4.5 w-4.5" />
+                </div>
+              </div>
+              <div className="flex items-center gap-5 pt-1">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">TB Bài tập</span>
+                  <p className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">
+                    {gradebook?.homeworkAverage != null ? `${gradebook.homeworkAverage}/10` : '--/10'}
+                  </p>
+                </div>
+                <div className="h-7 w-px bg-gray-200 shrink-0"></div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">Đánh giá</span>
+                  <p className="font-['Manrope'] text-lg font-extrabold text-[#1a1c1c]">
+                    {(gradebook?.finalResult != null && gradebook.finalResult !== '') 
+                      ? formatGradebookFinalResult(gradebook.finalResult) 
+                      : '--/10'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ── Next Session ── */}
