@@ -408,3 +408,29 @@ button:not(:disabled),
   font-weight: 800;
   letter-spacing: -0.04em;
 }
+
+@media (max-width: 768px) {
+  .el-toeic-sidebar {
+    position: fixed !important;
+    inset: auto 0 0;
+    z-index: 125;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-height: 42vh;
+    border-left: 0 !important;
+    border-top: 1px solid #d7e5df;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(6, 48, 36, 0.12);
+    transform: translateY(100%);
+    transition: transform 0.2s ease;
+  }
+
+  .el-toeic-drawer-open .el-toeic-sidebar {
+    transform: translateY(0);
+  }
+
+  .el-toeic-sidebar > div {
+    width: 100% !important;
+  }
+}
+

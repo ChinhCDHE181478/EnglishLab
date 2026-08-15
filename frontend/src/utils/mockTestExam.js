@@ -15,6 +15,17 @@ export function parseJson(value, fallback = {}) {
   }
 }
 
+export function isToeicExamConfig(config = {}, test = null) {
+  const examType = String(config?.examType || test?.examType || '').toUpperCase();
+  if (examType === 'TOEIC') return true;
+  const type = String(config?.type || '').toLowerCase();
+  if (type.startsWith('toeic_')) return true;
+  const key = String(config?.key || config?.sourceLabel || '').toLowerCase();
+  if (key.includes('toeic')) return true;
+  const title = String(config?.title || test?.title || '');
+  return /\bTOEIC\b/i.test(title);
+}
+
 export function resolveMockConfig(test, config) {
   const skill = String(test.skill || 'MIXED').toUpperCase();
   if (skill !== 'MIXED') {
