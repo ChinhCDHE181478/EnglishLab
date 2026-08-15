@@ -99,7 +99,8 @@ public class ClassroomHomeworkGradingSchemaMigration {
 
                     IF to_regclass('public.classroom_homework_submissions') IS NOT NULL THEN
                         ALTER TABLE classroom_homework_submissions
-                            ADD COLUMN IF NOT EXISTS teacher_annotations_json TEXT;
+                            ADD COLUMN IF NOT EXISTS teacher_annotations_json TEXT,
+                            ADD COLUMN IF NOT EXISTS ai_feedback_json TEXT;
                     END IF;
                 END $$;
                 """);

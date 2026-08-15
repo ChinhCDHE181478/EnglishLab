@@ -1,5 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, CheckCircle2, FileQuestion, Headphones, Mic, PenLine, Search } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  FileQuestion,
+  GraduationCap,
+  Headphones,
+  ListFilter,
+  Mic,
+  PenLine,
+  Search,
+  Sparkles,
+  Trophy,
+  Users,
+  Zap,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
@@ -13,19 +30,10 @@ import Pagination, { usePagination } from '../components/ui/Pagination';
 import placementTestApi from '../api/placementTestApi';
 import { exitExamFullscreen, requestExamFullscreen } from '../utils/examFullscreen';
 
-const skillOptions = [
-  { label: 'Tất cả kỹ năng', value: 'ALL' },
-  { label: 'Listening', value: 'LISTENING' },
-  { label: 'Reading', value: 'READING' },
-  { label: 'Writing', value: 'WRITING' },
-  { label: 'Speaking', value: 'SPEAKING' },
-  { label: 'Tổng hợp', value: 'MIXED' },
-];
-
-const examOptions = [
-  { label: 'Tất cả kỳ thi', value: 'ALL' },
-  { label: 'IELTS', value: 'IELTS' },
-  { label: 'TOEIC', value: 'TOEIC' },
+const sortOptions = [
+  { label: 'Mới nhất (Newest)', value: 'NEWEST' },
+  { label: 'Nhiều lượt thi nhất (Popular)', value: 'POPULAR' },
+  { label: 'Điểm tối đa cao nhất', value: 'SCORE' },
 ];
 
 const resolveExamType = (item) => {
@@ -38,11 +46,11 @@ const resolveExamType = (item) => {
 };
 
 const skillMeta = {
-  LISTENING: { label: 'Listening', icon: Headphones },
-  READING: { label: 'Reading', icon: BookOpen },
-  WRITING: { label: 'Writing', icon: PenLine },
-  SPEAKING: { label: 'Speaking', icon: Mic },
-  MIXED: { label: 'Mock tổng hợp', icon: FileQuestion },
+  LISTENING: { label: 'Listening', icon: Headphones, color: 'text-sky-700 bg-sky-50 border-sky-200', defaultDuration: '30 phút' },
+  READING: { label: 'Reading', icon: BookOpen, color: 'text-emerald-700 bg-emerald-50 border-emerald-200', defaultDuration: '60 phút' },
+  WRITING: { label: 'Writing', icon: PenLine, color: 'text-violet-700 bg-violet-50 border-violet-200', defaultDuration: '60 phút' },
+  SPEAKING: { label: 'Speaking', icon: Mic, color: 'text-amber-700 bg-amber-50 border-amber-200', defaultDuration: '15 phút' },
+  MIXED: { label: 'Full Mock', icon: FileQuestion, color: 'text-[#730014] bg-[#fff0f1] border-[#f5d0d3]', defaultDuration: '120 phút' },
 };
 
 const TOEIC_PART_START = {
@@ -55,8 +63,9 @@ export default function MockTestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [keyword, setKeyword] = useState('');
-  const [examType, setExamType] = useState('ALL');
-  const [skill, setSkill] = useState('ALL');
+  const [examTab, setExamTab] = useState('ALL'); // ALL, ACADEMIC, GENERAL
+  const [selectedSkill, setSelectedSkill] = useState('ALL'); // ALL, LISTENING, READING, WRITING, SPEAKING
+  const [sortBy, setSortBy] = useState('NEWEST');
   const [activeTest, setActiveTest] = useState(null);
   const [activeConfig, setActiveConfig] = useState(null);
   const [activeSkill, setActiveSkill] = useState(null);
@@ -81,22 +90,34 @@ export default function MockTestsPage() {
     return () => { active = false; };
   }, []);
 
+  // Filter & Sort REAL tests from backend API
   const filteredTests = useMemo(() => {
     const query = keyword.trim().toLowerCase();
-    return tests.filter((item) => {
-      const matchesExam = examType === 'ALL' || resolveExamType(item) === examType;
-      const matchesSkill = skill === 'ALL' || item.skill === skill;
+    let resultList = tests.filter((item) => {
+      const type = resolveExamType(item);
+      const matchesExamTab =
+        examTab === 'ALL' ||
+        (examTab === 'ACADEMIC' && type === 'IELTS') ||
+        (examTab === 'GENERAL' && type === 'TOEIC');
+      const matchesSkill = selectedSkill === 'ALL' || item.skill === selectedSkill;
       const matchesKeyword = !query || [item.title, item.description, item.skill, item.type]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
-      return matchesExam && matchesSkill && matchesKeyword;
+      return matchesExamTab && matchesSkill && matchesKeyword;
     });
-  }, [examType, tests, keyword, skill]);
+
+    if (sortBy === 'POPULAR') {
+      resultList = [...resultList].sort((a, b) => (b.attemptsCount || b.id) - (a.attemptsCount || a.id));
+    } else if (sortBy === 'SCORE') {
+      resultList = [...resultList].sort((a, b) => (b.maxScore || 0) - (a.maxScore || 0));
+    }
+    return resultList;
+  }, [examTab, tests, keyword, selectedSkill, sortBy]);
 
   const { page, setPage, totalPages, pageItems: paginatedTests, totalItems } = usePagination(
     filteredTests,
     6,
-    `mock-tests-${examType}-${skill}-${keyword}`
+    `mock-tests-${examTab}-${selectedSkill}-${keyword}-${sortBy}`
   );
 
   const startTest = async (item) => {
@@ -230,107 +251,345 @@ export default function MockTestsPage() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
+    <div className="flex min-h-[100dvh] flex-col bg-[#fffaf9] text-[#0b1c30]">
       <Header />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-10">
-        <section className="flex flex-1 flex-col min-h-[calc(100vh-320px)] rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+
+      <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col px-4 py-8 sm:px-6 lg:px-8 space-y-7">
+        
+        {/* Main Header Container with EnglishLab Brand Styling */}
+        <div className="rounded-3xl border border-[#ead9db] bg-white p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#ead9db] pb-5">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Mock Test</p>
-              <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Ngân hàng đề thi thử</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-[#584140]">
-                Chọn đề IELTS, TOEIC hoặc từng kỹ năng để luyện trong giao diện thi. Các đề được lấy từ ngân hàng đề thi thử đã xuất bản.
+              <div className="flex items-center gap-2 text-xs font-bold text-[#8b706e]">
+                <Link className="hover:underline text-[#730014]" to="/">Trang chủ</Link>
+                <span>/</span>
+                <span>Thư viện đề thi thử</span>
+              </div>
+              <h1 className="mt-2 font-['Manrope'] text-2xl sm:text-3xl font-extrabold text-[#0b1c30] tracking-tight">
+                IELTS & TOEIC Exam Library
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#564241]">
+                Ngân hàng đề thi thử trực tuyến chính thức của EnglishLab, lấy trực tiếp từ hệ thống dữ liệu thực tế.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:w-[680px] lg:grid-cols-[minmax(240px,1fr)_170px_190px]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
-                <input
-                  className="h-12 w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb] pl-11 pr-4 text-sm outline-none focus:border-[#8a0018]"
-                  onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Tìm đề thi thử..."
-                  value={keyword}
-                />
-              </div>
-              <BrandedSelect onChange={(event) => setExamType(event.target.value)} options={examOptions} value={examType} />
-              <BrandedSelect onChange={(event) => setSkill(event.target.value)} options={skillOptions} value={skill} />
-            </div>
+
+            {/* <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-[#fff0f1] px-3.5 py-1.5 text-xs font-extrabold text-[#730014] border border-[#f5d0d3]">
+              <Sparkles className="h-3.5 w-3.5" /> Data thực tế ({filteredTests.length} đề thi)
+            </span> */}
           </div>
 
-          {error ? <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div> : null}
-          {result ? <MockResult result={result} /> : null}
+          {/* 1. Top Category Tabs (All Tests, Academic Test, General Training Test) */}
+          <div className="flex flex-wrap items-center gap-6 border-b border-[#ead9db] pb-1">
+            <button
+              className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition border-b-2 ${
+                examTab === 'ALL'
+                  ? 'border-[#730014] text-[#730014]'
+                  : 'border-transparent text-[#8b706e] hover:text-[#0b1c30]'
+              }`}
+              onClick={() => { setExamTab('ALL'); setPage(1); }}
+              type="button"
+            >
+              <ListFilter className="h-4 w-4" />
+              Tất cả đề thi (All Tests)
+            </button>
 
-          {loading ? (
-            <BrandLoadingState className="mt-8" message="Đang tải ngân hàng đề thi thử..." />
-          ) : filteredTests.length ? (
-            <div className="space-y-6">
-              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {paginatedTests.map((item) => {
-                  const meta = skillMeta[item.skill] || skillMeta.MIXED;
-                  const Icon = meta.icon;
-                  return (
-                    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#ead7d5] bg-[#fffdfc] p-5 transition hover:border-[#8a0018]/35 hover:shadow-md" key={item.id}>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
-                          <Icon className="h-5 w-5" />
-                        </span>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <span className="rounded-full border border-[#ead7d5] bg-white px-3 py-1 text-xs font-black text-[#8a0018]">{resolveExamType(item)}</span>
-                          <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
-                        </div>
-                      </div>
-                      <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#341c1d]">{item.title}</h2>
-                      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[#584140]">{item.description || item.instructions || 'Đề thi thử đã sẵn sàng.'}</p>
-                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[#8b706e]">
-                        <span>{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : 'Không giới hạn thời gian'}</span>
-                        <span>·</span>
-                        <span>{item.maxScore ? `${item.maxScore} điểm` : 'Thi thử'}</span>
-                      </div>
-                      <button className="mt-5 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white transition hover:bg-[#650012]" onClick={() => startTest(item)} type="button">
-                        Vào thi thử
-                      </button>
-                    </article>
-                  );
-                })}
+            <button
+              className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition border-b-2 ${
+                examTab === 'ACADEMIC'
+                  ? 'border-[#730014] text-[#730014]'
+                  : 'border-transparent text-[#8b706e] hover:text-[#0b1c30]'
+              }`}
+              onClick={() => { setExamTab('ACADEMIC'); setPage(1); }}
+              type="button"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Academic Test (IELTS)
+            </button>
+
+            <button
+              className={`flex items-center gap-2 pb-3 text-xs sm:text-sm font-extrabold transition border-b-2 ${
+                examTab === 'GENERAL'
+                  ? 'border-[#730014] text-[#730014]'
+                  : 'border-transparent text-[#8b706e] hover:text-[#0b1c30]'
+              }`}
+              onClick={() => { setExamTab('GENERAL'); setPage(1); }}
+              type="button"
+            >
+              <Users className="h-4 w-4" />
+              General Training (TOEIC)
+            </button>
+          </div>
+
+          {/* 2. Skill Pills Filter Bar - EnglishLab Burgundy Brand Tones */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              className={`flex items-center gap-2 rounded-full px-4.5 py-1.5 text-xs font-extrabold transition ${
+                selectedSkill === 'ALL'
+                  ? 'bg-[#730014] text-white shadow-xs'
+                  : 'border border-[#ead9db] bg-white text-[#564241] hover:bg-[#fff0f1] hover:text-[#730014]'
+              }`}
+              onClick={() => { setSelectedSkill('ALL'); setPage(1); }}
+              type="button"
+            >
+              <span className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5">
+                <span className="bg-current rounded-xs" />
+                <span className="bg-current rounded-xs" />
+                <span className="bg-current rounded-xs" />
+                <span className="bg-current rounded-xs" />
+              </span>
+              Tất cả kỹ năng (All Skills)
+            </button>
+
+            {['LISTENING', 'READING', 'WRITING', 'SPEAKING'].map((sk) => {
+              const meta = skillMeta[sk];
+              const Icon = meta.icon;
+              const isSelected = selectedSkill === sk;
+              return (
+                <button
+                  className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                    isSelected
+                      ? 'bg-[#730014] text-white shadow-xs'
+                      : 'border border-[#ead9db] bg-white text-[#564241] hover:bg-[#fff0f1] hover:text-[#730014]'
+                  }`}
+                  key={sk}
+                  onClick={() => { setSelectedSkill(sk); setPage(1); }}
+                  type="button"
+                >
+                  <Icon className="h-3.5 w-3.5 opacity-80" />
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 3. Search Bar & Sort Dropdown */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#fffaf9] border border-[#ead9db] p-3 rounded-2xl">
+            <div className="relative w-full sm:w-[380px]">
+              <input
+                className="h-10 w-full rounded-xl border border-[#ead9db] bg-white pl-4 pr-10 text-xs outline-none focus:border-[#730014] transition"
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm đề thi từ dữ liệu thật..."
+                value={keyword}
+              />
+              <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs font-bold text-[#8b706e] whitespace-nowrap">Sắp xếp:</span>
+              <div className="w-48">
+                <BrandedSelect onChange={(event) => setSortBy(event.target.value)} options={sortOptions} value={sortBy} />
               </div>
+            </div>
+          </div>
+        </div>
 
-              {filteredTests.length > 6 && (
-                <div className="flex justify-end">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onChange={setPage}
-                    totalItems={totalItems}
-                    pageSize={6}
-                  />
-                </div>
-              )}
+        {/* Error Notice */}
+        {error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">{error}</div> : null}
+        {result ? <MockResult result={result} /> : null}
+
+        {/* Loading State */}
+        {loading ? (
+          <BrandLoadingState className="py-12" message="Đang tải ngân hàng đề thi thử từ hệ thống..." />
+        ) : filteredTests.length ? (
+          <div className="space-y-6">
+            {/* Render REAL Tests Grid with EnglishLab Brand 3D Books & Real API Data */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {paginatedTests.map((item) => {
+                const resolvedExam = resolveExamType(item);
+                const meta = skillMeta[item.skill] || skillMeta.MIXED;
+                const Icon = meta.icon;
+                const attempts = item.attemptsCount || item.takeCount || 0;
+
+                return (
+                  <article
+                    className="group flex flex-col sm:flex-row items-start gap-5 rounded-3xl border border-[#ead9db] bg-white p-6 shadow-xs transition duration-300 hover:border-[#730014] hover:shadow-md"
+                    key={item.id}
+                  >
+                    {/* 3D Hardcover Book Graphic (EnglishLab Crimson Tone) */}
+                    <div className="flex justify-center w-full sm:w-auto shrink-0">
+                      <Brand3DBookCover
+                        category={resolvedExam}
+                        skillLabel={meta.label}
+                        title={item.title}
+                      />
+                    </div>
+
+                    {/* Info Panel on the Right - REAL Data from API */}
+                    <div className="flex flex-1 flex-col justify-between h-full space-y-3.5 w-full">
+                      <div>
+                        {/* Exam Type & Skill Badges */}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-md border border-[#f5d0d3] bg-[#fff0f1] px-2.5 py-0.5 text-[11px] font-extrabold uppercase text-[#730014]">
+                              {resolvedExam}
+                            </span>
+                            <span className={`rounded-md border px-2.5 py-0.5 text-[11px] font-bold ${meta.color}`}>
+                              <Icon className="mr-1 inline-block h-3 w-3" />
+                              {meta.label}
+                            </span>
+                          </div>
+
+                          <span className="flex items-center gap-1 text-xs font-semibold text-[#8b706e]">
+                            <Clock className="h-3.5 w-3.5 text-[#8b706e]" />
+                            {item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : meta.defaultDuration}
+                          </span>
+                        </div>
+
+                        {/* Real Test Title */}
+                        <h2 className="mt-2.5 font-['Manrope'] text-lg font-black text-[#0b1c30] group-hover:text-[#730014] transition-colors leading-snug">
+                          {item.title}
+                        </h2>
+
+                        {/* Real Description / Instructions */}
+                        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-[#564241]">
+                          {item.description || item.instructions || 'Đề thi thử chính thức trong hệ thống EnglishLab.'}
+                        </p>
+                      </div>
+
+                      {/* Real Stats & Action CTA Button */}
+                      <div className="pt-3 border-t border-[#f2e6e7] flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#8b706e]">
+                          <Zap className="h-4 w-4 text-amber-500 fill-amber-400 shrink-0" />
+                          <span>{attempts > 0 ? `${attempts.toLocaleString('vi-VN')} lượt thi` : 'Đề thi mới'}</span>
+                        </div>
+
+                        <button
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#730014] px-4.5 py-2 text-xs font-extrabold text-white shadow-xs transition hover:bg-[#8a0018] active:scale-95"
+                          onClick={() => startTest(item)}
+                          type="button"
+                        >
+                          Vào thi thử <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-          ) : (
-            <div className="mt-8 rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fffafb] p-10 text-center text-sm font-bold text-[#584140]">
-              Chưa có đề thi thử phù hợp bộ lọc.
-            </div>
-          )}
-        </section>
+
+            {/* Shared Pagination Component */}
+            {filteredTests.length > 6 && (
+              <div className="flex justify-end pt-4">
+                <Pagination
+                  onChange={setPage}
+                  page={page}
+                  pageSize={6}
+                  totalItems={totalItems}
+                  totalPages={totalPages}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[#ead9db] bg-[#fffaf9] p-12 text-center text-xs font-bold text-[#564241]">
+            Chưa có đề thi thử phù hợp bộ lọc tìm kiếm hiện tại.
+          </div>
+        )}
       </main>
+
       <CourseFooter />
+    </div>
+  );
+}
+
+{/* EnglishLab Brand 3D Hardcover Book Graphic Component (Matching Brand Tones) */}
+function Brand3DBookCover({ title, category = 'IELTS', skillLabel = 'MOCK' }) {
+  const isToeic = String(category).toUpperCase() === 'TOEIC';
+
+  return (
+    <div className="relative group/book cursor-pointer perspective-[1000px] w-[135px] sm:w-[150px] h-[185px] sm:h-[205px] shrink-0 select-none">
+      {/* Book Soft Shadow */}
+      <div className="absolute -bottom-3 left-3 right-3 h-4 rounded-full bg-black/20 blur-md transition-all duration-300 group-hover/book:scale-105" />
+
+      {/* 3D Book Container */}
+      <div className="relative w-full h-full duration-500 ease-out transform-style-3d group-hover/book:[transform:rotateY(-24deg)_rotateX(4deg)]">
+        {/* Book Spine (Left 3D side) */}
+        <div
+          className={`absolute left-0 top-0 w-[22px] h-full rounded-l-xs shadow-inner flex items-center justify-center origin-left [transform:rotateY(-90deg)] ${
+            isToeic
+              ? 'bg-gradient-to-r from-[#0b1c30] via-[#163558] to-[#071324]'
+              : 'bg-gradient-to-r from-[#3b0007] via-[#4d000a] to-[#730014]'
+          }`}
+        >
+          <span className="text-[9px] font-black uppercase tracking-widest text-amber-200/90 -rotate-90 whitespace-nowrap drop-shadow-xs">
+            ENGLISH LAB · {category}
+          </span>
+        </div>
+
+        {/* Book Pages Edge (Right 3D side) */}
+        <div className="absolute right-1 top-[3px] w-[16px] h-[calc(100%-6px)] bg-[linear-gradient(to_right,#fcfbfa_0%,#eee9de_50%,#fcfbfa_100%)] shadow-inner rounded-r-xs border-r border-slate-300 [transform:translateZ(-14px)_rotateY(90deg)]" />
+
+        {/* Hardcover Front Cover (EnglishLab Brand Tone) */}
+        <div
+          className={`absolute inset-0 rounded-r-xl border border-white/20 p-3 text-white shadow-xl origin-left transition-transform duration-500 group-hover/book:[transform:rotateY(-26deg)] ${
+            isToeic
+              ? 'bg-gradient-to-br from-[#0b1c30] via-[#163558] to-[#071324]'
+              : 'bg-gradient-to-br from-[#4b0009] via-[#730014] to-[#8a0018]'
+          }`}
+        >
+          {/* Decorative Gold & Subtle Glow Shapes */}
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-400/15 blur-xl pointer-events-none" />
+
+          <div className="relative z-10 flex h-full flex-col justify-between border border-amber-300/30 p-2 rounded-lg bg-black/10 backdrop-blur-xs">
+            {/* Header Badge */}
+            <div className="flex items-center justify-between border-b border-amber-300/30 pb-1">
+              <span className="text-[8.5px] font-black uppercase tracking-widest text-amber-300 drop-shadow-xs">
+                {category} EXAM
+              </span>
+              <span className="text-[8.5px] font-extrabold text-amber-200">{skillLabel}</span>
+            </div>
+
+            {/* Main Emblem & Title */}
+            <div className="my-auto text-center py-1">
+              <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-amber-400/20 text-amber-300 border border-amber-300/40 shadow-xs">
+                <Trophy size={14} />
+              </div>
+              <h4 className="font-['Manrope'] text-[11px] font-black uppercase tracking-tight text-white leading-tight line-clamp-2 drop-shadow-xs">
+                {title || 'MOCK TEST'}
+              </h4>
+            </div>
+
+            {/* Footer Tag */}
+            <div className="border-t border-amber-300/30 pt-1 text-center">
+              <span className="text-[7.5px] font-black uppercase tracking-widest text-amber-300/90">
+                ENGLISH LAB
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Hardcover Back */}
+        <div
+          className={`absolute inset-0 rounded-r-xl shadow-md [transform:translateZ(-18px)] ${
+            isToeic ? 'bg-[#050e1a]' : 'bg-[#240005]'
+          }`}
+        />
+      </div>
     </div>
   );
 }
 
 function MockResult({ result }) {
   return (
-    <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-900 shadow-xs">
       <div className="flex items-start gap-3">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
+        <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 text-emerald-700 shrink-0" />
         <div>
-          <p className="font-black">{result.title}</p>
+          <p className="font-extrabold text-sm">{result.title}</p>
           {result.total != null ? (
-            <p className="mt-1">Kết quả: {result.correct}/{result.total} câu đúng{result.percent != null ? ` · ${Number(result.percent).toFixed(0)}%` : ''}{result.score != null ? ` · ${result.score} điểm` : ''}.</p>
+            <p className="mt-1 leading-relaxed">
+              Kết quả bài thi: {result.correct}/{result.total} câu đúng
+              {result.percent != null ? ` · ${Number(result.percent).toFixed(0)}%` : ''}
+              {result.score != null ? ` · ${result.score} điểm` : ''}.
+            </p>
           ) : (
-            <p className="mt-1">{result.message}</p>
+            <p className="mt-1 leading-relaxed">{result.message}</p>
           )}
-          {result.submittedAt ? <p className="mt-1 text-xs font-semibold opacity-80">Đã lưu lúc {new Date(result.submittedAt).toLocaleString('vi-VN')}</p> : null}
+          {result.submittedAt ? (
+            <p className="mt-1 text-[11px] font-bold opacity-80">
+              Đã lưu kết quả lúc {new Date(result.submittedAt).toLocaleString('vi-VN')}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

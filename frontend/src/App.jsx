@@ -89,7 +89,7 @@ function HomeRoute() {
       </div>
     );
   }
-
+ 
   if (status === 'authenticated') {
     const defaultPath = getDefaultAuthenticatedPath(user);
     if (defaultPath !== '/home') return <Navigate replace to={defaultPath} />;

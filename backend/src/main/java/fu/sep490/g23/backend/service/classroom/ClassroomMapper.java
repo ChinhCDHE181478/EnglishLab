@@ -475,7 +475,7 @@ public class ClassroomMapper {
         ClassroomHomeworkSubmissionResponse mySubmission = null;
         if (studentId != null) {
             mySubmission = homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homework.getId(), studentId)
-                    .map(this::toHomeworkSubmissionResponse)
+                    .map(this::toLearnerHomeworkSubmissionResponse)
                     .orElse(null);
         }
         boolean overdue = homework.getDeadline() != null
@@ -536,6 +536,18 @@ public class ClassroomMapper {
         return toHomeworkSubmissionResponse(submission.getHomework(), submission.getStudent(), submission);
     }
 
+    ClassroomHomeworkSubmissionResponse toLearnerHomeworkSubmissionResponse(ClassroomHomeworkSubmission submission) {
+        ClassroomHomeworkSubmissionResponse response = toHomeworkSubmissionResponse(submission);
+          if (submission.getStatus() != HomeworkSubmissionStatus.GRADED) {
+              response.setScore(null);
+              response.setTeacherFeedback(null);
+              response.setAiFeedbackJson(null);
+              response.setAnnotations(List.of());
+            response.setGradedAt(null);
+        }
+        return response;
+    }
+
     public ClassroomHomeworkSubmissionResponse toHomeworkSubmissionResponse(
             ClassroomHomework homework,
             User student,
@@ -563,9 +575,10 @@ public class ClassroomMapper {
                 .attachmentUrl(submission == null ? null : submission.getAttachmentUrl())
                 .submittedAt(submission == null ? null : submission.getSubmittedAt())
                 .status(submission == null ? null : submission.getStatus())
-                .score(submission == null ? null : submission.getScore())
-                .teacherFeedback(submission == null ? null : submission.getTeacherFeedback())
-                .annotations(submission == null
+                  .score(submission == null ? null : submission.getScore())
+                  .teacherFeedback(submission == null ? null : submission.getTeacherFeedback())
+                  .aiFeedbackJson(submission == null ? null : submission.getAiFeedbackJson())
+                  .annotations(submission == null
                         ? List.of()
                         : homeworkTextAnnotationCodec.deserialize(submission.getTeacherAnnotationsJson()))
                 .gradedAt(submission == null ? null : submission.getGradedAt())

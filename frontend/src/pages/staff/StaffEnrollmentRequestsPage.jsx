@@ -315,7 +315,9 @@ export default function StaffEnrollmentRequestsPage() {
   return (
     <div className="space-y-5">
       {/* Top Notifications */}
-      {!action.type && !centerEnrollmentOpen ? <ManagementToast message={error} onClose={() => setError('')} /> : null}
+      {error && !action.type && !centerEnrollmentOpen ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">{error}</div>
+      ) : null}
       {classroomLoadError ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">{classroomLoadError}</div> : null}
       <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật hồ sơ" />
 

@@ -99,7 +99,7 @@ export default function LearningPathCatalogPage() {
                       </li>
                     )}
                   </ol>
-                  <div className="mt-5 border-t border-[#f0e3e4] pt-4">
+                  <div className="mt-auto border-t border-[#f0e3e4] pt-4">
                     {path.discountApplied ? (
                       <p className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700">
                         <BadgePercent className="h-4 w-4" /> Giảm {path.discountPercent}% khi mua từ {path.minimumCoursesForDiscount} khóa

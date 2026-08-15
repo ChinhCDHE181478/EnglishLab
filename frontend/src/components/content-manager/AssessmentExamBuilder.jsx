@@ -109,7 +109,7 @@ const createSpeakingPart = (index = 0) => {
     key: `part_${partNumber}`,
     label: `Part ${partNumber}`,
     ...partDefaults,
-    prompts: (partDefaults.prompts || ['']).map((text) => ({ text, videoUrl: '' })),
+    prompts: (partDefaults.prompts || ['']).map((text) => ({ text, videoUrl: '', audioUrl: '' })),
   };
 };
 
@@ -199,7 +199,9 @@ const normalizeConfig = (assessment) => {
   if (skill === 'SPEAKING') {
     const variants = Array.isArray(safeConfig.variants) && safeConfig.variants.length
       ? safeConfig.variants
-      : fallback.variants;
+      : Array.isArray(safeConfig.parts) && safeConfig.parts.length
+        ? [{ key: 'test_1', label: 'Đề 1', parts: safeConfig.parts }]
+        : fallback.variants;
     return {
       ...fallback,
       ...safeConfig,
@@ -217,19 +219,57 @@ const normalizeConfig = (assessment) => {
             label: part.label || `Part ${partIndex + 1}`,
             prompts: (Array.isArray(part.prompts) && part.prompts.length ? part.prompts : ['']).map((prompt) => (
               typeof prompt === 'string'
-                ? { text: prompt, videoUrl: '' }
-                : { text: String(prompt?.text || ''), videoUrl: String(prompt?.videoUrl || '') }
+                ? { text: prompt, videoUrl: '', audioUrl: '' }
+                : {
+                  text: String(prompt?.text || ''),
+                  videoUrl: String(prompt?.videoUrl || ''),
+                  audioUrl: String(prompt?.audioUrl || ''),
+                }
             )),
           })),
       })),
     };
   }
 
+  const legacyQuestions = Array.isArray(safeConfig.questions) ? safeConfig.questions : [];
+  const normalizedParts = Array.isArray(safeConfig.parts) && safeConfig.parts.length
+    ? safeConfig.parts
+    : legacyQuestions.length
+      ? [{
+        ...createPart(0, 1),
+        title: safeConfig.title || fallback.title,
+        questionGroups: legacyQuestions.map((question, index) => {
+          const number = Number(question.number || index + 1);
+          const options = Array.isArray(question.options) ? question.options : [];
+          return {
+            ...createGroup(number),
+            title: `Câu ${number}`,
+            type: options.length ? 'single_choice' : 'text',
+            questions: [{
+              ...createQuestion(number),
+              ...question,
+              number,
+              options: options.length
+                ? options.map((option, optionIndex) => (
+                  typeof option === 'object'
+                    ? {
+                      value: String(option.value || String.fromCharCode(65 + optionIndex)),
+                      label: String(option.label || option.text || ''),
+                    }
+                    : { value: String.fromCharCode(65 + optionIndex), label: String(option) }
+                ))
+                : [],
+            }],
+          };
+        }),
+      }]
+      : fallback.parts;
+
   return {
     ...fallback,
     ...safeConfig,
     type: fallback.type,
-    parts: Array.isArray(safeConfig.parts) && safeConfig.parts.length ? safeConfig.parts : fallback.parts,
+    parts: normalizedParts,
   };
 };
 
@@ -918,18 +958,63 @@ function SpeakingConfigEditor({ config, onChange }) {
                     })}
                   />
                 </div>
-                <div className="mt-3">
-                  <TextAreaField
-                    label="Câu hỏi, mỗi dòng một câu"
-                    value={(part.prompts || []).map((prompt) => prompt.text || '').join('\n')}
-                    onChange={(value) => updatePart(variantIndex, partIndex, {
-                      prompts: value.split('\n').map((line) => line.trim()).filter(Boolean).map((text, promptIndex) => ({
-                        ...(part.prompts?.[promptIndex] || {}),
-                        text,
-                        videoUrl: part.prompts?.[promptIndex]?.videoUrl || '',
-                      })),
-                    })}
-                  />
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Câu hỏi và media</p>
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff4f5]"
+                      onClick={() => updatePart(variantIndex, partIndex, {
+                        prompts: [...(part.prompts || []), { text: '', videoUrl: '', audioUrl: '' }],
+                      })}
+                      type="button"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi
+                    </button>
+                  </div>
+                  {(part.prompts || []).map((prompt, promptIndex) => (
+                    <div
+                      className="grid gap-3 rounded-2xl border border-[#eadcdc] bg-white p-4 md:grid-cols-[1fr_1fr_auto]"
+                      key={`${part.key || partIndex}-prompt-${promptIndex}`}
+                    >
+                      <div className="md:col-span-2">
+                        <TextAreaField
+                          label={`Câu hỏi ${promptIndex + 1}`}
+                          value={prompt.text || ''}
+                          onChange={(value) => updatePart(variantIndex, partIndex, {
+                            prompts: (part.prompts || []).map((item, index) => (
+                              index === promptIndex ? { ...item, text: value } : item
+                            )),
+                          })}
+                        />
+                      </div>
+                      <IconButton
+                        label="Xóa câu hỏi"
+                        onClick={() => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).filter((_, index) => index !== promptIndex),
+                        })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
+                      <Field
+                        label="Liên kết video minh họa"
+                        value={prompt.videoUrl || ''}
+                        onChange={(value) => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).map((item, index) => (
+                            index === promptIndex ? { ...item, videoUrl: value } : item
+                          )),
+                        })}
+                      />
+                      <Field
+                        label="Liên kết audio câu hỏi"
+                        value={prompt.audioUrl || ''}
+                        onChange={(value) => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).map((item, index) => (
+                            index === promptIndex ? { ...item, audioUrl: value } : item
+                          )),
+                        })}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-3">
                   <TextAreaField label="Rubric" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />

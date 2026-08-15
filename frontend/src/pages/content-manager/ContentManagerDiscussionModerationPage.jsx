@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { EyeOff, Flag, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Flag, RefreshCw, XCircle } from 'lucide-react';
 import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
@@ -102,7 +102,9 @@ export default function ContentManagerDiscussionModerationPage() {
       if (reloaded) {
         setSuccess(isHide
           ? 'Nội dung đã được ẩn khỏi phần hỏi đáp.'
-          : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
+          : report.status === 'ACTION_TAKEN'
+            ? 'Nội dung đã được hiển thị lại và báo cáo được chuyển sang đã bỏ qua.'
+            : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
       }
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể xử lý báo cáo. Vui lòng thử lại.');
@@ -243,11 +245,26 @@ export default function ContentManagerDiscussionModerationPage() {
                           Bỏ qua báo cáo
                         </button>
                       </div>
+                    ) : report.status === 'ACTION_TAKEN' ? (
+                      <button
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-emerald-200 px-3.5 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+                        disabled={processingId === report.reportId}
+                        onClick={() => handleAction(report, 'dismiss')}
+                        type="button"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Gỡ ẩn
+                      </button>
                     ) : (
-                      <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#756361]">
-                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                        {report.reviewedBy ? `Bởi ${report.reviewedBy}` : 'Đã xử lý'}
-                      </div>
+                      <button
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#4b0009] disabled:opacity-50"
+                        disabled={processingId === report.reportId}
+                        onClick={() => handleAction(report, 'hide')}
+                        type="button"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                        Ẩn nội dung
+                      </button>
                     )}
                   </td>
                 </tr>
