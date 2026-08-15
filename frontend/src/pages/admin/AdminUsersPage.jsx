@@ -15,6 +15,14 @@ const ROLE_LABELS = {
   ADMIN: 'Quản trị viên',
 };
 const emptyForm = { fullName: '', email: '', phoneNumber: '', password: '', roles: ['LEARNER'] };
+const validatePassword = (password, required) => {
+  if (!password) return required ? 'Mật khẩu là bắt buộc.' : '';
+  if (password.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự.';
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z\d]/.test(password)) {
+    return 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.';
+  }
+  return '';
+};
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
@@ -25,6 +33,7 @@ export default function AdminUsersPage() {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const load = useCallback(async () => {
     setError('');
@@ -50,6 +59,7 @@ export default function AdminUsersPage() {
   const openCreate = () => {
     setModal('create');
     setForm(emptyForm);
+    setPasswordError('');
   };
   const openEdit = (user) => {
     setModal(user);
@@ -60,6 +70,7 @@ export default function AdminUsersPage() {
       password: '',
       roles: user.roles || [],
     });
+    setPasswordError('');
   };
   const toggleRole = (value) => setForm((current) => ({
     ...current,
@@ -71,6 +82,12 @@ export default function AdminUsersPage() {
   const save = async (event) => {
     event.preventDefault();
     setError('');
+    const passwordValidation = validatePassword(form.password, modal === 'create' && !creatingTeacher);
+    if (passwordValidation) {
+      setPasswordError(passwordValidation);
+      return;
+    }
+    setPasswordError('');
     try {
       if (modal === 'create') await adminApi.createUser(form);
       else await adminApi.updateUser(modal.id, form);
@@ -136,7 +153,7 @@ export default function AdminUsersPage() {
               <td className="px-6 py-5"><p className="font-bold text-[#0b1c30]">{user.fullName}</p><p className="mt-1 text-xs text-[#756361]">{user.email}{user.phoneNumber ? ` · ${user.phoneNumber}` : ''}</p></td>
               <td className="px-6 py-5"><div className="flex flex-wrap gap-1">{user.roles.map((item) => <ManagerStatusBadge key={item} tone="info">{ROLE_LABELS[item] || item}</ManagerStatusBadge>)}</div></td>
               <td className="px-6 py-5 text-sm text-[#564241]">{user.profileCompleted ? 'Đã hoàn thiện' : 'Chưa hoàn thiện'}</td>
-              <td className="px-6 py-5"><button className={`rounded-full px-3 py-1 text-xs font-bold ${user.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`} onClick={() => toggleStatus(user)} type="button">{user.enabled ? 'Hoạt động' : 'Đã khóa'}</button></td>
+              <td className="px-6 py-5"><button aria-label={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} className={`rounded-full px-3 py-1 text-xs font-bold ${user.enabled ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`} onClick={() => toggleStatus(user)} title={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} type="button">{user.enabled ? 'Hoạt động' : 'Đã khóa'}</button></td>
               <td className="px-6 py-5"><div className="flex justify-end gap-2">
                 {user.roles.includes('TEACHER') ? <button className="inline-flex items-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-50" onClick={() => resendTeacherEmail(user)} type="button"><Mail className="h-4 w-4" /> Gửi email thiết lập</button> : null}
                 <button className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf]/50 px-3 py-2 text-xs font-bold text-[#730014] hover:bg-[#fff6f6]" onClick={() => openEdit(user)} type="button"><Edit3 className="h-4 w-4" /> Sửa / vai trò</button>
@@ -152,6 +169,7 @@ export default function AdminUsersPage() {
       {modal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a0004]/45 p-4">
           <form className="w-full max-w-2xl rounded-3xl border border-[#ead9db] bg-white p-6 shadow-2xl" onSubmit={save}>
+            {passwordError ? <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{passwordError}</p> : null}
             <div className="mb-5 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><UserCog className="h-5 w-5" /></span>
               <h2 className="font-['Manrope'] text-2xl font-extrabold text-[#4b0009]">{modal === 'create' ? 'Tạo người dùng' : 'Chỉnh sửa người dùng'}</h2>
