@@ -1148,13 +1148,9 @@ export default function MyClassroomDetailPage() {
                   className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${
                     isOverdue
                       ? 'border-rose-200 ring-2 ring-rose-100/60'
-                      : isGraded
+                      : hasSubmission
                         ? 'border-emerald-200 ring-2 ring-emerald-100/60'
-                        : !hasSubmission
-                          ? 'border-orange-200 ring-2 ring-orange-100/50'
-                          : isUrgent
-                            ? 'border-amber-300 ring-2 ring-amber-300/10'
-                            : 'border-gray-200/80'
+                        : 'border-orange-200 ring-2 ring-orange-100/50'
                   }`}
                 >
                   <div className="flex-1 flex flex-col justify-between space-y-4">
@@ -1256,15 +1252,15 @@ export default function MyClassroomDetailPage() {
                       {usesInteractiveHomeworkWorkspace(item) ? (
                         <button
                           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${
-                            isOverdue ? 'opacity-40 cursor-not-allowed' : ''
+                            item.overdue ? 'opacity-40 cursor-not-allowed' : ''
                           }`}
-                          disabled={isOverdue}
-                          onClick={() => !isOverdue && openInteractiveHomework(item)}
-                          title={isOverdue ? 'Bài tập đã quá hạn nộp' : undefined}
+                          disabled={item.overdue}
+                          onClick={() => !item.overdue && openInteractiveHomework(item)}
+                          title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
                           type="button"
                         >
                           {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                          {isOverdue
+                          {item.overdue
                             ? 'Đã quá hạn nộp'
                             : item.activityType === 'FLASHCARD_REVIEW'
                               ? 'Học flashcard theo unit'
@@ -1273,18 +1269,18 @@ export default function MyClassroomDetailPage() {
                       ) : (
                         <button
                           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${
-                            isOverdue
+                            item.overdue
                               ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
                               : canSubmit
                                 ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
                                 : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                           }`}
-                          disabled={isOverdue}
-                          onClick={() => !isOverdue && setSelectedHomeworkForSubmission(item)}
-                          title={isOverdue ? 'Bài tập đã quá hạn nộp' : undefined}
+                          disabled={item.overdue}
+                          onClick={() => !item.overdue && setSelectedHomeworkForSubmission(item)}
+                          title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
                           type="button"
                         >
-                          {isOverdue ? (
+                          {item.overdue ? (
                             <>
                               <XCircle className="h-4 w-4" />
                               Đã quá hạn nộp
