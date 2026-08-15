@@ -87,21 +87,21 @@ const getEffectiveSessionStatus = (session) => {
   if (!session) return 'SCHEDULED';
   if (session.status === 'CANCELLED') return 'CANCELLED';
   if (!session.sessionDate || !session.startTime) return session.status;
-  
+
   const now = new Date();
   const endTime = session.endTime || (() => {
     const t = session.startTime.split(':').map(Number);
     return `${String(t[0] + 2).padStart(2, '0')}:${String(t[1]).padStart(2, '0')}:00`;
   })();
-  
+
   const end = new Date(`${session.sessionDate}T${endTime}`);
   if (now >= end) return 'COMPLETED';
-  
+
   const start = new Date(`${session.sessionDate}T${session.startTime}`);
   if (session.status === 'OPEN' || (now >= start && now < end)) {
     return 'OPEN';
   }
-  
+
   return session.status || 'SCHEDULED';
 };
 
@@ -228,7 +228,7 @@ export default function MyClassroomDetailPage() {
     return homework.filter((h) => {
       const matchesSearch = homeworkSearchQuery
         ? (h.title || '').toLowerCase().includes(homeworkSearchQuery.toLowerCase()) ||
-          (h.unitTitle || h.unitName || '').toLowerCase().includes(homeworkSearchQuery.toLowerCase())
+        (h.unitTitle || h.unitName || '').toLowerCase().includes(homeworkSearchQuery.toLowerCase())
         : true;
       const matchesUnit = homeworkSelectedUnitId === 'ALL'
         ? true
@@ -495,6 +495,7 @@ export default function MyClassroomDetailPage() {
     [homework]);
 
   const handleDoPendingHomework = (item) => {
+    window.scrollTo({ top: 0 });
     setActiveTab('homework');
     const itemIndex = filteredHomework.findIndex(h => h.id === item.id);
     if (itemIndex >= 0) {
@@ -519,14 +520,12 @@ export default function MyClassroomDetailPage() {
   };
 
   const handleSyllabusClick = (syllabusItem) => {
-    const sTitle = syllabusItem.title.trim().toLowerCase();
-    const matchingUnit = classroom?.curriculumProgram?.units?.find((unit) => {
-      const uTitle = unit.title.trim().toLowerCase();
-      const normalizedSTitle = sTitle.replace(/^buổi\s*\d+\s*[-–:]\s*/, '').trim();
-      return uTitle === normalizedSTitle || normalizedSTitle.includes(uTitle) || uTitle.includes(normalizedSTitle);
-    });
+    const matchingUnit = classroom?.curriculumProgram?.units?.find(
+      (unit) => unit.title.trim().toLowerCase() === syllabusItem.title.trim().toLowerCase()
+    );
 
     if (matchingUnit) {
+      window.scrollTo({ top: 0 });
       setActiveTab('curriculum');
       setExpandedUnits(new Set([matchingUnit.id]));
       setTimeout(() => {
@@ -534,7 +533,7 @@ export default function MyClassroomDetailPage() {
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 300);
+      }, 150);
     } else {
       setActiveTab('curriculum');
     }
@@ -648,11 +647,10 @@ export default function MyClassroomDetailPage() {
               <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Buổi học sắp tới</h3>
             </div>
             {nextSession ? (
-              <div className={`rounded-3xl border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] ${
-                nextSession.effectiveStatus === 'OPEN'
+              <div className={`rounded-3xl border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] ${nextSession.effectiveStatus === 'OPEN'
                   ? 'border-emerald-200 ring-2 ring-emerald-500/5'
                   : 'border-gray-200/80'
-              }`}>
+                }`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-2">
                     {nextSession.effectiveStatus === 'OPEN' && (
@@ -672,7 +670,7 @@ export default function MyClassroomDetailPage() {
                     {nextSession.sessionPlanDescription && (
                       <RichTextHtml asPlain className="line-clamp-2 text-xs leading-5 text-[#584140]" value={nextSession.sessionPlanDescription} />
                     )}
-                    
+
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#584140]">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-4 w-4 text-[#730014]" />
@@ -751,16 +749,14 @@ export default function MyClassroomDetailPage() {
                   return (
                     <div
                       key={item.id}
-                      className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition ${
-                        isUrgent
+                      className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition ${isUrgent
                           ? 'border-amber-100 bg-amber-50/20'
                           : 'border-gray-200/80 bg-white'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${
-                          isUrgent ? 'bg-amber-50 text-amber-700' : 'bg-[#fff0f1] text-[#730014]'
-                        }`}>
+                        <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${isUrgent ? 'bg-amber-50 text-amber-700' : 'bg-[#fff0f1] text-[#730014]'
+                          }`}>
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
@@ -895,7 +891,7 @@ export default function MyClassroomDetailPage() {
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Lịch trình chi tiết các buổi học</h3>
           </div>
-          
+
           <div className="relative border-l-2 border-gray-200 pl-6 ml-4 space-y-6 py-2">
             {paginatedSessions.map((session) => {
               const isVirtual = session.deliveryMode === 'VIRTUAL' || classroom?.deliveryMode === 'VIRTUAL';
@@ -914,16 +910,14 @@ export default function MyClassroomDetailPage() {
                   id={`classroom-session-${session.id}`}
                 >
                   {/* Timeline dot */}
-                  <div className={`absolute -left-[33px] top-6 h-3.5 w-3.5 rounded-full border-2 bg-white transition ${
-                    isHighlighted ? 'border-[#730014] ring-4 ring-[#730014]/10 scale-110' : 'border-gray-300'
-                  }`} />
-                  
+                  <div className={`absolute -left-[33px] top-6 h-3.5 w-3.5 rounded-full border-2 bg-white transition ${isHighlighted ? 'border-[#730014] ring-4 ring-[#730014]/10 scale-110' : 'border-gray-300'
+                    }`} />
+
                   {/* Card item */}
-                  <div className={`rounded-2xl border p-5 bg-white transition shadow-[0_10px_25px_rgba(0,0,0,0.01)] ${
-                    isHighlighted
+                  <div className={`rounded-2xl border p-5 bg-white transition shadow-[0_10px_25px_rgba(0,0,0,0.01)] ${isHighlighted
                       ? 'border-[#730014]/50 ring-2 ring-[#730014]/10 shadow-[0_12px_28px_rgba(115,0,20,0.08)]'
                       : 'border-gray-200/80'
-                  }`}>
+                    }`}>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-3 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -1012,7 +1006,7 @@ export default function MyClassroomDetailPage() {
             })}
           </div>
           {larkMessage && <p className="text-xs font-bold text-rose-700">{larkMessage}</p>}
-          
+
           {sessionsTotalPages > 1 && (
             <div className="flex justify-center mt-6">
               <Pagination
@@ -1144,180 +1138,177 @@ export default function MyClassroomDetailPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2">
               {paginatedHomeworkList.map((item) => {
-              const hasSubmission = !!item.mySubmission;
-              const isGraded = hasSubmission && item.mySubmission.score != null;
-              const teacherFeedback = getSubmissionFeedback(item.mySubmission);
-              const annotationCount = item.mySubmission?.annotations?.length || 0;
-              const hasTeacherEvaluation = hasHomeworkTeacherEvaluation(item.mySubmission);
-              const isOverdue = item.overdue && !hasSubmission;
-              const canSubmit = canResubmitHomework(item);
-              
-              const isUrgent = !hasSubmission && !isOverdue && new Date(item.deadline) - new Date() < 24 * 60 * 60 * 1000;
-              const statusInfo = getMinimalistStatusInfo(isGraded ? 'GRADED' : hasSubmission ? 'SUBMITTED' : isOverdue ? 'OVERDUE' : 'NOT_SUBMITTED');
+                const hasSubmission = !!item.mySubmission;
+                const isGraded = hasSubmission && item.mySubmission.score != null;
+                const teacherFeedback = getSubmissionFeedback(item.mySubmission);
+                const annotationCount = item.mySubmission?.annotations?.length || 0;
+                const hasTeacherEvaluation = hasHomeworkTeacherEvaluation(item.mySubmission);
+                const isOverdue = item.overdue && !hasSubmission;
+                const canSubmit = canResubmitHomework(item);
 
-              return (
-                <article
-                  id={`homework-card-${item.id}`}
-                  key={item.id}
-                  className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${
-                    isOverdue
-                      ? 'border-rose-200 ring-2 ring-rose-100/60'
-                      : hasSubmission
-                        ? 'border-emerald-200 ring-2 ring-emerald-100/60'
-                        : 'border-orange-200 ring-2 ring-orange-100/50'
-                  }`}
-                >
-                  <div className="flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                      {/* Card Header */}
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <span className={`h-2 w-2 rounded-full ${statusInfo.dotColor}`} />
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">
-                            {statusInfo.text}
-                          </span>
-                        </div>
+                const isUrgent = !hasSubmission && !isOverdue && new Date(item.deadline) - new Date() < 24 * 60 * 60 * 1000;
+                const statusInfo = getMinimalistStatusInfo(isGraded ? 'GRADED' : hasSubmission ? 'SUBMITTED' : isOverdue ? 'OVERDUE' : 'NOT_SUBMITTED');
 
-                        <span className="inline-flex items-center rounded-full bg-[#fff0f1] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#730014]">
-                          {getHomeworkSkillLabel(item.skill)}
-                        </span>
-                      </div>
-
-                      {/* Title & info tags */}
-                      <div className="space-y-1">
-                        <h3 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c] leading-snug">
-                          {item.title}
-                        </h3>
-                        
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                          {isAiGradedHomework(item) && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] px-2 py-0.5 text-[9px] font-bold text-[#8a0018] border border-[#dfbfbd]/40">
-                              <Bot className="h-3 w-3" />
-                              AI Review
+                return (
+                  <article
+                    id={`homework-card-${item.id}`}
+                    key={item.id}
+                    className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${isOverdue
+                        ? 'border-rose-200 ring-2 ring-rose-100/60'
+                        : hasSubmission
+                          ? 'border-emerald-200 ring-2 ring-emerald-100/60'
+                          : 'border-orange-200 ring-2 ring-orange-100/50'
+                      }`}
+                  >
+                    <div className="flex-1 flex flex-col justify-between space-y-4">
+                      <div className="space-y-3">
+                        {/* Card Header */}
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2 w-2 rounded-full ${statusInfo.dotColor}`} />
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-500">
+                              {statusInfo.text}
                             </span>
-                          )}
-                          {getHomeworkGradingHint(item) && !hasSubmission && (
-                            <span className="text-[9px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">{getHomeworkGradingHint(item)}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-[#584140] line-clamp-2 leading-relaxed">
-                        {item.instruction || 'Không có mô tả chi tiết bài tập.'}
-                      </p>
-
-                      <div className="flex items-center gap-2 text-xs text-[#8b706e] pt-1">
-                        <Clock className="h-4 w-4 text-[#730014] shrink-0" />
-                        <span>Hạn nộp: <strong className="text-[#584140] font-semibold">{formatClassroomDateTime(item.deadline)}</strong></span>
-                      </div>
-
-                      {/* Graded block display */}
-                      {isGraded && (
-                        <div className="rounded-xl border border-emerald-100 bg-emerald-50/15 p-3 flex items-center justify-between">
-                          <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-widest flex items-center gap-1">
-                            <Award className="h-4 w-4" />
-                            Đã chấm điểm
-                          </span>
-                          <strong className="text-emerald-700 text-xs font-extrabold">{item.mySubmission.score} / {getHomeworkMaxScore(item)} điểm</strong>
-                        </div>
-                      )}
-
-                      {hasTeacherEvaluation && (
-                        <div className="rounded-xl border border-[#dfbfbd]/35 bg-[#fffafb] p-3">
-                          <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            Đánh giá của giảng viên
                           </div>
-                          {teacherFeedback ? (
-                            <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{stripRichTextToPlain(teacherFeedback)}</p>
-                          ) : null}
-                          {annotationCount > 0 ? (
-                            <p className="mt-2 text-[11px] font-bold text-[#8b706e]">{annotationCount} nhận xét trực tiếp trên bài làm</p>
-                          ) : null}
-                          {!teacherFeedback && annotationCount === 0 ? (
-                            <p className="mt-2 text-xs text-[#8b706e]">Giảng viên đã công bố điểm, chưa có nhận xét chi tiết.</p>
-                          ) : null}
-                        </div>
-                      )}
 
-                      {/* Submitted but not graded block */}
-                      {hasSubmission && !isGraded && (
-                        <div className="rounded-xl border border-blue-150 bg-blue-50/10 p-3 flex items-center justify-between">
-                          <span className="text-[10px] font-extrabold text-blue-800 uppercase tracking-widest flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                            {isAiGradedHomework(item) ? 'Chờ AI chấm điểm' : 'Đã nộp bài'}
+                          <span className="inline-flex items-center rounded-full bg-[#fff0f1] px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#730014]">
+                            {getHomeworkSkillLabel(item.skill)}
                           </span>
-                          <span className="text-[10px] text-gray-500 font-bold">Chờ giảng viên duyệt</span>
                         </div>
-                      )}
-                    </div>
 
-                    <div className="space-y-2 border-t border-gray-100 pt-3">
-                      {hasTeacherEvaluation && canSubmit ? (
-                        <button
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fffafb]"
-                          onClick={() => setSelectedHomeworkForSubmission(item)}
-                          type="button"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          Xem đánh giá của giảng viên
-                        </button>
-                      ) : null}
-                      {usesInteractiveHomeworkWorkspace(item) ? (
-                        <button
-                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${
-                            item.overdue ? 'opacity-40 cursor-not-allowed' : ''
-                          }`}
-                          disabled={item.overdue}
-                          onClick={() => !item.overdue && openInteractiveHomework(item)}
-                          title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
-                          type="button"
-                        >
-                          {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                          {item.overdue
-                            ? 'Đã quá hạn nộp'
-                            : item.activityType === 'FLASHCARD_REVIEW'
-                              ? 'Học flashcard theo unit'
-                              : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
-                        </button>
-                      ) : (
-                        <button
-                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${
-                            item.overdue
-                              ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
-                              : canSubmit
-                                ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
-                                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                          }`}
-                          disabled={item.overdue}
-                          onClick={() => !item.overdue && setSelectedHomeworkForSubmission(item)}
-                          title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
-                          type="button"
-                        >
-                          {item.overdue ? (
-                            <>
-                              <XCircle className="h-4 w-4" />
-                              Đã quá hạn nộp
-                            </>
-                          ) : canSubmit ? (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              {hasSubmission ? 'Cập nhật bài làm' : 'Nộp bài làm'}
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="h-4 w-4 text-[#730014]" />
-                              {hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Xem chi tiết bài làm'}
-                            </>
-                          )}
-                        </button>
-                      )}
+                        {/* Title & info tags */}
+                        <div className="space-y-1">
+                          <h3 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c] leading-snug">
+                            {item.title}
+                          </h3>
+
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {isAiGradedHomework(item) && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5f5] px-2 py-0.5 text-[9px] font-bold text-[#8a0018] border border-[#dfbfbd]/40">
+                                <Bot className="h-3 w-3" />
+                                AI Review
+                              </span>
+                            )}
+                            {getHomeworkGradingHint(item) && !hasSubmission && (
+                              <span className="text-[9px] text-purple-700 font-bold bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">{getHomeworkGradingHint(item)}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-[#584140] line-clamp-2 leading-relaxed">
+                          {item.instruction || 'Không có mô tả chi tiết bài tập.'}
+                        </p>
+
+                        <div className="flex items-center gap-2 text-xs text-[#8b706e] pt-1">
+                          <Clock className="h-4 w-4 text-[#730014] shrink-0" />
+                          <span>Hạn nộp: <strong className="text-[#584140] font-semibold">{formatClassroomDateTime(item.deadline)}</strong></span>
+                        </div>
+
+                        {/* Graded block display */}
+                        {isGraded && (
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50/15 p-3 flex items-center justify-between">
+                            <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-widest flex items-center gap-1">
+                              <Award className="h-4 w-4" />
+                              Đã chấm điểm
+                            </span>
+                            <strong className="text-emerald-700 text-xs font-extrabold">{item.mySubmission.score} / {getHomeworkMaxScore(item)} điểm</strong>
+                          </div>
+                        )}
+
+                        {hasTeacherEvaluation && (
+                          <div className="rounded-xl border border-[#dfbfbd]/35 bg-[#fffafb] p-3">
+                            <div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-widest text-[#730014]">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Đánh giá của giảng viên
+                            </div>
+                            {teacherFeedback ? (
+                              <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#584140]">{stripRichTextToPlain(teacherFeedback)}</p>
+                            ) : null}
+                            {annotationCount > 0 ? (
+                              <p className="mt-2 text-[11px] font-bold text-[#8b706e]">{annotationCount} nhận xét trực tiếp trên bài làm</p>
+                            ) : null}
+                            {!teacherFeedback && annotationCount === 0 ? (
+                              <p className="mt-2 text-xs text-[#8b706e]">Giảng viên đã công bố điểm, chưa có nhận xét chi tiết.</p>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* Submitted but not graded block */}
+                        {hasSubmission && !isGraded && (
+                          <div className="rounded-xl border border-blue-150 bg-blue-50/10 p-3 flex items-center justify-between">
+                            <span className="text-[10px] font-extrabold text-blue-800 uppercase tracking-widest flex items-center gap-1.5">
+                              <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                              {isAiGradedHomework(item) ? 'Chờ AI chấm điểm' : 'Đã nộp bài'}
+                            </span>
+                            <span className="text-[10px] text-gray-500 font-bold">Chờ giảng viên duyệt</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 border-t border-gray-100 pt-3">
+                        {hasTeacherEvaluation && canSubmit ? (
+                          <button
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#dfbfbd] bg-white px-5 py-2.5 text-xs font-extrabold text-[#730014] transition hover:bg-[#fffafb]"
+                            onClick={() => setSelectedHomeworkForSubmission(item)}
+                            type="button"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Xem đánh giá của giảng viên
+                          </button>
+                        ) : null}
+                        {usesInteractiveHomeworkWorkspace(item) ? (
+                          <button
+                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${item.overdue ? 'opacity-40 cursor-not-allowed' : ''
+                              }`}
+                            disabled={item.overdue}
+                            onClick={() => !item.overdue && openInteractiveHomework(item)}
+                            title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
+                            type="button"
+                          >
+                            {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                            {item.overdue
+                              ? 'Đã quá hạn nộp'
+                              : item.activityType === 'FLASHCARD_REVIEW'
+                                ? 'Học flashcard theo unit'
+                                : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
+                          </button>
+                        ) : (
+                          <button
+                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${item.overdue
+                                ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
+                                : canSubmit
+                                  ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
+                                  : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                              }`}
+                            disabled={item.overdue}
+                            onClick={() => !item.overdue && setSelectedHomeworkForSubmission(item)}
+                            title={item.overdue ? 'Bài tập đã quá hạn nộp' : undefined}
+                            type="button"
+                          >
+                            {item.overdue ? (
+                              <>
+                                <XCircle className="h-4 w-4" />
+                                Đã quá hạn nộp
+                              </>
+                            ) : canSubmit ? (
+                              <>
+                                <Upload className="h-4 w-4" />
+                                {hasSubmission ? 'Cập nhật bài làm' : 'Nộp bài làm'}
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="h-4 w-4 text-[#730014]" />
+                                {hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Xem chi tiết bài làm'}
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
 
           {homeworkTotalPages > 1 && (
@@ -1351,7 +1342,7 @@ export default function MyClassroomDetailPage() {
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Báo cáo chuyên cần</h3>
           </div>
-          
+
           {/* Attendance Stats Dashboard */}
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5 items-center rounded-2xl border border-gray-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.01)]">
             <div className="lg:col-span-2 flex justify-center py-2">
@@ -1403,13 +1394,12 @@ export default function MyClassroomDetailPage() {
                         {record.note || 'Không có ghi chú'}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4.5">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
-                          record.status === 'PRESENT'
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${record.status === 'PRESENT'
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             : record.status === 'LATE'
                               ? 'bg-amber-50 text-amber-700 border border-amber-100'
                               : 'bg-rose-50 text-rose-700 border border-rose-100'
-                        }`}>
+                          }`}>
                           {formatAttendanceStatus(record.status)}
                         </span>
                       </td>
@@ -1635,18 +1625,16 @@ export default function MyClassroomDetailPage() {
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Tổng kết kết quả</h3>
           </div>
 
-          <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
-            isPassed ? 'border-emerald-100 bg-emerald-50/15' : 'border-amber-100 bg-amber-50/15'
-          }`}>
+          <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${isPassed ? 'border-emerald-100 bg-emerald-50/15' : 'border-amber-100 bg-amber-50/15'
+            }`}>
             <div>
               <p className="text-[10px] font-extrabold text-[#8b706e] uppercase tracking-wider">Trạng thái khóa học</p>
               <h4 className={`mt-1 font-['Manrope'] text-xl font-extrabold ${isPassed ? 'text-emerald-800' : 'text-amber-800'}`}>
                 {finalResultLabel}
               </h4>
             </div>
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest ${
-              isPassed ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-            }`}>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-extrabold uppercase tracking-widest ${isPassed ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+              }`}>
               {isPassed ? <CheckCircle2 className="h-4 w-4" /> : <Info className="h-4 w-4" />}
               {isPassed ? 'Đã hoàn thành' : 'Đang xử lý'}
             </span>
@@ -1683,7 +1671,7 @@ export default function MyClassroomDetailPage() {
             <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
             <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Tài liệu & Học liệu</h3>
           </div>
-          
+
           <div className="grid gap-4 sm:grid-cols-2">
             {materials.map((material) => (
               <article
@@ -1694,16 +1682,15 @@ export default function MyClassroomDetailPage() {
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0f1] text-[#730014] mb-3">
                     <FileText className="h-5 w-5" />
                   </div>
-                  
+
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c] line-clamp-1">
                       {material.title}
                     </h4>
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest ${
-                      material.sourceType === 'CENTER_LIBRARY'
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest ${material.sourceType === 'CENTER_LIBRARY'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                         : 'bg-[#fff0f1] text-[#730014] border border-[#dfbfbd]/35'
-                    }`}>
+                      }`}>
                       {material.sourceType === 'CENTER_LIBRARY' ? 'Trung tâm' : 'Lớp học'}
                     </span>
                   </div>
@@ -1763,7 +1750,7 @@ export default function MyClassroomDetailPage() {
           <span className="h-4 w-1 shrink-0 rounded-full bg-[#8a0018]" />
           <h3 className="text-xs font-extrabold uppercase tracking-widest text-[#1a1c1c]">Thông báo chính thức từ lớp học</h3>
         </div>
-        
+
         <div className="space-y-4">
           {paginatedAnnouncements.map((announcement) => (
             <article
@@ -1810,21 +1797,21 @@ export default function MyClassroomDetailPage() {
     <LearnerPageShell hideHeader={true}>
       {loading ? <ClassroomLoadingState message="Đang tải dữ liệu lớp học..." /> : null}
       {!loading && error ? <ClassroomErrorState message={error} onRetry={loadClassroom} /> : null}
-      
+
       {!loading && !error && classroom ? (
         <div className="space-y-8 flex-1">
-          
+
           {/* ── Classroom Apple Hero (Merged Card Banner) ── */}
           <div className="rounded-[28px] border border-gray-200/80 bg-white p-6 shadow-[0_10px_35px_rgba(0,0,0,0.015)] transition-all duration-300 hover:shadow-[0_15px_45px_rgba(75,0,9,0.04)]">
             <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-              
+
               <div className="space-y-3 flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-150 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-[#584140]">
                     {classroom.deliveryMode === 'VIRTUAL' ? <Video className="h-3 w-3 text-purple-600" /> : <Building className="h-3 w-3 text-[#730014]" />}
                     {classroom.deliveryMode === 'VIRTUAL' ? 'Học Online' : 'Tại trung tâm'}
                   </span>
-                  
+
                   {currentClassStatusInfo && (
                     <div className="flex items-center gap-1.5 border border-gray-200 bg-gray-50/50 rounded-full px-2.5 py-0.5">
                       <span className={`h-1.5 w-1.5 rounded-full ${currentClassStatusInfo.dotColor}`} />
@@ -1845,7 +1832,7 @@ export default function MyClassroomDetailPage() {
                 {classroom.shortDescription && (
                   <p className="text-xs leading-relaxed text-[#584140] pl-4">{classroom.shortDescription}</p>
                 )}
-                
+
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#584140] pl-4">
                   <span className="flex items-center gap-1.5">
                     <User className="h-4 w-4 text-[#730014]" />
@@ -1894,11 +1881,10 @@ export default function MyClassroomDetailPage() {
                 return (
                   <button
                     key={tab.id}
-                    className={`relative rounded-xl px-4 py-2.5 text-xs font-extrabold tracking-wide transition-all duration-300 ${
-                      isActive
+                    className={`relative rounded-xl px-4 py-2.5 text-xs font-extrabold tracking-wide transition-all duration-300 ${isActive
                         ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
                         : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
-                    }`}
+                      }`}
                     onClick={() => setActiveTab(tab.id)}
                     type="button"
                   >
@@ -1911,11 +1897,10 @@ export default function MyClassroomDetailPage() {
             {/* Action Notification message */}
             {actionMessage && (
               <div
-                className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${
-                  actionMessage.includes('thành công')
+                className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${actionMessage.includes('thành công')
                     ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
                     : 'bg-rose-50 border-rose-100 text-rose-800'
-                }`}
+                  }`}
               >
                 {actionMessage.includes('thành công') ? (
                   <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
@@ -2026,7 +2011,7 @@ function KpiCard({ label, value, sub, icon }) {
 function GradeIndicatorCard({ label, score, suffix = '', customScore, color }) {
   const isAvailable = score != null;
   const percent = isAvailable ? score * 10 : 0;
-  
+
   const colorsMap = {
     red: 'bg-[#730014]',
     blue: 'bg-blue-600',
@@ -2147,7 +2132,7 @@ function ClassroomPracticePanel({ classroomId, curriculum, initialUnitId = null,
     return practices.filter((p) => {
       const matchesSearch = searchQuery
         ? (p.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.unitTitle || '').toLowerCase().includes(searchQuery.toLowerCase())
+        (p.unitTitle || '').toLowerCase().includes(searchQuery.toLowerCase())
         : true;
       const matchesUnit = selectedUnitId === 'ALL'
         ? true
@@ -2291,11 +2276,10 @@ function ClassroomPracticePanel({ classroomId, curriculum, initialUnitId = null,
 
                   <div className="flex items-center justify-between gap-3">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest border ${
-                        exercise.completed
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest border ${exercise.completed
                           ? 'border-emerald-100 bg-emerald-50/60 text-emerald-700'
                           : 'border-amber-100 bg-amber-50/60 text-amber-700'
-                      }`}
+                        }`}
                     >
                       {exercise.completed ? <CheckCircle2 className="h-2.5 w-2.5" /> : <Circle className="h-2.5 w-2.5" />}
                       {exercise.completed ? 'Đã luyện tập' : 'Chưa luyện tập'}
@@ -2395,7 +2379,7 @@ function LearnerCurriculumPanel({
 
   return (
     <div className="space-y-6">
-      
+
       {/* Curriculum intro */}
       <div className="rounded-[24px] border border-gray-200 bg-white p-5 shadow-[0_10px_30px_rgba(0,0,0,0.01)] space-y-2">
         <div className="flex items-center gap-2 mb-2">
@@ -2448,14 +2432,13 @@ function LearnerCurriculumPanel({
             {units.map((unit) => {
               const isExpanded = expandedUnits.has(unit.id);
               const totalResources = (unit.materials?.length ?? 0) + (unit.exercises?.length ?? 0) + (unit.flashcards?.length ?? 0);
-              
+
               return (
                 <article
                   key={unit.id}
                   id={`curriculum-unit-${unit.id}`}
-                  className={`rounded-2xl border transition-all duration-300 bg-white ${
-                    isExpanded ? 'border-[#730014]/30 shadow-md shadow-[#730014]/5' : 'border-gray-200/80 shadow-[0_4px_15px_rgba(0,0,0,0.005)] hover:border-gray-300'
-                  }`}
+                  className={`rounded-2xl border transition-all duration-300 bg-white ${isExpanded ? 'border-[#730014]/30 shadow-md shadow-[#730014]/5' : 'border-gray-200/80 shadow-[0_4px_15px_rgba(0,0,0,0.005)] hover:border-gray-300'
+                    }`}
                 >
                   {/* Accordion Trigger Header */}
                   <button
@@ -2465,12 +2448,11 @@ function LearnerCurriculumPanel({
                   >
                     <div className="flex items-center gap-3.5 pr-4">
                       {/* Circle Number */}
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${
-                        isExpanded ? 'bg-[#730014] text-white' : 'bg-[#fff0f1] text-[#730014]'
-                      }`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shrink-0 ${isExpanded ? 'bg-[#730014] text-white' : 'bg-[#fff0f1] text-[#730014]'
+                        }`}>
                         {String(unit.displayOrder ?? 0).padStart(2, '0')}
                       </span>
-                      
+
                       <div>
                         <h4 className="font-['Manrope'] text-sm font-extrabold text-[#1a1c1c] leading-snug">
                           {unit.title}
@@ -2488,7 +2470,7 @@ function LearnerCurriculumPanel({
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 shrink-0">
                       {isExpanded ? (
                         <ChevronUp className="h-4.5 w-4.5 text-[#730014]" />
@@ -2506,7 +2488,7 @@ function LearnerCurriculumPanel({
                           {unit.description}
                         </p>
                       )}
-                      
+
                       {unit.sessionPlans?.length > 0 && (
                         <div className="space-y-2 rounded-xl border border-gray-100 bg-white p-4">
                           <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-700">Các buổi học</span>
@@ -2518,7 +2500,7 @@ function LearnerCurriculumPanel({
                           ))}
                         </div>
                       )}
-                      
+
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                         <LearnerRefList
                           title="Học liệu học tập"
