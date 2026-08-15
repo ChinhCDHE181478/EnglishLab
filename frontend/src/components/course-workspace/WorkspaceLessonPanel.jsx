@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const getVideoEmbedUrl = (url) => {
@@ -27,8 +27,8 @@ const renderLine = (line, key) => {
   if (line.startsWith('### ')) return <h4 key={key} className="mt-4 text-[13px] font-bold uppercase tracking-wide text-[#5f5353]">{renderInlineMarkdown(line.slice(4))}</h4>;
   if (line.startsWith('## ')) return <h3 key={key} className="mt-5 text-base font-bold text-[#1f2430]">{renderInlineMarkdown(line.slice(3))}</h3>;
   if (line.startsWith('# ')) return <h2 key={key} className="text-lg font-bold text-[#1f2430]">{renderInlineMarkdown(line.slice(2))}</h2>;
-  if (/^\d+\.\s+/.test(line)) return <p key={key} className="flex gap-2 pl-2 font-medium text-[#3f3030]"><span className="shrink-0 font-bold text-[#4b0009]">{line.match(/^\d+/)?.[0]}.</span><span>{renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</span></p>;
-  if (line.startsWith('- ')) return <p key={key} className="flex gap-2 pl-2 text-[#3f3030]"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#4b0009]" /><span>{renderInlineMarkdown(line.slice(2))}</span></p>;
+  if (/^\d+\.\s+/.test(line)) return <p key={key} className="pl-2 font-medium text-[#3f3030]"><span className="font-bold text-[#4b0009]">{line.match(/^\d+/)?.[0]}. </span>{renderInlineMarkdown(line.replace(/^\d+\.\s+/, ''))}</p>;
+  if (line.startsWith('- ')) return <p key={key} className="relative pl-5 text-[#3f3030]"><span className="absolute left-2 top-[0.7em] h-1.5 w-1.5 rounded-full bg-[#4b0009]" />{renderInlineMarkdown(line.slice(2))}</p>;
   return <p key={key} className="text-[#3f3030]">{renderInlineMarkdown(line)}</p>;
 };
 
@@ -42,9 +42,11 @@ const LESSON_HTML_CLASSES = [
   '[&_h2]:mb-2 [&_h2]:mt-6 [&_h2]:text-base [&_h2]:font-bold [&_h2]:text-[#1f2430]',
   '[&_h3]:mb-1.5 [&_h3]:mt-5 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:text-[#5f5353]',
   '[&_h4]:mb-1 [&_h4]:mt-4 [&_h4]:text-sm [&_h4]:font-bold [&_h4]:text-[#1f2430]',
-  /* paragraphs, lists */
+  /* paragraphs, lists — avoid flex on <li> so learners can highlight exercise text */
   '[&_p]:my-1.5',
-  '[&_ul]:my-3 [&_ul]:space-y-1 [&_ul]:pl-0 [&_ul>li]:flex [&_ul>li]:gap-2 [&_ul>li]:items-baseline [&_ul>li]:before:mt-1.5 [&_ul>li]:before:h-1.5 [&_ul>li]:before:w-1.5 [&_ul>li]:before:shrink-0 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-[#4b0009] [&_ul>li]:before:content-[""]',
+  '[&_ul]:my-3 [&_ul]:list-none [&_ul]:space-y-1 [&_ul]:pl-4',
+  '[&_ul>li]:relative [&_ul>li]:pl-3',
+  '[&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.7em] [&_ul>li]:before:h-1.5 [&_ul>li]:before:w-1.5 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-[#4b0009] [&_ul>li]:before:content-[""]',
   '[&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol>li]:pl-1 [&_ol>li]:marker:font-bold [&_ol>li]:marker:text-[#4b0009]',
   /* blockquote */
   '[&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#dfbfbd] [&_blockquote]:bg-[#fff7f7] [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:italic [&_blockquote]:text-[#584140]',
@@ -181,13 +183,15 @@ const WorkspaceLessonPanel = ({
     window.getSelection?.()?.removeAllRanges?.();
   }, [activeLessonId]);
 
-  const captureLessonSelection = () => {
+  const captureLessonSelection = useCallback(() => {
     const selection = window.getSelection?.();
     const text = selection?.toString().trim();
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
     const container = lessonContentRef.current;
+    const ancestor = range?.commonAncestorContainer;
+    const ancestorElement = ancestor?.nodeType === Node.TEXT_NODE ? ancestor.parentElement : ancestor;
 
-    if (!text || !range || !container || !container.contains(range.commonAncestorContainer)) {
+    if (!text || !range || !container || !ancestorElement || !container.contains(ancestorElement)) {
       setSelectionButton(null);
       return;
     }
@@ -206,7 +210,15 @@ const WorkspaceLessonPanel = ({
     setSelectedLessonText(text);
     setSelectionButton({ top: Math.max(8, top), left });
     setLessonNoteMessage('');
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      window.requestAnimationFrame(captureLessonSelection);
+    };
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, [captureLessonSelection]);
 
   const saveSelectedLessonText = async () => {
     if (!canPersist) {
@@ -299,7 +311,7 @@ const WorkspaceLessonPanel = ({
           </div>
         </div>
 
-        <div ref={lessonContentRef} className="relative" onMouseUp={captureLessonSelection}>
+        <div ref={lessonContentRef} className="relative select-text" onMouseUp={captureLessonSelection}>
           <LessonContent content={lessonContent} />
           {selectionButton ? (
             <button

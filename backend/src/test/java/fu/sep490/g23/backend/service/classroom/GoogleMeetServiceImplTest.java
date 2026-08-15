@@ -52,6 +52,9 @@ class GoogleMeetServiceImplTest {
             assertThat(exchange.getRequestMethod()).isEqualTo("POST");
             assertThat(exchange.getRequestHeaders().getFirst("Authorization"))
                     .isEqualTo("Bearer access-token");
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(body).contains("\"accessType\":\"RESTRICTED\"");
+            assertThat(body).doesNotContain("\"accessType\":\"OPEN\"");
             respond(
                     exchange,
                     200,
@@ -79,6 +82,28 @@ class GoogleMeetServiceImplTest {
         assertThat(session.getLarkMeetingStatus()).isEqualTo(LarkMeetingStatus.SCHEDULED);
         assertThat(session.getLarkSyncStatus()).isEqualTo("SYNCED");
         assertThat(service.getPlatformName()).isEqualTo("Google Meet");
+    }
+
+    @Test
+    void updatesExistingMeetSpaceSoGuestsMustWaitForTheHost() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> respond(exchange, 200, "{\"access_token\":\"access-token\",\"expires_in\":3600}"));
+        server.createContext("/v2/spaces/existing-restricted-room", exchange -> {
+            assertThat(exchange.getRequestMethod()).isEqualTo("PATCH");
+            assertThat(exchange.getRequestURI().getQuery()).contains("updateMask=config.accessType");
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(body).contains("\"accessType\":\"RESTRICTED\"");
+            respond(exchange, 200, "{\"name\":\"spaces/existing-restricted-room\",\"config\":{\"accessType\":\"RESTRICTED\"}}");
+        });
+        server.start();
+
+        ClassroomSession session = sessionWithTeacher();
+        session.setLarkMeetingId("spaces/existing-restricted-room");
+        session.setLarkMeetingUrl("https://meet.google.com/existing-restricted-room");
+
+        new GoogleMeetServiceImpl(configuredProperties(), connectedTeacherService()).syncMeeting(session);
+
+        assertThat(session.getLarkSyncStatus()).isEqualTo("SYNCED");
     }
 
     @Test
