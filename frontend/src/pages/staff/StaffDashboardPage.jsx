@@ -15,6 +15,7 @@ import {
 import classroomApi from '../../api/classroomApi';
 import enrollmentRequestApi from '../../api/enrollmentRequestApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDate, formatClassroomDateTime } from '../../utils/classroomHelpers';
 
@@ -47,14 +48,6 @@ export default function StaffDashboardPage() {
     loadDashboard();
   }, []);
 
-  if (loading) {
-    return <ClassroomLoadingState message="Đang tải việc cần làm hôm nay..." />;
-  }
-
-  if (error) {
-    return <ClassroomErrorState message={error} onRetry={loadDashboard} />;
-  }
-
   const newRequestCount = enrollmentRequests.filter((item) => (
     ['SUBMITTED', 'UNDER_STAFF_REVIEW'].includes(item.status)
   )).length;
@@ -65,6 +58,20 @@ export default function StaffDashboardPage() {
   ));
   const changeActionItems = (dashboard?.actionItems || []).filter((item) => item.changeRequestId);
   const hasWork = actionableRequests.length + changeActionItems.length > 0;
+  const workItems = [
+    ...actionableRequests.map((item) => ({ type: 'enrollment', item })),
+    ...changeActionItems.map((item) => ({ type: 'change', item })),
+  ];
+  const workPagination = usePagination(workItems, 6, `${enrollmentRequests.length}|${changeActionItems.length}`);
+  const alertPagination = usePagination(dashboard?.classroomAlerts || [], 4, dashboard?.classroomAlerts?.length);
+
+  if (loading) {
+    return <ClassroomLoadingState message="Đang tải việc cần làm hôm nay..." />;
+  }
+
+  if (error) {
+    return <ClassroomErrorState message={error} onRetry={loadDashboard} />;
+  }
 
   return (
     <motion.div
@@ -140,7 +147,7 @@ export default function StaffDashboardPage() {
             />
           ) : (
             <div className="space-y-2">
-              {actionableRequests.slice(0, 12).map((item) => (
+              {workPagination.pageItems.filter(({ type }) => type === 'enrollment').map(({ item }) => (
                 <Link
                   className="flex items-start justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
                   key={`enrollment-request-${item.id}`}
@@ -158,7 +165,7 @@ export default function StaffDashboardPage() {
                   <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[#730014]" />
                 </Link>
               ))}
-              {changeActionItems.map((item) => (
+              {workPagination.pageItems.filter(({ type }) => type === 'change').map(({ item }) => (
                 <Link
                   className="flex items-start justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
                   key={`${item.kind}-${item.enrollmentId || item.changeRequestId}`}
@@ -174,6 +181,7 @@ export default function StaffDashboardPage() {
                   <ArrowRight className="mt-1 h-4 w-4 flex-shrink-0 text-[#730014]" />
                 </Link>
               ))}
+              <Pagination compact onChange={workPagination.setPage} page={workPagination.page} pageSize={6} totalItems={workPagination.totalItems} totalPages={workPagination.totalPages} />
             </div>
           )}
         </section>
@@ -182,7 +190,7 @@ export default function StaffDashboardPage() {
           <h2 className="mb-4 font-['Manrope'] text-lg font-extrabold text-[#2b2828]">Lớp cần chú ý</h2>
           {(dashboard?.classroomAlerts || []).length ? (
             <div className="space-y-3">
-              {dashboard.classroomAlerts.map((alert) => (
+              {alertPagination.pageItems.map((alert) => (
                 <Link
                   className="block rounded-2xl border border-amber-100 bg-amber-50/40 p-4 transition hover:bg-amber-50"
                   key={`${alert.classroomOfferingId}-${alert.alertType}`}
@@ -206,6 +214,7 @@ export default function StaffDashboardPage() {
                   </div>
                 </Link>
               ))}
+              <Pagination compact onChange={alertPagination.setPage} page={alertPagination.page} pageSize={4} totalItems={alertPagination.totalItems} totalPages={alertPagination.totalPages} />
             </div>
           ) : (
             <p className="text-sm text-[#8b706e]">Không có lớp nào cần can thiệp gấp trong 2 tuần tới.</p>
@@ -255,6 +264,8 @@ function formatScore(value) {
 }
 
 function ScoreList({ title, href, items, emptyText }) {
+  const pagination = usePagination(items, 5, items.length);
+
   return (
     <section className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -263,7 +274,7 @@ function ScoreList({ title, href, items, emptyText }) {
       </div>
       {items.length ? (
         <div className="space-y-2">
-          {items.map((item) => (
+          {pagination.pageItems.map((item) => (
             <Link
               className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fffafb]/60 px-4 py-3 transition hover:border-[#dfbfbd]/50 hover:bg-[#fff3f4]"
               key={`${item.name}-${item.subtitle}-${item.score}`}
@@ -276,6 +287,7 @@ function ScoreList({ title, href, items, emptyText }) {
               <span className="shrink-0 font-['Manrope'] text-lg font-black text-[#4b0009]">{formatScore(item.score)}</span>
             </Link>
           ))}
+          <Pagination compact onChange={pagination.setPage} page={pagination.page} pageSize={5} totalItems={pagination.totalItems} totalPages={pagination.totalPages} />
         </div>
       ) : (
         <p className="text-sm text-[#8b706e]">{emptyText}</p>
