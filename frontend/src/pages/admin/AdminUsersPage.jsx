@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Edit3, Mail, Plus, Search, UserCog } from 'lucide-react';
+import { Edit3, LockKeyhole, Mail, Plus, Search, UnlockKeyhole, UserCog } from 'lucide-react';
 import adminApi from '../../api/adminApi';
 import { ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -89,8 +89,9 @@ export default function AdminUsersPage() {
     }
     setPasswordError('');
     try {
-      if (modal === 'create') await adminApi.createUser(form);
-      else await adminApi.updateUser(modal.id, form);
+      const payload = form.password ? form : Object.fromEntries(Object.entries(form).filter(([key]) => key !== 'password'));
+      if (modal === 'create') await adminApi.createUser(payload);
+      else await adminApi.updateUser(modal.id, payload);
       setModal(null);
       await load();
     } catch (requestError) {
@@ -155,6 +156,7 @@ export default function AdminUsersPage() {
               <td className="px-6 py-5 text-sm text-[#564241]">{user.profileCompleted ? 'Đã hoàn thiện' : 'Chưa hoàn thiện'}</td>
               <td className="px-6 py-5"><button aria-label={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} className={`rounded-full px-3 py-1 text-xs font-bold ${user.enabled ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`} onClick={() => toggleStatus(user)} title={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} type="button">{user.enabled ? 'Hoạt động' : 'Đã khóa'}</button></td>
               <td className="px-6 py-5"><div className="flex justify-end gap-2">
+                <button aria-label={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold ${user.enabled ? 'border-rose-200 text-rose-700 hover:bg-rose-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'}`} onClick={() => toggleStatus(user)} title={user.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'} type="button">{user.enabled ? <><LockKeyhole className="h-4 w-4" /> Khóa</> : <><UnlockKeyhole className="h-4 w-4" /> Mở khóa</>}</button>
                 {user.roles.includes('TEACHER') ? <button className="inline-flex items-center gap-2 rounded-lg border border-sky-200 px-3 py-2 text-xs font-bold text-sky-700 hover:bg-sky-50" onClick={() => resendTeacherEmail(user)} type="button"><Mail className="h-4 w-4" /> Gửi email thiết lập</button> : null}
                 <button className="inline-flex items-center gap-2 rounded-lg border border-[#dcc0bf]/50 px-3 py-2 text-xs font-bold text-[#730014] hover:bg-[#fff6f6]" onClick={() => openEdit(user)} type="button"><Edit3 className="h-4 w-4" /> Sửa / vai trò</button>
               </div></td>
@@ -178,8 +180,9 @@ export default function AdminUsersPage() {
               <input className="rounded-xl border border-[#dcc0bf]/50 p-3 outline-none focus:border-[#8a0018]" onChange={(event) => setForm({ ...form, fullName: event.target.value })} placeholder="Họ tên" required type="text" value={form.fullName} />
               <input className="rounded-xl border border-[#dcc0bf]/50 p-3 outline-none focus:border-[#8a0018]" onChange={(event) => setForm({ ...form, email: event.target.value })} placeholder="Email" required type="email" value={form.email} />
               <input className="rounded-xl border border-[#dcc0bf]/50 p-3 outline-none focus:border-[#8a0018]" onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} placeholder="Số điện thoại" type="text" value={form.phoneNumber} />
-              <input className="rounded-xl border border-[#dcc0bf]/50 p-3 outline-none focus:border-[#8a0018]" onChange={(event) => setForm({ ...form, password: event.target.value })} placeholder={creatingTeacher ? 'Mật khẩu (giáo viên tự thiết lập qua email)' : modal === 'create' ? 'Mật khẩu' : 'Mật khẩu mới (tùy chọn)'} required={modal === 'create' && !creatingTeacher} type="password" value={form.password} />
+              <input aria-describedby="admin-password-hint" className={`rounded-xl border p-3 outline-none focus:border-[#8a0018] ${passwordError ? 'border-rose-400' : 'border-[#dcc0bf]/50'}`} onChange={(event) => { setForm({ ...form, password: event.target.value }); setPasswordError(''); }} placeholder={creatingTeacher ? 'Mật khẩu (giáo viên tự thiết lập qua email)' : modal === 'create' ? 'Mật khẩu' : 'Mật khẩu mới (tùy chọn)'} required={modal === 'create' && !creatingTeacher} type="password" value={form.password} />
             </div>
+            {(modal === 'create' || form.password || passwordError) ? <p className={`mt-2 text-xs leading-5 ${passwordError ? 'font-semibold text-rose-600' : 'text-[#756361]'}`} id="admin-password-hint">{passwordError || 'Mật khẩu gồm ít nhất 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.'}</p> : null}
             {creatingTeacher ? <p className="mt-3 text-sm leading-6 text-[#756361]">Nếu để trống mật khẩu, giáo viên sẽ nhận email thiết lập tài khoản và liên kết Google Meet.</p> : null}
             <p className="mb-2 mt-5 text-sm font-bold text-[#4b0009]">Vai trò</p>
             <div className="flex flex-wrap gap-2">
