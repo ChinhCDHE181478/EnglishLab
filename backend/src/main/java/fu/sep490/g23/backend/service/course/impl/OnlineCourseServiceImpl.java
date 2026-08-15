@@ -616,14 +616,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
                 .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
                 .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
-                .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
+                .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                        .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }

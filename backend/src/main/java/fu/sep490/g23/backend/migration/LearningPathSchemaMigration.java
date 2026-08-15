@@ -47,13 +47,18 @@ public class LearningPathSchemaMigration {
                 INSERT INTO learning_paths (code, name, discount_percent, minimum_courses_for_discount)
                 SELECT DISTINCT trim(learning_path_code),
                        COALESCE(NULLIF(max(trim(learning_path_name)), ''), trim(learning_path_code)),
-                       0,
+                       15,
                        2
                 FROM online_courses
                 WHERE learning_path_code IS NOT NULL
                   AND trim(learning_path_code) <> ''
                 GROUP BY trim(learning_path_code)
                 ON CONFLICT (code) DO NOTHING;
+
+                UPDATE learning_paths
+                SET discount_percent = 15
+                WHERE discount_percent = 0
+                  AND minimum_courses_for_discount <= 2;
 
                 INSERT INTO learning_path_courses (learning_path_id, online_course_id, display_order)
                 SELECT path.id, course.id, COALESCE(course.learning_path_order, 0)

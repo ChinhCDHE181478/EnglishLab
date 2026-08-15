@@ -104,6 +104,7 @@ const normalizePartFeedback = (feedback) => valueList(
   };
 });
 const fallbackText = (value) => value || 'Chưa có';
+
 const buildSubmissionComparison = (currentSubmission, previousSubmission) => {
   if (!currentSubmission || !previousSubmission) return null;
 

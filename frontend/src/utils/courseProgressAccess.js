@@ -30,5 +30,7 @@ export const isReachedModuleUnlocked = ({
   sequentiallyUnlocked,
   moduleIndex,
   furthestReachedModuleIndex,
-}) => sequentiallyUnlocked || moduleIndex <= furthestReachedModuleIndex;
+  previousAssessmentsReady = true,
+}) => sequentiallyUnlocked
+  || (previousAssessmentsReady && moduleIndex <= furthestReachedModuleIndex);
 
