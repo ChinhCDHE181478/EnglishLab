@@ -273,9 +273,9 @@ export default function MockTestsPage() {
               </p>
             </div>
 
-            <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-[#fff0f1] px-3.5 py-1.5 text-xs font-extrabold text-[#730014] border border-[#f5d0d3]">
+            {/* <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-[#fff0f1] px-3.5 py-1.5 text-xs font-extrabold text-[#730014] border border-[#f5d0d3]">
               <Sparkles className="h-3.5 w-3.5" /> Data thực tế ({filteredTests.length} đề thi)
-            </span>
+            </span> */}
           </div>
 
           {/* 1. Top Category Tabs (All Tests, Academic Test, General Training Test) */}
