@@ -1145,8 +1145,16 @@ export default function MyClassroomDetailPage() {
               return (
                 <article
                   key={item.id}
-                  className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] hover:border-[#730014]/20 flex flex-col justify-between ${
-                    isUrgent ? 'border-amber-300 ring-2 ring-amber-300/10' : 'border-gray-200/80'
+                  className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${
+                    isOverdue
+                      ? 'border-rose-200 ring-2 ring-rose-100/60'
+                      : isGraded
+                        ? 'border-emerald-200 ring-2 ring-emerald-100/60'
+                        : !hasSubmission
+                          ? 'border-orange-200 ring-2 ring-orange-100/50'
+                          : isUrgent
+                            ? 'border-amber-300 ring-2 ring-amber-300/10'
+                            : 'border-gray-200/80'
                   }`}
                 >
                   <div className="flex-1 flex flex-col justify-between space-y-4">
@@ -1247,26 +1255,41 @@ export default function MyClassroomDetailPage() {
                       ) : null}
                       {usesInteractiveHomeworkWorkspace(item) ? (
                         <button
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014]"
-                          onClick={() => openInteractiveHomework(item)}
+                          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#4b0009] px-5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#730014] ${
+                            isOverdue ? 'opacity-40 cursor-not-allowed' : ''
+                          }`}
+                          disabled={isOverdue}
+                          onClick={() => !isOverdue && openInteractiveHomework(item)}
+                          title={isOverdue ? 'Bài tập đã quá hạn nộp' : undefined}
                           type="button"
                         >
                           {item.activityType === 'FLASHCARD_REVIEW' ? <BookOpen className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                          {item.activityType === 'FLASHCARD_REVIEW'
-                            ? 'Học flashcard theo unit'
-                            : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
+                          {isOverdue
+                            ? 'Đã quá hạn nộp'
+                            : item.activityType === 'FLASHCARD_REVIEW'
+                              ? 'Học flashcard theo unit'
+                              : hasSubmission && canSubmit ? 'Làm lại bài tập' : hasTeacherEvaluation ? 'Xem đánh giá & bài nộp' : 'Bắt đầu làm bài'}
                         </button>
                       ) : (
                         <button
                           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${
-                            canSubmit
-                              ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
-                              : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                            isOverdue
+                              ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
+                              : canSubmit
+                                ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
+                                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                           }`}
-                          onClick={() => setSelectedHomeworkForSubmission(item)}
+                          disabled={isOverdue}
+                          onClick={() => !isOverdue && setSelectedHomeworkForSubmission(item)}
+                          title={isOverdue ? 'Bài tập đã quá hạn nộp' : undefined}
                           type="button"
                         >
-                          {canSubmit ? (
+                          {isOverdue ? (
+                            <>
+                              <XCircle className="h-4 w-4" />
+                              Đã quá hạn nộp
+                            </>
+                          ) : canSubmit ? (
                             <>
                               <Upload className="h-4 w-4" />
                               {hasSubmission ? 'Cập nhật bài làm' : 'Nộp bài làm'}
