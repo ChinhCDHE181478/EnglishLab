@@ -495,14 +495,13 @@ export default function MyClassroomDetailPage() {
     [homework]);
 
   const handleDoPendingHomework = (item) => {
-    window.scrollTo({ top: 0 });
     setActiveTab('homework');
     const itemIndex = filteredHomework.findIndex(h => h.id === item.id);
     if (itemIndex >= 0) {
       const targetPage = Math.floor(itemIndex / 6) + 1;
       setHomeworkPage(targetPage);
       setTimeout(() => {
-        document.getElementById(`homework-card-${item.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById(`homework-card-${item.id}`)?.scrollIntoView({ behavior: 'auto', block: 'center' });
         if (usesInteractiveHomeworkWorkspace(item)) {
           openInteractiveHomework(item);
         } else {
@@ -525,13 +524,12 @@ export default function MyClassroomDetailPage() {
     );
 
     if (matchingUnit) {
-      window.scrollTo({ top: 0 });
       setActiveTab('curriculum');
       setExpandedUnits(new Set([matchingUnit.id]));
       setTimeout(() => {
         const element = document.getElementById(`curriculum-unit-${matchingUnit.id}`);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.scrollIntoView({ behavior: 'auto', block: 'center' });
         }
       }, 150);
     } else {
