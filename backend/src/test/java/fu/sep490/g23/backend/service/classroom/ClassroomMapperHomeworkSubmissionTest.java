@@ -17,7 +17,7 @@ class ClassroomMapperHomeworkSubmissionTest {
 
     private final ClassroomMapper mapper = new ClassroomMapper(
             new HomeworkTextAnnotationCodec(),
-            null, null, null, null, null, null, null
+            null, null, null, null, null, null, null, null
     );
 
     @Test

@@ -81,13 +81,13 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                         .build());
 
         learningPackage.setPackageType(packageType);
-        learningPackage.setTitle("E2 IELTS Practice Tests");
+        learningPackage.setTitle("E2 IELTS Practice");
         learningPackage.setShortDescription("IELTS practice course curated from public E2 IELTS YouTube videos.");
         learningPackage.setDescription("An IELTS practice course for Listening, Reading, and Speaking practice. Each video is organized as one module with a study guide, the original video lesson, and follow-up practice.");
         learningPackage.setTargetScore("IELTS 5.5 - 7.0");
         learningPackage.setDuration("5 hours 32 minutes");
         learningPackage.setStudyMode("Self-paced online video course");
-        learningPackage.setPrice(BigDecimal.valueOf(10000));
+        learningPackage.setPrice(BigDecimal.valueOf(1_190_000));
         learningPackage.setThumbnailUrl("https://i.ytimg.com/vi/v3axTdVoYkY/hqdefault.jpg");
         learningPackage.setStatus(PackageStatus.PUBLISHED);
         learningPackage.setDisplayOrder(5);

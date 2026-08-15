@@ -19,6 +19,7 @@ import {
   ProgramStatusPill,
 } from '../../components/curriculum/CurriculumProgramUi';
 import { ContentManagerLoadingState } from '../../components/content-manager/ContentManagerUi';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import { ENGLISH_SKILL_OPTIONS, englishTrackLabel } from '../../utils/englishProgramProfile';
 import {
   DANGER_BUTTON_CLASS,
@@ -269,7 +270,7 @@ export default function ContentManagerCurriculumProgramDetailPage({ mode = 'OFFL
                             {unit.unitCode ? <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold text-slate-600">{unit.unitCode}</span> : null}
                           </div>
                           <h4 className="font-extrabold text-[#26364a] group-hover:text-[#8a0018] transition">{unit.title}</h4>
-                          {unit.description ? <p className="mt-1 text-sm text-[#69778a] line-clamp-2">{unit.description}</p> : null}
+                          {unit.description ? <RichTextHtml asPlain className="mt-1 line-clamp-2 text-sm text-[#69778a]" value={unit.description} /> : null}
                         </div>
                         <span className="rounded-lg bg-white px-2.5 py-1 text-[10px] font-extrabold text-[#730014] ring-1 ring-[#dcc0bf]/40 shrink-0">
                           {refs.length} tài nguyên (Xem chi tiết)

@@ -30,7 +30,7 @@ const giaoVien = [
   {
     stt: 1,
     email: TEACHER_EMAIL,
-    hoTen: "Alien Teacher",
+    hoTen: "Trần Minh Huy",
     ma: "SHOWCASE",
     ghiChu: "Giáo viên showcase Google Meet / recording. Lớp 01 (offline) và lớp 25 (Live Meet)."
   },
@@ -54,11 +54,11 @@ for (let i = 1; i <= 299; i += 1) {
 }
 
 const learners = [
-  { email: LEARNER_EMAIL, hoTen: "Lê Học viên Showcase" },
+  { email: LEARNER_EMAIL, hoTen: "Lê Ngọc Anh" },
   ...hocVienSheet.map((item) => ({ email: item.email, hoTen: item.hoTen }))
 ];
 const teachers = [
-  { email: TEACHER_EMAIL, hoTen: "Alien Teacher" },
+  { email: TEACHER_EMAIL, hoTen: "Trần Minh Huy" },
   ...giaoVien.slice(1).map((item) => ({ email: item.email, hoTen: item.hoTen }))
 ];
 
@@ -153,7 +153,7 @@ XLSX.utils.book_append_sheet(wb, sheetFromRows(
   ["STT", "Họ tên", "Email", "Mật khẩu", "Vai trò", "Lớp", "Ghi chú"],
   [[
     1,
-    "Lê Học viên Showcase",
+    "Lê Ngọc Anh",
     LEARNER_EMAIL,
     PASSWORD,
     "LEARNER",
@@ -178,7 +178,7 @@ XLSX.utils.book_append_sheet(wb, sheetFromRows(
 const tatCa = [
   ...quanTri.map((item) => ["Quản trị", item[2], item[1], item[0], PASSWORD, item[3]]),
   ...giaoVien.map((item) => ["Giáo viên", "TEACHER", item.hoTen, item.email, PASSWORD, item.ghiChu]),
-  ["Học viên showcase", "LEARNER", "Lê Học viên Showcase", LEARNER_EMAIL, PASSWORD, "Lớp 01 + lớp 25"],
+  ["Học viên showcase", "LEARNER", "Lê Ngọc Anh", LEARNER_EMAIL, PASSWORD, "Lớp 01 + lớp 25"],
   ...hocVienSheet.map((item) => ["Học viên sheet", "LEARNER", item.hoTen, item.email, PASSWORD, item.ma]),
   ["Test seeder", "LEARNER", "Học viên Chứng nhận Demo", "certificate.learner@englishlab.vn", PASSWORD, "Chỉ khi APP_SEED_TEST_ENABLED=true"]
 ];

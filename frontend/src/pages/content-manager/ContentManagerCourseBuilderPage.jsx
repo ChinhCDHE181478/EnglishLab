@@ -1591,7 +1591,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         <div className="mb-4 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm text-[#584140]">
           <p className="font-semibold text-[#4b0009]">{assessment.title}</p>
           <p className="mt-1">{getAssessmentTypeLabel(assessment.type)} • {getSkillLabel(assessment.skill)} • {getAiModeLabel(assessment.aiEvaluationMode)}</p>
-          {assessment.description ? <p className="mt-2 leading-6">{assessment.description}</p> : null}
+          {assessment.description ? <RichTextHtml className="mt-2 leading-6" value={assessment.description} /> : null}
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8b706e]">Nguồn: ngân hàng đề #{assessment.assessmentBankItemId}</p>
         </div>
       ) : null}

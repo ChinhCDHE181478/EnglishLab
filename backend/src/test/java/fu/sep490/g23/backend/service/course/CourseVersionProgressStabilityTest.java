@@ -4,11 +4,14 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.course.CourseModule;
 import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionResponse;
+import fu.sep490.g23.backend.dto.response.course.CourseCompletionStatus;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
@@ -24,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -76,7 +81,6 @@ class CourseVersionProgressStabilityTest {
         when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(courseWithTwentyLiveLessons)).thenReturn(0L);
         when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED)).thenReturn(8L);
         when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
-        when(enrollmentRepository.save(enrollment)).thenReturn(enrollment);
 
         PackageEnrollment refreshed = progressService.refreshEnrollmentProgress(
                 enrollment,
@@ -86,6 +90,49 @@ class CourseVersionProgressStabilityTest {
 
         assertThat(refreshed.getProgressPercent()).isEqualTo(80);
         assertThat(refreshed.getCourseVersion().getVersionNumber()).isEqualTo(1);
+        verify(enrollmentRepository, never()).save(enrollment);
+    }
+
+    @Test
+    void completionIgnoresStaleEnrollmentPercentageWhenLearnerHasNotStarted() {
+        User learner = User.builder().id(9L).email("not-started@englishlab.vn").build();
+        OnlineCourse course = OnlineCourse.builder()
+                .id(3L)
+                .learningPackage(LearningPackage.builder().title("Khóa học chưa bắt đầu").slug("not-started").build())
+                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                        .lessons(new ArrayList<>(List.of(
+                                Lesson.builder().id(1L).build(),
+                                Lesson.builder().id(2L).build()
+                        )))
+                        .build())))
+                .build();
+        OnlineCourseVersion enrollmentVersion = OnlineCourseVersion.builder()
+                .id(103L)
+                .onlineCourse(course)
+                .versionNumber(1)
+                .totalRequiredLessons(2)
+                .totalRequiredAssessments(0)
+                .build();
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .id(57L)
+                .student(learner)
+                .courseVersion(enrollmentVersion)
+                .status(EnrollmentStatus.ACTIVE)
+                .progressPercent(35)
+                .build();
+
+        when(courseAssessmentRepository.countByOnlineCourseAndActiveTrue(course)).thenReturn(0L);
+        when(lessonProgressRepository.countByEnrollmentAndStatus(enrollment, LessonProgressStatus.COMPLETED))
+                .thenReturn(0L);
+        when(onlineCourseVersionService.getProgressBaselineAssessmentIds(enrollment)).thenReturn(List.of());
+        when(courseAssessmentRepository.findAllById(List.of())).thenReturn(List.of());
+        when(lessonProgressRepository.findByEnrollment(enrollment)).thenReturn(List.of());
+
+        CourseCompletionResponse completion = progressService.buildCompletionResponse(enrollment, course, learner);
+
+        assertThat(completion.getProgressPercent()).isZero();
+        assertThat(completion.getCompletedLessons()).isZero();
+        assertThat(completion.getStatus()).isEqualTo(CourseCompletionStatus.CHUA_BAT_DAU);
     }
 
     @Test

@@ -36,6 +36,7 @@ public interface AssessmentSubmissionRepository extends JpaRepository<Assessment
     List<AssessmentSubmission> findByStudentOrderBySubmittedAtDesc(User student);
     boolean existsByAssessmentId(Long assessmentId);
     boolean existsByAssessmentInAndStudent(List<CourseAssessment> assessments, User student);
+    List<AssessmentSubmission> findByAssessmentInAndStudent(List<CourseAssessment> assessments, User student);
 
     @Query("""
             select count(distinct submission.assessment.id)

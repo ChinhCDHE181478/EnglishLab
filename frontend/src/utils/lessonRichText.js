@@ -13,14 +13,20 @@ const hasSafeHref = (value = '') => {
 };
 
 const RICH_TEXT_TAG_PATTERN = /<\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
-const ESCAPED_RICH_TEXT_TAG_PATTERN = /&lt;\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
+const ESCAPED_RICH_TEXT_TAG_PATTERN = /&(?:amp;)*lt;\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
 
 const decodeEscapedRichText = (value = '') => {
   const raw = String(value || '');
   if (!ESCAPED_RICH_TEXT_TAG_PATTERN.test(raw) || typeof window === 'undefined') return raw;
   const textarea = window.document.createElement('textarea');
-  textarea.innerHTML = raw;
-  return textarea.value;
+  let decoded = raw;
+  for (let pass = 0; pass < 3 && ESCAPED_RICH_TEXT_TAG_PATTERN.test(decoded); pass += 1) {
+    textarea.innerHTML = decoded;
+    const nextValue = textarea.value;
+    if (nextValue === decoded) break;
+    decoded = nextValue;
+  }
+  return decoded;
 };
 
 export const looksLikeRichTextHtml = (value = '') => {

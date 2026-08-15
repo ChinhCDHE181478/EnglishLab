@@ -22,6 +22,7 @@ import LearningPathPage from './pages/LearningPathPage';
 import LearningPathReferencePage from './pages/LearningPathReferencePage';
 import LearningPathCatalogPage from './pages/LearningPathCatalogPage';
 import MockTestsPage from './pages/MockTestsPage';
+import MockPracticeTestsPage from './pages/MockPracticeTestsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import DictionaryPage from './pages/DictionaryPage';
 import PlacementTestPage from './pages/PlacementTestPage';
@@ -144,6 +145,8 @@ function AppRoutes() {
         <Route path="/my-practice" element={<MyPracticePage />} />
         <Route path="/my-practice/:classroomId/:exerciseId" element={<PracticeRunnerPage />} />
         <Route path="/my-quizzes" element={<Navigate to="/my-homework?type=online-quiz" replace />} />
+        <Route path="/mock-tests/practice" element={<MockPracticeTestsPage />} />
+        <Route path="/mock-tests/:year/:monthKey" element={<MockTestsPage />} />
         <Route path="/mock-tests" element={<MockTestsPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
         <Route path="/support" element={<SupportTicketsPage />} />

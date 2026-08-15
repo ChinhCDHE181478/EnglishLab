@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, Eye, EyeOff, Flag, RefreshCw, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Flag, RefreshCw, XCircle } from 'lucide-react';
 import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
@@ -59,9 +59,11 @@ export default function ContentManagerDiscussionModerationPage() {
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể tải hàng chờ kiểm duyệt.');
       setReports([]);
+      return false;
     } finally {
       setLoading(false);
     }
+    return true;
   }, [status, category]);
 
   useEffect(() => {
@@ -89,18 +91,21 @@ export default function ContentManagerDiscussionModerationPage() {
     if (!confirmed) return;
     setProcessingId(report.reportId);
     setError('');
+    setSuccess('');
     try {
       if (isHide) {
         await courseApi.hideReportedDiscussion(report.reportId);
       } else {
         await courseApi.dismissDiscussionReport(report.reportId);
       }
-      setSuccess(isHide
-        ? 'Đã ẩn nội dung thành công.'
-        : report.status === 'ACTION_TAKEN'
-          ? 'Đã gỡ ẩn nội dung và chuyển báo cáo sang đã bỏ qua.'
-          : 'Đã bỏ qua báo cáo thành công.');
-      await loadReports();
+      const reloaded = await loadReports();
+      if (reloaded) {
+        setSuccess(isHide
+          ? 'Nội dung đã được ẩn khỏi phần hỏi đáp.'
+          : report.status === 'ACTION_TAKEN'
+            ? 'Nội dung đã được hiển thị lại và báo cáo được chuyển sang đã bỏ qua.'
+            : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
+      }
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể xử lý báo cáo. Vui lòng thử lại.');
     } finally {
@@ -110,6 +115,13 @@ export default function ContentManagerDiscussionModerationPage() {
 
   return (
     <div className="space-y-6">
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast
+        message={success}
+        onClose={() => setSuccess('')}
+        tone="success"
+        title="Đã xử lý báo cáo"
+      />
       <ManagerFilterBar>
         {/* Status tabs */}
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Trạng thái báo cáo">
@@ -154,14 +166,6 @@ export default function ContentManagerDiscussionModerationPage() {
         </button>
       </ManagerFilterBar>
 
-      {error ? (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          <AlertTriangle className="h-4 w-4" />
-          {error}
-        </div>
-      ) : null}
-
-      <ManagementToast message={success} onClose={() => setSuccess('')} tone="success" title="Đã cập nhật trạng thái" />
       <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
         {loading ? (
           <div className="px-6 py-16 text-center text-sm font-semibold text-[#564241]">

@@ -270,7 +270,7 @@ function LessonPreview({ lesson, module }) {
           <div><p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#8a0018]">{module.title}</p><h2 className="mt-1 font-['Manrope'] text-xl sm:text-2xl md:text-3xl font-black text-[#0b1c30]">{lesson.title}</h2></div>
           <span className="self-start rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-extrabold text-slate-600">{formatContentType(lesson.contentType)} · {lesson.durationMinutes || 0} phút</span>
         </div>
-        {lesson.description ? <p className="mt-3 text-sm leading-6 sm:leading-7 text-slate-500">{lesson.description}</p> : null}
+        {lesson.description ? <RichTextHtml className="mt-3 text-sm leading-6 text-slate-500 sm:leading-7" value={lesson.description} /> : null}
         <LessonContent content={lesson.contentText} />
         {!lesson.contentText && !embedUrl && !directVideoUrl ? <div className="mt-5 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-4 text-xs sm:text-sm font-bold text-amber-800">Bài học chưa có nội dung chính để hiển thị.</div> : null}
         {lesson.materialUrl ? <a className="mt-5 inline-flex w-full justify-center sm:w-auto items-center gap-2 rounded-2xl border border-[#dcb6bb] bg-[#fff8f8] px-4 py-3 text-sm font-extrabold text-[#8a0018]" href={lesson.materialUrl} rel="noreferrer" target="_blank"><FileText className="h-4 w-4" />Mở tài liệu bài học<ExternalLink className="h-3.5 w-3.5" /></a> : null}

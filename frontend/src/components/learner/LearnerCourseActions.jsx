@@ -7,6 +7,7 @@ const baseButtonClassName =
 
 const LearnerCourseActions = ({ course, compact = false, className = '', onDetailPage = false }) => {
   const sizeClassName = compact ? 'px-3 py-2 text-xs' : '';
+  const completed = Number(course?.progressPercent || 0) >= 100 || course?.enrollmentStatus === 'COMPLETED';
 
   if (course?.registered) {
     return (
@@ -15,8 +16,20 @@ const LearnerCourseActions = ({ course, compact = false, className = '', onDetai
         to={buildCourseHomePath(course)}
         state={{ course }}
       >
-        Tiếp tục học
+        {completed ? 'Xem lại khóa học' : 'Tiếp tục học'}
       </Link>
+    );
+  }
+
+  if (course?.enrollmentAccessCheckFailed) {
+    return (
+      <button
+        className={`${baseButtonClassName} cursor-pointer border border-[#dfbfbd] bg-white text-[#4b0009] hover:bg-[#fff4f5] ${sizeClassName} ${className}`}
+        onClick={() => window.location.reload()}
+        type="button"
+      >
+        Tải lại để kiểm tra
+      </button>
     );
   }
 

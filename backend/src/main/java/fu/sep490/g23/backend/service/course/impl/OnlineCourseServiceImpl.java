@@ -26,6 +26,7 @@ import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.BalancedCourseRecommendationSelector;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.CourseLessonFlashcardRefRepository;
@@ -615,14 +616,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
                 .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
                 .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
-                .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
+                .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                        .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
@@ -687,7 +691,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         enrollment -> enrollment,
                         (first, ignored) -> first
                 ));
-        return publishedCourses.stream()
+        List<ScoredRecommendation> rankedRecommendations = publishedCourses.stream()
                 .filter(course -> !isCompletedEnrollment(enrollmentsByPackage.get(course.getLearningPackage().getId())))
                 .filter(course -> isExamCompatible(course, context.getExamType()))
                 .map(course -> scoreRecommendation(
@@ -698,7 +702,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .sorted(Comparator.comparingDouble(ScoredRecommendation::score).reversed()
                         .thenComparing(item -> defaultInt(item.course().getLearningPathOrder()))
                         .thenComparing(item -> item.course().getId()))
-                .limit(6)
+                .toList();
+
+        return BalancedCourseRecommendationSelector.select(
+                        rankedRecommendations,
+                        ScoredRecommendation::bandCompatible,
+                        ScoredRecommendation::matchesWeakSkill,
+                        context.getWeakSkills() != null && !context.getWeakSkills().isEmpty()
+                ).stream()
                 .map(ScoredRecommendation::response)
                 .toList();
     }
@@ -735,12 +746,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         Double minBand = course.getRecommendedCurrentBandMin();
         Double currentBand = decimalToDouble(context.getOverallScore());
         Double targetBand = decimalToDouble(context.getTargetScore());
+        boolean bandCompatible = isBandCompatible(course, normalizedExam, currentBand);
         if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null) {
-            if (currentBand >= minBand) {
-                score += 6;
+            if (bandCompatible) {
+                score += Math.max(2, 10 - Math.abs(currentBand - minBand) * 4);
             } else {
-                double distance = minBand - currentBand;
-                score += Math.max(-2, 3 - distance * 2);
+                score -= Math.min(8, Math.abs(minBand - currentBand) * 4);
             }
         }
         if ("IELTS".equals(normalizedExam) && targetBand != null && course.getTargetBand() != null) {
@@ -762,7 +773,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 currentBand,
                 targetBand
         ));
-        return new ScoredRecommendation(course, response, score);
+        return new ScoredRecommendation(course, response, score, !matchedWeakSkills.isEmpty(), bandCompatible);
+    }
+
+    private boolean isBandCompatible(OnlineCourse course, String normalizedExam, Double currentBand) {
+        if (!"IELTS".equals(normalizedExam) || currentBand == null) {
+            return true;
+        }
+        Double minBand = course.getRecommendedCurrentBandMin();
+        Double courseTargetBand = course.getTargetBand();
+        return minBand != null
+                && courseTargetBand != null
+                && currentBand >= minBand
+                && currentBand <= courseTargetBand;
     }
 
     private boolean isExamCompatible(OnlineCourse course, String examType) {
@@ -861,7 +884,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return value == null ? "" : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
-    private record ScoredRecommendation(OnlineCourse course, OnlineCourseResponse response, double score) {}
+    private record ScoredRecommendation(
+            OnlineCourse course,
+            OnlineCourseResponse response,
+            double score,
+            boolean matchesWeakSkill,
+            boolean bandCompatible
+    ) {}
 
     @Override
     @Transactional(readOnly = true)
