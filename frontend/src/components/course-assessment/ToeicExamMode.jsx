@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Flag, LayoutGrid, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, LayoutGrid, Volume2, X } from 'lucide-react';
 import ExamDeviceCheck from './ExamDeviceCheck';
 import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
 import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
 import { sanitizeLessonHtml } from '../../utils/lessonRichText';
+
+const AUTO_NEXT_DELAY_MS = 5000;
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -90,6 +92,14 @@ const buildSteps = (parts = []) => {
   return steps;
 };
 
+const resolveStepAudioUrl = (step) => {
+  if (!step) return '';
+  if (step.kind === 'question') {
+    return String(step.questions?.[0]?.audioUrl || step.group?.audioUrl || '').trim();
+  }
+  return String(step.group?.audioUrl || step.questions?.find((question) => question.audioUrl)?.audioUrl || '').trim();
+};
+
 const renderRichText = (value, className = '') => {
   const text = String(value || '').trim();
   if (!text) return null;
@@ -114,10 +124,11 @@ export default function ToeicExamMode({
   const skill = String(config?.type || '').toLowerCase().includes('reading') || String(skillLabel).toLowerCase().includes('reading')
     ? 'READING'
     : 'LISTENING';
-  const hasPerQuestionAudio = parts.some((part) => (
-    (part.questionGroups || []).some((group) => group.perQuestionAudio || (group.questions || []).some((question) => question.audioUrl))
-  ));
-  const needsAudioGate = Boolean(config?.audioUrl) && skill === 'LISTENING' && !skipAudioCheck && !hasPerQuestionAudio;
+  const hasStepAudio = useMemo(
+    () => skill === 'LISTENING' && steps.some((step) => Boolean(resolveStepAudioUrl(step))),
+    [skill, steps],
+  );
+  const needsAudioGate = Boolean(config?.audioUrl) && skill === 'LISTENING' && !skipAudioCheck && !hasStepAudio;
 
   const [stage, setStage] = useState(() => (needsAudioGate ? 'check_audio' : 'exam'));
   const [stepIndex, setStepIndex] = useState(0);
@@ -130,18 +141,21 @@ export default function ToeicExamMode({
   const [warning, setWarning] = useState(null);
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [violations, setViolations] = useState([]);
-  const [audioStatus, setAudioStatus] = useState(() => (config?.audioUrl ? 'loading' : 'idle'));
+  const [stepAudioStatus, setStepAudioStatus] = useState('idle');
+  const [autoNextInMs, setAutoNextInMs] = useState(0);
 
   const rootRef = useRef(null);
   const submittedRef = useRef(false);
-  const audioRef = useRef(null);
-  const audioStartedRef = useRef(false);
-  const audioEndedRef = useRef(false);
+  const stepAudioRef = useRef(null);
+  const autoNextTimerRef = useRef(null);
+  const autoNextTickRef = useRef(null);
   const intentionalExitRef = useRef(false);
   const fullscreenSessionStartedRef = useRef(false);
   const submissionInFlightRef = useRef(false);
+  const stepIndexRef = useRef(0);
 
   const activeStep = steps[stepIndex] || steps[0] || null;
+  const stepAudioUrl = skill === 'LISTENING' ? resolveStepAudioUrl(activeStep) : '';
   const allQuestionNumbers = useMemo(() => flattenQuestionNumbers(parts), [parts]);
   const answeredCount = useMemo(
     () => allQuestionNumbers.filter((number) => answerIsFilled(answers[String(number)])).length,
@@ -150,6 +164,49 @@ export default function ToeicExamMode({
   const progressPercent = allQuestionNumbers.length
     ? Math.round((answeredCount / allQuestionNumbers.length) * 100)
     : 0;
+
+  const clearAutoNext = () => {
+    if (autoNextTimerRef.current) {
+      window.clearTimeout(autoNextTimerRef.current);
+      autoNextTimerRef.current = null;
+    }
+    if (autoNextTickRef.current) {
+      window.clearInterval(autoNextTickRef.current);
+      autoNextTickRef.current = null;
+    }
+    setAutoNextInMs(0);
+  };
+
+  const goToStep = (index) => {
+    if (index < 0 || index >= steps.length) return;
+    clearAutoNext();
+    stepIndexRef.current = index;
+    setStepIndex(index);
+  };
+
+  const scheduleAutoNext = () => {
+    clearAutoNext();
+    if (isLocked || submitting || submissionPending) return;
+    const fromIndex = stepIndexRef.current;
+    if (fromIndex >= steps.length - 1) return;
+    setAutoNextInMs(AUTO_NEXT_DELAY_MS);
+    const startedAt = Date.now();
+    autoNextTickRef.current = window.setInterval(() => {
+      const left = Math.max(0, AUTO_NEXT_DELAY_MS - (Date.now() - startedAt));
+      setAutoNextInMs(left);
+    }, 200);
+    autoNextTimerRef.current = window.setTimeout(() => {
+      clearAutoNext();
+      if (stepIndexRef.current !== fromIndex) return;
+      goToStep(fromIndex + 1);
+    }, AUTO_NEXT_DELAY_MS);
+  };
+
+  useEffect(() => {
+    stepIndexRef.current = stepIndex;
+  }, [stepIndex]);
+
+  useEffect(() => () => clearAutoNext(), []);
 
   useEffect(() => {
     if (stage !== 'exam' || isLocked || submitting || submissionPending) return undefined;
@@ -239,61 +296,54 @@ export default function ToeicExamMode({
     };
   }, []);
 
+  // Hidden per-step audio: autoplay, no visible controls; after ended wait 5s then next (STUDY4-like).
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !config?.audioUrl || stage !== 'exam' || skill !== 'LISTENING' || hasPerQuestionAudio) return undefined;
+    clearAutoNext();
+    const audio = stepAudioRef.current;
+    if (stage !== 'exam' || skill !== 'LISTENING' || !stepAudioUrl || !audio) {
+      setStepAudioStatus('idle');
+      return undefined;
+    }
+
+    let cancelled = false;
+    setStepAudioStatus('loading');
+    audio.pause();
+    audio.src = stepAudioUrl;
+    audio.load();
 
     const tryPlay = async () => {
-      if (audioEndedRef.current) return;
-      audio.playbackRate = 1;
-      audio.defaultPlaybackRate = 1;
+      if (cancelled) return;
       try {
+        audio.playbackRate = 1;
         await audio.play();
-        audioStartedRef.current = true;
-        setAudioStatus('playing');
+        if (!cancelled) setStepAudioStatus('playing');
       } catch {
-        setAudioStatus('blocked');
+        if (!cancelled) setStepAudioStatus('blocked');
       }
     };
 
-    const handleCanPlay = () => {
-      setAudioStatus((current) => (current === 'playing' ? current : 'ready'));
-      if (!audioStartedRef.current) void tryPlay();
-    };
-    const handlePlay = () => {
-      audioStartedRef.current = true;
-      setAudioStatus('playing');
-    };
-    const handlePause = () => {
-      if (audioEndedRef.current || submitting || isLocked || exitConfirmOpen) return;
-      setAudioStatus('paused');
-      window.setTimeout(() => {
-        if (!audioEndedRef.current && audio.paused) void tryPlay();
-      }, 80);
-    };
     const handleEnded = () => {
-      audioEndedRef.current = true;
-      setAudioStatus('ended');
+      if (cancelled) return;
+      setStepAudioStatus('ended');
+      scheduleAutoNext();
     };
-    const handleRateChange = () => {
-      if (audio.playbackRate !== 1) audio.playbackRate = 1;
+    const handleError = () => {
+      if (cancelled) return;
+      setStepAudioStatus('error');
+      scheduleAutoNext();
     };
 
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('ratechange', handleRateChange);
+    audio.addEventListener('error', handleError);
     void tryPlay();
 
     return () => {
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
+      cancelled = true;
       audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('ratechange', handleRateChange);
+      audio.removeEventListener('error', handleError);
+      audio.pause();
     };
-  }, [config?.audioUrl, exitConfirmOpen, hasPerQuestionAudio, isLocked, skill, stage, submitting]);
+  }, [stage, skill, stepAudioUrl, stepIndex, isLocked, submitting, submissionPending]);
 
   const restoreFullscreen = async () => {
     if (document.fullscreenElement) return;
@@ -307,6 +357,7 @@ export default function ToeicExamMode({
 
   const handleCloseExam = async () => {
     intentionalExitRef.current = true;
+    clearAutoNext();
     if (document.fullscreenElement) {
       try {
         await document.exitFullscreen();
@@ -332,14 +383,20 @@ export default function ToeicExamMode({
     });
   };
 
-  const goToStep = (index) => {
-    if (index < 0 || index >= steps.length) return;
-    setStepIndex(index);
-  };
-
   const goToQuestion = (number) => {
     const index = steps.findIndex((step) => step.questionNumbers.includes(Number(number)));
-    if (index >= 0) setStepIndex(index);
+    if (index >= 0) goToStep(index);
+  };
+
+  const retryStepAudio = async () => {
+    const audio = stepAudioRef.current;
+    if (!audio || !stepAudioUrl) return;
+    try {
+      await audio.play();
+      setStepAudioStatus('playing');
+    } catch {
+      setStepAudioStatus('blocked');
+    }
   };
 
   const buildPayload = (autoSubmitted = false) => {
@@ -378,6 +435,7 @@ export default function ToeicExamMode({
 
   const handleSubmitExam = async (autoSubmitted = false) => {
     if (isLocked || submitting || submissionPending || submissionInFlightRef.current) return;
+    clearAutoNext();
     submissionInFlightRef.current = true;
     setSubmissionPending(true);
     setSubmissionError('');
@@ -392,26 +450,17 @@ export default function ToeicExamMode({
     }
   };
 
-  const playMainAudio = async () => {
-    const audio = audioRef.current;
-    if (!audio || !config?.audioUrl || audioEndedRef.current) return;
-    audio.playbackRate = 1;
-    audio.defaultPlaybackRate = 1;
-    try {
-      await audio.play();
-      audioStartedRef.current = true;
-      setAudioStatus('playing');
-    } catch {
-      setAudioStatus('blocked');
-    }
-  };
-
   const partDirections = activeStep?.part?.passage?.paragraphs
     ?.map((paragraph) => paragraph?.text)
     .filter(Boolean)
     .join('\n\n')
     || activeStep?.part?.instructions
     || '';
+  const isFirstStepOfPart = Boolean(
+    activeStep
+    && steps.findIndex((step) => step.partIndex === activeStep.partIndex) === stepIndex,
+  );
+  const shownDirections = isFirstStepOfPart ? partDirections : '';
 
   const leftImageUrl = activeStep?.kind === 'question'
     ? activeStep.questions[0]?.imageUrl
@@ -421,6 +470,14 @@ export default function ToeicExamMode({
   const leftPassageText = typeof activeStep?.group?.passage === 'string'
     ? activeStep.group.passage
     : '';
+  const hasLeftContent = Boolean(
+    shownDirections
+    || activeStep?.group?.instructions
+    || leftImageUrl
+    || leftPassageHtml
+    || leftPassageText
+    || activeStep?.group?.descriptionHtml,
+  );
 
   const renderOption = (question, option, group) => {
     const checked = answers[String(question.number)] === option.value;
@@ -460,20 +517,13 @@ export default function ToeicExamMode({
     return (
       <article
         key={question.number}
-        className="scroll-mt-4 space-y-3 border-b border-[#e4eee9] pb-6 last:border-b-0 last:pb-0"
+        className="scroll-mt-4 space-y-3 border-b border-[#e4eee9] pb-5 last:border-b-0 last:pb-0"
         id={`toeic-q-${question.number}`}
       >
         <div className="flex items-start justify-between gap-3">
-          <button
-            className="inline-flex items-center gap-2"
-            onClick={() => toggleFlag(question.number)}
-            type="button"
-          >
-            <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${isFlagged ? 'bg-[#f4a261] text-white' : 'bg-[#dceee7] text-[#0b5c49]'}`}>
-              {question.number}
-            </span>
-            <span className="sr-only">Câu {question.number}</span>
-          </button>
+          <span className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black ${isFlagged ? 'bg-[#f4a261] text-white' : 'bg-[#dceee7] text-[#0b5c49]'}`}>
+            {question.number}
+          </span>
           <button
             aria-label={isFlagged ? 'Bỏ đánh dấu' : 'Đánh dấu câu hỏi'}
             className={`rounded-full p-2 transition ${isFlagged ? 'text-[#e07a2f]' : 'text-[#8aa297] hover:text-[#0b5c49]'}`}
@@ -485,11 +535,6 @@ export default function ToeicExamMode({
         </div>
         {!group.hidePrompt && question.prompt && !/^Câu\s*\d+$/i.test(String(question.prompt).trim()) ? (
           <p className="text-[15px] font-semibold leading-7 text-[#1d2f29]">{question.prompt}</p>
-        ) : null}
-        {question.audioUrl || (group.perQuestionAudio && group.audioUrl) ? (
-          <audio className="w-full" controls preload="none" src={question.audioUrl || group.audioUrl}>
-            <track kind="captions" />
-          </audio>
         ) : null}
         {question.imageUrl && activeStep?.kind === 'group' ? (
           <img
@@ -514,6 +559,10 @@ export default function ToeicExamMode({
       onCut={(event) => event.preventDefault()}
       onPaste={(event) => event.preventDefault()}
     >
+      <audio ref={stepAudioRef} className="hidden" preload="auto">
+        <track kind="captions" />
+      </audio>
+
       {submissionError ? (
         <div className="fixed bottom-5 left-1/2 z-[140] w-[min(92vw,680px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-bold text-red-700 shadow-xl" role="alert">
           {submissionError}
@@ -530,31 +579,18 @@ export default function ToeicExamMode({
         <div className={`inline-flex items-center rounded-full border px-4 py-2 font-['Manrope'] text-lg font-black tabular-nums ${remainingSeconds <= 300 ? 'border-red-200 bg-red-50 text-red-700' : 'border-[#cfe3db] bg-[#eef8f4] text-[#0b5c49]'}`}>
           {formatTimer(remainingSeconds)}
         </div>
-        {config?.audioUrl && stage === 'exam' && skill === 'LISTENING' && !hasPerQuestionAudio ? (
-          <>
-            <audio
-              ref={audioRef}
-              autoPlay
-              className="hidden"
-              controlsList="nodownload noplaybackrate noremoteplayback"
-              preload="auto"
-              src={config.audioUrl}
-            />
-            <button
-              className="rounded-full border border-[#cfe3db] bg-[#f6fbf9] px-3 py-2 text-xs font-bold text-[#0b5c49]"
-              disabled={audioStatus === 'ended'}
-              onClick={playMainAudio}
-              type="button"
-            >
-              {audioStatus === 'playing' && 'Đang phát'}
-              {audioStatus === 'ready' && 'Phát audio'}
-              {audioStatus === 'loading' && 'Đang tải'}
-              {audioStatus === 'blocked' && 'Bấm để phát'}
-              {audioStatus === 'paused' && 'Tiếp tục'}
-              {audioStatus === 'ended' && 'Hết audio'}
-              {audioStatus === 'idle' && 'Audio'}
-            </button>
-          </>
+        {stepAudioUrl ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#cfe3db] bg-[#f6fbf9] px-3 py-2 text-xs font-bold text-[#0b5c49]">
+            <Volume2 className="h-3.5 w-3.5" />
+            {stepAudioStatus === 'playing' && 'Đang phát'}
+            {stepAudioStatus === 'loading' && 'Đang tải'}
+            {stepAudioStatus === 'ended' && (autoNextInMs > 0 ? `Chuyển sau ${Math.ceil(autoNextInMs / 1000)}s` : 'Hết audio')}
+            {stepAudioStatus === 'blocked' && (
+              <button className="underline" onClick={retryStepAudio} type="button">Bấm để phát</button>
+            )}
+            {stepAudioStatus === 'error' && 'Lỗi audio'}
+            {stepAudioStatus === 'idle' && 'Audio'}
+          </div>
         ) : null}
         <span className="rounded-full bg-[#8a0018] px-3 py-2 text-[11px] font-bold text-white">
           Vi phạm: {violations.length}
@@ -577,7 +613,7 @@ export default function ToeicExamMode({
       </header>
 
       {stage === 'exam' ? (
-        <div className="relative flex min-h-0 flex-1 flex-col border-b border-[#d7e5df] bg-white px-4 py-3 sm:px-5">
+        <div className="flex-shrink-0 border-b border-[#d7e5df] bg-white px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#0b5c49]">
               Part {activeStep?.part?.partNumber || activeStep?.part?.part} · {activeStep?.part?.title}
@@ -619,46 +655,49 @@ export default function ToeicExamMode({
                 />
               </div>
             ) : (
-              <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-2">
-                <section className="min-h-0 overflow-y-auto border-b border-[#d7e5df] bg-[linear-gradient(180deg,#f7fcfa,#eef6f2)] px-5 py-6 lg:border-b-0 lg:border-r">
-                  <p className="font-['Manrope'] text-xl font-extrabold text-[#0b5c49]">Directions</p>
-                  {partDirections ? (
-                    <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[#40554c]">{partDirections}</p>
-                  ) : null}
-                  {activeStep?.group?.instructions ? (
-                    <p className="mt-3 text-sm italic leading-7 text-[#5f746c]">{activeStep.group.instructions}</p>
-                  ) : null}
-                  {leftImageUrl ? (
-                    <img
-                      alt="TOEIC visual"
-                      className="mt-5 max-h-[min(58vh,520px)] w-full rounded-2xl object-contain shadow-[0_16px_40px_rgba(6,48,36,0.12)]"
-                      src={leftImageUrl}
-                    />
-                  ) : null}
-                  {leftPassageHtml ? (
-                    <article
-                      className="prose prose-sm mt-5 max-w-none rounded-2xl border border-[#d7e5df] bg-white p-5 text-[#24352f] [&_img]:mx-auto [&_img]:max-h-[420px] [&_img]:object-contain [&_p]:mb-3"
-                      dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(leftPassageHtml) }}
-                    />
-                  ) : null}
-                  {leftPassageText ? (
-                    <article className="mt-5 whitespace-pre-wrap rounded-2xl border border-[#d7e5df] bg-white p-5 text-sm leading-7 text-[#24352f]">
-                      {leftPassageText}
-                    </article>
-                  ) : null}
-                  {renderRichText(activeStep?.group?.descriptionHtml, 'mt-4 text-sm leading-7 text-[#40554c]')}
-                  {!leftImageUrl && !leftPassageHtml && !leftPassageText && !partDirections ? (
-                    <p className="mt-4 text-sm text-[#5f746c]">Chọn đáp án ở khung bên phải.</p>
-                  ) : null}
-                </section>
+              <div className={`grid h-full min-h-0 grid-cols-1 ${hasLeftContent ? 'lg:grid-cols-2' : ''}`}>
+                {hasLeftContent ? (
+                  <section className="min-h-0 overflow-y-auto border-b border-[#d7e5df] bg-[linear-gradient(180deg,#f7fcfa,#eef6f2)] px-5 py-5 lg:border-b-0 lg:border-r">
+                    {shownDirections || activeStep?.group?.instructions ? (
+                      <>
+                        <p className="font-['Manrope'] text-lg font-extrabold text-[#0b5c49]">Directions</p>
+                        {shownDirections ? (
+                          <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[#40554c]">{shownDirections}</p>
+                        ) : null}
+                        {activeStep?.group?.instructions ? (
+                          <p className="mt-2 text-sm italic leading-7 text-[#5f746c]">{activeStep.group.instructions}</p>
+                        ) : null}
+                      </>
+                    ) : null}
+                    {leftImageUrl ? (
+                      <img
+                        alt="TOEIC visual"
+                        className="mt-3 max-h-[min(62vh,560px)] w-full rounded-2xl object-contain shadow-[0_16px_40px_rgba(6,48,36,0.12)]"
+                        src={leftImageUrl}
+                      />
+                    ) : null}
+                    {leftPassageHtml ? (
+                      <article
+                        className="prose prose-sm mt-3 max-w-none rounded-2xl border border-[#d7e5df] bg-white p-5 text-[#24352f] [&_img]:mx-auto [&_img]:max-h-[420px] [&_img]:object-contain [&_p]:mb-3"
+                        dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(leftPassageHtml) }}
+                      />
+                    ) : null}
+                    {leftPassageText ? (
+                      <article className="mt-3 whitespace-pre-wrap rounded-2xl border border-[#d7e5df] bg-white p-5 text-sm leading-7 text-[#24352f]">
+                        {leftPassageText}
+                      </article>
+                    ) : null}
+                    {renderRichText(activeStep?.group?.descriptionHtml, 'mt-3 text-sm leading-7 text-[#40554c]')}
+                  </section>
+                ) : null}
 
-                <section className="min-h-0 overflow-y-auto bg-white px-5 py-6">
-                  <p className="font-['Manrope'] text-xl font-extrabold text-[#0b5c49]">
+                <section className="min-h-0 overflow-y-auto bg-white px-5 py-5">
+                  <p className="font-['Manrope'] text-lg font-extrabold text-[#0b5c49]">
                     {activeStep?.kind === 'question'
                       ? `Question ${activeStep.focusNumber}`
                       : (activeStep?.group?.title || 'Questions')}
                   </p>
-                  <div className="mt-5 space-y-6">
+                  <div className="mt-4 space-y-5">
                     {(activeStep?.questions || []).map((question) => renderQuestionBlock(activeStep.group, question))}
                   </div>
                 </section>
