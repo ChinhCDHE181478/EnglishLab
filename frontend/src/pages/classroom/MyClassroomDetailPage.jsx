@@ -176,7 +176,7 @@ export default function MyClassroomDetailPage() {
     setSearchParams((prev) => {
       prev.set('tab', tab);
       return prev;
-    }, { replace: true });
+    }, { replace: true, preventScrollReset: true });
   };
   const [classroom, setClassroom] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -501,7 +501,7 @@ export default function MyClassroomDetailPage() {
       const targetPage = Math.floor(itemIndex / 6) + 1;
       setHomeworkPage(targetPage);
       setTimeout(() => {
-        document.getElementById(`homework-card-${item.id}`)?.scrollIntoView({ behavior: 'auto', block: 'center' });
+        document.getElementById(`homework-card-${item.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         if (usesInteractiveHomeworkWorkspace(item)) {
           openInteractiveHomework(item);
         } else {
@@ -519,9 +519,12 @@ export default function MyClassroomDetailPage() {
   };
 
   const handleSyllabusClick = (syllabusItem) => {
-    const matchingUnit = classroom?.curriculumProgram?.units?.find(
-      (unit) => unit.title.trim().toLowerCase() === syllabusItem.title.trim().toLowerCase()
-    );
+    const sTitle = syllabusItem.title.trim().toLowerCase();
+    const matchingUnit = classroom?.curriculumProgram?.units?.find((unit) => {
+      const uTitle = unit.title.trim().toLowerCase();
+      const normalizedSTitle = sTitle.replace(/^buổi\s*\d+\s*[-–:]\s*/, '').trim();
+      return uTitle === normalizedSTitle || normalizedSTitle.includes(uTitle) || uTitle.includes(normalizedSTitle);
+    });
 
     if (matchingUnit) {
       setActiveTab('curriculum');
@@ -529,9 +532,9 @@ export default function MyClassroomDetailPage() {
       setTimeout(() => {
         const element = document.getElementById(`curriculum-unit-${matchingUnit.id}`);
         if (element) {
-          element.scrollIntoView({ behavior: 'auto', block: 'center' });
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      }, 150);
+      }, 300);
     } else {
       setActiveTab('curriculum');
     }
@@ -646,8 +649,8 @@ export default function MyClassroomDetailPage() {
             </div>
             {nextSession ? (
               <div className={`rounded-3xl border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] ${nextSession.effectiveStatus === 'OPEN'
-                  ? 'border-emerald-200 ring-2 ring-emerald-500/5'
-                  : 'border-gray-200/80'
+                ? 'border-emerald-200 ring-2 ring-emerald-500/5'
+                : 'border-gray-200/80'
                 }`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-2">
@@ -748,8 +751,8 @@ export default function MyClassroomDetailPage() {
                     <div
                       key={item.id}
                       className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition ${isUrgent
-                          ? 'border-amber-100 bg-amber-50/20'
-                          : 'border-gray-200/80 bg-white'
+                        ? 'border-amber-100 bg-amber-50/20'
+                        : 'border-gray-200/80 bg-white'
                         }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -913,8 +916,8 @@ export default function MyClassroomDetailPage() {
 
                   {/* Card item */}
                   <div className={`rounded-2xl border p-5 bg-white transition shadow-[0_10px_25px_rgba(0,0,0,0.01)] ${isHighlighted
-                      ? 'border-[#730014]/50 ring-2 ring-[#730014]/10 shadow-[0_12px_28px_rgba(115,0,20,0.08)]'
-                      : 'border-gray-200/80'
+                    ? 'border-[#730014]/50 ring-2 ring-[#730014]/10 shadow-[0_12px_28px_rgba(115,0,20,0.08)]'
+                    : 'border-gray-200/80'
                     }`}>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-3 min-w-0">
@@ -1152,10 +1155,10 @@ export default function MyClassroomDetailPage() {
                     id={`homework-card-${item.id}`}
                     key={item.id}
                     className={`relative overflow-hidden rounded-[26px] border p-6 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.01)] transition duration-300 hover:shadow-[0_20px_50px_rgba(115,0,20,0.05)] flex flex-col justify-between ${isOverdue
-                        ? 'border-rose-200 ring-2 ring-rose-100/60'
-                        : hasSubmission
-                          ? 'border-emerald-200 ring-2 ring-emerald-100/60'
-                          : 'border-orange-200 ring-2 ring-orange-100/50'
+                      ? 'border-rose-200 ring-2 ring-rose-100/60'
+                      : hasSubmission
+                        ? 'border-emerald-200 ring-2 ring-emerald-100/60'
+                        : 'border-orange-200 ring-2 ring-orange-100/50'
                       }`}
                   >
                     <div className="flex-1 flex flex-col justify-between space-y-4">
@@ -1273,10 +1276,10 @@ export default function MyClassroomDetailPage() {
                         ) : (
                           <button
                             className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-extrabold transition active:scale-95 ${item.overdue
-                                ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
-                                : canSubmit
-                                  ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
-                                  : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                              ? 'border border-rose-200 bg-rose-50 text-rose-400 opacity-60 cursor-not-allowed'
+                              : canSubmit
+                                ? 'bg-[#4b0009] text-white hover:bg-[#730014]'
+                                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                               }`}
                             disabled={item.overdue}
                             onClick={() => !item.overdue && setSelectedHomeworkForSubmission(item)}
@@ -1393,10 +1396,10 @@ export default function MyClassroomDetailPage() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4.5">
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${record.status === 'PRESENT'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : record.status === 'LATE'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                              : 'bg-rose-50 text-rose-700 border border-rose-100'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                          : record.status === 'LATE'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                            : 'bg-rose-50 text-rose-700 border border-rose-100'
                           }`}>
                           {formatAttendanceStatus(record.status)}
                         </span>
@@ -1686,8 +1689,8 @@ export default function MyClassroomDetailPage() {
                       {material.title}
                     </h4>
                     <span className={`inline-flex rounded-full px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest ${material.sourceType === 'CENTER_LIBRARY'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        : 'bg-[#fff0f1] text-[#730014] border border-[#dfbfbd]/35'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      : 'bg-[#fff0f1] text-[#730014] border border-[#dfbfbd]/35'
                       }`}>
                       {material.sourceType === 'CENTER_LIBRARY' ? 'Trung tâm' : 'Lớp học'}
                     </span>
@@ -1880,8 +1883,8 @@ export default function MyClassroomDetailPage() {
                   <button
                     key={tab.id}
                     className={`relative rounded-xl px-4 py-2.5 text-xs font-extrabold tracking-wide transition-all duration-300 ${isActive
-                        ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
-                        : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
+                      ? 'bg-gradient-to-r from-[#730014] to-[#4b0009] text-white shadow-md shadow-[#4b0009]/20 scale-[1.02]'
+                      : 'bg-white text-[#584140] hover:bg-[#fff0f1] hover:text-[#730014] border border-gray-200'
                       }`}
                     onClick={() => setActiveTab(tab.id)}
                     type="button"
@@ -1896,8 +1899,8 @@ export default function MyClassroomDetailPage() {
             {actionMessage && (
               <div
                 className={`rounded-2xl border p-4 text-xs font-semibold flex items-center gap-2 ${actionMessage.includes('thành công')
-                    ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
-                    : 'bg-rose-50 border-rose-100 text-rose-800'
+                  ? 'bg-emerald-50 border-emerald-100 text-emerald-800'
+                  : 'bg-rose-50 border-rose-100 text-rose-800'
                   }`}
               >
                 {actionMessage.includes('thành công') ? (
@@ -2275,8 +2278,8 @@ function ClassroomPracticePanel({ classroomId, curriculum, initialUnitId = null,
                   <div className="flex items-center justify-between gap-3">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest border ${exercise.completed
-                          ? 'border-emerald-100 bg-emerald-50/60 text-emerald-700'
-                          : 'border-amber-100 bg-amber-50/60 text-amber-700'
+                        ? 'border-emerald-100 bg-emerald-50/60 text-emerald-700'
+                        : 'border-amber-100 bg-amber-50/60 text-amber-700'
                         }`}
                     >
                       {exercise.completed ? <CheckCircle2 className="h-2.5 w-2.5" /> : <Circle className="h-2.5 w-2.5" />}
