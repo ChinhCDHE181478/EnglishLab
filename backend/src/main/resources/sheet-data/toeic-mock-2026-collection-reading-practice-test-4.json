@@ -1,0 +1,2680 @@
+{
+  "version": 1,
+  "type": "toeic_reading_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_4_reading",
+  "title": "TOEIC Mock Test 2026 Collection Reading Practice Test 4",
+  "sourceLabel": "toeicde4",
+  "durationMinutes": 75,
+  "audioUrl": "",
+  "audioLabel": "",
+  "rules": [
+    "100 câu",
+    "3 Part"
+  ],
+  "parts": [
+    {
+      "part": 5,
+      "partNumber": 5,
+      "title": "Incomplete Sentences",
+      "instructions": "Select the word or phrase that best completes the sentence.",
+      "questionCount": 30,
+      "audioUrl": "",
+      "questionRange": "Questions 101-130",
+      "passage": {
+        "title": "Incomplete Sentences",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 101-130",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "questions": [
+            {
+              "number": 101,
+              "prompt": "The recently enrolled member chose a monthly _____ that included full access to the pool and gym.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "session"
+                },
+                {
+                  "value": "B",
+                  "label": "deposit"
+                },
+                {
+                  "value": "C",
+                  "label": "receipt"
+                },
+                {
+                  "value": "D",
+                  "label": "package"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 102,
+              "prompt": "Before the board approves next year's plan, the main _____ is whether the expected income will cover the higher rental costs.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "purpose"
+                },
+                {
+                  "value": "B",
+                  "label": "priority"
+                },
+                {
+                  "value": "C",
+                  "label": "question"
+                },
+                {
+                  "value": "D",
+                  "label": "advantage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 103,
+              "prompt": "To avoid processing delays, each section of the permit form must be completed ------- before submission.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "corrected"
+                },
+                {
+                  "value": "B",
+                  "label": "corrects"
+                },
+                {
+                  "value": "C",
+                  "label": "correct"
+                },
+                {
+                  "value": "D",
+                  "label": "correctly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 104,
+              "prompt": "The new reservation software is fully _____ with the older systems, so branch offices can share booking data without upgrading their equipment.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "consistent"
+                },
+                {
+                  "value": "B",
+                  "label": "compatible"
+                },
+                {
+                  "value": "C",
+                  "label": "comparable"
+                },
+                {
+                  "value": "D",
+                  "label": "associated"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 105,
+              "prompt": "Because the main office is being repainted, Suite 200 is the _____ location assigned to the team for the next two weeks.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "permanent"
+                },
+                {
+                  "value": "B",
+                  "label": "principal"
+                },
+                {
+                  "value": "C",
+                  "label": "previous"
+                },
+                {
+                  "value": "D",
+                  "label": "interim"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 106,
+              "prompt": "For customers who hike on rough trails, Hollybrook Footwear recommends a _____ boot built to last through many seasons of use.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "willing"
+                },
+                {
+                  "value": "B",
+                  "label": "hollow"
+                },
+                {
+                  "value": "C",
+                  "label": "distant"
+                },
+                {
+                  "value": "D",
+                  "label": "durable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 107,
+              "prompt": "The finance office has confirmed that _____ receipt over twenty dollars requires a supervisor's signature.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Most"
+                },
+                {
+                  "value": "B",
+                  "label": "Each"
+                },
+                {
+                  "value": "C",
+                  "label": "Much"
+                },
+                {
+                  "value": "D",
+                  "label": "Only"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 108,
+              "prompt": "Following several months of review, the board approved a major _____ into overseas retail markets.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "expansive"
+                },
+                {
+                  "value": "B",
+                  "label": "expanded"
+                },
+                {
+                  "value": "C",
+                  "label": "expansion"
+                },
+                {
+                  "value": "D",
+                  "label": "expanding"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 109,
+              "prompt": "Employees should submit their travel _____ promptly so the accounting office can arrange each reimbursement.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "records"
+                },
+                {
+                  "value": "B",
+                  "label": "policies"
+                },
+                {
+                  "value": "C",
+                  "label": "programs"
+                },
+                {
+                  "value": "D",
+                  "label": "claims"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 110,
+              "prompt": "Some subscription plans at Brookvale Media renew automatically each month, while others _____ once the free trial period ends.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "expire"
+                },
+                {
+                  "value": "B",
+                  "label": "renew"
+                },
+                {
+                  "value": "C",
+                  "label": "cancel"
+                },
+                {
+                  "value": "D",
+                  "label": "restart"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 111,
+              "prompt": "The selection committee announced its final choice only after a careful _____ of every submitted application.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "assess"
+                },
+                {
+                  "value": "B",
+                  "label": "assessing"
+                },
+                {
+                  "value": "C",
+                  "label": "assessment"
+                },
+                {
+                  "value": "D",
+                  "label": "assessable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 112,
+              "prompt": "Since the elevator is broken, staff will temporarily _____ all deliveries so that trucks can unload at the ground-floor dock.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "postpone"
+                },
+                {
+                  "value": "B",
+                  "label": "complete"
+                },
+                {
+                  "value": "C",
+                  "label": "redirect"
+                },
+                {
+                  "value": "D",
+                  "label": "announce"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 113,
+              "prompt": "Shoppers who wish to return an item must present the original receipt as _____ of purchase.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "note"
+                },
+                {
+                  "value": "B",
+                  "label": "sign"
+                },
+                {
+                  "value": "C",
+                  "label": "mark"
+                },
+                {
+                  "value": "D",
+                  "label": "proof"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 114,
+              "prompt": "Every workstation shipped from Brightfold Office Interiors arrives ------- so that employees can begin using it right away.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "assembled"
+                },
+                {
+                  "value": "B",
+                  "label": "assembling"
+                },
+                {
+                  "value": "C",
+                  "label": "assembles"
+                },
+                {
+                  "value": "D",
+                  "label": "assembly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 115,
+              "prompt": "Before next week's board meeting, the updated financial report will be _____ to all senior managers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "filed"
+                },
+                {
+                  "value": "B",
+                  "label": "sent"
+                },
+                {
+                  "value": "C",
+                  "label": "printed"
+                },
+                {
+                  "value": "D",
+                  "label": "signed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 116,
+              "prompt": "On its recently launched online store, Harlow Home Appliances lists many of this year's best-selling _____.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "functions"
+                },
+                {
+                  "value": "B",
+                  "label": "prices"
+                },
+                {
+                  "value": "C",
+                  "label": "appliances"
+                },
+                {
+                  "value": "D",
+                  "label": "features"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 117,
+              "prompt": "In the main terminal, a large display lists flight _____ along with departure times.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "amenities"
+                },
+                {
+                  "value": "B",
+                  "label": "arrivals"
+                },
+                {
+                  "value": "C",
+                  "label": "accommodations"
+                },
+                {
+                  "value": "D",
+                  "label": "refreshments"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 118,
+              "prompt": "Drivers should hand the parking ticket to the attendant _____ recorded the vehicle at the entry gate.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "whom"
+                },
+                {
+                  "value": "B",
+                  "label": "who"
+                },
+                {
+                  "value": "C",
+                  "label": "whose"
+                },
+                {
+                  "value": "D",
+                  "label": "whoever"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 119,
+              "prompt": "Because the warehouse stores high-value electronics, the surveillance system is _____ monitored by staff in the control room.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "promptly"
+                },
+                {
+                  "value": "B",
+                  "label": "willingly"
+                },
+                {
+                  "value": "C",
+                  "label": "constantly"
+                },
+                {
+                  "value": "D",
+                  "label": "narrowly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 120,
+              "prompt": "All visitors must comply _____ the building's security procedures before they are issued an access badge.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "with"
+                },
+                {
+                  "value": "B",
+                  "label": "to"
+                },
+                {
+                  "value": "C",
+                  "label": "from"
+                },
+                {
+                  "value": "D",
+                  "label": "on"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 121,
+              "prompt": "Flash photography is _____ prohibited in all viewing areas surrounding the aquarium's marine exhibits.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "closely"
+                },
+                {
+                  "value": "B",
+                  "label": "tightly"
+                },
+                {
+                  "value": "C",
+                  "label": "firmly"
+                },
+                {
+                  "value": "D",
+                  "label": "strictly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 122,
+              "prompt": "Every item listed on Verandale Marketplace must include a product _____ so that shoppers can understand its features before buying.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "warranty"
+                },
+                {
+                  "value": "B",
+                  "label": "placement"
+                },
+                {
+                  "value": "C",
+                  "label": "description"
+                },
+                {
+                  "value": "D",
+                  "label": "catalog"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 123,
+              "prompt": "During the busy summer months, Meadowbrook Movers completes numerous _____ for families throughout the region.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "relocations"
+                },
+                {
+                  "value": "B",
+                  "label": "relocation"
+                },
+                {
+                  "value": "C",
+                  "label": "relocate"
+                },
+                {
+                  "value": "D",
+                  "label": "relocated"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 124,
+              "prompt": "The ceramic tiles arrived cracked from the depot, _____ Haldane Tile Company agreed to replace the entire order free of charge.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "but"
+                },
+                {
+                  "value": "B",
+                  "label": "so"
+                },
+                {
+                  "value": "C",
+                  "label": "for"
+                },
+                {
+                  "value": "D",
+                  "label": "thus"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 125,
+              "prompt": "The revised weekend schedule will be arranged _____ the ridership figures collected during last month's passenger survey.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "apart from"
+                },
+                {
+                  "value": "B",
+                  "label": "according to"
+                },
+                {
+                  "value": "C",
+                  "label": "instead of"
+                },
+                {
+                  "value": "D",
+                  "label": "beyond"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 126,
+              "prompt": "Contracts prepared for new clients must be presented _____ before they are sent for final approval.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "professionally"
+                },
+                {
+                  "value": "B",
+                  "label": "professional"
+                },
+                {
+                  "value": "C",
+                  "label": "professionalism"
+                },
+                {
+                  "value": "D",
+                  "label": "profession"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 127,
+              "prompt": "The store manager _____ all cashiers of the revised discount policy this morning.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reminded"
+                },
+                {
+                  "value": "B",
+                  "label": "recalled"
+                },
+                {
+                  "value": "C",
+                  "label": "mentioned"
+                },
+                {
+                  "value": "D",
+                  "label": "remembered"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 128,
+              "prompt": "The newly renovated ballroom offers a _____ setting for corporate receptions, with wide windows overlooking the botanical gardens.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reluctant"
+                },
+                {
+                  "value": "B",
+                  "label": "spectacular"
+                },
+                {
+                  "value": "C",
+                  "label": "considerate"
+                },
+                {
+                  "value": "D",
+                  "label": "deliberate"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 129,
+              "prompt": "The Fairhaven Choral Society board voted to _____ the annual general meeting until next month, as several trustees were traveling abroad.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "cancel"
+                },
+                {
+                  "value": "B",
+                  "label": "shorten"
+                },
+                {
+                  "value": "C",
+                  "label": "announce"
+                },
+                {
+                  "value": "D",
+                  "label": "postpone"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 130,
+              "prompt": "Buyers must activate the extended warranty online _____ 30 days of the delivery date.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "during"
+                },
+                {
+                  "value": "B",
+                  "label": "throughout"
+                },
+                {
+                  "value": "C",
+                  "label": "within"
+                },
+                {
+                  "value": "D",
+                  "label": "under"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 6,
+      "partNumber": 6,
+      "title": "Text Completion",
+      "instructions": "Select the best answer to complete the text.",
+      "questionCount": 16,
+      "audioUrl": "",
+      "questionRange": "Questions 131-146",
+      "passage": {
+        "title": "Text Completion",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 131-134",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Attention Library Members:</b></p><p>The Fairbrook Public Library, along with its two neighborhood branches, --(131)-- a lending program for portable devices, including tablets, chargers, and headphones. The new service does not begin until next Monday, but it will be available to all members in good standing and may be used free of charge. Interested in borrowing an item? If so, complete the reservation form available at the circulation desk or on our website. Members may reserve a device up to seven days before their intended visit. --(132)--. Staff will review and process each --(133)-- in the order it is received, and confirmations are sent by email. Devices may be kept for a maximum of two weeks. Please return all borrowed equipment to the circulation desk to avoid --(134)-- fees, which begin the morning after an item's assigned due date.</p></div>",
+          "questions": [
+            {
+              "number": 131,
+              "prompt": "Câu 131",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "has begun offering"
+                },
+                {
+                  "value": "B",
+                  "label": "will begin offering"
+                },
+                {
+                  "value": "C",
+                  "label": "beginning to offer"
+                },
+                {
+                  "value": "D",
+                  "label": "begin offering"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 132,
+              "prompt": "Câu 132",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Returns should be placed in the book drop outside the main entrance"
+                },
+                {
+                  "value": "B",
+                  "label": "The library may add more kinds of equipment during the coming year"
+                },
+                {
+                  "value": "C",
+                  "label": "Forms without a pickup date within that period cannot be accepted"
+                },
+                {
+                  "value": "D",
+                  "label": "Members will receive a new library card after each device pickup"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 133,
+              "prompt": "Câu 133",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "device"
+                },
+                {
+                  "value": "B",
+                  "label": "request"
+                },
+                {
+                  "value": "C",
+                  "label": "message"
+                },
+                {
+                  "value": "D",
+                  "label": "visit"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 134,
+              "prompt": "Câu 134",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "lately"
+                },
+                {
+                  "value": "B",
+                  "label": "latest"
+                },
+                {
+                  "value": "C",
+                  "label": "delayed"
+                },
+                {
+                  "value": "D",
+                  "label": "late"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 135-138",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Introducing the Fresh Coat Monthly Plan</b></p><p>Meadowbrook Pet Grooming Salon proudly presents the Fresh Coat Monthly Plan, an easy way to keep your dog or cat looking and feeling their best. The plan was developed this spring. Meadowbrook --(135)-- pet owners throughout Kingsley for more than fifteen years before that.</p><p>For one flat monthly fee, members enjoy scheduled baths, nail trimming, and --(136)-- at no additional cost. Each service is handled by a groomer during the pet's regular visit. Members also receive priority scheduling and a discount on other services. Local families have long trusted our experienced groomers. At Meadowbrook, we remain devoted to the --(137)-- of every animal in our care. This focus on keeping pets relaxed guides every appointment.</p><p>Ready to join? Visit meadowbrookgrooming.com to select your plan and book a first appointment. --(138)--.</p></div>",
+          "questions": [
+            {
+              "number": 135,
+              "prompt": "Câu 135",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "serves"
+                },
+                {
+                  "value": "B",
+                  "label": "had served"
+                },
+                {
+                  "value": "C",
+                  "label": "has served"
+                },
+                {
+                  "value": "D",
+                  "label": "will serve"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 136,
+              "prompt": "Câu 136",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "we brush"
+                },
+                {
+                  "value": "B",
+                  "label": "brushed"
+                },
+                {
+                  "value": "C",
+                  "label": "a brush"
+                },
+                {
+                  "value": "D",
+                  "label": "brushing"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 137,
+              "prompt": "Câu 137",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "cleanliness"
+                },
+                {
+                  "value": "B",
+                  "label": "routine"
+                },
+                {
+                  "value": "C",
+                  "label": "comfort"
+                },
+                {
+                  "value": "D",
+                  "label": "training"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 138,
+              "prompt": "Câu 138",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "After you enroll, our staff will confirm your first appointment by phone"
+                },
+                {
+                  "value": "B",
+                  "label": "Our groomers completed advanced training courses earlier this spring"
+                },
+                {
+                  "value": "C",
+                  "label": "View our online gallery of recent pet photos on the salon's web page"
+                },
+                {
+                  "value": "D",
+                  "label": "Veterinary offices may request printed copies of our service brochures"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 139-142",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>From:</b> Bernard Ollivant<br><b>To:</b> Danielle Prewitt<br><b>Date:</b> 12 May<br><b>Subject:</b> Your recent delivery</p><p>Dear Ms. Prewitt,</p><p>Thank you for choosing Harrowgate Home Furnishings for your recent purchase. Our records confirm that your dining set --(139)-- to your home by our delivery crew last Tuesday.</p><p>We would now like to hear about your experience with us. --(140)--. Your comments help us improve the way we schedule and complete each delivery.</p><p>As a thank-you, every customer who responds will receive a discount code for their next order. --(141)--, completed surveys are entered into a monthly drawing for a store gift card. The offer applies to any purchase made within the next three months.</p><p>The survey takes only five minutes and can be found at harrowgatehome.com/survey. We truly value your --(142)-- as it helps us review our delivery service and look forward to serving you again.</p><p>Sincerely,<br>Bernard Ollivant, Customer Care Manager</p></div>",
+          "questions": [
+            {
+              "number": 139,
+              "prompt": "Câu 139",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "had been delivered"
+                },
+                {
+                  "value": "B",
+                  "label": "has been delivered"
+                },
+                {
+                  "value": "C",
+                  "label": "was delivered"
+                },
+                {
+                  "value": "D",
+                  "label": "is delivered"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 140,
+              "prompt": "Câu 140",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A short survey is linked at the end of this message for that purpose"
+                },
+                {
+                  "value": "B",
+                  "label": "Even so, delivery times can change during especially busy periods"
+                },
+                {
+                  "value": "C",
+                  "label": "A driver may call before any large item is taken back for repair"
+                },
+                {
+                  "value": "D",
+                  "label": "The Kent Road showroom displays several new dining room pieces"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 141,
+              "prompt": "Câu 141",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "For example"
+                },
+                {
+                  "value": "B",
+                  "label": "Otherwise"
+                },
+                {
+                  "value": "C",
+                  "label": "Instead"
+                },
+                {
+                  "value": "D",
+                  "label": "In addition"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 142,
+              "prompt": "Câu 142",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "feedback"
+                },
+                {
+                  "value": "B",
+                  "label": "patience"
+                },
+                {
+                  "value": "C",
+                  "label": "support"
+                },
+                {
+                  "value": "D",
+                  "label": "business"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 143-146",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>From:</b> Owen Fletcher<br><b>To:</b> Deborah Kane<br><b>Date:</b> March 9<br><b>Subject:</b> A new way to order</p><p>Dear Ms. Kane:</p><p>We are pleased to introduce our new --(143)-- delivery subscription, created to save your cafe time and prevent shortages during your busiest weeks. At present, most Riverstone clients submit a separate order, typically 8 to 12 cases, each month. --(144)--, subscribers receive a fixed quantity of 10 cases on the same date each cycle without having to reorder.</p><p>Once you enroll, we --(145)-- your regular items, including the RB-204 espresso blend you order most, automatically every two weeks through the end of the calendar year, so your stock never runs low between shipments. Pricing is also locked at the current March rate.</p><p>You can activate the plan simply by replying to this message before March 31. --(146)--.</p><p>Best regards,</p><p>Owen Fletcher<br>Riverstone Beverage Supply</p></div>",
+          "questions": [
+            {
+              "number": 143,
+              "prompt": "Câu 143",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "express"
+                },
+                {
+                  "value": "B",
+                  "label": "premium"
+                },
+                {
+                  "value": "C",
+                  "label": "monthly"
+                },
+                {
+                  "value": "D",
+                  "label": "recurring"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 144,
+              "prompt": "Câu 144",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "As a result"
+                },
+                {
+                  "value": "B",
+                  "label": "By contrast"
+                },
+                {
+                  "value": "C",
+                  "label": "For instance"
+                },
+                {
+                  "value": "D",
+                  "label": "Meanwhile"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 145,
+              "prompt": "Câu 145",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "ship"
+                },
+                {
+                  "value": "B",
+                  "label": "shipped"
+                },
+                {
+                  "value": "C",
+                  "label": "are shipping"
+                },
+                {
+                  "value": "D",
+                  "label": "are shipped"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 146,
+              "prompt": "Câu 146",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Our team can also help design your cafe's seasonal menu"
+                },
+                {
+                  "value": "B",
+                  "label": "Please attach a copy of last month's invoice for us"
+                },
+                {
+                  "value": "C",
+                  "label": "A coordinator will confirm your first shipment shortly"
+                },
+                {
+                  "value": "D",
+                  "label": "Unfortunately, this offer is closed to new participants"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 7,
+      "partNumber": 7,
+      "title": "Reading Comprehension",
+      "instructions": "Read the following text then answer the questions.",
+      "questionCount": 54,
+      "audioUrl": "",
+      "questionRange": "Questions 147-200",
+      "passage": {
+        "title": "Reading Comprehension",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 147-148",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Customer Device Exchange Program</b></p><p>Northlight Electronics — Consumer Services Division</p><p>Northlight Electronics invites customers to trade in a used personal device toward the purchase of new merchandise. Devices are appraised at the service counter, and store credit is issued as a voucher valid for in-store purchases at any branch. Credit may not be redeemed for cash and expires ninety days from issue.</p><p>Accepted categories include smartphones, tablets, and laptops that power on without external assistance. Customers are encouraged, though not required, to back up personal files before visiting; staff can guide anyone unfamiliar with device data removal. On arrival, please present a government-issued photo identification card, as no appraisal may proceed without verification of the customer's identity.</p><p>Complimentary recycling of one charging cable is available on request.</p></div>",
+          "questions": [
+            {
+              "number": 147,
+              "prompt": "What is included in the notice?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A fixed appraisal amount for each accepted device"
+                },
+                {
+                  "value": "B",
+                  "label": "An appointment procedure for scheduling an inspection"
+                },
+                {
+                  "value": "C",
+                  "label": "A limitation on how the store credit may be redeemed"
+                },
+                {
+                  "value": "D",
+                  "label": "A directory of items no longer eligible for exchange"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 148,
+              "prompt": "According to the notice, what must customers do in order to have a device appraised?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Backing up personal files before arrival"
+                },
+                {
+                  "value": "B",
+                  "label": "Presenting official photo identification"
+                },
+                {
+                  "value": "C",
+                  "label": "Erasing personal data on the device"
+                },
+                {
+                  "value": "D",
+                  "label": "Providing an old charging cable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 149-150",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Blue Meridian Travel</b></p><p><b>Invoice</b><br>Invoice number: BM-3092<br>Invoice date: 6 March</p><p>44 Harborview Lane, Denton<br>Telephone: 555-0148<br>bookings@bluemeridiantravel.com</p><p><b>Billed to:</b> Denise Harlow<br><b>Booking reference:</b> TR-7741<br><b>Departure date:</b> 2 April</p><table><tr><th>Service</th><th>Detail</th><th>Amount</th></tr><tr><td>Guided city tour</td><td>Two-day walking tour</td><td>£280</td></tr><tr><td>Airport transfer</td><td>Round trip</td><td>£60</td></tr><tr><td>Museum entry package</td><td>Three sites</td><td>£140</td></tr><tr><td></td><td><b>Total</b></td><td><b>£480</b></td></tr></table><p><b>Deposit paid:</b> £150<br><b>Balance due:</b> £330<br><b>Payment due date:</b> 26 March<br><b>Tickets:</b> Issued</p><p>Changes to a booked tour may be made without a fee only when requested at least 14 days before the departure date. Requests made after that point are subject to a 20 percent adjustment fee. The museum entry package cannot be exchanged once tickets are issued.</p><p>Pay the balance online at bluemeridiantravel.com or by telephone. Please contact Ronald Frey with any questions about this invoice.</p></div>",
+          "questions": [
+            {
+              "number": 149,
+              "prompt": "According to the invoice, when may a booked tour be changed without a fee?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "When the outstanding balance has been settled"
+                },
+                {
+                  "value": "B",
+                  "label": "When the museum entry package is not involved"
+                },
+                {
+                  "value": "C",
+                  "label": "When the change is requested by 26 March"
+                },
+                {
+                  "value": "D",
+                  "label": "When the change is requested by 19 March"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 150,
+              "prompt": "What is suggested about Ms. Harlow?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She will need to make an additional payment before her departure."
+                },
+                {
+                  "value": "B",
+                  "label": "She can exchange her museum entry package if she wishes."
+                },
+                {
+                  "value": "C",
+                  "label": "She was charged a 20 percent fee on her original booking."
+                },
+                {
+                  "value": "D",
+                  "label": "She has arranged only one-way transportation to the airport."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 151-152",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Notice: Revised Use of the Third-Floor Kitchen</b></p><p>This notice is for all staff who use the third-floor kitchen. Because recent cleaning has been taking longer than expected, we are updating how the space should be left after each use.</p><p>After preparing food, please rinse and dry any dishes you use. When you have finished, nothing of yours should remain on the counters or in the sink. Wipe the tables afterward with the cloths provided.</p><p>Perishable food may not be kept in the refrigerator overnight unless it is clearly labeled with your name.</p><p>To arrange an exception or report a problem, speak with Wesley Hartmann in the office before you leave for the day.</p><p>Issued by: Wesley Hartmann</p></div>",
+          "questions": [
+            {
+              "number": 151,
+              "prompt": "In the notice, what does the writer mean by \"nothing of yours should remain on the counters or in the sink\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Staff should keep personal belongings from being left in the kitchen."
+                },
+                {
+                  "value": "B",
+                  "label": "Staff should label any perishable items placed in the refrigerator."
+                },
+                {
+                  "value": "C",
+                  "label": "Staff should clear their used dishes so cleaning takes less time."
+                },
+                {
+                  "value": "D",
+                  "label": "Staff should report longer cleaning times to building management."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 152,
+              "prompt": "Who most likely is Wesley Hartmann?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A worker on the office cleaning crew."
+                },
+                {
+                  "value": "B",
+                  "label": "A cook in the office cafeteria."
+                },
+                {
+                  "value": "C",
+                  "label": "A colleague who also uses the kitchen."
+                },
+                {
+                  "value": "D",
+                  "label": "A member of the office administration."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 153-154",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>Marchmont Household Goods<br>Customer Care Center<br>88 Wharton Way, Northcote</p><p>4 June</p><p>Gordon Pryce<br>15 Selby Road<br>Ashcombe</p><p>Reference: Return Request RT-5192</p><p>Dear Mr. Pryce,</p><p>Thank you for contacting our Customer Care Center regarding the ceramic dinner set purchased at our Wharton Way branch. Our team has inspected the item and noted no faults with its condition, and your request reached us well within the return window. However, when the paperwork was reviewed, our staff found that no sales record accompanied it. Under company procedure, we cannot move any refund forward unless the transaction is matched to a store record.</p><p>To help us complete the matching step, kindly forward a scanned copy of your receipt to returns@marchmonthousehold.com, or bring it to any store counter. Once the details are checked against our system, your case will be released for further handling. We appreciate your patience.</p><p>Returns Processing Team<br>Marchmont Household Goods</p><p>For questions about this reference, please call the Customer Care Center.</p></div></div>",
+          "questions": [
+            {
+              "number": 153,
+              "prompt": "Why did Marchmont Household Goods send this letter to Mr. Pryce?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To announce updated rules for accepting store returns"
+                },
+                {
+                  "value": "B",
+                  "label": "To apologize for a mistake by the processing team"
+                },
+                {
+                  "value": "C",
+                  "label": "To request records needed to continue processing his return"
+                },
+                {
+                  "value": "D",
+                  "label": "To confirm that a refund has been approved for him"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 154,
+              "prompt": "What was wrong with Mr. Pryce's original return request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It reached the store after the acceptance deadline."
+                },
+                {
+                  "value": "B",
+                  "label": "The item arrived at the centre in damaged condition."
+                },
+                {
+                  "value": "C",
+                  "label": "The customer's mailing address was noted as incorrect."
+                },
+                {
+                  "value": "D",
+                  "label": "It lacked evidence tying it to a store sale."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 155-157",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>To: All Kitchen and Dining Staff<br>From: Helen Voss, General Manager<br>Subject: Uniform Transition — Next Steps</p><p>Beginning the first of next month, The Copper Kettle Restaurant will phase in revised workwear for both service teams. This message outlines what each of you must do before the changeover and why the update is happening now.</p><p>For most of the past year, our supplier has struggled to reorder our shirts consistently, and the colors worn by the kitchen and dining teams have drifted apart, so guests sometimes mistake the two roles. A single vendor and one shared color scheme should fix both problems.</p><p>Floor manager Bradley Cole reviewed the samples with me last week. \"The darker aprons will look far sharper during evening service,\" he said. \"But the heavier fabric will run warm near the stoves, so I recommend that the long-sleeved shirt go only to the dining side, with the kitchen crew keeping a short-sleeved cut.\"</p><p>Please pass your measurements to Teresa Nunes, our staff coordinator, by the 15th. She has been assigned the procurement side of the rollout. Once measurements are compiled, she will submit a single consolidated purchase order and confirm a delivery window. Style decisions were finalized by management.</p><p>Fittings will take place in the staff room during afternoon breaks. For sizing questions, speak with Teresa or leave a note in the office. Thank you for helping make the transition a smooth one.</p><p>Helen Voss</p></div>",
+          "questions": [
+            {
+              "number": 155,
+              "prompt": "What is the purpose of the memo?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To collect feedback about a supplier issue"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce a schedule of fittings for staff"
+                },
+                {
+                  "value": "C",
+                  "label": "To inform employees of a change and required actions"
+                },
+                {
+                  "value": "D",
+                  "label": "To confirm a purchase agreement with a new vendor"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 156,
+              "prompt": "What opinion does Bradley Cole express about the new uniform?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The current uniforms look more professional than the new ones."
+                },
+                {
+                  "value": "B",
+                  "label": "The long-sleeved shirt is not appropriate for every team."
+                },
+                {
+                  "value": "C",
+                  "label": "A lighter fabric should be chosen for both teams."
+                },
+                {
+                  "value": "D",
+                  "label": "The color scheme should match the previous kitchen colors."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 157,
+              "prompt": "What is indicated about Teresa Nunes?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She selected the styles for the new uniform."
+                },
+                {
+                  "value": "B",
+                  "label": "She works exclusively in the dining room area."
+                },
+                {
+                  "value": "C",
+                  "label": "She will compile size information before submitting an order."
+                },
+                {
+                  "value": "D",
+                  "label": "She may only be contacted through written notes."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 158-160",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Rosalind Hart<br>42 Fenwick Street<br>Ashgrove</p><p>18 October</p><p>Customer Accounts Team<br>Ravenswood Utilities<br>9 Harlow Road, Ashgrove</p><p>Subject: Review request for Account No. 5530-2971</p><p>Dear Customer Accounts Team,</p><p>I am writing about a charge on my September statement. A late payment fee of $18 has been added, even though my payment reached your office two days before the due date. Apart from this single item, the rest of the September bill is in order.</p><p>Your customer terms state that a late fee may be reversed for any account that shows six consecutive months of on-time payments. My monthly statement history is summarized in the table below:</p><table><tr><th>Statement</th><th>Amount</th><th>Date Received</th></tr><tr><td>April</td><td>$76.40</td><td>Apr 22</td></tr><tr><td>May</td><td>$81.15</td><td>May 19</td></tr><tr><td>June</td><td>$88.90</td><td>Jun 20</td></tr><tr><td>July</td><td>$92.55</td><td>Jul 18</td></tr><tr><td>August</td><td>$84.30</td><td>Aug 21</td></tr><tr><td>September</td><td>$79.10</td><td>Sep 22</td></tr></table><p>Each amount above reached your office before its due date of the twenty-fourth. I have enclosed a copy of my September payment confirmation. A meter reading error last spring was corrected at the time and does not affect the current charge. Enrolling in automatic monthly payments is something I may look into in the future, but I am not requesting that change now. Please reply within fourteen business days. I can be reached by telephone at 555-0148.</p><p>Sincerely,<br>Rosalind Hart</p><p>Enclosure: September payment confirmation</p></div>",
+          "questions": [
+            {
+              "number": 158,
+              "prompt": "According to the letter, why does Ms. Hart's account qualify for the requested fee reversal?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has made all payments on time for six consecutive months."
+                },
+                {
+                  "value": "B",
+                  "label": "She has submitted proof of her most recent payment."
+                },
+                {
+                  "value": "C",
+                  "label": "She has enrolled her account in automatic monthly payments."
+                },
+                {
+                  "value": "D",
+                  "label": "She has replied within a required business-day response period."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 159,
+              "prompt": "What problem does Ms. Hart describe in the letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A meter reading on her account was recorded inaccurately."
+                },
+                {
+                  "value": "B",
+                  "label": "Her account has been enrolled in automatic monthly billing."
+                },
+                {
+                  "value": "C",
+                  "label": "A late fee was added despite her on-time payment."
+                },
+                {
+                  "value": "D",
+                  "label": "Her recent monthly statements have grown noticeably in cost."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 160,
+              "prompt": "What is NOT indicated in the letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A street address for the sender of the letter"
+                },
+                {
+                  "value": "B",
+                  "label": "A telephone number for reaching the sender directly"
+                },
+                {
+                  "value": "C",
+                  "label": "An enclosure supporting the sender's request"
+                },
+                {
+                  "value": "D",
+                  "label": "The name of an employee handling the request"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 161-163",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>From:</b> reception@meadowvaledental.com<br><b>To:</b> Adrian Coles<br><b>Subject:</b> Preparing for your first appointment</p><p>Dear Mr. Coles,</p><p>Thank you for scheduling your first appointment at Meadowvale Dental Clinic. Because new patients require additional processing at reception, we ask that a few tasks be completed in advance. --[1]--.</p><p>First, please download the new patient form from our website and return it to us at least three business days before your appointment. --[2]--. The details you provide allow our clinical team to review your medical history and prepare a personal chart, which cannot be done during the appointment window itself.</p><p>Once the form reaches us, staff will begin processing your file, and a confirmation message will be sent to the address on record. --[3]--. Until you receive that message, please assume your booking has not been finalized.</p><p>On the day of your visit, arrive at the ground-floor reception desk fifteen minutes early. --[4]--. If your circumstances change before then, our office can be reached by telephone during business hours; e-mail replies to this address are not monitored.</p><p>Kind regards,<br>Grace Holloway<br>Reception Office, Meadowvale Dental Clinic</p></div></div>",
+          "questions": [
+            {
+              "number": 161,
+              "prompt": "Why was the e-mail sent to Mr. Coles?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To confirm that a booking has been finalized"
+                },
+                {
+                  "value": "B",
+                  "label": "To describe the location of the check-in desk"
+                },
+                {
+                  "value": "C",
+                  "label": "To summarize findings from a previous visit"
+                },
+                {
+                  "value": "D",
+                  "label": "To outline preparations required before a first visit"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 162,
+              "prompt": "What is Mr. Coles asked to do before his appointment?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Reply by e-mail to confirm his attendance"
+                },
+                {
+                  "value": "B",
+                  "label": "Submit a completed patient form in advance"
+                },
+                {
+                  "value": "C",
+                  "label": "Prepare a personal chart of his medical history"
+                },
+                {
+                  "value": "D",
+                  "label": "Call the reception office to confirm the booking"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 163,
+              "prompt": "In which of the positions marked --[1]--, --[2]--, --[3]-- and --[4]-- does the following sentence best belong? \"Our staff usually complete this step within two working days, though it can take longer during busy periods.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "--[1]--"
+                },
+                {
+                  "value": "B",
+                  "label": "--[2]--"
+                },
+                {
+                  "value": "C",
+                  "label": "--[3]--"
+                },
+                {
+                  "value": "D",
+                  "label": "--[4]--"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 164-167",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Larkfield Pack and Ship — Parcel Shipping Request</b></p><p>Full-service mailing, printing, and packing counter</p><p>Reference: LP-3092<br>Date received at counter: Monday, 9 June<br>Review status: Approved</p><p>Customer: Gerald Thornton, on behalf of Wayne Feld Distributors<br>Shipment type: Business<br>Contents: A boxed set of product sample catalogs prepared for a trade buyer in Camden Falls</p><p>Services requested:<br>[X] Extra protective packing around fragile items<br>[X] Progress text notifications to the sender<br>[X] Signature confirmed at delivery<br>[ ] Loss-and-damage insurance</p><p>Handling instructions: The catalogs are already boxed; please add padding around the box before the outer wrap is sealed.</p><p>Counter clerk comment: The customer originally asked us to print a fresh set of color copies alongside the catalogs, but he cancelled that print job once he confirmed the box already held everything the buyer would need.</p><p>Staff review note: Contents inspected against the itemized list and paperwork checked line by line — this one is good to go.</p><p>Scheduling: Same-day drop-off cutoff at this counter is 4:00 P.M. The customer has selected our 3-day business delivery and asked that the parcel reach the buyer by his Thursday planning meeting. Any insurance claim, if the service were added, would remain valid for 30 days after arrival.</p><p>By submitting this form, all customers agree that oversized parcels may be subject to additional handling charges.</p></div></div>",
+          "questions": [
+            {
+              "number": 164,
+              "prompt": "What is suggested about the shipment?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It was printed on-site at Larkfield's counter."
+                },
+                {
+                  "value": "B",
+                  "label": "It has been insured against loss or damage."
+                },
+                {
+                  "value": "C",
+                  "label": "It carries promotional items for a business client."
+                },
+                {
+                  "value": "D",
+                  "label": "It will be charged extra for its size."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 165,
+              "prompt": "In the staff review note, what does the reviewer most likely mean by \"good to go\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The parcel is ready to be shipped."
+                },
+                {
+                  "value": "B",
+                  "label": "The parcel needs more items added before shipping."
+                },
+                {
+                  "value": "C",
+                  "label": "The parcel will be picked up by the customer."
+                },
+                {
+                  "value": "D",
+                  "label": "The parcel has already arrived at its destination."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 166,
+              "prompt": "When is the parcel scheduled to reach the destination?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "On Monday, 9 June"
+                },
+                {
+                  "value": "B",
+                  "label": "At 4:00 P.M."
+                },
+                {
+                  "value": "C",
+                  "label": "Within 30 days"
+                },
+                {
+                  "value": "D",
+                  "label": "On Thursday, 12 June"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 167,
+              "prompt": "According to the form, what will NOT be provided as part of this shipment?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Cushioning around the packaged contents"
+                },
+                {
+                  "value": "B",
+                  "label": "Delivery status alerts by message"
+                },
+                {
+                  "value": "C",
+                  "label": "Printing of additional color copies"
+                },
+                {
+                  "value": "D",
+                  "label": "Recipient signature at handoff"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 168-171",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Notice: Revised Records Room Access Procedure</b></p><p>To all department staff:</p><p>The way files are retrieved from the records room has changed. Over the past several weeks, a number of archived documents were returned out of order or left unshelved after staff retrieved them without assistance. To keep the collection accurate and properly arranged, the department will now manage all retrievals through a controlled request process. --[1]--.</p><p>This process applies to every archived file kept in the records room, meaning any material more than two years old. Active files stored at individual workstations are not affected and may still be handled directly by the staff who use them. To obtain an archived file, submit a request through the internal records portal instead of entering the room yourself. --[2]--.</p><p>A member of the records team will locate the file and prepare it for collection. Please wait for a confirmation message stating that the item is ready before coming to pick it up. --[3]--. Searching the records area for files on your own, without approval, is no longer permitted.</p><p>Occasionally a file may be needed before standard processing can be completed, but urgent access requires authorization from the office manager. --[4]--. For questions about a pending request, contact the records team at extension 118; requests for urgent access should be directed to the office manager.</p></div>",
+          "questions": [
+            {
+              "number": 168,
+              "prompt": "According to the notice, why was the retrieval procedure changed?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To maintain the order and integrity of the archived collection"
+                },
+                {
+                  "value": "B",
+                  "label": "To restore the earlier system of unrestricted staff access"
+                },
+                {
+                  "value": "C",
+                  "label": "To reduce the amount of material kept at individual workstations"
+                },
+                {
+                  "value": "D",
+                  "label": "To reassign retrieval duties from the records team to managers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 169,
+              "prompt": "What is indicated about files stored at individual workstations?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They must be transferred to the records room after two years"
+                },
+                {
+                  "value": "B",
+                  "label": "They can only be located by members of the records team"
+                },
+                {
+                  "value": "C",
+                  "label": "They require a portal confirmation before they are used"
+                },
+                {
+                  "value": "D",
+                  "label": "They may still be handled without following the new process"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 170,
+              "prompt": "What does the notice advise staff to do after a request has been submitted?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Wait for notification from the records team before collecting the file"
+                },
+                {
+                  "value": "B",
+                  "label": "Enter the records area to check on the file's progress"
+                },
+                {
+                  "value": "C",
+                  "label": "Contact the office manager to approve the standard retrieval"
+                },
+                {
+                  "value": "D",
+                  "label": "Call extension 118 to have the file delivered to a workstation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 171,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? 'Approval decisions are made case by case and are granted only when timing genuinely leaves no alternative.'",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 172-175",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Aldercourt Adds Ground-Floor Counter to Speed Up Order Collection</b></p><p>By Vernon Ashby, The Ashwick Herald</p><p>Aldercourt Department Store has opened a dedicated counter on its ground floor where shoppers can collect items they have ordered online. Store officials say the change should shorten waits at pickup and ease crowding at the busy third-floor customer service desk during peak hours.</p><p>Until this month, every online order was handed out at the third-floor desk, which also processed returns, exchanges, and general questions. Whenever several kinds of business overlapped there, waits sometimes reached fifteen minutes or more. --[1]--. The new ground-floor counter is intended for shoppers who have both reserved goods online and paid in advance; those who selected \"pay on collection\" at checkout must still go upstairs to complete their transaction.</p><p>The two service points now differ in more than location. The ground-floor counter stays open until 9 p.m. on weekdays, an hour later than the third-floor desk, but closes on Sundays, while the third-floor desk continues to operate on Sunday afternoons and still handles returns, exchanges, and general customer questions. --[2]--. Orders placed before noon are usually ready the same afternoon at either service point, and both locations require the same photo identification.</p><p>\"Separating prepaid pickups from other requests has already cut typical waits at both service points,\" said Patricia Neville, the store's operations manager. \"Most customers finish collecting a small order in under three minutes.\"</p><p>There is one category the new counter cannot serve. Large or heavy goods, such as furniture and major appliances, are still released from the third-floor desk rather than downstairs, because staff there can call for loading assistance from the delivery bay. --[3]--. Shoppers buying such products are therefore asked to arrive by mid-afternoon, well before that earlier closing time, whenever possible. --[4]--. Aldercourt plans to review the counter's performance after three months and may extend its hours if demand is high.</p></div>",
+          "questions": [
+            {
+              "number": 172,
+              "prompt": "What is the main purpose of the article?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To describe an operational change intended to improve customer flow."
+                },
+                {
+                  "value": "B",
+                  "label": "To announce that store service points now have longer weekday hours."
+                },
+                {
+                  "value": "C",
+                  "label": "To apologize to shoppers for delays at the customer service desk."
+                },
+                {
+                  "value": "D",
+                  "label": "To instruct customers on the procedure for collecting online purchases."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 173,
+              "prompt": "What is indicated about the new ground-floor counter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It handles both prepaid orders and pay-on-collection pickups."
+                },
+                {
+                  "value": "B",
+                  "label": "It cannot be used by customers who will pay at the store."
+                },
+                {
+                  "value": "C",
+                  "label": "It has replaced the third-floor customer service desk."
+                },
+                {
+                  "value": "D",
+                  "label": "It is reviewed by store staff every three months."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 174,
+              "prompt": "What is stated about the third-floor desk?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is open until 9 p.m. on weekdays."
+                },
+                {
+                  "value": "B",
+                  "label": "It no longer processes exchanges of merchandise."
+                },
+                {
+                  "value": "C",
+                  "label": "It closes earlier than the ground-floor counter on weekdays."
+                },
+                {
+                  "value": "D",
+                  "label": "It is closed to customers on Sunday afternoons."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 175,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? \"That constraint is a key reason the store cannot offer these customers the same late-evening pickup available at the new counter.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 176-180",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Rosehill Driving Academy — Enrollment Confirmation Record</b><br>Record Number: RD-4820<br>Date Issued: 3 March</p><p><b>Student Details</b><br>Name: Bethany Ashford<br>Phone: 0455-882-119<br>Preferred Contact Method: Text message<br>License Stage: Learner permit currently held<br>Lessons Completed: 6 of 10</p><p><b>Current Enrollment</b><br>Course: Standard Ten-Lesson Package<br>Scheduled Session: Tuesday, 4:00 P.M.<br>Assigned Instructor: Gavin Prescott<br>Vehicle in Use: Manual transmission</p><p><b>Requested New Session (choose one)</b></p><table><tr><th>Option</th><th>Day and Time</th><th>Marked</th></tr><tr><td>A</td><td>Monday, 10:00 A.M.</td><td></td></tr><tr><td>B</td><td>Wednesday, 6:00 P.M.</td><td>X</td></tr><tr><td>C</td><td>Saturday, 9:00 A.M.</td><td></td></tr></table><p><b>Special Request</b><br>Switch to a vehicle with automatic transmission for the remaining lessons.</p><p><b>Student Note</b><br>Cannot attend any lesson before 5:00 P.M. on weekdays owing to work hours.</p><p><b>Account and Fee Status</b><br>Schedule Change Fee: $25 standard<br>Account Standing: Returning student, enrolled in a second course<br>Balance: Paid in full to date</p><p><b>Policy</b><br>The schedule change fee is waived for students enrolled in more than one course. Instructor assignments depend on availability on the chosen day.</p></div><p>----------------------</p><div><p><b>Your Enrollment Change — Record RD-4820</b></p><p>From: Rosehill Driving Academy, Student Bookings Desk | To: Bethany Ashford</p><p>Thank you for asking to move your remaining lessons to Wednesday evenings. We are happy to confirm that your weekly session is now set for 6:00 P.M., starting next week, and that an automatic-transmission car has been reserved for you exactly as you asked.</p><p>There is one change we need to make on our side. Gavin Prescott, who has taught your lessons so far, does not work on Wednesday evenings, so your remaining sessions will be led by another of our instructors, Rachel Osborn. She will be given your full progress record before you meet. Because you are currently taking a second course with us, the fee terms set out in your enrollment record will govern any charge for this change.</p><p>Please arrive about ten minutes early for your first Wednesday lesson so that Ms. Osborn can go over your file with you. You do not need to bring anything additional for this session, since your learner permit and current progress are already recorded in our system.</p><p>Kind regards,<br>Student Bookings Desk<br>Rosehill Driving Academy<br>Office hours: Monday to Saturday, 8:00 A.M. to 7:00 P.M.</p></div>",
+          "questions": [
+            {
+              "number": 176,
+              "prompt": "In addition to a new lesson time, what does Ms. Ashford ask Rosehill Driving Academy to arrange?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A refund on her paid fees"
+                },
+                {
+                  "value": "B",
+                  "label": "An extra lesson at no cost"
+                },
+                {
+                  "value": "C",
+                  "label": "A change of instructor"
+                },
+                {
+                  "value": "D",
+                  "label": "A car of a different type"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 177,
+              "prompt": "What is suggested about Ms. Ashford?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She is a first-time student at the academy"
+                },
+                {
+                  "value": "B",
+                  "label": "She prefers a weekday evening over a weekend morning"
+                },
+                {
+                  "value": "C",
+                  "label": "She works during evenings and weekends"
+                },
+                {
+                  "value": "D",
+                  "label": "She has finished her ten-lesson package"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 178,
+              "prompt": "Why does Ms. Ashford wish to change her current lesson time?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She would rather take lessons on the weekend"
+                },
+                {
+                  "value": "B",
+                  "label": "The current time conflicts with her employment"
+                },
+                {
+                  "value": "C",
+                  "label": "She has already finished the ten-lesson course"
+                },
+                {
+                  "value": "D",
+                  "label": "Her account has an outstanding payment"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 179,
+              "prompt": "According to the e-mail, what is Rosehill Driving Academy changing that Ms. Ashford did not request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The day her lessons take place"
+                },
+                {
+                  "value": "B",
+                  "label": "The kind of car used for lessons"
+                },
+                {
+                  "value": "C",
+                  "label": "The instructor for her remaining lessons"
+                },
+                {
+                  "value": "D",
+                  "label": "The number of lessons she still has"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 180,
+              "prompt": "What is indicated about Ms. Ashford's account with Rosehill Driving Academy?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She will not be charged a change fee"
+                },
+                {
+                  "value": "B",
+                  "label": "She is taking her first course with Rosehill"
+                },
+                {
+                  "value": "C",
+                  "label": "She has an unpaid balance on her account"
+                },
+                {
+                  "value": "D",
+                  "label": "She must bring additional documents to her next lesson"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 181-185",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>The Halverton Chronicle</b></p><p>Local Business</p><p><b>Brightleaf Market Doubles Self-Scan Checkout Lanes</b></p><p>By Wendell Prosser<br>18 September</p><p>Shoppers at the Brightleaf Market on Kingsway Road will find a different checkout area beginning next month. The store plans to increase its self-scan lanes from four to eight, the largest change it has made to the checkout area since opening.</p><p>Managers say the decision follows repeated complaints about slow-moving lines in the early evening, when many customers stop in after work. The added lanes, they say, are meant to move shoppers through the checkout area more quickly.</p><p>To help customers adjust, Brightleaf will place checkout support assistants at the self-scan area during all opening hours. These staff members guide shoppers who are new to the machines and step in when an item will not scan or a screen freezes.</p><p>The wider rollout follows a three-month trial at the company's Westbrook branch, where the first self-scan lanes were installed last spring and judged a success.</p><p>Store manager Harriet Lindqvist reminded customers that the lanes suit smaller shopping trips. \"Self-scan is limited to twelve items or fewer, and any purchase of wine or other age-restricted goods has to be approved by a support assistant before payment can be completed,\" she said.</p><p>A short self-scan guide will be posted on Brightleaf's Web site, but payment must still be made at the lane. A help point staffed by an assistant will sit at the end of the lanes. Customers who would rather be served by a cashier can continue to use the staffed lanes near the store entrance.</p><p>Home | Local Business | Community | Letters | Contact the Newsroom</p></div>\n\n<div><p><b>Brightleaf Market — Customer Feedback</b></p><p>Reference: FB-20744<br>Store visited: Kingsway Road<br>Date of visit: 14 October<br>Checkout method used: Self-Scan Lane<br>Approximate number of items: 9<br>Did you receive assistance? Yes<br>Overall satisfaction: Very satisfied<br>Request type selected: Service request</p><p>Message:<br>This was my first time trying the new self-scan lanes, and the process was much quicker than I expected. While I was scanning, one of my items was held for approval before I could pay, and a young woman named Bianca who was working near the machines came over right away to clear it. She also sorted out a can that would not scan. It would help me and other shoppers if, on busy weekday evenings, someone were kept at the self-scan area, because during a previous visit I saw another customer left waiting when a machine stopped working and no help arrived for some time.</p><p>Preferred contact method: Email<br>Submission status: Received. A member of the customer team will review this within three business days.</p></div></div>",
+          "questions": [
+            {
+              "number": 181,
+              "prompt": "What is suggested about Brightleaf Market's checkout area?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It has replaced staffed cashier lanes with machines."
+                },
+                {
+                  "value": "B",
+                  "label": "It has previously operated with only staffed cashiers."
+                },
+                {
+                  "value": "C",
+                  "label": "It has been redesigned to handle larger shopping trips."
+                },
+                {
+                  "value": "D",
+                  "label": "It has been slow to serve customers at certain times."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 182,
+              "prompt": "What does the article suggest about certain purchases at self-scan lanes?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They can be completed entirely through the store's Web site."
+                },
+                {
+                  "value": "B",
+                  "label": "They are limited to fewer than five items per visit."
+                },
+                {
+                  "value": "C",
+                  "label": "They may require staff approval before payment is completed."
+                },
+                {
+                  "value": "D",
+                  "label": "They receive a discount when done at self-scan lanes."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 183,
+              "prompt": "What is suggested about Bianca?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She recently transferred from another Brightleaf branch."
+                },
+                {
+                  "value": "B",
+                  "label": "She works as a checkout support assistant."
+                },
+                {
+                  "value": "C",
+                  "label": "She oversees the staffed lanes at the store entrance."
+                },
+                {
+                  "value": "D",
+                  "label": "She trains customers on the store's Web site guide."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 184,
+              "prompt": "What does the customer request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "That her overall satisfaction rating be updated in the store's records."
+                },
+                {
+                  "value": "B",
+                  "label": "That she be contacted about the visit by telephone instead of e-mail."
+                },
+                {
+                  "value": "C",
+                  "label": "That additional self-scan lanes be installed at the Kingsway Road store."
+                },
+                {
+                  "value": "D",
+                  "label": "That staff be reliably present at the self-scan area during busy evenings."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 185,
+              "prompt": "What does the feedback imply about the customer?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She bought an item requiring staff approval to purchase."
+                },
+                {
+                  "value": "B",
+                  "label": "She scanned more items than the lane's stated limit."
+                },
+                {
+                  "value": "C",
+                  "label": "She had not previously visited the Kingsway Road store."
+                },
+                {
+                  "value": "D",
+                  "label": "She hopes the store will expand its evening cashier lanes."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 186-190",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Larkspur Interior Plants — Service Confirmation</b></p><p>Account: Pemberton House (Reeve Consulting Group)<br>Reference: Plan renewal 2208<br>Coordinator: Fiona Marsh<br>Date sent: 3 March</p><p>Dear Mr. Ellison,</p><p>Thank you for renewing your plant-care plan with Larkspur Interior Plants. This message confirms that weekly maintenance visits to your Pemberton House office are now in place, beginning this Thursday.</p><p>The arrangements covered by this plan are listed below:</p><p>LP-310 — Reception floor palm — main lobby — water and leaf cleaning<br>LP-322 — Kitchen herb trough — staff kitchen — water and herb trim<br>LP-341 — Desk succulent tray — open office — moisture check<br>LP-356 — Meeting-room hanging ferns — conference room — water and hanging-basket check</p><p>Please note that your service window begins at 8:15 A.M., before Pemberton House opens to staff. Kindly review the access rules on our website so that our technician can enter the building without delay.</p><p>A separate confirmation covering the plants at your Eastgate branch has been sent under its own reference number.</p><p>If you need to change a visit day, write to care@larkspurinteriorplants.com or call the service line on 555-0192.</p><p>Warm regards,<br>Fiona Marsh<br>Account Coordinator, Larkspur Interior Plants</p></div><p>----------------------</p><div><p>www.larkspurinteriorplants.com/visit-guide</p><p><b>Preparing for Your Maintenance Visit</b> — Client Care Guide</p><p>The notes below apply to every client on a regular plant-care plan. Please read them before each scheduled visit.</p><p><b>Getting ready</b><br>Before the technician arrives, clear any cups, files, or personal items placed on or directly around each plant so that every arrangement can be reached and serviced. This step is required for the visit to go ahead as planned.</p><p><b>Building access</b><br>For any visit scheduled before 9:00 A.M. or after 6:00 P.M., the client must supply a building entry code or leave a key at reception at least two working days in advance. Visits during standard opening hours need no special arrangement.</p><p><b>Plant replacement</b><br>Plants that decline through normal wear are replaced at no charge. If a plant is damaged by spills, relocation, or other client handling, a replacement fee is added to the following month's invoice.</p><p><b>Feedback</b><br>After a visit you may leave a short note for the technician through your online account. This is optional and does not affect your service.</p><p>Questions? Write to care@larkspurinteriorplants.com or use the live chat on this page.</p></div><p>----------------------</p><div><p><b>Larkspur Interior Plants — Weekly Service Schedule</b></p><p>Service week: 4 March – 8 March (Route 2, Thursday)</p><table><tr><th>Reference</th><th>Location</th><th>Window</th><th>Status</th><th>Note</th></tr><tr><td>LP-310</td><td>Pemberton House – Reception</td><td>8:45 A.M.</td><td>Scheduled</td><td>—</td></tr><tr><td>LP-341</td><td>Pemberton House – Open office</td><td>8:15 A.M.</td><td>Scheduled</td><td>Replacement pending</td></tr><tr><td>LP-322</td><td>Pemberton House – Staff kitchen</td><td>9:00 A.M.</td><td>Scheduled</td><td>Trim leaves</td></tr><tr><td>LP-356</td><td>Pemberton House – Conference room</td><td>9:20 A.M.</td><td>Scheduled</td><td>—</td></tr><tr><td>LP-402</td><td>Aldwyn Chambers – Lobby</td><td>10:15 A.M.</td><td>Scheduled</td><td>—</td></tr><tr><td>LP-418</td><td>Aldwyn Chambers – Break room</td><td>10:40 A.M.</td><td>On hold</td><td>Awaiting access</td></tr></table><p>Windows are approximate. Schedule revised 2 March. \"Replacement pending\" means the plant is flagged for exchange at the next visit.</p></div>",
+          "questions": [
+            {
+              "number": 186,
+              "prompt": "What is suggested about Larkspur Interior Plants?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It handles more than one office location for the client."
+                },
+                {
+                  "value": "B",
+                  "label": "It sends every client a single confirmation covering all sites."
+                },
+                {
+                  "value": "C",
+                  "label": "It provides plant care only during standard office hours."
+                },
+                {
+                  "value": "D",
+                  "label": "It assigns the same reference number to each branch."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 187,
+              "prompt": "What do all of the arrangements covered by Mr. Ellison's plan have in common?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They all receive water at each scheduled visit."
+                },
+                {
+                  "value": "B",
+                  "label": "They are all held pending replacement this week."
+                },
+                {
+                  "value": "C",
+                  "label": "They are all scheduled before 9:30 A.M."
+                },
+                {
+                  "value": "D",
+                  "label": "They are all located in the reception area."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 188,
+              "prompt": "According to the client-care guide, what must all clients do to prepare for a maintenance visit?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Supply the technician with a building entry code."
+                },
+                {
+                  "value": "B",
+                  "label": "Move personal items away from the plant areas."
+                },
+                {
+                  "value": "C",
+                  "label": "Leave feedback for the technician online."
+                },
+                {
+                  "value": "D",
+                  "label": "Pay any replacement charge in advance."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 189,
+              "prompt": "Which of Mr. Ellison's arrangements is flagged for exchange at the next visit?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The reception floor palm."
+                },
+                {
+                  "value": "B",
+                  "label": "The kitchen herb trough."
+                },
+                {
+                  "value": "C",
+                  "label": "The desk succulent tray."
+                },
+                {
+                  "value": "D",
+                  "label": "The meeting-room hanging ferns."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 190,
+              "prompt": "What is indicated about Mr. Ellison?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He will be billed for damage to one of his plants."
+                },
+                {
+                  "value": "B",
+                  "label": "He needs to arrange building entry ahead of the visit."
+                },
+                {
+                  "value": "C",
+                  "label": "He has changed his visit day for this week."
+                },
+                {
+                  "value": "D",
+                  "label": "He must post an online note before Thursday."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 191-195",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Willowbank Party Rentals — Compare Our Party Packages</b></p><p>Filter by group size: Small (under 30 guests) · Medium (30 to 60 guests) · Large (over 60 guests)</p><table><tr><th>Package</th><th>What is included</th><th>Serves up to</th><th>Pickup vehicle</th><th>Weekend price</th></tr><tr><td>Backyard Basic</td><td>4 folding tables and 24 chairs</td><td>24 guests</td><td>Fits in a standard car</td><td>$75</td></tr><tr><td>Festive Table</td><td>6 tables, 40 chairs, linens, and place settings</td><td>40 guests</td><td>Fits in a standard car</td><td>$140</td></tr><tr><td>Garden Canopy</td><td>One large canopy, 8 tables, and 60 chairs</td><td>60 guests</td><td>Requires a van or trailer</td><td>$260</td></tr><tr><td>Grand Celebration</td><td>One large canopy, string lighting, a portable dance floor, and 100 chairs</td><td>100 guests</td><td>Requires a van or trailer</td><td>$420</td></tr></table><p><b>Before you book</b><br>All prices cover a full weekend, from Friday afternoon until Monday at noon.<br>Orders may be collected only during posted pickup windows: Thursday from 3:00 to 6:00 P.M. or Friday from 9:00 A.M. to 12:00 P.M.<br>A refundable damage deposit applies to any package that includes a canopy.<br>On-site setup by our staff can be added for an additional fee.</p><p>Ready to celebrate? Complete the reservation form on this page or visit our shop in person.</p></div><p>----------------------</p><div><p>To: Vanessa Corbett<br>From: Willowbank Party Rentals Service Team<br>Reference: Reservation WB-3092<br>Date: June 3</p><p>Dear Ms. Corbett,</p><p>Thank you for choosing Willowbank Party Rentals. Your reservation for the Garden Canopy package is now confirmed for Saturday, June 21. Please review the steps below before you collect your order:</p><ul><li>Bring a printed copy of this confirmation and a photo identification card when you arrive.</li><li>Plan to collect your order during one of the posted pickup windows shown on our website.</li><li>Inspect every item carefully at pickup, because any damage reported after you leave will be charged against your deposit.</li><li>Return all items by noon on Monday, June 23, to avoid additional late charges.</li></ul><p>If you would like to adjust your order, please contact us at least 48 hours before your pickup date, and we will do our best to help.</p><p>Warm regards,</p><p>Willowbank Party Rentals Service Team</p></div><p>----------------------</p><div><p>To: Willowbank Party Rentals Service Team<br>From: Vanessa Corbett<br>Reference: RE: Reservation WB-3092<br>Date: June 3</p><p>Hello,</p><p>Thank you for the confirmation. I have printed it out and will bring it along with my identification when I come to collect everything.</p><p>There is one change I would like to ask about. At an evening reception I attended last summer, your company set up a covered outdoor area with tiny bulbs strung overhead, which kept the whole space bright well after sunset. I would love to create the same effect for my celebration. Would it be possible to add that feature to my current order, or should I move to the package that already provides it?</p><p>The afternoon is the best time to reach me by phone; my number is on your file.</p><p>Thank you,</p><p>Vanessa Corbett</p></div>",
+          "questions": [
+            {
+              "number": 191,
+              "prompt": "What does the Web page indicate about Willowbank Party Rentals?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It offers rentals on any weekday."
+                },
+                {
+                  "value": "B",
+                  "label": "It permits pickups before the rental weekend has begun."
+                },
+                {
+                  "value": "C",
+                  "label": "It requires shop visits by advance appointment only."
+                },
+                {
+                  "value": "D",
+                  "label": "It includes staff setup with every package price."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 192,
+              "prompt": "According to the Web page, which package can shelter more than 60 guests under a canopy?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Backyard Basic"
+                },
+                {
+                  "value": "B",
+                  "label": "Festive Table"
+                },
+                {
+                  "value": "C",
+                  "label": "Garden Canopy"
+                },
+                {
+                  "value": "D",
+                  "label": "Grand Celebration"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 193,
+              "prompt": "What is suggested about Ms. Corbett's order?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It cannot be collected in an ordinary passenger car."
+                },
+                {
+                  "value": "B",
+                  "label": "It includes a portable dance floor."
+                },
+                {
+                  "value": "C",
+                  "label": "It must be picked up by noon on Monday."
+                },
+                {
+                  "value": "D",
+                  "label": "It carries an additional setup fee."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 194,
+              "prompt": "According to the confirmation, why should Ms. Corbett examine each item at pickup?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To confirm the reservation reference number"
+                },
+                {
+                  "value": "B",
+                  "label": "To avoid being charged for pre-existing damage"
+                },
+                {
+                  "value": "C",
+                  "label": "To arrange staff setup at the event location"
+                },
+                {
+                  "value": "D",
+                  "label": "To request a change to the reservation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 195,
+              "prompt": "What is indicated about Ms. Corbett?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She hosted the reception she described last summer."
+                },
+                {
+                  "value": "B",
+                  "label": "She has rented the Garden Canopy package in the past."
+                },
+                {
+                  "value": "C",
+                  "label": "She attended an event featuring the Grand Celebration package."
+                },
+                {
+                  "value": "D",
+                  "label": "She wants her current order to remain unchanged."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 196-200",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Kestrel Lane Dog Daycare</b></p><p><b>The Settle-In Trial Day — Enrollment Eligibility Preview</b></p><p>Kestrel Lane offers four monthly plans, each with its own combination of capacity limits and pickup windows. Before committing to any of them, most families begin with a single supervised morning that serves as a behavioral evaluation of their dog.</p><p>The Settle-In Trial Day exists for this purpose. It is intended for households introducing a pet to communal care for the first time, when the dog has not yet been part of a supervised group setting and may need extra time to grow comfortable among unfamiliar animals.</p><p><b>What the morning involves:</b> Your dog arrives, is introduced gradually to a small starter group, and is given quiet rest periods between play sessions. Meals are not provided, but fresh water and bedding are.</p><p><b>Who looks after your dog:</b> A care coordinator, whose role is kept separate from that of the veterinarian on call, watches how your dog interacts with the group throughout the session and later prepares a written behavior report describing how the dog responded to the setting. A licensed veterinarian remains on the premises during all opening hours to handle any medical concerns.</p><p>Each pet may take the Settle-In Trial Day only once. Please reserve your place at least three days in advance; every trial runs from 9:00 A.M. to 1:00 P.M. To book, call 555-0148 or visit kestrellane.com.</p></div><p>----------------------</p><div><p>To: Ms. Rhea Caldwell, Enrollment Coordinator<br>From: Malcolm Ferris<br>Date: 26 August<br>Subject: Following yesterday's trial visit</p><p>Dear Ms. Caldwell,</p><p>Thank you for arranging the Settle-In session for my dog, Biscuit. The staff member who spent the entire morning with him could not have been more attentive; the written report she handed me at the end was detailed and clearly grounded in close observation. I was impressed by how much she had picked up in only a few hours.</p><p>The session's schedule, however, does not sit well with my work life. Ending at one in the afternoon meant stepping away from the office at midday to collect Biscuit, and repeating that on a regular basis is simply not workable for me. Any weekday enrollment therefore has to fit around a full working day.</p><p>Before I settle on a monthly plan, there are two points I want to be sure of. My workday runs until six, so an evening collection window is essential. I would also prefer a smaller playgroup for Biscuit going forward, since he responds best in calmer settings. Could you tell me which of the four options in the price list satisfies both requirements? I will complete enrollment as soon as I hear back.</p><p>Kind regards,<br>Malcolm Ferris<br>555-0203</p></div><p>----------------------</p><div><p><b>Kestrel Lane Dog Daycare — Monthly Plan Options</b></p><p>Effective 1 September</p><table><tr><th>Plan</th><th>Days per Week</th><th>Latest Pickup</th><th>Group Size</th><th>Monthly Fee</th></tr><tr><td>Half-Day Social</td><td>3</td><td>1:00 P.M.</td><td>Standard (up to 14 dogs)</td><td>$175</td></tr><tr><td>Standard Day</td><td>5</td><td>5:00 P.M.</td><td>Standard (up to 14 dogs)</td><td>$250</td></tr><tr><td>Quiet Companions</td><td>4</td><td>5:00 P.M.</td><td>Small (up to 5 dogs)</td><td>$295</td></tr><tr><td>Extended Care Plus</td><td>5</td><td>8:00 P.M.</td><td>Small (up to 5 dogs)</td><td>$355</td></tr></table><p><b>Enrollment conditions:</b> No dog may begin its first session until a current health record has been received by the office. Fees are billed monthly and are non-refundable once enrollment begins.</p></div>",
+          "questions": [
+            {
+              "number": 196,
+              "prompt": "According to the brochure, who would benefit most from the Settle-In Trial Day?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "An owner unfamiliar with communal daycare for pets"
+                },
+                {
+                  "value": "B",
+                  "label": "An owner comparing the available monthly plans"
+                },
+                {
+                  "value": "C",
+                  "label": "A pet needing routine on-site medical care"
+                },
+                {
+                  "value": "D",
+                  "label": "An owner with prior group-daycare experience"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 197,
+              "prompt": "What complaint did Mr. Ferris raise about the trial?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He thought the staff member's report was too vague."
+                },
+                {
+                  "value": "B",
+                  "label": "He found that the pickup time disrupted his workday."
+                },
+                {
+                  "value": "C",
+                  "label": "He was disappointed with the trial experience overall."
+                },
+                {
+                  "value": "D",
+                  "label": "He felt Biscuit was not given enough rest time."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 198,
+              "prompt": "What is most likely true about the staff member who observed Mr. Ferris's dog?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She directed the group play sessions personally."
+                },
+                {
+                  "value": "B",
+                  "label": "She provided medical checks on Biscuit during the visit."
+                },
+                {
+                  "value": "C",
+                  "label": "She asked Mr. Ferris to enroll in a specific plan."
+                },
+                {
+                  "value": "D",
+                  "label": "She works separately from the on-call veterinarian."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 199,
+              "prompt": "Which monthly plan is Mr. Ferris most likely to select?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Half-Day Social"
+                },
+                {
+                  "value": "B",
+                  "label": "Standard Day"
+                },
+                {
+                  "value": "C",
+                  "label": "Quiet Companions"
+                },
+                {
+                  "value": "D",
+                  "label": "Extended Care Plus"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 200,
+              "prompt": "According to the price list, what is true of every monthly plan?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They accept the same maximum number of dogs."
+                },
+                {
+                  "value": "B",
+                  "label": "They require a health document to be submitted in advance."
+                },
+                {
+                  "value": "C",
+                  "label": "They allow pickup later than 6:00 P.M."
+                },
+                {
+                  "value": "D",
+                  "label": "They run the same number of days each week."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

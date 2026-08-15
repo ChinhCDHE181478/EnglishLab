@@ -444,6 +444,10 @@ function getVideoEmbedUrl(url) {
   if (!url) return '';
   const value = String(url).trim();
   if (/iframe\.mediadelivery\.net\/embed\//i.test(value)) return value;
+  const bunnyPlayMatch = value.match(/player\.mediadelivery\.net\/play\/(\d+)\/([0-9a-f-]+)/i);
+  if (bunnyPlayMatch) {
+    return `https://iframe.mediadelivery.net/embed/${bunnyPlayMatch[1]}/${bunnyPlayMatch[2]}`;
+  }
   const youtubeMatch = value.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
   return youtubeMatch?.[1] ? `https://www.youtube.com/embed/${youtubeMatch[1]}` : '';
 }

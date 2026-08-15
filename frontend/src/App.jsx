@@ -80,6 +80,11 @@ function CourseHomeRoute() {
   return <CourseHome key={`course-home-${slugOrId}`} />;
 }
 
+function LegacyIeltsMockRedirect() {
+  const { year, monthKey } = useParams();
+  return <Navigate replace to={`/mock-tests/ielts/${year}/${monthKey}`} />;
+}
+
 function HomeRoute() {
   const { status, user } = useAuth();
 
@@ -146,7 +151,8 @@ function AppRoutes() {
         <Route path="/my-practice/:classroomId/:exerciseId" element={<PracticeRunnerPage />} />
         <Route path="/my-quizzes" element={<Navigate to="/my-homework?type=online-quiz" replace />} />
         <Route path="/mock-tests/practice" element={<MockPracticeTestsPage />} />
-        <Route path="/mock-tests/:year/:monthKey" element={<MockTestsPage />} />
+        <Route path="/mock-tests/:exam/:year/:monthKey" element={<MockTestsPage />} />
+        <Route path="/mock-tests/:year/:monthKey" element={<LegacyIeltsMockRedirect />} />
         <Route path="/mock-tests" element={<MockTestsPage />} />
         <Route path="/transaction-history" element={<TransactionHistoryPage />} />
         <Route path="/support" element={<SupportTicketsPage />} />

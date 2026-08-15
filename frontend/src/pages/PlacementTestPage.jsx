@@ -1063,7 +1063,7 @@ export default function PlacementTestPage() {
                   <Headphones aria-hidden="true" size={22} />
                 </div>
                 <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#21446d]">TOEIC Placement</h2>
-                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC mới (ETS 2026 Test 10). Hệ thống chấm khách quan theo answer key.</p>
+                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC. Hệ thống chấm khách quan theo đáp án.</p>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {TOEIC_SKILLS.map((skill) => {
                     const Icon = skill.icon;

@@ -770,6 +770,10 @@ export default function ContentManagerCourseBuilderPage() {
       pushToast('Hãy lưu bài học và thêm liên kết YouTube trước khi lấy bản chép lời.', 'warning');
       return;
     }
+    if (!/(?:youtube\.com|youtu\.be)/i.test(String(activeLesson.videoUrl))) {
+      pushToast('Chỉ lấy tự động bản chép lời từ YouTube. Video tải lên hệ thống cần nhập thủ công.', 'warning');
+      return;
+    }
 
     setRefreshingTranscript(true);
     setError('');
@@ -1365,7 +1369,9 @@ export default function ContentManagerCourseBuilderPage() {
         onChangeLesson={updateLesson}
         onPatchLesson={patchActiveLesson}
         onClose={() => setLessonModalOpen(false)}
+        onRefreshTranscript={handleRefreshTranscript}
         open={lessonModalOpen}
+        refreshingTranscript={refreshingTranscript}
         uploadFile={uploadFile}
         uploadingVideo={uploadingVideo}
         uploadProgress={uploadProgress}
@@ -1653,8 +1659,10 @@ function LessonEditorModal({
   onChangeLesson,
   onPatchLesson,
   onClose,
+  onRefreshTranscript,
   onSelectUploadFile,
   open,
+  refreshingTranscript,
   uploadFile,
   uploadingVideo,
   uploadProgress,
@@ -1826,6 +1834,8 @@ function LessonEditorModal({
 
                   <TranscriptEditor
                     onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
+                    onRefresh={onRefreshTranscript}
+                    refreshing={refreshingTranscript}
                     segments={activeLesson.transcriptSegments}
                     videoUrl={activeLesson.videoUrl}
                   />
@@ -1859,8 +1869,9 @@ function LessonEditorModal({
   );
 }
 
-function TranscriptEditor({ segments, onChange, videoUrl }) {
+function TranscriptEditor({ segments, onChange, onRefresh, refreshing, videoUrl }) {
   const normalizedSegments = normalizeTranscriptSegments(segments, true);
+  const canRefreshYouTube = /(?:youtube\.com|youtu\.be)/i.test(String(videoUrl || ''));
   const updateSegment = (index, field, value) => {
     const next = normalizedSegments.map((segment, segmentIndex) => (
       segmentIndex === index
@@ -1875,8 +1886,22 @@ function TranscriptEditor({ segments, onChange, videoUrl }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bản chép lời video</p>
-          <p className="mt-1 text-sm leading-6 text-[#584140]">Thêm từng đoạn có mốc thời gian để học viên theo dõi và bấm chuyển đến đúng vị trí trong video.</p>
+          <p className="mt-1 text-sm leading-6 text-[#584140]">
+            {canRefreshYouTube
+              ? 'Lưu bài học với liên kết YouTube để hệ thống tự lấy bản chép lời, hoặc bấm lấy lại bên cạnh.'
+              : 'Thêm từng đoạn có mốc thời gian để học viên theo dõi và bấm chuyển đến đúng vị trí trong video.'}
+          </p>
         </div>
+        {canRefreshYouTube ? (
+          <button
+            className="rounded-xl border border-[#dfbfbd]/70 bg-white px-3 py-2 text-sm font-semibold text-[#730014] transition hover:bg-[#fff2f3] disabled:cursor-wait disabled:opacity-60"
+            disabled={refreshing || !videoUrl}
+            onClick={onRefresh}
+            type="button"
+          >
+            {refreshing ? 'Đang lấy...' : 'Lấy bản chép lời YouTube'}
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-4 space-y-3">

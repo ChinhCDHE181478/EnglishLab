@@ -11,17 +11,24 @@ const MONTHS = [
   ['october', 10, 'Tháng 10'],
   ['november', 11, 'Tháng 11'],
   ['december', 12, 'Tháng 12'],
+  ['collection', 1, 'Bộ đề'],
 ];
 
 const SET_META = {
-  '2025de2': { year: 2025, monthKey: 'january', testNumber: 2 },
-  '2025de3': { year: 2025, monthKey: 'february', testNumber: 1 },
-  '2025de4': { year: 2025, monthKey: 'february', testNumber: 2 },
-  '2026de1': { year: 2026, monthKey: 'january', testNumber: 1 },
-  '2026de2': { year: 2026, monthKey: 'january', testNumber: 2 },
+  '2025de2': { year: 2025, monthKey: 'january', testNumber: 2, examType: 'IELTS' },
+  '2025de3': { year: 2025, monthKey: 'february', testNumber: 1, examType: 'IELTS' },
+  '2025de4': { year: 2025, monthKey: 'february', testNumber: 2, examType: 'IELTS' },
+  '2026de1': { year: 2026, monthKey: 'january', testNumber: 1, examType: 'IELTS' },
+  '2026de2': { year: 2026, monthKey: 'january', testNumber: 2, examType: 'IELTS' },
+  toeicde2: { year: 2026, monthKey: 'collection', testNumber: 2, examType: 'TOEIC' },
+  toeicde3: { year: 2026, monthKey: 'collection', testNumber: 3, examType: 'TOEIC' },
+  toeicde4: { year: 2026, monthKey: 'collection', testNumber: 4, examType: 'TOEIC' },
+  toeicde5: { year: 2026, monthKey: 'collection', testNumber: 5, examType: 'TOEIC' },
+  toeicde6: { year: 2026, monthKey: 'collection', testNumber: 6, examType: 'TOEIC' },
 };
 
-const SKILL_ORDER = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+export const SKILL_ORDER = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+export const TOEIC_SKILL_ORDER = ['LISTENING', 'READING'];
 
 export function readMockConfig(item) {
   const raw = item?.uiConfigJson;
@@ -42,8 +49,19 @@ function monthFromTitle(title) {
 function setIdFromItem(item) {
   const config = readMockConfig(item);
   const label = String(config.sourceLabel || item.sourceLabel || '');
+  const toeicMatch = label.match(/(toeicde\d+)/i);
+  if (toeicMatch) return toeicMatch[1].toLowerCase();
   const match = label.match(/(\d{4}de\d+)/i);
   return match ? match[1].toLowerCase() : '';
+}
+
+function examTypeFromItem(item = {}, fromSet = null) {
+  const config = readMockConfig(item);
+  const explicit = String(config.examType || item.examType || fromSet?.examType || '').toUpperCase();
+  if (explicit === 'TOEIC' || explicit === 'IELTS') return explicit;
+  const title = String(item.title || '');
+  if (/\bTOEIC\b/i.test(title) || String(fromSet?.examType || '') === 'TOEIC') return 'TOEIC';
+  return 'IELTS';
 }
 
 export function parseMockTestMeta(item = {}) {
@@ -59,6 +77,7 @@ export function parseMockTestMeta(item = {}) {
   const monthLabel = monthKey ? MONTHS.find((entry) => entry[0] === monthKey)?.[2] : null;
   const testNumber = fromSet?.testNumber || (testMatch ? Number(testMatch[1]) : null);
   const skill = String(item.skill || 'MIXED').toUpperCase();
+  const examType = examTypeFromItem(item, fromSet);
   const dated = Boolean(year && monthKey && testNumber);
   return {
     dated,
@@ -70,6 +89,7 @@ export function parseMockTestMeta(item = {}) {
     skill,
     setId,
     title,
+    examType,
   };
 }
 
@@ -84,14 +104,17 @@ export function splitMockTests(tests = []) {
   return { libraryTests, practiceTests };
 }
 
-export function buildMockLibrary(tests = []) {
+export function buildMockLibrary(tests = [], examType = 'IELTS') {
   const years = new Map();
-  splitMockTests(tests).libraryTests.forEach((item) => {
+  splitMockTests(tests).libraryTests
+    .filter((item) => item.meta.examType === examType)
+    .forEach((item) => {
     const { year, monthKey, monthIndex, monthLabel, testNumber, skill } = item.meta;
     if (!years.has(year)) {
       years.set(year, {
         year,
-        title: `IELTS Mock Test ${year}`,
+        examType,
+        title: examType === 'TOEIC' ? `TOEIC Mock Test ${year}` : `IELTS Mock Test ${year}`,
         months: new Map(),
       });
     }
@@ -122,6 +145,7 @@ export function buildMockLibrary(tests = []) {
     .sort((a, b) => b.year - a.year)
     .map((yearEntry) => ({
       year: yearEntry.year,
+      examType: yearEntry.examType,
       title: yearEntry.title,
       months: Array.from(yearEntry.months.values())
         .sort((a, b) => a.monthIndex - b.monthIndex)
@@ -134,12 +158,12 @@ export function buildMockLibrary(tests = []) {
     }));
 }
 
-export function packProgress(pack, completedScoresMap = {}) {
-  const completed = SKILL_ORDER.filter((skill) => pack.skills[skill] && completedScoresMap[pack.skills[skill].id]).length;
-  const total = SKILL_ORDER.filter((skill) => pack.skills[skill]).length;
+export function packProgress(pack, completedScoresMap = {}, skillOrder = SKILL_ORDER) {
+  const completed = skillOrder.filter((skill) => pack.skills[skill] && completedScoresMap[pack.skills[skill].id]).length;
+  const total = skillOrder.filter((skill) => pack.skills[skill]).length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
-  const nextSkill = SKILL_ORDER.find((skill) => pack.skills[skill] && !completedScoresMap[pack.skills[skill].id])
-    || SKILL_ORDER.find((skill) => pack.skills[skill]);
+  const nextSkill = skillOrder.find((skill) => pack.skills[skill] && !completedScoresMap[pack.skills[skill].id])
+    || skillOrder.find((skill) => pack.skills[skill]);
   return { completed, total, percent, nextTest: nextSkill ? pack.skills[nextSkill] : pack.testsList[0] || null };
 }
 
@@ -187,5 +211,3 @@ export function filterLibrary(library, { keyword = '', skill = 'ALL' } = {}) {
     }))
     .filter((yearEntry) => yearEntry.months.length);
 }
-
-export { SKILL_ORDER };

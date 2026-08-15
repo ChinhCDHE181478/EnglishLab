@@ -533,6 +533,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
         List<TranscriptSegmentResponse> segments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
         if (segments.isEmpty()) {
+            if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isEmpty()) {
+                throw new IllegalArgumentException("Chỉ lấy tự động bản chép lời từ liên kết YouTube. Video tải lên hệ thống cần nhập bản chép lời thủ công.");
+            }
             throw new IllegalArgumentException("Video này không có caption YouTube công khai. Bản chép lời hiện tại được giữ nguyên.");
         }
         lesson.setTranscriptSegmentsJson(writeTranscriptSegments(segments));
@@ -1897,8 +1900,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void applyLessonTranscript(Lesson lesson, LessonRequest lessonRequest, String previousVideoUrl) {
-        if (lessonRequest.getTranscriptSegments() != null) {
-            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(lessonRequest.getTranscriptSegments())));
+        List<TranscriptSegmentRequest> requestedSegments = lessonRequest.getTranscriptSegments();
+        boolean hasExplicitTranscript = requestedSegments != null && requestedSegments.stream()
+                .anyMatch(segment -> segment != null && segment.getText() != null && !segment.getText().isBlank());
+
+        if (hasExplicitTranscript) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(requestedSegments)));
             return;
         }
 
@@ -1906,12 +1913,21 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         boolean videoChanged = previousVideoUrl == null
                 ? nextVideoUrl != null && !nextVideoUrl.isBlank()
                 : !previousVideoUrl.equals(nextVideoUrl);
-        boolean missingTranscript = lesson.getTranscriptSegmentsJson() == null || lesson.getTranscriptSegmentsJson().isBlank();
+        boolean missingTranscript = lesson.getTranscriptSegmentsJson() == null
+                || lesson.getTranscriptSegmentsJson().isBlank()
+                || "[]".equals(lesson.getTranscriptSegmentsJson().trim());
 
+        // Empty transcript payload from the editor should still auto-fetch YouTube captions.
         if ((videoChanged || missingTranscript) && youTubeTranscriptService.extractVideoId(nextVideoUrl).isPresent()) {
             lesson.setTranscriptSegmentsJson(writeTranscriptSegments(youTubeTranscriptService.fetchTranscriptSegments(nextVideoUrl)));
-        } else if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
+            return;
+        }
+        if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
             lesson.setTranscriptSegmentsJson(null);
+            return;
+        }
+        if (requestedSegments != null) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(requestedSegments)));
         }
     }
 

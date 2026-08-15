@@ -2,7 +2,7 @@ import createDOMPurify from 'dompurify';
 
 const ALLOWED_TAGS = [
   'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'h1', 'h2', 'h3', 'hr',
-  'i', 'li', 'ol', 'p', 'pre', 's', 'strong', 'u', 'ul', 'span',
+  'i', 'img', 'li', 'ol', 'p', 'pre', 's', 'strong', 'u', 'ul', 'span',
 ];
 
 const ALLOWED_TEXT_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify']);
@@ -56,7 +56,7 @@ export const sanitizeLessonHtml = (value = '') => {
     ? createDOMPurify
     : createDOMPurify(window);
   const sanitized = purifier.sanitize(decodeEscapedRichText(value), {
-    ALLOWED_ATTR: ['href', 'style'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'style'],
     ALLOWED_TAGS,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
@@ -65,6 +65,8 @@ export const sanitizeLessonHtml = (value = '') => {
 
   [...documentNode.body.querySelectorAll('*')].forEach((element) => {
     const originalHref = element.getAttribute('href');
+    const originalSrc = element.getAttribute('src');
+    const originalAlt = element.getAttribute('alt');
     const sourceStyle = String(element.getAttribute('style') || '');
     [...element.attributes].forEach((attribute) => element.removeAttribute(attribute.name));
 
@@ -75,6 +77,10 @@ export const sanitizeLessonHtml = (value = '') => {
       element.setAttribute('href', originalHref);
       element.setAttribute('target', '_blank');
       element.setAttribute('rel', 'noopener noreferrer');
+    }
+    if (element.tagName === 'IMG' && originalSrc && hasSafeHref(originalSrc)) {
+      element.setAttribute('src', originalSrc);
+      if (originalAlt) element.setAttribute('alt', originalAlt);
     }
   });
 

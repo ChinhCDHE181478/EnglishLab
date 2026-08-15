@@ -38,6 +38,7 @@ import java.util.List;
 public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private static final String COURSE_SLUG = "e2-ielts-practice-tests";
+    private static final String BUNNY_LIBRARY_ID = "729032";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final PackageTypeRepository packageTypeRepository;
@@ -118,7 +119,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Listening Practice Test with Answers",
                 "Practice a full Listening test and focus on main ideas, details, and answer checking.",
                 "Listening",
-                "https://www.youtube.com/watch?v=v3axTdVoYkY",
+                bunnyVideo("b0b3efc4-7fcf-46b9-840f-542b8c9bdd3e"),
                 29,
                 true,
                 "Review the Listening test format and a quick question-reading strategy before you start.",
@@ -128,7 +129,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Reading Practice Test with Answer Explanations",
                 "Reading practice with answer explanations for scanning, skimming, and locating evidence.",
                 "Reading",
-                "https://www.youtube.com/watch?v=kCthrwUz68w",
+                bunnyVideo("6927ea2a-9592-4659-97df-97fdf542273a"),
                 26,
                 false,
                 "Review how to identify keywords and predict where evidence appears in the passage.",
@@ -138,7 +139,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Full IELTS Listening Test with Answers | 2024",
                 "A full Listening test to build pacing and time control under test-like conditions.",
                 "Listening",
-                "https://www.youtube.com/watch?v=VUtUOTrJ2Kk",
+                bunnyVideo("eab36be2-3cca-4090-a187-8ee3cd0a1f60"),
                 33,
                 false,
                 "Prepare an answer sheet and complete the test in one pass without pausing the video.",
@@ -148,7 +149,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Speaking Practice Test with Answers",
                 "A simulated Speaking test to improve structure, examples, and natural delivery.",
                 "Speaking",
-                "https://www.youtube.com/watch?v=L520xwhFGiI",
+                bunnyVideo("4f9949d9-0271-4298-996d-35bf79e9838e"),
                 33,
                 false,
                 "Review Fluency, Lexical Resource, Grammar Range, and Pronunciation before watching.",
@@ -158,7 +159,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "IELTS Listening: Techniques and Practice Questions",
                 "Learn core Listening techniques and apply them in guided practice questions.",
                 "Listening",
-                "https://www.youtube.com/watch?v=6fk6W7Knld8",
+                bunnyVideo("05cda2ce-eae3-4dce-8e57-12f715cc311f"),
                 36,
                 false,
                 "Focus on predicting, signposting, paraphrasing, and avoiding distractors.",
@@ -168,7 +169,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "100 IELTS Speaking Questions | Part 1 - 20+ IELTS Speaking Topics",
                 "A speaking prompt bank across common Part 1 topics to build faster response habits.",
                 "Speaking",
-                "https://www.youtube.com/watch?v=OTjzR2QCc_E",
+                bunnyVideo("e1bcc9de-991b-426d-8cc2-71baf0665ca9"),
                 35,
                 false,
                 "Choose five familiar topics and outline short answers with the Answer-Explain-Example pattern.",
@@ -183,6 +184,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         onlineCourse.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .filter(lesson -> lesson.getVideoUrl() != null && !lesson.getVideoUrl().isBlank())
+                .filter(lesson -> lesson.getVideoUrl().contains("youtube.com") || lesson.getVideoUrl().contains("youtu.be"))
                 .filter(lesson -> lesson.getTranscriptSegmentsJson() == null || lesson.getTranscriptSegmentsJson().isBlank())
                 .forEach(lesson -> {
                     List<TranscriptSegmentResponse> segments =
@@ -206,7 +208,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
             String videoTitle,
             String moduleDescription,
             String skill,
-            String videoUrl,
+            BunnyLessonVideo video,
             int videoDurationMinutes,
             boolean preview,
             String preLessonDescription,
@@ -234,7 +236,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Lesson " + order + ".2: Video practice - " + videoTitle,
                 "Watch the original E2 IELTS video and track mistakes while following the guided practice flow.",
                 buildVideoLessonContent(order, videoTitle),
-                videoUrl,
+                video,
                 videoDurationMinutes,
                 preview
         );
@@ -265,7 +267,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 });
     }
 
-    private void upsertLesson(CourseModule module, int order, String title, String description, String contentText, String videoUrl, int durationMinutes, boolean preview) {
+    private void upsertLesson(CourseModule module, int order, String title, String description, String contentText, BunnyLessonVideo video, int durationMinutes, boolean preview) {
         Lesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder() == order)
                 .findFirst()
@@ -277,9 +279,12 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
         lesson.setTitle(title);
         lesson.setDescription(description);
-        lesson.setContentType(videoUrl == null ? "text" : "video");
+        lesson.setContentType(video == null ? "text" : "video");
         lesson.setContentText(contentText);
-        lesson.setVideoUrl(videoUrl);
+        lesson.setVideoUrl(video == null ? null : video.embedUrl());
+        lesson.setBunnyVideoId(video == null ? null : video.videoId());
+        lesson.setBunnyLibraryId(video == null ? null : video.libraryId());
+        lesson.setBunnyCdnUrl(video == null ? null : video.embedUrl());
         lesson.setMaterialUrl(null);
         lesson.setDurationMinutes(durationMinutes);
         lesson.setDisplayOrder(order);
@@ -312,5 +317,13 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 - Ghi lại câu sai, từ khóa bỏ lỡ, dấu hiệu nhiễu và mẹo xử lý được nhắc trong video.
                 - Sau khi xem xong, tự tóm tắt 2-3 điều bạn cần luyện lại trước khi sang bước ôn tập.
                 """.formatted(moduleOrder, videoTitle);
+    }
+
+    private BunnyLessonVideo bunnyVideo(String videoId) {
+        String embedUrl = "https://iframe.mediadelivery.net/embed/%s/%s".formatted(BUNNY_LIBRARY_ID, videoId);
+        return new BunnyLessonVideo(embedUrl, videoId, BUNNY_LIBRARY_ID);
+    }
+
+    private record BunnyLessonVideo(String embedUrl, String videoId, String libraryId) {
     }
 }

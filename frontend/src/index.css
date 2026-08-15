@@ -342,6 +342,24 @@ button:not(:disabled),
   transition: transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+.el-mock-book--toeic .el-mock-book__spine {
+  background: linear-gradient(90deg, #063024 0%, #0b5c49 58%, #127a62 100%);
+  box-shadow: inset -1px 0 0 rgba(180, 255, 214, 0.2);
+}
+
+.el-mock-book--toeic .el-mock-book__cover {
+  border: 1px solid rgba(186, 255, 224, 0.28);
+  background:
+    linear-gradient(180deg, rgba(186, 255, 224, 0.12), transparent 28%),
+    linear-gradient(160deg, #0b5c49 0%, #127a62 48%, #063024 100%);
+  box-shadow: 0 18px 28px rgba(6, 48, 36, 0.22);
+}
+
+.el-mock-book--toeic .el-mock-book__brand,
+.el-mock-book--toeic .el-mock-book__title em {
+  color: #b8f3d8;
+}
+
 .el-mock-book:hover .el-mock-book__cover,
 .el-mock-book:focus-within .el-mock-book__cover {
   transform: rotateY(-148deg);

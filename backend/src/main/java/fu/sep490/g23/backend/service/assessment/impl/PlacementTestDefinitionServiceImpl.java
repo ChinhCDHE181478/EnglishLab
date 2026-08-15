@@ -36,7 +36,9 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
     @Override
     @Transactional
     public PlacementTestDefinition getDefinition() {
-        return definitionRepository.findByTestCode(TEST_CODE).orElseGet(this::createDefaultDefinition);
+        PlacementTestDefinition definition = definitionRepository.findByTestCode(TEST_CODE).orElseGet(this::createDefaultDefinition);
+        refreshToeicConfigIfStale(definition);
+        return definition;
     }
 
     @Override
@@ -265,6 +267,17 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
 
     private String defaultToeicConfig() {
         return loadResource(DEFAULT_TOEIC_RESOURCE);
+    }
+
+    private void refreshToeicConfigIfStale(PlacementTestDefinition definition) {
+        String latest = defaultToeicConfig();
+        String current = definition.getToeicConfigJson();
+        if (current != null && current.contains("englishlab_toeic_placement_de1")) {
+            return;
+        }
+        definition.setToeicConfigJson(latest);
+        definition.setUpdatedAt(LocalDateTime.now());
+        definitionRepository.save(definition);
     }
 
     private BigDecimal average(List<PlacementTestAttempt> attempts, java.util.function.Function<PlacementTestAttempt, BigDecimal> extractor) {

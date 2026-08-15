@@ -64,4 +64,30 @@ describe('mockTestLibrary', () => {
       percent: 50,
     });
   });
+
+  it('groups TOEIC collection tests separately from IELTS', () => {
+    const tests = [
+      { id: 1, title: 'IELTS Mock Test 2026 January Listening Practice Test 1', skill: 'LISTENING' },
+      {
+        id: 2,
+        title: 'TOEIC Mock Test 2026 Collection Listening Practice Test 2',
+        skill: 'LISTENING',
+        uiConfigJson: JSON.stringify({ sourceLabel: 'toeicde2', examType: 'TOEIC' }),
+      },
+      {
+        id: 3,
+        title: 'TOEIC Mock Test 2026 Collection Reading Practice Test 2',
+        skill: 'READING',
+        uiConfigJson: JSON.stringify({ sourceLabel: 'toeicde2', examType: 'TOEIC' }),
+      },
+    ];
+    const ielts = buildMockLibrary(tests, 'IELTS');
+    const toeic = buildMockLibrary(tests, 'TOEIC');
+    expect(ielts).toHaveLength(1);
+    expect(toeic).toHaveLength(1);
+    expect(toeic[0].title).toBe('TOEIC Mock Test 2026');
+    expect(toeic[0].months[0].monthKey).toBe('collection');
+    expect(toeic[0].months[0].packs[0].skills.LISTENING.id).toBe(2);
+    expect(toeic[0].months[0].packs[0].skills.READING.id).toBe(3);
+  });
 });

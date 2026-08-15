@@ -5,7 +5,10 @@ const getVideoEmbedUrl = (url) => {
   if (!url) return '';
   const value = String(url).trim();
   if (/iframe\.mediadelivery\.net\/embed\//i.test(value)) return value;
-
+  const bunnyPlayMatch = value.match(/player\.mediadelivery\.net\/play\/(\d+)\/([0-9a-f-]+)/i);
+  if (bunnyPlayMatch) {
+    return `https://iframe.mediadelivery.net/embed/${bunnyPlayMatch[1]}/${bunnyPlayMatch[2]}`;
+  }
   const youtubeMatch = value.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
   return youtubeMatch?.[1] ? `https://www.youtube.com/embed/${youtubeMatch[1]}` : '';
 };
@@ -146,9 +149,10 @@ const WorkspaceLessonPanel = ({
   const activeLessonId = activeLessonItem?.id;
   const lessonContent = activeLesson?.contentText || activeLesson?.description;
   const activeIndex = lessonItems.findIndex((item) => String(item.id) === String(activeLessonId));
-  const embedUrl = getVideoEmbedUrl(activeLesson?.videoUrl);
+  const embedUrl = getVideoEmbedUrl(activeLesson?.bunnyCdnUrl || activeLesson?.videoUrl);
+  const sourceUrl = activeLesson?.bunnyCdnUrl || activeLesson?.videoUrl;
+  const directVideoUrl = sourceUrl && !embedUrl ? sourceUrl : '';
   const [iframeStartSeconds, setIframeStartSeconds] = useState(0);
-  const directVideoUrl = activeLesson?.videoUrl && !embedUrl ? activeLesson.videoUrl : '';
   const hasMaterial = Boolean(activeLesson?.materialUrl);
   const isCompleted = activeLessonId ? completedLessonIds.has(activeLessonId) : false;
   const isSaving = activeLessonId && String(savingLessonId) === String(activeLessonId);
