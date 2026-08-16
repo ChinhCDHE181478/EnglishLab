@@ -24,10 +24,33 @@ const teachers = [
     name: 'Cô Thu Hà',
     role: 'Chuyên gia Foundation',
     badges: ['IELTS 8.0', 'Master TESOL'],
+    image:
+      'https://images.openai.com/static-rsc-4/4EeNof_ty-AFdtn_x-ZLCAGUEpUE9NU1pll3Szub2y5bSZyuJuWC2R_zzXd4DVNvy_BOmI2xb1NamotgmXp7ksSA0Mjz3UNtVSWLnF7kLIm2l3SLAEAE0xAf4IIKj6LKA_a04mTRe8Og_GAr7eKINhULk-V7lg8XAyv2WcRJNT0x4oeleOt1K6aWhBUSzEMk?purpose=fullsize',
     quote:
       'Nhiệm vụ của tôi là giúp bạn vượt qua rào cản sợ hãi ban đầu, biến tiếng Anh thành công cụ giao tiếp tự nhiên.',
   },
 ];
+
+const TeacherImage = ({ teacher }) => {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (!teacher.image || hasError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <UserRound className="text-[#584140]/50" size={76} />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      alt={teacher.name}
+      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+      onError={() => setHasError(true)}
+      src={teacher.image}
+    />
+  );
+};
 
 const TeachersSection = () => (
   <section className="mx-auto max-w-7xl px-4 py-20 md:px-10">
@@ -48,17 +71,7 @@ const TeachersSection = () => (
           className="group relative cursor-pointer overflow-hidden rounded-xl border border-[#dfbfbd]/30 bg-white shadow-sm transition-all duration-300 hover:shadow-lg"
         >
           <div className="aspect-[3/4] overflow-hidden bg-[#e2e2e2]">
-            {teacher.image ? (
-              <img
-                alt={teacher.name}
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                src={teacher.image}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <UserRound className="text-[#584140]/50" size={76} />
-              </div>
-            )}
+            <TeacherImage teacher={teacher} />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 transition-opacity group-hover:opacity-90" />
           </div>
 
