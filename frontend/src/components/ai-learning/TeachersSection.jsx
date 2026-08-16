@@ -21,7 +21,7 @@ const teachers = [
       'Chiến thuật làm bài tốt bắt nguồn từ một nền tảng ngữ pháp và từ vựng vững chắc, không có đường tắt cho sự xuất sắc.',
   },
   {
-    name: 'Cô Thu Hà',
+    name: 'Thầy Phạm Đức Thành',
     role: 'Chuyên gia Foundation',
     badges: ['IELTS 8.0', 'Master TESOL'],
     image:
