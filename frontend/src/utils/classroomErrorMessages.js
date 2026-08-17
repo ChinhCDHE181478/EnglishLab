@@ -22,11 +22,11 @@ const formatConflictItems = (conflicts) => {
   const items = conflicts?.conflicts || conflicts?.items || conflicts?.conflictItems || [];
   if (!Array.isArray(items) || !items.length) return [];
 
-  return items.map((item) => {
+  return [...new Set(items.map((item) => {
     if (item?.message) return item.message;
     if (item?.type && CONFLICT_TYPE_MESSAGES[item.type]) return CONFLICT_TYPE_MESSAGES[item.type];
     return 'Phát hiện xung đột lịch hoặc tài nguyên.';
-  });
+  }))];
 };
 
 export const getClassroomErrorMessage = (error, fallback = 'Không thể xử lý yêu cầu lớp học. Vui lòng thử lại.') => {

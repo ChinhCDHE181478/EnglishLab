@@ -2,7 +2,7 @@ import createDOMPurify from 'dompurify';
 
 const ALLOWED_TAGS = [
   'a', 'b', 'blockquote', 'br', 'code', 'div', 'em', 'h1', 'h2', 'h3', 'hr',
-  'i', 'li', 'ol', 'p', 'pre', 's', 'strong', 'u', 'ul', 'span',
+  'i', 'img', 'li', 'ol', 'p', 'pre', 's', 'strong', 'u', 'ul', 'span',
 ];
 
 const ALLOWED_TEXT_ALIGNMENTS = new Set(['left', 'center', 'right', 'justify']);
@@ -13,14 +13,20 @@ const hasSafeHref = (value = '') => {
 };
 
 const RICH_TEXT_TAG_PATTERN = /<\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
-const ESCAPED_RICH_TEXT_TAG_PATTERN = /&lt;\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
+const ESCAPED_RICH_TEXT_TAG_PATTERN = /&(?:amp;)*lt;\/?(?:h[1-3]|p|div|strong|em|u|s|ul|ol|li|blockquote|pre|a|br|hr)\b/i;
 
 const decodeEscapedRichText = (value = '') => {
   const raw = String(value || '');
   if (!ESCAPED_RICH_TEXT_TAG_PATTERN.test(raw) || typeof window === 'undefined') return raw;
   const textarea = window.document.createElement('textarea');
-  textarea.innerHTML = raw;
-  return textarea.value;
+  let decoded = raw;
+  for (let pass = 0; pass < 3 && ESCAPED_RICH_TEXT_TAG_PATTERN.test(decoded); pass += 1) {
+    textarea.innerHTML = decoded;
+    const nextValue = textarea.value;
+    if (nextValue === decoded) break;
+    decoded = nextValue;
+  }
+  return decoded;
 };
 
 export const looksLikeRichTextHtml = (value = '') => {
@@ -50,7 +56,7 @@ export const sanitizeLessonHtml = (value = '') => {
     ? createDOMPurify
     : createDOMPurify(window);
   const sanitized = purifier.sanitize(decodeEscapedRichText(value), {
-    ALLOWED_ATTR: ['href', 'style'],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'style'],
     ALLOWED_TAGS,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
@@ -59,6 +65,8 @@ export const sanitizeLessonHtml = (value = '') => {
 
   [...documentNode.body.querySelectorAll('*')].forEach((element) => {
     const originalHref = element.getAttribute('href');
+    const originalSrc = element.getAttribute('src');
+    const originalAlt = element.getAttribute('alt');
     const sourceStyle = String(element.getAttribute('style') || '');
     [...element.attributes].forEach((attribute) => element.removeAttribute(attribute.name));
 
@@ -69,6 +77,10 @@ export const sanitizeLessonHtml = (value = '') => {
       element.setAttribute('href', originalHref);
       element.setAttribute('target', '_blank');
       element.setAttribute('rel', 'noopener noreferrer');
+    }
+    if (element.tagName === 'IMG' && originalSrc && hasSafeHref(originalSrc)) {
+      element.setAttribute('src', originalSrc);
+      if (originalAlt) element.setAttribute('alt', originalAlt);
     }
   });
 

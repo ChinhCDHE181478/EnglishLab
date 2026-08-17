@@ -1219,7 +1219,7 @@ export default function ContentManagerSyllabusBuilderPage() {
                   {resourceDetailUnit.displayOrder ?? 0}. {resourceDetailUnit.title}
                 </h3>
                 {resourceDetailUnit.description ? (
-                  <p className="mt-2 text-sm leading-6 text-[#584140]">{resourceDetailUnit.description}</p>
+                  <RichTextHtml className="mt-2 text-sm leading-6 text-[#584140]" value={resourceDetailUnit.description} />
                 ) : null}
               </div>
               <button
@@ -1272,7 +1272,7 @@ export default function ContentManagerSyllabusBuilderPage() {
                               <div className="min-w-0">
                                 <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Unit {unit.displayOrder ?? 0}</p>
                                 <h4 className="mt-1 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{unit.title}</h4>
-                                {unit.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]">{unit.description}</p> : null}
+                                {unit.description ? <RichTextHtml asPlain className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]" value={unit.description} /> : null}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-extrabold text-[#4b0009]">{sessionPlans.length} buổi học</span>
                                   <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-[#8b706e]">{resourceCount} nội dung</span>

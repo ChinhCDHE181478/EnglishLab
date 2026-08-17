@@ -10,6 +10,7 @@ import {
   ClassroomTabBar,
 } from '../../components/classroom/ClassroomUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import ManagementToast from '../../components/ui/ManagementToast';
 import VietnameseDateInput from '../../components/ui/VietnameseDateInput';
 import { useAppDialog } from '../../components/ui/AppDialog';
@@ -54,6 +55,31 @@ const initialSessionForm = {
 
 const inputClass = 'w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb]/50 px-4 py-3 text-sm text-[#2b2828] outline-none transition focus:border-[#730014] focus:bg-white';
 
+const readSessionDraft = (key) => {
+  try {
+    const storedDraft = window.sessionStorage.getItem(key);
+    return storedDraft ? JSON.parse(storedDraft) : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeSessionDraft = (key, form) => {
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify(form));
+  } catch {
+    // Draft persistence must not block scheduling when browser storage is unavailable.
+  }
+};
+
+const clearSessionDraft = (key) => {
+  try {
+    window.sessionStorage.removeItem(key);
+  } catch {
+    // The form can still be reset in memory when browser storage is unavailable.
+  }
+};
+
 export default function StaffClassroomDetailPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const { id } = useParams();
@@ -86,7 +112,7 @@ export default function StaffClassroomDetailPage() {
 
   const teacherOptions = useMemo(
     () => [
-      { label: 'Chưa chọn giáo viên', value: '' },
+      { label: 'Giáo viên chính của lớp', value: '' },
       ...availableResources.teachers.map((item) => ({
         label: item.fullName || item.email,
         value: String(item.id),
@@ -104,6 +130,16 @@ export default function StaffClassroomDetailPage() {
     }))],
     [availableResources.rooms],
   );
+
+  const sessionDraftStorageKey = `englishlab.staff.classroom.${id}.session-draft`;
+
+  const getDefaultSessionForm = () => ({
+    ...initialSessionForm,
+    sessionDate: classroom?.startDate || '',
+    deliveryMode: classroom?.deliveryMode || 'OFFLINE',
+    teacherId: classroom?.primaryTeacherId ? String(classroom.primaryTeacherId) : '',
+    roomId: classroom?.roomId ? String(classroom.roomId) : '',
+  });
 
   const sessionPlanOptions = useMemo(() => [
     {
@@ -199,7 +235,7 @@ export default function StaffClassroomDetailPage() {
   }, [sessionModalOpen]);
 
   useEffect(() => {
-    if (!sessionForm.sessionDate || !sessionForm.startTime || !sessionForm.endTime
+    if (!sessionModalOpen || !sessionForm.sessionDate || !sessionForm.startTime || !sessionForm.endTime
         || sessionForm.endTime <= sessionForm.startTime) {
       setAvailableResources({ status: 'idle', teachers: [], rooms: [] });
       return undefined;
@@ -229,7 +265,12 @@ export default function StaffClassroomDetailPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [editingSessionId, sessionForm.deliveryMode, sessionForm.endTime, sessionForm.sessionDate, sessionForm.startTime]);
+  }, [editingSessionId, sessionForm.deliveryMode, sessionForm.endTime, sessionForm.sessionDate, sessionForm.startTime, sessionModalOpen]);
+
+  useEffect(() => {
+    if (!sessionModalOpen || editingSessionId) return;
+    writeSessionDraft(sessionDraftStorageKey, sessionForm);
+  }, [editingSessionId, sessionDraftStorageKey, sessionForm, sessionModalOpen]);
 
   const setTab = (tabId) => {
     const next = new URLSearchParams(searchParams);
@@ -273,9 +314,12 @@ export default function StaffClassroomDetailPage() {
             ? 'Đã thêm buổi học và tạo phòng Google Meet tự động.'
             : 'Đã thêm buổi học vào lịch.');
       }
+      if (!editingSessionId) {
+        clearSessionDraft(sessionDraftStorageKey);
+      }
       setSessionModalOpen(false);
       setEditingSessionId(null);
-      setSessionForm((current) => ({ ...initialSessionForm, deliveryMode: current.deliveryMode }));
+      setSessionForm(getDefaultSessionForm());
       await loadClassroom();
     } catch (err) {
       setActionTone('error');
@@ -390,28 +434,34 @@ export default function StaffClassroomDetailPage() {
   };
 
   const openSessionCreator = () => {
+    const defaults = getDefaultSessionForm();
+    const draft = readSessionDraft(sessionDraftStorageKey);
     setEditingSessionId(null);
     setSessionForm({
-      ...initialSessionForm,
-      sessionDate: classroom.startDate || '',
-      deliveryMode: classroom.deliveryMode || 'OFFLINE',
-      teacherId: classroom.primaryTeacherId ? String(classroom.primaryTeacherId) : '',
-      roomId: classroom.roomId ? String(classroom.roomId) : '',
+      ...defaults,
+      ...(draft && typeof draft === 'object' ? draft : {}),
+      deliveryMode: defaults.deliveryMode,
+      teacherId: defaults.teacherId,
     });
     setActionMessage('');
     setSessionModalOpen(true);
   };
 
-  const closeSessionModal = () => {
+  const dismissSessionModal = () => {
+    if (!editingSessionId) {
+      writeSessionDraft(sessionDraftStorageKey, sessionForm);
+    }
     setSessionModalOpen(false);
     setEditingSessionId(null);
-    setSessionForm({
-      ...initialSessionForm,
-      sessionDate: classroom.startDate || '',
-      deliveryMode: classroom.deliveryMode || 'OFFLINE',
-      teacherId: classroom.primaryTeacherId ? String(classroom.primaryTeacherId) : '',
-      roomId: classroom.roomId ? String(classroom.roomId) : '',
-    });
+  };
+
+  const cancelSessionModal = () => {
+    if (!editingSessionId) {
+      clearSessionDraft(sessionDraftStorageKey);
+    }
+    setSessionModalOpen(false);
+    setEditingSessionId(null);
+    setSessionForm(getDefaultSessionForm());
   };
 
   const openTeacherReplacement = async () => {
@@ -458,7 +508,7 @@ export default function StaffClassroomDetailPage() {
         <Field label="Ngày học">
           <VietnameseDateInput className={inputClass} onChange={(value) => setSessionForm((current) => ({ ...current, sessionDate: value, teacherId: '', roomId: '' }))} required value={sessionForm.sessionDate} />
         </Field>
-        <Field label="Hình thức">
+        <Field label="Hình thức buổi học">
           <BrandedSelect onChange={(event) => setSessionForm((current) => ({ ...current, deliveryMode: event.target.value, roomId: '' }))} options={deliveryModeOptions} value={sessionForm.deliveryMode} />
         </Field>
       </div>
@@ -471,11 +521,11 @@ export default function StaffClassroomDetailPage() {
         </Field>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Giáo viên">
+        <Field label="Giáo viên buổi học">
           <BrandedSelect disabled={availableResources.status === 'loading'} onChange={(event) => setSessionForm((current) => ({ ...current, teacherId: event.target.value }))} options={teacherOptions} placeholder={availableResources.status === 'loading' ? 'Đang tìm giáo viên rảnh...' : 'Chọn giáo viên'} searchable value={sessionForm.teacherId} />
         </Field>
         {sessionForm.deliveryMode === 'OFFLINE' ? (
-          <Field label="Phòng">
+          <Field label="Phòng học">
             <BrandedSelect disabled={availableResources.status === 'loading'} onChange={(event) => setSessionForm((current) => ({ ...current, roomId: event.target.value }))} options={roomOptions} placeholder={availableResources.status === 'loading' ? 'Đang tìm phòng trống...' : 'Chọn phòng trống'} searchable value={sessionForm.roomId} />
           </Field>
         ) : null}
@@ -660,14 +710,14 @@ export default function StaffClassroomDetailPage() {
                 <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">{editingSessionId ? 'Điều chỉnh lịch học' : 'Tạo lịch học'}</p>
                 <h2 className="mt-2 font-['Manrope'] text-2xl font-extrabold text-[#2b2828]" id="session-editor-title">{editingSessionId ? 'Chỉnh sửa buổi học' : 'Thêm buổi học'}</h2>
               </div>
-              <button aria-label="Đóng" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={creatingSession} onClick={closeSessionModal} type="button"><X className="h-5 w-5" /></button>
+              <button aria-label="Đóng và giữ bản nháp" className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 disabled:opacity-50" disabled={creatingSession} onClick={dismissSessionModal} type="button"><X className="h-5 w-5" /></button>
             </div>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
               {actionMessage && actionTone === 'error' ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">{actionMessage}</div> : null}
               {sessionFormFields}
             </div>
             <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-              <button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 disabled:opacity-50" disabled={creatingSession} onClick={closeSessionModal} type="button">Hủy</button>
+              <button className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 disabled:opacity-50" disabled={creatingSession} onClick={cancelSessionModal} type="button">Hủy</button>
               <button className="rounded-xl bg-[#730014] px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60" disabled={creatingSession} type="submit">{creatingSession ? 'Đang lưu...' : editingSessionId ? 'Lưu thay đổi' : 'Thêm buổi học'}</button>
             </div>
           </form>
@@ -960,7 +1010,7 @@ function CurriculumOverview({ curriculum }) {
               </button>
               {expandedUnitIds.has(unit.id) ? (
                 <div className="space-y-4 border-t border-[#f0e4e2] p-4">
-                  {unit.description ? <p className="text-sm leading-6 text-[#584140]">{unit.description}</p> : null}
+                  {unit.description ? <RichTextHtml className="text-sm leading-6 text-[#584140]" value={unit.description} /> : null}
                   {unit.sessionPlans?.length ? (
                     <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
                       {unit.sessionPlans.map((plan) => (

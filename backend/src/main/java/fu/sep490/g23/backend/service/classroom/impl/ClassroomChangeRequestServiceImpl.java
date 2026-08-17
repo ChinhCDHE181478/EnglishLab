@@ -262,7 +262,7 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
             Map<String, Object> values = switch (type) {
                 case RESCHEDULE_SESSION, CANCEL_SESSION, CHANGE_ROOM, CHANGE_TEACHER, UPDATE_LARK_LINK -> sessionValues(session);
                 case TRANSFER_STUDENT, TRANSFER_CLASS -> Map.of("classroomOfferingId", offering.getId());
-                case CREATE_MAKEUP_SESSION -> Map.of();
+                case CREATE_MAKEUP_SESSION -> sessionValues(session);
             };
             return objectMapper.writeValueAsString(values);
         } catch (Exception ex) {

@@ -134,6 +134,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled && !sheetEnabled) {
+            return;
+        }
+
         syncEnglishSlugs();
         syncGoogleMeetLabels();
         syncTeacher2Account();
@@ -149,10 +153,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
 
         User teacher1 = ensureUser("classroom.teacher1@englishlab.vn", "Nguyễn Văn Teacher", RoleEnum.TEACHER);
         User teacher2 = ensureUser(TEACHER2_EMAIL, TEACHER2_FULL_NAME, RoleEnum.TEACHER);
-        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Học Viên Một", RoleEnum.LEARNER);
-        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Học Viên Hai", RoleEnum.LEARNER);
-        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
-        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Học Viên Bốn", RoleEnum.LEARNER);
+        User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
+        User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
+        User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
+        User learner4 = ensureUser("classroom.learner4@englishlab.vn", "Trần Ngọc Mai", RoleEnum.LEARNER);
         User manager = ensureUser("classroom.manager@englishlab.vn", "Quản Lý Lớp Học", RoleEnum.MANAGER);
         ensureUser("staff@englishlab.vn", "Nhân Viên Đào Tạo", RoleEnum.STAFF);
         User contentManager = ensureUser("content.manager@englishlab.vn", "Quản Lý Content", RoleEnum.CONTENT_MANAGER);
@@ -1140,9 +1144,9 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
             if (teacher1 == null) return;
 
             User manager = userRepository.findByEmail("classroom.manager@englishlab.vn").orElse(null);
-            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Học Viên Một", RoleEnum.LEARNER);
-            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Học Viên Hai", RoleEnum.LEARNER);
-            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Học Viên Ba", RoleEnum.LEARNER);
+            User learner1 = ensureUser("0386852628z@gmail.com", "Lê Ngọc Anh", RoleEnum.LEARNER);
+            User learner2 = ensureUser("classroom.learner2@englishlab.vn", "Phạm Minh Châu", RoleEnum.LEARNER);
+            User learner3 = ensureUser("classroom.learner3@englishlab.vn", "Hoàng Gia Huy", RoleEnum.LEARNER);
 
             Optional<ClassroomOffering> offeringOpt = offeringRepository.findByLearningPackageSlug(SLUG_OFFLINE_IN_PROGRESS);
             if (offeringOpt.isEmpty()) return;

@@ -516,6 +516,11 @@ export default function ListeningExamMode({
               </button>
             ) : null}
           </div>
+          {question.audioUrl || group.audioUrl ? (
+            <audio className="mt-3 w-full" controls preload="none" src={question.audioUrl || group.audioUrl}>
+              <track kind="captions" />
+            </audio>
+          ) : null}
           <div className="mt-3 grid gap-2">
             {(question.options || []).map((option) => (
               <label key={option.value} className="block cursor-pointer">

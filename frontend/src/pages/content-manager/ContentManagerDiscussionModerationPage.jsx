@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, EyeOff, Flag, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { Eye, EyeOff, Flag, RefreshCw, XCircle } from 'lucide-react';
 import { courseApi } from '../../api/courseApi';
 import { ManagerEmptyState, ManagerFilterBar, ManagerStatusBadge, ManagerTable } from '../../components/content-manager/ManagerListUi';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import ManagementToast from '../../components/ui/ManagementToast';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -46,6 +47,7 @@ export default function ContentManagerDiscussionModerationPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [processingId, setProcessingId] = useState(null);
 
   const loadReports = useCallback(async () => {
@@ -57,9 +59,11 @@ export default function ContentManagerDiscussionModerationPage() {
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể tải hàng chờ kiểm duyệt.');
       setReports([]);
+      return false;
     } finally {
       setLoading(false);
     }
+    return true;
   }, [status, category]);
 
   useEffect(() => {
@@ -87,13 +91,21 @@ export default function ContentManagerDiscussionModerationPage() {
     if (!confirmed) return;
     setProcessingId(report.reportId);
     setError('');
+    setSuccess('');
     try {
       if (isHide) {
         await courseApi.hideReportedDiscussion(report.reportId);
       } else {
         await courseApi.dismissDiscussionReport(report.reportId);
       }
-      await loadReports();
+      const reloaded = await loadReports();
+      if (reloaded) {
+        setSuccess(isHide
+          ? 'Nội dung đã được ẩn khỏi phần hỏi đáp.'
+          : report.status === 'ACTION_TAKEN'
+            ? 'Nội dung đã được hiển thị lại và báo cáo được chuyển sang đã bỏ qua.'
+            : 'Báo cáo đã được bỏ qua và nội dung vẫn được giữ nguyên.');
+      }
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể xử lý báo cáo. Vui lòng thử lại.');
     } finally {
@@ -103,6 +115,13 @@ export default function ContentManagerDiscussionModerationPage() {
 
   return (
     <div className="space-y-6">
+      <ManagementToast message={error} onClose={() => setError('')} />
+      <ManagementToast
+        message={success}
+        onClose={() => setSuccess('')}
+        tone="success"
+        title="Đã xử lý báo cáo"
+      />
       <ManagerFilterBar>
         {/* Status tabs */}
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Trạng thái báo cáo">
@@ -146,13 +165,6 @@ export default function ContentManagerDiscussionModerationPage() {
           Làm mới
         </button>
       </ManagerFilterBar>
-
-      {error ? (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-          <AlertTriangle className="h-4 w-4" />
-          {error}
-        </div>
-      ) : null}
 
       <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
         {loading ? (
@@ -233,11 +245,26 @@ export default function ContentManagerDiscussionModerationPage() {
                           Bỏ qua báo cáo
                         </button>
                       </div>
+                    ) : report.status === 'ACTION_TAKEN' ? (
+                      <button
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-emerald-200 px-3.5 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50"
+                        disabled={processingId === report.reportId}
+                        onClick={() => handleAction(report, 'dismiss')}
+                        type="button"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Gỡ ẩn
+                      </button>
                     ) : (
-                      <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#756361]">
-                        <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                        {report.reviewedBy ? `Bởi ${report.reviewedBy}` : 'Đã xử lý'}
-                      </div>
+                      <button
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#730014] px-3.5 py-2 text-xs font-bold text-white transition hover:bg-[#4b0009] disabled:opacity-50"
+                        disabled={processingId === report.reportId}
+                        onClick={() => handleAction(report, 'hide')}
+                        type="button"
+                      >
+                        <EyeOff className="h-4 w-4" />
+                        Ẩn nội dung
+                      </button>
                     )}
                   </td>
                 </tr>

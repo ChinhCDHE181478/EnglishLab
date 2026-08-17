@@ -214,14 +214,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         ensureUser("staff@englishlab.vn", "Nhân viên đào tạo", RoleEnum.STAFF);
         User staff = userRepository.findByEmail("staff@englishlab.vn").orElseThrow();
 
-        User alien = ensureExistingOrCreate(TEACHER_EMAIL, "Alien Teacher", RoleEnum.TEACHER);
+        User alien = ensureExistingOrCreate(TEACHER_EMAIL, "Trần Minh Huy", RoleEnum.TEACHER);
         List<User> teachers = new ArrayList<>();
         teachers.add(alien);
         for (int i = 0; i < TEACHER_NAMES.length; i++) {
             teachers.add(ensureUser("gv.sheet.%02d@englishlab.vn".formatted(i + 1), TEACHER_NAMES[i], RoleEnum.TEACHER));
         }
 
-        User showcaseLearner = ensureExistingOrCreate(LEARNER_EMAIL, "Lê Học viên Showcase", RoleEnum.LEARNER);
+        User showcaseLearner = ensureExistingOrCreate(LEARNER_EMAIL, "Lê Ngọc Anh", RoleEnum.LEARNER);
         onboardingSupport.ensureReady(showcaseLearner);
 
         List<User> learners = new ArrayList<>();
@@ -487,6 +487,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             boolean sameSlot = first.getStartTime().equals(start)
                     && days.contains(first.getSessionDate().getDayOfWeek());
             if (sameSlot) {
+                refreshSessionStatuses(existing);
                 return;
             }
             int limit = Math.min(existing.size(), dates.size());
@@ -498,13 +499,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 session.setEndTime(end);
                 session.setTeacher(teacher);
                 session.setRoom(room);
-                if (date.isBefore(LocalDate.now())) {
-                    session.setStatus(ClassroomSessionStatus.COMPLETED);
-                } else if (date.equals(LocalDate.now())) {
-                    session.setStatus(ClassroomSessionStatus.IN_PROGRESS);
-                } else {
-                    session.setStatus(ClassroomSessionStatus.SCHEDULED);
-                }
+                session.setStatus(statusForSessionDate(date));
                 sessionRepository.save(session);
             }
             return;
@@ -513,14 +508,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         int index = 1;
         while (!cursor.isAfter(offering.getEndDate())) {
             if (days.contains(cursor.getDayOfWeek())) {
-                ClassroomSessionStatus status;
-                if (cursor.isBefore(LocalDate.now())) {
-                    status = ClassroomSessionStatus.COMPLETED;
-                } else if (cursor.equals(LocalDate.now())) {
-                    status = ClassroomSessionStatus.IN_PROGRESS;
-                } else {
-                    status = ClassroomSessionStatus.SCHEDULED;
-                }
+                ClassroomSessionStatus status = statusForSessionDate(cursor);
                 sessionRepository.save(ClassroomSession.builder()
                         .classroomOffering(offering)
                         .sessionDate(cursor)
@@ -540,6 +528,23 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             }
             cursor = cursor.plusDays(1);
         }
+    }
+
+    private void refreshSessionStatuses(List<ClassroomSession> sessions) {
+        for (ClassroomSession session : sessions) {
+            session.setStatus(statusForSessionDate(session.getSessionDate()));
+            sessionRepository.save(session);
+        }
+    }
+
+    private ClassroomSessionStatus statusForSessionDate(LocalDate date) {
+        if (date.isBefore(LocalDate.now())) {
+            return ClassroomSessionStatus.COMPLETED;
+        }
+        if (date.equals(LocalDate.now())) {
+            return ClassroomSessionStatus.IN_PROGRESS;
+        }
+        return ClassroomSessionStatus.SCHEDULED;
     }
 
     private void ensureClassroomEnrollment(ClassroomOffering offering, User learner, User teacher, LocalDate start) {
@@ -586,8 +591,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void seedShowcaseOnlineProgress(User learner) {
-        completeCourseIfPresent(learner, "ielts-master-vocabulary-band-7-plus");
-        enrollInProgress(learner, "e2-ielts-practice-tests", 35);
         if (packageEnrollmentRepository.findByStudentOrderByRegisteredAtDesc(learner).size() < 2) {
             completeCourseIfPresent(learner, "center-sheet-ielts-listening");
             enrollInProgress(learner, "center-sheet-ielts-reading", 40);
@@ -772,6 +775,16 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         JsonNode mockIndex = objectMapper.readTree(
                 new ClassPathResource("sheet-data/iot-mocks-index.json").getInputStream());
         for (JsonNode item : mockIndex) {
+            publishMock(
+                    item.path("title").asText(),
+                    AssessmentSkill.valueOf(item.path("skill").asText()),
+                    item.path("minutes").asInt(),
+                    item.path("resource").asText(),
+                    item.path("needsKey").asBoolean(false));
+        }
+        JsonNode toeicMockIndex = objectMapper.readTree(
+                new ClassPathResource("sheet-data/toeic-mocks-index.json").getInputStream());
+        for (JsonNode item : toeicMockIndex) {
             publishMock(
                     item.path("title").asText(),
                     AssessmentSkill.valueOf(item.path("skill").asText()),
@@ -1568,9 +1581,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private User ensureUser(String email, String fullName, RoleEnum role) {
         return userRepository.findByEmail(email).map(existing -> {
             userRoleService.ensureRole(existing, role);
-            if (existing.getFullName() == null || existing.getFullName().isBlank()) {
-                existing.setFullName(fullName);
-            }
+            existing.setFullName(fullName);
             existing.setEmailVerified(true);
             return userRepository.save(existing);
         }).orElseGet(() -> {

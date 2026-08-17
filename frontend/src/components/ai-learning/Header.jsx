@@ -8,6 +8,7 @@ import {
   ClipboardList,
   CreditCard,
   GraduationCap,
+  Heart,
   LifeBuoy,
   Layers3,
   LogOut,
@@ -316,6 +317,7 @@ const Header = () => {
         {user ? (
           <div className="ml-auto flex shrink-0 items-center gap-3">
             {!isStaff && (
+              <>
               <Link
                 aria-label="Giỏ hàng"
                 className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
@@ -329,6 +331,15 @@ const Header = () => {
                   </span>
                 ) : null}
               </Link>
+                <Link
+                  aria-label="Danh sách yêu thích"
+                  className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                  to="/wishlist"
+                  reloadDocument={shouldReloadWhenLeavingWorkspace}
+                >
+                  <Heart className="h-5 w-5" />
+                </Link>
+              </>
             )}
 
             {canUseStudentNotifications ? (

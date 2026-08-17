@@ -101,7 +101,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         learningPackage.setTargetScore("IELTS Band 7+");
         learningPackage.setDuration(seed.totalDurationText() == null ? "8 giờ 9 phút" : seed.totalDurationText());
         learningPackage.setStudyMode("Tự học online theo playlist IELTS Master");
-        learningPackage.setPrice(seed.price() == null ? BigDecimal.ZERO : seed.price());
+        learningPackage.setPrice(paidPrice(seed.price()));
         learningPackage.setThumbnailUrl(seed.thumbnail());
         learningPackage.setStatus(PackageStatus.PUBLISHED);
         learningPackage.setDisplayOrder(6);
@@ -251,6 +251,13 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
 
     private int toMinutes(Integer seconds) {
         return seconds == null ? 0 : Math.max(1, (int) Math.ceil(seconds / 60.0));
+    }
+
+    private BigDecimal paidPrice(BigDecimal price) {
+        if (price == null || price.signum() <= 0) {
+            return BigDecimal.valueOf(1_290_000);
+        }
+        return price;
     }
 
     private int countLessons(List<ModuleSeed> modules) {

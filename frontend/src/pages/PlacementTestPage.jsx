@@ -23,6 +23,7 @@ import placementTestApi from '../api/placementTestApi';
 import Header from '../components/ai-learning/Header';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
+import ToeicExamMode from '../components/course-assessment/ToeicExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
 import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
 import ExamSectionChangeDialog from '../components/course-assessment/ExamSectionChangeDialog';
@@ -281,6 +282,8 @@ const toToeicExamSection = (toeicConfig = {}, sectionKey = '') => {
   return {
     ...section,
     key: section.key || `toeic_${sectionKey}`,
+    type: section.type || (sectionKey === 'listening' ? 'toeic_listening_exam' : 'toeic_reading_exam'),
+    examType: 'TOEIC',
     title,
     durationMinutes: Number(section.durationMinutes || (sectionKey === 'listening' ? 45 : 75)),
     audioUrl: section.audioUrl || firstPartAudioUrl || toeicConfig.audioUrl || '',
@@ -1063,7 +1066,7 @@ export default function PlacementTestPage() {
                   <Headphones aria-hidden="true" size={22} />
                 </div>
                 <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#21446d]">TOEIC Placement</h2>
-                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC mới (ETS 2026 Test 10). Hệ thống chấm khách quan theo answer key.</p>
+                <p className="mt-3 text-sm leading-7 text-[#40536a]">Làm Listening và Reading theo format TOEIC. Hệ thống chấm khách quan theo đáp án.</p>
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   {TOEIC_SKILLS.map((skill) => {
                     const Icon = skill.icon;
@@ -1310,6 +1313,26 @@ export default function PlacementTestPage() {
     }
 
     if (activeSkill.key === 'listening') {
+      if (selectedExamType === 'TOEIC') {
+        return (
+          <>
+            <ToeicExamMode
+              assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
+              config={activeConfig}
+              initialAnswers={toExamModeInitialObjectiveAnswers(activeConfig, draft.listeningAnswers)}
+              onClose={() => navigate('/')}
+              onSubmit={handleListeningSubmit}
+              preserveFullscreenOnUnmount
+              skipAudioCheck
+              skillLabel="TOEIC Listening"
+              submitLabel="Hoàn thành phần Listening"
+              submitting={submitting}
+            />
+            {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+            {renderSkillAdvanceDialog()}
+          </>
+        );
+      }
       return (
         <>
           <ListeningExamMode
@@ -1330,6 +1353,25 @@ export default function PlacementTestPage() {
     }
 
     if (activeSkill.key === 'reading') {
+      if (selectedExamType === 'TOEIC') {
+        return (
+          <>
+            <ToeicExamMode
+              assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
+              config={activeConfig}
+              initialAnswers={toExamModeInitialObjectiveAnswers(activeConfig, draft.readingAnswers)}
+              onClose={() => navigate('/')}
+              onSubmit={handleReadingSubmit}
+              preserveFullscreenOnUnmount
+              skillLabel="TOEIC Reading"
+              submitLabel="Hoàn thành phần Reading"
+              submitting={submitting}
+            />
+            {submitError ? <div className="fixed bottom-4 left-1/2 z-[140] w-[min(92vw,640px)] -translate-x-1/2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 shadow-xl">{submitError}</div> : null}
+            {renderSkillAdvanceDialog()}
+          </>
+        );
+      }
       return (
         <>
           <ReadingExamMode
