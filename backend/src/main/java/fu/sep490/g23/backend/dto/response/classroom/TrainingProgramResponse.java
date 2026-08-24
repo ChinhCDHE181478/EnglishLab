@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -36,11 +35,6 @@ public class TrainingProgramResponse {
     private BigDecimal salePrice;
     private String duration;
     private String studyMode;
-    private Integer capacity;
-    /** Trường tương thích cho client cũ; dùng capacity cho tích hợp mới. */
-    private Integer maxCapacity;
-    private LocalDate plannedStartDate;
-    private String plannedSchedule;
     private String thumbnailUrl;
     private PackageStatus status;
     private String statusLabel;

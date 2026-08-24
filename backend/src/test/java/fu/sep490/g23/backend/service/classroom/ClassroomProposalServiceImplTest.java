@@ -106,7 +106,6 @@ class ClassroomProposalServiceImplTest {
                 .title("IELTS Foundation Offline")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(PackageStatus.PUBLISHED)
-                .maxCapacity(20)
                 .build();
         room = ClassroomRoom.builder().id(11L).name("A101").capacity(25).active(true).build();
         enrollmentRequest = EnrollmentRequest.builder()

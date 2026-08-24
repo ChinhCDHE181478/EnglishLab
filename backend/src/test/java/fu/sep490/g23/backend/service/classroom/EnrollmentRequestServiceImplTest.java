@@ -106,7 +106,6 @@ class EnrollmentRequestServiceImplTest {
                 .title("IELTS Foundation")
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(PackageStatus.PUBLISHED)
-                .maxCapacity(24)
                 .build();
         LearningPackage learningPackage = LearningPackage.builder()
                 .id(21L)

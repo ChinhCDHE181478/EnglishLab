@@ -1093,8 +1093,6 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 .price(BigDecimal.valueOf(toeic ? 8_900_000 : 12_500_000))
                 .duration("12 tuần")
                 .studyMode(mode == ClassroomDeliveryMode.VIRTUAL ? "Google Meet · Ca tối" : "Offline · Ca tối")
-                .maxCapacity(18)
-                .plannedSchedule("Thứ 2-4-6 hoặc 3-5-7 · 18:00–21:15")
                 .status(PackageStatus.PUBLISHED)
                 .displayOrder(1)
                 .featured(true)

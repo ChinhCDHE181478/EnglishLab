@@ -61,6 +61,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
+    private static final int ESTIMATED_CLASS_CAPACITY = 30;
+
     private static final Set<EnrollmentRequestStatus> TERMINAL_STATUSES = Set.of(
             EnrollmentRequestStatus.REJECTED,
             EnrollmentRequestStatus.CANCELLED,
@@ -498,9 +500,6 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                         ? null
                         : requestedClassroom.getOfflineAddress())
                 .deliveryType(offering == null ? null : offering.getDeliveryMode())
-                .plannedStartDate(offering == null ? null : offering.getPlannedStartDate())
-                .plannedSchedule(offering == null ? null : offering.getPlannedSchedule())
-                .capacity(offering == null ? null : offering.getMaxCapacity())
                 .status(request.getStatus())
                 .statusLabel(statusLabel(request.getStatus()))
                 .requestSource(request.getRequestSource() == null
@@ -537,16 +536,13 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
         long qualified = countStatus(requests, EnrollmentRequestStatus.WAITING_FOR_CLASS);
         long assigned = countStatus(requests, EnrollmentRequestStatus.CLASS_ASSIGNED);
         long rejected = countStatus(requests, EnrollmentRequestStatus.REJECTED);
-        int capacity = program.getMaxCapacity() == null || program.getMaxCapacity() <= 0
-                ? 30
-                : program.getMaxCapacity();
         long activePipeline = awaitingContact + invitationsSent + testsScheduled + qualified;
         return EnrollmentDemandReportResponse.builder()
                 .courseOfferingId(program.getId())
                 .courseOfferingCode(program.getCode())
                 .courseOfferingTitle(program.getTitle())
                 .deliveryMode(program.getDeliveryMode())
-                .classCapacity(capacity)
+                .classCapacity(ESTIMATED_CLASS_CAPACITY)
                 .totalRegistrations((long) requests.size())
                 .awaitingContact(awaitingContact)
                 .invitationsSent(invitationsSent)
@@ -554,7 +550,9 @@ public class EnrollmentRequestServiceImpl implements EnrollmentRequestService {
                 .qualifiedForClass(qualified)
                 .assigned(assigned)
                 .rejected(rejected)
-                .suggestedClassCount(activePipeline == 0 ? 0 : (int) Math.ceil((double) activePipeline / capacity))
+                .suggestedClassCount(activePipeline == 0
+                        ? 0
+                        : (int) Math.ceil((double) activePipeline / ESTIMATED_CLASS_CAPACITY))
                 .build();
     }
 

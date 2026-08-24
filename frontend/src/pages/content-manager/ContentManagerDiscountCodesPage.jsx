@@ -277,7 +277,7 @@ export default function ContentManagerDiscountCodesPage() {
 
         {loading ? (
           <div className="px-6 py-12 text-sm font-semibold text-[#584140]">Đang tải mã giảm giá...</div>
-        ) : sortedItems.length === 0 ? (
+        ) : totalItems === 0 ? (
           <div className="px-6 py-12 text-sm font-semibold text-[#584140]">Chưa có mã giảm giá nào.</div>
         ) : (
           <div className="overflow-x-auto">

@@ -329,7 +329,7 @@ export default function ContentManagerExerciseBankPage() {
 
           {loading ? (
             <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">Đang tải ngân hàng bài tập...</div>
-          ) : filteredItems.length === 0 ? (
+          ) : totalItems === 0 ? (
             <ManagerEmptyState>Chưa có bài tập phù hợp.</ManagerEmptyState>
           ) : (
             <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
