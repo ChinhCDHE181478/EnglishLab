@@ -58,12 +58,10 @@ const WorkspaceLessonDiscussion = ({ courseId, lessonId, lessonIds = EMPTY_LESSO
         setTotalElements(result.totalElements || 0);
         setTotalPages(result.totalPages || 0);
       } else {
-        const results = await Promise.all(lessonIds.map((id) => courseApi.getLessonDiscussions(courseId, id, { filter, page: 0, size: 100 })));
-        const allThreads = results.flatMap((result) => result.content || [])
-          .sort((left, right) => new Date(right.createdAt || 0) - new Date(left.createdAt || 0));
-        setThreads(allThreads.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE));
-        setTotalElements(allThreads.length);
-        setTotalPages(Math.ceil(allThreads.length / PAGE_SIZE));
+        const result = await courseApi.getCourseDiscussions(courseId, { filter, page, size: PAGE_SIZE });
+        setThreads(result.content || []);
+        setTotalElements(result.totalElements || 0);
+        setTotalPages(result.totalPages || 0);
       }
     } catch (error) {
       setMessage(getErrorMessage(error, 'Không thể tải hỏi đáp cho bài học này.'));

@@ -81,6 +81,8 @@ export const sanitizeLessonHtml = (value = '') => {
     if (element.tagName === 'IMG' && originalSrc && hasSafeHref(originalSrc)) {
       element.setAttribute('src', originalSrc);
       if (originalAlt) element.setAttribute('alt', originalAlt);
+    } else if (element.tagName === 'IMG') {
+      element.remove();
     }
   });
 

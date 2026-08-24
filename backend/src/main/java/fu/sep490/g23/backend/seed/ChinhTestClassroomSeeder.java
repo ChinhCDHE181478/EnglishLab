@@ -2,7 +2,6 @@ package fu.sep490.g23.backend.seed;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumFlashcardRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
-import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttempt;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
@@ -40,7 +39,6 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepositor
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
@@ -151,7 +149,6 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final ExerciseBankItemRepository exerciseRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final TrainingProgramRepository trainingProgramRepository;
-    private final ClassroomPracticeAttemptRepository practiceAttemptRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
 
     @Value("${app.seed.test.enabled:false}")
@@ -626,14 +623,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         // Attempt 1: Unit 1 Practice (100% score)
         if (units.size() > 0 && !units.get(0).getExerciseRefs().isEmpty()) {
             ExerciseBankItem ex1 = units.get(0).getExerciseRefs().get(0).getExercise();
-            if (practiceAttemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(offering.getId(), learner.getId(), ex1.getId()).isEmpty()) {
-                practiceAttemptRepository.save(ClassroomPracticeAttempt.builder()
-                        .classroomOffering(offering)
-                        .student(learner)
-                        .exercise(ex1)
-                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"C\"}")
-                        .completedAt(LocalDateTime.now().minusWeeks(4))
-                        .build());
+            if (practiceAttemptHistoryRepository.countByClassroomOfferingIdAndStudentIdAndExerciseId(
+                    offering.getId(), learner.getId(), ex1.getId()) == 0) {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
                         .classroomOffering(offering)
                         .student(learner)
@@ -654,14 +645,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         // Attempt 2: Unit 2 Practice (66.7% score)
         if (units.size() > 1 && !units.get(1).getExerciseRefs().isEmpty()) {
             ExerciseBankItem ex2 = units.get(1).getExerciseRefs().get(0).getExercise();
-            if (practiceAttemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(offering.getId(), learner.getId(), ex2.getId()).isEmpty()) {
-                practiceAttemptRepository.save(ClassroomPracticeAttempt.builder()
-                        .classroomOffering(offering)
-                        .student(learner)
-                        .exercise(ex2)
-                        .responseText("{\"1\":\"B\",\"2\":\"A\",\"3\":\"A\"}")
-                        .completedAt(LocalDateTime.now().minusWeeks(3))
-                        .build());
+            if (practiceAttemptHistoryRepository.countByClassroomOfferingIdAndStudentIdAndExerciseId(
+                    offering.getId(), learner.getId(), ex2.getId()) == 0) {
                 practiceAttemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
                         .classroomOffering(offering)
                         .student(learner)

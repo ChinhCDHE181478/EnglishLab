@@ -11,11 +11,16 @@ import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.service.assessment.ExerciseBankService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,54 @@ public class ExerciseBankServiceImpl implements ExerciseBankService {
                     : repository.findByActiveTrueOrderByUpdatedAtDesc();
         }
         return items.stream().map(this::toResponse).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ExerciseBankItemResponse> page(
+            String skill,
+            String exerciseType,
+            Boolean active,
+            String keyword,
+            Pageable pageable
+    ) {
+        Specification<ExerciseBankItem> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.conjunction();
+        if (StringUtils.hasText(skill)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("skill"), skill.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (StringUtils.hasText(exerciseType)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("exerciseType"), exerciseType.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (active != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("active"), active));
+        }
+        if (StringUtils.hasText(keyword)) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("prompt")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("tags")), pattern)
+            ));
+        }
+        return repository.findAll(specification, pageable).map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> stats(String skill) {
+        List<ExerciseBankItem> items = repository.findAll().stream()
+                .filter(item -> !StringUtils.hasText(skill) || skill.equalsIgnoreCase(item.getSkill()))
+                .toList();
+        return Map.of(
+                "total", (long) items.size(),
+                "active", items.stream().filter(ExerciseBankItem::isActive).count(),
+                "inactive", items.stream().filter(item -> !item.isActive()).count(),
+                "skills", items.stream().map(ExerciseBankItem::getSkill).filter(StringUtils::hasText).distinct().count()
+        );
     }
 
     @Override

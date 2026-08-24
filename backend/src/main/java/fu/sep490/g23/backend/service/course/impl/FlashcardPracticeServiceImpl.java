@@ -14,13 +14,14 @@ import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.commerce.WishlistItem;
+import fu.sep490.g23.backend.entity.commerce.CourseListItem;
+import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.commerce.WishlistItemRepository;
+import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
@@ -47,7 +48,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
     private final UserRepository userRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
-    private final WishlistItemRepository wishlistItemRepository;
+    private final CourseListItemRepository courseListItemRepository;
     private final VocabularyProgressRepository progressRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -105,8 +106,8 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
                     .toList();
         }
         if (source == FlashcardPracticeSource.WISHLIST) {
-            return wishlistItemRepository.findByStudentOrderByAddedAtDesc(student).stream()
-                    .map(WishlistItem::getOnlineCourse)
+            return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.WISHLIST).stream()
+                    .map(CourseListItem::getOnlineCourse)
                     .filter(course -> course.getLearningPackage().isPublished())
                     .toList();
         }

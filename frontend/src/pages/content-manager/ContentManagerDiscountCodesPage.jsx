@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { createPortal } from 'react-dom';
 import { Check, Edit3, Plus, RefreshCw, Trash2, X } from 'lucide-react';
@@ -7,6 +7,7 @@ import { HeaderActions, Panel, StatusBadge, TextField } from '../../components/c
 import { formatCoursePrice } from '../../components/course/courseFormatters';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import VietnameseDateTimeInput from '../../components/ui/VietnameseDateTimeInput';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const emptyForm = {
   id: null,
@@ -41,26 +42,24 @@ export default function ContentManagerDiscountCodesPage() {
   const [error, setError] = useState('');
   const [includeInactive, setIncludeInactive] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
 
   const editing = Boolean(form.id);
 
-  const sortedItems = useMemo(
-    () => [...items].sort((left, right) => Number(right.id || 0) - Number(left.id || 0)),
-    [items],
-  );
-
   const { page, setPage, totalPages, pageItems: visibleItems, totalItems } = usePagination(
-    sortedItems,
+    pageResult.content,
     PAGE_SIZE,
-    `discount-codes-${includeInactive}`
+    `discount-codes-${includeInactive}`,
+    pageResult,
   );
 
   const loadDiscountCodes = async () => {
     setLoading(true);
     setError('');
     try {
-      const page = await courseApi.getDiscountCodes({ size: 100, includeInactive });
-      setItems(page.content || []);
+      const result = await courseApi.getDiscountCodes(pageParams(page, PAGE_SIZE, { includeInactive }));
+      setPageResult(result);
+      setItems(result.content);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không thể tải danh sách mã giảm giá.');
     } finally {
@@ -70,7 +69,7 @@ export default function ContentManagerDiscountCodesPage() {
 
   useEffect(() => {
     loadDiscountCodes();
-  }, [includeInactive]);
+  }, [includeInactive, page]);
 
   const handleChange = (field) => (event) => {
     const value = field === 'active' ? event.target.checked : event.target.value;

@@ -23,16 +23,18 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContext;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import java.util.List;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface OnlineCourseService {
-    Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable);
+    Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, Integer targetScore, AssessmentSkill skill, String promotion, Pageable pageable);
     OnlineCourseResponse getPublicCourse(String slugOrId);
     CourseCertificateResponse verifyCourseCertificate(String verificationCode);
-    Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable);
+    Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, CourseLevel level, PackageStatus status, Set<Long> excludedIds, Pageable pageable);
     OnlineCourseResponse getManagerCourse(String slugOrId);
     OnlineCoursePreviewResponse getManagerCoursePreview(String slugOrId);
     List<ModuleResponse> reorderModules(Long courseId, ReorderModulesRequest request, String actorEmail);

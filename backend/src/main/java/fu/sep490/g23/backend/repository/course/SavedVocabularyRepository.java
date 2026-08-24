@@ -3,11 +3,12 @@ package fu.sep490.g23.backend.repository.course;
 import fu.sep490.g23.backend.entity.course.SavedVocabulary;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyMasteryStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface SavedVocabularyRepository extends JpaRepository<SavedVocabulary, Long> {
+public interface SavedVocabularyRepository extends JpaRepository<SavedVocabulary, Long>, JpaSpecificationExecutor<SavedVocabulary> {
 
     Optional<SavedVocabulary> findByUserIdAndWordIgnoreCase(Long userId, String word);
 

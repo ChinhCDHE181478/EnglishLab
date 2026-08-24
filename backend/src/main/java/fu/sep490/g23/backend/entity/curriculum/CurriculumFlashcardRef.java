@@ -1,35 +1,24 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
-@Table(
-        name = "curriculum_flashcard_refs",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"unit_id", "flashcard_set_id"})
-)
-public class CurriculumFlashcardRef {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@DiscriminatorValue("FLASHCARD")
+public class CurriculumFlashcardRef extends CurriculumResourceRef {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id", nullable = false)
-    private CurriculumUnit unit;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "flashcard_set_id", nullable = false)
+    @JoinColumn(name = "flashcard_set_id")
     private FlashcardSet flashcardSet;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
-    @Column(length = 500)
-    private String note;
 }

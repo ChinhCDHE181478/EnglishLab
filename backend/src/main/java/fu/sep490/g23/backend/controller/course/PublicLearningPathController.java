@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -21,6 +25,18 @@ public class PublicLearningPathController {
     @GetMapping
     public ResponseEntity<List<LearningPathOfferResponse>> getOffers(Authentication authentication) {
         return ResponseEntity.ok(learningPathManagementService.getPublicOffers(emailOf(authentication)));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<LearningPathOfferResponse>> getOffersPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(learningPathManagementService.getPublicOffers(
+                emailOf(authentication),
+                PageRequest.of(page, size, Sort.by("name").ascending())
+        ));
     }
 
     @GetMapping("/{code}")

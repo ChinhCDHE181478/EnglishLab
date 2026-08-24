@@ -22,6 +22,9 @@ const supportApi = {
   async listQueue(params = {}, scope = 'staff') {
     return unwrapData(await axiosClient.get(supportQueueBase(scope), { params })) ?? [];
   },
+  async pageQueue(params = {}, scope = 'staff') {
+    return unwrapData(await axiosClient.get(`${supportQueueBase(scope)}/page`, { params }));
+  },
   async getForStaff(ticketId, scope = 'staff') {
     return unwrapData(await axiosClient.get(`${supportQueueBase(scope)}/${ticketId}`));
   },

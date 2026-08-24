@@ -13,10 +13,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,63 @@ public class CenterMaterialLibraryServiceImpl implements CenterMaterialLibrarySe
         return repository.findAllByOrderByUpdatedAtDescIdDesc().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CenterMaterialLibraryItemResponse> pageForContentManager(
+            String keyword,
+            String examCategory,
+            String materialType,
+            String skill,
+            String status,
+            String provider,
+            Pageable pageable
+    ) {
+        Specification<CenterMaterialLibraryItem> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        if (!normalizedKeyword.isBlank()) {
+            String pattern = "%" + normalizedKeyword + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("description"), "")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("provider"), "")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("tags"), "")), pattern)
+            ));
+        }
+        specification = addExactFilter(specification, "examCategory", examCategory);
+        specification = addExactFilter(specification, "materialType", materialType);
+        specification = addExactFilter(specification, "skill", skill);
+        specification = addExactFilter(specification, "status", status);
+        specification = addExactFilter(specification, "provider", provider);
+        return repository.findAll(specification, pageable).map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getStats() {
+        return Map.of(
+                "total", repository.count(),
+                "published", repository.countByStatus("PUBLISHED"),
+                "ielts", repository.countByExamCategory("IELTS"),
+                "toeic", repository.countByExamCategory("TOEIC")
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> listProviders() {
+        return repository.findDistinctProviders();
+    }
+
+    private Specification<CenterMaterialLibraryItem> addExactFilter(
+            Specification<CenterMaterialLibraryItem> specification,
+            String field,
+            String value
+    ) {
+        if (!StringUtils.hasText(value) || "ALL".equalsIgnoreCase(value)) return specification;
+        return specification.and((root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get(field), value.trim()));
     }
 
     @Override

@@ -69,6 +69,7 @@ public class PlacementRecommendationContextFactory {
 
     public String resolveExamType(PlacementTestAttempt attempt, String fallback) {
         String feedback = String.valueOf(attempt == null ? null : attempt.getAiFeedbackJson()).toUpperCase(Locale.ROOT);
+        if (feedback.contains("\"EXAMTYPE\":\"SKILL\"")) return "SKILL";
         if (feedback.contains("\"EXAMTYPE\":\"TOEIC\"") || feedback.contains("TOEIC")) return "TOEIC";
         if (feedback.contains("\"EXAMTYPE\":\"IELTS\"") || feedback.contains("IELTS")) return "IELTS";
         String testCode = String.valueOf(attempt == null ? null : attempt.getTestCode()).toUpperCase(Locale.ROOT);
@@ -78,7 +79,7 @@ public class PlacementRecommendationContextFactory {
 
     private String normalizeExam(String value, String fallback) {
         String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
-        return Set.of("IELTS", "TOEIC").contains(normalized) ? normalized : fallback;
+        return Set.of("IELTS", "TOEIC", "SKILL").contains(normalized) ? normalized : fallback;
     }
 
     private BigDecimal parseScore(String value) {

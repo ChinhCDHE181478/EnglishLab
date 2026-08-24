@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
@@ -25,13 +25,14 @@ import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
 import FileDropzone from '../../components/ui/FileDropzone';
-import Pagination from '../../components/ui/Pagination';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { ClassroomEmptyState, ClassroomErrorState } from '../../components/classroom/ClassroomUi';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { downloadClassroomMaterial } from '../../utils/classroomHelpers';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../../utils/pagination';
 
 const PAGE_SIZE = 8;
 
@@ -101,6 +102,9 @@ const toRequestPayload = (form) => ({
 export default function ContentManagerMaterialsPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [items, setItems] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [stats, setStats] = useState({ total: 0, published: 0, ielts: 0, toeic: 0 });
+  const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -119,14 +123,41 @@ export default function ContentManagerMaterialsPage() {
     status: 'ALL',
     provider: 'ALL',
   });
-  const [currentPage, setCurrentPage] = useState(1);
+  const deferredKeyword = useDeferredValue(keyword.trim());
+  const resetKey = `${deferredKeyword}|${Object.values(filters).join('|')}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    items,
+    PAGE_SIZE,
+    resetKey,
+    pageResult,
+  );
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getContentManagerMaterialLibrary();
-      setItems(data);
+      const [pagePayload, statsPayload, providerItems] = await Promise.all([
+        classroomApi.getContentManagerMaterialLibraryPage(pageParams(page, PAGE_SIZE, {
+          keyword: deferredKeyword || undefined,
+          examCategory: filters.examCategory === 'ALL' ? undefined : filters.examCategory,
+          materialType: filters.materialType === 'ALL' ? undefined : filters.materialType,
+          skill: filters.skill === 'ALL' ? undefined : filters.skill,
+          status: filters.status === 'ALL' ? undefined : filters.status,
+          provider: filters.provider === 'ALL' ? undefined : filters.provider,
+        })),
+        classroomApi.getContentManagerMaterialLibraryStats(),
+        classroomApi.getContentManagerMaterialLibraryProviders(),
+      ]);
+      const result = normalizePage(pagePayload);
+      setPageResult(result);
+      setItems(result.content);
+      setStats({
+        total: Number(statsPayload?.total || 0),
+        published: Number(statsPayload?.published || 0),
+        ielts: Number(statsPayload?.ielts || 0),
+        toeic: Number(statsPayload?.toeic || 0),
+      });
+      setProviders(providerItems);
     } catch (err) {
       setItems([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải kho học liệu trung tâm.'));
@@ -137,53 +168,11 @@ export default function ContentManagerMaterialsPage() {
 
   useEffect(() => {
     loadItems();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, keyword]);
+  }, [deferredKeyword, filters, page]);
 
   const providerOptions = useMemo(() => {
-    const values = Array.from(new Set(items.map((item) => item.provider).filter(Boolean)));
-    return [{ label: 'Tất cả', value: 'ALL' }, ...values.map((value) => ({ label: value, value }))];
-  }, [items]);
-
-  const filteredItems = useMemo(
-    () =>
-      items.filter(
-        (item) => {
-          const normalizedKeyword = keyword.trim().toLowerCase();
-          const haystack = [
-            item.title,
-            item.description,
-            item.provider,
-            item.skill,
-            item.materialType,
-            item.examCategory,
-            item.tags,
-          ].filter(Boolean).join(' ').toLowerCase();
-          return (!normalizedKeyword || haystack.includes(normalizedKeyword)) &&
-          (filters.examCategory === 'ALL' || (item.examCategory || 'GENERAL') === filters.examCategory) &&
-          (filters.materialType === 'ALL' || (item.materialType || 'LINK') === filters.materialType) &&
-          (filters.skill === 'ALL' || (item.skill || 'Mixed') === filters.skill) &&
-          (filters.status === 'ALL' || (item.status || 'PUBLISHED') === filters.status) &&
-          (filters.provider === 'ALL' || (item.provider || '') === filters.provider);
-        },
-      ),
-    [filters, items, keyword],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const pageItems = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredItems.slice(start, start + PAGE_SIZE);
-  }, [currentPage, filteredItems]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+    return [{ label: 'Tất cả', value: 'ALL' }, ...providers.map((value) => ({ label: value, value }))];
+  }, [providers]);
 
   const resetForm = (open = false) => {
     setEditingId(null);
@@ -267,7 +256,7 @@ export default function ContentManagerMaterialsPage() {
             ? current.map((item) => (item.id === saved.id ? saved : item))
             : [saved, ...current];
         });
-        setCurrentPage(1);
+        setPage(1);
       }
       resetForm(false);
       await loadItems();
@@ -333,16 +322,6 @@ export default function ContentManagerMaterialsPage() {
       setDownloadingId(null);
     }
   };
-
-  const stats = useMemo(
-    () => ({
-      total: items.length,
-      published: items.filter((item) => item.status === 'PUBLISHED').length,
-      ielts: items.filter((item) => (item.examCategory || 'GENERAL') === 'IELTS').length,
-      toeic: items.filter((item) => item.examCategory === 'TOEIC').length,
-    }),
-    [items],
-  );
 
   if (loading) {
     return <ContentManagerLoadingState message="Đang tải kho học liệu trung tâm..." />;
@@ -456,8 +435,8 @@ export default function ContentManagerMaterialsPage() {
             <div className="grid gap-4 md:grid-cols-4">
               <TextInput label="IELTS Band tối thiểu" value={String(form.ieltsBandMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="5.5" />
               <TextInput label="IELTS Band tối đa" value={String(form.ieltsBandMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="7.5" />
-              <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMin: value }))} placeholder="550" />
-              <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, ieltsBandMax: value }))} placeholder="850" />
+              <TextInput label="TOEIC điểm tối thiểu" value={String(form.toeicScoreMin)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMin: value }))} placeholder="550" />
+              <TextInput label="TOEIC điểm tối đa" value={String(form.toeicScoreMax)} onChange={(value) => setForm((current) => ({ ...current, toeicScoreMax: value }))} placeholder="850" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -504,7 +483,7 @@ export default function ContentManagerMaterialsPage() {
         <div className="space-y-6">
           <Panel className="rounded-xl border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="min-w-[300px] flex-1">
+              <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
                   <input
@@ -639,7 +618,7 @@ export default function ContentManagerMaterialsPage() {
               </table>
             </div>
 
-            {!filteredItems.length ? (
+            {!items.length ? (
               <div className="border-t border-[#dcc0bf]/20 px-6 py-10">
                 <ClassroomEmptyState
                   title="Chưa có học liệu phù hợp"
@@ -651,10 +630,10 @@ export default function ContentManagerMaterialsPage() {
             ) : (
               <div className="border-t border-[#dcc0bf]/20 bg-[#fbf3f4]/40 px-6 py-4">
                 <Pagination
-                  onChange={setCurrentPage}
-                  page={currentPage}
+                  onChange={setPage}
+                  page={page}
                   pageSize={PAGE_SIZE}
-                  totalItems={filteredItems.length}
+                  totalItems={totalItems}
                   totalPages={totalPages}
                 />
               </div>

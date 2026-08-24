@@ -9,6 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -25,6 +28,20 @@ public class ManagerEnrollmentController {
             @RequestParam(required = false) String keyword
     ) {
         return ResponseEntity.ok(enrollmentAdminService.listEnrollments(status, keyword));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<PackageEnrollmentAdminResponse>> pageEnrollments(
+            @RequestParam(required = false) EnrollmentStatus status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(enrollmentAdminService.pageEnrollments(
+                status,
+                keyword,
+                PageRequest.of(page, size, Sort.by("registeredAt").descending())
+        ));
     }
 
     @PutMapping("/{enrollmentId}")

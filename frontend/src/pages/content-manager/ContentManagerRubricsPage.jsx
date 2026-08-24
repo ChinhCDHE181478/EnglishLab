@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, CheckCircle2, Edit3, Layers3, Plus, RefreshCw, RotateCcw, Save, Search, SlidersHorizontal, Trash2, X, XCircle } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import {
@@ -14,6 +14,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { usePagination } from '../../components/ui/Pagination';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const skillOptions = [
   { label: 'Tất cả kỹ năng', value: 'ALL' },
@@ -68,17 +69,35 @@ export default function ContentManagerRubricsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, criteria: 0 });
   const editorRef = useRef(null);
+  const deferredKeyword = useDeferredValue(keyword);
+  const resetKey = `${deferredKeyword}|${skillFilter}|${activeFilter}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    pageResult.content,
+    8,
+    resetKey,
+    pageResult,
+  );
 
   const loadRubrics = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await courseApi.getContentManagerRubrics({
-        includeInactive: activeFilter !== 'ACTIVE',
+      const params = {
+        keyword: deferredKeyword.trim() || undefined,
+        includeInactive: true,
+        active: activeFilter === 'ALL' ? undefined : activeFilter === 'ACTIVE',
         skill: skillFilter === 'ALL' ? undefined : skillFilter,
-      });
-      setRubrics(data);
+      };
+      const [data, summary] = await Promise.all([
+        courseApi.getContentManagerRubricsPage(pageParams(page, 8, params)),
+        courseApi.getContentManagerRubricStats({ skill: params.skill }),
+      ]);
+      setPageResult(data);
+      setRubrics(data.content);
+      setStats(summary);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được danh sách rubrics.');
     } finally {
@@ -88,30 +107,7 @@ export default function ContentManagerRubricsPage() {
 
   useEffect(() => {
     loadRubrics();
-  }, [activeFilter, skillFilter]);
-
-  const filteredRubrics = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    return rubrics
-      .filter((rubric) => {
-        if (activeFilter === 'ACTIVE') return rubric.active !== false;
-        if (activeFilter === 'INACTIVE') return rubric.active === false;
-        return true;
-      })
-      .filter((rubric) => {
-        if (!normalizedKeyword) return true;
-        return [rubric.name, rubric.examType, rubric.skill, rubric.taskType, rubric.scoringScale, rubric.description]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(normalizedKeyword));
-      });
-  }, [activeFilter, keyword, rubrics]);
-
-  const stats = useMemo(() => ({
-    total: rubrics.length,
-    active: rubrics.filter((rubric) => rubric.active !== false).length,
-    inactive: rubrics.filter((rubric) => rubric.active === false).length,
-    criteria: rubrics.reduce((sum, rubric) => sum + (rubric.criteria?.length || 0), 0),
-  }), [rubrics]);
+  }, [activeFilter, deferredKeyword, page, skillFilter]);
 
   const statItems = useMemo(() => [
     { label: 'Tổng rubric', value: stats.total, icon: SlidersHorizontal, tone: 'text-[#4b0009]' },
@@ -119,12 +115,6 @@ export default function ContentManagerRubricsPage() {
     { label: 'Tạm ngưng', value: stats.inactive, icon: Archive, tone: 'text-slate-700' },
     { label: 'Rule', value: stats.criteria, icon: Layers3, tone: 'text-[#005236]' },
   ], [stats]);
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    filteredRubrics,
-    8,
-    `${keyword}|${skillFilter}|${activeFilter}`,
-  );
 
   const totalWeight = useMemo(
     () => form.criteria.reduce((sum, criterion) => sum + Number(criterion.weight || 0), 0),
@@ -385,7 +375,7 @@ export default function ContentManagerRubricsPage() {
       <ManagerStatsGrid stats={statItems} />
 
       <ManagerFilterBar>
-        <div className="min-w-[300px] flex-1">
+        <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
             <input

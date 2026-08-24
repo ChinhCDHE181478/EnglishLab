@@ -1,0 +1,3 @@
+# Include this directive in the server block that serves the EnglishLab frontend.
+# Google Identity Services popup mode needs to retain its opener relationship.
+add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;

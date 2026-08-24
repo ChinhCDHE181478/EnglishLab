@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 class ClassroomPracticeServiceImplTest {
     @Mock private ClassroomOfferingRepository offeringRepository;
     @Mock private ClassroomEnrollmentRepository enrollmentRepository;
-    @Mock private ClassroomPracticeAttemptRepository attemptRepository;
     @Mock private ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     @Mock private ClassroomAccessHelper accessHelper;
     @InjectMocks private ClassroomPracticeServiceImpl service;
@@ -58,8 +57,6 @@ class ClassroomPracticeServiceImplTest {
         when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), any()))
                 .thenReturn(true);
         when(offeringRepository.findById(6L)).thenReturn(Optional.of(offering));
-        when(attemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(6L, 7L, 3L))
-                .thenReturn(Optional.empty());
         when(attemptHistoryRepository.countByClassroomOfferingIdAndStudentIdAndExerciseId(6L, 7L, 3L))
                 .thenReturn(1L);
         when(attemptHistoryRepository.save(any(ClassroomPracticeAttemptHistory.class)))

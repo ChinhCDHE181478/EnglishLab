@@ -384,7 +384,6 @@ function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-
 function Overview({ definition, onChange }) {
   return <Panel className="p-6"><div className="grid gap-4 lg:grid-cols-2">
     <TextField label="Tên bài đánh giá" onChange={(event) => onChange('title', event.target.value)} value={definition.title} />
-    <TextField label="Số lượt làm tối đa" onChange={(event) => onChange('maxAttempts', Number(event.target.value))} value={definition.maxAttempts} />
     <label className="block">
       <span className="mb-2 block text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500">Case đề</span>
       <BrandedSelect

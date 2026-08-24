@@ -3,9 +3,7 @@ package fu.sep490.g23.backend.service.notification.impl;
 import fu.sep490.g23.backend.dto.request.UpdateNotificationPreferenceRequest;
 import fu.sep490.g23.backend.dto.response.NotificationPreferenceResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.notification.NotificationPreference;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.notification.NotificationPreferenceRepository;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,16 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class NotificationPreferenceServiceImpl implements NotificationPreferenceService {
 
-    private final NotificationPreferenceRepository preferenceRepository;
     private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
     public NotificationPreferenceResponse getForUser(String userEmail) {
         User user = requireUser(userEmail);
-        return preferenceRepository.findByUserId(user.getId())
-                .map(this::toResponse)
-                .orElseGet(this::defaultResponse);
+        return toResponse(user);
     }
 
     @Override
@@ -34,53 +29,39 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
             UpdateNotificationPreferenceRequest request
     ) {
         User user = requireUser(userEmail);
-        NotificationPreference preference = preferenceRepository.findByUserId(user.getId())
-                .orElseGet(() -> NotificationPreference.builder().user(user).build());
-        preference.setEmailEnabled(request.getEmailEnabled());
-        preference.setInAppEnabled(request.getInAppEnabled());
+        user.setNotificationEmailEnabled(request.getEmailEnabled());
+        user.setNotificationInAppEnabled(request.getInAppEnabled());
         if (request.getClassReminderEnabled() != null) {
-            preference.setClassReminderEnabled(request.getClassReminderEnabled());
+            user.setNotificationClassReminderEnabled(request.getClassReminderEnabled());
         }
         if (request.getStudyAlertEnabled() != null) {
-            preference.setStudyAlertEnabled(request.getStudyAlertEnabled());
+            user.setNotificationStudyAlertEnabled(request.getStudyAlertEnabled());
         }
-        return toResponse(preferenceRepository.save(preference));
+        return toResponse(userRepository.save(user));
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isEmailEnabled(User user) {
-        return isEnabled(user, NotificationPreference::isEmailEnabled);
+        return user == null || user.isNotificationEmailEnabled();
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isInAppEnabled(User user) {
-        return isEnabled(user, NotificationPreference::isInAppEnabled);
+        return user == null || user.isNotificationInAppEnabled();
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isClassReminderEnabled(User user) {
-        return isEnabled(user, NotificationPreference::isClassReminderEnabled);
+        return user == null || user.isNotificationClassReminderEnabled();
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isStudyAlertEnabled(User user) {
-        return isEnabled(user, NotificationPreference::isStudyAlertEnabled);
-    }
-
-    private boolean isEnabled(
-            User user,
-            java.util.function.Predicate<NotificationPreference> preferenceSelector
-    ) {
-        if (user == null || user.getId() == null) {
-            return true;
-        }
-        return preferenceRepository.findByUserId(user.getId())
-                .map(preferenceSelector::test)
-                .orElse(true);
+        return user == null || user.isNotificationStudyAlertEnabled();
     }
 
     private User requireUser(String email) {
@@ -88,21 +69,12 @@ public class NotificationPreferenceServiceImpl implements NotificationPreference
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản."));
     }
 
-    private NotificationPreferenceResponse toResponse(NotificationPreference preference) {
+    private NotificationPreferenceResponse toResponse(User user) {
         return NotificationPreferenceResponse.builder()
-                .emailEnabled(preference.isEmailEnabled())
-                .inAppEnabled(preference.isInAppEnabled())
-                .classReminderEnabled(preference.isClassReminderEnabled())
-                .studyAlertEnabled(preference.isStudyAlertEnabled())
-                .build();
-    }
-
-    private NotificationPreferenceResponse defaultResponse() {
-        return NotificationPreferenceResponse.builder()
-                .emailEnabled(true)
-                .inAppEnabled(true)
-                .classReminderEnabled(true)
-                .studyAlertEnabled(true)
+                .emailEnabled(user.isNotificationEmailEnabled())
+                .inAppEnabled(user.isNotificationInAppEnabled())
+                .classReminderEnabled(user.isNotificationClassReminderEnabled())
+                .studyAlertEnabled(user.isNotificationStudyAlertEnabled())
                 .build();
     }
 }

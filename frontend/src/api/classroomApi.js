@@ -407,6 +407,16 @@ export const classroomApi = {
     return unwrapData(response);
   },
 
+  async getMyChangeRequestsPage(params = {}) {
+    const response = await axiosClient.get('/api/teacher/classrooms/requests/mine/page', { params });
+    return unwrapData(response);
+  },
+
+  async getMyChangeRequestStats() {
+    const response = await axiosClient.get('/api/teacher/classrooms/requests/mine/stats');
+    return unwrapData(response);
+  },
+
   async getStaffClassroomAnnouncements(classroomId) {
     const response = await axiosClient.get(`/api/staff/classrooms/${classroomId}/announcements`);
     return asList(unwrapData(response));
@@ -581,6 +591,26 @@ export const classroomApi = {
   async getStudentNotifications() {
     const response = await axiosClient.get('/api/student/notifications');
     return asList(unwrapData(response));
+  },
+
+  async getContentManagerMaterialLibraryPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/material-library/page', { params });
+    return unwrapData(response);
+  },
+
+  async getContentManagerMaterialLibraryStats() {
+    const response = await axiosClient.get('/api/content-manager/material-library/stats');
+    return unwrapData(response);
+  },
+
+  async getContentManagerMaterialLibraryProviders() {
+    const response = await axiosClient.get('/api/content-manager/material-library/providers');
+    return asList(unwrapData(response));
+  },
+
+  async getStudentNotificationsPage(params = {}) {
+    const response = await axiosClient.get('/api/student/notifications/page', { params });
+    return unwrapData(response);
   },
 
   async getUnreadNotificationCount() {

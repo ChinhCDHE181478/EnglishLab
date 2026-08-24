@@ -18,6 +18,8 @@ import fu.sep490.g23.backend.service.course.DiscussionModerationService;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -43,6 +45,22 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
         return reports.stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DiscussionModerationReportResponse> getReports(
+            CourseDiscussionReportStatus status,
+            CourseDiscussionReportReasonCategory category,
+            Pageable pageable
+    ) {
+        CourseDiscussionReportStatus resolvedStatus = status == null
+                ? CourseDiscussionReportStatus.PENDING
+                : status;
+        Page<CourseDiscussionReport> reports = category == null
+                ? reportRepository.findByStatus(resolvedStatus, pageable)
+                : reportRepository.findByStatusAndReasonCategory(resolvedStatus, category, pageable);
+        return reports.map(this::toResponse);
     }
 
     @Override

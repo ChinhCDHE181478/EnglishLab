@@ -18,6 +18,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -91,6 +94,53 @@ public class DictionaryServiceImpl implements DictionaryService {
                         || Optional.ofNullable(item.getNote()).orElse("").toLowerCase(Locale.ROOT).contains(normalizedKeyword))
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SavedVocabularyResponse> pageSaved(
+            String userEmail,
+            String keyword,
+            VocabularyMasteryStatus status,
+            Pageable pageable
+    ) {
+        User user = accessHelper.requireUser(userEmail);
+        Specification<SavedVocabulary> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("user").get("id"), user.getId());
+        if (status != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status));
+        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+        if (!normalizedKeyword.isBlank()) {
+            String pattern = "%" + normalizedKeyword + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("word")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("primaryDefinition")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("note"), "")), pattern)
+            ));
+        }
+        return savedVocabularyRepository.findAll(specification, pageable).map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getSavedStats(String userEmail) {
+        User user = accessHelper.requireUser(userEmail);
+        long total = savedVocabularyRepository.count((root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("user").get("id"), user.getId()));
+        long mastered = savedVocabularyRepository.count((root, query, criteriaBuilder) -> criteriaBuilder.and(
+                criteriaBuilder.equal(root.get("user").get("id"), user.getId()),
+                criteriaBuilder.equal(root.get("status"), VocabularyMasteryStatus.MASTERED)
+        ));
+        return Map.of("total", total, "mastered", mastered, "learning", total - mastered);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isSaved(String userEmail, String word) {
+        User user = accessHelper.requireUser(userEmail);
+        return savedVocabularyRepository.findByUserIdAndWordIgnoreCase(user.getId(), normalizeWord(word)).isPresent();
     }
 
     @Override

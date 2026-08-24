@@ -6,10 +6,15 @@ import fu.sep490.g23.backend.service.assessment.ExerciseBankService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content-manager/exercise-bank")
@@ -24,6 +29,24 @@ public class ExerciseBankController {
             @RequestParam(defaultValue = "false") boolean includeInactive
     ) {
         return ResponseEntity.ok(exerciseBankService.list(skill, includeInactive));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<ExerciseBankItemResponse>> page(
+            @RequestParam(required = false) String skill,
+            @RequestParam(required = false) String exerciseType,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(exerciseBankService.page(skill, exerciseType, active, keyword, pageable));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> stats(
+            @RequestParam(required = false) String skill
+    ) {
+        return ResponseEntity.ok(exerciseBankService.stats(skill));
     }
 
     @GetMapping("/{id}")

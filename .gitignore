@@ -13,6 +13,7 @@ rtk/
 backend/scripts/
 scripts/
 .cursor/
+.agents/
 
 # Local IDE / runtime artifacts
 .vscode/

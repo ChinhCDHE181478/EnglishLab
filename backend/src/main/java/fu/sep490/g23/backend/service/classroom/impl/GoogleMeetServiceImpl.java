@@ -107,11 +107,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         if (isGoogleMeetUrl(session.getLarkMeetingUrl())
                 && session.getLarkMeetingId() != null
                 && session.getLarkMeetingId().startsWith("spaces/")) {
-            try {
-                restrictExistingSpace(session);
-            } catch (RuntimeException ignored) {
-                // Keep the existing join link if Google rejects a policy update.
-            }
+            restrictExistingSpace(session);
             markSynced(session);
             propagateSharedRoom(session);
             return;
@@ -136,6 +132,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
             autoRecordingUnavailable = true;
             space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(false), meetingOwner, refreshToken);
         }
+        ensureRestrictedAccess(space, meetingOwner, refreshToken);
         String resourceName = space.path("name").asText("");
         String meetingUri = space.path("meetingUri").asText("");
         String meetingCode = space.path("meetingCode").asText("");
@@ -484,12 +481,39 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
     private void restrictExistingSpace(ClassroomSession session) {
         User meetingOwner = requireMeetingOwner(session);
         String refreshToken = connectionService.requireRefreshToken(meetingOwner);
-        sendMeetRequest(
-                "PATCH",
-                "/" + session.getLarkMeetingId() + "?updateMask=config.accessType",
-                restrictedAccessPayload(),
-                meetingOwner,
-                refreshToken
+        JsonNode space;
+        try {
+            space = sendMeetRequest(
+                    "PATCH",
+                    "/" + session.getLarkMeetingId() + "?updateMask=config.accessType",
+                    restrictedAccessPayload(),
+                    meetingOwner,
+                    refreshToken
+            );
+        } catch (RuntimeException exception) {
+            throw restrictedAccessUnavailable(exception);
+        }
+        ensureRestrictedAccess(space, meetingOwner, refreshToken);
+    }
+
+    private void ensureRestrictedAccess(JsonNode space, User meetingOwner, String refreshToken) {
+        String resourceName = space.path("name").asText("");
+        JsonNode verifiedSpace = space;
+        if (verifiedSpace.path("config").path("accessType").asText("").isBlank()
+                && !resourceName.isBlank()) {
+            verifiedSpace = sendMeetRequest("GET", "/" + resourceName, null, meetingOwner, refreshToken);
+        }
+        if (!"RESTRICTED".equals(verifiedSpace.path("config").path("accessType").asText(""))) {
+            throw restrictedAccessUnavailable(null);
+        }
+    }
+
+    private RuntimeException restrictedAccessUnavailable(RuntimeException cause) {
+        return new RuntimeException(
+                "Google không áp dụng chế độ RESTRICTED cho phòng họp. "
+                        + "Tài khoản Gmail cá nhân không hỗ trợ bắt buộc khách chờ giáo viên duyệt; "
+                        + "hãy liên kết tài khoản Google Workspace của giáo viên.",
+                cause
         );
     }
 

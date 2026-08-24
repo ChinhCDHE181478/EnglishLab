@@ -20,6 +20,9 @@ import fu.sep490.g23.backend.service.support.SupportTicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -132,6 +135,39 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         return ticketRepository.findQueue(status, priority).stream()
                 .map(ticket -> toResponse(ticket, false))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SupportTicketResponse> pageQueue(
+            String staffEmail,
+            SupportTicketStatus status,
+            SupportTicketPriority priority,
+            String keyword,
+            Pageable pageable
+    ) {
+        requireSupportStaff(staffEmail);
+        Specification<SupportTicket> specification = (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+        if (status != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status));
+        }
+        if (priority != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("priority"), priority));
+        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalizedKeyword.isBlank()) {
+            String pattern = "%" + normalizedKeyword + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("subject")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("fullName")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.join("requester").get("email")), pattern),
+                    criteriaBuilder.equal(root.get("id").as(String.class), normalizedKeyword)
+            ));
+        }
+        return ticketRepository.findAll(specification, pageable)
+                .map(ticket -> toResponse(ticket, false));
     }
 
     @Override

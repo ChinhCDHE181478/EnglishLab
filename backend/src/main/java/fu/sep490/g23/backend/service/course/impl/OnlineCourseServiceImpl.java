@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.service.course.TranscriptSegmentNormalizer;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
@@ -169,8 +170,20 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
-        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
+    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, Integer targetScore, AssessmentSkill skill, String promotion, Pageable pageable) {
+        Specification<OnlineCourse> specification = courseSpec(clean(keyword), category, currentBand, targetBand, skill, null, PackageStatus.PUBLISHED);
+        if (targetScore != null) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.greaterThanOrEqualTo(
+                    criteriaBuilder.toInteger(root.join("learningPackage").get("targetScore")),
+                    targetScore
+            ));
+        }
+        if ("promotion".equalsIgnoreCase(promotion)) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.greaterThan(root.join("learningPackage").get("discountPercent"), 0));
+        } else if ("standard".equalsIgnoreCase(promotion)) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.join("learningPackage").get("discountPercent"), 0));
+        }
+        return onlineCourseRepository.findAll(specification, pageable)
                 .map(course -> onlineCourseVersionService.readPublishedSnapshot(course, false));
     }
 
@@ -198,8 +211,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable) {
-        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, null, null, null, status), pageable)
+    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, CourseLevel level, PackageStatus status, Set<Long> excludedIds, Pageable pageable) {
+        Specification<OnlineCourse> specification = courseSpec(clean(keyword), category, null, null, null, level, status);
+        if (excludedIds != null && !excludedIds.isEmpty()) {
+            specification = specification.and((root, query, criteriaBuilder) -> root.get("id").in(excludedIds).not());
+        }
+        return onlineCourseRepository.findAll(specification, pageable)
                 .map(mapper::toResponse);
     }
 
@@ -333,6 +350,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Override
     @Transactional(readOnly = true)
     public CourseStatsResponse getStats() {
+        Map<String, Long> categoryDistribution = new java.util.LinkedHashMap<>();
+        onlineCourseRepository.summarizeCategoryDistribution().forEach(row ->
+                categoryDistribution.put(String.valueOf(row[0]), ((Number) row[1]).longValue()));
         return CourseStatsResponse.builder()
                 .totalCourses(onlineCourseRepository.countByLearningPackageDeletedFalse())
                 .publishedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.PUBLISHED))
@@ -340,6 +360,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .archivedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.ARCHIVED))
                 .totalLessons(lessonRepository.countActiveLessons())
                 .totalEnrollments(enrollmentRepository.count())
+                .categoryDistribution(categoryDistribution)
                 .build();
     }
 
@@ -684,7 +705,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context) {
         List<OnlineCourse> publishedCourses = onlineCourseRepository
-                .findAll(courseSpec(null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
+                .findAll(courseSpec(null, null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
                 .getContent();
         Map<Long, PackageEnrollment> enrollmentsByPackage = enrollmentRepository
                 .findByStudentOrderByRegisteredAtDesc(student)
@@ -2012,7 +2033,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
-    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, PackageStatus status) {
+    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, CourseLevel level, PackageStatus status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             Join<OnlineCourse, LearningPackage> learningPackage = root.join("learningPackage");
@@ -2023,6 +2044,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(learningPackage.get("status"), status));
+            }
+            if (level != null) {
+                predicates.add(criteriaBuilder.equal(root.get("level"), level));
             }
             if (category != null && !category.isBlank()) {
                 predicates.add(criteriaBuilder.equal(categoryJoin.get("code"), normalizeCategoryCode(category)));

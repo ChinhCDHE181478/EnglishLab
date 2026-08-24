@@ -9,6 +9,8 @@ import fu.sep490.g23.backend.service.course.CourseCategoryManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -28,6 +30,12 @@ public class CourseCategoryManagementServiceImpl implements CourseCategoryManage
         return courseCategoryRepository.findAllByOrderByDisplayOrderAscNameAsc().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CourseCategoryResponse> getCategories(Pageable pageable) {
+        return courseCategoryRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

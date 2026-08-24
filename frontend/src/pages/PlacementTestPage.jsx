@@ -671,6 +671,7 @@ export default function PlacementTestPage() {
   const [loadError, setLoadError] = useState('');
   const [stage, setStage] = useState('select');
   const [selectedExamType, setSelectedExamType] = useState('IELTS');
+  const [selectedSkillKeys, setSelectedSkillKeys] = useState([]);
   const [skillIndex, setSkillIndex] = useState(0);
   const [draft, setDraft] = useState(readDraft);
   const [deviceCheck, setDeviceCheck] = useState(null);
@@ -682,20 +683,33 @@ export default function PlacementTestPage() {
   const [recommendationError, setRecommendationError] = useState('');
   const [pendingSkillAdvance, setPendingSkillAdvance] = useState(null);
 
-  const activeSkills = selectedExamType === 'TOEIC' ? TOEIC_SKILLS : SKILLS;
+  const activeSkills = selectedExamType === 'TOEIC'
+    ? TOEIC_SKILLS
+    : selectedExamType === 'SKILL'
+      ? SKILLS.filter((skill) => selectedSkillKeys.includes(skill.key))
+      : SKILLS;
   const activeSkill = activeSkills[skillIndex];
   const activeConfig = selectedExamType === 'TOEIC'
     ? toToeicExamSection(test?.sections?.toeic, activeSkill?.key)
     : test?.sections?.[activeSkill?.key];
   const attemptCount = Number(test?.attemptCount || 0);
-  const maxAttempts = Number(test?.maxAttempts || 3);
-  const canRetake = Boolean(test?.canRetake) && attemptCount < maxAttempts;
   const resultExamType = result?.examType || selectedExamType || 'IELTS';
   const isToeicResult = resultExamType === 'TOEIC';
-  const resultSkills = isToeicResult ? TOEIC_SKILLS : SKILLS;
+  const isSkillResult = resultExamType === 'SKILL';
+  const resultSelectedSkillKeys = (result?.selectedSkills || []).map((skill) => String(skill).toLowerCase());
+  const resultSkills = isToeicResult
+    ? TOEIC_SKILLS
+    : isSkillResult
+      ? SKILLS.filter((skill) => resultSelectedSkillKeys.includes(skill.key))
+      : SKILLS;
+  const requiresMicrophone = selectedExamType !== 'TOEIC'
+    && (selectedExamType !== 'SKILL' || selectedSkillKeys.includes('speaking'));
+  const estimatedMinutes = selectedExamType === 'TOEIC'
+    ? 120
+    : activeSkills.reduce((total, skill) => total + Number(test?.sections?.[skill.key]?.durationMinutes || 0), 0);
 
   const retryRecommendations = async () => {
-    if (!result?.id) return;
+    if (!result?.id || resultExamType === 'SKILL') return;
     setRecommendationLoading(true);
     setRecommendationError('');
     try {
@@ -713,7 +727,7 @@ export default function PlacementTestPage() {
   };
 
   useEffect(() => {
-    if (stage !== 'result' || !result?.id) return;
+    if (stage !== 'result' || !result?.id || resultExamType === 'SKILL') return;
     let active = true;
     const loadRecommendations = async () => {
       setRecommendationLoading(true);
@@ -729,7 +743,7 @@ export default function PlacementTestPage() {
     };
     void loadRecommendations();
     return () => { active = false; };
-  }, [result?.id, stage]);
+  }, [result?.id, resultExamType, stage]);
 
   useEffect(() => {
     const loadCurrentTest = async () => {
@@ -747,6 +761,7 @@ export default function PlacementTestPage() {
         if (searchParams.get('view') === 'result' && response.latestAttempt) {
           setResult(response.latestAttempt);
           setSelectedExamType(response.latestAttempt.examType || 'IELTS');
+          setSelectedSkillKeys((response.latestAttempt.selectedSkills || []).map((skill) => String(skill).toLowerCase()));
           setStage('result');
         }
       } catch (error) {
@@ -790,7 +805,7 @@ export default function PlacementTestPage() {
     setSubmitError('');
     if (skillIndex >= activeSkills.length - 1) {
       await submitAll({
-        skipSpeakingValidation: selectedExamType === 'TOEIC',
+        skipSpeakingValidation: !activeSkills.some((skill) => skill.key === 'speaking'),
         draftOverride,
       });
       return;
@@ -801,7 +816,7 @@ export default function PlacementTestPage() {
 
   const submitAll = async ({ skipSpeakingValidation = false, draftOverride = null } = {}) => {
     const submissionDraft = draftOverride || draft;
-    if (selectedExamType !== 'TOEIC' && !skipSpeakingValidation && !submissionDraft.speakingAudioUrl && !submissionDraft.speakingTranscript.trim()) {
+    if (!skipSpeakingValidation && !submissionDraft.speakingAudioUrl && !submissionDraft.speakingTranscript.trim()) {
       setSubmitError('Hãy hoàn thành bản ghi âm cho phần Nói trước khi nộp bài.');
       return;
     }
@@ -813,11 +828,12 @@ export default function PlacementTestPage() {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         examType: selectedExamType,
+        selectedSkills: selectedExamType === 'SKILL' ? activeSkills.map((skill) => skill.key.toUpperCase()) : undefined,
         listeningAnswers: submissionDraft.listeningAnswers,
         readingAnswers: submissionDraft.readingAnswers,
-        writingAnswers: selectedExamType === 'TOEIC' ? {} : submissionDraft.writingAnswers,
-        speakingTranscript: selectedExamType === 'TOEIC' ? '' : submissionDraft.speakingTranscript,
-        speakingAudioUrl: selectedExamType === 'TOEIC' ? '' : submissionDraft.speakingAudioUrl,
+        writingAnswers: activeSkills.some((skill) => skill.key === 'writing') ? submissionDraft.writingAnswers : {},
+        speakingTranscript: activeSkills.some((skill) => skill.key === 'speaking') ? submissionDraft.speakingTranscript : '',
+        speakingAudioUrl: activeSkills.some((skill) => skill.key === 'speaking') ? submissionDraft.speakingAudioUrl : '',
         deviceCheck,
       });
 
@@ -829,7 +845,7 @@ export default function PlacementTestPage() {
         ...current,
         latestAttempt: response,
         attemptCount: Number(current.attemptCount || 0) + 1,
-        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+        canRetake: true,
       } : current);
 
       if (response.status === 'COMPLETED') {
@@ -863,6 +879,7 @@ export default function PlacementTestPage() {
       const response = await placementTestApi.submitCurrent({
         testCode: test.testCode,
         examType: selectedExamType,
+        selectedSkills: selectedExamType === 'SKILL' ? activeSkills.map((skill) => skill.key.toUpperCase()) : undefined,
         listeningAnswers: draft.listeningAnswers,
         readingAnswers: draft.readingAnswers,
         writingAnswers: draft.writingAnswers,
@@ -878,7 +895,7 @@ export default function PlacementTestPage() {
         ...current,
         latestAttempt: response,
         attemptCount: Number(current.attemptCount || 0) + 1,
-        canRetake: Number(current.attemptCount || 0) + 1 < Number(current.maxAttempts || 3),
+        canRetake: true,
       } : current);
       if (response.status === 'COMPLETED') {
         localStorage.removeItem(DRAFT_KEY);
@@ -938,14 +955,15 @@ export default function PlacementTestPage() {
 
     try {
       const nextAnswers = toWritingAnswers(test?.sections?.writing, payload);
-      setDraft((current) => ({ ...current, writingAnswers: { ...current.writingAnswers, ...nextAnswers } }));
+      const nextDraft = { ...draft, writingAnswers: { ...draft.writingAnswers, ...nextAnswers } };
+      setDraft(nextDraft);
       const parsed = parseObjectivePayload(payload);
       const incompleteTasks = (parsed.tasks || []).filter((task) => Number(task.wordCount || 0) < Number(task.minimumWords || 0)).length;
       if (incompleteTasks > 0) {
         setPendingSkillAdvance({ missingCount: incompleteTasks, unitLabel: 'task' });
         return;
       }
-      await goToNextSkill();
+      await goToNextSkill(nextDraft);
     } finally {
       setSubmitting(false);
     }
@@ -965,17 +983,23 @@ export default function PlacementTestPage() {
     />
   ) : null;
 
-  const startExamType = (examType) => {
+  const startExamType = (examType, skillKeys = null) => {
+    const nextSkillKeys = examType === 'SKILL'
+      ? SKILLS.filter((skill) => (skillKeys || selectedSkillKeys).includes(skill.key)).map((skill) => skill.key)
+      : [];
+    if (examType === 'SKILL' && nextSkillKeys.length === 0) return;
     setSelectedExamType(examType);
+    setSelectedSkillKeys(nextSkillKeys);
     setSkillIndex(0);
     setSubmitError('');
+    setRecommendation(null);
+    setRecommendationError('');
     setPendingSkillAdvance(null);
     setStage('intro');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const startRetake = () => {
-    if (!canRetake) return;
     const cleanDraft = { ...emptyDraft, writingAnswers: { ...emptyDraft.writingAnswers } };
     localStorage.removeItem(DRAFT_KEY);
     setDraft(cleanDraft);
@@ -985,6 +1009,16 @@ export default function PlacementTestPage() {
     setSkillIndex(0);
     setDeviceCheck(null);
     setSelectedExamType('IELTS');
+    setSelectedSkillKeys([]);
+    setStage('select');
+    setSearchParams({}, { replace: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const exitToPlacementTest = () => {
+    setSubmitError('');
+    setPendingSkillAdvance(null);
+    setSkillIndex(0);
     setStage('select');
     setSearchParams({}, { replace: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1017,21 +1051,20 @@ export default function PlacementTestPage() {
               <div className="max-w-3xl">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Placement Test</p>
                 <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">Chọn dạng bài đánh giá đầu vào</h1>
-                <p className="mt-5 leading-8 text-[#584140]">Bạn có thể làm bài theo format IELTS đầy đủ 4 kỹ năng hoặc TOEIC Listening & Reading. Kết quả được dùng để gợi ý lộ trình học phù hợp.</p>
+                <p className="mt-5 leading-8 text-[#584140]">Chọn bài IELTS đầy đủ, TOEIC Listening & Reading hoặc chỉ đánh giá những kỹ năng bạn muốn kiểm tra.</p>
               </div>
               <button
                 className="rounded-2xl border border-[#8a0018]/25 px-5 py-3 text-sm font-black text-[#8a0018] transition hover:bg-[#fff0f1]"
                 onClick={() => navigate('/mock-tests')}
                 type="button"
               >
-                Vào Mock Test
+                Kho đề thi thử
               </button>
             </div>
 
-            <div className="mt-8 grid gap-5 md:grid-cols-2">
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
               <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#fffaf9] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#8a0018]/45 hover:shadow-[0_20px_45px_rgba(86,35,37,0.12)]"
-                disabled={!canRetake}
                 onClick={() => startExamType('IELTS')}
                 type="button"
               >
@@ -1052,13 +1085,12 @@ export default function PlacementTestPage() {
                   })}
                 </div>
                 <span className="mt-6 inline-flex rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
-                  {canRetake ? 'Chọn IELTS' : 'Đã dùng hết lượt làm'}
+                  Chọn IELTS
                 </span>
               </button>
 
               <button
                 className="group rounded-[28px] border border-[#ead7d5] bg-[#f7fbff] p-6 text-left transition hover:-translate-y-0.5 hover:border-[#21446d]/45 hover:shadow-[0_20px_45px_rgba(33,68,109,0.12)]"
-                disabled={!canRetake}
                 onClick={() => startExamType('TOEIC')}
                 type="button"
               >
@@ -1079,9 +1111,46 @@ export default function PlacementTestPage() {
                   })}
                 </div>
                 <span className="mt-6 inline-flex rounded-2xl bg-[#21446d] px-5 py-3 text-sm font-black text-white group-disabled:opacity-50">
-                  {canRetake ? 'Chọn TOEIC' : 'Đã dùng hết lượt làm'}
+                  Chọn TOEIC
                 </span>
               </button>
+
+              <section className="rounded-[28px] border border-[#ead7d5] bg-[#f8f5ff] p-6 text-left">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#63368f]">
+                  <Target aria-hidden="true" size={22} />
+                </div>
+                <h2 className="mt-5 font-['Manrope'] text-2xl font-black text-[#4d276f]">Đánh giá kỹ năng</h2>
+                <p className="mt-3 text-sm leading-7 text-[#5d4a6e]">Chọn một hoặc nhiều kỹ năng và làm bài theo format IELTS tương ứng.</p>
+                <div aria-label="Chọn kỹ năng cần đánh giá" className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2" role="group">
+                  {SKILLS.map((skill) => {
+                    const Icon = skill.icon;
+                    const selected = selectedSkillKeys.includes(skill.key);
+                    return (
+                      <button
+                        aria-pressed={selected}
+                        className={`flex min-h-12 items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#63368f] focus-visible:ring-offset-2 ${selected ? 'border-[#63368f] bg-[#63368f] text-white' : 'border-[#ded3e8] bg-white text-[#4d276f] hover:border-[#63368f]/60'}`}
+                        key={skill.key}
+                        onClick={() => setSelectedSkillKeys((current) => current.includes(skill.key)
+                          ? current.filter((key) => key !== skill.key)
+                          : [...current, skill.key])}
+                        type="button"
+                      >
+                        <Icon aria-hidden="true" size={17} />
+                        {skill.label}
+                        {selected ? <CheckCircle2 aria-hidden="true" className="ml-auto" size={16} /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  className="mt-6 inline-flex min-h-12 items-center rounded-2xl bg-[#63368f] px-5 py-3 text-sm font-black text-white transition hover:bg-[#532c79] disabled:cursor-not-allowed disabled:opacity-45"
+                  disabled={selectedSkillKeys.length === 0}
+                  onClick={() => startExamType('SKILL', selectedSkillKeys)}
+                  type="button"
+                >
+                  {selectedSkillKeys.length ? `Đánh giá ${selectedSkillKeys.length} kỹ năng` : 'Chọn ít nhất 1 kỹ năng'}
+                </button>
+              </section>
             </div>
 
             {test.latestAttempt ? (
@@ -1090,6 +1159,7 @@ export default function PlacementTestPage() {
                 onClick={() => {
                   setResult(test.latestAttempt);
                   setSelectedExamType(test.latestAttempt.examType || 'IELTS');
+                  setSelectedSkillKeys((test.latestAttempt.selectedSkills || []).map((skill) => String(skill).toLowerCase()));
                   setStage('result');
                   setSearchParams({ view: 'result' }, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1099,7 +1169,9 @@ export default function PlacementTestPage() {
                 <span>
                   Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
                     ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
-                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                    : test.latestAttempt.examType === 'SKILL'
+                      ? `Đánh giá ${test.latestAttempt.selectedSkills?.length || 1} kỹ năng · band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`
+                      : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
                 <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
@@ -1115,15 +1187,18 @@ export default function PlacementTestPage() {
     return (
       <main className="min-h-screen bg-[#f8f4f1] px-4 py-10">
         <ExamDeviceCheck
-          description={selectedExamType === 'TOEIC'
-            ? 'Kiểm tra tai nghe trước khi bắt đầu bài TOEIC. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
-            : 'Kiểm tra tai nghe và microphone trước khi bắt đầu bài đánh giá đầu vào. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'}
+          description={requiresMicrophone
+            ? 'Kiểm tra microphone trước khi bắt đầu. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
+            : selectedExamType === 'TOEIC' || activeSkills.some((skill) => skill.key === 'listening')
+              ? 'Kiểm tra tai nghe trước khi bắt đầu. Chế độ toàn màn hình sẽ được bật khi bạn vào phòng thi.'
+              : 'Xác nhận để bật chế độ toàn màn hình trước khi vào bài đánh giá.'}
           onComplete={(value) => {
             setDeviceCheck(value);
             setStage('exam');
           }}
           requireFullscreen
-          requireMic={selectedExamType !== 'TOEIC'}
+          requireMic={requiresMicrophone}
+          requireSound={selectedExamType === 'TOEIC' || activeSkills.some((skill) => skill.key === 'listening')}
           title="Kiểm tra thiết bị trước khi làm bài"
         />
       </main>
@@ -1131,7 +1206,7 @@ export default function PlacementTestPage() {
   }
 
   if (stage === 'result') {
-    const recommendedLevel = recommendation?.recommendedLevel || result?.recommendedLevel;
+    const recommendedLevel = isSkillResult ? null : recommendation?.recommendedLevel || result?.recommendedLevel;
     const levelLabel = recommendedLevel ? getPlacementLevelLabel(recommendedLevel) : 'Chưa phân loại';
     const weakSkills = recommendation?.weakSkills || [];
 
@@ -1145,13 +1220,13 @@ export default function PlacementTestPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#ead9db] pb-6">
               <div>
                 <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#730014]">
-                  Kết quả đánh giá đầu vào
+                  {isSkillResult ? 'Đánh giá kỹ năng' : 'Kết quả đánh giá đầu vào'}
                 </span>
                 <h1 className="mt-1.5 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30] sm:text-3xl">
-                  {isToeicResult ? 'Kết quả Placement TOEIC' : 'Kết quả Placement IELTS'}
+                  {isToeicResult ? 'Kết quả Placement TOEIC' : isSkillResult ? 'Kết quả đánh giá kỹ năng' : 'Kết quả Placement IELTS'}
                 </h1>
                 <p className="mt-1 text-xs text-[#584140]">
-                  Ngày thực hiện: {new Date(result.submittedAt || Date.now()).toLocaleDateString('vi-VN')} · Lần thử {attemptCount}/{maxAttempts}
+                  Ngày thực hiện: {new Date(result.submittedAt || Date.now()).toLocaleDateString('vi-VN')} · Lần thử {attemptCount}
                 </p>
               </div>
 
@@ -1170,15 +1245,13 @@ export default function PlacementTestPage() {
                   <RotateCcw className="h-3.5 w-3.5" /> Chọn lại đề
                 </button>
 
-                {canRetake ? (
-                  <button
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/30 bg-white px-4 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
-                    onClick={startRetake}
-                    type="button"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Làm lại ({attemptCount + 1}/{maxAttempts})
-                  </button>
-                ) : null}
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/30 bg-white px-4 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
+                  onClick={startRetake}
+                  type="button"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Làm lại
+                </button>
 
                 <button
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#730014] px-4.5 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#8a0018] active:scale-95"
@@ -1196,7 +1269,7 @@ export default function PlacementTestPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 rounded-2xl border border-[#f5d0d3] bg-[#fff8f9] p-5 sm:p-6">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-[#8c716f]">
-                    {isToeicResult ? 'Điểm TOEIC Tổng' : 'Band Điểm Tổng Quan'}
+                    {isToeicResult ? 'Điểm TOEIC tổng' : isSkillResult ? (resultSkills.length > 1 ? 'Band trung bình kỹ năng đã chọn' : 'Band kỹ năng') : 'Band điểm tổng quan'}
                   </p>
                   <div className="mt-1 flex items-baseline gap-1.5">
                     <span className="font-['Manrope'] text-4xl sm:text-5xl font-black text-[#730014]">
@@ -1287,12 +1360,14 @@ export default function PlacementTestPage() {
             </div>
 
             {/* Recommendations Subsection */}
-            <PlacementRecommendationSection
-              error={recommendationError}
-              loading={recommendationLoading}
-              onRetry={retryRecommendations}
-              recommendation={recommendation}
-            />
+            {!isSkillResult ? (
+              <PlacementRecommendationSection
+                error={recommendationError}
+                loading={recommendationLoading}
+                onRetry={retryRecommendations}
+                recommendation={recommendation}
+              />
+            ) : null}
           </div>
         </main>
         <CourseFooter />
@@ -1338,8 +1413,9 @@ export default function PlacementTestPage() {
           <ListeningExamMode
             assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
             config={activeConfig}
+            exitDestinationLabel="màn hình chọn bài Placement Test"
             initialAnswers={toExamModeInitialObjectiveAnswers(activeConfig, draft.listeningAnswers)}
-            onClose={() => navigate('/')}
+            onClose={exitToPlacementTest}
             onSubmit={handleListeningSubmit}
             preserveFullscreenOnUnmount
             skipAudioCheck
@@ -1377,8 +1453,9 @@ export default function PlacementTestPage() {
           <ReadingExamMode
             assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
             config={activeConfig}
+            exitDestinationLabel="màn hình chọn bài Placement Test"
             initialAnswers={toExamModeInitialObjectiveAnswers(activeConfig, draft.readingAnswers)}
-            onClose={() => navigate('/')}
+            onClose={exitToPlacementTest}
             onSubmit={handleReadingSubmit}
             preserveFullscreenOnUnmount
             submitLabel="Hoàn thành phần Reading"
@@ -1396,8 +1473,9 @@ export default function PlacementTestPage() {
           <WritingExamMode
             assessment={{ title: activeConfig.title, timeLimitMinutes: activeConfig.durationMinutes }}
             config={activeConfig}
+            exitDestinationLabel="màn hình chọn bài Placement Test"
             initialSubmissionText={toWritingSubmissionText(activeConfig, draft.writingAnswers)}
-            onClose={() => navigate('/')}
+            onClose={exitToPlacementTest}
             onSubmit={handleWritingSubmit}
             preserveFullscreenOnUnmount
             submitLabel="Hoàn thành phần Writing"
@@ -1417,10 +1495,7 @@ export default function PlacementTestPage() {
           onAudioReady={(speakingAudioUrl) => {
             setDraft((current) => ({ ...current, speakingAudioUrl }));
           }}
-          onClose={() => {
-            setSubmitError('');
-            setStage('intro');
-          }}
+          onClose={exitToPlacementTest}
           onSubmit={(payload) => {
             setDraft((current) => ({
               ...current,
@@ -1446,16 +1521,24 @@ export default function PlacementTestPage() {
           <div>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Đánh giá đầu vào</p>
             <h1 className="mt-4 font-['Manrope'] text-4xl font-black leading-tight text-[#341c1d]">
-              {selectedExamType === 'TOEIC' ? 'Placement TOEIC Listening & Reading' : 'Placement IELTS đủ 4 kỹ năng'}
+              {selectedExamType === 'TOEIC'
+                ? 'Placement TOEIC Listening & Reading'
+                : selectedExamType === 'SKILL'
+                  ? `Đánh giá ${activeSkills.length} kỹ năng đã chọn`
+                  : 'Placement IELTS đủ 4 kỹ năng'}
             </h1>
             <p className="mt-5 max-w-2xl leading-8 text-[#584140]">
               {selectedExamType === 'TOEIC'
                 ? 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm Listening và Reading theo format TOEIC. Kết quả được dùng để đề xuất lộ trình học phù hợp.'
-                : 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.'}
+                : selectedExamType === 'SKILL'
+                  ? 'Bạn sẽ lần lượt làm các phần đã chọn theo format IELTS. Kết quả chỉ phản ánh những kỹ năng này.'
+                  : 'Bạn sẽ kiểm tra thiết bị một lần, sau đó làm lần lượt Listening, Reading, Writing và Speaking. Kết quả được dùng để đề xuất lộ trình học phù hợp.'}
             </p>
 
             <div className="mt-5 rounded-2xl border border-[#e9c9c2] bg-[#fff8f6] p-4 text-sm font-semibold leading-7 text-[#7a3430]">
-              Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.
+              {selectedExamType === 'SKILL'
+                ? 'Kết quả đánh giá kỹ năng không thay thế kết quả Placement IELTS hoặc TOEIC.'
+                : 'Hãy làm bài cẩn trọng vì kết quả được dùng để đánh giá trình độ đầu vào và gợi ý lộ trình học phù hợp.'}
             </div>
 
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -1476,6 +1559,7 @@ export default function PlacementTestPage() {
                 onClick={() => {
                   setResult(test.latestAttempt);
                   setSelectedExamType(test.latestAttempt.examType || 'IELTS');
+                  setSelectedSkillKeys((test.latestAttempt.selectedSkills || []).map((skill) => String(skill).toLowerCase()));
                   setStage('result');
                   setSearchParams({ view: 'result' }, { replace: true });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1485,7 +1569,9 @@ export default function PlacementTestPage() {
                 <span>
                   Lần gần nhất: {test.latestAttempt.examType === 'TOEIC'
                     ? `TOEIC ${test.latestAttempt.overallScore ?? 'đang chấm'}`
-                    : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
+                    : test.latestAttempt.examType === 'SKILL'
+                      ? `Đánh giá ${test.latestAttempt.selectedSkills?.length || 1} kỹ năng · band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`
+                      : `band ${test.latestAttempt.overallScore != null ? formatBandValue(test.latestAttempt.overallScore) : 'đang chấm'}`} · {new Date(test.latestAttempt.submittedAt).toLocaleDateString('vi-VN')}
                 </span>
                 <span className="shrink-0 font-extrabold text-[#8a0018]">Xem kết quả</span>
               </button>
@@ -1495,15 +1581,15 @@ export default function PlacementTestPage() {
           <aside className="rounded-[28px] bg-[linear-gradient(145deg,#4b0009,#8a0018)] p-7 text-white">
             <h2 className="font-['Manrope'] text-2xl font-black">Trước khi bắt đầu</h2>
             <ul className="mt-5 space-y-4 text-sm leading-7 text-white/85">
-              <li>• Chuẩn bị khoảng {selectedExamType === 'TOEIC' ? '2 giờ' : '2 giờ 50 phút'}.</li>
-              <li>• Dùng Chrome hoặc Edge{selectedExamType === 'TOEIC' ? '.' : ' và cấp quyền microphone.'}</li>
+              <li>• Chuẩn bị khoảng {estimatedMinutes || (selectedExamType === 'TOEIC' ? 120 : 170)} phút.</li>
+              <li>• Dùng Chrome hoặc Edge{requiresMicrophone ? ' và cấp quyền microphone.' : '.'}</li>
               <li>• Không tải lại trang; bản nháp được lưu tự động trên thiết bị.</li>
               <li>• Nếu mất mạng lúc nộp, hãy thử lại — bài làm không bị xóa.</li>
-              <li>• Bạn có tối đa {maxAttempts} lượt làm; hiện đã dùng {attemptCount}/{maxAttempts} lượt.</li>
+              <li>• Bạn có thể làm lại bài đánh giá khi muốn kiểm tra trình độ mới nhất.</li>
             </ul>
 
-            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012] disabled:cursor-not-allowed disabled:opacity-50" disabled={!canRetake} onClick={() => setStage('device')} type="button">
-              {canRetake ? (attemptCount ? `Làm lại bài (${attemptCount}/${maxAttempts})` : 'Kiểm tra thiết bị') : 'Đã dùng hết lượt làm'}
+            <button className="mt-7 w-full rounded-2xl bg-white px-6 py-4 font-black text-[#650012]" onClick={() => setStage('device')} type="button">
+              {attemptCount ? 'Làm lại bài' : 'Kiểm tra thiết bị'}
             </button>
 
             <button

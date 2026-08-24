@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -45,6 +45,7 @@ import {
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
 } from '../../utils/formStyles';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const strictSkill = (skill) => (item) => String(item.skill || '').toUpperCase() === skill;
 
@@ -287,7 +288,17 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [statsData, setStatsData] = useState({ total: 0, published: 0, draft: 0, timed: 0 });
   const editorRef = useRef(null);
+  const deferredKeyword = useDeferredValue(keyword);
+  const resetKey = `${pageKey}-${deferredKeyword}-${filters.type}-${filters.status}-${filters.examCategory}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    pageResult.content,
+    8,
+    resetKey,
+    pageResult,
+  );
 
   const lockFormToPage = (draft) => (
     isSkillLocked ? { ...draft, skill: pageConfig.skill, type: pageConfig.type } : draft
@@ -297,8 +308,24 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     setLoading(true);
     setError('');
     try {
-      const params = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
-      setItems(await curriculumApi.getAssessmentBank(params));
+      const baseParams = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
+      const params = {
+        ...baseParams,
+        type: !isSkillLocked && filters.type !== 'ALL' ? filters.type : baseParams.type,
+        status: filters.status === 'ALL' ? undefined : filters.status,
+        examCategory: isMockExamsPage && filters.examCategory !== 'ALL'
+          ? filters.examCategory
+          : undefined,
+        keyword: deferredKeyword.trim() || undefined,
+        sort: ['displayOrder,asc', 'updatedAt,desc', 'title,asc'],
+      };
+      const [data, summary] = await Promise.all([
+        curriculumApi.getAssessmentBankPage(pageParams(page, 8, params)),
+        curriculumApi.getAssessmentBankStats(baseParams),
+      ]);
+      setPageResult(data);
+      setItems(data.content);
+      setStatsData(summary);
     } catch (err) {
       setError(err?.response?.data?.message || `Không tải được ${pageConfig.successNoun}.`);
     } finally {
@@ -308,46 +335,21 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   useEffect(() => {
     loadItems();
+  }, [deferredKeyword, filters.examCategory, filters.status, filters.type, page, pageKey]);
+
+  useEffect(() => {
     setEditingId(null);
     setEditorOpen(false);
     setKeyword('');
     setFilters({ type: 'ALL', status: 'ALL', examCategory: 'ALL' });
     setForm(emptyForm(pageConfig));
   }, [pageKey]);
-
-  const filteredItems = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    return items
-      .filter((item) => pageConfig.matcher(item))
-      .filter((item) => {
-        const keywordMatched = !normalized || [item.title, item.description, item.type, item.skill, item.status, resolveExamCategory(item)]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(normalized));
-        const typeMatched = isSkillLocked || filters.type === 'ALL' || item.type === filters.type;
-        const statusMatched = filters.status === 'ALL' || item.status === filters.status;
-        const examMatched = !isMockExamsPage || filters.examCategory === 'ALL' || resolveExamCategory(item) === filters.examCategory;
-        return keywordMatched && typeMatched && statusMatched && examMatched;
-      });
-  }, [items, filters, keyword, pageConfig, isSkillLocked, isMockExamsPage]);
-
-  const sortedItems = useMemo(
-    () => [...filteredItems].sort((a, b) => (
-      (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
-      || new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
-      || String(a.title).localeCompare(String(b.title), 'vi')
-    )),
-    [filteredItems],
-  );
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(sortedItems, 8, `${pageKey}-${keyword}-${filters.type}-${filters.status}-${filters.examCategory}`);
-
-  const pageItemsAll = useMemo(() => items.filter((item) => pageConfig.matcher(item)), [items, pageConfig]);
   const stats = useMemo(() => [
-    { label: pageConfig.totalLabel, value: pageItemsAll.length, icon: pageConfig.statsIcon, tone: 'text-[#4b0009]' },
-    { label: 'Đã xuất bản', value: pageItemsAll.filter((item) => item.status === 'PUBLISHED').length, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Bản nháp', value: pageItemsAll.filter((item) => item.status === 'DRAFT').length, icon: Edit3, tone: 'text-amber-700' },
-    { label: 'Có thời lượng', value: pageItemsAll.filter((item) => Number(item.timeLimitMinutes || 0) > 0).length, icon: Clock3, tone: 'text-[#005236]' },
-  ], [pageItemsAll, pageConfig]);
+    { label: pageConfig.totalLabel, value: statsData.total, icon: pageConfig.statsIcon, tone: 'text-[#4b0009]' },
+    { label: 'Đã xuất bản', value: statsData.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Bản nháp', value: statsData.draft, icon: Edit3, tone: 'text-amber-700' },
+    { label: 'Có thời lượng', value: statsData.timed, icon: Clock3, tone: 'text-[#005236]' },
+  ], [pageConfig, statsData]);
 
   const updateForm = (field, value) => {
     if (isSkillLocked && (field === 'skill' || field === 'type')) return;
@@ -604,7 +606,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   const renderFilters = () => (
     <>
-      <div className="min-w-[300px] flex-1">
+      <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
           <input
@@ -645,7 +647,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     if (loading) {
       return <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">{pageConfig.loadingLabel}</div>;
     }
-    if (sortedItems.length === 0) {
+    if (pageItems.length === 0) {
       return <ManagerEmptyState>{pageConfig.emptyLabel}</ManagerEmptyState>;
     }
 

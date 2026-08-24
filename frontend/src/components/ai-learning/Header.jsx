@@ -267,13 +267,13 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#dfbfbd]/30 bg-[#f9f9f9]/95 shadow-sm backdrop-blur-md">
-      <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center px-6 md:px-10">
+      <div className="mx-auto flex h-20 w-full max-w-[1280px] items-center px-2 sm:px-6 md:px-10">
         <Link className="flex shrink-0 items-center gap-2" to="/" reloadDocument={shouldReloadWhenLeavingWorkspace} aria-label="Trang chủ EnglishLab">
           <span className="flex h-8 w-7 items-center gap-1">
             <span className="h-7 w-3 rounded-[1px] bg-[#8a0018]" />
             <span className="h-5 w-2.5 rounded-[1px] bg-[#c45a64]" />
           </span>
-          <span className="font-['Manrope'] text-xl font-extrabold tracking-tight text-[#2b2828]">
+          <span className="hidden font-['Manrope'] text-xl font-extrabold tracking-tight text-[#2b2828] sm:inline">
             English<span className="text-[#8a0018]">Lab</span>
           </span>
         </Link>
@@ -315,12 +315,12 @@ const Header = () => {
         </nav>
 
         {user ? (
-          <div className="ml-auto flex shrink-0 items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             {!isStaff && (
               <>
               <Link
                 aria-label="Giỏ hàng"
-                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7] sm:h-12 sm:w-12"
                 to="/cart"
                 reloadDocument={shouldReloadWhenLeavingWorkspace}
               >
@@ -333,7 +333,7 @@ const Header = () => {
               </Link>
                 <Link
                   aria-label="Danh sách yêu thích"
-                  className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                  className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7] sm:h-12 sm:w-12"
                   to="/wishlist"
                   reloadDocument={shouldReloadWhenLeavingWorkspace}
                 >
@@ -346,7 +346,7 @@ const Header = () => {
             <div className="relative" ref={notificationRef}>
               <button
                 aria-label="Thông báo"
-                className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
+                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#dfbfbd]/60 bg-white text-[#4b0009] shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7] sm:h-12 sm:w-12"
                 onClick={() => {
                   setIsNotificationMenuOpen((current) => {
                     const next = !current;
@@ -356,6 +356,7 @@ const Header = () => {
                     return next;
                   });
                   setIsProfileMenuOpen(false);
+                  setIsMobileMenuOpen(false);
                 }}
                 type="button"
               >
@@ -366,7 +367,7 @@ const Header = () => {
               </button>
 
               {isNotificationMenuOpen ? (
-                <div className="absolute -right-32 sm:-right-40 top-[calc(100%+12px)] z-[70] w-[min(360px,calc(100vw-32px))] rounded-[28px] border border-[#dfbfbd]/70 bg-white p-2 shadow-[0_20px_45px_rgba(75,0,9,0.18)]">
+                <div className="fixed inset-x-3 top-[92px] z-[70] max-h-[calc(100dvh-104px)] overflow-hidden rounded-[28px] border border-[#dfbfbd]/70 bg-white p-2 shadow-[0_20px_45px_rgba(75,0,9,0.18)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+12px)] sm:w-[min(360px,calc(100vw-24px))]">
                   <div className="flex items-center justify-between border-b border-[#f1e4e5] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Bell className="h-4 w-4 text-[#8a0018]" />
@@ -394,7 +395,7 @@ const Header = () => {
                     ) : null}
                   </div>
 
-                  <div className="max-h-[320px] overflow-y-auto overscroll-contain p-2 space-y-1">
+                  <div className="max-h-[min(320px,calc(100dvh-220px))] space-y-1 overflow-y-auto overscroll-contain p-2">
                     {popoverLoading ? (
                       <div className="py-6 text-center text-xs font-semibold text-slate-400">Đang tải thông báo...</div>
                     ) : popoverNotifications.length === 0 ? (
@@ -442,8 +443,13 @@ const Header = () => {
 
             <div className="relative" ref={menuRef}>
               <button
-                className="flex items-center gap-2 rounded-full border border-[#dfbfbd]/60 bg-white px-3 py-2 shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7]"
-                onClick={() => setIsProfileMenuOpen((current) => !current)}
+                aria-label="Mở menu tài khoản"
+                className="flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-[#dfbfbd]/60 bg-white p-1.5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#730014]/40 hover:bg-[#fff7f7] sm:h-auto sm:w-auto sm:px-3 sm:py-2"
+                onClick={() => {
+                  setIsProfileMenuOpen((current) => !current);
+                  setIsNotificationMenuOpen(false);
+                  setIsMobileMenuOpen(false);
+                }}
                 type="button"
               >
                 {user.avatarUrl ? (
@@ -471,7 +477,7 @@ const Header = () => {
               </button>
 
               {isProfileMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-[70] max-h-[calc(100dvh-104px)] w-[min(360px,calc(100vw-24px))] overflow-y-auto overscroll-contain rounded-[28px] border border-[#dfbfbd]/70 bg-white shadow-[0_20px_45px_rgba(75,0,9,0.15)]">
+                <div className="fixed inset-x-3 top-[92px] z-[70] max-h-[calc(100dvh-104px)] overflow-y-auto overscroll-contain rounded-[28px] border border-[#dfbfbd]/70 bg-white shadow-[0_20px_45px_rgba(75,0,9,0.15)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+12px)] sm:w-[min(360px,calc(100vw-24px))]">
                   <div className="border-b border-[#f1e4e5] px-5 py-4">
                     <p className="truncate text-sm font-extrabold text-[#2b2828]">{user.fullName || user.email}</p>
                     <p className="mt-1 truncate text-xs font-semibold text-[#6a5553]">{getRoleLabel(user)}</p>
@@ -565,8 +571,12 @@ const Header = () => {
         <button
           aria-expanded={isMobileMenuOpen}
           aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
-          className="ml-3 inline-flex text-[#1a1c1c] xl:hidden"
-          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          className="ml-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#1a1c1c] transition hover:bg-[#fff3f4] active:bg-[#f8e5e7] sm:ml-3 xl:hidden"
+          onClick={() => {
+            setIsMobileMenuOpen((current) => !current);
+            setIsNotificationMenuOpen(false);
+            setIsProfileMenuOpen(false);
+          }}
           type="button"
         >
           {isMobileMenuOpen ? <X size={28} /> : <Menu size={30} />}

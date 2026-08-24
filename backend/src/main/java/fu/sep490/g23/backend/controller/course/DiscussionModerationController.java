@@ -12,6 +12,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 
@@ -27,6 +31,15 @@ public class DiscussionModerationController {
             @RequestParam(required = false) String category
     ) {
         return ResponseEntity.ok(moderationService.getReports(status, parseCategory(category)));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<DiscussionModerationReportResponse>> getReportsPage(
+            @RequestParam(defaultValue = "PENDING") CourseDiscussionReportStatus status,
+            @RequestParam(required = false) String category,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(moderationService.getReports(status, parseCategory(category), pageable));
     }
 
     @PostMapping("/{reportId}/hide")
