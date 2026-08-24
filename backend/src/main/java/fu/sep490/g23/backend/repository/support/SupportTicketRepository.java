@@ -4,6 +4,10 @@ import fu.sep490.g23.backend.entity.support.SupportTicket;
 import fu.sep490.g23.backend.entity.support.enums.SupportTicketPriority;
 import fu.sep490.g23.backend.entity.support.enums.SupportTicketStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +15,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
+public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long>, JpaSpecificationExecutor<SupportTicket> {
+
+    @Override
+    @EntityGraph(attributePaths = {"requester", "assignee"})
+    Page<SupportTicket> findAll(Specification<SupportTicket> specification, Pageable pageable);
 
     @EntityGraph(attributePaths = {"requester", "assignee"})
     List<SupportTicket> findByRequesterIdOrderByUpdatedAtDesc(Long requesterId);

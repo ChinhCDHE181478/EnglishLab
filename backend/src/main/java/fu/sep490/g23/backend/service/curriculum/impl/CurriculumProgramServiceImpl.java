@@ -1,5 +1,7 @@
 package fu.sep490.g23.backend.service.curriculum.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.curriculum.AssessmentBankItemRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumProgramRequest;
 import fu.sep490.g23.backend.dto.request.curriculum.CurriculumReferenceRequest;
@@ -49,6 +51,9 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -61,6 +66,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -113,6 +119,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final ClassroomAccessHelper accessHelper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional(readOnly = true)
@@ -121,6 +128,47 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 ? programRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()
                 : programRepository.findByDeliveryModeOrderByDisplayOrderAscUpdatedAtDescIdDesc(deliveryMode);
         return programs.stream().map(program -> toProgramResponse(program, false)).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CurriculumProgramResponse> pagePrograms(
+            ClassroomDeliveryMode deliveryMode,
+            String keyword,
+            String examCategory,
+            String entryLevel,
+            String status,
+            Pageable pageable
+    ) {
+        Specification<CurriculumProgram> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.conjunction();
+        if (deliveryMode != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("deliveryMode"), deliveryMode));
+        }
+        if (StringUtils.hasText(keyword)) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), pattern)
+            ));
+        }
+        if (StringUtils.hasText(examCategory)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("examCategory"), examCategory.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (StringUtils.hasText(entryLevel)) {
+            String pattern = "%" + entryLevel.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("entryLevel")), pattern));
+        }
+        if (StringUtils.hasText(status)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase(Locale.ROOT)));
+        }
+        return programRepository.findAll(specification, pageable)
+                .map(program -> toProgramResponse(program, false));
     }
 
     @Override
@@ -473,6 +521,55 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<AssessmentBankItemResponse> pageAssessmentBank(
+            AssessmentSkill skill,
+            AssessmentType type,
+            String status,
+            String keyword,
+            Pageable pageable
+    ) {
+        Specification<AssessmentBankItem> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.conjunction();
+        if (skill != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("skill"), skill));
+        }
+        if (type != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("type"), type));
+        }
+        if (StringUtils.hasText(status)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (StringUtils.hasText(keyword)) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("instructions")), pattern)
+            ));
+        }
+        return assessmentBankRepository.findAll(specification, pageable).map(this::toAssessmentResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getAssessmentBankStats(AssessmentSkill skill, AssessmentType type) {
+        List<AssessmentBankItem> items = assessmentBankRepository.findAll().stream()
+                .filter(item -> skill == null || item.getSkill() == skill)
+                .filter(item -> type == null || item.getType() == type)
+                .toList();
+        return Map.of(
+                "total", (long) items.size(),
+                "published", items.stream().filter(item -> "PUBLISHED".equalsIgnoreCase(item.getStatus())).count(),
+                "draft", items.stream().filter(item -> "DRAFT".equalsIgnoreCase(item.getStatus())).count(),
+                "timed", items.stream().filter(item -> item.getTimeLimitMinutes() != null && item.getTimeLimitMinutes() > 0).count()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AssessmentBankItemResponse getAssessmentBankItem(Long id) {
         return toAssessmentResponse(findAssessment(id));
     }
@@ -561,6 +658,68 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .stream()
                 .map(this::toFlashcardSetResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FlashcardSetResponse> pageFlashcardSets(
+            String keyword,
+            String examCategory,
+            String skill,
+            String status,
+            Pageable pageable
+    ) {
+        Specification<FlashcardSet> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.conjunction();
+        if (StringUtils.hasText(keyword)) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("tags")), pattern)
+            ));
+        }
+        if (StringUtils.hasText(examCategory)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("examCategory"), examCategory.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (StringUtils.hasText(skill)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("skill"), skill.trim().toUpperCase(Locale.ROOT)));
+        }
+        if (StringUtils.hasText(status)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status.trim().toUpperCase(Locale.ROOT)));
+        }
+        return flashcardSetRepository.findAll(specification, pageable).map(this::toFlashcardSetResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getFlashcardSetStats(String examCategory, String skill) {
+        List<FlashcardSet> sets = flashcardSetRepository.findAll().stream()
+                .filter(set -> !StringUtils.hasText(examCategory)
+                        || examCategory.equalsIgnoreCase(set.getExamCategory()))
+                .filter(set -> !StringUtils.hasText(skill) || skill.equalsIgnoreCase(set.getSkill()))
+                .toList();
+        return Map.of(
+                "total", (long) sets.size(),
+                "published", sets.stream().filter(set -> "PUBLISHED".equalsIgnoreCase(set.getStatus())).count(),
+                "draft", sets.stream().filter(set -> "DRAFT".equalsIgnoreCase(set.getStatus())).count(),
+                "cards", sets.stream().mapToLong(set -> countFlashcards(set.getCardsJson())).sum()
+        );
+    }
+
+    private long countFlashcards(String cardsJson) {
+        if (!StringUtils.hasText(cardsJson)) {
+            return 0;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(cardsJson);
+            return root.isArray() ? root.size() : 0;
+        } catch (Exception ignored) {
+            return 0;
+        }
     }
 
     @Override

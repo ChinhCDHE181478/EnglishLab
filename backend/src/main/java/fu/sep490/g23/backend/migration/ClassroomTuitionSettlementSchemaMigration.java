@@ -13,6 +13,9 @@ public class ClassroomTuitionSettlementSchemaMigration {
 
     @PostConstruct
     public void ensureSettlementColumns() {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 DO $$
                 BEGIN
@@ -61,5 +64,12 @@ public class ClassroomTuitionSettlementSchemaMigration {
                     END IF;
                 END $$;
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.classroom_financial_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

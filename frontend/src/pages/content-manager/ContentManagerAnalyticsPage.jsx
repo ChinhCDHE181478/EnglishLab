@@ -26,7 +26,7 @@ export default function ContentManagerAnalyticsPage() {
 
       const [statsData, coursePage, revenueData] = await Promise.all([
         courseApi.getManagedCourseStats(),
-        courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
+        courseApi.getManagedOnlineCourses({ page: 0, size: 8, sort: 'newest' }),
         loadRevenueAnalytics(),
       ]);
       setStats(statsData);
@@ -44,15 +44,10 @@ export default function ContentManagerAnalyticsPage() {
   }, []);
 
   const categoryRows = useMemo(() => {
-    const counts = new Map();
-    courses.forEach((course) => {
-      const key = course.categoryName || course.category || 'Chưa phân loại';
-      counts.set(key, (counts.get(key) || 0) + 1);
-    });
-    return Array.from(counts.entries())
+    return Object.entries(stats?.categoryDistribution || {})
       .map(([label, value]) => ({ label, value }))
       .sort((left, right) => right.value - left.value);
-  }, [courses]);
+  }, [stats]);
 
   const recentCourses = useMemo(
     () => [...courses]

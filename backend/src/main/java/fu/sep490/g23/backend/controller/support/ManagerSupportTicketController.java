@@ -9,6 +9,9 @@ import fu.sep490.g23.backend.service.support.SupportTicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -38,6 +41,22 @@ public class ManagerSupportTicketController {
                 authentication.getName(),
                 status,
                 priority
+        ));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<SupportTicketResponse>> pageQueue(
+            Authentication authentication,
+            @RequestParam(required = false) SupportTicketStatus status,
+            @RequestParam(required = false) SupportTicketPriority priority,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return ResponseEntity.ok(supportTicketService.pageQueue(
+                authentication.getName(), status, priority, keyword,
+                PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "updatedAt"))
         ));
     }
 

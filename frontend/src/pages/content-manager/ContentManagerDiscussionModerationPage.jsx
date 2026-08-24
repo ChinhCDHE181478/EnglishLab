@@ -6,6 +6,7 @@ import Pagination, { usePagination } from '../../components/ui/Pagination';
 import BrandedSelect from '../../components/ui/BrandedSelect';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import ManagementToast from '../../components/ui/ManagementToast';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const STATUS_FILTERS = [
   { value: 'PENDING', label: 'Đang chờ' },
@@ -44,37 +45,43 @@ export default function ContentManagerDiscussionModerationPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [status, setStatus] = useState('PENDING');
   const [category, setCategory] = useState('');
-  const [reports, setReports] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [processingId, setProcessingId] = useState(null);
+  const resetKey = `moderation-${status}-${category}`;
+  const { page, setPage, totalPages, pageItems: reports, totalItems } = usePagination(
+    pageResult.content,
+    10,
+    resetKey,
+    pageResult,
+  );
 
   const loadReports = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await courseApi.getDiscussionModerationReports(status, category);
-      setReports(data);
+      const data = await courseApi.getDiscussionModerationReportsPage(
+        pageParams(page, 10, {
+          status,
+          category: category || undefined,
+        }),
+      );
+      setPageResult(data);
     } catch (requestError) {
       setError(requestError.response?.data?.message || 'Không thể tải hàng chờ kiểm duyệt.');
-      setReports([]);
+      setPageResult(EMPTY_PAGE);
       return false;
     } finally {
       setLoading(false);
     }
     return true;
-  }, [status, category]);
+  }, [status, category, page]);
 
   useEffect(() => {
     loadReports();
   }, [loadReports]);
-
-  const { page, setPage, totalPages, pageItems: paginatedReports, totalItems } = usePagination(
-    reports,
-    10,
-    `moderation-${status}-${category}`
-  );
 
   const handleAction = async (report, action) => {
     const isHide = action === 'hide';
@@ -178,7 +185,7 @@ export default function ContentManagerDiscussionModerationPage() {
         {!loading && reports.length > 0 ? (
           <>
             <ManagerTable columns={COLUMNS} minWidth="1320px">
-              {paginatedReports.map((report) => (
+              {reports.map((report) => (
                 <tr className="align-top transition hover:bg-[#eff4ff]/35" key={report.reportId}>
                   <td className="max-w-[360px] px-6 py-5">
                     <div className="mb-2 flex items-center gap-2">

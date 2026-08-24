@@ -36,6 +36,11 @@ export const needsProfileCompletion = (user) => {
   return !user.profileCompleted || !user.fullName || !user.phoneNumber || !user.targetExam || !user.targetScore;
 };
 
+export const needsPlacementTest = (user) => {
+  if (!user || !hasAnyUserRole(user, ['LEARNER']) || hasAnyUserRole(user, STAFF_ROLES)) return false;
+  return !needsProfileCompletion(user) && !user.placementTestCompleted;
+};
+
 export const isContentManagerUser = (user) =>
   hasAnyUserRole(user, ['CONTENT_MANAGER', 'MANAGER', 'ADMIN']);
 

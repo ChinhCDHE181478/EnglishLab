@@ -18,6 +18,10 @@ import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content-manager")
@@ -42,6 +47,19 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) ClassroomDeliveryMode deliveryMode
     ) {
         return ResponseEntity.ok(curriculumProgramService.listPrograms(deliveryMode));
+    }
+
+    @GetMapping("/curriculum-programs/page")
+    public ResponseEntity<Page<CurriculumProgramResponse>> pagePrograms(
+            @RequestParam(required = false) ClassroomDeliveryMode deliveryMode,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String examCategory,
+            @RequestParam(required = false) String entryLevel,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.pagePrograms(
+                deliveryMode, keyword, examCategory, entryLevel, status, pageable));
     }
 
     @GetMapping("/curriculum-programs/{id}")
@@ -176,6 +194,26 @@ public class ContentManagerCurriculumController {
         return ResponseEntity.ok(curriculumProgramService.listAssessmentBank(skill, type));
     }
 
+    @GetMapping("/assessment-bank/page")
+    public ResponseEntity<Page<AssessmentBankItemResponse>> pageAssessmentBank(
+            @RequestParam(required = false) AssessmentSkill skill,
+            @RequestParam(required = false) AssessmentType type,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.pageAssessmentBank(
+                skill, type, status, keyword, pageable));
+    }
+
+    @GetMapping("/assessment-bank/stats")
+    public ResponseEntity<Map<String, Long>> getAssessmentBankStats(
+            @RequestParam(required = false) AssessmentSkill skill,
+            @RequestParam(required = false) AssessmentType type
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.getAssessmentBankStats(skill, type));
+    }
+
     @GetMapping("/assessment-bank/{id}")
     public ResponseEntity<AssessmentBankItemResponse> getAssessmentBankItem(@PathVariable Long id) {
         return ResponseEntity.ok(curriculumProgramService.getAssessmentBankItem(id));
@@ -205,6 +243,26 @@ public class ContentManagerCurriculumController {
     @GetMapping("/flashcard-sets")
     public ResponseEntity<List<FlashcardSetResponse>> listFlashcardSets() {
         return ResponseEntity.ok(curriculumProgramService.listFlashcardSets());
+    }
+
+    @GetMapping("/flashcard-sets/page")
+    public ResponseEntity<Page<FlashcardSetResponse>> pageFlashcardSets(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String examCategory,
+            @RequestParam(required = false) String skill,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 8, sort = "displayOrder", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.pageFlashcardSets(
+                keyword, examCategory, skill, status, pageable));
+    }
+
+    @GetMapping("/flashcard-sets/stats")
+    public ResponseEntity<Map<String, Long>> getFlashcardSetStats(
+            @RequestParam(required = false) String examCategory,
+            @RequestParam(required = false) String skill
+    ) {
+        return ResponseEntity.ok(curriculumProgramService.getFlashcardSetStats(examCategory, skill));
     }
 
     @GetMapping("/flashcard-sets/{id}")

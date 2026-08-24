@@ -1,36 +1,25 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
-@Table(
-        name = "curriculum_material_refs",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"unit_id", "material_id"})
-)
-public class CurriculumMaterialRef {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@DiscriminatorValue("MATERIAL")
+public class CurriculumMaterialRef extends CurriculumResourceRef {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id", nullable = false)
-    private CurriculumUnit unit;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "material_id", nullable = false)
+    @JoinColumn(name = "material_id")
     private CenterMaterialLibraryItem material;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
-    @Column(length = 500)
-    private String note;
 }

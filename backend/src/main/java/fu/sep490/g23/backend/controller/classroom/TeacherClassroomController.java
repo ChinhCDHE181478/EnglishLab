@@ -41,6 +41,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -50,6 +53,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teacher/classrooms")
@@ -413,7 +417,27 @@ public class TeacherClassroomController {
     }
 
     @GetMapping("/requests/mine")
-    public ResponseEntity<List<ClassroomChangeRequestResponse>> listMyRequests(Authentication authentication) {
-        return ResponseEntity.ok(changeRequestService.listMine(authentication.getName()));
-    }
+      public ResponseEntity<List<ClassroomChangeRequestResponse>> listMyRequests(Authentication authentication) {
+          return ResponseEntity.ok(changeRequestService.listMine(authentication.getName()));
+      }
+
+      @GetMapping("/requests/mine/page")
+      public ResponseEntity<Page<ClassroomChangeRequestResponse>> pageMyRequests(
+              @RequestParam(required = false) String status,
+              @RequestParam(required = false) String keyword,
+              @RequestParam(defaultValue = "0") int page,
+              @RequestParam(defaultValue = "4") int size,
+              Authentication authentication
+      ) {
+          int safeSize = Math.min(Math.max(size, 1), 100);
+          return ResponseEntity.ok(changeRequestService.pageMine(
+                  authentication.getName(), status, keyword,
+                  PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
+          ));
+      }
+
+      @GetMapping("/requests/mine/stats")
+      public ResponseEntity<Map<String, Long>> getMyRequestStats(Authentication authentication) {
+          return ResponseEntity.ok(changeRequestService.getMyStats(authentication.getName()));
+      }
 }

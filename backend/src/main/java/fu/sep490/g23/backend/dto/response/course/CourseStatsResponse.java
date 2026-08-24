@@ -1,5 +1,7 @@
 package fu.sep490.g23.backend.dto.response.course;
 
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,4 +18,5 @@ public class CourseStatsResponse {
     private long archivedCourses;
     private long totalLessons;
     private long totalEnrollments;
+    private Map<String, Long> categoryDistribution;
 }

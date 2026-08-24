@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import CourseFilters from './CourseFilters';
 import CatalogCourseCard from './CatalogCourseCard';
 import BrandLoadingState from '../ui/BrandLoadingState';
@@ -16,6 +17,8 @@ const CourseCatalog = ({
   currentBand = null,
   categories = [],
   selectedCategory = '',
+  serverPage = null,
+  onPageChange,
 }) => {
   const resetKey = [
     keyword,
@@ -32,7 +35,12 @@ const CourseCatalog = ({
     courses,
     CATALOG_PAGE_SIZE,
     resetKey,
+    serverPage,
   );
+
+  useEffect(() => {
+    onPageChange?.(page);
+  }, [onPageChange, page]);
 
   return (
     <section id="catalog" className="mb-[80px] grid grid-cols-1 gap-6 lg:grid-cols-4">
@@ -50,7 +58,7 @@ const CourseCatalog = ({
           <p className="text-[12px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Danh mục học tập</p>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Toàn bộ khóa học</h2>
-            <span className="text-sm font-semibold text-[#584140]">{courses.length} khóa học</span>
+            <span className="text-sm font-semibold text-[#584140]">{totalItems} khóa học</span>
           </div>
         </div>
 

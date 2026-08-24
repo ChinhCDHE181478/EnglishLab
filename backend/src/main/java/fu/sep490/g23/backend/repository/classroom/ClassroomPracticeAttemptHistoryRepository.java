@@ -6,6 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ClassroomPracticeAttemptHistoryRepository extends JpaRepository<ClassroomPracticeAttemptHistory, Long> {
+    List<ClassroomPracticeAttemptHistory> findByClassroomOfferingIdAndStudentIdOrderByCompletedAtDesc(
+            Long offeringId,
+            Long studentId
+    );
+
     List<ClassroomPracticeAttemptHistory> findByClassroomOfferingIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
             Long offeringId,
             Long studentId,

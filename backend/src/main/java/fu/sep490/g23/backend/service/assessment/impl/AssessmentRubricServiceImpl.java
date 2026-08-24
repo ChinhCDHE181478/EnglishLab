@@ -10,11 +10,16 @@ import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.service.assessment.AssessmentRubricService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +40,54 @@ public class AssessmentRubricServiceImpl implements AssessmentRubricService {
                         .thenComparing(AssessmentRubric::getId))
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AssessmentRubricResponse> page(
+            Boolean includeInactive,
+            Boolean active,
+            AssessmentSkill skill,
+            String keyword,
+            Pageable pageable
+    ) {
+        Specification<AssessmentRubric> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.conjunction();
+        if (!Boolean.TRUE.equals(includeInactive)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.isTrue(root.get("active")));
+        } else if (active != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("active"), active));
+        }
+        if (skill != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("skill"), skill));
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("examType")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("taskType")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern)
+            ));
+        }
+        return rubricRepository.findAll(specification, pageable).map(this::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> stats(AssessmentSkill skill) {
+        List<AssessmentRubric> rubrics = rubricRepository.findAll().stream()
+                .filter(rubric -> skill == null || rubric.getSkill() == skill)
+                .toList();
+        return Map.of(
+                "total", (long) rubrics.size(),
+                "active", rubrics.stream().filter(AssessmentRubric::isActive).count(),
+                "inactive", rubrics.stream().filter(rubric -> !rubric.isActive()).count(),
+                "criteria", rubrics.stream().mapToLong(rubric -> rubric.getCriteria().size()).sum()
+        );
     }
 
     @Override

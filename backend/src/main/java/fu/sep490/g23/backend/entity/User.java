@@ -95,6 +95,22 @@ public class User implements UserDetails {
     @Builder.Default
     private boolean emailVerified = true;
 
+    @Column(name = "notification_email_enabled")
+    @Builder.Default
+    private boolean notificationEmailEnabled = true;
+
+    @Column(name = "notification_in_app_enabled")
+    @Builder.Default
+    private boolean notificationInAppEnabled = true;
+
+    @Column(name = "notification_class_reminder_enabled")
+    @Builder.Default
+    private boolean notificationClassReminderEnabled = true;
+
+    @Column(name = "notification_study_alert_enabled")
+    @Builder.Default
+    private boolean notificationStudyAlertEnabled = true;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

@@ -8,6 +8,7 @@ import { ClassroomLoadingState } from '../components/classroom/ClassroomUi';
 import { useLearnerExperience } from '../context/LearnerExperienceContext';
 import { getClassroomErrorMessage } from '../utils/classroomErrorMessages';
 import { hasAccessToken } from '../utils/auth';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../utils/pagination';
 
 const formatNotificationTime = (value) => {
   if (!value) return '';
@@ -32,9 +33,16 @@ const mapApiNotification = (notification) => ({
 export default function NotificationsPage() {
   const { markAllNotificationsRead, notifications: contextNotifications } = useLearnerExperience();
   const [apiNotifications, setApiNotifications] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isAuthenticated = hasAccessToken();
+  const { page, setPage, totalPages, pageItems: paginatedNotifications, totalItems } = usePagination(
+    isAuthenticated ? apiNotifications : contextNotifications,
+    8,
+    'notifications',
+    isAuthenticated ? pageResult : null,
+  );
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -48,10 +56,13 @@ export default function NotificationsPage() {
 
     const loadNotifications = async () => {
       try {
-        const items = await classroomApi.getStudentNotifications();
+        const result = normalizePage(await classroomApi.getStudentNotificationsPage(pageParams(page, 8)));
         if (!active) return;
-        setApiNotifications(items.map(mapApiNotification));
-        await classroomApi.markAllNotificationsRead();
+        setPageResult(result);
+        setApiNotifications(result.content.map(mapApiNotification));
+        if (result.content.some((item) => !item.read)) {
+          await classroomApi.markAllNotificationsRead();
+        }
       } catch (err) {
         if (!active) return;
         setApiNotifications([]);
@@ -66,19 +77,13 @@ export default function NotificationsPage() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, markAllNotificationsRead]);
+  }, [isAuthenticated, markAllNotificationsRead, page]);
 
   const notifications = useMemo(() => {
     if (isAuthenticated && apiNotifications.length) return apiNotifications;
     if (isAuthenticated && !loading && !error) return apiNotifications;
     return contextNotifications;
   }, [apiNotifications, contextNotifications, error, isAuthenticated, loading]);
-
-  const { page, setPage, totalPages, pageItems: paginatedNotifications, totalItems } = usePagination(
-    notifications,
-    8,
-    'notifications'
-  );
 
   return (
     <LearnerPageShell
@@ -142,7 +147,7 @@ export default function NotificationsPage() {
             })}
           </div>
 
-          {notifications.length > 8 && (
+          {totalItems > 8 && (
             <div className="flex justify-end">
               <Pagination
                 page={page}

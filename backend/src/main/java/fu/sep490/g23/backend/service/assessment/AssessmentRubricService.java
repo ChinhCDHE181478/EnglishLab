@@ -3,11 +3,24 @@ package fu.sep490.g23.backend.service.assessment;
 import fu.sep490.g23.backend.dto.request.assessment.AssessmentRubricRequest;
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AssessmentRubricService {
     List<AssessmentRubricResponse> list(Boolean includeInactive, AssessmentSkill skill);
+
+    Page<AssessmentRubricResponse> page(
+            Boolean includeInactive,
+            Boolean active,
+            AssessmentSkill skill,
+            String keyword,
+            Pageable pageable
+    );
+
+    Map<String, Long> stats(AssessmentSkill skill);
 
     AssessmentRubricResponse get(Long id);
 

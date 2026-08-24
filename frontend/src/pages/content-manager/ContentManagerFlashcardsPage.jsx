@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, Download, Edit3, FileUp, Layers3, Plus, RefreshCw, Save, Search, SquareStack, Trash2, X } from 'lucide-react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CourseModuleFlashcardEditorPage, { InlineFlashcardSetEditor } from './CourseModuleFlashcardEditorPage';
@@ -9,6 +9,7 @@ import FlashcardDictionaryAssistant from '../../components/flashcard/FlashcardDi
 import { Panel, TextField } from '../../components/content-manager/ContentManagerUi';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 import {
   DANGER_BUTTON_CLASS,
   EMPTY_STATE_CLASS,
@@ -273,13 +274,46 @@ function FlashcardBankPage({ editorRoute }) {
   const [exportTermDelimiter, setExportTermDelimiter] = useState('\t');
   const [exportRowDelimiter, setExportRowDelimiter] = useState('\n');
   const [copied, setCopied] = useState(false);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [statsData, setStatsData] = useState({ total: 0, published: 0, draft: 0, cards: 0 });
   const editorRef = useRef(null);
+  const deferredKeyword = useDeferredValue(keyword);
+  const resetKey = `${deferredKeyword}:${filters.examCategory}:${filters.skill}:${filters.status}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    pageResult.content,
+    8,
+    resetKey,
+    pageResult,
+  );
 
   const loadSets = async () => {
     setLoading(true);
     setError('');
     try {
-      setSets(await curriculumApi.getFlashcardSets());
+      const setId = searchParams.get('set');
+      if (editorRoute && setId) {
+        const selectedSet = await curriculumApi.getFlashcardSet(setId);
+        setSets([selectedSet]);
+        return;
+      }
+      if (editorRoute) {
+        setSets([]);
+        return;
+      }
+      const params = {
+        keyword: deferredKeyword.trim() || undefined,
+        examCategory: filters.examCategory === 'ALL' ? undefined : filters.examCategory,
+        skill: filters.skill === 'ALL' ? undefined : filters.skill,
+        status: filters.status === 'ALL' ? undefined : filters.status,
+        sort: ['displayOrder,asc', 'title,asc'],
+      };
+      const [data, summary] = await Promise.all([
+        curriculumApi.getFlashcardSetsPage(pageParams(page, 8, params)),
+        curriculumApi.getFlashcardSetStats({ examCategory: params.examCategory, skill: params.skill }),
+      ]);
+      setPageResult(data);
+      setSets(data.content);
+      setStatsData(summary);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được ngân hàng flashcard.');
     } finally {
@@ -289,7 +323,7 @@ function FlashcardBankPage({ editorRoute }) {
 
   useEffect(() => {
     loadSets();
-  }, []);
+  }, [deferredKeyword, editorRoute, filters.examCategory, filters.skill, filters.status, page, searchParams]);
 
   useEffect(() => {
     setEditorOpen(editorRoute);
@@ -323,26 +357,6 @@ function FlashcardBankPage({ editorRoute }) {
     }
   }, [editorRoute, editingId, loading, searchParams, sets]);
 
-  const filteredSets = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    return sets.filter((item) => {
-      const keywordMatched = !normalized || [item.title, item.description, item.examCategory, item.skill, item.tags, item.status, item.id]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized));
-      const examMatched = filters.examCategory === 'ALL' || item.examCategory === filters.examCategory;
-      const skillMatched = filters.skill === 'ALL' || (item.skill || '') === filters.skill;
-      const statusMatched = filters.status === 'ALL' || item.status === filters.status;
-      return keywordMatched && examMatched && skillMatched && statusMatched;
-    });
-  }, [sets, filters, keyword]);
-
-  const sortedSets = useMemo(
-    () => [...filteredSets].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.title).localeCompare(String(b.title))),
-    [filteredSets],
-  );
-
-  const resetKey = `${keyword}:${filters.examCategory}:${filters.skill}:${filters.status}`;
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(sortedSets, 8, resetKey);
   const importPreview = useMemo(
     () => parseImportedCards(importText, importTermDelimiter, importRowDelimiter),
     [importRowDelimiter, importTermDelimiter, importText],
@@ -354,14 +368,13 @@ function FlashcardBankPage({ editorRoute }) {
   );
 
   const stats = useMemo(() => {
-    const totalCards = sets.reduce((sum, item) => sum + countCards(item.cardsJson), 0);
     return [
-      { label: 'Tổng bộ thẻ', value: sets.length, icon: SquareStack, tone: 'text-[#4b0009]' },
-      { label: 'Đã xuất bản', value: sets.filter((item) => item.status === 'PUBLISHED').length, icon: CheckCircle2, tone: 'text-emerald-700' },
-      { label: 'Bản nháp', value: sets.filter((item) => item.status === 'DRAFT').length, icon: Edit3, tone: 'text-amber-700' },
-      { label: 'Tổng số thẻ', value: totalCards, icon: Layers3, tone: 'text-[#005236]' },
+      { label: 'Tổng bộ thẻ', value: statsData.total, icon: SquareStack, tone: 'text-[#4b0009]' },
+      { label: 'Đã xuất bản', value: statsData.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+      { label: 'Bản nháp', value: statsData.draft, icon: Edit3, tone: 'text-amber-700' },
+      { label: 'Tổng số thẻ', value: statsData.cards, icon: Layers3, tone: 'text-[#005236]' },
     ];
-  }, [sets]);
+  }, [statsData]);
 
   const startNew = () => {
     if (!editorRoute) {
@@ -728,7 +741,7 @@ function FlashcardBankPage({ editorRoute }) {
 
           <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="min-w-[300px] flex-1">
+          <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
               <input

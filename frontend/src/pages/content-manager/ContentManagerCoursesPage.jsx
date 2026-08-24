@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Eye, Filter, Pencil, RefreshCw } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import courseApi from '../../api/courseApi';
 import { Panel } from '../../components/content-manager/ContentManagerUi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
-import Pagination from '../../components/ui/Pagination';
+import Pagination, { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const levelOptions = ['Tất cả', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'];
 const statusOptions = ['Tất cả', 'DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -24,14 +25,22 @@ export default function ContentManagerCoursesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [categories, setCategories] = useState([]);
   const [filters, setFilters] = useState({ category: 'Tất cả', level: 'Tất cả', status: 'Tất cả', sort: 'newest' });
   const [keyword, setKeyword] = useState('');
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [workingId, setWorkingId] = useState(null);
+  const deferredKeyword = useDeferredValue(keyword.trim());
+  const resetKey = `${deferredKeyword}|${filters.category}|${filters.level}|${filters.status}|${filters.sort}`;
+  const { page, setPage, totalPages, totalItems } = usePagination(
+    courses,
+    pageSize,
+    resetKey,
+    pageResult,
+  );
 
   useEffect(() => {
     if (searchParams.get('new') === '1') {
@@ -49,23 +58,22 @@ export default function ContentManagerCoursesPage() {
     setLoading(true);
     setError('');
     try {
-      const loadCategories = async () => {
-        try {
-          return await courseApi.getManagedCourseCategories();
-        } catch {
-          return [];
-        }
-      };
-
-      const [coursePage, categoryItems] = await Promise.all([
-        courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
-        loadCategories(),
-      ]);
+      const coursePage = await courseApi.getManagedOnlineCourses(pageParams(page, pageSize, {
+        keyword: deferredKeyword || undefined,
+        category: filters.category === 'Tất cả' ? undefined : filters.category,
+        level: filters.level === 'Tất cả' ? undefined : filters.level,
+        status: filters.status === 'Tất cả' ? undefined : filters.status,
+        sort: filters.sort,
+      }));
       if (!activeRef.current) return;
       setCourses(coursePage.content || []);
-      setCategories(categoryItems);
+      setPageResult(coursePage);
     } catch {
-      if (activeRef.current) setError('Không tải được danh sách khóa học từ backend.');
+      if (activeRef.current) {
+        setCourses([]);
+        setPageResult(EMPTY_PAGE);
+        setError('Không tải được danh sách khóa học từ backend.');
+      }
     } finally {
       if (activeRef.current) setLoading(false);
     }
@@ -78,29 +86,23 @@ export default function ContentManagerCoursesPage() {
     return () => {
       activeRef.current = false;
     };
+  }, [deferredKeyword, filters, page]);
+
+  useEffect(() => {
+    let active = true;
+    const loadCategories = async () => {
+      try {
+        const items = await courseApi.getManagedCourseCategories();
+        if (active) setCategories(items);
+      } catch {
+        if (active) setCategories([]);
+      }
+    };
+    loadCategories();
+    return () => {
+      active = false;
+    };
   }, []);
-
-  const filteredCourses = useMemo(() => {
-    const filtered = courses.filter((course) => {
-      const searchValue = keyword.trim().toLocaleLowerCase('vi');
-      const keywordMatched = !searchValue
-        || String(course.title || '').toLocaleLowerCase('vi').includes(searchValue)
-        || String(course.slug || '').toLocaleLowerCase('vi').includes(searchValue);
-      const categoryMatched = filters.category === 'Tất cả' || course.category === filters.category;
-      const levelMatched = filters.level === 'Tất cả' || course.level === filters.level;
-      const statusMatched = filters.status === 'Tất cả' || course.status === filters.status;
-      return keywordMatched && categoryMatched && levelMatched && statusMatched;
-    });
-
-    return [...filtered].sort((a, b) => {
-      if (filters.sort === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
-      if (filters.sort === 'titleAsc') return String(a.title || '').localeCompare(String(b.title || ''));
-      if (filters.sort === 'titleDesc') return String(b.title || '').localeCompare(String(a.title || ''));
-      if (filters.sort === 'priceAsc') return Number(a.price || 0) - Number(b.price || 0);
-      if (filters.sort === 'priceDesc') return Number(b.price || 0) - Number(a.price || 0);
-      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
-    });
-  }, [courses, filters, keyword]);
 
   const categoryOptions = useMemo(
     () => [
@@ -109,16 +111,7 @@ export default function ContentManagerCoursesPage() {
     ],
     [categories],
   );
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
-  const visibleCourses = filteredCourses.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filters, keyword]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  const visibleCourses = courses;
 
   const updateFilter = (field) => (event) => setFilters((current) => ({ ...current, [field]: event.target.value }));
 
@@ -140,6 +133,10 @@ export default function ContentManagerCoursesPage() {
         ? await courseApi.publishOnlineCourseDraft(course.id)
         : await courseApi.archiveOnlineCourse(course.id);
       setCourses((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setPageResult((current) => ({
+        ...current,
+        content: current.content.map((item) => (item.id === updated.id ? updated : item)),
+      }));
       setSuccess(publishing ? 'Đã xuất bản khóa học.' : 'Đã lưu trữ khóa học.');
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || (publishing ? 'Không thể xuất bản khóa học.' : 'Không thể lưu trữ khóa học.'));
@@ -297,13 +294,13 @@ export default function ContentManagerCoursesPage() {
 
         <div className="flex flex-col gap-3 border-t border-[#eef1f6] px-5 py-4 sm:flex-row sm:items-center sm:justify-between bg-[#fffafb]/25">
           <p className="text-sm text-[#69778a]">
-            Hiển thị <span className="font-bold text-[#26364a]">{filteredCourses.length ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, filteredCourses.length)}</span> của <span className="font-bold text-[#26364a]">{filteredCourses.length}</span> khóa học
+            Hiển thị <span className="font-bold text-[#26364a]">{totalItems ? (page - 1) * pageSize + 1 : 0} - {Math.min(page * pageSize, totalItems)}</span> của <span className="font-bold text-[#26364a]">{totalItems}</span> khóa học
           </p>
           <Pagination
             page={page}
             totalPages={totalPages}
             onChange={setPage}
-            totalItems={filteredCourses.length}
+            totalItems={totalItems}
             pageSize={pageSize}
           />
         </div>

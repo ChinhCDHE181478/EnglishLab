@@ -1,11 +1,13 @@
-package fu.sep490.g23.backend.entity.course;
-
-import fu.sep490.g23.backend.entity.course.enums.*;
+package fu.sep490.g23.backend.entity.commerce;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,24 +33,31 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(
-        name = "course_discussion_reply_votes",
-        uniqueConstraints = @UniqueConstraint(name = "uk_discussion_reply_vote_user", columnNames = {"reply_id", "user_id"})
+        name = "course_list_items",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_course_list_student_course_type",
+                columnNames = {"student_id", "online_course_id", "list_type"}
+        )
 )
 @EntityListeners(AuditingEntityListener.class)
-public class CourseDiscussionReplyVote {
+public class CourseListItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reply_id", nullable = false)
-    private CourseDiscussionReply reply;
+    @JoinColumn(name = "student_id", nullable = false)
+    private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "online_course_id", nullable = false)
+    private OnlineCourse onlineCourse;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "list_type", nullable = false, length = 20)
+    private CourseListType listType;
 
     @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "added_at", updatable = false)
+    private LocalDateTime addedAt;
 }

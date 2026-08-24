@@ -14,6 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.JoinType;
 
 import java.util.Comparator;
 import java.util.List;
@@ -37,6 +41,32 @@ public class PackageEnrollmentAdminServiceImpl implements PackageEnrollmentAdmin
                 .sorted(Comparator.comparing(PackageEnrollment::getRegisteredAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PackageEnrollmentAdminResponse> pageEnrollments(EnrollmentStatus status, String keyword, Pageable pageable) {
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim().toLowerCase() : null;
+        Specification<PackageEnrollment> specification = (root, query, criteriaBuilder) -> {
+            var learningPackage = root.join("learningPackage", JoinType.INNER);
+            var packageType = learningPackage.join("packageType", JoinType.INNER);
+            var student = root.join("student", JoinType.LEFT);
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            predicates.add(criteriaBuilder.equal(packageType.get("code"), PackageTypeCode.ONLINE_COURSE));
+            predicates.add(criteriaBuilder.isFalse(learningPackage.get("deleted")));
+            if (status != null) predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            if (normalizedKeyword != null) {
+                String pattern = "%" + normalizedKeyword + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(student.get("fullName")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(student.get("email")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("title")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(learningPackage.get("slug")), pattern)
+                ));
+            }
+            return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return enrollmentRepository.findAll(specification, pageable).map(this::toResponse);
     }
 
     @Override

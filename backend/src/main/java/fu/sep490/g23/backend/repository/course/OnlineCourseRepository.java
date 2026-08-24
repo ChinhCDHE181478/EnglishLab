@@ -43,4 +43,14 @@ public interface OnlineCourseRepository extends JpaRepository<OnlineCourse, Long
     long countByLearningPackageDeletedFalse();
 
     long countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus status);
+
+    @Query("""
+            select coalesce(category.name, 'Chưa phân loại'), count(course)
+            from OnlineCourse course
+            left join course.category category
+            where course.learningPackage.deleted = false
+            group by category.name
+            order by count(course) desc
+            """)
+    List<Object[]> summarizeCategoryDistribution();
 }

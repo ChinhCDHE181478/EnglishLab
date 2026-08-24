@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookmarkPlus,
   BookOpenText,
@@ -26,6 +26,7 @@ import { useAppDialog } from '../components/ui/AppDialog';
 import BrandedSelect from '../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import { speakEnglishText } from '../utils/pronunciation';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../utils/pagination';
 
 const STATUS_OPTIONS = [
   { label: 'Tất cả trạng thái', value: '' },
@@ -65,6 +66,8 @@ export default function DictionaryPage() {
   const [saveNote, setSaveNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedItems, setSavedItems] = useState([]);
+  const [savedPageResult, setSavedPageResult] = useState(EMPTY_PAGE);
+  const [savedStats, setSavedStats] = useState({ total: 0, mastered: 0, learning: 0 });
   const [savedLoading, setSavedLoading] = useState(true);
   const [savedError, setSavedError] = useState('');
   const [savedKeyword, setSavedKeyword] = useState('');
@@ -73,24 +76,43 @@ export default function DictionaryPage() {
   const [editingNote, setEditingNote] = useState('');
   const [workingId, setWorkingId] = useState(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [currentWordSaved, setCurrentWordSaved] = useState(false);
   const audioRef = useRef(null);
+  const deferredSavedKeyword = useDeferredValue(savedKeyword.trim());
+  const paginationKey = `${deferredSavedKeyword}|${statusFilter}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    savedItems,
+    6,
+    paginationKey,
+    savedPageResult,
+  );
 
   const loadSaved = useCallback(async () => {
     setSavedLoading(true);
     setSavedError('');
     try {
-      const items = await dictionaryApi.listSaved({
-        keyword: savedKeyword.trim() || undefined,
-        status: statusFilter || undefined,
+      const [pagePayload, statsPayload] = await Promise.all([
+        dictionaryApi.pageSaved(pageParams(page, 6, {
+          keyword: deferredSavedKeyword || undefined,
+          status: statusFilter || undefined,
+        })),
+        dictionaryApi.getSavedStats(),
+      ]);
+      const result = normalizePage(pagePayload);
+      setSavedPageResult(result);
+      setSavedItems(result.content);
+      setSavedStats({
+        total: Number(statsPayload?.total || 0),
+        mastered: Number(statsPayload?.mastered || 0),
+        learning: Number(statsPayload?.learning || 0),
       });
-      setSavedItems(items);
     } catch (error) {
       setSavedItems([]);
       setSavedError(getErrorMessage(error, 'Không thể tải sổ từ của bạn.'));
     } finally {
       setSavedLoading(false);
     }
-  }, [savedKeyword, statusFilter]);
+  }, [deferredSavedKeyword, page, statusFilter]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadSaved, 250);
@@ -106,6 +128,26 @@ export default function DictionaryPage() {
     };
   }, [entry?.word]);
 
+  useEffect(() => {
+    let active = true;
+    const checkSaved = async () => {
+      if (!entry?.word) {
+        setCurrentWordSaved(false);
+        return;
+      }
+      try {
+        const saved = await dictionaryApi.isSaved(entry.word);
+        if (active) setCurrentWordSaved(saved);
+      } catch {
+        if (active) setCurrentWordSaved(false);
+      }
+    };
+    checkSaved();
+    return () => {
+      active = false;
+    };
+  }, [entry?.word]);
+
   const savedWordSet = useMemo(
     () => new Set(savedItems.map((item) => String(item.word || '').toLowerCase())),
     [savedItems]
@@ -113,15 +155,10 @@ export default function DictionaryPage() {
 
   // Vocabulary stats calculations
   const stats = useMemo(() => {
-    const total = savedItems.length;
-    const mastered = savedItems.filter((item) => item.status === 'MASTERED').length;
-    const learning = total - mastered;
+    const { total, mastered, learning } = savedStats;
     const percent = total > 0 ? Math.round((mastered / total) * 100) : 0;
     return { total, mastered, learning, percent };
-  }, [savedItems]);
-
-  const paginationKey = `${savedKeyword}|${statusFilter}|${savedItems.length}`;
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(savedItems, 6, paginationKey);
+  }, [savedStats]);
 
   const lookup = async (event) => {
     event?.preventDefault();
@@ -204,6 +241,7 @@ export default function DictionaryPage() {
         primaryDefinition: getPrimaryDefinition(entry),
         note: saveNote.trim() || null,
       });
+      setCurrentWordSaved(true);
       setSaveNote('');
       await loadSaved();
     } catch (error) {
@@ -250,7 +288,7 @@ export default function DictionaryPage() {
     }
   };
 
-  const isCurrentWordSaved = entry && savedWordSet.has(String(entry.word || '').toLowerCase());
+  const isCurrentWordSaved = entry && (currentWordSaved || savedWordSet.has(String(entry.word || '').toLowerCase()));
 
   return (
     <LearnerPageShell

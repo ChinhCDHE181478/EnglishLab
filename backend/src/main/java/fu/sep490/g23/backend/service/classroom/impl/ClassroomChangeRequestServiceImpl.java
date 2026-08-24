@@ -36,6 +36,9 @@ import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -138,6 +141,52 @@ public class ClassroomChangeRequestServiceImpl implements ClassroomChangeRequest
         return changeRequestRepository.findByRequesterIdOrderByCreatedAtDesc(requester.getId()).stream()
                 .map(mapper::toChangeRequestResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ClassroomChangeRequestResponse> pageMine(
+            String requesterEmail,
+            String statusGroup,
+            String keyword,
+            Pageable pageable
+    ) {
+        User requester = accessHelper.requireUser(requesterEmail);
+        Specification<ClassroomChangeRequest> specification = (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("requester").get("id"), requester.getId());
+        String normalizedStatus = statusGroup == null ? "" : statusGroup.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("PENDING".equals(normalizedStatus) || "REJECTED".equals(normalizedStatus)) {
+            ClassroomChangeRequestStatus status = ClassroomChangeRequestStatus.valueOf(normalizedStatus);
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("status"), status));
+        } else if ("APPROVED".equals(normalizedStatus)) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    root.get("status").in(ClassroomChangeRequestStatus.APPROVED, ClassroomChangeRequestStatus.APPLIED));
+        }
+        String normalizedKeyword = keyword == null ? "" : keyword.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalizedKeyword.isBlank()) {
+            String pattern = "%" + normalizedKeyword + "%";
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.or(
+                    criteriaBuilder.like(criteriaBuilder.lower(root.join("classroomOffering").get("title")), pattern),
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("reason")), pattern)
+            ));
+        }
+        return changeRequestRepository.findAll(specification, pageable)
+                .map(mapper::toChangeRequestResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Long> getMyStats(String requesterEmail) {
+        User requester = accessHelper.requireUser(requesterEmail);
+        Long requesterId = requester.getId();
+        return Map.of(
+                "total", changeRequestRepository.countByRequesterId(requesterId),
+                "pending", changeRequestRepository.countByRequesterIdAndStatus(requesterId, ClassroomChangeRequestStatus.PENDING),
+                "approved", changeRequestRepository.countByRequesterIdAndStatusIn(
+                        requesterId, List.of(ClassroomChangeRequestStatus.APPROVED, ClassroomChangeRequestStatus.APPLIED)),
+                "rejected", changeRequestRepository.countByRequesterIdAndStatus(requesterId, ClassroomChangeRequestStatus.REJECTED)
+        );
     }
 
     @Override

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Archive, CheckCircle2, Dumbbell, Edit3, Layers3, Plus, RefreshCw, Save, Search, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import {
@@ -14,6 +14,7 @@ import AssessmentExamBuilder from '../../components/content-manager/AssessmentEx
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
 import { usePagination } from '../../components/ui/Pagination';
 import { useAppDialog } from '../../components/ui/AppDialog';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 import {
   ERROR_NOTICE_CLASS,
   FIELD_CLASS,
@@ -72,17 +73,35 @@ export default function ContentManagerExerciseBankPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [statsData, setStatsData] = useState({ total: 0, active: 0, inactive: 0, skills: 0 });
   const editorRef = useRef(null);
+  const deferredKeyword = useDeferredValue(keyword);
+  const resetKey = `${deferredKeyword}|${skillFilter}|${typeFilter}|${statusFilter}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    pageResult.content,
+    8,
+    resetKey,
+    pageResult,
+  );
 
   const loadItems = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await courseApi.getExerciseBankItems({
+      const params = {
         skill: skillFilter === 'ALL' ? undefined : skillFilter,
-        includeInactive: true,
-      });
-      setItems(Array.isArray(data) ? data : []);
+        exerciseType: typeFilter === 'ALL' ? undefined : typeFilter,
+        active: statusFilter === 'ALL' ? undefined : statusFilter === 'ACTIVE',
+        keyword: deferredKeyword.trim() || undefined,
+      };
+      const [data, summary] = await Promise.all([
+        courseApi.getExerciseBankItemsPage(pageParams(page, 8, params)),
+        courseApi.getExerciseBankStats({ skill: params.skill }),
+      ]);
+      setPageResult(data);
+      setItems(data.content);
+      setStatsData(summary);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được ngân hàng bài tập.');
     } finally {
@@ -90,33 +109,14 @@ export default function ContentManagerExerciseBankPage() {
     }
   };
 
-  useEffect(() => { loadItems(); }, [skillFilter]);
-
-  const filteredItems = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    return items.filter((item) => {
-      const keywordMatched = !normalized || [item.title, item.prompt, item.tags, item.skill, item.exerciseType]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized));
-      const typeMatched = typeFilter === 'ALL' || item.exerciseType === typeFilter;
-      const statusMatched = statusFilter === 'ALL'
-        || (statusFilter === 'ACTIVE' ? item.active !== false : item.active === false);
-      return keywordMatched && typeMatched && statusMatched;
-    });
-  }, [items, keyword, statusFilter, typeFilter]);
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    filteredItems,
-    8,
-    `${keyword}|${skillFilter}|${typeFilter}|${statusFilter}`,
-  );
+  useEffect(() => { loadItems(); }, [deferredKeyword, page, skillFilter, statusFilter, typeFilter]);
 
   const stats = useMemo(() => [
-    { label: 'Tổng bài tập', value: items.length, icon: Dumbbell, tone: 'text-[#4b0009]' },
-    { label: 'Đang dùng', value: items.filter((item) => item.active !== false).length, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Tạm ngưng', value: items.filter((item) => item.active === false).length, icon: Archive, tone: 'text-slate-700' },
-    { label: 'Kỹ năng', value: new Set(items.map((item) => item.skill).filter(Boolean)).size, icon: Layers3, tone: 'text-[#005236]' },
-  ], [items]);
+    { label: 'Tổng bài tập', value: statsData.total, icon: Dumbbell, tone: 'text-[#4b0009]' },
+    { label: 'Đang dùng', value: statsData.active, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Tạm ngưng', value: statsData.inactive, icon: Archive, tone: 'text-slate-700' },
+    { label: 'Kỹ năng', value: statsData.skills, icon: Layers3, tone: 'text-[#005236]' },
+  ], [statsData]);
 
   const resetForm = (open = true) => {
     setEditingId(null);
@@ -297,7 +297,7 @@ export default function ContentManagerExerciseBankPage() {
           <ManagerStatsGrid stats={stats} />
 
           <ManagerFilterBar>
-            <div className="min-w-[300px] flex-1">
+            <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
                 <input

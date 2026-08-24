@@ -1561,7 +1561,7 @@ function SyllabusProgramListPanel({ programs, loading, onCreate, onImport, onOpe
 
       <section className="rounded-xl border border-[#dcc0bf]/30 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="min-w-[300px] flex-1">
+          <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
               <input
