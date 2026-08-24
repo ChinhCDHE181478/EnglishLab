@@ -18,6 +18,8 @@ const createQuestion = (number = 1) => ({
   prompt: '',
   promptBefore: '',
   promptAfter: '',
+  imageUrl: '',
+  audioUrl: '',
   options: [
     { value: 'A', label: '' },
     { value: 'B', label: '' },
@@ -30,7 +32,11 @@ const createGroup = (number = 1) => ({
   title: `Câu ${number}`,
   instructions: '',
   descriptionHtml: '',
+  passageHtml: '',
   type: 'text',
+  hideOptionText: false,
+  perQuestionAudio: false,
+  audioUrl: '',
   questions: [createQuestion(number)],
   questionNumbers: [],
   maxSelections: 2,
@@ -133,19 +139,24 @@ const createSpeakingConfig = (assessment) => ({
   variants: [createSpeakingVariant(0)],
 });
 
-const createConfig = (assessment) => ({
-  version: 1,
-  type: getAssessmentSkill(assessment) === 'READING'
-    ? 'ielts_reading_exam'
-    : 'ielts_listening_exam',
-  key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
-  title: assessment.title || 'Bài thi mới',
-  durationMinutes: Number(assessment.timeLimitMinutes || 40),
-  audioLabel: 'Bản nghe',
-  audioUrl: '',
-  rules: [],
-  parts: [createPart(0, 1)],
-});
+const createConfig = (assessment) => {
+  const skill = getAssessmentSkill(assessment);
+  const examType = resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
+  return {
+    version: 1,
+    examType,
+    type: resolveObjectiveExamTypeLabel(examType, skill),
+    key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+    title: assessment.title || 'Bài thi mới',
+    durationMinutes: Number(assessment.timeLimitMinutes || 40),
+    audioLabel: 'Bản nghe',
+    audioUrl: '',
+    rules: [],
+    parts: [createPart(0, 1)],
+  };
+};
+
+const getAssessmentExamType = (assessment) => resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
 
 const safeParse = (value, fallback) => {
   try {
@@ -154,6 +165,23 @@ const safeParse = (value, fallback) => {
   } catch {
     return fallback;
   }
+};
+
+const resolveObjectiveExamType = (assessment, parsed = {}) => {
+  const fromProp = String(assessment?.examType || '').toUpperCase();
+  if (fromProp === 'TOEIC' || fromProp === 'IELTS') return fromProp;
+  const fromConfig = String(parsed?.examType || '').toUpperCase();
+  if (fromConfig === 'TOEIC' || fromConfig === 'IELTS') return fromConfig;
+  const type = String(parsed?.type || '').toLowerCase();
+  if (type.startsWith('toeic_')) return 'TOEIC';
+  return 'IELTS';
+};
+
+const resolveObjectiveExamTypeLabel = (examType, skill) => {
+  if (examType === 'TOEIC') {
+    return skill === 'READING' ? 'toeic_reading_exam' : 'toeic_listening_exam';
+  }
+  return skill === 'READING' ? 'ielts_reading_exam' : 'ielts_listening_exam';
 };
 
 const nextQuestionNumber = (parts) => {
@@ -268,7 +296,8 @@ const normalizeConfig = (assessment) => {
   return {
     ...fallback,
     ...safeConfig,
-    type: fallback.type,
+    examType: resolveObjectiveExamType(assessment, safeConfig),
+    type: resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
     parts: normalizedParts,
   };
 };
@@ -724,11 +753,45 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                           <div className="mt-3">
                             <Field label="Hướng dẫn" value={group.instructions || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { instructions: value })} />
                           </div>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <Field
+                              label="Audio nhóm (URL)"
+                              value={group.audioUrl || ''}
+                              onChange={(value) => updateGroup(partIndex, groupIndex, { audioUrl: value })}
+                            />
+                            <div className="flex flex-wrap items-end gap-4 pb-1">
+                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                <input
+                                  checked={Boolean(group.hideOptionText)}
+                                  className="h-4 w-4 accent-[#4b0009]"
+                                  onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
+                                  type="checkbox"
+                                />
+                                Ẩn chữ lựa chọn (A/B/C/D)
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                <input
+                                  checked={Boolean(group.perQuestionAudio)}
+                                  className="h-4 w-4 accent-[#4b0009]"
+                                  onChange={(event) => updateGroup(partIndex, groupIndex, { perQuestionAudio: event.target.checked })}
+                                  type="checkbox"
+                                />
+                                Audio từng câu
+                              </label>
+                            </div>
+                          </div>
                           <div className="mt-3">
                             <TextAreaField
                               label="Nội dung dẫn nhập hoặc biểu mẫu"
                               value={group.descriptionHtml || ''}
                               onChange={(value) => updateGroup(partIndex, groupIndex, { descriptionHtml: value })}
+                            />
+                          </div>
+                          <div className="mt-3">
+                            <TextAreaField
+                              label="Passage HTML (TOEIC Reading Part 6/7)"
+                              value={group.passageHtml || ''}
+                              onChange={(value) => updateGroup(partIndex, groupIndex, { passageHtml: value })}
                             />
                           </div>
 
@@ -1093,6 +1156,12 @@ function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberC
         <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
         <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
       </div>
+      {OBJECTIVE_SKILLS.includes(skill) ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <Field label="Ảnh câu hỏi (URL)" value={question.imageUrl || ''} onChange={(value) => onChange({ imageUrl: value })} />
+          <Field label="Audio câu hỏi (URL)" value={question.audioUrl || ''} onChange={(value) => onChange({ audioUrl: value })} />
+        </div>
+      ) : null}
     </div>
   );
 }

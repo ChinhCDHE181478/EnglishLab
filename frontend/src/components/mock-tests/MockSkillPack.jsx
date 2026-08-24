@@ -1,5 +1,5 @@
 import { BookOpen, Headphones, Layers, Mic, PenLine, Play, RotateCcw } from 'lucide-react';
-import { SKILL_ORDER, packProgress } from '../../utils/mockTestLibrary';
+import { SKILL_ORDER, TOEIC_SKILL_ORDER, packProgress } from '../../utils/mockTestLibrary';
 
 const SKILL_UI = {
   LISTENING: {
@@ -28,13 +28,14 @@ const SKILL_UI = {
   },
 };
 
-export default function MockSkillPack({ pack, completedScoresMap, onStart, heading }) {
-  const progress = packProgress(pack, completedScoresMap);
+export default function MockSkillPack({ pack, completedScoresMap, onStart, heading, examType = 'IELTS' }) {
+  const skillOrder = examType === 'TOEIC' ? TOEIC_SKILL_ORDER : SKILL_ORDER;
+  const progress = packProgress(pack, completedScoresMap, skillOrder);
   return (
     <section className="space-y-5 rounded-[24px] border border-[#eadcdc] bg-white p-5 sm:p-7">
       <h3 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{heading || pack.title}</h3>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {SKILL_ORDER.map((skill) => {
+        {skillOrder.map((skill) => {
           const ui = SKILL_UI[skill];
           const Icon = ui.icon;
           const testItem = pack.skills[skill];
@@ -77,7 +78,7 @@ export default function MockSkillPack({ pack, completedScoresMap, onStart, headi
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#f7ecec] text-[#730014]">
             <Layers className="h-3.5 w-3.5" />
           </span>
-          <span className="text-sm font-extrabold text-[#0b1c30]">Cả 4 kỹ năng</span>
+          <span className="text-sm font-extrabold text-[#0b1c30]">{examType === 'TOEIC' ? 'Listening & Reading' : 'Cả 4 kỹ năng'}</span>
           <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-[#eadcdc] sm:block">
             <div className="h-full bg-[#730014]" style={{ width: `${progress.percent}%` }} />
           </div>

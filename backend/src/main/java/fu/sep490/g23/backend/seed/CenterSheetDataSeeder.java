@@ -782,6 +782,16 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     item.path("resource").asText(),
                     item.path("needsKey").asBoolean(false));
         }
+        JsonNode toeicMockIndex = objectMapper.readTree(
+                new ClassPathResource("sheet-data/toeic-mocks-index.json").getInputStream());
+        for (JsonNode item : toeicMockIndex) {
+            publishMock(
+                    item.path("title").asText(),
+                    AssessmentSkill.valueOf(item.path("skill").asText()),
+                    item.path("minutes").asInt(),
+                    item.path("resource").asText(),
+                    item.path("needsKey").asBoolean(false));
+        }
     }
 
     private void publishMock(String title, AssessmentSkill skill, int minutes, String resource, boolean needsKey) throws Exception {

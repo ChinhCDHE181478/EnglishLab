@@ -10,11 +10,11 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 const TABS = [
   { key: 'overview', label: 'Thiết lập chung' },
   { key: 'monitoring', label: 'Theo dõi kết quả' },
-  { key: 'listening', label: 'Nghe' },
-  { key: 'reading', label: 'Đọc' },
-  { key: 'writing', label: 'Viết' },
-  { key: 'speaking', label: 'Nói' },
-  { key: 'toeic', label: 'TOEIC' },
+  { key: 'listening', label: 'Nghe', examTypes: ['IELTS'] },
+  { key: 'reading', label: 'Đọc', examTypes: ['IELTS'] },
+  { key: 'writing', label: 'Viết', examTypes: ['IELTS'] },
+  { key: 'speaking', label: 'Nói', examTypes: ['IELTS'] },
+  { key: 'toeic', label: 'TOEIC', examTypes: ['TOEIC'] },
 ];
 
 const examTypeOptions = [
@@ -30,6 +30,11 @@ const TOEIC_PARTS = [
   ['Part 5', 'Incomplete Sentences', 30],
   ['Part 6', 'Text Completion', 16],
   ['Part 7', 'Reading Comprehension', 54],
+];
+
+const TOEIC_SECTION_TABS = [
+  { key: 'listening', label: 'Listening', skill: 'LISTENING' },
+  { key: 'reading', label: 'Reading', skill: 'READING' },
 ];
 
 const parseConfig = (value, fallback = {}) => {
@@ -48,6 +53,7 @@ export default function ContentManagerPlacementTestPage() {
   const [saving, setSaving] = useState(false);
   const [monitoring, setMonitoring] = useState(null);
   const [monitoringLoading, setMonitoringLoading] = useState(true);
+  const [monitoringExamType, setMonitoringExamType] = useState('IELTS');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -57,7 +63,7 @@ export default function ContentManagerPlacementTestPage() {
       try {
         const [response, monitoringResponse] = await Promise.all([
           placementTestApi.getManagedDefinition(),
-          placementTestApi.getMonitoring(),
+          placementTestApi.getMonitoring(monitoringExamType),
         ]);
         if (!active) return;
         setDefinition(toDraft(response));
@@ -75,18 +81,41 @@ export default function ContentManagerPlacementTestPage() {
     return () => { active = false; };
   }, []);
 
+  const visibleTabs = useMemo(() => {
+    const examType = definition?.examType || 'IELTS';
+    return TABS.filter((tab) => !tab.examTypes || tab.examTypes.includes(examType));
+  }, [definition?.examType]);
+
+  useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.key === activeTab)) {
+      setActiveTab('overview');
+    }
+  }, [activeTab, visibleTabs]);
+
   const questionCounts = useMemo(() => ({
     listening: countQuestions(definition?.listening),
     reading: countQuestions(definition?.reading),
     writing: definition?.writing?.tasks?.length || 0,
     speaking: countSpeakingPrompts(definition?.speaking),
+    toeicListening: countQuestions(definition?.toeic?.listening),
+    toeicReading: countQuestions(definition?.toeic?.reading),
   }), [definition]);
-  const statItems = useMemo(() => [
-    { label: 'Câu nghe', value: questionCounts.listening, icon: Headphones, tone: 'text-[#4b0009]' },
-    { label: 'Câu đọc', value: questionCounts.reading, icon: BookOpen, tone: 'text-[#005236]' },
-    { label: 'Task viết', value: questionCounts.writing, icon: NotebookPen, tone: 'text-amber-700' },
-    { label: 'Prompt nói', value: questionCounts.speaking, icon: Mic2, tone: 'text-emerald-700' },
-  ], [questionCounts]);
+  const isToeicExam = (definition?.examType || 'IELTS') === 'TOEIC';
+  const statItems = useMemo(() => (
+    isToeicExam
+      ? [
+        { label: 'Câu Listening', value: questionCounts.toeicListening, icon: Headphones, tone: 'text-[#4b0009]' },
+        { label: 'Câu Reading', value: questionCounts.toeicReading, icon: BookOpen, tone: 'text-[#005236]' },
+        { label: 'Part TOEIC', value: 7, icon: NotebookPen, tone: 'text-amber-700' },
+        { label: 'Đáp án', value: Object.keys(definition?.toeic?.answerKey || {}).length, icon: Mic2, tone: 'text-emerald-700' },
+      ]
+      : [
+        { label: 'Câu nghe', value: questionCounts.listening, icon: Headphones, tone: 'text-[#4b0009]' },
+        { label: 'Câu đọc', value: questionCounts.reading, icon: BookOpen, tone: 'text-[#005236]' },
+        { label: 'Task viết', value: questionCounts.writing, icon: NotebookPen, tone: 'text-amber-700' },
+        { label: 'Prompt nói', value: questionCounts.speaking, icon: Mic2, tone: 'text-emerald-700' },
+      ]
+  ), [definition?.toeic?.answerKey, isToeicExam, questionCounts]);
 
   const updateDefinition = (field, value) => setDefinition((current) => ({ ...current, [field]: value }));
   const updateConfig = (skill, updater) => setDefinition((current) => ({
@@ -135,15 +164,48 @@ export default function ContentManagerPlacementTestPage() {
     }
   };
 
-  const refreshMonitoring = async () => {
+  const refreshMonitoring = async (examType = monitoringExamType) => {
     setMonitoringLoading(true);
     try {
-      setMonitoring(await placementTestApi.getMonitoring());
+      setMonitoring(await placementTestApi.getMonitoring(examType));
+      setMonitoringExamType(examType);
     } catch (requestError) {
       setError(requestError?.response?.data?.message || 'Không tải được dữ liệu theo dõi.');
     } finally {
       setMonitoringLoading(false);
     }
+  };
+
+  const applyToeicSectionChange = (sectionKey, field, value) => {
+    updateConfig('toeic', (current) => {
+      const base = current || buildDefaultToeicConfig();
+      const section = base[sectionKey] || {};
+      if (field === 'uiConfigJson') {
+        const next = parseConfig(value, section);
+        delete next.answerKey;
+        return {
+          ...base,
+          [sectionKey]: { ...next, answerKey: section.answerKey || {} },
+        };
+      }
+      if (field === 'objectiveAnswerKey') {
+        const sectionAnswerKey = parseConfig(value, {});
+        const otherSectionKey = sectionKey === 'listening' ? 'reading' : 'listening';
+        const otherAnswerKey = base[otherSectionKey]?.answerKey || {};
+        return {
+          ...base,
+          [sectionKey]: { ...section, answerKey: sectionAnswerKey },
+          answerKey: { ...otherAnswerKey, ...sectionAnswerKey },
+        };
+      }
+      if (field === 'timeLimitMinutes') {
+        return {
+          ...base,
+          [sectionKey]: { ...section, durationMinutes: Number(value || 0) },
+        };
+      }
+      return base;
+    });
   };
 
   if (loading) {
@@ -159,7 +221,7 @@ export default function ContentManagerPlacementTestPage() {
 
       <ManagerFilterBar>
         <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-bold transition ${activeTab === tab.key ? 'bg-[#4b0009] text-white' : 'text-[#4b0009] hover:bg-[#eff4ff]'}`}
               key={tab.key}
@@ -179,25 +241,142 @@ export default function ContentManagerPlacementTestPage() {
       {notice ? <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-800"><CheckCircle2 className="h-5 w-5" /> {notice}</div> : null}
 
       {activeTab === 'overview' ? <Overview definition={definition} onChange={updateDefinition} /> : null}
-      {activeTab === 'monitoring' ? <Monitoring monitoring={monitoring} loading={monitoringLoading} onRefresh={refreshMonitoring} /> : null}
+      {activeTab === 'monitoring' ? (
+        <Monitoring
+          examType={monitoringExamType}
+          loading={monitoringLoading}
+          monitoring={monitoring}
+          onChangeExamType={refreshMonitoring}
+          onRefresh={() => refreshMonitoring(monitoringExamType)}
+        />
+      ) : null}
       {activeTab === 'listening' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Nghe" skill="LISTENING" config={definition.listening} onChange={(field, value) => applyObjectiveChange('listening', field, value)} /> : null}
       {activeTab === 'reading' ? <ObjectiveEditor label="Bài đánh giá kỹ năng Đọc" skill="READING" config={definition.reading} onChange={(field, value) => applyObjectiveChange('reading', field, value)} /> : null}
       {activeTab === 'writing' ? <SubjectiveEditor config={definition.writing} label="Bài đánh giá kỹ năng Viết" skill="WRITING" onChange={(field, value) => applySubjectiveChange('writing', field, value)} /> : null}
       {activeTab === 'speaking' ? <SubjectiveEditor config={definition.speaking} label="Bài đánh giá kỹ năng Nói" skill="SPEAKING" onChange={(field, value) => applySubjectiveChange('speaking', field, value)} /> : null}
-      {activeTab === 'toeic' ? <ToeicEditor config={definition.toeic} onChange={(value) => updateConfig('toeic', value)} /> : null}
+      {activeTab === 'toeic' ? <ToeicEditor config={definition.toeic} onChangeSection={applyToeicSectionChange} onReset={() => updateConfig('toeic', buildDefaultToeicConfig())} /> : null}
     </div>
   );
 }
 
-function Monitoring({ loading, monitoring, onRefresh }) {
+function Monitoring({ examType = 'IELTS', loading, monitoring, onChangeExamType, onRefresh }) {
+  const isToeic = examType === 'TOEIC';
   const distribution = monitoring?.bandDistribution || [];
   const maximum = Math.max(...distribution.map((item) => Number(item.count || 0)), 1);
-  return <div className="space-y-6"><div className="flex justify-end"><button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button"><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu</button></div>
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><MonitorCard icon={Users} label="Người tham gia" value={monitoring?.uniqueParticipants || 0} /><MonitorCard icon={BarChart3} label="Tổng lượt làm" value={monitoring?.totalAttempts || 0} /><MonitorCard icon={CheckCircle2} label="Đã hoàn thành" value={monitoring?.completedAttempts || 0} /><MonitorCard icon={BarChart3} label="Band tổng trung bình" value={formatBand(monitoring?.averageOverallBand)} /></section>
-    <section className="grid gap-6 xl:grid-cols-[1.05fr_.95fr]"><Panel className="p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Phân hóa band đầu vào</h3><div className="mt-6 space-y-5">{distribution.length ? distribution.map((item) => <div className="space-y-2" key={item.label}><div className="flex justify-between text-sm"><span className="font-semibold text-[#4b0009]">{item.label}</span><span className="font-bold">{item.count}</span></div><div className="h-3 overflow-hidden rounded-full bg-[#f1e3e4]"><div className="h-full rounded-full bg-[#730014]" style={{ width: `${item.count ? Math.max((Number(item.count) / maximum) * 100, 8) : 0}%` }} /></div></div>) : <p className="text-sm text-[#584140]">Chưa có lượt làm để phân tích.</p>}</div></Panel>
-      <Panel className="p-6"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Band trung bình theo kỹ năng</h3><div className="mt-6 grid grid-cols-2 gap-3">{[['Nghe', monitoring?.averageListeningBand], ['Đọc', monitoring?.averageReadingBand], ['Viết', monitoring?.averageWritingBand], ['Nói', monitoring?.averageSpeakingBand]].map(([label, value]) => <div className="rounded-2xl border border-[#eadcdc] bg-[#fffafb] p-4" key={label}><p className="text-xs font-bold uppercase tracking-[.14em] text-[#8b706e]">{label}</p><p className="mt-2 text-2xl font-extrabold text-[#4b0009]">{formatBand(value)}</p></div>)}</div></Panel></section>
-    <Panel className="overflow-hidden"><div className="border-b border-[#f0e3e4] px-6 py-5"><h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây</h3></div><div className="overflow-x-auto"><table className="min-w-full text-left"><thead className="bg-[#fbf3f4] text-xs uppercase tracking-[.15em] text-[#8e7371]"><tr>{['Học viên', 'Tổng', 'Nghe', 'Đọc', 'Viết', 'Nói', 'Trạng thái', 'Nộp lúc'].map((label) => <th className="px-5 py-4 font-semibold" key={label}>{label}</th>)}</tr></thead><tbody className="divide-y divide-[#f0e3e4]">{monitoring?.recentAttempts?.length ? monitoring.recentAttempts.map((attempt) => <tr key={attempt.id}><td className="px-5 py-4"><p className="font-semibold">{attempt.learnerName || 'Chưa có tên'}</p><p className="text-xs text-[#735b59]">{attempt.learnerEmail}</p></td><td className="px-5 py-4 font-bold">{formatBand(attempt.overallBand)}</td><td className="px-5 py-4 text-sm">{formatBand(attempt.listeningBand)}</td><td className="px-5 py-4 text-sm">{formatBand(attempt.readingBand)}</td><td className="px-5 py-4 text-sm">{formatBand(attempt.writingBand)}</td><td className="px-5 py-4 text-sm">{formatBand(attempt.speakingBand)}</td><td className="px-5 py-4 text-sm">{attempt.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã chấm khách quan'}</td><td className="px-5 py-4 text-sm">{formatDate(attempt.submittedAt)}</td></tr>) : <tr><td className="px-5 py-10 text-sm text-[#584140]" colSpan={8}>Chưa có lượt làm nào.</td></tr>}</tbody></table></div></Panel>
-  </div>;
+  const scoreLabel = isToeic ? 'Điểm' : 'Band';
+  const formatScore = (value) => {
+    if (value == null) return '—';
+    return isToeic ? String(Math.round(Number(value))) : Number(value).toFixed(1);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {['IELTS', 'TOEIC'].map((type) => (
+            <button
+              className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${examType === type ? 'bg-[#4b0009] text-white' : 'border border-[#dfbfbd] bg-white text-[#4b0009] hover:bg-[#fff7f7]'}`}
+              key={type}
+              onClick={() => onChangeExamType?.(type)}
+              type="button"
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+        <button className="inline-flex items-center gap-2 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm font-bold text-[#730014]" onClick={onRefresh} type="button">
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Làm mới số liệu
+        </button>
+      </div>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MonitorCard icon={Users} label="Người tham gia" value={monitoring?.uniqueParticipants || 0} />
+        <MonitorCard icon={BarChart3} label="Tổng lượt làm" value={monitoring?.totalAttempts || 0} />
+        <MonitorCard icon={CheckCircle2} label="Đã hoàn thành" value={monitoring?.completedAttempts || 0} />
+        <MonitorCard icon={BarChart3} label={`${scoreLabel} tổng trung bình`} value={formatScore(monitoring?.averageOverallBand)} />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.05fr_.95fr]">
+        <Panel className="p-6">
+          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">
+            {isToeic ? 'Phân hóa điểm TOEIC' : 'Phân hóa band đầu vào'}
+          </h3>
+          <div className="mt-6 space-y-5">
+            {distribution.length ? distribution.map((item) => (
+              <div className="space-y-2" key={item.label}>
+                <div className="flex justify-between text-sm">
+                  <span className="font-semibold text-[#4b0009]">{item.label}</span>
+                  <span className="font-bold">{item.count}</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-[#f1e3e4]">
+                  <div className="h-full rounded-full bg-[#730014]" style={{ width: `${item.count ? Math.max((Number(item.count) / maximum) * 100, 8) : 0}%` }} />
+                </div>
+              </div>
+            )) : <p className="text-sm text-[#584140]">Chưa có lượt làm để phân tích.</p>}
+          </div>
+        </Panel>
+        <Panel className="p-6">
+          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">
+            {isToeic ? 'Điểm trung bình theo kỹ năng' : 'Band trung bình theo kỹ năng'}
+          </h3>
+          <div className={`mt-6 grid gap-3 ${isToeic ? 'grid-cols-2' : 'grid-cols-2'}`}>
+            {(isToeic
+              ? [['Listening', monitoring?.averageListeningBand], ['Reading', monitoring?.averageReadingBand]]
+              : [['Nghe', monitoring?.averageListeningBand], ['Đọc', monitoring?.averageReadingBand], ['Viết', monitoring?.averageWritingBand], ['Nói', monitoring?.averageSpeakingBand]]
+            ).map(([label, value]) => (
+              <div className="rounded-2xl border border-[#eadcdc] bg-[#fffafb] p-4" key={label}>
+                <p className="text-xs font-bold uppercase tracking-[.14em] text-[#8b706e]">{label}</p>
+                <p className="mt-2 text-2xl font-extrabold text-[#4b0009]">{formatScore(value)}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </section>
+
+      <Panel className="overflow-hidden">
+        <div className="border-b border-[#f0e3e4] px-6 py-5">
+          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Lượt làm gần đây · {examType}</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left">
+            <thead className="bg-[#fbf3f4] text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+              <tr>
+                {(isToeic
+                  ? ['Học viên', 'Tổng', 'Listening', 'Reading', 'Trạng thái', 'Nộp lúc']
+                  : ['Học viên', 'Tổng', 'Nghe', 'Đọc', 'Viết', 'Nói', 'Trạng thái', 'Nộp lúc']
+                ).map((label) => <th className="px-5 py-4" key={label}>{label}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f0e3e4]">
+              {monitoring?.recentAttempts?.length ? monitoring.recentAttempts.map((attempt) => (
+                <tr key={attempt.id}>
+                  <td className="px-5 py-4">
+                    <p className="text-sm font-bold text-[#0b1c30]">{attempt.learnerName || 'Chưa có tên'}</p>
+                    <p className="text-xs text-[#735b59]">{attempt.learnerEmail}</p>
+                  </td>
+                  <td className="px-5 py-4 text-sm font-bold text-[#0b1c30]">{formatScore(attempt.overallBand)}</td>
+                  <td className="px-5 py-4 text-sm">{formatScore(attempt.listeningBand)}</td>
+                  <td className="px-5 py-4 text-sm">{formatScore(attempt.readingBand)}</td>
+                  {isToeic ? null : (
+                    <>
+                      <td className="px-5 py-4 text-sm">{formatScore(attempt.writingBand)}</td>
+                      <td className="px-5 py-4 text-sm">{formatScore(attempt.speakingBand)}</td>
+                    </>
+                  )}
+                  <td className="px-5 py-4 text-sm">{attempt.status === 'COMPLETED' ? 'Hoàn thành' : 'Đã chấm khách quan'}</td>
+                  <td className="px-5 py-4 text-sm">{formatDate(attempt.submittedAt)}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td className="px-5 py-10 text-sm text-[#584140]" colSpan={isToeic ? 6 : 8}>Chưa có lượt làm nào.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+    </div>
+  );
 }
 
 function MonitorCard({ icon: Icon, label, value }) { return <Panel className="p-5"><div className="flex justify-between gap-3"><div><p className="text-sm text-[#584140]">{label}</p><p className="mt-2 font-['Manrope'] text-3xl font-extrabold text-[#4b0009]">{value}</p></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff1f2] text-[#730014]"><Icon className="h-5 w-5" /></span></div></Panel>; }
@@ -226,65 +405,76 @@ function Overview({ definition, onChange }) {
   </Panel>;
 }
 
-function ToeicEditor({ config, onChange }) {
-  const [rawJson, setRawJson] = useState(() => JSON.stringify(config || buildDefaultToeicConfig(), null, 2));
-  const [jsonError, setJsonError] = useState('');
-
-  useEffect(() => {
-    setRawJson(JSON.stringify(config || buildDefaultToeicConfig(), null, 2));
-    setJsonError('');
-  }, [config]);
-
-  const handleJsonChange = (event) => {
-    const nextRaw = event.target.value;
-    setRawJson(nextRaw);
-    try {
-      const parsed = JSON.parse(nextRaw);
-      setJsonError('');
-      onChange(parsed);
-    } catch {
-      setJsonError('JSON chưa hợp lệ. Nội dung sẽ chưa được lưu cho tới khi sửa đúng cú pháp.');
-    }
+function ToeicEditor({ config, onChangeSection, onReset }) {
+  const [sectionTab, setSectionTab] = useState('listening');
+  const section = config?.[sectionTab] || {};
+  const activeMeta = TOEIC_SECTION_TABS.find((tab) => tab.key === sectionTab);
+  const sectionAnswerKey = {
+    ...(config?.answerKey || {}),
+    ...(section.answerKey || {}),
   };
+  const { answerKey: _ignored, ...uiConfig } = section;
 
   return (
-    <Panel className="p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Form đề TOEIC</h3>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]">
-            Dùng case TOEIC Listening & Reading gồm 7 part. Nội dung câu hỏi, audio/image URL và answer key lưu trong JSON để frontend test mode render theo cùng builder hiện tại.
-          </p>
-        </div>
-        <button
-          className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-xs font-extrabold text-[#730014]"
-          onClick={() => onChange(buildDefaultToeicConfig())}
-          type="button"
-        >
-          Nạp template TOEIC
-        </button>
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {TOEIC_PARTS.map(([part, title, count]) => (
-          <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4" key={part}>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{part}</p>
-            <p className="mt-1 font-extrabold text-[#1a1c1c]">{title}</p>
-            <p className="mt-1 text-xs font-semibold text-[#584140]">{count} câu</p>
+    <div className="space-y-5">
+      <Panel className="p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">Biên soạn đề TOEIC</h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#584140]">
+              Soạn Listening và Reading giống phần Nghe/Đọc IELTS: thêm part, nhóm câu, ảnh, audio và đáp án trực tiếp.
+            </p>
           </div>
+          <button className="rounded-xl border border-[#dfbfbd] px-4 py-2 text-xs font-extrabold text-[#730014]" onClick={onReset} type="button">
+            Nạp khung 7 part
+          </button>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {TOEIC_PARTS.map(([part, title, count]) => (
+            <div className="rounded-2xl border border-[#f0e3e4] bg-[#fffafb] p-4" key={part}>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">{part}</p>
+              <p className="mt-1 font-extrabold text-[#1a1c1c]">{title}</p>
+              <p className="mt-1 text-xs font-semibold text-[#584140]">{count} câu</p>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <div className="flex gap-2">
+        {TOEIC_SECTION_TABS.map((tab) => (
+          <button
+            className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${sectionTab === tab.key ? 'bg-[#4b0009] text-white' : 'border border-[#dfbfbd] bg-white text-[#4b0009]'}`}
+            key={tab.key}
+            onClick={() => setSectionTab(tab.key)}
+            type="button"
+          >
+            {tab.label}
+          </button>
         ))}
       </div>
 
-      <label className="mt-5 block space-y-2">
-        <span className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Cấu hình TOEIC JSON</span>
-        <textarea
-          className="min-h-[440px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-xs text-slate-900 outline-none transition focus:border-[#730014] focus:bg-white"
-          onChange={handleJsonChange}
-          value={rawJson}
-        />
-        {jsonError ? <span className="text-xs font-semibold text-[#93000a]">{jsonError}</span> : null}
-      </label>
-    </Panel>
+      <Panel className="p-6">
+        <h3 className="font-['Manrope'] text-xl font-extrabold text-[#1a1c1c]">TOEIC {activeMeta?.label}</h3>
+        <p className="mt-2 text-sm leading-6 text-[#584140]">Biên soạn phần thi, câu hỏi và đáp án trực quan. Đáp án không được hiển thị cho học viên.</p>
+        <div className="mt-5">
+          <AssessmentExamBuilder
+            assessment={{
+              title: section.title || `TOEIC ${activeMeta?.label}`,
+              skill: activeMeta?.skill,
+              examType: 'TOEIC',
+              uiConfigJson: JSON.stringify({
+                ...uiConfig,
+                examType: 'TOEIC',
+                type: sectionTab === 'reading' ? 'toeic_reading_exam' : 'toeic_listening_exam',
+              }),
+              objectiveAnswerKey: JSON.stringify(sectionAnswerKey),
+              timeLimitMinutes: section.durationMinutes || (sectionTab === 'listening' ? 45 : 75),
+            }}
+            onChange={(field, value) => onChangeSection(sectionTab, field, value)}
+          />
+        </div>
+      </Panel>
+    </div>
   );
 }
 
@@ -302,35 +492,86 @@ function toDraft(response) {
 }
 
 function toPayload(draft) {
-  return { title: draft.title, description: draft.description, examType: draft.examType || 'IELTS', maxAttempts: Number(draft.maxAttempts), active: Boolean(draft.active), listeningConfigJson: JSON.stringify(draft.listening), readingConfigJson: JSON.stringify(draft.reading), writingConfigJson: JSON.stringify(draft.writing), speakingConfigJson: JSON.stringify(draft.speaking), toeicConfigJson: JSON.stringify(draft.toeic || buildDefaultToeicConfig()) };
+  const toeic = draft.toeic || buildDefaultToeicConfig();
+  const toeicPayload = {
+    ...toeic,
+    answerKey: {
+      ...(toeic.listening?.answerKey || {}),
+      ...(toeic.reading?.answerKey || {}),
+      ...(toeic.answerKey || {}),
+    },
+  };
+  return {
+    title: draft.title,
+    description: draft.description,
+    examType: draft.examType || 'IELTS',
+    maxAttempts: Number(draft.maxAttempts),
+    active: Boolean(draft.active),
+    listeningConfigJson: JSON.stringify(draft.listening),
+    readingConfigJson: JSON.stringify(draft.reading),
+    writingConfigJson: JSON.stringify(draft.writing),
+    speakingConfigJson: JSON.stringify(draft.speaking),
+    toeicConfigJson: JSON.stringify(toeicPayload),
+  };
 }
 
 function buildDefaultToeicConfig() {
-    return {
+  const listeningParts = TOEIC_PARTS.slice(0, 4).map(([part, title], index) => ({
+    key: `toeic_listening_part_${index + 1}`,
+    partNumber: Number(part.replace('Part ', '')),
+    part: Number(part.replace('Part ', '')),
+    title,
+    summary: '',
+    questionGroups: [{
+      title: title,
+      instructions: '',
+      descriptionHtml: '',
+      passageHtml: '',
+      type: 'single_choice',
+      hideOptionText: index < 2,
+      perQuestionAudio: index < 2,
+      audioUrl: '',
+      questions: [],
+    }],
+  }));
+  const readingParts = TOEIC_PARTS.slice(4).map(([part, title], index) => ({
+    key: `toeic_reading_part_${index + 5}`,
+    partNumber: Number(part.replace('Part ', '')),
+    part: Number(part.replace('Part ', '')),
+    title,
+    summary: '',
+    questionGroups: [{
+      title: title,
+      instructions: '',
+      descriptionHtml: '',
+      passageHtml: '',
+      type: 'single_choice',
+      hideOptionText: false,
+      perQuestionAudio: false,
+      audioUrl: '',
+      questions: [],
+    }],
+  }));
+  return {
     type: 'toeic_full_test',
-    title: 'TOEIC Placement - ETS 2026 Test 10',
+    examType: 'TOEIC',
+    title: 'TOEIC Placement',
     durationMinutes: 120,
     listening: {
+      type: 'toeic_listening_exam',
+      examType: 'TOEIC',
+      title: 'TOEIC Listening',
       durationMinutes: 45,
-      parts: TOEIC_PARTS.slice(0, 4).map(([part, title, count]) => ({
-        part: Number(part.replace('Part ', '')),
-        title,
-        questionCount: count,
-        directions: '',
-        audioUrl: '',
-        questions: [],
-      })),
+      parts: listeningParts,
+      answerKey: {},
     },
     reading: {
+      type: 'toeic_reading_exam',
+      examType: 'TOEIC',
+      title: 'TOEIC Reading',
       durationMinutes: 75,
-      parts: TOEIC_PARTS.slice(4).map(([part, title, count]) => ({
-        part: Number(part.replace('Part ', '')),
-        title,
-        questionCount: count,
-        directions: '',
-        passageText: '',
-        questions: [],
-      })),
+      parts: readingParts,
+      answerKey: {},
     },
     answerKey: {},
   };

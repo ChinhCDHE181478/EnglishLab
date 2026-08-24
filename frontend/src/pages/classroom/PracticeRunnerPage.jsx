@@ -5,9 +5,11 @@ import classroomApi from '../../api/classroomApi';
 import { ClassroomEmptyState, ClassroomErrorState, ClassroomLoadingState } from '../../components/classroom/ClassroomUi';
 import ListeningExamMode from '../../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../../components/course-assessment/ReadingExamMode';
+import ToeicExamMode from '../../components/course-assessment/ToeicExamMode';
 import LearnerPageShell from '../../components/learner/LearnerPageShell';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
+import { isToeicExamConfig } from '../../utils/mockTestExam';
 
 const parseExamConfig = (instruction) => {
   try {
@@ -133,7 +135,8 @@ export default function PracticeRunnerPage() {
     return <LearnerPageShell title="Không tìm thấy bài luyện tập"><ClassroomEmptyState actionLabel="Về danh sách luyện tập" actionTo="/my-practice" description="Bài này không còn thuộc giáo trình của lớp hoặc bạn không có quyền truy cập." title="Không tìm thấy bài" /></LearnerPageShell>;
   }
 
-  const ExamMode = isListening ? ListeningExamMode : ReadingExamMode;
+  const useToeicUi = isToeicExamConfig(examConfig);
+  const ExamMode = useToeicUi ? ToeicExamMode : (isListening ? ListeningExamMode : ReadingExamMode);
   const assessment = {
     id: practice.exerciseId,
     title: practice.title,
@@ -153,7 +156,7 @@ export default function PracticeRunnerPage() {
           {examConfig ? (
             <section className="overflow-hidden rounded-[30px] border border-[#ead9db] bg-white shadow-sm">
               <div className="bg-[radial-gradient(circle_at_top_right,_rgba(115,0,20,0.12),_transparent_42%),linear-gradient(135deg,#fffdfd,#fff7f8)] p-8">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#730014]">Chế độ làm bài giống Module Test</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#730014]">Bài luyện tập</p>
                 <h2 className="mt-3 font-['Manrope'] text-3xl font-black text-[#1a1c1c]">{examConfig.title || practice.title}</h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-[#6f5b59]">Bài luyện tập mở trong giao diện đề thi: có đồng hồ, điều hướng phần/câu, theo dõi câu đã làm và nộp kết quả trực tiếp trên hệ thống.</p>
                 <div className="mt-6 flex flex-wrap gap-3 text-xs font-extrabold text-[#584140]">
@@ -201,6 +204,7 @@ export default function PracticeRunnerPage() {
           config={examConfig}
           onClose={() => setExamOpen(false)}
           onSubmit={submitExam}
+          skillLabel={isListening ? 'TOEIC Listening' : 'TOEIC Reading'}
           skipAudioCheck={isListening && !examConfig.audioUrl}
           submitLabel="Nộp lượt luyện tập"
           submitting={submitting}

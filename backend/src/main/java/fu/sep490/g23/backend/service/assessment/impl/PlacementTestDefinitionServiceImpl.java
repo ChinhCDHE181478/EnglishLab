@@ -36,7 +36,9 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
     @Override
     @Transactional
     public PlacementTestDefinition getDefinition() {
-        return definitionRepository.findByTestCode(TEST_CODE).orElseGet(this::createDefaultDefinition);
+        PlacementTestDefinition definition = definitionRepository.findByTestCode(TEST_CODE).orElseGet(this::createDefaultDefinition);
+        refreshToeicConfigIfStale(definition);
+        return definition;
     }
 
     @Override
@@ -76,27 +78,61 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
     @Override
     @Transactional(readOnly = true)
     public PlacementTestMonitoringResponse getMonitoring() {
-        List<PlacementTestAttempt> attempts = attemptRepository.findByTestCodeOrderBySubmittedAtDesc(TEST_CODE);
+        return getMonitoring("IELTS");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PlacementTestMonitoringResponse getMonitoring(String examType) {
+        String normalizedExamType = "TOEIC".equalsIgnoreCase(String.valueOf(examType)) ? "TOEIC" : "IELTS";
+        List<PlacementTestAttempt> allAttempts = attemptRepository.findByTestCodeOrderBySubmittedAtDesc(TEST_CODE);
+        List<PlacementTestAttempt> attempts = allAttempts.stream()
+                .filter(attempt -> normalizedExamType.equals(resolveAttemptExamType(attempt)))
+                .toList();
+        long uniqueParticipants = attempts.stream()
+                .map(attempt -> attempt.getStudent() == null ? null : attempt.getStudent().getId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .count();
         return PlacementTestMonitoringResponse.builder()
+                .examType(normalizedExamType)
                 .totalAttempts(attempts.size())
-                .uniqueParticipants(attemptRepository.countDistinctStudentsByTestCode(TEST_CODE))
+                .uniqueParticipants(uniqueParticipants)
                 .completedAttempts(attempts.stream().filter(attempt -> "COMPLETED".equals(attempt.getStatus())).count())
                 .averageOverallBand(average(attempts, PlacementTestAttempt::getOverallScore))
                 .averageListeningBand(average(attempts, PlacementTestAttempt::getListeningScore))
                 .averageReadingBand(average(attempts, PlacementTestAttempt::getReadingScore))
-                .averageWritingBand(average(attempts, PlacementTestAttempt::getWritingScore))
-                .averageSpeakingBand(average(attempts, PlacementTestAttempt::getSpeakingScore))
-                .bandDistribution(List.of(
-                        distribution("Dưới 4.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) < 0),
-                        distribution("4.0 - 4.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) >= 0 && score.compareTo(BigDecimal.valueOf(5)) < 0),
-                        distribution("5.0 - 5.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(5)) >= 0 && score.compareTo(BigDecimal.valueOf(6)) < 0),
-                        distribution("6.0 - 6.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(6)) >= 0 && score.compareTo(BigDecimal.valueOf(7)) < 0),
-                        distribution("Từ 7.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(7)) >= 0)
-                ))
-                .recentAttempts(attemptRepository.findTop20ByTestCodeOrderBySubmittedAtDesc(TEST_CODE).stream()
-                        .map(this::toRecentAttempt)
-                        .toList())
+                .averageWritingBand("TOEIC".equals(normalizedExamType) ? null : average(attempts, PlacementTestAttempt::getWritingScore))
+                .averageSpeakingBand("TOEIC".equals(normalizedExamType) ? null : average(attempts, PlacementTestAttempt::getSpeakingScore))
+                .bandDistribution("TOEIC".equals(normalizedExamType) ? toeicDistribution(attempts) : ieltsDistribution(attempts))
+                .recentAttempts(attempts.stream().limit(20).map(this::toRecentAttempt).toList())
                 .build();
+    }
+
+    private List<PlacementTestMonitoringResponse.BandDistributionItem> ieltsDistribution(List<PlacementTestAttempt> attempts) {
+        return List.of(
+                distribution("Dưới 4.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) < 0),
+                distribution("4.0 - 4.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(4)) >= 0 && score.compareTo(BigDecimal.valueOf(5)) < 0),
+                distribution("5.0 - 5.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(5)) >= 0 && score.compareTo(BigDecimal.valueOf(6)) < 0),
+                distribution("6.0 - 6.5", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(6)) >= 0 && score.compareTo(BigDecimal.valueOf(7)) < 0),
+                distribution("Từ 7.0", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(7)) >= 0)
+        );
+    }
+
+    private List<PlacementTestMonitoringResponse.BandDistributionItem> toeicDistribution(List<PlacementTestAttempt> attempts) {
+        return List.of(
+                distribution("Dưới 400", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(400)) < 0),
+                distribution("400 - 495", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(400)) >= 0 && score.compareTo(BigDecimal.valueOf(500)) < 0),
+                distribution("500 - 595", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(500)) >= 0 && score.compareTo(BigDecimal.valueOf(600)) < 0),
+                distribution("600 - 695", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(600)) >= 0 && score.compareTo(BigDecimal.valueOf(700)) < 0),
+                distribution("700 - 795", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(700)) >= 0 && score.compareTo(BigDecimal.valueOf(800)) < 0),
+                distribution("Từ 800", attempts, score -> score != null && score.compareTo(BigDecimal.valueOf(800)) >= 0)
+        );
+    }
+
+    private String resolveAttemptExamType(PlacementTestAttempt attempt) {
+        String feedback = String.valueOf(attempt.getAiFeedbackJson());
+        return feedback.contains("\"examType\":\"TOEIC\"") ? "TOEIC" : "IELTS";
     }
 
     @Override
@@ -267,6 +303,17 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
         return loadResource(DEFAULT_TOEIC_RESOURCE);
     }
 
+    private void refreshToeicConfigIfStale(PlacementTestDefinition definition) {
+        String latest = defaultToeicConfig();
+        String current = definition.getToeicConfigJson();
+        if (current != null && current.contains("englishlab_toeic_placement_de1")) {
+            return;
+        }
+        definition.setToeicConfigJson(latest);
+        definition.setUpdatedAt(LocalDateTime.now());
+        definitionRepository.save(definition);
+    }
+
     private BigDecimal average(List<PlacementTestAttempt> attempts, java.util.function.Function<PlacementTestAttempt, BigDecimal> extractor) {
         List<BigDecimal> scores = attempts.stream().map(extractor).filter(java.util.Objects::nonNull).toList();
         if (scores.isEmpty()) {
@@ -290,6 +337,7 @@ public class PlacementTestDefinitionServiceImpl implements PlacementTestDefiniti
     private PlacementTestMonitoringResponse.RecentAttempt toRecentAttempt(PlacementTestAttempt attempt) {
         return PlacementTestMonitoringResponse.RecentAttempt.builder()
                 .id(attempt.getId())
+                .examType(resolveAttemptExamType(attempt))
                 .learnerName(attempt.getStudent().getFullName())
                 .learnerEmail(attempt.getStudent().getEmail())
                 .overallBand(attempt.getOverallScore())

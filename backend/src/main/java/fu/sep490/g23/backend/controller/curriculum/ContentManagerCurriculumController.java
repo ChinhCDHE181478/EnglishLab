@@ -200,10 +200,11 @@ public class ContentManagerCurriculumController {
             @RequestParam(required = false) AssessmentType type,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String examCategory,
             @PageableDefault(size = 8, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         return ResponseEntity.ok(curriculumProgramService.pageAssessmentBank(
-                skill, type, status, keyword, pageable));
+                skill, type, status, keyword, examCategory, pageable));
     }
 
     @GetMapping("/assessment-bank/stats")

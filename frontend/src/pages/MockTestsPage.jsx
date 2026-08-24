@@ -14,6 +14,7 @@ import {
   monthProgress,
   monthSkillPresence,
   SKILL_ORDER,
+  TOEIC_SKILL_ORDER,
   splitMockTests,
 } from '../utils/mockTestLibrary';
 
@@ -43,7 +44,8 @@ function MockResult({ result }) {
 }
 
 export default function MockTestsPage() {
-  const { year, monthKey } = useParams();
+  const { exam, year, monthKey } = useParams();
+  const examType = String(exam || '').toLowerCase() === 'toeic' ? 'TOEIC' : 'IELTS';
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -75,11 +77,14 @@ export default function MockTestsPage() {
   }, []);
 
   const { practiceTests } = useMemo(() => splitMockTests(tests), [tests]);
-  const fullLibrary = useMemo(() => buildMockLibrary(tests), [tests]);
-  const library = useMemo(
-    () => filterLibrary(fullLibrary, { keyword }),
-    [fullLibrary, keyword]
+  const ieltsLibrary = useMemo(() => buildMockLibrary(tests, 'IELTS'), [tests]);
+  const toeicLibrary = useMemo(() => buildMockLibrary(tests, 'TOEIC'), [tests]);
+  const fullLibrary = examType === 'TOEIC' ? toeicLibrary : ieltsLibrary;
+  const overviewLibrary = useMemo(
+    () => [...filterLibrary(ieltsLibrary, { keyword }), ...filterLibrary(toeicLibrary, { keyword })],
+    [ieltsLibrary, toeicLibrary, keyword]
   );
+  const overviewLibraries = useMemo(() => [...ieltsLibrary, ...toeicLibrary], [ieltsLibrary, toeicLibrary]);
   const selectedYear = fullLibrary.find((entry) => String(entry.year) === String(year));
   const selectedMonth = selectedYear?.months.find((month) => month.monthKey === monthKey);
   const scores = session.completedScoresMap;
@@ -88,7 +93,7 @@ export default function MockTestsPage() {
     let packs = 0;
     let completed = 0;
     let total = 0;
-    fullLibrary.forEach((yearEntry) => {
+    overviewLibraries.forEach((yearEntry) => {
       yearEntry.months.forEach((month) => {
         packs += month.packs.length;
         const progress = monthProgress(month, scores);
@@ -97,28 +102,33 @@ export default function MockTestsPage() {
       });
     });
     return {
-      years: fullLibrary.length,
+      years: overviewLibraries.length,
       packs,
       completed,
       total,
       percent: total ? Math.round((completed * 100) / total) : 0,
     };
-  }, [fullLibrary, scores]);
+  }, [overviewLibraries, scores]);
 
   const continueMonth = useMemo(() => {
-    for (const yearEntry of fullLibrary) {
+    for (const yearEntry of overviewLibraries) {
       for (const month of yearEntry.months) {
         const progress = monthProgress(month, scores);
         if (progress.total > 0 && progress.completed < progress.total) {
-          return { year: yearEntry.year, month, progress };
+          return {
+            exam: yearEntry.examType === 'TOEIC' ? 'toeic' : 'ielts',
+            year: yearEntry.year,
+            month,
+            progress,
+          };
         }
       }
     }
     return null;
-  }, [fullLibrary, scores]);
+  }, [overviewLibraries, scores]);
 
-  const scrollToYear = (targetYear) => {
-    const node = document.getElementById(`mock-year-${targetYear}`);
+  const scrollToYear = (examKey, targetYear) => {
+    const node = document.getElementById(`mock-year-${examKey}-${targetYear}`);
     node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -127,8 +137,8 @@ export default function MockTestsPage() {
   if (year && monthKey) {
     return (
       <LearnerPageShell
-        title={selectedMonth ? `${selectedMonth.monthLabel} ${selectedYear.year}` : 'Đề thi thử IELTS'}
-        description={selectedMonth ? `${selectedMonth.packs.length} đề thi thử IELTS.` : ''}
+        title={selectedMonth ? `${examType} · ${selectedMonth.monthLabel} ${selectedYear.year}` : `Đề thi thử ${examType}`}
+        description={selectedMonth ? `${selectedMonth.packs.length} đề thi thử ${examType}.` : ''}
         actions={(
           <Link className="inline-flex items-center gap-2 text-sm font-extrabold text-[#730014]" to="/mock-tests">
             <ArrowLeft className="h-4 w-4" />
@@ -146,6 +156,7 @@ export default function MockTestsPage() {
               <MockSkillPack
                 completedScoresMap={session.completedScoresMap}
                 heading={`${selectedMonth.monthLabel} · ${pack.title}`}
+                examType={examType}
                 key={pack.testNumber}
                 onStart={session.startTest}
                 pack={pack}
@@ -163,13 +174,13 @@ export default function MockTestsPage() {
 
   return (
     <LearnerPageShell
-      eyebrow="IELTS Mock Test"
-      title="Thư viện đề thi thử IELTS"
-      description="Chọn năm, rồi chọn tháng để mở đề."
+      eyebrow="Thư viện đề thi thử"
+      title="Đề thi thử IELTS và TOEIC"
+      description="Chọn sách IELTS hoặc TOEIC, rồi mở đề để làm bài."
       actions={continueMonth ? (
         <Link
           className="inline-flex items-center rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#4b0009]"
-          to={`/mock-tests/${continueMonth.year}/${continueMonth.month.monthKey}`}
+          to={`/mock-tests/${continueMonth.exam}/${continueMonth.year}/${continueMonth.month.monthKey}`}
         >
           Tiếp tục {continueMonth.month.monthLabel} {continueMonth.year}
         </Link>
@@ -208,16 +219,16 @@ export default function MockTestsPage() {
             />
             <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
           </div>
-          {fullLibrary.length > 1 ? (
+          {overviewLibrary.length > 1 ? (
             <div className="flex flex-wrap gap-2">
-              {fullLibrary.map((yearEntry) => (
+              {overviewLibrary.map((yearEntry) => (
                 <button
                   className="rounded-full border border-[#ead9db] bg-white px-4 py-1.5 text-xs font-extrabold text-[#564241] hover:border-[#730014] hover:text-[#730014]"
-                  key={yearEntry.year}
-                  onClick={() => scrollToYear(yearEntry.year)}
+                  key={`${yearEntry.examType}-${yearEntry.year}`}
+                  onClick={() => scrollToYear(yearEntry.examType, yearEntry.year)}
                   type="button"
                 >
-                  {yearEntry.year}
+                  {yearEntry.examType} {yearEntry.year}
                 </button>
               ))}
             </div>
@@ -257,23 +268,25 @@ export default function MockTestsPage() {
 
         {loading ? (
           <BrandLoadingState className="flex-1 py-16" message="Đang tải đề thi thử..." />
-        ) : library.length ? (
+        ) : overviewLibrary.length ? (
           <div className="space-y-6">
-            {library.map((yearEntry) => {
+            {overviewLibrary.map((yearEntry) => {
               const packCount = yearEntry.months.reduce((sum, month) => sum + month.packs.length, 0);
+              const examKey = yearEntry.examType === 'TOEIC' ? 'toeic' : 'ielts';
+              const examSkills = yearEntry.examType === 'TOEIC' ? TOEIC_SKILL_ORDER : SKILL_ORDER;
               return (
                 <article
                   className="scroll-mt-6 overflow-visible rounded-[28px] border border-[#eadcdc] bg-white p-5 sm:p-8"
-                  id={`mock-year-${yearEntry.year}`}
-                  key={yearEntry.year}
+                  id={`mock-year-${yearEntry.examType}-${yearEntry.year}`}
+                  key={`${yearEntry.examType}-${yearEntry.year}`}
                 >
                   <div className="grid items-center gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-                    <MockYearBook year={yearEntry.year} />
+                    <MockYearBook examType={yearEntry.examType} year={yearEntry.year} />
                     <div className="min-w-0 space-y-4">
                       <div>
                         <h2 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{yearEntry.title}</h2>
                         <p className="mt-1 text-sm text-[#8b706e]">
-                          {yearEntry.months.length} tháng · {packCount} đề
+                          {yearEntry.months.length} {yearEntry.examType === 'TOEIC' ? 'bộ đề' : 'tháng'} · {packCount} đề
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
@@ -284,7 +297,7 @@ export default function MockTestsPage() {
                             <Link
                               className="rounded-2xl border border-[#eadcdc] bg-[#fffaf9] px-4 py-4 text-left transition hover:border-[#730014]"
                               key={month.monthKey}
-                              to={`/mock-tests/${yearEntry.year}/${month.monthKey}`}
+                              to={`/mock-tests/${examKey}/${yearEntry.year}/${month.monthKey}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
@@ -298,7 +311,7 @@ export default function MockTestsPage() {
                                 ) : null}
                               </div>
                               <div className="mt-3 flex items-center gap-1.5">
-                                {SKILL_ORDER.map((skill) => {
+                                {examSkills.map((skill) => {
                                   const Mark = SKILL_MARK[skill];
                                   const available = presentSkills.has(skill);
                                   const done = (month.packs || []).some((pack) => {

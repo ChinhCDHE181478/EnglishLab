@@ -73,6 +73,7 @@ public interface CurriculumProgramService {
             AssessmentType type,
             String status,
             String keyword,
+            String examCategory,
             Pageable pageable
     );
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import BrandedSelect from '../ui/BrandedSelect';
 import ExamSectionChangeDialog from './ExamSectionChangeDialog';
 import { getAssessmentSubmissionErrorMessage } from '../../utils/assessmentSubmissionError';
-import { exitExamFullscreenWhenDetached } from '../../utils/examFullscreen';
+import { sanitizeLessonHtml } from '../../utils/lessonRichText';
 
 const formatTimer = (seconds) => {
   const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -400,7 +400,12 @@ export default function ReadingExamMode({
           <h3 className="font-['Manrope'] text-xl font-extrabold text-[#8a0018]">{group.title}</h3>
           <p className="mt-2 text-sm italic leading-6 text-[#6a4a46]">{group.instructions}</p>
         </div>
-        {group.passage ? (
+        {group.passageHtml ? (
+          <article
+            className="rounded-2xl border border-[#ecd7db] bg-[#fffafb] p-5 text-sm leading-7 text-[#40292a] [&_p]:mb-3 [&_img]:max-h-80 [&_img]:w-full [&_img]:object-contain"
+            dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(group.passageHtml) }}
+          />
+        ) : group.passage ? (
           <article className="whitespace-pre-wrap rounded-2xl border border-[#ecd7db] bg-[#fffafb] p-5 text-sm leading-7 text-[#40292a]">
             {group.passage}
           </article>
@@ -464,10 +469,17 @@ export default function ReadingExamMode({
             <h2 className="text-center font-['Manrope'] text-3xl font-black text-[#341c1d]">{activePart?.passage?.title}</h2>
             <div className="mt-6 space-y-5 text-[15px] leading-8 text-[#1e3025]">
               {(activePart?.passage?.paragraphs || []).map((paragraph, index) => (
-                <p key={`${paragraph.label}-${index}`}>
-                  {paragraph.label ? <b>{paragraph.label}. </b> : null}
-                  {paragraph.text}
-                </p>
+                paragraph.html ? (
+                  <div
+                    key={`${paragraph.label || 'html'}-${index}`}
+                    dangerouslySetInnerHTML={{ __html: sanitizeLessonHtml(paragraph.html) }}
+                  />
+                ) : (
+                  <p key={`${paragraph.label}-${index}`}>
+                    {paragraph.label ? <b>{paragraph.label}. </b> : null}
+                    {paragraph.text}
+                  </p>
+                )
               ))}
             </div>
           </article>

@@ -526,6 +526,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             AssessmentType type,
             String status,
             String keyword,
+            String examCategory,
             Pageable pageable
     ) {
         Specification<AssessmentBankItem> specification = (root, query, criteriaBuilder) ->
@@ -549,6 +550,20 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), pattern),
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("instructions")), pattern)
             ));
+        }
+        if (StringUtils.hasText(examCategory)) {
+            boolean toeic = "TOEIC".equalsIgnoreCase(examCategory.trim());
+            specification = specification.and((root, query, criteriaBuilder) -> {
+                var toeicPredicate = criteriaBuilder.or(
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("uiConfigJson"), "")),
+                                "%toeic%"),
+                        criteriaBuilder.like(
+                                criteriaBuilder.lower(criteriaBuilder.coalesce(root.get("title"), "")),
+                                "%toeic%")
+                );
+                return toeic ? toeicPredicate : criteriaBuilder.not(toeicPredicate);
+            });
         }
         return assessmentBankRepository.findAll(specification, pageable).map(this::toAssessmentResponse);
     }

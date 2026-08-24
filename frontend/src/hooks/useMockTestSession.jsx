@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
 import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
+import ToeicExamMode from '../components/course-assessment/ToeicExamMode';
 import WritingExamMode from '../components/course-assessment/WritingExamMode';
 import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
 import mockTestApi from '../api/mockTestApi';
 import placementTestApi from '../api/placementTestApi';
 import { exitExamFullscreen, requestExamFullscreen } from '../utils/examFullscreen';
-import { parseJson, resolveMockConfig } from '../utils/mockTestExam';
+import { isToeicExamConfig, parseJson, resolveMockConfig } from '../utils/mockTestExam';
 
 const COMPLETED_SCORES_KEY = 'englishlab_mock_completed_scores_v4';
 
@@ -126,7 +127,20 @@ export default function useMockTestSession() {
   };
 
   let examView = null;
-  if (activeTest && activeConfig && activeSkill === 'LISTENING') {
+  const useToeicUi = activeTest && activeConfig && isToeicExamConfig(activeConfig, activeTest);
+  if (activeTest && activeConfig && useToeicUi && (activeSkill === 'LISTENING' || activeSkill === 'READING')) {
+    examView = (
+      <ToeicExamMode
+        assessment={{ title: activeTest.title, timeLimitMinutes: activeTest.timeLimitMinutes || activeConfig.durationMinutes }}
+        config={activeConfig}
+        onClose={closeExam}
+        onSubmit={handleObjectiveSubmit}
+        skillLabel={activeSkill === 'READING' ? 'TOEIC Reading' : 'TOEIC Listening'}
+        submitLabel={activeSkill === 'READING' ? 'Nộp bài Reading' : 'Nộp bài Listening'}
+        submitting={submitting}
+      />
+    );
+  } else if (activeTest && activeConfig && activeSkill === 'LISTENING') {
     examView = (
       <ListeningExamMode
         assessment={{ title: activeTest.title, timeLimitMinutes: activeTest.timeLimitMinutes || activeConfig.durationMinutes }}

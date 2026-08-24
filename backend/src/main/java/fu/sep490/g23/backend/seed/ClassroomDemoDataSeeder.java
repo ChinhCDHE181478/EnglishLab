@@ -134,6 +134,10 @@ public class ClassroomDemoDataSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled && !sheetEnabled) {
+            return;
+        }
+
         syncEnglishSlugs();
         syncGoogleMeetLabels();
         syncTeacher2Account();
