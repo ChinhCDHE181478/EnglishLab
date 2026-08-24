@@ -505,6 +505,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                     .startTime(request.getStartTime())
                     .endTime(request.getEndTime())
                     .learnerIds(resolveActiveLearnerIds(offeringId))
+                    .checkCapacity(false)
                     .build();
             conflictService.assertNoBlockingConflict(conflictRequest);
         }
@@ -564,7 +565,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .learnerIds(resolveActiveLearnerIds(session.getClassroomOffering().getId()))
+                .checkCapacity(false)
                 .checkSessionLocked(true)
+                .checkCapacity(false)
                 .build();
         conflictService.assertNoBlockingConflict(conflictRequest);
 
@@ -1814,6 +1817,9 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         }
         if (detail.contains("FEATURE_UNAVAILABLE_TO_USER") || detail.contains("updateAutoRecordingGeneration")) {
             return "Tài khoản Google của giáo viên chưa được phép ghi hình tự động. Nếu nút Ghi trong Google Meet bị khóa, cần cấp quyền ghi hình từ gói hoặc quản trị Google Workspace.";
+        }
+        if (detail.contains("không áp dụng chế độ RESTRICTED")) {
+            return "Tài khoản Google của giáo viên không hỗ trợ chế độ khách phải chờ duyệt. Hãy liên kết tài khoản Google Workspace của giáo viên rồi thử lại.";
         }
         return "Không thể tạo phòng Google Meet lúc này. Vui lòng thử lại sau hoặc kiểm tra kết nối Google của giáo viên phụ trách.";
     }

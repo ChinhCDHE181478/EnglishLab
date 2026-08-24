@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "ielts_mock_2026_january_speaking_practise_test_2",
+  "title": "IELTS Mock Test 2026 January Speaking Practise Test 2",
+  "sourceLabel": "Imported from local HTML 2026de2s.html",
+  "durationMinutes": 14,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "What is your full name?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/1/P1-1.%20What%20is%20your%20full%20name_.mp4"
+        },
+        {
+          "text": "Where are you from?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/1/P1-2.%20Where%20are%20you%20from_.mp4"
+        },
+        {
+          "text": "Do you work or study?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Are there many small businesses near your house",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/2/P1-9.%20Are%20there%20many%20small%20businesses%20near%20your%20house_.mp4"
+        },
+        {
+          "text": "Do you prefer buying things in big companies or from small businesses?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/2/P1-10.%20Do%20you%20prefer%20buying%20things%20in%20big%20companies%20or%20from%20smal.mp4"
+        },
+        {
+          "text": "Do you know many small businesses",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/2/P1-11.%20Do%20you%20know%20many%20small%20businesses_.mp4"
+        },
+        {
+          "text": "On what occasions do you go shopping in big businesses?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/2/P1-12.On%20what%20occasions%20do%20you%20go%20shopping%20in%20big%20businesses.mp4"
+        },
+        {
+          "text": "What do you usually do at weekends? What did you do last weekend?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/3/Practice%203/P1.4.%20What%20do%20you%20usually%20do%20at%20weekends_%20What%20did%20you%20do%20last%20w.mp4"
+        },
+        {
+          "text": "Do you like weekends?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/3/Practice%203/P1.5.Do%20you%20like%20weekends_.mp4"
+        },
+        {
+          "text": "Do you think it is important to make the most of your weekend?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/3/Practice%203/P1.6.%20Do%20you%20think%20it%20is%20important%20to%20make%20the%20most%20of%20your%20week.mp4"
+        },
+        {
+          "text": "Do you like chocolate?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/4/Practice%204/P1.4.%20Do%20you%20like%20chocolate_.mp4"
+        },
+        {
+          "text": "Did you like chocolate when you were a child?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/4/Practice%204/P1.5.%20Did%20you%20like%20chocolate%20when%20you%20were%20a%20child_.mp4"
+        },
+        {
+          "text": "Did you give chocolate as a present to someone?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/4/Practice%204/P1.6.%20Did%20you%20give%20chocolate%20as%20a%20present%20to%20someone_.mp4"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Topic",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/Describe%20a%20bad%20service%20you%20received%20in%20a%20restaurant_shop.mp4",
+      "cueCardTitle": "Describe a bad service you received in a restaurant/shop",
+      "cueCardBullets": [
+        "And explain how you felt about the experience"
+      ]
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Topic Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "How do most people respond to bad services?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P3.1.%20_How%20do%20most%20people%20respond%20to%20bad%20services_.mp4"
+        },
+        {
+          "text": "Do you think services are better now than in the past?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P3.2.%20_Do%20you%20think%20services%20are%20better%20now%20than%20in%20the%20past_.mp4"
+        },
+        {
+          "text": "What kind of services are bad services?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P3.3._What%20kind%20of%20services%20are%20bad%20services_.mp4"
+        },
+        {
+          "text": "Why do some people choose to remain silent when they receive bad services?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/P3.4.%20_Why%20do%20some%20people%20choose%20to%20remain%20silent%20when%20they%20rece.mp4"
+        },
+        {
+          "text": "Who should be responsible for bad services?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P3.5.%20Who%20should%20be%20responsible%20for%20bad%20services.mp4"
+        },
+        {
+          "text": "What can employers do to improve the service that their employees provide?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P3.6.%20_What%20can%20employers%20do%20to%20improve%20the%20service%20that%20their%20e.mp4"
+        }
+      ]
+    }
+  ]
+}

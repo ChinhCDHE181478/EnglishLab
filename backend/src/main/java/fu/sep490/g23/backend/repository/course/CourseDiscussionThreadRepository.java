@@ -1,13 +1,16 @@
 package fu.sep490.g23.backend.repository.course;
 
-import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDiscussionThread, Long> {
@@ -56,4 +59,6 @@ public interface CourseDiscussionThreadRepository extends JpaRepository<CourseDi
             @Param("resolved") CourseDiscussionStatus resolved,
             Pageable pageable
     );
+
+    Optional<CourseDiscussionThread> findFirstByCourseAndTitle(OnlineCourse course, String title);
 }

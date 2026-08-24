@@ -14,6 +14,7 @@ const deviceOptions = (devices, fallback) => (
 export default function ExamDeviceCheck({
   includeMicrophone = false,
   requireMic = false,
+  requireSound = true,
   requireFullscreen = true,
   onCancel,
   onComplete,
@@ -165,7 +166,7 @@ export default function ExamDeviceCheck({
     }
   };
 
-  const ready = soundState === 'passed' && (!microphoneRequired || micState === 'passed');
+  const ready = (!requireSound || soundState === 'passed') && (!microphoneRequired || micState === 'passed');
 
   const completeCheck = async () => {
     setMessage('');
@@ -180,7 +181,7 @@ export default function ExamDeviceCheck({
     }
     onComplete?.({
       completed: true,
-      soundPassed: true,
+      soundPassed: requireSound ? soundState === 'passed' : false,
       microphoneChecked: microphoneRequired ? micState === 'passed' : false,
       microphonePassed: microphoneRequired ? micState === 'passed' : false,
       deviceCheckPassed: true,
@@ -198,7 +199,8 @@ export default function ExamDeviceCheck({
       {description ? <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-7 text-[#584140]">{description}</p> : null}
 
       <div className="mt-8 space-y-9">
-        <section className="grid gap-5 md:grid-cols-[56px_1fr]">
+        {requireSound ? (
+          <section className="grid gap-5 md:grid-cols-[56px_1fr]">
           <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#8a0018]/25 text-[#8a0018]">
             <Headphones aria-hidden="true" size={23} />
           </div>
@@ -226,7 +228,8 @@ export default function ExamDeviceCheck({
               />
             </div>
           </div>
-        </section>
+          </section>
+        ) : null}
 
         {microphoneRequired ? (
           <section className="grid gap-5 md:grid-cols-[56px_1fr]">
@@ -234,7 +237,7 @@ export default function ExamDeviceCheck({
               <Mic aria-hidden="true" size={23} />
             </div>
             <div>
-              <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">2.</span>Kiểm tra micro</h2>
+              <h2 className="text-2xl font-extrabold text-[#21446d]"><span className="mr-2 text-[#21446d]/55">{requireSound ? '2.' : '1.'}</span>Kiểm tra micro</h2>
               <p className="mt-3 text-sm leading-7 text-[#584140]">Đọc rõ câu mẫu để kiểm tra micro có thu được giọng nói ổn định hay không.</p>
               <p className="mt-4 text-center text-sm font-semibold leading-7 text-[#8c716f]">“I love English. My English is great and I practice it every day!”</p>
               <div className="mt-5 flex flex-wrap items-center gap-4 rounded-[24px] border border-[#dfbfbd]/40 bg-[#fffdfc] px-5 py-5">

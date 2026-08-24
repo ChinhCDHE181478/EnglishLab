@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Check,
@@ -21,11 +21,14 @@ import Pagination, { usePagination } from "../../components/ui/Pagination";
 import { useAppDialog } from "../../components/ui/AppDialog";
 import BrandedSelect from "../../components/ui/BrandedSelect";
 import ManagementToast from "../../components/ui/ManagementToast";
+import { EMPTY_PAGE, pageParams } from "../../utils/pagination";
 
 export default function ContentManagerLearningPathsPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [courses, setCourses] = useState([]);
+  const [coursePageResult, setCoursePageResult] = useState(EMPTY_PAGE);
   const [paths, setPaths] = useState([]);
+  const [pathPageResult, setPathPageResult] = useState(EMPTY_PAGE);
   const [expanded, setExpanded] = useState({});
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({
@@ -38,16 +41,36 @@ export default function ContentManagerLearningPathsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const deferredModalSearch = useDeferredValue(modalSearch.trim());
+
+  const {
+    page: pathPage,
+    setPage: setPathPage,
+    totalPages: pathTotalPages,
+    pageItems: pathPageItems,
+    totalItems: pathTotalItems,
+  } = usePagination(paths, 10, "learning-paths", pathPageResult);
+
+  const excludedCourseIds = modal?.group?.courses.map((course) => course.courseId).join(",") || "";
+  const {
+    page: modalPage,
+    setPage: setModalPage,
+    totalPages: modalTotalPages,
+    pageItems: modalPageItems,
+    totalItems: modalTotalItems,
+  } = usePagination(
+    courses,
+    10,
+    `${modal?.group?.id || ""}|${deferredModalSearch}`,
+    coursePageResult,
+  );
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [courseResult, pathResult] = await Promise.all([
-        courseApi.getManagedOnlineCourses({ page: 0, size: 500 }),
-        courseApi.getManagedLearningPaths({ page: 0, size: 500 }),
-      ]);
-      setCourses(courseResult.content || []);
+      const pathResult = await courseApi.getManagedLearningPaths(pageParams(pathPage, 10));
       setPaths(pathResult.content || []);
+      setPathPageResult(pathResult);
     } catch (err) {
       setError(
         err?.response?.data?.message || "Không thể tải dữ liệu lộ trình.",
@@ -59,35 +82,36 @@ export default function ContentManagerLearningPathsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [pathPage]);
 
-  const {
-    page: pathPage,
-    setPage: setPathPage,
-    totalPages: pathTotalPages,
-    pageItems: pathPageItems,
-    totalItems: pathTotalItems,
-  } = usePagination(paths, 10);
-
-  const availableCourses = useMemo(() => {
-    if (!modal || modal.mode !== "add" || !modal.group) return [];
-    const filtered = courses.filter(
-      (course) => !modal.group.courses.some((item) => item.courseId === course.id)
-    );
-    const query = modalSearch.trim().toLowerCase();
-    if (!query) return filtered;
-    return filtered.filter((course) =>
-      course.title.toLowerCase().includes(query)
-    );
-  }, [courses, modal, modalSearch]);
-
-  const {
-    page: modalPage,
-    setPage: setModalPage,
-    totalPages: modalTotalPages,
-    pageItems: modalPageItems,
-    totalItems: modalTotalItems,
-  } = usePagination(availableCourses, 10, modal?.group?.id);
+  useEffect(() => {
+    if (!modal || modal.mode !== "add" || !modal.group) {
+      setCourses([]);
+      setCoursePageResult(EMPTY_PAGE);
+      return;
+    }
+    let active = true;
+    const loadAvailableCourses = async () => {
+      try {
+        const result = await courseApi.getManagedOnlineCourses(pageParams(modalPage, 10, {
+          keyword: deferredModalSearch || undefined,
+          excludeIds: excludedCourseIds || undefined,
+        }));
+        if (!active) return;
+        setCourses(result.content);
+        setCoursePageResult(result);
+      } catch (err) {
+        if (!active) return;
+        setCourses([]);
+        setCoursePageResult(EMPTY_PAGE);
+        setError(err?.response?.data?.message || "Không thể tải danh sách khóa học.");
+      }
+    };
+    loadAvailableCourses();
+    return () => {
+      active = false;
+    };
+  }, [deferredModalSearch, excludedCourseIds, modal, modalPage]);
 
   const openModal = (group = null, mode = "create") => {
     setModal({ group, mode });
@@ -200,7 +224,7 @@ export default function ContentManagerLearningPathsPage() {
     }
   };
 
-  if (loading && !courses.length)
+  if (loading && !paths.length)
     return <ContentManagerLoadingState message="Đang tải lộ trình học..." />;
 
   return (

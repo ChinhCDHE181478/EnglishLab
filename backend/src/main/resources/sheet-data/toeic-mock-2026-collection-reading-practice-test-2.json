@@ -1,0 +1,2680 @@
+{
+  "version": 1,
+  "type": "toeic_reading_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_2_reading",
+  "title": "TOEIC Mock Test 2026 Collection Reading Practice Test 2",
+  "sourceLabel": "toeicde2",
+  "durationMinutes": 75,
+  "audioUrl": "",
+  "audioLabel": "",
+  "rules": [
+    "100 câu",
+    "3 Part"
+  ],
+  "parts": [
+    {
+      "part": 5,
+      "partNumber": 5,
+      "title": "Incomplete Sentences",
+      "instructions": "Select the word or phrase that best completes the sentence.",
+      "questionCount": 30,
+      "audioUrl": "",
+      "questionRange": "Questions 101-130",
+      "passage": {
+        "title": "Incomplete Sentences",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 101-130",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "questions": [
+            {
+              "number": 101,
+              "prompt": "All monthly storage payments must be submitted to the site office _____ the posted due date.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "beforehand"
+                },
+                {
+                  "value": "B",
+                  "label": "because"
+                },
+                {
+                  "value": "C",
+                  "label": "ahead of"
+                },
+                {
+                  "value": "D",
+                  "label": "aside from"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 102,
+              "prompt": "Throughout the Elmgrove Park summer festival, visitors are invited to stroll _____ the tree-lined promenade at their own pace.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "above"
+                },
+                {
+                  "value": "B",
+                  "label": "across"
+                },
+                {
+                  "value": "C",
+                  "label": "between"
+                },
+                {
+                  "value": "D",
+                  "label": "along"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 103,
+              "prompt": "_____ on the results of the employee satisfaction survey, Ms. Delphine Carraway assured staff that improvements would be introduced shortly.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "commented"
+                },
+                {
+                  "value": "B",
+                  "label": "commenting"
+                },
+                {
+                  "value": "C",
+                  "label": "comment"
+                },
+                {
+                  "value": "D",
+                  "label": "comments"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 104,
+              "prompt": "Guests who wish to avoid the front desk can submit their checkout requests _____ through the Bellcourt Hotel's mobile application.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "directing"
+                },
+                {
+                  "value": "B",
+                  "label": "direction"
+                },
+                {
+                  "value": "C",
+                  "label": "directs"
+                },
+                {
+                  "value": "D",
+                  "label": "directly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 105,
+              "prompt": "Ms. Coretta Vance accepted the innovation award _____ the product team and read a brief message from its members.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "on behalf of"
+                },
+                {
+                  "value": "B",
+                  "label": "instead of"
+                },
+                {
+                  "value": "C",
+                  "label": "except"
+                },
+                {
+                  "value": "D",
+                  "label": "aside from"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 106,
+              "prompt": "The renovation dragged on for months, but the community library _____ reopened its doors to visitors last week.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "finally"
+                },
+                {
+                  "value": "B",
+                  "label": "promptly"
+                },
+                {
+                  "value": "C",
+                  "label": "narrowly"
+                },
+                {
+                  "value": "D",
+                  "label": "thoroughly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 107,
+              "prompt": "The completed enrollment form must be returned _____ the Larkhill Driving School office before the first lesson begins.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "at"
+                },
+                {
+                  "value": "B",
+                  "label": "to"
+                },
+                {
+                  "value": "C",
+                  "label": "in"
+                },
+                {
+                  "value": "D",
+                  "label": "on"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 108,
+              "prompt": "Ms. Corwin _____ all supplier orders placed at the downtown branch during the store manager's absence next week.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "to review"
+                },
+                {
+                  "value": "B",
+                  "label": "reviewed"
+                },
+                {
+                  "value": "C",
+                  "label": "will review"
+                },
+                {
+                  "value": "D",
+                  "label": "is reviewed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 109,
+              "prompt": "Throughout her eight years _____ a store manager, Ms. Castellano developed a strong reputation for fairness.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "as"
+                },
+                {
+                  "value": "B",
+                  "label": "in"
+                },
+                {
+                  "value": "C",
+                  "label": "at"
+                },
+                {
+                  "value": "D",
+                  "label": "on"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 110,
+              "prompt": "Visitors to Thornbury Ceramics Studio may exchange their passes _____ a guided tour at the main desk before noon.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "for"
+                },
+                {
+                  "value": "B",
+                  "label": "from"
+                },
+                {
+                  "value": "C",
+                  "label": "toward"
+                },
+                {
+                  "value": "D",
+                  "label": "on"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 111,
+              "prompt": "Patients who provide a mobile number will receive automatic _____ the day before each scheduled visit.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reminders"
+                },
+                {
+                  "value": "B",
+                  "label": "schedules"
+                },
+                {
+                  "value": "C",
+                  "label": "responses"
+                },
+                {
+                  "value": "D",
+                  "label": "referrals"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 112,
+              "prompt": "Following the software update, the developers noted several _____ reviews from users worldwide.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "loyal"
+                },
+                {
+                  "value": "B",
+                  "label": "positive"
+                },
+                {
+                  "value": "C",
+                  "label": "spacious"
+                },
+                {
+                  "value": "D",
+                  "label": "durable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 113,
+              "prompt": "Because seating is limited, participants must confirm their _____ at Copperpot Cooking Studio no later than three days before each class.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "presence"
+                },
+                {
+                  "value": "B",
+                  "label": "appearance"
+                },
+                {
+                  "value": "C",
+                  "label": "arrival"
+                },
+                {
+                  "value": "D",
+                  "label": "attendance"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 114,
+              "prompt": "The Ashbourne Events Center offers a _____ layout because guests need room to move freely between the display tables.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "crowded"
+                },
+                {
+                  "value": "B",
+                  "label": "spacious"
+                },
+                {
+                  "value": "C",
+                  "label": "narrow"
+                },
+                {
+                  "value": "D",
+                  "label": "cramped"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 115,
+              "prompt": "Your temporary parking permit _____ at midnight tonight, so please renew it at the front office before you leave.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "expiration"
+                },
+                {
+                  "value": "B",
+                  "label": "to expire"
+                },
+                {
+                  "value": "C",
+                  "label": "expires"
+                },
+                {
+                  "value": "D",
+                  "label": "expiring"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 116,
+              "prompt": "The revised vendor agreement outlines new terms _____ every supplier.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "and"
+                },
+                {
+                  "value": "B",
+                  "label": "for"
+                },
+                {
+                  "value": "C",
+                  "label": "both"
+                },
+                {
+                  "value": "D",
+                  "label": "so"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 117,
+              "prompt": "The cordless vacuum's automatic dust sensor is widely considered its most _____ feature.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "innovation"
+                },
+                {
+                  "value": "B",
+                  "label": "innovate"
+                },
+                {
+                  "value": "C",
+                  "label": "innovated"
+                },
+                {
+                  "value": "D",
+                  "label": "innovative"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 118,
+              "prompt": "The renovation permit that Halbrook Builders submitted last month is still _____ review, so construction cannot begin yet.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "under"
+                },
+                {
+                  "value": "B",
+                  "label": "over"
+                },
+                {
+                  "value": "C",
+                  "label": "within"
+                },
+                {
+                  "value": "D",
+                  "label": "before"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 119,
+              "prompt": "Before any repairs begin, our technicians will provide each customer with a detailed _____ of the expected parts and labor costs.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "appraisal"
+                },
+                {
+                  "value": "B",
+                  "label": "assessment"
+                },
+                {
+                  "value": "C",
+                  "label": "estimate"
+                },
+                {
+                  "value": "D",
+                  "label": "inventory"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 120,
+              "prompt": "The new scheduling tool enables supervisors at Brantford Logistics to distribute weekly shifts _____ among all staff members.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "efficiency"
+                },
+                {
+                  "value": "B",
+                  "label": "efficiencies"
+                },
+                {
+                  "value": "C",
+                  "label": "efficient"
+                },
+                {
+                  "value": "D",
+                  "label": "efficiently"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 121,
+              "prompt": "The front-desk receptionist accepted the courier's parcel on _____ of a colleague who was out of the office all afternoon.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "favor"
+                },
+                {
+                  "value": "B",
+                  "label": "regard"
+                },
+                {
+                  "value": "C",
+                  "label": "behalf"
+                },
+                {
+                  "value": "D",
+                  "label": "reason"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 122,
+              "prompt": "Although the safety guidelines had been _____ explained, several volunteers still operated the tools incorrectly.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "clearly"
+                },
+                {
+                  "value": "B",
+                  "label": "nearly"
+                },
+                {
+                  "value": "C",
+                  "label": "barely"
+                },
+                {
+                  "value": "D",
+                  "label": "soon"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 123,
+              "prompt": "As soon as the order _____, the front desk will text the customer and set the cleaned garments aside for same-day pickup.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "arrived"
+                },
+                {
+                  "value": "B",
+                  "label": "arrives"
+                },
+                {
+                  "value": "C",
+                  "label": "is arriving"
+                },
+                {
+                  "value": "D",
+                  "label": "will be arriving"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 124,
+              "prompt": "The senior _____ on duty monitors all three packaging machines from the central control booth.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "operating"
+                },
+                {
+                  "value": "B",
+                  "label": "operator"
+                },
+                {
+                  "value": "C",
+                  "label": "operation"
+                },
+                {
+                  "value": "D",
+                  "label": "operable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 125,
+              "prompt": "Ms. Adela Koval decorates each wedding cake at the bakery _____.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "she"
+                },
+                {
+                  "value": "B",
+                  "label": "her"
+                },
+                {
+                  "value": "C",
+                  "label": "hers"
+                },
+                {
+                  "value": "D",
+                  "label": "herself"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 126,
+              "prompt": "Kirchner Furnishings' revenue has climbed steadily despite sharp declines _____ the housing sector.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "through"
+                },
+                {
+                  "value": "B",
+                  "label": "on"
+                },
+                {
+                  "value": "C",
+                  "label": "at"
+                },
+                {
+                  "value": "D",
+                  "label": "in"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 127,
+              "prompt": "The lobby's refurbishment lasted six weeks, while the restaurant _____ reopened after only two.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "itself"
+                },
+                {
+                  "value": "B",
+                  "label": "themselves"
+                },
+                {
+                  "value": "C",
+                  "label": "it"
+                },
+                {
+                  "value": "D",
+                  "label": "them"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 128,
+              "prompt": "Once the residents finish the required paperwork, the leasing office will mail the parking decals to _____ within five business days.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "they"
+                },
+                {
+                  "value": "B",
+                  "label": "them"
+                },
+                {
+                  "value": "C",
+                  "label": "their"
+                },
+                {
+                  "value": "D",
+                  "label": "themselves"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 129,
+              "prompt": "A complimentary shuttle will operate _____ the three-day craft fair at Marlowe Fairgrounds, departing from the main gate every half hour.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "between"
+                },
+                {
+                  "value": "B",
+                  "label": "beyond"
+                },
+                {
+                  "value": "C",
+                  "label": "among"
+                },
+                {
+                  "value": "D",
+                  "label": "throughout"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 130,
+              "prompt": "The new guidelines for booking meeting rooms turned out to be _____ useful to first-time members.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "clears"
+                },
+                {
+                  "value": "B",
+                  "label": "clear"
+                },
+                {
+                  "value": "C",
+                  "label": "clearing"
+                },
+                {
+                  "value": "D",
+                  "label": "clearly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 6,
+      "partNumber": 6,
+      "title": "Text Completion",
+      "instructions": "Select the best answer to complete the text.",
+      "questionCount": 16,
+      "audioUrl": "",
+      "questionRange": "Questions 131-146",
+      "passage": {
+        "title": "Text Completion",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 131-134",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div>Part-Time Instructor Coordinator Wanted</div><div><br></div><div>Rosewood Driving School --(131)-- a dependable part-time coordinator to organize our lesson schedule and keep everyone informed. The role offers flexible daytime hours and suits anyone looking to fit work around other commitments.</div><div><br></div><div>Each week the coordinator arranges instructor schedules, confirms lesson slots with learners, --(132)-- answers questions that arrive by telephone or email. The work is steady rather than demanding, and full guidance is given during the first two weeks.</div><div><br></div><div>We are looking for someone patient and clearly spoken. The right --(133)-- will stay calm when the schedule changes and will enjoy dealing with people. Previous office experience is welcome but is not required. --(134)--.</div></div>",
+          "questions": [
+            {
+              "number": 131,
+              "prompt": "Câu 131",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "instructs"
+                },
+                {
+                  "value": "B",
+                  "label": "employs"
+                },
+                {
+                  "value": "C",
+                  "label": "requires"
+                },
+                {
+                  "value": "D",
+                  "label": "provides"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 132,
+              "prompt": "Câu 132",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "or"
+                },
+                {
+                  "value": "B",
+                  "label": "and"
+                },
+                {
+                  "value": "C",
+                  "label": "but"
+                },
+                {
+                  "value": "D",
+                  "label": "nor"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 133,
+              "prompt": "Câu 133",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "coordinating"
+                },
+                {
+                  "value": "B",
+                  "label": "coordinate"
+                },
+                {
+                  "value": "C",
+                  "label": "coordination"
+                },
+                {
+                  "value": "D",
+                  "label": "coordinator"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 134,
+              "prompt": "Câu 134",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The successful candidate started the coordinator role last week"
+                },
+                {
+                  "value": "B",
+                  "label": "Our lesson bookings are all handled on the school website page"
+                },
+                {
+                  "value": "C",
+                  "label": "Likewise, our fuel expenses have climbed sharply this year"
+                },
+                {
+                  "value": "D",
+                  "label": "In addition, being comfortable using a computer is an advantage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 135-138",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>From:</b> mashwell@brackenfieldacademy.org<br><b>To:</b> cwhitfield@blueharboraquarium.com<br><b>Date:</b> September 9<br><b>Subject:</b> Group visit request</p><p>Dear Ms. Whitfield,</p><p>I am writing to arrange a guided group visit for one of our classes. I am the activities coordinator at Brackenfield Academy, which is currently in the middle of --(135)-- a program of educational outings for its senior students. The group would consist of thirty-eight students and four accompanying teachers, and we hope to come sometime in October. A --(136)-- of this size would require advance planning, so I wanted to contact you early. On your website, it appears you do --(137)-- offer guided tours designed for school groups. Could you tell me which dates that month still have availability? We would prefer a weekday morning, if one can be reserved. --(138)--. </p><p>I look forward to your reply.</p><p>Sincerely,</p><p>Miranda Ashwell</p><p>Brackenfield Academy</p></div>",
+          "questions": [
+            {
+              "number": 135,
+              "prompt": "Câu 135",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "develops"
+                },
+                {
+                  "value": "B",
+                  "label": "develop"
+                },
+                {
+                  "value": "C",
+                  "label": "developing"
+                },
+                {
+                  "value": "D",
+                  "label": "developed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 136,
+              "prompt": "Câu 136",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "request"
+                },
+                {
+                  "value": "B",
+                  "label": "party"
+                },
+                {
+                  "value": "C",
+                  "label": "reply"
+                },
+                {
+                  "value": "D",
+                  "label": "schedule"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 137,
+              "prompt": "Câu 137",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "nearly"
+                },
+                {
+                  "value": "B",
+                  "label": "once"
+                },
+                {
+                  "value": "C",
+                  "label": "actually"
+                },
+                {
+                  "value": "D",
+                  "label": "merely"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 138,
+              "prompt": "Câu 138",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "That said, we could be flexible if only afternoons remain open"
+                },
+                {
+                  "value": "B",
+                  "label": "If so, we would be glad to host your students at our school"
+                },
+                {
+                  "value": "C",
+                  "label": "Our aquarium has welcomed school groups for many years now"
+                },
+                {
+                  "value": "D",
+                  "label": "Sadly, we are unable to visit at any point this October"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 139-142",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Local Bakery Takes Top Pastry Prize</p><p>Wider recognition --(139)-- to Elderford's Golden Whisk Bakery. Last Saturday, owner Marguerite Solberg accepted the first-place ribbon at the Northern Regional Pastry Championship, a two-day event held at the town's exhibition hall. --(140)--. Ms. Solberg, who opened the shop with her sister, said she was overwhelmed by the support of loyal customers and expects a surge of new visitors in the weeks ahead.</p><p>The panel sampled dozens of desserts and scored each one on taste and presentation. The judges observed that --(141)-- of the entries relied on seasonal fruit. The winning tart, however, used a rare imported honey instead. The bakery will feature its prizewinning tart in the front window, though the dessert will be sold only --(142)-- the winter months, until the supply of honey runs out.</p></div>",
+          "questions": [
+            {
+              "number": 139,
+              "prompt": "Câu 139",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "is heading"
+                },
+                {
+                  "value": "B",
+                  "label": "heads"
+                },
+                {
+                  "value": "C",
+                  "label": "headed"
+                },
+                {
+                  "value": "D",
+                  "label": "was heading"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 140,
+              "prompt": "Câu 140",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The imported honey gives the tart its distinctive flavor"
+                },
+                {
+                  "value": "B",
+                  "label": "Nevertheless, several bakeries declined to enter this year"
+                },
+                {
+                  "value": "C",
+                  "label": "More than forty bakeries from six counties competed for the honor"
+                },
+                {
+                  "value": "D",
+                  "label": "The exhibition hall also hosts an annual antique fair each spring"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 141,
+              "prompt": "Câu 141",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "few"
+                },
+                {
+                  "value": "B",
+                  "label": "each"
+                },
+                {
+                  "value": "C",
+                  "label": "most"
+                },
+                {
+                  "value": "D",
+                  "label": "much"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 142,
+              "prompt": "Câu 142",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "throughout"
+                },
+                {
+                  "value": "B",
+                  "label": "when"
+                },
+                {
+                  "value": "C",
+                  "label": "toward"
+                },
+                {
+                  "value": "D",
+                  "label": "beyond"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 143-146",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Meadowbrook Storage is pleased to announce a new set of climate-controlled units, now available to residents and small businesses --(143)-- require reliable protection for sensitive belongings. Each unit --(144)-- a steady temperature throughout the year, shielding furniture, documents, and electronics from heat and humidity. --(145)--. Units are offered in a range of sizes to suit personal and commercial needs, and access is available from six in the morning until ten at night, every day of the week. To reserve a unit today, please visit our office on Harlow Street or call our staff. When you arrive, remember to bring a valid form of --(146)--, such as a driver's license or passport, to complete your booking.</p></div>",
+          "questions": [
+            {
+              "number": 143,
+              "prompt": "Câu 143",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "when"
+                },
+                {
+                  "value": "B",
+                  "label": "there"
+                },
+                {
+                  "value": "C",
+                  "label": "that"
+                },
+                {
+                  "value": "D",
+                  "label": "therefore"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 144,
+              "prompt": "Câu 144",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will have maintained"
+                },
+                {
+                  "value": "B",
+                  "label": "is maintaining"
+                },
+                {
+                  "value": "C",
+                  "label": "maintained"
+                },
+                {
+                  "value": "D",
+                  "label": "maintains"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 145,
+              "prompt": "Câu 145",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Around-the-clock security also guards every stored item"
+                },
+                {
+                  "value": "B",
+                  "label": "Late monthly payments will incur an extra service fee"
+                },
+                {
+                  "value": "C",
+                  "label": "Our staff will pack and move your belongings for free"
+                },
+                {
+                  "value": "D",
+                  "label": "These units cannot safely store any electronic devices"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 146,
+              "prompt": "Câu 146",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "payment"
+                },
+                {
+                  "value": "B",
+                  "label": "identification"
+                },
+                {
+                  "value": "C",
+                  "label": "address"
+                },
+                {
+                  "value": "D",
+                  "label": "contact"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 7,
+      "partNumber": 7,
+      "title": "Reading Comprehension",
+      "instructions": "Read the following text then answer the questions.",
+      "questionCount": 54,
+      "audioUrl": "",
+      "questionRange": "Questions 147-200",
+      "passage": {
+        "title": "Reading Comprehension",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 147-148",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<p>Machine Operating Instructions<br>Follow the steps below to run a load.<br>1. Sort and place the fabric inside an empty drum.<br>2. Pour one measure of detergent into the tray.<br>3. Turn the dial to select a wash cycle.<br>4. Insert coins into the slot and press start.<br>Caution: Remove your load promptly once the cycle finishes.</p>",
+          "questions": [
+            {
+              "number": 147,
+              "prompt": "Where would the instructions most likely be posted?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In a store selling cleaning supplies"
+                },
+                {
+                  "value": "B",
+                  "label": "In a clothing shop"
+                },
+                {
+                  "value": "C",
+                  "label": "In a residential laundry room"
+                },
+                {
+                  "value": "D",
+                  "label": "At a beverage vending machine"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 148,
+              "prompt": "What is the main purpose of the instructions?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To describe a method of payment"
+                },
+                {
+                  "value": "B",
+                  "label": "To explain how to operate the equipment"
+                },
+                {
+                  "value": "C",
+                  "label": "To issue a safety warning"
+                },
+                {
+                  "value": "D",
+                  "label": "To announce a maintenance schedule"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 149-150",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Dana Whitcomb (6:02 P.M.): Hi both. My carpool just got moved up, so I can't stay for the closing shift tonight. Could either of you cover the register from 7 until we lock up at 9?</p><p>Owen Petrakis (6:06 P.M.): I can take it, though I'd have to leave by 8:15 to catch my class.</p><p>Renata Cho (6:10 P.M.): I could stay past 8 if Owen needs to go early.</p><p>Dana Whitcomb (6:13 P.M.): Wait.</p><p>Dana Whitcomb (6:14 P.M.): The assistant manager just offered to close tonight, so the shift is already covered.</p><p>Owen Petrakis (6:16 P.M.): Great, thanks for letting us know!</p></div>",
+          "questions": [
+            {
+              "number": 149,
+              "prompt": "What is the main purpose of the text-message chain?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To organize a carpool schedule"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce a change to the store's hours"
+                },
+                {
+                  "value": "C",
+                  "label": "To arrange coverage for an unexpectedly open shift"
+                },
+                {
+                  "value": "D",
+                  "label": "To confirm what time the store will be locked up"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 150,
+              "prompt": "At 6:13 P.M., what does Ms. Whitcomb most likely mean when she writes, \"Wait\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She now has information that changes her request"
+                },
+                {
+                  "value": "B",
+                  "label": "She wants Renata rather than Owen to take the shift"
+                },
+                {
+                  "value": "C",
+                  "label": "She needs more time to decide who should stay"
+                },
+                {
+                  "value": "D",
+                  "label": "She is concerned that no one is able to close"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 151-152",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>Meet BrewGo from Fernhollow Coffee Roasters</p><p>Ordering your morning coffee just got easier. Fernhollow Coffee Roasters has launched BrewGo, our brand-new mobile app that lets you place and pay for your order right from your phone, before you ever set foot in the shop.</p><p>No more waiting in line. Tap your order, choose a pickup time, and your drink will be freshly made and waiting for you the moment you walk through the door. Spend your break enjoying your coffee, not standing in line.</p><p>BrewGo also remembers what you love. The app saves every order you have placed before, so your usual latte or weekend treat is just one tap away. Reordering your favorite takes seconds, with no need to search the menu again.</p><p>To celebrate the launch, we are giving every new user 20 percent off their very first order placed through the app. Download BrewGo today, create your free account, and claim the discount at checkout.</p><p>BrewGo works at all 18 Fernhollow Coffee Roasters cafes. Search for BrewGo in your app store and start ordering the smarter way.</p></div></div>",
+          "questions": [
+            {
+              "number": 151,
+              "prompt": "What is the purpose of the advertisement?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To announce a reduction in prices across all stores"
+                },
+                {
+                  "value": "B",
+                  "label": "To publicize the opening of an additional cafe location"
+                },
+                {
+                  "value": "C",
+                  "label": "To recruit customers to test a product and share opinions"
+                },
+                {
+                  "value": "D",
+                  "label": "To encourage customers to begin using a new ordering service"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 152,
+              "prompt": "What is indicated about the app?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It stores a customer's earlier orders for fast reordering"
+                },
+                {
+                  "value": "B",
+                  "label": "It can be used at only a limited number of locations"
+                },
+                {
+                  "value": "C",
+                  "label": "It is available only with a paid monthly membership"
+                },
+                {
+                  "value": "D",
+                  "label": "It offers faster service than any other coffee app"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 153-154",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Marisol Okonkwo (10:02 A.M.): The client is arriving at 12:30 today. Can someone collect our lunch order from the café before then?</p><p>Dominic Reyes (10:04 A.M.): I can do it. They said it will be ready at 11:45, and there is enough for all of us and the client.</p><p>Marisol Okonkwo (10:05 A.M.): Perfect, thank you.</p><p>Petra Lindqvist (10:07 A.M.): I am at the printer's until one this morning. Could you keep a sandwich for me?</p><p>Marisol Okonkwo (10:08 A.M.): Of course, I'll set one aside for you.</p><p>Petra Lindqvist (10:10 A.M.): Thanks! I'll grab it as soon as I return.</p></div>",
+          "questions": [
+            {
+              "number": 153,
+              "prompt": "What is indicated about the lunch order?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It requires payment in advance."
+                },
+                {
+                  "value": "B",
+                  "label": "It will be ready at 12:30 P.M."
+                },
+                {
+                  "value": "C",
+                  "label": "It is meant for the client only."
+                },
+                {
+                  "value": "D",
+                  "label": "It will be ready before noon."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 154,
+              "prompt": "At 10:08 A.M., what does Ms. Okonkwo most likely mean when she writes, \"I'll set one aside for you\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She will order additional food for Petra."
+                },
+                {
+                  "value": "B",
+                  "label": "She will deliver a sandwich to Petra at the printer's."
+                },
+                {
+                  "value": "C",
+                  "label": "She will keep part of the order for Petra."
+                },
+                {
+                  "value": "D",
+                  "label": "She will ask Dominic to bring food to Petra."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 155-157",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Marren Bay Aquarium</b></p><p>Thank you for booking a place on our Behind-the-Scenes Open Day. We are delighted to welcome marine photographer Fenella Drummond, who will greet arrivals in person and share images from her most recent expedition.</p><p>Gates open at 9:30 A.M., and the day concludes at 2:00 P.M. The full program is shown below.</p><table><tbody><tr><th>Session Time</th><th>What Happens</th><th>Who Hosts / Who Joins</th><th>Where</th></tr><tr><td>10:00 A.M.</td><td>Welcome briefing</td><td>All visitors</td><td>Main Foyer</td></tr><tr><td>10:45 A.M.</td><td>Feeding demonstration</td><td>Oscar Bellamy</td><td>Filtration Gallery (normally staff only)</td></tr><tr><td>12:00 P.M.</td><td>Refreshment break</td><td>All visitors</td><td>Kelp Garden Cafe</td></tr><tr><td>12:30 P.M.</td><td>Touch pool session</td><td>All visitors</td><td>Rockpool Discovery Zone</td></tr></tbody></table><p>Before you arrive, please wear flat, non-slip shoes, as the walkways beside the pools can be wet. During each session, stay with your group and move on to the next area only when your host invites you to do so. Our hosts are happy to help, so please ask them your questions aloud at any point.</p></div></div>",
+          "questions": [
+            {
+              "number": 155,
+              "prompt": "Who most likely is Oscar Bellamy?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A photographer visiting the aquarium"
+                },
+                {
+                  "value": "B",
+                  "label": "A member of the animal-care staff"
+                },
+                {
+                  "value": "C",
+                  "label": "An attendant at the refreshment cafe"
+                },
+                {
+                  "value": "D",
+                  "label": "A visitor who has booked a place"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 156,
+              "prompt": "When will the touch pool session begin?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At 9:30 A.M."
+                },
+                {
+                  "value": "B",
+                  "label": "At 10:00 A.M."
+                },
+                {
+                  "value": "C",
+                  "label": "At 12:30 P.M."
+                },
+                {
+                  "value": "D",
+                  "label": "At 2:00 P.M."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 157,
+              "prompt": "What does the schedule suggest about the visitors?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Their freedom to move about will be limited during sessions."
+                },
+                {
+                  "value": "B",
+                  "label": "One of the session areas will be closed to visitors."
+                },
+                {
+                  "value": "C",
+                  "label": "They will need to submit their questions in writing."
+                },
+                {
+                  "value": "D",
+                  "label": "They will be permitted to leave before the day ends."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 158-160",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>From: Douglas Hartmann<br>To: Fiona Kessler<br>Subject: Confirmation of your Ashwell Yearly Care Plan enrollment<br>Date: 14 March<br><br></p><p>Dear Ms. Kessler,</p><p>Thank you for joining the Ashwell Yearly Care Plan. This message is to confirm that your enrollment is now active and that your vehicle is covered under the plan beginning today.</p><p>Your plan brings you several benefits. You will receive first access to appointment times ahead of other customers, a complimentary safety inspection at each visit, reduced rates on replacement parts and labor, and guidance from our certified technicians whenever a concern arises. Please note that this coverage remains valid for twelve months from the date of enrollment and must be renewed once that period ends.</p><p>To arrange your first appointment, simply telephone the center or book online whenever it suits you, and our team will confirm a time that works for your schedule. Any repairs still covered by your manufacturer's warranty will continue to be handled separately.</p><p>I have attached your personal plan summary for your records.</p><p>Kind regards,</p><p>Douglas Hartmann<br>Service Adviser, Ashwell Auto Centre</p></div></div>",
+          "questions": [
+            {
+              "number": 158,
+              "prompt": "Why did Mr. Hartmann send the e-mail to Ms. Kessler?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To offer discounts on vehicle parts"
+                },
+                {
+                  "value": "B",
+                  "label": "To arrange a customer's first appointment"
+                },
+                {
+                  "value": "C",
+                  "label": "To confirm a customer's enrollment in a plan"
+                },
+                {
+                  "value": "D",
+                  "label": "To request that a customer renew coverage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 159,
+              "prompt": "What is NOT mentioned as a benefit included in the plan?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Priority booking of appointments"
+                },
+                {
+                  "value": "B",
+                  "label": "Complimentary vehicle inspections"
+                },
+                {
+                  "value": "C",
+                  "label": "Reduced rates on parts and labor"
+                },
+                {
+                  "value": "D",
+                  "label": "Automatic renewal of coverage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 160,
+              "prompt": "What did Mr. Hartmann attach to the e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A summary of the customer's plan"
+                },
+                {
+                  "value": "B",
+                  "label": "An invoice for the plan"
+                },
+                {
+                  "value": "C",
+                  "label": "A copy of a manufacturer's warranty"
+                },
+                {
+                  "value": "D",
+                  "label": "A promotional brochure"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 161-163",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Rowan Hill Homeware · 118 Aldergate Street · Millpond 4021</b></p><p>3 June</p><p>Dear HomeGuard Protection Plan Member,</p><p>Thank you for being a valued member of our HomeGuard Protection Plan. Because your membership entitles you to complimentary care events throughout the year, we are delighted to invite you to a free hands-on maintenance workshop held at our store. The session is offered at no charge, and this invitation is being sent to our plan members only.</p><p>During the workshop you will learn how to clean, adjust, and prolong the life of the kitchen appliances and cookware we carry, and you will also preview several new items arriving this season. The session will be led by Coledale Appliance Specialists, a repair and servicing firm whose technicians are certified to open and recalibrate the motors and heating elements that our own staff are not trained to handle. Their guidance will help you keep the products you already own running safely for years. Although Rowan Hill Homeware has served the Millpond area for 22 years, this is the first time we have brought in outside experts of this kind.</p><p>Seating is limited, so early booking is encouraged. Two identical sessions will be held on Saturday, 14 June, at our Aldergate Street shop, one beginning at 10 a.m. and one at 2 p.m. To reserve a place in either session, please telephone our Events Desk at 03 5567 2200. Our website lists our full product range but is not used for workshop bookings.</p><p>We hope to see you there.</p><p>Warm regards,</p><p>Rowan Hill Homeware</p></div>",
+          "questions": [
+            {
+              "number": 161,
+              "prompt": "What is the purpose of the letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To thank members for their years of loyalty"
+                },
+                {
+                  "value": "B",
+                  "label": "To advertise newly arrived merchandise"
+                },
+                {
+                  "value": "C",
+                  "label": "To introduce a new business partner to customers"
+                },
+                {
+                  "value": "D",
+                  "label": "To invite members to a complimentary workshop"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 162,
+              "prompt": "What is suggested about Coledale Appliance Specialists?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Its own customers will soon receive this letter."
+                },
+                {
+                  "value": "B",
+                  "label": "It has operated in the area for 22 years."
+                },
+                {
+                  "value": "C",
+                  "label": "It provides technical services the store's own staff cannot."
+                },
+                {
+                  "value": "D",
+                  "label": "Its premises are inconvenient for Millpond residents."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 163,
+              "prompt": "According to the letter, what should recipients do to reserve a seat at the workshop?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Send an e-mail to the store"
+                },
+                {
+                  "value": "B",
+                  "label": "Telephone the number provided for the Events Desk"
+                },
+                {
+                  "value": "C",
+                  "label": "Complete a booking on the store's website"
+                },
+                {
+                  "value": "D",
+                  "label": "Go in person to Coledale's service center"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 164-167",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div>\n<p><strong>Made to Last: The Quiet Craft of Fairholme</strong></p>\n<p>By Adrian Colville</p>\n<p>For more than thirty years, Fairholme has built a quiet reputation among people who care how a machine is made. Every model leaving its small workshop begins with a hand-brazed steel frame, a broad spread of gears for climbing and descending, and hand-laced wheels chosen for strength rather than weight.</p>\n<p>Its founders remain sure that a frame built slowly will outlast several cheaper ones. Each joint is filed and polished before painting, and every finished frame is tested to be certain it can <b>handle</b> years of daily use on rough ground.</p>\n<p>Fairholme makes no effort to court racers or weekend competitors. Its owners are the people who ride the same route to work each morning, carry shopping home each evening, and expect a machine ready to go in any weather.</p>\n<p>One detail that longtime owners praise is the fully enclosed chain cover. By sealing the chain away from rain and grit, it saves riders from marking their clothes when they set out in ordinary dress rather than cycling gear. A built-in dynamo, meanwhile, powers the lamps, sparing riders the worry of flat batteries after dark.</p>\n<p>Whatever the model, the goal stays the same: a machine that asks little and serves for many years.</p>\n<hr></div>",
+          "questions": [
+            {
+              "number": 164,
+              "prompt": "For whom is the article most likely intended?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "People who design bicycles"
+                },
+                {
+                  "value": "B",
+                  "label": "People who ride bicycles daily"
+                },
+                {
+                  "value": "C",
+                  "label": "People who sell bicycles"
+                },
+                {
+                  "value": "D",
+                  "label": "People who race bicycles"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 165,
+              "prompt": "What type of product does Fairholme make?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Bicycle lamps"
+                },
+                {
+                  "value": "B",
+                  "label": "Athletic clothing"
+                },
+                {
+                  "value": "C",
+                  "label": "Bicycles"
+                },
+                {
+                  "value": "D",
+                  "label": "Motorcycles"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 166,
+              "prompt": "According to the article, why do owners value the enclosed chain cover?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It keeps riders' everyday clothes clean"
+                },
+                {
+                  "value": "B",
+                  "label": "It makes the bicycle lighter to carry"
+                },
+                {
+                  "value": "C",
+                  "label": "It removes worry about dead batteries"
+                },
+                {
+                  "value": "D",
+                  "label": "It lights the road after dark"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 167,
+              "prompt": "The word \"handle\" in paragraph 2 is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "grip"
+                },
+                {
+                  "value": "B",
+                  "label": "withstand"
+                },
+                {
+                  "value": "C",
+                  "label": "operate"
+                },
+                {
+                  "value": "D",
+                  "label": "manage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 168-171",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>Pemberton Business Network<br>42 Calderwood Street<br>12 September<br><br>Dear Ms. Ackroyd,<br></p><p>On behalf of the entire committee, I am pleased to inform you that Ackroyd Ceramics has been chosen as a finalist in this year's Pemberton Enterprise Awards. Being named a finalist is a significant honor, and the winners in each category will be announced during the ceremony itself.</p><p>Now in its ninth year, our program continues to celebrate outstanding local businesses. Nominations were submitted by members of the community and then reviewed by an independent selection panel. Nominations for this year closed in August. The finalists represent five categories: retail, hospitality, craft manufacturing, community service, and innovation. A cash prize will be awarded to the winner named in each category. Last year's overall winner, Foxton Leatherworks, will help present this year's awards.</p><p>The ceremony will feature a short talk by Bernadette Lowry. Ms. Lowry began her career in Canada before opening her own firm in our region, and she now devotes much of her time to mentoring young business owners. She has also announced that she will step back from her role as director of that firm next year.</p><p>The ceremony will be held on 18 October at Redmayne Hall, beginning at 6:30 P.M. A reception with refreshments will follow. Parking is available in the lot beside the hall. As this is an invitation-only event with limited seating, please confirm your attendance by 4 October.</p><p>Sincerely,<br>Malcolm Everhart<br>Awards Director, Pemberton Business Network<br>Telephone 555-0148 or e-mail awards@pembertonnetwork.org</p></div></div>",
+          "questions": [
+            {
+              "number": 168,
+              "prompt": "What is the purpose of the letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To announce a competition winner"
+                },
+                {
+                  "value": "B",
+                  "label": "To request further nominations"
+                },
+                {
+                  "value": "C",
+                  "label": "To advertise a public gala"
+                },
+                {
+                  "value": "D",
+                  "label": "To notify a business of its selection"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 169,
+              "prompt": "What is indicated about the Pemberton Enterprise Awards?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Most finalists come from a single industry."
+                },
+                {
+                  "value": "B",
+                  "label": "The program is being held for the first time."
+                },
+                {
+                  "value": "C",
+                  "label": "Nominations were made by local residents."
+                },
+                {
+                  "value": "D",
+                  "label": "A prize is given to every finalist."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 170,
+              "prompt": "What is mentioned about Ms. Lowry?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has recently retired."
+                },
+                {
+                  "value": "B",
+                  "label": "She began her career in another country."
+                },
+                {
+                  "value": "C",
+                  "label": "She runs the awards program."
+                },
+                {
+                  "value": "D",
+                  "label": "She previously won an award."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 171,
+              "prompt": "What is NOT suggested about the ceremony?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Parking is available nearby."
+                },
+                {
+                  "value": "B",
+                  "label": "Live entertainment will be performed."
+                },
+                {
+                  "value": "C",
+                  "label": "A reception will follow the ceremony."
+                },
+                {
+                  "value": "D",
+                  "label": "Guests must confirm their attendance."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 172-175",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Halcombe Electronics<br>Retail and Membership Services<br>14 February<br>Mr. Everett Sloane<br>Halcombe Advantage Member</p><p>Dear Mr. Sloane,</p><p>On behalf of everyone at Halcombe Electronics, I am pleased to invite you to a private preview sale held exclusively for members of our Halcombe Advantage program. This is a one-time evening event, to be held on Saturday, 8 March, and it will take place before our new spring range of products reaches the general public.</p><p>As a member attending the evening, you will enjoy the following:</p><p>- A discount of fifteen percent on all televisions, laptops, and home audio equipment shown that night.</p><p>- A guided walk-through of the newest models, with our floor team present to demonstrate the products and answer your questions.</p><p>- For Elite members only, a complimentary three-year protection plan applied to any qualifying purchase made during the event. This additional benefit is not available to members at the Standard level.</p><p>To attend, please reserve your place by telephoning our customer desk or visiting www.halcombeelectronics.com no later than Friday, 28 February. Because the store can seat only a limited number of guests on the evening, and the number of assistants we are able to schedule is fixed, places will be confirmed strictly in the order in which requests are received. Reserving early is the surest way to secure a spot.</p><p>We look forward to welcoming you.</p><p>Sincerely,<br>Nathaniel Briggs<br>Store Manager, Halcombe Electronics</p></div>",
+          "questions": [
+            {
+              "number": 172,
+              "prompt": "What is stated about the event?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is being organized by an outside company"
+                },
+                {
+                  "value": "B",
+                  "label": "It allows members to see products before the general public"
+                },
+                {
+                  "value": "C",
+                  "label": "It is held on a regular basis"
+                },
+                {
+                  "value": "D",
+                  "label": "It features a number of well-known presenters"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 173,
+              "prompt": "What is implied about Standard-level members?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They were sent the letter by mistake"
+                },
+                {
+                  "value": "B",
+                  "label": "They will all receive a free protection plan"
+                },
+                {
+                  "value": "C",
+                  "label": "They are not entitled to every benefit"
+                },
+                {
+                  "value": "D",
+                  "label": "They were chosen because of their past purchases"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 174,
+              "prompt": "Why are recipients asked to reserve early?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A contract is scheduled to be signed"
+                },
+                {
+                  "value": "B",
+                  "label": "Additional staff members need to be hired"
+                },
+                {
+                  "value": "C",
+                  "label": "A guest list needs to be completed"
+                },
+                {
+                  "value": "D",
+                  "label": "Space at the event is limited"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 175,
+              "prompt": "Who most likely is Mr. Briggs?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A senior member of store staff"
+                },
+                {
+                  "value": "B",
+                  "label": "A product technician"
+                },
+                {
+                  "value": "C",
+                  "label": "A member of the floor sales team"
+                },
+                {
+                  "value": "D",
+                  "label": "A customer in the loyalty program"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 176-180",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><table><tr><th>Package</th><th>Duration</th><th>Location</th><th>Images or prints included</th><th>Price</th></tr><tr><td>Studio Classic</td><td>60 minutes</td><td>Main studio</td><td>8 digital images</td><td>$180</td></tr><tr><td>Heritage Portrait</td><td>90 minutes</td><td>On location, outdoors</td><td>12 digital images</td><td>$320</td></tr><tr><td>Lens Basics</td><td>4 weekly classes</td><td>Studio classroom</td><td>None (course only)</td><td>$150</td></tr><tr><td>Print Revival</td><td>By appointment</td><td>Drop-off or by mail</td><td>Restored prints returned</td><td>$90</td></tr><tr><td>Gear Loan</td><td>Per day</td><td>Pickup at main studio</td><td>Camera and lens provided</td><td>$45</td></tr><tr><td>Note: On-location packages such as Heritage Portrait include travel to outdoor sites within the city. A meeting point is arranged with clients before the session date.</td><td></td><td></td><td></td><td></td></tr></table></div><p>----------------------</p><div><div><p>From: gmarsh@selbyportrait.com<br>To: rosalind.pryce@mailhive.com<br>Subject: Your portrait session</p><p>Dear Ms. Pryce,</p><p>Thank you for your message about arranging a family portrait outdoors. Based on the natural setting you described, I recommend our Heritage Portrait package. It is the only one of our sessions held entirely on location, which lets us <b>capture</b> the late-afternoon light you mentioned far better than any indoor room could.</p><p>For a session of this kind, clients do not come to our main studio on Fenwick Street. Instead, our team gathers everyone at the Ashgrove Park visitor center, and from there we walk together to the lakeside pavilion, where most of the pictures are taken. We can also begin at your home if you prefer, though the park offers a wider range of backgrounds. Please confirm your choice so that I may reserve the date.</p><p>Sincerely,</p><p>Gwen Marsh<br>Booking Coordinator, Selby Portrait Studio</p></div></div>",
+          "questions": [
+            {
+              "number": 176,
+              "prompt": "What is the Heritage Portrait?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A training course"
+                },
+                {
+                  "value": "B",
+                  "label": "A printing service"
+                },
+                {
+                  "value": "C",
+                  "label": "A photography session"
+                },
+                {
+                  "value": "D",
+                  "label": "An equipment rental"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 177,
+              "prompt": "What is indicated about the Heritage Portrait?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is the studio's least expensive option"
+                },
+                {
+                  "value": "B",
+                  "label": "It provides restored photographs"
+                },
+                {
+                  "value": "C",
+                  "label": "It runs over several weeks"
+                },
+                {
+                  "value": "D",
+                  "label": "It is held away from the studio"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 178,
+              "prompt": "In the e-mail, the word 'capture' is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "seize"
+                },
+                {
+                  "value": "B",
+                  "label": "record"
+                },
+                {
+                  "value": "C",
+                  "label": "charm"
+                },
+                {
+                  "value": "D",
+                  "label": "gain"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 179,
+              "prompt": "Why did Ms. Marsh write the e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To recommend a service option to a customer"
+                },
+                {
+                  "value": "B",
+                  "label": "To answer a coworker's question"
+                },
+                {
+                  "value": "C",
+                  "label": "To confirm a completed booking"
+                },
+                {
+                  "value": "D",
+                  "label": "To apologize for being unavailable"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 180,
+              "prompt": "Where will Ms. Pryce most likely meet the photography team?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At the main studio on Fenwick Street"
+                },
+                {
+                  "value": "B",
+                  "label": "At the lakeside pavilion"
+                },
+                {
+                  "value": "C",
+                  "label": "At her own home"
+                },
+                {
+                  "value": "D",
+                  "label": "At the Ashgrove Park visitor center"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 181-185",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><a>https://www.larkfielddance.com/programs</a></p><p><b>Welcome to Larkfield Dance Studio</b></p><p>Since opening its doors in Cedar Valley, Larkfield Dance Studio has built its name on youth instruction. Every one of our current weekly classes serves students between the ages of six and seventeen, from first-time movers to competition-ready teens, and generations of local families have passed through our doors.</p><p><b>Meet Your Instructor</b></p><p>Lorena Bassett joined the Larkfield team last year. Before turning to teaching, she danced with several touring companies across South America, and for the past eight years she has coached adult learners at community centers, guiding people who arrive with no experience at all. Warm and patient, she is known for putting nervous newcomers at ease within their first lesson.</p><p><b>Our Space</b></p><p>Larkfield occupies a bright, ground-floor studio on Maple Row. Our two mirrored rooms can each comfortably <b>accommodate</b> up to thirty dancers, the floors are sprung for safety, and a small lounge just off the entrance gives waiting families a comfortable place to sit.</p><p><b>Starting Soon</b></p><p>This autumn we are opening a new evening course, Ballroom Basics, created for adults who are stepping onto the dance floor for the very first time. Beginning Monday, October 6, instructor Lorena Bassett will lead the group each Monday evening across an eight-week term. The term fee is $95. Places are limited, so early sign-up is encouraged.</p></div><p>----------------------</p><div><p><a>https://www.cedarvalleyliving.com/community</a></p><p><b>Grown-Ups Finally Get Their Turn at Larkfield</b></p><p>By Damon Whitby | Cedar Valley Living | September 22</p><p>For years, Larkfield Dance Studio has been a familiar fixture for Cedar Valley's youngest dancers. This October, the Maple Row studio is trying something rather different: a beginners' course built entirely for adults, and one that its organizers hope will draw people who assumed their dancing days had passed them by.</p><p>The eight-week program, called First Steps on the Floor, begins Monday, October 6 and will be led by instructor Lorena Bassett. Aimed squarely at people who have never taken a dance class of any kind, the course walks students through the fundamentals of ballroom dancing at an unhurried pace. Organizers are also quick to note that no partner is required to sign up.</p><p>\"So many adults tell me they have always wanted to try this, but they were afraid of being the only beginner in the room,\" said Bassett. \"This class is for exactly those people. Nobody here is expected to know a single step on day one.\"</p><p>The term costs $95, and registration is available only through the studio's website at www.larkfielddance.com.</p></div>",
+          "questions": [
+            {
+              "number": 181,
+              "prompt": "What is indicated about Ms. Bassett?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She was born in South America"
+                },
+                {
+                  "value": "B",
+                  "label": "She has worked at the studio for eight years"
+                },
+                {
+                  "value": "C",
+                  "label": "She taught adult students before joining the studio"
+                },
+                {
+                  "value": "D",
+                  "label": "She specializes in teaching children"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 182,
+              "prompt": "What is suggested about the new evening course?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is open to dancers of all ages"
+                },
+                {
+                  "value": "B",
+                  "label": "It will be the studio's first class for adults"
+                },
+                {
+                  "value": "C",
+                  "label": "It is intended for competition-level dancers"
+                },
+                {
+                  "value": "D",
+                  "label": "It meets several times each week"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 183,
+              "prompt": "In the first Web page, the word \"accommodate\" is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "oblige"
+                },
+                {
+                  "value": "B",
+                  "label": "adapt"
+                },
+                {
+                  "value": "C",
+                  "label": "satisfy"
+                },
+                {
+                  "value": "D",
+                  "label": "hold"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 184,
+              "prompt": "What is indicated about Larkfield Dance Studio?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It accepts course sign-ups through its Web site"
+                },
+                {
+                  "value": "B",
+                  "label": "It offers a discount for registering early"
+                },
+                {
+                  "value": "C",
+                  "label": "It rents its rooms to the public"
+                },
+                {
+                  "value": "D",
+                  "label": "It publishes a community magazine"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 185,
+              "prompt": "What change was made to the adult beginners' course between the two Web pages?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Its starting date was moved back"
+                },
+                {
+                  "value": "B",
+                  "label": "It was given a different name"
+                },
+                {
+                  "value": "C",
+                  "label": "Its focus was shifted to advanced technique"
+                },
+                {
+                  "value": "D",
+                  "label": "A requirement to bring a partner was removed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 186-190",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>To: All Staff<br>From: Trevor Osei<br>Date: February 24<br>Subject: New employee commuter shuttle</p><p>Hello everyone,</p><p>Beginning Monday, March 3, the Delmara Group will operate a morning commuter shuttle for staff, and I am pleased to say it will be offered at no cost to employees. The service was arranged to ease the pressure on our limited on-site parking and to give everyone a dependable alternative for the morning journey to work.</p><p>To reserve a seat, please register for one of the routes shown on the attached schedule no later than February 28. Seats on each route are limited, and they will be assigned in the order that requests are received.</p><p>On your very first journey, please show your employee identification badge to the route coordinator at the boarding point so that your name can be added to the daily passenger list. On every trip after that, the coordinator will simply check your name off the list before departure.</p><p>The attached schedule lists the boarding points that are available at launch. If none of them is close to your home, please write to our shuttle program administrator, who will look into adding a stop wherever there is enough demand.</p><p>Thank you,<br>Trevor Osei<br>Facilities Operations</p></div></div><p>----------------------</p><div><div><p>Employee Commuter Shuttle Schedule<br>Program Administrator: Yolanda Pratt</p><table><tr><th>Route</th><th>Coordinator</th><th>Departure</th><th>Boarding point</th><th>Seats remaining</th></tr><tr><td>Northgate Express</td><td>Gregory Lund</td><td>7:15 A.M.</td><td>Corner of Fifth and Main</td><td>3</td></tr><tr><td>Harbor Line</td><td>Simone Okafor</td><td>7:30 A.M.</td><td>Central Station plaza</td><td>0</td></tr><tr><td>Riverside Loop</td><td>Miriam Faulkner</td><td>7:45 A.M.</td><td>Willow Park entrance</td><td>6</td></tr><tr><td>Parkview Route</td><td>Raymond Tan</td><td>8:00 A.M.</td><td>Grand Avenue library</td><td>2</td></tr></table></div></div><p>----------------------</p><div><div><p>To: Miriam Faulkner<br>From: Dennis Achara<br>Date: February 27<br>Subject: Riverside Loop enrollment</p><p>Dear Ms. Faulkner,</p><p>Following Mr. Osei's announcement about the new shuttle service, I have registered for the Riverside Loop and look forward to using it from Monday onward. I attended the short safety orientation for new riders yesterday afternoon at 4:30, so I am already familiar with the boarding procedure. Could you please confirm the exact departure time for the Riverside Loop, as I want to be certain I reach the boarding point with a few minutes to spare? I will also return my old parking permit to the security desk before the end of this week, since I will no longer need my reserved space.</p><p>Thanks,<br>Dennis Achara</p></div></div>",
+          "questions": [
+            {
+              "number": 186,
+              "prompt": "According to the e-mail from Mr. Osei, what must employees do the first time they ride the shuttle?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Add their own name to the passenger list"
+                },
+                {
+                  "value": "B",
+                  "label": "Register for a route by February 28"
+                },
+                {
+                  "value": "C",
+                  "label": "Check their name off the daily list"
+                },
+                {
+                  "value": "D",
+                  "label": "Present their identification badge to a coordinator"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 187,
+              "prompt": "What does the e-mail indicate about the shuttle service?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Their facilitators are department managers at Harrise Systems"
+                },
+                {
+                  "value": "B",
+                  "label": "Seats are assigned according to seniority"
+                },
+                {
+                  "value": "C",
+                  "label": "It is provided at no cost to staff"
+                },
+                {
+                  "value": "D",
+                  "label": "It runs in both morning and evening"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 188,
+              "prompt": "Whom should employees contact about a boarding point that is not currently offered?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Ms. Pratt"
+                },
+                {
+                  "value": "B",
+                  "label": "Mr. Lund"
+                },
+                {
+                  "value": "C",
+                  "label": "Ms. Okafor"
+                },
+                {
+                  "value": "D",
+                  "label": "Mr. Osei"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 189,
+              "prompt": "At what time does the route Mr. Achara selected leave its boarding point?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "7:15 A.M."
+                },
+                {
+                  "value": "B",
+                  "label": "7:30 A.M."
+                },
+                {
+                  "value": "C",
+                  "label": "7:45 A.M."
+                },
+                {
+                  "value": "D",
+                  "label": "4:30 P.M."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 190,
+              "prompt": "What does Mr. Achara indicate he still needs to do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Sign up for a shuttle route"
+                },
+                {
+                  "value": "B",
+                  "label": "Return his parking permit"
+                },
+                {
+                  "value": "C",
+                  "label": "Attend a safety orientation session"
+                },
+                {
+                  "value": "D",
+                  "label": "Confirm a route's departure time"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 191-195",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>To: Julian Prescott<br>From: Theresa Boland<br>Date: September 3<br>Subject: Venue proposals for the offsite meeting</p><p>Hi Julian,</p><p>Our annual staff offsite meeting is set for October, and we need to settle on a location soon. Harriet Blaine will be coordinating the site visits and confirming availability once we have narrowed the list down.</p><p>Please contact the candidate venues on our shortlist and request a formal proposal from each one, using the comparison you put together for last year's meeting as a guide. Forward each proposal to Harriet as it comes in so that she can begin arranging visits. Once they are all in, combine them into a single comparison sheet for me. I plan to include it in the recommendation I am submitting to the chief operations officer.</p><p>Thanks,</p><p>Theresa</p></div><p>----------------------</p><div><p>To: Theresa Boland<br>From: Julian Prescott<br>Date: September 15<br>Subject: Re: Venue proposals for the offsite meeting<br>Attachment: Venue Comparison</p><p>Hi Theresa,</p><p>The proposals are all in now. According to Harriet Blaine, four of the six venues we contacted returned a completed proposal, which is a stronger response than we had for last year's meeting. The figures are broadly in line with what we saw then, although Harriet did point out one surprise: the daily rate quoted by one of the venues came in well below all of the others.</p><p>The full comparison is attached. Let me know if you need anything further before you send it on to Ms. Calloway, or whether she would also like copies of the original proposals.</p><p>Julian</p></div><p>----------------------</p><table><tbody><tr><th colspan=\"5\">VENUE PROPOSAL COMPARISON</th></tr><tr><th colspan=\"5\">Compiled September 14</th></tr><tr><th>Venue</th><th>Maximum Capacity</th><th>Daily Rate</th><th>Catering Included</th><th>Earliest Available Date</th></tr><tr><td>Harborlight Conference Center</td><td>250</td><td>$2,600</td><td>Yes</td><td>October 12</td></tr><tr><td>Maple Crest Lodge</td><td>180</td><td>$1,750</td><td>No</td><td>October 19</td></tr><tr><td>Stonebrook Pavilion</td><td>120</td><td>$1,900</td><td>Yes</td><td>October 5</td></tr><tr><td>Westgate Hall</td><td>200</td><td>$3,100</td><td>No</td><td>October 26</td></tr></tbody></table>",
+          "questions": [
+            {
+              "number": 191,
+              "prompt": "In the first e-mail, what is indicated about Mr. Prescott?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He will oversee the site visits."
+                },
+                {
+                  "value": "B",
+                  "label": "He will submit a recommendation to a senior executive."
+                },
+                {
+                  "value": "C",
+                  "label": "He has compiled a venue comparison before."
+                },
+                {
+                  "value": "D",
+                  "label": "He will lead the offsite meeting in October."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 192,
+              "prompt": "What does Ms. Boland say she will do with the completed venue comparison?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Include it in a recommendation"
+                },
+                {
+                  "value": "B",
+                  "label": "Send it to the shortlisted venues"
+                },
+                {
+                  "value": "C",
+                  "label": "Forward it to Ms. Blaine"
+                },
+                {
+                  "value": "D",
+                  "label": "Use it to schedule site visits"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 193,
+              "prompt": "Who most likely is Ms. Calloway?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The site visit coordinator"
+                },
+                {
+                  "value": "B",
+                  "label": "The event logistics manager"
+                },
+                {
+                  "value": "C",
+                  "label": "The head of human resources"
+                },
+                {
+                  "value": "D",
+                  "label": "The chief operations officer"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 194,
+              "prompt": "What does Mr. Prescott suggest about the venues that were contacted?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The response was weaker than the previous year's."
+                },
+                {
+                  "value": "B",
+                  "label": "Not all of them submitted a proposal."
+                },
+                {
+                  "value": "C",
+                  "label": "One of them withdrew from consideration."
+                },
+                {
+                  "value": "D",
+                  "label": "They will be contacted again next year."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 195,
+              "prompt": "Which venue's daily rate most likely surprised Ms. Blaine?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Maple Crest Lodge"
+                },
+                {
+                  "value": "B",
+                  "label": "Stonebrook Pavilion"
+                },
+                {
+                  "value": "C",
+                  "label": "Westgate Hall"
+                },
+                {
+                  "value": "D",
+                  "label": "Harborlight Conference Center"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 196-200",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>To: Northgate Reel Rewards Members<br>From: Lorna Fitzgerald<br>Subject: Introducing Northgate Reel Rewards<br>Date: March 12<br>Attachment: Rewards Catalog</p><p>Dear Member,</p><p>Thank you for being part of the Northgate Cinemas community. We are pleased to introduce Northgate Reel Rewards, our new points-based program that lets you earn points on every ticket and concession purchase and exchange those points for a range of rewards.</p><p>All members begin at the Matinee level. At this level you earn one point for every dollar you spend, and you may redeem your points for any reward marked for Matinee members in the attached catalog.</p><p>Once you have spent three hundred dollars within a single calendar year, you are automatically moved up to the Marquee level. Marquee members earn two points for every dollar spent and may redeem their points for any reward marked for the Marquee level. They also enjoy one benefit reserved for this level alone: invitations to our members-only advance screenings, where you can watch selected films before they open to the general public.</p><p>To claim a reward, please review the attached catalog and confirm the points and level required for the item you want. Please note that each reward may be claimed only by members at the level shown beside it. Reply to this message with your choice, and we will verify your balance and arrange delivery or pickup.</p><p>Enjoy the show,</p><p>Lorna Fitzgerald<br>Membership Coordinator, Northgate Cinemas</p></div></div><p>----------------------</p><div><table><tr><td colspan=\"4\">Northgate Reel Rewards Catalog</td></tr><tr><th>Reward</th><th>Points Required</th><th>Eligible Level</th><th>Delivery</th></tr><tr><td>Popcorn and drink voucher</td><td>200</td><td>Matinee</td><td>Collect at concession counter</td></tr><tr><td>Reusable beverage cup</td><td>250</td><td>Matinee</td><td>Collect at concession counter</td></tr><tr><td>Collector's film poster*</td><td>350</td><td>Marquee</td><td>Mailed to home address</td></tr><tr><td>Insulated travel tumbler</td><td>400</td><td>Marquee</td><td>Mailed to home address</td></tr><tr><td>Fleece cinema blanket</td><td>600</td><td>Marquee</td><td>Mailed to home address</td></tr><tr><td colspan=\"4\">* This reward is temporarily out of stock and cannot be claimed until it is restocked.</td></tr></table></div><p>----------------------</p><div><div><p>To: Lorna Fitzgerald<br>From: Malcolm Reeves<br>Re: Introducing Northgate Reel Rewards<br>Date: March 15</p><p>Dear Ms. Fitzgerald,</p><p>Thank you for the information about the new program. I have been a Northgate member for about two years, and my account currently shows a balance of 450 points. Last month I attended one of the members-only advance screenings, which I thought was a wonderful benefit.</p><p>I would very much like to claim the fleece cinema blanket from the catalog. Could you let me know whether my current balance is enough for it, and, if it is not, which reward I would be able to claim instead?</p><p>Thank you for your help,</p><p>Malcolm Reeves</p></div></div>",
+          "questions": [
+            {
+              "number": 196,
+              "prompt": "According to the first e-mail, what is true about the Marquee level?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Members there earn points at a faster rate than other members."
+                },
+                {
+                  "value": "B",
+                  "label": "Members are placed there as soon as they join."
+                },
+                {
+                  "value": "C",
+                  "label": "Reaching it requires spending a set amount each month."
+                },
+                {
+                  "value": "D",
+                  "label": "Access to it requires payment of a separate fee."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 197,
+              "prompt": "According to the catalog, what do the rewards available to Marquee members have in common?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They are sent to members by mail."
+                },
+                {
+                  "value": "B",
+                  "label": "They require the same number of points."
+                },
+                {
+                  "value": "C",
+                  "label": "They are all available to claim right now."
+                },
+                {
+                  "value": "D",
+                  "label": "They can be picked up at the concession counter."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 198,
+              "prompt": "Why did Mr. Reeves write to Ms. Fitzgerald?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To report a problem with his membership account"
+                },
+                {
+                  "value": "B",
+                  "label": "To ask for more points to be added to his account"
+                },
+                {
+                  "value": "C",
+                  "label": "To enroll in the new rewards program"
+                },
+                {
+                  "value": "D",
+                  "label": "To determine which reward he is eligible to receive"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 199,
+              "prompt": "What is suggested about Mr. Reeves?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He belongs to the Matinee level."
+                },
+                {
+                  "value": "B",
+                  "label": "He is employed by Northgate Cinemas."
+                },
+                {
+                  "value": "C",
+                  "label": "He has reached the Marquee level."
+                },
+                {
+                  "value": "D",
+                  "label": "He has already claimed a reward from the catalog."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 200,
+              "prompt": "Which reward will Mr. Reeves most likely be able to claim?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The collector's film poster"
+                },
+                {
+                  "value": "B",
+                  "label": "The fleece cinema blanket"
+                },
+                {
+                  "value": "C",
+                  "label": "The popcorn and drink voucher"
+                },
+                {
+                  "value": "D",
+                  "label": "The insulated travel tumbler"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

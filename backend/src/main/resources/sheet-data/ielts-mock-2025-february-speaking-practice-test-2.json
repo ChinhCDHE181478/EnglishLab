@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "ielts_mock_2025_february_speaking_practice_test_2",
+  "title": "IELTS Mock Test 2025 February Speaking Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de4s.html",
+  "durationMinutes": 14,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Do you like the area that you live in?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q1-Do%20you%20like%20the%20area%20that%20you%20live%20in.mp4"
+        },
+        {
+          "text": "Where do you like to go in that area?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q2-Where%20do%20you%20like%20to%20go%20in%20that%20area.mp4"
+        },
+        {
+          "text": "Do you know any famous people in your area?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q3-Do%20you%20know%20any%20famous%20people%20in%20your%20area.mp4"
+        },
+        {
+          "text": "What are some changes in the area recently?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q4-What%20are%20some%20changes%20in%20the%20area%20recently.mp4"
+        },
+        {
+          "text": "Do you know any of your neighbours?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q5-Do%20you%20know%20any%20of%20your%20neighbours.mp4"
+        },
+        {
+          "text": "How often do you make telephone calls? [Why/Why not?]",
+          "videoUrl": ""
+        },
+        {
+          "text": "Who do you spend the most time talking to on the telephone? [Why?]",
+          "videoUrl": ""
+        },
+        {
+          "text": "When do you think you’ll next make a telephone call? [Why?]",
+          "videoUrl": ""
+        },
+        {
+          "text": "Do you sometimes prefer to send a text message instead of telephoning? [Why/Why not?]",
+          "videoUrl": ""
+        },
+        {
+          "text": "Do you mind noises?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q10-Do%20you%20mind%20noises.mp4"
+        },
+        {
+          "text": "Do any noises bother you?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q11-Do%20any%20noises%20bother%20you.mp4"
+        },
+        {
+          "text": "Are cities becoming noisier?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q12-Are%20cities%20becoming%20noisier.mp4"
+        },
+        {
+          "text": "Where is there louder noise, in cities or in the countryside?",
+          "videoUrl": ""
+        },
+        {
+          "text": "What type of noise do you come across in your daily life?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Are there any sounds that you like?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%201-%20Q15-Are%20there%20any%20sounds%20that%20you%20like.mp4"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Topic",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%202-Describe%20the%20person%20in%20your%20family%20who%20you%20most%20admire..mp4",
+      "cueCardTitle": "Describe the person in your family who you most admire.",
+      "cueCardBullets": [
+        "what their relationship is to you",
+        "what they have done in their life",
+        "what they do now",
+        "and explain why you admire them so much."
+      ]
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Topic Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Is family important in your country?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%202/Part%203-%20Q1-Is%20family%20important%20in%20your%20country.mp4"
+        },
+        {
+          "text": "How has the size of the family changed in the last few decades in your country?",
+          "videoUrl": ""
+        },
+        {
+          "text": "How do you think the family will change in the future?",
+          "videoUrl": ""
+        },
+        {
+          "text": "What role do grandparents play in the family in your country?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Who do you think should be responsible for the care of the elderly, the family or the government?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Why is the number of joint families decreasing in modern time?",
+          "videoUrl": ""
+        }
+      ]
+    }
+  ]
+}

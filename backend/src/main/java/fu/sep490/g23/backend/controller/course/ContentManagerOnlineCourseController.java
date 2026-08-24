@@ -16,6 +16,7 @@ import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
 import fu.sep490.g23.backend.dto.response.course.LessonResponse;
 import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
 import fu.sep490.g23.backend.service.course.CourseThumbnailStorageService;
 import jakarta.validation.Valid;
@@ -43,6 +44,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/content-manager/online-courses")
@@ -56,12 +60,44 @@ public class ContentManagerOnlineCourseController {
     public ResponseEntity<Page<OnlineCourseResponse>> getCourses(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) CourseLevel level,
             @RequestParam(required = false) PackageStatus status,
+            @RequestParam(required = false) String excludeIds,
+            @RequestParam(defaultValue = "newest") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return ResponseEntity.ok(onlineCourseService.getManagerCourses(keyword, category, status, pageable));
+        Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
+        return ResponseEntity.ok(onlineCourseService.getManagerCourses(
+                keyword,
+                category,
+                level,
+                status,
+                parseIds(excludeIds),
+                pageable
+        ));
+    }
+
+    private Set<Long> parseIds(String value) {
+        if (value == null || value.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(token -> !token.isBlank())
+                .map(Long::valueOf)
+                .collect(Collectors.toSet());
+    }
+
+    private Sort resolveSort(String value) {
+        return switch (value == null ? "newest" : value) {
+            case "oldest" -> Sort.by("id").ascending();
+            case "titleAsc" -> Sort.by("learningPackage.title").ascending();
+            case "titleDesc" -> Sort.by("learningPackage.title").descending();
+            case "priceAsc" -> Sort.by("learningPackage.price").ascending();
+            case "priceDesc" -> Sort.by("learningPackage.price").descending();
+            default -> Sort.by("id").descending();
+        };
     }
 
     @GetMapping("/{slugOrId}")

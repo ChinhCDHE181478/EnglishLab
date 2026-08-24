@@ -52,6 +52,9 @@ class GoogleMeetServiceImplTest {
             assertThat(exchange.getRequestMethod()).isEqualTo("POST");
             assertThat(exchange.getRequestHeaders().getFirst("Authorization"))
                     .isEqualTo("Bearer access-token");
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(body).contains("\"accessType\":\"RESTRICTED\"");
+            assertThat(body).doesNotContain("\"accessType\":\"OPEN\"");
             respond(
                     exchange,
                     200,
@@ -59,7 +62,8 @@ class GoogleMeetServiceImplTest {
                             {
                               "name":"spaces/space-resource-id",
                               "meetingUri":"https://meet.google.com/abc-defg-hij",
-                              "meetingCode":"abc-defg-hij"
+                              "meetingCode":"abc-defg-hij",
+                              "config":{"accessType":"RESTRICTED"}
                             }
                             """
             );
@@ -82,13 +86,79 @@ class GoogleMeetServiceImplTest {
     }
 
     @Test
+    void updatesExistingMeetSpaceSoGuestsMustWaitForTheHost() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> respond(exchange, 200, "{\"access_token\":\"access-token\",\"expires_in\":3600}"));
+        server.createContext("/v2/spaces/existing-restricted-room", exchange -> {
+            assertThat(exchange.getRequestMethod()).isEqualTo("PATCH");
+            assertThat(exchange.getRequestURI().getQuery()).contains("updateMask=config.accessType");
+            String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            assertThat(body).contains("\"accessType\":\"RESTRICTED\"");
+            respond(exchange, 200, "{\"name\":\"spaces/existing-restricted-room\",\"config\":{\"accessType\":\"RESTRICTED\"}}");
+        });
+        server.start();
+
+        ClassroomSession session = sessionWithTeacher();
+        session.setLarkMeetingId("spaces/existing-restricted-room");
+        session.setLarkMeetingUrl("https://meet.google.com/existing-restricted-room");
+
+        new GoogleMeetServiceImpl(configuredProperties(), connectedTeacherService()).syncMeeting(session);
+
+        assertThat(session.getLarkSyncStatus()).isEqualTo("SYNCED");
+    }
+
+    @Test
+    void doesNotHideRestrictedAccessFailureForAnExistingRoom() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> respond(exchange, 200, "{\"access_token\":\"access-token\",\"expires_in\":3600}"));
+        server.createContext("/v2/spaces/consumer-existing-room", exchange -> respond(
+                exchange,
+                403,
+                "{\"error\":{\"status\":\"PERMISSION_DENIED\",\"message\":\"Access type is unavailable to the user.\"}}"
+        ));
+        server.start();
+
+        ClassroomSession session = sessionWithTeacher();
+        session.setLarkMeetingId("spaces/consumer-existing-room");
+        session.setLarkMeetingUrl("https://meet.google.com/consumer-existing-room");
+
+        assertThatThrownBy(() -> new GoogleMeetServiceImpl(
+                configuredProperties(),
+                connectedTeacherService()
+        ).syncMeeting(session))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("không áp dụng chế độ RESTRICTED")
+                .hasMessageContaining("Google Workspace");
+    }
+
+    @Test
+    void rejectsSpaceWhenGoogleDoesNotApplyRestrictedAccess() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/token", exchange -> respond(exchange, 200, "{\"access_token\":\"access-token\",\"expires_in\":3600}"));
+        server.createContext("/v2/spaces", exchange -> respond(
+                exchange,
+                200,
+                "{\"name\":\"spaces/consumer-room\",\"meetingUri\":\"https://meet.google.com/consumer-room\",\"meetingCode\":\"consumer-room\",\"config\":{\"accessType\":\"TRUSTED\"}}"
+        ));
+        server.start();
+
+        assertThatThrownBy(() -> new GoogleMeetServiceImpl(
+                configuredProperties(),
+                connectedTeacherService()
+        ).syncMeeting(sessionWithTeacher()))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("không áp dụng chế độ RESTRICTED")
+                .hasMessageContaining("Google Workspace");
+    }
+
+    @Test
     void usesTheClassroomTeacherInsteadOfAnObsoleteStaffMeetingOwner() throws IOException {
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.createContext("/token", exchange -> respond(exchange, 200, "{\"access_token\":\"access-token\",\"expires_in\":3600}"));
         server.createContext("/v2/spaces", exchange -> respond(
                 exchange,
                 200,
-                "{\"name\":\"spaces/teacher-owned-room\",\"meetingUri\":\"https://meet.google.com/teacher-owned-room\",\"meetingCode\":\"teacher-owned-room\"}"
+                "{\"name\":\"spaces/teacher-owned-room\",\"meetingUri\":\"https://meet.google.com/teacher-owned-room\",\"meetingCode\":\"teacher-owned-room\",\"config\":{\"accessType\":\"RESTRICTED\"}}"
         ));
         server.start();
 
@@ -200,7 +270,8 @@ class GoogleMeetServiceImplTest {
                             {
                               "name":"spaces/retried-space",
                               "meetingUri":"https://meet.google.com/retry-room-ok",
-                              "meetingCode":"retry-room-ok"
+                              "meetingCode":"retry-room-ok",
+                              "config":{"accessType":"RESTRICTED"}
                             }
                             """
             );
@@ -231,7 +302,7 @@ class GoogleMeetServiceImplTest {
                 respond(exchange, 403, "{\"error\":{\"status\":\"PERMISSION_DENIED\",\"details\":[{\"reason\":\"FEATURE_UNAVAILABLE_TO_USER\",\"metadata\":{\"feature_name\":\"updateAutoRecordingGeneration\"}}]}}");
                 return;
             }
-            respond(exchange, 200, "{\"name\":\"spaces/manual-recording-room\",\"meetingUri\":\"https://meet.google.com/manual-recording-room\",\"meetingCode\":\"manual-recording-room\"}");
+            respond(exchange, 200, "{\"name\":\"spaces/manual-recording-room\",\"meetingUri\":\"https://meet.google.com/manual-recording-room\",\"meetingCode\":\"manual-recording-room\",\"config\":{\"accessType\":\"RESTRICTED\"}}");
         });
         server.start();
 

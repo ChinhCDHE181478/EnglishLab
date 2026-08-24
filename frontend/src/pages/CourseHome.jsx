@@ -199,6 +199,7 @@ const CourseHome = () => {
     const modules = course?.modules || [];
     const result = new Map();
     let previousModulesReady = true;
+    let previousAssessmentsReady = true;
     const furthestReachedModuleIndex = findFurthestReachedModuleIndex({
       modules,
       completedLessonIds,
@@ -218,6 +219,7 @@ const CourseHome = () => {
         sequentiallyUnlocked: previousModulesReady,
         moduleIndex,
         furthestReachedModuleIndex,
+        previousAssessmentsReady,
       });
 
       result.set(String(module.id ?? module.title ?? moduleIndex), {
@@ -229,6 +231,7 @@ const CourseHome = () => {
       });
 
       previousModulesReady = unlocked && lessonsCompleted && assessmentsPassed;
+      previousAssessmentsReady = previousAssessmentsReady && assessmentsPassed;
     });
 
     return result;
@@ -376,8 +379,8 @@ const CourseHome = () => {
                     const completed = completedLessonIds.has(lessonId);
                     const previousLesson = lessons[lessonIndex - 1];
                     const previousLessonId = previousLesson ? getLessonId(module, previousLesson, lessonIndex - 1) : null;
-                    const locked = !completed && (
-                      !moduleState.unlocked || Boolean(previousLessonId && !completedLessonIds.has(previousLessonId))
+                    const locked = !moduleState.unlocked || (
+                      !completed && Boolean(previousLessonId && !completedLessonIds.has(previousLessonId))
                     );
                     return (
                       <button

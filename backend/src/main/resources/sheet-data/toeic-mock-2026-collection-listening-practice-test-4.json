@@ -1,0 +1,2663 @@
+{
+  "version": 1,
+  "type": "toeic_listening_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_4_listening",
+  "title": "TOEIC Mock Test 2026 Collection Listening Practice Test 4",
+  "sourceLabel": "toeicde4",
+  "durationMinutes": 45,
+  "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/1_audio.mp3",
+  "audioLabel": "TOEIC audio",
+  "rules": [
+    "100 câu",
+    "4 Part"
+  ],
+  "parts": [
+    {
+      "part": 1,
+      "partNumber": 1,
+      "title": "Photographs",
+      "instructions": "Select the one statement that best describes what you see in the picture.",
+      "questionCount": 6,
+      "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/1_audio.mp3",
+      "questionRange": "Questions 1-6",
+      "passage": {
+        "title": "Photographs",
+        "paragraphs": [
+          {
+            "text": "Directions: For each question in this part, you will hear four statements about a picture in your test book. When you hear the statements, you must select the one statement that best describes what you see in the picture. Then find the number of the question on your answer sheet and mark your answer. The statements will not be printed in your test book and will be spoken only one time."
+          }
+        ]
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 1-6",
+          "type": "single_choice",
+          "hideOptionText": true,
+          "perQuestionAudio": true,
+          "questions": [
+            {
+              "number": 1,
+              "prompt": "Câu 1",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/1_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/1_audio.mp3"
+            },
+            {
+              "number": 2,
+              "prompt": "Câu 2",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/2_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/2_audio.mp3"
+            },
+            {
+              "number": 3,
+              "prompt": "Câu 3",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/3_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/3_audio.mp3"
+            },
+            {
+              "number": 4,
+              "prompt": "Câu 4",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/4_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/4_audio.mp3"
+            },
+            {
+              "number": 5,
+              "prompt": "Câu 5",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/5_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/5_audio.mp3"
+            },
+            {
+              "number": 6,
+              "prompt": "Câu 6",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                },
+                {
+                  "value": "D",
+                  "label": "D"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/6_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/6_audio.mp3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 2,
+      "partNumber": 2,
+      "title": "Question-Response",
+      "instructions": "Select the best response to the question.",
+      "questionCount": 25,
+      "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/7_audio.mp3",
+      "questionRange": "Questions 7-31",
+      "passage": {
+        "title": "Question-Response",
+        "paragraphs": [
+          {
+            "text": "Directions: You will hear a question or statement and three responses spoken in English. They will not be printed in your test book and will be spoken only one time. Select the best response to the question or statement and mark the letter (A), (B), or (C) on your answer sheet."
+          }
+        ]
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 7-31",
+          "type": "single_choice",
+          "hideOptionText": true,
+          "perQuestionAudio": true,
+          "questions": [
+            {
+              "number": 7,
+              "prompt": "Câu 7",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/7_audio.mp3"
+            },
+            {
+              "number": 8,
+              "prompt": "Câu 8",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/8_audio.mp3"
+            },
+            {
+              "number": 9,
+              "prompt": "Câu 9",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/9_audio.mp3"
+            },
+            {
+              "number": 10,
+              "prompt": "Câu 10",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/10_audio.mp3"
+            },
+            {
+              "number": 11,
+              "prompt": "Câu 11",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/11_audio.mp3"
+            },
+            {
+              "number": 12,
+              "prompt": "Câu 12",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/12_audio.mp3"
+            },
+            {
+              "number": 13,
+              "prompt": "Câu 13",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/13_audio.mp3"
+            },
+            {
+              "number": 14,
+              "prompt": "Câu 14",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/14_audio.mp3"
+            },
+            {
+              "number": 15,
+              "prompt": "Câu 15",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/15_audio.mp3"
+            },
+            {
+              "number": 16,
+              "prompt": "Câu 16",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/16_audio.mp3"
+            },
+            {
+              "number": 17,
+              "prompt": "Câu 17",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/17_audio.mp3"
+            },
+            {
+              "number": 18,
+              "prompt": "Câu 18",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/18_audio.mp3"
+            },
+            {
+              "number": 19,
+              "prompt": "Câu 19",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/19_audio.mp3"
+            },
+            {
+              "number": 20,
+              "prompt": "Câu 20",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/20_audio.mp3"
+            },
+            {
+              "number": 21,
+              "prompt": "Câu 21",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/21_audio.mp3"
+            },
+            {
+              "number": 22,
+              "prompt": "Câu 22",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/22_audio.mp3"
+            },
+            {
+              "number": 23,
+              "prompt": "Câu 23",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/23_audio.mp3"
+            },
+            {
+              "number": 24,
+              "prompt": "Câu 24",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/24_audio.mp3"
+            },
+            {
+              "number": 25,
+              "prompt": "Câu 25",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/25_audio.mp3"
+            },
+            {
+              "number": 26,
+              "prompt": "Câu 26",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/26_audio.mp3"
+            },
+            {
+              "number": 27,
+              "prompt": "Câu 27",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/27_audio.mp3"
+            },
+            {
+              "number": 28,
+              "prompt": "Câu 28",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/28_audio.mp3"
+            },
+            {
+              "number": 29,
+              "prompt": "Câu 29",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/29_audio.mp3"
+            },
+            {
+              "number": 30,
+              "prompt": "Câu 30",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/30_audio.mp3"
+            },
+            {
+              "number": 31,
+              "prompt": "Câu 31",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A"
+                },
+                {
+                  "value": "B",
+                  "label": "B"
+                },
+                {
+                  "value": "C",
+                  "label": "C"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/31_audio.mp3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 3,
+      "partNumber": 3,
+      "title": "Conversations",
+      "instructions": "Select the best response to each question.",
+      "questionCount": 39,
+      "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/32-34_audio.mp3",
+      "questionRange": "Questions 32-70",
+      "passage": {
+        "title": "Conversations",
+        "paragraphs": [
+          {
+            "text": "Directions: You will hear some conversations between two or more people. You will be asked to answer three questions about what the speakers say in each conversation. Select the best response to each question and mark the letter (A), (B), (C), or (D) on your answer sheet. The conversations will not be printed in your test book and will be spoken only one time."
+          }
+        ]
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 32-34",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/32-34_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 32,
+              "prompt": "Where will some items be counted, according to the woman?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At the register"
+                },
+                {
+                  "value": "B",
+                  "label": "In the stockroom"
+                },
+                {
+                  "value": "C",
+                  "label": "In the loading area"
+                },
+                {
+                  "value": "D",
+                  "label": "In the parking lot"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/32-34_audio.mp3"
+            },
+            {
+              "number": 33,
+              "prompt": "What role does the man most likely have?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A store customer"
+                },
+                {
+                  "value": "B",
+                  "label": "A delivery driver"
+                },
+                {
+                  "value": "C",
+                  "label": "A product supplier"
+                },
+                {
+                  "value": "D",
+                  "label": "A sales floor worker"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/32-34_audio.mp3"
+            },
+            {
+              "number": 34,
+              "prompt": "Why is the man expected to stay late?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He is closing the store to customers."
+                },
+                {
+                  "value": "B",
+                  "label": "He is covering the front register."
+                },
+                {
+                  "value": "C",
+                  "label": "He is helping count merchandise."
+                },
+                {
+                  "value": "D",
+                  "label": "He is setting up a sale display."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/32-34_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 35-37",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/35-37_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 35,
+              "prompt": "What is the main reason for the woman's call?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To change a seat assignment"
+                },
+                {
+                  "value": "B",
+                  "label": "To check a flight's arrival"
+                },
+                {
+                  "value": "C",
+                  "label": "To change her next flight"
+                },
+                {
+                  "value": "D",
+                  "label": "To get back a personal item"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/35-37_audio.mp3"
+            },
+            {
+              "number": 36,
+              "prompt": "What issue does the man explain?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The flight has not reached the airport yet."
+                },
+                {
+                  "value": "B",
+                  "label": "The office has not received her seat number yet."
+                },
+                {
+                  "value": "C",
+                  "label": "The gate has not sent the case upstairs yet."
+                },
+                {
+                  "value": "D",
+                  "label": "The item has not reached the office yet."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/35-37_audio.mp3"
+            },
+            {
+              "number": 37,
+              "prompt": "What action will the man take next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Search the cabin for the case"
+                },
+                {
+                  "value": "B",
+                  "label": "Contact someone at the gate"
+                },
+                {
+                  "value": "C",
+                  "label": "Keep the case at the office"
+                },
+                {
+                  "value": "D",
+                  "label": "Change the woman's next flight"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/35-37_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 38-40",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/38-40_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 38,
+              "prompt": "Why is the woman calling?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To have a spare key made"
+                },
+                {
+                  "value": "B",
+                  "label": "To arrange a lock replacement"
+                },
+                {
+                  "value": "C",
+                  "label": "To report a lockout"
+                },
+                {
+                  "value": "D",
+                  "label": "To pay a service bill"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/38-40_audio.mp3"
+            },
+            {
+              "number": 39,
+              "prompt": "What does the man mention about the service?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A technician is available the same day"
+                },
+                {
+                  "value": "B",
+                  "label": "Payment is required in advance"
+                },
+                {
+                  "value": "C",
+                  "label": "The back door will also be replaced"
+                },
+                {
+                  "value": "D",
+                  "label": "A discount applies to multiple doors"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/38-40_audio.mp3"
+            },
+            {
+              "number": 40,
+              "prompt": "What does the man say he will do next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Transfer the caller"
+                },
+                {
+                  "value": "B",
+                  "label": "Process a payment"
+                },
+                {
+                  "value": "C",
+                  "label": "Send scheduling details"
+                },
+                {
+                  "value": "D",
+                  "label": "Dispatch a technician"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/38-40_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 41-43",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/41-43_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 41,
+              "prompt": "Where does the woman most likely work?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At a shoe store"
+                },
+                {
+                  "value": "B",
+                  "label": "At a bowling alley"
+                },
+                {
+                  "value": "C",
+                  "label": "At a travel agency"
+                },
+                {
+                  "value": "D",
+                  "label": "At a skating rink"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/41-43_audio.mp3"
+            },
+            {
+              "number": 42,
+              "prompt": "What has the woman just done?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She updated the guest list."
+                },
+                {
+                  "value": "B",
+                  "label": "She ordered the shoe rentals."
+                },
+                {
+                  "value": "C",
+                  "label": "She checked the package list."
+                },
+                {
+                  "value": "D",
+                  "label": "She changed the lane schedule."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/41-43_audio.mp3"
+            },
+            {
+              "number": 43,
+              "prompt": "What is the man expected to do next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Choose another time"
+                },
+                {
+                  "value": "B",
+                  "label": "Pay a deposit online"
+                },
+                {
+                  "value": "C",
+                  "label": "Sign a form in person"
+                },
+                {
+                  "value": "D",
+                  "label": "Send the guest list"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/41-43_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 44-46",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/44-46_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 44,
+              "prompt": "Why is the woman calling?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To report a facility problem"
+                },
+                {
+                  "value": "B",
+                  "label": "To transfer a membership"
+                },
+                {
+                  "value": "C",
+                  "label": "To ask about class times"
+                },
+                {
+                  "value": "D",
+                  "label": "To sign up for a sports activity"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/44-46_audio.mp3"
+            },
+            {
+              "number": 45,
+              "prompt": "What does the woman say she recently did?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She joined a gym."
+                },
+                {
+                  "value": "B",
+                  "label": "She started a new job."
+                },
+                {
+                  "value": "C",
+                  "label": "She moved to the area."
+                },
+                {
+                  "value": "D",
+                  "label": "She returned some equipment."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/44-46_audio.mp3"
+            },
+            {
+              "number": 46,
+              "prompt": "What does the man say the woman needs to do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Complete an online form"
+                },
+                {
+                  "value": "B",
+                  "label": "Pay a registration fee"
+                },
+                {
+                  "value": "C",
+                  "label": "Attend a tryout session"
+                },
+                {
+                  "value": "D",
+                  "label": "Speak with a coach"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/44-46_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 47-49",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/47-49_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 47,
+              "prompt": "What are the speakers discussing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Hiring a designer"
+                },
+                {
+                  "value": "B",
+                  "label": "Preparing a user manual"
+                },
+                {
+                  "value": "C",
+                  "label": "Launching a mobile app"
+                },
+                {
+                  "value": "D",
+                  "label": "Scheduling a team meeting"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/47-49_audio.mp3"
+            },
+            {
+              "number": 48,
+              "prompt": "What will the woman check with the design team about?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Project deadlines"
+                },
+                {
+                  "value": "B",
+                  "label": "App screenshots"
+                },
+                {
+                  "value": "C",
+                  "label": "Section assignments"
+                },
+                {
+                  "value": "D",
+                  "label": "Feature counts"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/47-49_audio.mp3"
+            },
+            {
+              "number": 49,
+              "prompt": "What will the man most likely do next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Contact the design team"
+                },
+                {
+                  "value": "B",
+                  "label": "Rewrite the first chapter"
+                },
+                {
+                  "value": "C",
+                  "label": "Cut features from the manual"
+                },
+                {
+                  "value": "D",
+                  "label": "Test a file upload"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/47-49_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 50-52",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/50-52_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 50,
+              "prompt": "According to the man, what is planned for next month?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A costume sale will be held."
+                },
+                {
+                  "value": "B",
+                  "label": "A photo session will be arranged."
+                },
+                {
+                  "value": "C",
+                  "label": "A stage play will be performed."
+                },
+                {
+                  "value": "D",
+                  "label": "A street parade will be organized."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/50-52_audio.mp3"
+            },
+            {
+              "number": 51,
+              "prompt": "Where does the woman probably work?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At a costume rental shop"
+                },
+                {
+                  "value": "B",
+                  "label": "At a theater ticket office"
+                },
+                {
+                  "value": "C",
+                  "label": "At a tailor's alteration shop"
+                },
+                {
+                  "value": "D",
+                  "label": "At a party supply store"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/50-52_audio.mp3"
+            },
+            {
+              "number": 52,
+              "prompt": "Which task does the man offer to complete?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Send the cast measurements"
+                },
+                {
+                  "value": "B",
+                  "label": "Pick up the period costumes"
+                },
+                {
+                  "value": "C",
+                  "label": "Call the community theater"
+                },
+                {
+                  "value": "D",
+                  "label": "Pay for the costume order"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/50-52_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 53-55",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/53-55_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 53,
+              "prompt": "Where most likely are the speakers?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At a craft store"
+                },
+                {
+                  "value": "B",
+                  "label": "At an art gallery"
+                },
+                {
+                  "value": "C",
+                  "label": "At a museum gift shop"
+                },
+                {
+                  "value": "D",
+                  "label": "At a pottery studio"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/53-55_audio.mp3"
+            },
+            {
+              "number": 54,
+              "prompt": "Why does the woman say, \"The shelf by the counter is already completely full\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To praise a strong sales result"
+                },
+                {
+                  "value": "B",
+                  "label": "To point out a space limitation"
+                },
+                {
+                  "value": "C",
+                  "label": "To reject a coworker's suggestion"
+                },
+                {
+                  "value": "D",
+                  "label": "To explain a store policy"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/53-55_audio.mp3"
+            },
+            {
+              "number": 55,
+              "prompt": "What does the man suggest doing to sell more pottery?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Hiring additional staff"
+                },
+                {
+                  "value": "B",
+                  "label": "Lowering the price further"
+                },
+                {
+                  "value": "C",
+                  "label": "Setting up an additional display area"
+                },
+                {
+                  "value": "D",
+                  "label": "Introducing a wider variety"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/53-55_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 56-58",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/56-58_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 56,
+              "prompt": "What type of business is the man contacting?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A concert hall"
+                },
+                {
+                  "value": "B",
+                  "label": "A recording studio"
+                },
+                {
+                  "value": "C",
+                  "label": "A music school"
+                },
+                {
+                  "value": "D",
+                  "label": "An instrument store"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/56-58_audio.mp3"
+            },
+            {
+              "number": 57,
+              "prompt": "What is the point of the man's comment, “We've never released anything professionally before”?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He may need the mixing service."
+                },
+                {
+                  "value": "B",
+                  "label": "He dislikes the session price."
+                },
+                {
+                  "value": "C",
+                  "label": "He wants to move the booking."
+                },
+                {
+                  "value": "D",
+                  "label": "He has worked with an engineer."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/56-58_audio.mp3"
+            },
+            {
+              "number": 58,
+              "prompt": "What is the woman's next planned action?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Hold the recording room"
+                },
+                {
+                  "value": "B",
+                  "label": "Review the band's song list"
+                },
+                {
+                  "value": "C",
+                  "label": "Ask the engineer to join"
+                },
+                {
+                  "value": "D",
+                  "label": "Email the full price list"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/56-58_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 59-61",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/59-61_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 59,
+              "prompt": "What problem does the woman identify?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A budget has been reduced"
+                },
+                {
+                  "value": "B",
+                  "label": "A dining room is unavailable"
+                },
+                {
+                  "value": "C",
+                  "label": "An event has been canceled"
+                },
+                {
+                  "value": "D",
+                  "label": "A caterer is fully booked"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/59-61_audio.mp3"
+            },
+            {
+              "number": 60,
+              "prompt": "Why does the woman say, \"We've never used them before\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To agree with a proposal"
+                },
+                {
+                  "value": "B",
+                  "label": "To confirm an arrangement"
+                },
+                {
+                  "value": "C",
+                  "label": "To express a concern"
+                },
+                {
+                  "value": "D",
+                  "label": "To suggest a different option"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/59-61_audio.mp3"
+            },
+            {
+              "number": 61,
+              "prompt": "What does the man say he will do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Schedule a food tasting"
+                },
+                {
+                  "value": "B",
+                  "label": "Cancel an existing order"
+                },
+                {
+                  "value": "C",
+                  "label": "Contact a former supplier"
+                },
+                {
+                  "value": "D",
+                  "label": "Revise the event budget"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/59-61_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 62-64",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/62-64_audio.mp3",
+          "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/62-64_updated_resized.jpg",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 62,
+              "prompt": "What are the speakers mainly discussing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Arranging a product delivery"
+                },
+                {
+                  "value": "B",
+                  "label": "Comparing landscaping services"
+                },
+                {
+                  "value": "C",
+                  "label": "Repairing a damaged product"
+                },
+                {
+                  "value": "D",
+                  "label": "Customizing an outdoor playset"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/62-64_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/62-64_audio.mp3"
+            },
+            {
+              "number": 63,
+              "prompt": "What does the man say he will do tomorrow?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Contact a manufacturer"
+                },
+                {
+                  "value": "B",
+                  "label": "Confirm a delivery"
+                },
+                {
+                  "value": "C",
+                  "label": "Adjust a price"
+                },
+                {
+                  "value": "D",
+                  "label": "Measure a yard"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/62-64_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/62-64_audio.mp3"
+            },
+            {
+              "number": 64,
+              "prompt": "Look at the graphic. Which section will be left out of the order?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The Lookout Tower"
+                },
+                {
+                  "value": "B",
+                  "label": "The Swing Beam"
+                },
+                {
+                  "value": "C",
+                  "label": "The Climbing Wall"
+                },
+                {
+                  "value": "D",
+                  "label": "The Slide Platform"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/62-64_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/62-64_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 65-67",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/65-67_audio.mp3",
+          "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/65-67_updated_resized.jpg",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 65,
+              "prompt": "What are the speakers mainly discussing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Increasing service on a bus route"
+                },
+                {
+                  "value": "B",
+                  "label": "Constructing an employee parking lot"
+                },
+                {
+                  "value": "C",
+                  "label": "Revising the current fare policy"
+                },
+                {
+                  "value": "D",
+                  "label": "Ordering additional company buses"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/65-67_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/65-67_audio.mp3"
+            },
+            {
+              "number": 66,
+              "prompt": "Look at the graphic. Which route does the man mention?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Central Line"
+                },
+                {
+                  "value": "B",
+                  "label": "Harbor Line"
+                },
+                {
+                  "value": "C",
+                  "label": "Lakeside Line"
+                },
+                {
+                  "value": "D",
+                  "label": "Uptown Line"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/65-67_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/65-67_audio.mp3"
+            },
+            {
+              "number": 67,
+              "prompt": "What will the man go get?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A route map"
+                },
+                {
+                  "value": "B",
+                  "label": "A trip schedule"
+                },
+                {
+                  "value": "C",
+                  "label": "A staff roster"
+                },
+                {
+                  "value": "D",
+                  "label": "A parking pass"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/65-67_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/65-67_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 68-70",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/68-70_audio.mp3",
+          "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/68-70_updated_resized.jpg",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 68,
+              "prompt": "What does the woman say she wants translated?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A marketing brochure"
+                },
+                {
+                  "value": "B",
+                  "label": "A personal certificate"
+                },
+                {
+                  "value": "C",
+                  "label": "A product manual"
+                },
+                {
+                  "value": "D",
+                  "label": "A company website"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/68-70_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/68-70_audio.mp3"
+            },
+            {
+              "number": 69,
+              "prompt": "Look at the graphic. Which service will the woman most likely choose?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Standard"
+                },
+                {
+                  "value": "B",
+                  "label": "Priority"
+                },
+                {
+                  "value": "C",
+                  "label": "Express"
+                },
+                {
+                  "value": "D",
+                  "label": "Same-Day"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/68-70_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/68-70_audio.mp3"
+            },
+            {
+              "number": 70,
+              "prompt": "What does the man offer to do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Refer her to another translator"
+                },
+                {
+                  "value": "B",
+                  "label": "Apply a discount to the price"
+                },
+                {
+                  "value": "C",
+                  "label": "Extend her submission deadline"
+                },
+                {
+                  "value": "D",
+                  "label": "Notify her once the work is done"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/68-70_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/68-70_audio.mp3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 4,
+      "partNumber": 4,
+      "title": "Talks",
+      "instructions": "Select the best response to each question.",
+      "questionCount": 30,
+      "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/71-73_audio.mp3",
+      "questionRange": "Questions 71-100",
+      "passage": {
+        "title": "Talks",
+        "paragraphs": [
+          {
+            "text": "Directions: You will hear some talks given by a single speaker. You will be asked to answer three questions about what the speaker says in each talk. Select the best response to each question and mark the letter (A), (B), (C), or (D) on your answer sheet. The talks will not be printed in your test book and will be spoken only one time."
+          }
+        ]
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 71-73",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/71-73_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 71,
+              "prompt": "Where are listeners hearing this announcement?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At a gift shop"
+                },
+                {
+                  "value": "B",
+                  "label": "At a wildlife park"
+                },
+                {
+                  "value": "C",
+                  "label": "At a train station"
+                },
+                {
+                  "value": "D",
+                  "label": "At an information desk"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/71-73_audio.mp3"
+            },
+            {
+              "number": 72,
+              "prompt": "What are visitors asked to start doing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Pick up a souvenir"
+                },
+                {
+                  "value": "B",
+                  "label": "Wait by the entrance"
+                },
+                {
+                  "value": "C",
+                  "label": "Walk toward the exit"
+                },
+                {
+                  "value": "D",
+                  "label": "Visit the gift shop"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/71-73_audio.mp3"
+            },
+            {
+              "number": 73,
+              "prompt": "What does the announcer say is scheduled for this Saturday?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A new animal exhibit will open."
+                },
+                {
+                  "value": "B",
+                  "label": "An evening event will be held."
+                },
+                {
+                  "value": "C",
+                  "label": "A ticket sale will end."
+                },
+                {
+                  "value": "D",
+                  "label": "A shop schedule will change."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/71-73_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 74-76",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/74-76_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 74,
+              "prompt": "What does the speaker tell the listeners to pick up at the front counter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Earplugs"
+                },
+                {
+                  "value": "B",
+                  "label": "Maps"
+                },
+                {
+                  "value": "C",
+                  "label": "Headsets"
+                },
+                {
+                  "value": "D",
+                  "label": "Badges"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/74-76_audio.mp3"
+            },
+            {
+              "number": 75,
+              "prompt": "Why will the tour begin in the roasting hall?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "An early closing time"
+                },
+                {
+                  "value": "B",
+                  "label": "An ongoing production process"
+                },
+                {
+                  "value": "C",
+                  "label": "A short distance to the entrance"
+                },
+                {
+                  "value": "D",
+                  "label": "A recent renovation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/74-76_audio.mp3"
+            },
+            {
+              "number": 76,
+              "prompt": "Why does the speaker say, \"Personally, I always reach for our Morning Amber blend\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To explain a delay"
+                },
+                {
+                  "value": "B",
+                  "label": "To request assistance"
+                },
+                {
+                  "value": "C",
+                  "label": "To make a recommendation"
+                },
+                {
+                  "value": "D",
+                  "label": "To correct a misunderstanding"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/74-76_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 77-79",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/77-79_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 77,
+              "prompt": "What is being advertised?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A home cleaning service"
+                },
+                {
+                  "value": "B",
+                  "label": "A furniture store"
+                },
+                {
+                  "value": "C",
+                  "label": "A moving service"
+                },
+                {
+                  "value": "D",
+                  "label": "A storage facility"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/77-79_audio.mp3"
+            },
+            {
+              "number": 78,
+              "prompt": "What must listeners do to qualify for the discount?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Reserve a move before April"
+                },
+                {
+                  "value": "B",
+                  "label": "Call the office right away"
+                },
+                {
+                  "value": "C",
+                  "label": "Complete a move in spring"
+                },
+                {
+                  "value": "D",
+                  "label": "Mention the radio broadcast"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/77-79_audio.mp3"
+            },
+            {
+              "number": 79,
+              "prompt": "What does the speaker mean when she says, \"let us do the heavy lifting\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The service is limited to loading heavy items"
+                },
+                {
+                  "value": "B",
+                  "label": "Customers will not have to do the difficult work themselves"
+                },
+                {
+                  "value": "C",
+                  "label": "The special offer will finish at the end of March"
+                },
+                {
+                  "value": "D",
+                  "label": "Callers can request extra workers for the move"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/77-79_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 80-82",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/80-82_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 80,
+              "prompt": "What kind of event is planned for Saturday afternoon?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A free celebration"
+                },
+                {
+                  "value": "B",
+                  "label": "A live interview"
+                },
+                {
+                  "value": "C",
+                  "label": "A painting project"
+                },
+                {
+                  "value": "D",
+                  "label": "A music program"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/80-82_audio.mp3"
+            },
+            {
+              "number": 81,
+              "prompt": "What action are people urged to take?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Bring food to share"
+                },
+                {
+                  "value": "B",
+                  "label": "Arrive early for seats"
+                },
+                {
+                  "value": "C",
+                  "label": "Call the radio station"
+                },
+                {
+                  "value": "D",
+                  "label": "Reserve a spot online"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/80-82_audio.mp3"
+            },
+            {
+              "number": 82,
+              "prompt": "What is scheduled to come immediately after this segment?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "An artist interview"
+                },
+                {
+                  "value": "B",
+                  "label": "A city announcement"
+                },
+                {
+                  "value": "C",
+                  "label": "A music performance"
+                },
+                {
+                  "value": "D",
+                  "label": "A local food report"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/80-82_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 83-85",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/83-85_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 83,
+              "prompt": "What is the broadcast mainly about?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A company moving to the area"
+                },
+                {
+                  "value": "B",
+                  "label": "A business closing its facilities"
+                },
+                {
+                  "value": "C",
+                  "label": "A local election campaign"
+                },
+                {
+                  "value": "D",
+                  "label": "An upcoming sports competition"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/83-85_audio.mp3"
+            },
+            {
+              "number": 84,
+              "prompt": "According to the speaker, which industry is expected to benefit?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Manufacturing"
+                },
+                {
+                  "value": "B",
+                  "label": "Agriculture"
+                },
+                {
+                  "value": "C",
+                  "label": "Hospitality"
+                },
+                {
+                  "value": "D",
+                  "label": "Technology"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/83-85_audio.mp3"
+            },
+            {
+              "number": 85,
+              "prompt": "Why does the speaker say, \"but the jobs it brings will more than make up for it\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To acknowledge a company mistake"
+                },
+                {
+                  "value": "B",
+                  "label": "To defend the overall trade-off"
+                },
+                {
+                  "value": "C",
+                  "label": "To register personal surprise"
+                },
+                {
+                  "value": "D",
+                  "label": "To emphasize a real disadvantage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/83-85_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 86-88",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/86-88_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 86,
+              "prompt": "Who most likely is the speaker?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A radio show host"
+                },
+                {
+                  "value": "B",
+                  "label": "A shelter volunteer"
+                },
+                {
+                  "value": "C",
+                  "label": "An event organizer"
+                },
+                {
+                  "value": "D",
+                  "label": "A permit officer"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/86-88_audio.mp3"
+            },
+            {
+              "number": 87,
+              "prompt": "What is the purpose of the event?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To promote local sponsors"
+                },
+                {
+                  "value": "B",
+                  "label": "To honor a community leader"
+                },
+                {
+                  "value": "C",
+                  "label": "To recruit more volunteers"
+                },
+                {
+                  "value": "D",
+                  "label": "To help animals in need"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/86-88_audio.mp3"
+            },
+            {
+              "number": 88,
+              "prompt": "What does the speaker imply when he says, \"every single dollar we raise goes straight to the shelter\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Local sponsors will match every donation."
+                },
+                {
+                  "value": "B",
+                  "label": "The event still needs additional volunteers."
+                },
+                {
+                  "value": "C",
+                  "label": "The shelter has recently expanded its services."
+                },
+                {
+                  "value": "D",
+                  "label": "Donations will not be used for event expenses."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/86-88_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 89-91",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/89-91_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 89,
+              "prompt": "What update does the speaker give?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A large catalog order has been received."
+                },
+                {
+                  "value": "B",
+                  "label": "A fast delivery plan has been approved."
+                },
+                {
+                  "value": "C",
+                  "label": "A large product catalog has been completed."
+                },
+                {
+                  "value": "D",
+                  "label": "A new retail store has been opened."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/89-91_audio.mp3"
+            },
+            {
+              "number": 90,
+              "prompt": "What should the listeners do before their shifts begin?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Review the schedule"
+                },
+                {
+                  "value": "B",
+                  "label": "Pack the catalogs"
+                },
+                {
+                  "value": "C",
+                  "label": "Test their machines"
+                },
+                {
+                  "value": "D",
+                  "label": "Call the client"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/89-91_audio.mp3"
+            },
+            {
+              "number": 91,
+              "prompt": "What action will the speaker take later?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Deliver the finished product catalogs"
+                },
+                {
+                  "value": "B",
+                  "label": "Inspect the shop's printing machines"
+                },
+                {
+                  "value": "C",
+                  "label": "Contact the national retail client"
+                },
+                {
+                  "value": "D",
+                  "label": "Post the updated production schedule"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/89-91_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 92-94",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/92-94_audio.mp3",
+          "imageUrl": "",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 92,
+              "prompt": "Where does the speaker most likely work?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "At a security firm"
+                },
+                {
+                  "value": "B",
+                  "label": "At a furniture showroom"
+                },
+                {
+                  "value": "C",
+                  "label": "At an electronics store"
+                },
+                {
+                  "value": "D",
+                  "label": "At an appliance retailer"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/92-94_audio.mp3"
+            },
+            {
+              "number": 93,
+              "prompt": "Why does the speaker say, \"our display table by the front entrance has been almost empty since the holidays\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To criticize a merchandising decision"
+                },
+                {
+                  "value": "B",
+                  "label": "To propose a store renovation"
+                },
+                {
+                  "value": "C",
+                  "label": "To highlight declining foot traffic"
+                },
+                {
+                  "value": "D",
+                  "label": "To ease concerns about extra costs"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/92-94_audio.mp3"
+            },
+            {
+              "number": 94,
+              "prompt": "What will the speaker most likely do next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Play a training video"
+                },
+                {
+                  "value": "B",
+                  "label": "Pair up new employees"
+                },
+                {
+                  "value": "C",
+                  "label": "Review the floor schedule"
+                },
+                {
+                  "value": "D",
+                  "label": "Take questions from staff"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/92-94_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 95-97",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/95-97_audio.mp3",
+          "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/95-97_updated_resized.jpg",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 95,
+              "prompt": "In which department does the speaker work?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Billing"
+                },
+                {
+                  "value": "B",
+                  "label": "Finance"
+                },
+                {
+                  "value": "C",
+                  "label": "Marketing"
+                },
+                {
+                  "value": "D",
+                  "label": "Sales"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/95-97_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/95-97_audio.mp3"
+            },
+            {
+              "number": 96,
+              "prompt": "Look at the graphic. Which quantity needs to be changed?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "15"
+                },
+                {
+                  "value": "B",
+                  "label": "30"
+                },
+                {
+                  "value": "C",
+                  "label": "45"
+                },
+                {
+                  "value": "D",
+                  "label": "60"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/95-97_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/95-97_audio.mp3"
+            },
+            {
+              "number": 97,
+              "prompt": "What does the speaker say he will do tomorrow?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Send a payment"
+                },
+                {
+                  "value": "B",
+                  "label": "Review an invoice"
+                },
+                {
+                  "value": "C",
+                  "label": "Contact a supplier"
+                },
+                {
+                  "value": "D",
+                  "label": "Pick up an order"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/95-97_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/95-97_audio.mp3"
+            }
+          ]
+        },
+        {
+          "title": "Questions 98-100",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/98-100_audio.mp3",
+          "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/98-100_updated_resized.jpg",
+          "passageHtml": "",
+          "questions": [
+            {
+              "number": 98,
+              "prompt": "Look at the graphic. Which catering package is Wendy planning to order?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Garden Box"
+                },
+                {
+                  "value": "B",
+                  "label": "Chef's Choice"
+                },
+                {
+                  "value": "C",
+                  "label": "Harvest Table"
+                },
+                {
+                  "value": "D",
+                  "label": "Deluxe Spread"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/98-100_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/98-100_audio.mp3"
+            },
+            {
+              "number": 99,
+              "prompt": "In the message, why does Wendy think Ms. Foster has the latest count?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She is comparing menu choices."
+                },
+                {
+                  "value": "B",
+                  "label": "She is collecting team replies."
+                },
+                {
+                  "value": "C",
+                  "label": "She is approving the budget."
+                },
+                {
+                  "value": "D",
+                  "label": "She is requesting extra dishes."
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/98-100_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/98-100_audio.mp3"
+            },
+            {
+              "number": 100,
+              "prompt": "After Ms. Foster provides the count, what is Wendy planning to do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Compare catering packages"
+                },
+                {
+                  "value": "B",
+                  "label": "Place the catering order"
+                },
+                {
+                  "value": "C",
+                  "label": "Confirm the final headcount"
+                },
+                {
+                  "value": "D",
+                  "label": "Request additional dishes"
+                }
+              ],
+              "imageUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/images/98-100_updated_resized.jpg",
+              "audioUrl": "https://study4.com/media/new_toeic_tests/new_toeic_updated/toeic-lr-collection-1-test-7/audios/98-100_audio.mp3"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

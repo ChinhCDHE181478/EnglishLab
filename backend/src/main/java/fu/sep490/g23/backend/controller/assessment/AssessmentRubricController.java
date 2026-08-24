@@ -8,6 +8,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content-manager/rubrics")
@@ -34,6 +39,24 @@ public class AssessmentRubricController {
             @RequestParam(required = false) AssessmentSkill skill
     ) {
         return ResponseEntity.ok(rubricService.list(includeInactive, skill));
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<AssessmentRubricResponse>> page(
+            @RequestParam(required = false, defaultValue = "false") Boolean includeInactive,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) AssessmentSkill skill,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 8, sort = "id", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(rubricService.page(includeInactive, active, skill, keyword, pageable));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> stats(
+            @RequestParam(required = false) AssessmentSkill skill
+    ) {
+        return ResponseEntity.ok(rubricService.stats(skill));
     }
 
     @GetMapping("/{id}")

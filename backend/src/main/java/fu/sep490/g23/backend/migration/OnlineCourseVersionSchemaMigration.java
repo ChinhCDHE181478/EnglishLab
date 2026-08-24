@@ -2,16 +2,21 @@ package fu.sep490.g23.backend.migration;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Order(500)
 public class OnlineCourseVersionSchemaMigration implements CommandLineRunner {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS online_course_versions (
                     id BIGSERIAL PRIMARY KEY,
@@ -153,5 +158,12 @@ public class OnlineCourseVersionSchemaMigration implements CommandLineRunner {
                     ON online_course_versions(online_course_id)
                     WHERE status IN ('DRAFT', 'PENDING_REVIEW');
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.learner_progress_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

@@ -14,6 +14,21 @@ const dictionaryApi = {
     return Array.isArray(data) ? data : [];
   },
 
+  async pageSaved(params = {}) {
+    const response = await axiosClient.get('/api/student/dictionary/saved/page', { params });
+    return unwrapData(response);
+  },
+
+  async getSavedStats() {
+    const response = await axiosClient.get('/api/student/dictionary/saved/stats');
+    return unwrapData(response);
+  },
+
+  async isSaved(word) {
+    const response = await axiosClient.get('/api/student/dictionary/saved/contains', { params: { word } });
+    return Boolean(unwrapData(response)?.saved);
+  },
+
   async save(payload) {
     const response = await axiosClient.post('/api/student/dictionary/saved', payload);
     return unwrapData(response);

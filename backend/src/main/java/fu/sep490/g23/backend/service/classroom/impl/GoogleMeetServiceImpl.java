@@ -107,6 +107,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         if (isGoogleMeetUrl(session.getLarkMeetingUrl())
                 && session.getLarkMeetingId() != null
                 && session.getLarkMeetingId().startsWith("spaces/")) {
+            restrictExistingSpace(session);
             markSynced(session);
             propagateSharedRoom(session);
             return;
@@ -123,14 +124,15 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
         boolean autoRecordingUnavailable = false;
         JsonNode space;
         try {
-            space = sendMeetRequest("POST", "/spaces", openSpacePayload(), meetingOwner, refreshToken);
+            space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(), meetingOwner, refreshToken);
         } catch (RuntimeException exception) {
             if (!properties.isAutoRecording() || !isAutoRecordingUnavailable(exception)) {
                 throw exception;
             }
             autoRecordingUnavailable = true;
-            space = sendMeetRequest("POST", "/spaces", openSpacePayload(false), meetingOwner, refreshToken);
+            space = sendMeetRequest("POST", "/spaces", spaceConfigPayload(false), meetingOwner, refreshToken);
         }
+        ensureRestrictedAccess(space, meetingOwner, refreshToken);
         String resourceName = space.path("name").asText("");
         String meetingUri = space.path("meetingUri").asText("");
         String meetingCode = space.path("meetingCode").asText("");
@@ -223,7 +225,7 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
 
     @Override
     public void inviteInternalAttendee(ClassroomSession session, String email) {
-        // The space uses OPEN access. Invitations remain separate from room creation.
+        // Learners join via the meeting link and wait for the host to admit them.
     }
 
     @Override
@@ -308,7 +310,9 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json; charset=UTF-8");
         if ("POST".equals(method)) {
-            builder.POST(HttpRequest.BodyPublishers.ofString(body));
+            builder.POST(HttpRequest.BodyPublishers.ofString(body == null ? "" : body));
+        } else if ("PATCH".equals(method)) {
+            builder.method("PATCH", HttpRequest.BodyPublishers.ofString(body == null ? "" : body));
         } else if ("GET".equals(method)) {
             builder.GET();
         } else {
@@ -474,15 +478,58 @@ public class GoogleMeetServiceImpl implements VirtualMeetingService {
                 || message.contains("updateAutoRecordingGeneration"));
     }
 
-    private String openSpacePayload() {
-        return openSpacePayload(properties.isAutoRecording());
+    private void restrictExistingSpace(ClassroomSession session) {
+        User meetingOwner = requireMeetingOwner(session);
+        String refreshToken = connectionService.requireRefreshToken(meetingOwner);
+        JsonNode space;
+        try {
+            space = sendMeetRequest(
+                    "PATCH",
+                    "/" + session.getLarkMeetingId() + "?updateMask=config.accessType",
+                    restrictedAccessPayload(),
+                    meetingOwner,
+                    refreshToken
+            );
+        } catch (RuntimeException exception) {
+            throw restrictedAccessUnavailable(exception);
+        }
+        ensureRestrictedAccess(space, meetingOwner, refreshToken);
     }
 
-    private String openSpacePayload(boolean withAutoRecording) {
-        if (!withAutoRecording) {
-            return "{\"config\":{\"accessType\":\"OPEN\"}}";
+    private void ensureRestrictedAccess(JsonNode space, User meetingOwner, String refreshToken) {
+        String resourceName = space.path("name").asText("");
+        JsonNode verifiedSpace = space;
+        if (verifiedSpace.path("config").path("accessType").asText("").isBlank()
+                && !resourceName.isBlank()) {
+            verifiedSpace = sendMeetRequest("GET", "/" + resourceName, null, meetingOwner, refreshToken);
         }
-        return "{\"config\":{\"accessType\":\"OPEN\",\"artifactConfig\":{\"recordingConfig\":{\"autoRecordingGeneration\":\"ON\"}}}}";
+        if (!"RESTRICTED".equals(verifiedSpace.path("config").path("accessType").asText(""))) {
+            throw restrictedAccessUnavailable(null);
+        }
+    }
+
+    private RuntimeException restrictedAccessUnavailable(RuntimeException cause) {
+        return new RuntimeException(
+                "Google không áp dụng chế độ RESTRICTED cho phòng họp. "
+                        + "Tài khoản Gmail cá nhân không hỗ trợ bắt buộc khách chờ giáo viên duyệt; "
+                        + "hãy liên kết tài khoản Google Workspace của giáo viên.",
+                cause
+        );
+    }
+
+    private String spaceConfigPayload() {
+        return spaceConfigPayload(properties.isAutoRecording());
+    }
+
+    private String spaceConfigPayload(boolean withAutoRecording) {
+        if (!withAutoRecording) {
+            return restrictedAccessPayload();
+        }
+        return "{\"config\":{\"accessType\":\"RESTRICTED\",\"artifactConfig\":{\"recordingConfig\":{\"autoRecordingGeneration\":\"ON\"}}}}";
+    }
+
+    private String restrictedAccessPayload() {
+        return "{\"config\":{\"accessType\":\"RESTRICTED\"}}";
     }
 
     private Long recordingDurationMs(JsonNode recording) {

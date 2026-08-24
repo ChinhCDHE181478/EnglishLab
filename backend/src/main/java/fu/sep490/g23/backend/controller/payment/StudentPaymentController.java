@@ -8,7 +8,11 @@ import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.service.payment.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+  import org.springframework.http.ResponseEntity;
+  import org.springframework.data.domain.Page;
+  import org.springframework.data.domain.PageRequest;
+  import org.springframework.data.domain.Sort;
+  import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -63,9 +67,22 @@ public class StudentPaymentController {
     }
 
     @GetMapping("/orders")
-    public ResponseEntity<List<PaymentOrderSummaryResponse>> listMyOrders(Authentication authentication) {
-        return ResponseEntity.ok(paymentService.listMyOrders(authentication.getName()));
-    }
+      public ResponseEntity<List<PaymentOrderSummaryResponse>> listMyOrders(Authentication authentication) {
+          return ResponseEntity.ok(paymentService.listMyOrders(authentication.getName()));
+      }
+
+      @GetMapping("/orders/page")
+      public ResponseEntity<Page<PaymentOrderSummaryResponse>> pageMyOrders(
+              @RequestParam(defaultValue = "0") int page,
+              @RequestParam(defaultValue = "5") int size,
+              Authentication authentication
+      ) {
+          int safeSize = Math.min(Math.max(size, 1), 100);
+          return ResponseEntity.ok(paymentService.pageMyOrders(
+                  authentication.getName(),
+                  PageRequest.of(Math.max(page, 0), safeSize, Sort.by(Sort.Direction.DESC, "createdAt"))
+          ));
+      }
 
     @PostMapping("/payos/confirm-webhook")
     public ResponseEntity<Void> confirmWebhook() {

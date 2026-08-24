@@ -2,16 +2,21 @@ package fu.sep490.g23.backend.migration;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Order(500)
 public class ClassroomProposalSchemaMigration implements CommandLineRunner {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS classroom_proposals (
                     id BIGSERIAL PRIMARY KEY,
@@ -61,5 +66,12 @@ public class ClassroomProposalSchemaMigration implements CommandLineRunner {
                 ALTER TABLE classroom_proposals
                     ALTER COLUMN placement_level DROP NOT NULL;
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.classroom_operation_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

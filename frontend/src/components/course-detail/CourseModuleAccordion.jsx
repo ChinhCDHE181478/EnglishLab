@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RichTextHtml from '../content-manager/RichTextHtml';
 
 const CourseModuleAccordion = ({ modules = [] }) => {
   const [openId, setOpenId] = useState(modules[0]?.id ?? null);
@@ -22,7 +23,7 @@ const CourseModuleAccordion = ({ modules = [] }) => {
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8c716f]">Module {index + 1}</p>
                   <h3 className="mt-2 text-xl font-extrabold text-[#2b2828]">{module.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#584140]">{module.description}</p>
+                  <RichTextHtml asPlain className="mt-2 text-sm leading-6 text-[#584140]" value={module.description} />
                 </div>
                 <span className={`material-symbols-outlined text-[#8a0018] transition-transform ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
               </button>
@@ -33,7 +34,7 @@ const CourseModuleAccordion = ({ modules = [] }) => {
                       <div key={lesson.id ?? `${lesson.title}-${lessonIndex}`} className="flex items-center justify-between gap-4 rounded-2xl border border-[#dfbfbd]/20 bg-[#fffdfc] px-4 py-3">
                         <div>
                           <p className="text-sm font-extrabold text-[#2b2828]">{lesson.title}</p>
-                          <p className="mt-1 text-xs leading-5 text-[#584140]">{lesson.description}</p>
+                          <RichTextHtml asPlain className="mt-1 text-xs leading-5 text-[#584140]" value={lesson.description} />
                         </div>
                         <div className="shrink-0 text-right">
                           <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#8c716f]">{lesson.durationMinutes || 0} phút</p>

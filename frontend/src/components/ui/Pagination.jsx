@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 
-// Client-side pagination helper shared across admin/learner list screens so long lists
-// always have page controls instead of dumping every row at once.
-export function usePagination(items, pageSize = 10, resetKey) {
+// Shared pagination state for local lists and backend Page responses.
+export function usePagination(items, pageSize = 10, resetKey, serverPage = null) {
   const list = Array.isArray(items) ? items : [];
   const [page, setPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  const serverMode = serverPage != null;
+  const totalItems = serverMode
+    ? Number(serverPage.totalElements ?? 0)
+    : list.length;
+  const totalPages = Math.max(
+    1,
+    serverMode
+      ? Number(serverPage.totalPages ?? 0)
+      : Math.ceil(list.length / pageSize),
+  );
 
   // Jump back to the first page whenever the active filter/search changes.
   useEffect(() => {
@@ -18,11 +26,11 @@ export function usePagination(items, pageSize = 10, resetKey) {
   }, [page, totalPages]);
 
   const pageItems = useMemo(
-    () => list.slice((page - 1) * pageSize, page * pageSize),
-    [list, page, pageSize],
+    () => (serverMode ? list : list.slice((page - 1) * pageSize, page * pageSize)),
+    [list, page, pageSize, serverMode],
   );
 
-  return { page, setPage, totalPages, pageItems, totalItems: list.length };
+  return { page, setPage, totalPages, pageItems, totalItems };
 }
 
 export default function Pagination({

@@ -18,5 +18,7 @@ public interface PlacementTestDefinitionService {
 
     PlacementTestMonitoringResponse getMonitoring();
 
+    PlacementTestMonitoringResponse getMonitoring(String examType);
+
     JsonNode getConfig(PlacementTestDefinition definition, String skill);
 }

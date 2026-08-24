@@ -3,15 +3,14 @@ import java.util.Locale;
 
 import fu.sep490.g23.backend.dto.response.commerce.CommerceCourseItemResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.commerce.CartItem;
-import fu.sep490.g23.backend.entity.commerce.WishlistItem;
+import fu.sep490.g23.backend.entity.commerce.CourseListItem;
+import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.commerce.CartItemRepository;
-import fu.sep490.g23.backend.repository.commerce.WishlistItemRepository;
+import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.service.commerce.StudentCommerceService;
@@ -31,8 +30,7 @@ import java.util.Set;
 @Transactional
 public class StudentCommerceServiceImpl implements StudentCommerceService {
 
-    private final CartItemRepository cartItemRepository;
-    private final WishlistItemRepository wishlistItemRepository;
+    private final CourseListItemRepository courseListItemRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final PackageEnrollmentRepository packageEnrollmentRepository;
     private final UserRepository userRepository;
@@ -41,7 +39,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     @Transactional(readOnly = true)
     public List<CommerceCourseItemResponse> getCart(String studentEmail) {
         User student = requireStudent(studentEmail);
-        return cartItemRepository.findByStudentOrderByAddedAtDesc(student).stream()
+        return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.CART).stream()
                 .map(this::toCommerceItem)
                 .toList();
     }
@@ -50,13 +48,14 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     public CommerceCourseItemResponse addToCart(Long courseId, String studentEmail) {
         User student = requireStudent(studentEmail);
         OnlineCourse course = requirePurchasableCourse(courseId, student);
-        if (cartItemRepository.findByStudentAndOnlineCourseId(student, courseId).isPresent()) {
+        if (courseListItemRepository.findByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.CART).isPresent()) {
             throw new RuntimeException("Khóa học đã có trong giỏ hàng.");
         }
-        wishlistItemRepository.deleteByStudentAndOnlineCourseId(student, courseId);
-        CartItem saved = cartItemRepository.save(CartItem.builder()
+        courseListItemRepository.deleteByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.WISHLIST);
+        CourseListItem saved = courseListItemRepository.save(CourseListItem.builder()
                 .student(student)
                 .onlineCourse(course)
+                .listType(CourseListType.CART)
                 .build());
         return toCommerceItem(saved);
     }
@@ -64,21 +63,21 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     @Override
     public void removeFromCart(Long courseId, String studentEmail) {
         User student = requireStudent(studentEmail);
-        cartItemRepository.deleteByStudentAndOnlineCourseId(student, courseId);
+        courseListItemRepository.deleteByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.CART);
     }
 
     @Override
     public void clearCart(String studentEmail) {
         User student = requireStudent(studentEmail);
-        cartItemRepository.findByStudentOrderByAddedAtDesc(student)
-                .forEach(cartItemRepository::delete);
+        courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.CART)
+                .forEach(courseListItemRepository::delete);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CommerceCourseItemResponse> getWishlist(String studentEmail) {
         User student = requireStudent(studentEmail);
-        return wishlistItemRepository.findByStudentOrderByAddedAtDesc(student).stream()
+        return courseListItemRepository.findByStudentAndListTypeOrderByAddedAtDesc(student, CourseListType.WISHLIST).stream()
                 .map(this::toCommerceItem)
                 .toList();
     }
@@ -88,12 +87,13 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
         User student = requireStudent(studentEmail);
         OnlineCourse course = requireVisibleCourse(courseId);
         assertNotEnrolled(student, course);
-        if (wishlistItemRepository.findByStudentAndOnlineCourseId(student, courseId).isPresent()) {
+        if (courseListItemRepository.findByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.WISHLIST).isPresent()) {
             throw new RuntimeException("Khóa học đã có trong danh sách yêu thích.");
         }
-        WishlistItem saved = wishlistItemRepository.save(WishlistItem.builder()
+        CourseListItem saved = courseListItemRepository.save(CourseListItem.builder()
                 .student(student)
                 .onlineCourse(course)
+                .listType(CourseListType.WISHLIST)
                 .build());
         return toCommerceItem(saved);
     }
@@ -101,7 +101,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
     @Override
     public void removeFromWishlist(Long courseId, String studentEmail) {
         User student = requireStudent(studentEmail);
-        wishlistItemRepository.deleteByStudentAndOnlineCourseId(student, courseId);
+        courseListItemRepository.deleteByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.WISHLIST);
     }
 
     @Override
@@ -125,7 +125,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
                 if (!"Khóa học đã có trong giỏ hàng.".equals(ex.getMessage())) {
                     // skip invalid/unavailable courses during sync
                 } else {
-                    cartItemRepository.findByStudentAndOnlineCourseId(student, courseId)
+                    courseListItemRepository.findByStudentAndOnlineCourseIdAndListType(student, courseId, CourseListType.CART)
                             .map(this::toCommerceItem)
                             .ifPresent(synced::add);
                 }
@@ -167,11 +167,7 @@ public class StudentCommerceServiceImpl implements StudentCommerceService {
                 });
     }
 
-    private CommerceCourseItemResponse toCommerceItem(CartItem item) {
-        return buildCommerceItem(item.getOnlineCourse(), item.getAddedAt(), isRegistered(item.getStudent(), item.getOnlineCourse()));
-    }
-
-    private CommerceCourseItemResponse toCommerceItem(WishlistItem item) {
+    private CommerceCourseItemResponse toCommerceItem(CourseListItem item) {
         return buildCommerceItem(item.getOnlineCourse(), item.getAddedAt(), isRegistered(item.getStudent(), item.getOnlineCourse()));
     }
 

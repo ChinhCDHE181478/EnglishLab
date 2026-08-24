@@ -120,6 +120,8 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
             aiResult = evaluateObjectiveAssessment(assessment, request);
         } else if (isObjectiveAssessmentSkill(assessment.getSkill())) {
             aiResult = evaluateObjectiveAssessmentWithoutAnswerKey(assessment);
+        } else if (isInsufficientWritingSubmission(assessment, request)) {
+            aiResult = buildInsufficientWritingResult(assessment);
         } else {
             aiResult = speakingAudio
                     .map(audio -> aiEvaluationClient.evaluateWithAudio(prompt, audio.bytes(), audio.contentType()))
@@ -1236,6 +1238,59 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
                         || hasText(request.getObjectiveAnswersJson())
                         || hasText(request.getSubmittedAudioUrl())
         );
+    }
+
+    private boolean isInsufficientWritingSubmission(
+            CourseAssessment assessment,
+            AssessmentSubmissionRequest request
+    ) {
+        if (assessment.getSkill() != AssessmentSkill.WRITING || request == null) {
+            return false;
+        }
+        String submittedText = request.getSubmittedText();
+        if (submittedText == null || submittedText.isBlank()) {
+            return true;
+        }
+        String learnerText = submittedText.replaceAll("(?m)^\\s*\\[[^]]+]\\s*$", " ").trim();
+        long meaningfulWords = java.util.Arrays.stream(learnerText.split("\\s+"))
+                .filter(word -> word.codePoints().anyMatch(Character::isLetter))
+                .count();
+        return meaningfulWords < 5;
+    }
+
+    private AiEvaluationResult buildInsufficientWritingResult(CourseAssessment assessment) {
+        BigDecimal score = assessment.getAiEvaluationMode() == AiEvaluationMode.EXPLAIN_ONLY
+                ? null
+                : BigDecimal.ZERO;
+        ObjectNode feedback = objectMapper.createObjectNode();
+        if (score == null) {
+            feedback.putNull("estimatedScore");
+        } else {
+            feedback.put("estimatedScore", score);
+        }
+        feedback.put("estimatedBand", score == null ? "" : "0");
+        feedback.put("isOfficialScore", false);
+        feedback.put("summary", "Bài làm quá ngắn và chưa có đủ nội dung để thể hiện năng lực Writing.");
+        feedback.set("criteria", objectMapper.createArrayNode()
+                .add(createCriterionNode("Task Response", 0, "Bài làm chưa phát triển câu trả lời cho yêu cầu của đề."))
+                .add(createCriterionNode("Coherence and Cohesion", 0, "Chưa có đủ câu và ý để đánh giá bố cục hoặc liên kết."))
+                .add(createCriterionNode("Lexical Resource", 0, "Chưa có đủ từ vựng để đánh giá mức độ sử dụng ngôn ngữ."))
+                .add(createCriterionNode("Grammatical Range and Accuracy", 0, "Chưa có đủ cấu trúc câu để đánh giá ngữ pháp.")));
+        feedback.set("strengths", objectMapper.createArrayNode());
+        feedback.set("weaknesses", objectMapper.createArrayNode()
+                .add("Bài làm chưa cung cấp đủ bằng chứng để chấm theo tiêu chí Writing."));
+        feedback.set("suggestions", objectMapper.createArrayNode()
+                .add("Viết lại thành câu hoàn chỉnh, trả lời đúng yêu cầu và phát triển ý bằng lý do hoặc ví dụ."));
+        feedback.set("recommendedReview", objectMapper.createArrayNode()
+                .add("Xem lại yêu cầu đề và số từ tối thiểu trước khi làm lại."));
+
+        return AiEvaluationResult.builder()
+                .estimatedScore(score)
+                .feedbackJson(feedback.toString())
+                .provider("SYSTEM")
+                .model("WRITING_EVIDENCE_GUARD")
+                .rawResponse("Writing submission contained fewer than five meaningful words.")
+                .build();
     }
 
     private boolean hasText(String value) {

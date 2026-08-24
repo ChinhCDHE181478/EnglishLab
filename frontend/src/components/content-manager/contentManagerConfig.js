@@ -155,7 +155,7 @@ export const contentManagerPageMeta = {
   },
   '/content-manager/placement-test': {
     title: 'Quản lý bài đánh giá đầu vào',
-    subtitle: 'Thiết lập bài đánh giá đầu vào, giới hạn lượt làm và nội dung của bốn kỹ năng IELTS.',
+    subtitle: 'Thiết lập bài đánh giá đầu vào IELTS hoặc TOEIC, theo dõi kết quả và biên soạn nội dung trực quan.',
     searchPlaceholder: 'Tìm phần thi hoặc câu hỏi...',
   },
   '/content-manager/rubrics': {

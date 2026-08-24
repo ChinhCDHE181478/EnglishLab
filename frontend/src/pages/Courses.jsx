@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Route } from 'lucide-react';
 import { getCurrentUser } from '../api/authApi';
 import courseApi from '../api/courseApi';
@@ -16,8 +16,9 @@ import BrandLoadingState from '../components/ui/BrandLoadingState';
 import LearnerPageShell from '../components/learner/LearnerPageShell';
 import { getStoredUser, hasAccessToken } from '../utils/auth';
 import { mergeCourseRegistrations, normalizeCourse, normalizeEnrollment } from '../utils/courseModels';
+import { EMPTY_PAGE, pageParams } from '../utils/pagination';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 6;
 const ENGLISH_CATEGORY_CODES = new Set(['IELTS', 'TOEIC', 'COMMUNICATION', 'FOUNDATION']);
 const defaultFilters = {
   category: '',
@@ -30,6 +31,8 @@ const defaultFilters = {
 
 const Courses = () => {
   const [allCourses, setAllCourses] = useState([]);
+  const [coursePage, setCoursePage] = useState(EMPTY_PAGE);
+  const [catalogPage, setCatalogPage] = useState(1);
   const [categories, setCategories] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
   const [activeCategory, setActiveCategory] = useState('');
@@ -42,8 +45,21 @@ const Courses = () => {
   const [recommendationLoading, setRecommendationLoading] = useState(false);
   const [recommendationError, setRecommendationError] = useState('');
   const [user, setUser] = useState(() => (hasAccessToken() ? getStoredUser() : null));
+  const deferredKeyword = useDeferredValue(keyword.trim());
+
+  const location = useLocation();
 
   const isAuthenticated = Boolean(user && hasAccessToken());
+
+  useEffect(() => {
+    if (location.hash === '#recommended') {
+      const timer = setTimeout(() => {
+        document.getElementById('recommended')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [location.hash]);
 
   useEffect(() => {
     let active = true;
@@ -137,17 +153,16 @@ const Courses = () => {
     setError('');
 
     try {
-      const params = {
-        page: 0,
-        size: PAGE_SIZE,
-      };
+      const params = pageParams(catalogPage, PAGE_SIZE);
 
       const selectedCategory = activeCategory || filters.category;
-      if (keyword.trim()) params.keyword = keyword.trim();
+      if (deferredKeyword) params.keyword = deferredKeyword;
       if (selectedCategory) params.category = selectedCategory;
       if (filters.currentBand) params.currentBand = Number(filters.currentBand);
       if (filters.targetBand) params.targetBand = Number(filters.targetBand);
       if (filters.skill) params.skill = filters.skill;
+      if (filters.toeicTarget) params.targetScore = Number(filters.toeicTarget);
+      if (filters.promotion) params.promotion = filters.promotion;
 
       const [pageData, enrollments] = await Promise.all([
         courseApi.getOnlineCourses(params),
@@ -156,8 +171,10 @@ const Courses = () => {
 
       const normalizedCourses = mergeCourseRegistrations((pageData.content || []).map(normalizeCourse), enrollments);
       setAllCourses(normalizedCourses);
+      setCoursePage({ ...pageData, content: normalizedCourses });
     } catch (err) {
       setAllCourses([]);
+      setCoursePage(EMPTY_PAGE);
       setError(
         err?.response?.status === 401
           ? 'Bạn cần đăng nhập để tải đầy đủ dữ liệu khóa học và trạng thái đăng ký.'
@@ -167,18 +184,13 @@ const Courses = () => {
       setCoursesLoading(false);
       setInitialLoading(false);
     }
-  }, [activeCategory, filters.category, filters.currentBand, filters.skill, filters.targetBand, keyword, loadMyEnrollments]);
+  }, [activeCategory, catalogPage, deferredKeyword, filters.category, filters.currentBand, filters.promotion, filters.skill, filters.targetBand, filters.toeicTarget, loadMyEnrollments]);
 
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
 
-  const visibleCourses = useMemo(() => allCourses.filter((course) => {
-    if (filters.promotion === 'promotion' && Number(course.discountPercent || 0) <= 0) return false;
-    if (filters.promotion === 'standard' && Number(course.discountPercent || 0) > 0) return false;
-    if (filters.toeicTarget && Number.parseInt(course.targetScore, 10) < Number(filters.toeicTarget)) return false;
-    return true;
-  }), [allCourses, filters.promotion, filters.toeicTarget]);
+  const visibleCourses = allCourses;
 
   const featuredCourses = useMemo(() => {
     const featured = visibleCourses.filter((course) => course.featured);
@@ -224,7 +236,6 @@ const Courses = () => {
       ) : (
         <>
           <CourseHero user={user} registeredCount={myEnrollments.length} />
-          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <CurrentCourse enrollments={myEnrollments} isAuthenticated={isAuthenticated} />
           {error ? (
             <div className="mb-8 rounded-2xl border border-[#ba1a1a]/20 bg-[#ffdad6] px-5 py-4 text-sm font-semibold text-[#93000a]">
@@ -247,6 +258,7 @@ const Courses = () => {
               </Link>
             </div>
           ) : null}
+          <div id="recommended">
           <RecommendedCoursesSection
             courses={recommendedCourses}
             currentBand={user?.currentBand ?? null}
@@ -255,8 +267,13 @@ const Courses = () => {
             profileBased={isAuthenticated}
             onRetry={isAuthenticated ? loadRecommendations : loadCourses}
           />
+          </div>
+          <div className='mt-6'></div>
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <LearningPathCatalog courses={allCourses} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <PopularCourses courses={featuredCourses} />
+          <CategoryTabs activeCategory={activeCategory} categories={categories} onChange={handleCategoryChange} />
           <CourseCatalog
             courses={visibleCourses}
             keyword={keyword}
@@ -268,6 +285,8 @@ const Courses = () => {
             currentBand={user?.currentBand ?? null}
             categories={categories}
             selectedCategory={activeCategory || filters.category}
+            serverPage={coursePage}
+            onPageChange={setCatalogPage}
           />
         </>
       )}

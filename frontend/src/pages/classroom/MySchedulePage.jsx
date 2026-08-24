@@ -797,7 +797,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       )}
 
       {/* Virtual classroom */}
-      {isVirtual && (
+      {isVirtual && !isPastSession && (
         <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/50 p-5">
           <h4 className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-sky-700">
             <Video className="h-3.5 w-3.5" /> Phòng học Google Meet
@@ -806,13 +806,9 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
             <p className="text-xs leading-6 text-[#8b706e]">
               Liên kết phòng học đã sẵn sàng. Bạn có thể vào Google Meet từ đây.
             </p>
-          ) : isPastSession && session.larkMeetingUrl ? (
-            <p className="text-xs leading-6 text-[#8b706e]">
-              Buổi học đã kết thúc. Link Google Meet không còn mở để tham gia.
-            </p>
           ) : (
             <p className="text-xs leading-6 text-[#8b706e]">
-              Staff chưa tạo liên kết Google Meet cho buổi học này.
+              Hiện chưa có link Google Meet cho buổi học này.
             </p>
           )}
           {larkMessage && <p className="text-xs font-semibold text-rose-700">{larkMessage}</p>}
@@ -837,7 +833,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
       )}
 
       {/* CTA */}
-      <div className={`grid gap-3 border-t border-gray-100 pt-4 ${canJoinMeet || (isVirtual && isPastSession && session.larkMeetingUrl) ? 'sm:grid-cols-2' : ''}`}>
+      <div className="grid gap-3 border-t border-gray-100 pt-4">
         {canJoinMeet && (
           <button
             className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-sky-600 py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-sky-700 active:scale-95 disabled:cursor-wait disabled:opacity-60"
@@ -849,16 +845,7 @@ function SessionDetailContent({ session, larkMessage, onLark, onSessionUpdate })
             <Video className="h-4 w-4" />
           </button>
         )}
-        {isVirtual && isPastSession && session.larkMeetingUrl && !canJoinMeet && (
-          <button
-            className="flex w-full items-center justify-center gap-1.5 rounded-2xl border border-gray-200 bg-gray-50 py-3.5 text-sm font-extrabold text-gray-400"
-            disabled
-            type="button"
-          >
-            Google Meet đã đóng
-            <Video className="h-4 w-4" />
-          </button>
-        )}
+
         <Link
           className="flex items-center justify-center gap-1.5 rounded-2xl bg-[#4b0009] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#730014] active:scale-95"
           to={`/my-classrooms/${session.classroomId}`}

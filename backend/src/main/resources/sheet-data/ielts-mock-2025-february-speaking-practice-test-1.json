@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "ielts_mock_2025_february_speaking_practice_test_1",
+  "title": "IELTS Mock Test 2025 February Speaking Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2025de3s.html",
+  "durationMinutes": 14,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Where are you from?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q1-Where%20are%20you%20from.mp4"
+        },
+        {
+          "text": "Do you like plants? Why?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q2-Do%20you%20like%20plants%20Why.mp4"
+        },
+        {
+          "text": "What plants do you like?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q3-What%20plants%20do%20you%20like.mp4"
+        },
+        {
+          "text": "Have you ever grown any plants?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q4-%20Have%20you%20ever%20grown%20any%20plants.mp4"
+        },
+        {
+          "text": "Did you grow any plants when you were a child?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q5-Did%20you%20grow%20any%20plants%20when%20you%20were%20a%20child.mp4"
+        },
+        {
+          "text": "Do you like drawing or painting?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q6-%20Do%20you%20like%20drawing%20or%20painting.mp4"
+        },
+        {
+          "text": "What kinds of things do you like to draw?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q7-What%20kinds%20of%20things%20do%20you%20like%20to%20draw.mp4"
+        },
+        {
+          "text": "Did you enjoy doing art lessons when you were a child?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Do you ever draw or paint pictures now?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q9-Do%20you%20ever%20draw%20or%20paint%20pictures%20now.mp4"
+        },
+        {
+          "text": "Do you like cooking?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q10-Do%20you%20like%20cooking.mp4"
+        },
+        {
+          "text": "How often do you cook?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q11-How%20often%20do%20you%20cook.mp4"
+        },
+        {
+          "text": "How good are you at cooking?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q12-How%20good%20are%20you%20at%20cooking.mp4"
+        },
+        {
+          "text": "Does anyone in your family like to cook?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%201-%20Q13-Does%20anyone%20in%20your%20family%20like%20to%20cook.mp4"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Topic",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Tests%202020/2/Test%201/Part%202-Describe%20a%20competition%20you%20want%20to%20take%20part%20in.mp4",
+      "cueCardTitle": "Describe a competition you want to take part in",
+      "cueCardBullets": []
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Topic Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Why do you think some school teachers use competitions as class activities?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Is it a good thing to give prizes to children who do well at school? Why?",
+          "videoUrl": ""
+        },
+        {
+          "text": "Would you say that schools for young children have become more or less competitive since you were that age? Why?",
+          "videoUrl": ""
+        }
+      ]
+    }
+  ]
+}

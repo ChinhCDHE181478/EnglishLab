@@ -12,7 +12,7 @@ import fu.sep490.g23.backend.entity.course.PackageEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.commerce.WishlistItemRepository;
+import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.PackageEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
@@ -38,7 +38,7 @@ class FlashcardPracticeVersionSnapshotTest {
     @Mock
     private PackageEnrollmentRepository enrollmentRepository;
     @Mock
-    private WishlistItemRepository wishlistItemRepository;
+    private CourseListItemRepository courseListItemRepository;
     @Mock
     private VocabularyProgressRepository progressRepository;
     @Mock

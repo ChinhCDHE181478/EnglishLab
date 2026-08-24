@@ -1,52 +1,7 @@
 import axiosClient from './axiosClient';
+import { normalizePage } from '../utils/pagination';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
-
-const normalizePage = (payload) => {
-  const data = payload?.data ?? payload;
-
-  if (Array.isArray(data)) {
-    return {
-      content: data,
-      totalElements: data.length,
-      totalPages: 1,
-      number: 0,
-      size: data.length,
-    };
-  }
-
-  if (Array.isArray(data?.content)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.items)) {
-    return {
-      content: data.items,
-      totalElements: data.totalElements ?? data.total ?? data.items.length,
-      totalPages: data.totalPages ?? 1,
-      number: data.number ?? data.page ?? 0,
-      size: data.size ?? data.items.length,
-    };
-  }
-
-  if (Array.isArray(data?.courses)) {
-    return {
-      content: data.courses,
-      totalElements: data.totalElements ?? data.total ?? data.courses.length,
-      totalPages: data.totalPages ?? 1,
-      number: data.number ?? data.page ?? 0,
-      size: data.size ?? data.courses.length,
-    };
-  }
-
-  return {
-    content: [],
-    totalElements: 0,
-    totalPages: 0,
-    number: 0,
-    size: 0,
-  };
-};
 
 export const courseApi = {
   async uploadOnlineCourseThumbnail(file) {
@@ -455,6 +410,31 @@ export const courseApi = {
     return Array.isArray(data) ? data : data?.content || data?.items || [];
   },
 
+  async getLearningPathOffersPage(params = {}) {
+    const response = await axiosClient.get('/api/learning-paths/page', { params, skipAuthRedirect: true });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getManagedCourseCategoriesPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/course-categories/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getDiscussionModerationReportsPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/discussion-reports/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getContentManagerRubricsPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/rubrics/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getContentManagerRubricStats(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/rubrics/stats', { params });
+    return unwrapData(response) || {};
+  },
+
   async createContentManagerRubric(payload) {
     const response = await axiosClient.post('/api/content-manager/rubrics', payload);
     return unwrapData(response);
@@ -556,6 +536,16 @@ export const courseApi = {
     return unwrapData(response);
   },
 
+  async getExerciseBankItemsPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/exercise-bank/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getExerciseBankStats(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/exercise-bank/stats', { params });
+    return unwrapData(response) || {};
+  },
+
   async createExerciseBankItem(payload) {
     const response = await axiosClient.post('/api/content-manager/exercise-bank', payload);
     return unwrapData(response);
@@ -574,6 +564,11 @@ export const courseApi = {
   async getManagerOnlineEnrollments(params = {}) {
     const response = await axiosClient.get('/api/manager/enrollments', { params });
     return unwrapData(response);
+  },
+
+  async getManagerOnlineEnrollmentsPage(params = {}) {
+    const response = await axiosClient.get('/api/manager/enrollments/page', { params });
+    return normalizePage(unwrapData(response));
   },
 
   async updateManagerOnlineEnrollment(enrollmentId, payload) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
@@ -33,6 +33,7 @@ import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { formatClassroomDateTime } from '../../utils/classroomHelpers';
 import { PAGE_BODY_CLASS, PAGE_HEADER_CLASS, PAGE_MAIN_STACK_CLASS, PAGE_SHELL_CLASS } from '../../utils/pageLayout';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../../utils/pagination';
 
 const requestFilters = [
   { id: 'all', label: 'Tất cả' },
@@ -43,17 +44,41 @@ const requestFilters = [
 
 export default function TeacherRequestsPage() {
   const [requests, setRequests] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [requestStats, setRequestStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
+  const resetKey = `${activeFilter}-${deferredSearchQuery}`;
+  const { page, setPage, totalPages, pageItems: paginatedRequests, totalItems } = usePagination(
+    requests,
+    4,
+    resetKey,
+    pageResult,
+  );
 
   const loadRequests = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await classroomApi.getMyChangeRequests();
-      setRequests(data);
+      const [pagePayload, statsPayload] = await Promise.all([
+        classroomApi.getMyChangeRequestsPage(pageParams(page, 4, {
+          status: activeFilter === 'all' ? undefined : activeFilter.toUpperCase(),
+          keyword: deferredSearchQuery || undefined,
+        })),
+        classroomApi.getMyChangeRequestStats(),
+      ]);
+      const result = normalizePage(pagePayload);
+      setPageResult(result);
+      setRequests(result.content);
+      setRequestStats({
+        total: Number(statsPayload?.total || 0),
+        pending: Number(statsPayload?.pending || 0),
+        approved: Number(statsPayload?.approved || 0),
+        rejected: Number(statsPayload?.rejected || 0),
+      });
     } catch (err) {
       setRequests([]);
       setError(getClassroomErrorMessage(err, 'Không thể tải yêu cầu của bạn.'));
@@ -64,44 +89,22 @@ export default function TeacherRequestsPage() {
 
   useEffect(() => {
     loadRequests();
-  }, []);
-
-  // Filter and search requests
-  const filteredRequests = useMemo(() => {
-    return requests.filter((req) => {
-      const matchesSearch =
-        req.classroomTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        req.reason?.toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      if (activeFilter === 'pending') return req.status === 'PENDING';
-      if (activeFilter === 'approved') return ['APPROVED', 'APPLIED'].includes(req.status);
-      if (activeFilter === 'rejected') return req.status === 'REJECTED';
-      return true;
-    });
-  }, [requests, activeFilter, searchQuery]);
-
-  const { page, setPage, totalPages, pageItems: paginatedRequests, totalItems } = usePagination(
-    filteredRequests,
-    4,
-    `${activeFilter}-${searchQuery}`,
-  );
+  }, [activeFilter, deferredSearchQuery, page]);
 
   // Calculate stats for PageHero
   const stats = useMemo(() => {
-    if (!requests.length) return [];
-    const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
-    const approvedCount = requests.filter((r) => ['APPROVED', 'APPLIED'].includes(r.status)).length;
-    const rejectedCount = requests.filter((r) => r.status === 'REJECTED').length;
+    if (!requestStats.total) return [];
+    const pendingCount = requestStats.pending;
+    const approvedCount = requestStats.approved;
+    const rejectedCount = requestStats.rejected;
 
     return [
-      { label: 'Tổng yêu cầu', value: requests.length, icon: Settings, color: 'blue' },
+      { label: 'Tổng yêu cầu', value: requestStats.total, icon: Settings, color: 'blue' },
       { label: 'Chờ duyệt', value: pendingCount, icon: Clock, color: pendingCount > 0 ? 'amber' : 'blue' },
       { label: 'Đã duyệt', value: approvedCount, icon: CheckCircle2, color: 'emerald' },
       { label: 'Từ chối', value: rejectedCount, icon: XCircle, color: rejectedCount > 0 ? 'rose' : 'blue' },
     ];
-  }, [requests]);
+  }, [requestStats]);
 
   return (
     <div className={PAGE_SHELL_CLASS}>
@@ -152,14 +155,14 @@ export default function TeacherRequestsPage() {
           {/* Requests List */}
           {loading ? <ClassroomLoadingState message="Đang tải danh sách yêu cầu..." /> : null}
           {!loading && error ? <ClassroomErrorState message={error} onRetry={loadRequests} /> : null}
-          {!loading && !error && !filteredRequests.length ? (
+          {!loading && !error && !requests.length ? (
             <ClassroomEmptyState
               description="Không tìm thấy yêu cầu thay đổi nào khớp với bộ lọc."
               title="Chưa có yêu cầu"
             />
           ) : null}
 
-          {!loading && !error && filteredRequests.length ? (
+          {!loading && !error && requests.length ? (
             <div className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 {paginatedRequests.map((request, idx) => (

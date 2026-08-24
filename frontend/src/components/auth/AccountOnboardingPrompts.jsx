@@ -3,7 +3,7 @@ import { AlertCircle, Check, CheckCircle2, Circle, Eye, EyeOff, KeyRound, Lock, 
 import { useNavigate } from 'react-router-dom';
 import { changeCurrentUserPassword } from '../../api/authApi';
 import { useAuth } from '../../context/AuthContext';
-import { hasAnyUserRole, needsProfileCompletion } from '../../utils/auth';
+import { needsPlacementTest } from '../../utils/auth';
 
 const passwordRequirements = [
   { id: 'length', label: 'Ít nhất 8 ký tự', test: (password) => password.length >= 8 && password.length <= 72 },
@@ -43,8 +43,7 @@ export default function AccountOnboardingPrompts() {
 
   const reminderKey = user?.id ? `englishlab.placement-reminder.dismissed.${user.id}` : '';
   const requiresPassword = Boolean(user && user.passwordSet === false);
-  const isLearner = Boolean(user && hasAnyUserRole(user, ['LEARNER']) && !hasAnyUserRole(user, ['TEACHER', 'STAFF', 'CONTENT_MANAGER', 'MANAGER', 'ADMIN']));
-  const requiresPlacement = Boolean(isLearner && !needsProfileCompletion(user) && !user?.placementTestCompleted);
+  const requiresPlacement = needsPlacementTest(user);
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const isMatch = Boolean(confirmPassword && password === confirmPassword);

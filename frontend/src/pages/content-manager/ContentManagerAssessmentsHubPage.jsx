@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import {
@@ -21,6 +21,7 @@ import courseApi from '../../api/courseApi';
 import curriculumApi from '../../api/curriculumApi';
 import AssessmentExamBuilder from '../../components/content-manager/AssessmentExamBuilder';
 import RichTextEditor from '../../components/content-manager/RichTextEditor';
+import RichTextHtml from '../../components/content-manager/RichTextHtml';
 import {
   ManagerEmptyState,
   ManagerFilterBar,
@@ -43,8 +44,8 @@ import {
   PANEL_CLASS,
   PRIMARY_BUTTON_CLASS,
   SECONDARY_BUTTON_CLASS,
-  TEXTAREA_CLASS,
 } from '../../utils/formStyles';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const strictSkill = (skill) => (item) => String(item.skill || '').toUpperCase() === skill;
 
@@ -127,14 +128,14 @@ const pageMap = {
   },
   mockExams: {
     title: 'Ngân hàng đề thi thử',
-    subtitle: 'Quản lý các đề thi thử tổng hợp trong ngân hàng dùng chung.',
-    skill: 'MIXED',
+    subtitle: 'Tạo đề thi thử IELTS hoặc TOEIC theo kỹ năng, biên soạn trực quan không cần JSON.',
+    skill: 'LISTENING',
     type: 'MOCK_TEST',
     createLabel: 'Tạo đề thi thử',
     editLabel: 'Chỉnh sửa đề thi thử',
     emptyLabel: 'Chưa có đề thi thử nào.',
     loadingLabel: 'Đang tải ngân hàng đề thi thử...',
-    searchPlaceholder: 'Tìm đề thi thử theo tiêu đề, loại hoặc kỹ năng...',
+    searchPlaceholder: 'Tìm đề thi thử theo tiêu đề, loại kỳ thi hoặc kỹ năng...',
     successNoun: 'đề thi thử',
     tableTitle: 'Tên đề',
     itemLabel: 'đề',
@@ -163,6 +164,23 @@ const skillOptions = [
   { label: 'Tổng hợp', value: 'MIXED' },
 ];
 
+const examCategoryOptions = [
+  { label: 'IELTS', value: 'IELTS' },
+  { label: 'TOEIC', value: 'TOEIC' },
+];
+
+const ieltsMockSkillOptions = [
+  { label: 'Nghe', value: 'LISTENING' },
+  { label: 'Đọc', value: 'READING' },
+  { label: 'Viết', value: 'WRITING' },
+  { label: 'Nói', value: 'SPEAKING' },
+];
+
+const toeicMockSkillOptions = [
+  { label: 'Listening', value: 'LISTENING' },
+  { label: 'Reading', value: 'READING' },
+];
+
 const statusOptions = [
   { label: 'Nháp', value: 'DRAFT' },
   { label: 'Đã xuất bản', value: 'PUBLISHED' },
@@ -178,37 +196,80 @@ const aiOptions = [
 
 const allOption = { label: 'Tất cả', value: 'ALL' };
 
-const emptyForm = (pageConfig) => ({
-  title: '',
-  description: '',
-  type: pageConfig?.type || 'LESSON_PRACTICE',
-  skill: pageConfig?.skill || 'LISTENING',
-  aiEvaluationMode: 'NONE',
-  instructions: '',
-  objectiveAnswerKey: '',
-  uiConfigJson: '',
-  passingScore: '',
-  maxScore: 100,
-  timeLimitMinutes: '',
-  status: 'DRAFT',
-  displayOrder: 0,
-});
+const parseUiConfig = (value) => {
+  try {
+    const parsed = JSON.parse(String(value || ''));
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+};
 
-const toForm = (item = {}, pageConfig) => ({
-  title: item.title || '',
-  description: item.description || '',
-  type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
-  skill: item.skill || pageConfig?.skill || 'LISTENING',
-  aiEvaluationMode: item.aiEvaluationMode || 'NONE',
-  instructions: item.instructions || '',
-  objectiveAnswerKey: item.objectiveAnswerKey || '',
-  uiConfigJson: item.uiConfigJson || '',
-  passingScore: item.passingScore ?? '',
-  maxScore: item.maxScore ?? 100,
-  timeLimitMinutes: item.timeLimitMinutes ?? '',
-  status: item.status || 'DRAFT',
-  displayOrder: item.displayOrder ?? 0,
-});
+const resolveExamCategory = (itemOrForm = {}) => {
+  const fromField = String(itemOrForm.examCategory || '').toUpperCase();
+  if (fromField === 'TOEIC' || fromField === 'IELTS') return fromField;
+  const config = parseUiConfig(itemOrForm.uiConfigJson);
+  if (String(config.examType || '').toUpperCase() === 'TOEIC') return 'TOEIC';
+  if (String(config.type || '').toLowerCase().startsWith('toeic_')) return 'TOEIC';
+  if (/\bTOEIC\b/i.test(String(itemOrForm.title || ''))) return 'TOEIC';
+  return 'IELTS';
+};
+
+const withExamTypeInConfig = (uiConfigJson, examCategory, skill) => {
+  const config = parseUiConfig(uiConfigJson);
+  const normalized = examCategory === 'TOEIC' ? 'TOEIC' : 'IELTS';
+  config.examType = normalized;
+  if (['LISTENING', 'READING'].includes(String(skill || '').toUpperCase())) {
+    if (normalized === 'TOEIC') {
+      config.type = skill === 'READING' ? 'toeic_reading_exam' : 'toeic_listening_exam';
+    } else if (!String(config.type || '').startsWith('ielts_') && !String(config.type || '').startsWith('speaking') && !String(config.type || '').startsWith('writing')) {
+      config.type = skill === 'READING' ? 'ielts_reading_exam' : 'ielts_listening_exam';
+    }
+  }
+  return JSON.stringify(config);
+};
+
+const emptyForm = (pageConfig) => {
+  const isMock = pageConfig?.type === 'MOCK_TEST';
+  const skill = pageConfig?.skill || 'LISTENING';
+  const examCategory = isMock ? 'IELTS' : 'IELTS';
+  return {
+    title: '',
+    description: '',
+    type: pageConfig?.type || 'LESSON_PRACTICE',
+    skill,
+    examCategory,
+    aiEvaluationMode: 'NONE',
+    instructions: '',
+    objectiveAnswerKey: '',
+    uiConfigJson: isMock ? withExamTypeInConfig('{}', examCategory, skill) : '',
+    passingScore: '',
+    maxScore: 100,
+    timeLimitMinutes: '',
+    status: 'DRAFT',
+    displayOrder: 0,
+  };
+};
+
+const toForm = (item = {}, pageConfig) => {
+  const examCategory = resolveExamCategory(item);
+  return {
+    title: item.title || '',
+    description: item.description || '',
+    type: item.type || pageConfig?.type || 'LESSON_PRACTICE',
+    skill: item.skill || pageConfig?.skill || 'LISTENING',
+    examCategory,
+    aiEvaluationMode: item.aiEvaluationMode || 'NONE',
+    instructions: item.instructions || '',
+    objectiveAnswerKey: item.objectiveAnswerKey || '',
+    uiConfigJson: item.uiConfigJson || '',
+    passingScore: item.passingScore ?? '',
+    maxScore: item.maxScore ?? 100,
+    timeLimitMinutes: item.timeLimitMinutes ?? '',
+    status: item.status || 'DRAFT',
+    displayOrder: item.displayOrder ?? 0,
+  };
+};
 
 const supportedBuilderSkills = new Set(['LISTENING', 'READING', 'WRITING', 'SPEAKING']);
 
@@ -216,17 +277,28 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
   const { confirm: confirmDialog } = useAppDialog();
   const pageConfig = pageMap[pageKey] || pageMap.listening;
   const isSkillLocked = Boolean(pageConfig.lockedSkill);
+  const isMockExamsPage = pageKey === 'mockExams';
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(() => emptyForm(pageConfig));
   const [editingId, setEditingId] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [filters, setFilters] = useState({ type: 'ALL', status: 'ALL' });
+  const [filters, setFilters] = useState({ type: 'ALL', status: 'ALL', examCategory: 'ALL' });
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const [statsData, setStatsData] = useState({ total: 0, published: 0, draft: 0, timed: 0 });
   const editorRef = useRef(null);
+  const deferredKeyword = useDeferredValue(keyword);
+  const resetKey = `${pageKey}-${deferredKeyword}-${filters.type}-${filters.status}-${filters.examCategory}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    pageResult.content,
+    8,
+    resetKey,
+    pageResult,
+  );
 
   const lockFormToPage = (draft) => (
     isSkillLocked ? { ...draft, skill: pageConfig.skill, type: pageConfig.type } : draft
@@ -236,8 +308,24 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     setLoading(true);
     setError('');
     try {
-      const params = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
-      setItems(await curriculumApi.getAssessmentBank(params));
+      const baseParams = isSkillLocked ? { skill: pageConfig.skill } : { type: pageConfig.type };
+      const params = {
+        ...baseParams,
+        type: !isSkillLocked && filters.type !== 'ALL' ? filters.type : baseParams.type,
+        status: filters.status === 'ALL' ? undefined : filters.status,
+        examCategory: isMockExamsPage && filters.examCategory !== 'ALL'
+          ? filters.examCategory
+          : undefined,
+        keyword: deferredKeyword.trim() || undefined,
+        sort: ['displayOrder,asc', 'updatedAt,desc', 'title,asc'],
+      };
+      const [data, summary] = await Promise.all([
+        curriculumApi.getAssessmentBankPage(pageParams(page, 8, params)),
+        curriculumApi.getAssessmentBankStats(baseParams),
+      ]);
+      setPageResult(data);
+      setItems(data.content);
+      setStatsData(summary);
     } catch (err) {
       setError(err?.response?.data?.message || `Không tải được ${pageConfig.successNoun}.`);
     } finally {
@@ -247,49 +335,53 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   useEffect(() => {
     loadItems();
+  }, [deferredKeyword, filters.examCategory, filters.status, filters.type, page, pageKey]);
+
+  useEffect(() => {
     setEditingId(null);
     setEditorOpen(false);
     setKeyword('');
-    setFilters({ type: 'ALL', status: 'ALL' });
+    setFilters({ type: 'ALL', status: 'ALL', examCategory: 'ALL' });
     setForm(emptyForm(pageConfig));
   }, [pageKey]);
-
-  const filteredItems = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    return items
-      .filter((item) => pageConfig.matcher(item))
-      .filter((item) => {
-        const keywordMatched = !normalized || [item.title, item.description, item.type, item.skill, item.status]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(normalized));
-        const typeMatched = isSkillLocked || filters.type === 'ALL' || item.type === filters.type;
-        const statusMatched = filters.status === 'ALL' || item.status === filters.status;
-        return keywordMatched && typeMatched && statusMatched;
-      });
-  }, [items, filters, keyword, pageConfig, isSkillLocked]);
-
-  const sortedItems = useMemo(
-    () => [...filteredItems].sort((a, b) => (
-      (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
-      || new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime()
-      || String(a.title).localeCompare(String(b.title), 'vi')
-    )),
-    [filteredItems],
-  );
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(sortedItems, 8, `${pageKey}-${keyword}-${filters.type}-${filters.status}`);
-
-  const pageItemsAll = useMemo(() => items.filter((item) => pageConfig.matcher(item)), [items, pageConfig]);
   const stats = useMemo(() => [
-    { label: pageConfig.totalLabel, value: pageItemsAll.length, icon: pageConfig.statsIcon, tone: 'text-[#4b0009]' },
-    { label: 'Đã xuất bản', value: pageItemsAll.filter((item) => item.status === 'PUBLISHED').length, icon: CheckCircle2, tone: 'text-emerald-700' },
-    { label: 'Bản nháp', value: pageItemsAll.filter((item) => item.status === 'DRAFT').length, icon: Edit3, tone: 'text-amber-700' },
-    { label: 'Có thời lượng', value: pageItemsAll.filter((item) => Number(item.timeLimitMinutes || 0) > 0).length, icon: Clock3, tone: 'text-[#005236]' },
-  ], [pageItemsAll, pageConfig]);
+    { label: pageConfig.totalLabel, value: statsData.total, icon: pageConfig.statsIcon, tone: 'text-[#4b0009]' },
+    { label: 'Đã xuất bản', value: statsData.published, icon: CheckCircle2, tone: 'text-emerald-700' },
+    { label: 'Bản nháp', value: statsData.draft, icon: Edit3, tone: 'text-amber-700' },
+    { label: 'Có thời lượng', value: statsData.timed, icon: Clock3, tone: 'text-[#005236]' },
+  ], [pageConfig, statsData]);
 
   const updateForm = (field, value) => {
     if (isSkillLocked && (field === 'skill' || field === 'type')) return;
-    setForm((current) => lockFormToPage({ ...current, [field]: value }));
+    setForm((current) => {
+      let next = lockFormToPage({ ...current, [field]: value });
+      if (isMockExamsPage && field === 'examCategory') {
+        const examCategory = value === 'TOEIC' ? 'TOEIC' : 'IELTS';
+        const skill = examCategory === 'TOEIC' && !['LISTENING', 'READING'].includes(String(current.skill || '').toUpperCase())
+          ? 'LISTENING'
+          : current.skill;
+        next = {
+          ...next,
+          examCategory,
+          skill,
+          type: 'MOCK_TEST',
+          uiConfigJson: withExamTypeInConfig(current.uiConfigJson, examCategory, skill),
+        };
+      }
+      if (isMockExamsPage && field === 'skill') {
+        next = {
+          ...next,
+          uiConfigJson: withExamTypeInConfig(current.uiConfigJson, current.examCategory || 'IELTS', value),
+        };
+      }
+      if (isMockExamsPage && field === 'uiConfigJson') {
+        next = {
+          ...next,
+          uiConfigJson: withExamTypeInConfig(value, current.examCategory || 'IELTS', current.skill),
+        };
+      }
+      return next;
+    });
   };
 
   const startNew = () => {
@@ -332,8 +424,12 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   const buildPayload = (draft) => {
     const lockedDraft = lockFormToPage(draft);
+    const examCategory = isMockExamsPage ? resolveExamCategory(lockedDraft) : null;
     return {
       ...lockedDraft,
+      uiConfigJson: isMockExamsPage
+        ? withExamTypeInConfig(lockedDraft.uiConfigJson, examCategory, lockedDraft.skill)
+        : lockedDraft.uiConfigJson,
       passingScore: lockedDraft.passingScore === '' ? null : Number(lockedDraft.passingScore),
       maxScore: lockedDraft.maxScore === '' ? null : Number(lockedDraft.maxScore),
       timeLimitMinutes: lockedDraft.timeLimitMinutes === '' ? null : Number(lockedDraft.timeLimitMinutes),
@@ -475,6 +571,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
 
   const canUseBuilder = supportedBuilderSkills.has(String(form.skill || '').toUpperCase());
   const lockedForm = lockFormToPage(form);
+  const mockSkillOptions = (form.examCategory || 'IELTS') === 'TOEIC' ? toeicMockSkillOptions : ieltsMockSkillOptions;
 
   const renderWorkspace = () => {
     if (isSkillLocked && pageConfig.skill === 'LISTENING') {
@@ -490,26 +587,26 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
       return <SpeakingPracticeWorkspace form={lockedForm} onChange={updateForm} />;
     }
     if (canUseBuilder) {
-      return <AssessmentExamBuilder assessment={form} onChange={updateForm} />;
+      return (
+        <AssessmentExamBuilder
+          assessment={{
+            ...form,
+            examType: isMockExamsPage ? (form.examCategory || 'IELTS') : undefined,
+          }}
+          onChange={updateForm}
+        />
+      );
     }
     return (
-      <div className="space-y-4">
-        <h3 className="font-['Manrope'] text-lg font-extrabold text-slate-900">Cấu hình nội dung đề</h3>
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">UI config JSON</span>
-          <textarea value={form.uiConfigJson} onChange={(event) => updateForm('uiConfigJson', event.target.value)} rows={8} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
-        </label>
-        <label className="block">
-          <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Đáp án khách quan JSON</span>
-          <textarea value={form.objectiveAnswerKey} onChange={(event) => updateForm('objectiveAnswerKey', event.target.value)} rows={6} className={`${TEXTAREA_CLASS} font-mono text-xs`} />
-        </label>
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
+        Chọn kỹ năng Nghe, Đọc, Viết hoặc Nói để biên soạn đề trực quan.
       </div>
     );
   };
 
   const renderFilters = () => (
     <>
-      <div className="min-w-[300px] flex-1">
+      <div className="w-full min-w-0 flex-1 sm:min-w-[300px]">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#897270]" />
           <input
@@ -520,9 +617,12 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
           />
         </div>
       </div>
-      <div className={`grid w-full gap-3 ${isSkillLocked ? 'sm:w-auto' : 'sm:grid-cols-2 lg:w-auto'}`}>
-        {!isSkillLocked ? (
+      <div className={`grid w-full gap-3 ${isSkillLocked ? 'sm:w-auto' : isMockExamsPage ? 'sm:grid-cols-2 lg:grid-cols-3 lg:w-auto' : 'sm:grid-cols-2 lg:w-auto'}`}>
+        {!isSkillLocked && !isMockExamsPage ? (
           <FilterSelect label="Loại đề" onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))} options={[allOption, ...typeOptions]} value={filters.type} />
+        ) : null}
+        {isMockExamsPage ? (
+          <FilterSelect label="Kỳ thi" onChange={(event) => setFilters((current) => ({ ...current, examCategory: event.target.value }))} options={[allOption, ...examCategoryOptions]} value={filters.examCategory} />
         ) : null}
         <FilterSelect label="Trạng thái" onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} options={[allOption, ...statusOptions]} value={filters.status} />
       </div>
@@ -547,7 +647,7 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
     if (loading) {
       return <div className="rounded-xl border border-[#dcc0bf]/30 bg-white p-6 text-sm font-semibold text-slate-500">{pageConfig.loadingLabel}</div>;
     }
-    if (sortedItems.length === 0) {
+    if (pageItems.length === 0) {
       return <ManagerEmptyState>{pageConfig.emptyLabel}</ManagerEmptyState>;
     }
 
@@ -559,15 +659,25 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
         { label: 'Thứ tự', key: 'order', align: 'center' },
         { label: 'Thao tác', key: 'actions', align: 'right' },
       ]
-      : [
-        { label: pageConfig.tableTitle, key: 'title' },
-        { label: 'Loại đề', key: 'type' },
-        { label: 'Kỹ năng', key: 'skill' },
-        { label: 'Thời lượng', key: 'time', align: 'center' },
-        { label: 'Trạng thái', key: 'status' },
-        { label: 'Thứ tự', key: 'order', align: 'center' },
-        { label: 'Thao tác', key: 'actions', align: 'right' },
-      ];
+      : isMockExamsPage
+        ? [
+          { label: pageConfig.tableTitle, key: 'title' },
+          { label: 'Kỳ thi', key: 'exam' },
+          { label: 'Kỹ năng', key: 'skill' },
+          { label: 'Thời lượng', key: 'time', align: 'center' },
+          { label: 'Trạng thái', key: 'status' },
+          { label: 'Thứ tự', key: 'order', align: 'center' },
+          { label: 'Thao tác', key: 'actions', align: 'right' },
+        ]
+        : [
+          { label: pageConfig.tableTitle, key: 'title' },
+          { label: 'Loại đề', key: 'type' },
+          { label: 'Kỹ năng', key: 'skill' },
+          { label: 'Thời lượng', key: 'time', align: 'center' },
+          { label: 'Trạng thái', key: 'status' },
+          { label: 'Thứ tự', key: 'order', align: 'center' },
+          { label: 'Thao tác', key: 'actions', align: 'right' },
+        ];
 
     return (
       <section className="overflow-hidden rounded-xl border border-[#dcc0bf]/30 bg-white shadow-sm">
@@ -576,11 +686,15 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
             <tr className="transition hover:bg-[#eff4ff]" key={item.id}>
               <td className="px-6 py-5">
                 <p className="max-w-[360px] overflow-hidden text-sm font-bold leading-5 text-[#4b0009] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{item.title}</p>
-                {item.description ? <p className="mt-1 max-w-[360px] truncate text-xs text-[#564241]">{item.description}</p> : null}
+                {item.description ? <RichTextHtml asPlain className="mt-1 max-w-[360px] truncate text-xs text-[#564241]" value={item.description} /> : null}
               </td>
               {!isSkillLocked ? (
                 <>
-                  <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
+                  {isMockExamsPage ? (
+                    <td className="px-6 py-5"><ManagerStatusBadge tone="info">{resolveExamCategory(item)}</ManagerStatusBadge></td>
+                  ) : (
+                    <td className="px-6 py-5 text-sm text-[#0b1c30]">{formatLabel(item.type)}</td>
+                  )}
                   <td className="px-6 py-5"><ManagerStatusBadge tone="info">{formatLabel(item.skill)}</ManagerStatusBadge></td>
                 </>
               ) : null}
@@ -686,6 +800,17 @@ export default function ContentManagerAssessmentsHubPage({ pageKey }) {
                   <div className="grid gap-3 md:grid-cols-2">
                     <LockedMeta label="Trang kỹ năng" value={pageConfig.title} />
                     <LockedMeta label="Dạng nội dung" value={formatLabel(pageConfig.type)} />
+                  </div>
+                ) : isMockExamsPage ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỳ thi</span>
+                      <BrandedSelect value={form.examCategory || 'IELTS'} onChange={(event) => updateForm('examCategory', event.target.value)} options={examCategoryOptions} />
+                    </div>
+                    <div>
+                      <span className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Kỹ năng</span>
+                      <BrandedSelect value={form.skill} onChange={(event) => updateForm('skill', event.target.value)} options={mockSkillOptions} />
+                    </div>
                   </div>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">

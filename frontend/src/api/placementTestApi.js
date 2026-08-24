@@ -26,8 +26,10 @@ const placementTestApi = {
     return unwrapData(await axiosClient.put('/api/content-manager/placement-test', payload));
   },
 
-  async getMonitoring() {
-    return unwrapData(await axiosClient.get('/api/content-manager/placement-test/monitoring'));
+  async getMonitoring(examType = 'IELTS') {
+    return unwrapData(await axiosClient.get('/api/content-manager/placement-test/monitoring', {
+      params: { examType },
+    }));
   },
 
   async uploadSpeakingAudio(file, onUploadProgress) {

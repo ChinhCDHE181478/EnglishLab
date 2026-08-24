@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.entity.classroom;
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 
 import fu.sep490.g23.backend.entity.classroom.enums.*;
@@ -6,6 +7,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.*;
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -19,25 +21,25 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(
-        name = "classroom_gradebook_entries",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_gradebook_offering_student",
-                columnNames = {"classroom_offering_id", "student_id"}
-        )
-)
+@Table(name = "classroom_operation_records")
+@SQLRestriction("record_type = 'classroom_gradebook_entries'")
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomGradebookEntry {
+public class ClassroomGradebookEntry extends DomainRecord {
+    @Override
+    protected String domainRecordType() {
+        return "classroom_gradebook_entries";
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
+    @JoinColumn(name = "classroom_offering_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ClassroomOffering classroomOffering;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @JoinColumn(name = "student_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User student;
 
     @Column(name = "homework_score", precision = 6, scale = 2)
@@ -59,12 +61,12 @@ public class ClassroomGradebookEntry {
     private String teacherComment;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "gradebook_status", nullable = false, length = 20)
     @Builder.Default
     private GradebookEntryStatus status = GradebookEntryStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by_id")
+    @JoinColumn(name = "updated_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User updatedBy;
 
     @CreatedDate

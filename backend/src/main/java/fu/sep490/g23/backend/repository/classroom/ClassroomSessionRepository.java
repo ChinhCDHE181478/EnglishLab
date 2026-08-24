@@ -22,6 +22,10 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     long countByClassroomOfferingId(Long classroomOfferingId);
 
+    long countByClassroomOfferingIdAndStatus(Long classroomOfferingId, ClassroomSessionStatus status);
+
+    long countByClassroomOfferingIdAndStatusNot(Long classroomOfferingId, ClassroomSessionStatus status);
+
     long countByTeacherId(Long teacherId);
 
     long countByTeacherIdAndStatus(Long teacherId, ClassroomSessionStatus status);

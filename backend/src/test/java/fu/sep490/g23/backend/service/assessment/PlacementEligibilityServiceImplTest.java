@@ -80,6 +80,23 @@ class PlacementEligibilityServiceImplTest {
     }
 
     @Test
+    void skillAssessmentCannotReplaceFullPlacementResult() {
+        PlacementTestAttempt attempt = baseAttempt()
+                .aiFeedbackJson("{\"examType\":\"SKILL\",\"selectedSkills\":[\"LISTENING\"]}")
+                .listeningScore(BigDecimal.valueOf(6))
+                .overallScore(BigDecimal.valueOf(6))
+                .evaluationStatus(PlacementEvaluationStatus.SUBMITTED)
+                .build();
+        when(attemptRepository.findById(1L)).thenReturn(Optional.of(attempt));
+
+        PlacementEligibilityResult result = service.evaluateEligibility(learner.getId(), 1L);
+
+        assertThat(result.isEligible()).isFalse();
+        assertThat(result.getStatus()).isEqualTo(PlacementEvaluationStatus.NOT_ELIGIBLE);
+        assertThat(result.getMissingRequirements()).contains("FULL_PLACEMENT_REQUIRED");
+    }
+
+    @Test
     void keepsExpiredStatusInsteadOfFallingBackToManualReview() {
         PlacementTestAttempt attempt = baseAttempt()
                 .aiFeedbackJson("{\"examType\":\"IELTS\"}")

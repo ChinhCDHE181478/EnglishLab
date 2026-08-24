@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDialog } from '../../components/ui/AppDialog';
 import { Check, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import courseApi from '../../api/courseApi';
@@ -8,6 +8,7 @@ import BrandedSelect from '../../components/ui/BrandedSelect';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import ManagementToast from '../../components/ui/ManagementToast';
 import { stripRichTextToPlain } from '../../utils/lessonRichText';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const emptyForm = {
   code: '',
@@ -20,6 +21,7 @@ const emptyForm = {
 export default function ContentManagerCategoriesPage() {
   const { confirm: confirmDialog } = useAppDialog();
   const [categories, setCategories] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -27,12 +29,20 @@ export default function ContentManagerCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const { page, setPage, totalPages, pageItems: paginatedCategories, totalItems } = usePagination(
+    categories,
+    8,
+    'course-categories',
+    pageResult,
+  );
 
   const loadCategories = async () => {
     setLoading(true);
     setError('');
     try {
-      setCategories(await courseApi.getManagedCourseCategories());
+      const result = await courseApi.getManagedCourseCategoriesPage(pageParams(page, 8));
+      setPageResult(result);
+      setCategories(result.content);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được danh mục khóa học.');
     } finally {
@@ -42,17 +52,7 @@ export default function ContentManagerCategoriesPage() {
 
   useEffect(() => {
     loadCategories();
-  }, []);
-
-  const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || String(a.code).localeCompare(String(b.code)));
-  }, [categories]);
-
-  const { page, setPage, totalPages, pageItems: paginatedCategories, totalItems } = usePagination(
-    sortedCategories,
-    8,
-    'course-categories'
-  );
+  }, [page]);
 
   const openCreate = () => {
     setEditingId(null);

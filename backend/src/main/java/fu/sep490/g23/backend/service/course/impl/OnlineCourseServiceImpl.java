@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.service.course.TranscriptSegmentNormalizer;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
+import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
@@ -26,6 +27,7 @@ import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseService;
+import fu.sep490.g23.backend.service.course.BalancedCourseRecommendationSelector;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.CourseLessonFlashcardRefRepository;
@@ -168,8 +170,20 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, Pageable pageable) {
-        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, currentBand, targetBand, skill, PackageStatus.PUBLISHED), pageable)
+    public Page<OnlineCourseResponse> getPublicCourses(String keyword, String category, Double currentBand, Double targetBand, Integer targetScore, AssessmentSkill skill, String promotion, Pageable pageable) {
+        Specification<OnlineCourse> specification = courseSpec(clean(keyword), category, currentBand, targetBand, skill, null, PackageStatus.PUBLISHED);
+        if (targetScore != null) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.greaterThanOrEqualTo(
+                    criteriaBuilder.toInteger(root.join("learningPackage").get("targetScore")),
+                    targetScore
+            ));
+        }
+        if ("promotion".equalsIgnoreCase(promotion)) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.greaterThan(root.join("learningPackage").get("discountPercent"), 0));
+        } else if ("standard".equalsIgnoreCase(promotion)) {
+            specification = specification.and((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.join("learningPackage").get("discountPercent"), 0));
+        }
+        return onlineCourseRepository.findAll(specification, pageable)
                 .map(course -> onlineCourseVersionService.readPublishedSnapshot(course, false));
     }
 
@@ -197,8 +211,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, PackageStatus status, Pageable pageable) {
-        return onlineCourseRepository.findAll(courseSpec(clean(keyword), category, null, null, null, status), pageable)
+    public Page<OnlineCourseResponse> getManagerCourses(String keyword, String category, CourseLevel level, PackageStatus status, Set<Long> excludedIds, Pageable pageable) {
+        Specification<OnlineCourse> specification = courseSpec(clean(keyword), category, null, null, null, level, status);
+        if (excludedIds != null && !excludedIds.isEmpty()) {
+            specification = specification.and((root, query, criteriaBuilder) -> root.get("id").in(excludedIds).not());
+        }
+        return onlineCourseRepository.findAll(specification, pageable)
                 .map(mapper::toResponse);
     }
 
@@ -332,6 +350,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Override
     @Transactional(readOnly = true)
     public CourseStatsResponse getStats() {
+        Map<String, Long> categoryDistribution = new java.util.LinkedHashMap<>();
+        onlineCourseRepository.summarizeCategoryDistribution().forEach(row ->
+                categoryDistribution.put(String.valueOf(row[0]), ((Number) row[1]).longValue()));
         return CourseStatsResponse.builder()
                 .totalCourses(onlineCourseRepository.countByLearningPackageDeletedFalse())
                 .publishedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.PUBLISHED))
@@ -339,6 +360,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .archivedCourses(onlineCourseRepository.countByLearningPackageDeletedFalseAndLearningPackageStatus(PackageStatus.ARCHIVED))
                 .totalLessons(lessonRepository.countActiveLessons())
                 .totalEnrollments(enrollmentRepository.count())
+                .categoryDistribution(categoryDistribution)
                 .build();
     }
 
@@ -530,9 +552,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             throw new RuntimeException("Bài học không thuộc khóa học này.");
         }
 
-        List<TranscriptSegmentResponse> segments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+        List<TranscriptSegmentResponse> segments = resolveAutoTranscriptSegments(lesson);
         if (segments.isEmpty()) {
-            throw new IllegalArgumentException("Video này không có caption YouTube công khai. Bản chép lời hiện tại được giữ nguyên.");
+            if (canAutoFetchTranscript(lesson)) {
+                throw new IllegalArgumentException("Chưa lấy được bản chép lời từ video này. Với Bunny, caption có thể vẫn đang xử lý — thử lại sau vài phút.");
+            }
+            throw new IllegalArgumentException("Chỉ lấy tự động từ YouTube hoặc video Bunny. Hãy dán link phù hợp hoặc tải video lên hệ thống trước.");
         }
         lesson.setTranscriptSegmentsJson(writeTranscriptSegments(segments));
         lessonRepository.save(lesson);
@@ -615,14 +640,17 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         return enrollmentRepository.findByStudentOrderByRegisteredAtDesc(student).stream()
                 .filter(enrollment -> enrollment.getStatus() != EnrollmentStatus.CANCELLED)
                 .filter(enrollment -> !enrollment.getLearningPackage().isDeleted())
-                .filter(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage()).isPresent())
+                .map(enrollment -> onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
+                        .map(course -> courseProgressService.refreshEnrollmentProgress(enrollment, course, student))
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .map(mapper::toEnrollmentResponse)
                 .toList();
     }
@@ -677,7 +705,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     @Transactional(readOnly = true)
     public List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context) {
         List<OnlineCourse> publishedCourses = onlineCourseRepository
-                .findAll(courseSpec(null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
+                .findAll(courseSpec(null, null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
                 .getContent();
         Map<Long, PackageEnrollment> enrollmentsByPackage = enrollmentRepository
                 .findByStudentOrderByRegisteredAtDesc(student)
@@ -687,7 +715,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         enrollment -> enrollment,
                         (first, ignored) -> first
                 ));
-        return publishedCourses.stream()
+        List<ScoredRecommendation> rankedRecommendations = publishedCourses.stream()
                 .filter(course -> !isCompletedEnrollment(enrollmentsByPackage.get(course.getLearningPackage().getId())))
                 .filter(course -> isExamCompatible(course, context.getExamType()))
                 .map(course -> scoreRecommendation(
@@ -698,7 +726,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .sorted(Comparator.comparingDouble(ScoredRecommendation::score).reversed()
                         .thenComparing(item -> defaultInt(item.course().getLearningPathOrder()))
                         .thenComparing(item -> item.course().getId()))
-                .limit(6)
+                .toList();
+
+        return BalancedCourseRecommendationSelector.select(
+                        rankedRecommendations,
+                        ScoredRecommendation::bandCompatible,
+                        ScoredRecommendation::matchesWeakSkill,
+                        context.getWeakSkills() != null && !context.getWeakSkills().isEmpty()
+                ).stream()
                 .map(ScoredRecommendation::response)
                 .toList();
     }
@@ -735,12 +770,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         Double minBand = course.getRecommendedCurrentBandMin();
         Double currentBand = decimalToDouble(context.getOverallScore());
         Double targetBand = decimalToDouble(context.getTargetScore());
+        boolean bandCompatible = isBandCompatible(course, normalizedExam, currentBand);
         if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null) {
-            if (currentBand >= minBand) {
-                score += 6;
+            if (bandCompatible) {
+                score += Math.max(2, 10 - Math.abs(currentBand - minBand) * 4);
             } else {
-                double distance = minBand - currentBand;
-                score += Math.max(-2, 3 - distance * 2);
+                score -= Math.min(8, Math.abs(minBand - currentBand) * 4);
             }
         }
         if ("IELTS".equals(normalizedExam) && targetBand != null && course.getTargetBand() != null) {
@@ -762,7 +797,19 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 currentBand,
                 targetBand
         ));
-        return new ScoredRecommendation(course, response, score);
+        return new ScoredRecommendation(course, response, score, !matchedWeakSkills.isEmpty(), bandCompatible);
+    }
+
+    private boolean isBandCompatible(OnlineCourse course, String normalizedExam, Double currentBand) {
+        if (!"IELTS".equals(normalizedExam) || currentBand == null) {
+            return true;
+        }
+        Double minBand = course.getRecommendedCurrentBandMin();
+        Double courseTargetBand = course.getTargetBand();
+        return minBand != null
+                && courseTargetBand != null
+                && currentBand >= minBand
+                && currentBand <= courseTargetBand;
     }
 
     private boolean isExamCompatible(OnlineCourse course, String examType) {
@@ -861,7 +908,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return value == null ? "" : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
-    private record ScoredRecommendation(OnlineCourse course, OnlineCourseResponse response, double score) {}
+    private record ScoredRecommendation(
+            OnlineCourse course,
+            OnlineCourseResponse response,
+            double score,
+            boolean matchesWeakSkill,
+            boolean bandCompatible
+    ) {}
 
     @Override
     @Transactional(readOnly = true)
@@ -1868,8 +1921,12 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     }
 
     private void applyLessonTranscript(Lesson lesson, LessonRequest lessonRequest, String previousVideoUrl) {
-        if (lessonRequest.getTranscriptSegments() != null) {
-            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(lessonRequest.getTranscriptSegments())));
+        List<TranscriptSegmentRequest> requestedSegments = lessonRequest.getTranscriptSegments();
+        boolean hasExplicitTranscript = requestedSegments != null && requestedSegments.stream()
+                .anyMatch(segment -> segment != null && segment.getText() != null && !segment.getText().isBlank());
+
+        if (hasExplicitTranscript) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(requestedSegments)));
             return;
         }
 
@@ -1877,13 +1934,66 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         boolean videoChanged = previousVideoUrl == null
                 ? nextVideoUrl != null && !nextVideoUrl.isBlank()
                 : !previousVideoUrl.equals(nextVideoUrl);
-        boolean missingTranscript = lesson.getTranscriptSegmentsJson() == null || lesson.getTranscriptSegmentsJson().isBlank();
+        boolean missingTranscript = lesson.getTranscriptSegmentsJson() == null
+                || lesson.getTranscriptSegmentsJson().isBlank()
+                || "[]".equals(lesson.getTranscriptSegmentsJson().trim());
 
-        if ((videoChanged || missingTranscript) && youTubeTranscriptService.extractVideoId(nextVideoUrl).isPresent()) {
-            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(youTubeTranscriptService.fetchTranscriptSegments(nextVideoUrl)));
-        } else if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
-            lesson.setTranscriptSegmentsJson(null);
+        // Empty transcript payload from the editor should still auto-fetch YouTube/Bunny captions.
+        if (videoChanged || missingTranscript) {
+            Lesson probe = new Lesson();
+            probe.setVideoUrl(nextVideoUrl);
+            probe.setBunnyVideoId(lesson.getBunnyVideoId());
+            probe.setBunnyLibraryId(lesson.getBunnyLibraryId());
+            if (canAutoFetchTranscript(probe)) {
+                List<TranscriptSegmentResponse> autoSegments = resolveAutoTranscriptSegments(probe);
+                if (!autoSegments.isEmpty()) {
+                    lesson.setTranscriptSegmentsJson(writeTranscriptSegments(autoSegments));
+                    return;
+                }
+            }
         }
+        if (nextVideoUrl == null || nextVideoUrl.isBlank()) {
+            lesson.setTranscriptSegmentsJson(null);
+            return;
+        }
+        if (requestedSegments != null) {
+            lesson.setTranscriptSegmentsJson(writeTranscriptSegments(toTranscriptResponses(requestedSegments)));
+        }
+    }
+
+    private boolean canAutoFetchTranscript(Lesson lesson) {
+        if (lesson == null) {
+            return false;
+        }
+        if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isPresent()) {
+            return true;
+        }
+        return bunnyStreamService.resolveVideoRef(
+                lesson.getVideoUrl(),
+                lesson.getBunnyVideoId(),
+                lesson.getBunnyLibraryId()
+        ).isPresent();
+    }
+
+    private List<TranscriptSegmentResponse> resolveAutoTranscriptSegments(Lesson lesson) {
+        if (lesson == null) {
+            return List.of();
+        }
+
+        if (youTubeTranscriptService.extractVideoId(lesson.getVideoUrl()).isPresent()) {
+            List<TranscriptSegmentResponse> youtubeSegments = youTubeTranscriptService.fetchTranscriptSegments(lesson.getVideoUrl());
+            if (!youtubeSegments.isEmpty()) {
+                return youtubeSegments;
+            }
+        }
+
+        return bunnyStreamService.resolveVideoRef(
+                        lesson.getVideoUrl(),
+                        lesson.getBunnyVideoId(),
+                        lesson.getBunnyLibraryId()
+                )
+                .map(ref -> bunnyStreamService.fetchTranscriptSegments(ref.libraryId(), ref.videoId()))
+                .orElseGet(List::of);
     }
 
     private List<TranscriptSegmentResponse> toTranscriptResponses(List<TranscriptSegmentRequest> segments) {
@@ -1923,7 +2033,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         }
     }
 
-    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, PackageStatus status) {
+    private Specification<OnlineCourse> courseSpec(String keyword, String category, Double currentBand, Double targetBand, AssessmentSkill skill, CourseLevel level, PackageStatus status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             Join<OnlineCourse, LearningPackage> learningPackage = root.join("learningPackage");
@@ -1934,6 +2044,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(learningPackage.get("status"), status));
+            }
+            if (level != null) {
+                predicates.add(criteriaBuilder.equal(root.get("level"), level));
             }
             if (category != null && !category.isBlank()) {
                 predicates.add(criteriaBuilder.equal(categoryJoin.get("code"), normalizeCategoryCode(category)));

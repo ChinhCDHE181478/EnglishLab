@@ -25,6 +25,7 @@ import {
   ConfirmModal,
   StatusBadge,
 } from '../classroom/ClassroomUi';
+import Pagination, { usePagination } from '../ui/Pagination';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import {
   formatGradebookFinalResult,
@@ -35,6 +36,7 @@ import {
   getStudentLessonProgress,
   LESSON_GRADING_STATUS,
   LESSON_POSITION_STATUS,
+  orderHomeworkGradingChoices,
 } from '../../utils/teacherGradebookProgress';
 
 const HOMEWORK_STATUS = {
@@ -50,6 +52,8 @@ const LESSON_FILTERS = [
   { id: 'GRADING_GRADED', label: 'Đã chấm', gradingStatus: LESSON_GRADING_STATUS.GRADED },
   { id: 'POSITION_NOT_REACHED', label: 'Chưa học tới', positionStatus: LESSON_POSITION_STATUS.NOT_REACHED },
 ];
+
+const STUDENTS_PER_PAGE = 8;
 
 const formatScore = (score, maxScore = 10) => (
   score == null ? '—' : `${score} /${maxScore ?? 10}`
@@ -153,6 +157,149 @@ function LessonPositionBadge({ status }) {
   );
 }
 
+function AggregateGradebookTable({ gradebook, onOpenStudent }) {
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    gradebook,
+    STUDENTS_PER_PAGE,
+    gradebook.length,
+  );
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white">
+      <div className="flex items-center gap-3 border-b border-gray-100 bg-[#fffafb] px-5 py-4">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#730014]">
+          <Users className="h-4.5 w-4.5" />
+        </span>
+        <div>
+          <h5 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Bảng điểm tổng hợp</h5>
+          <p className="mt-1 text-xs text-[#8b706e]">Điểm bài tập, chuyên cần và kết quả của từng học viên.</p>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] divide-y divide-gray-100 text-left text-sm">
+          <thead className="bg-white text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-5 py-4">Học viên</th>
+              <th className="px-5 py-4">Điểm TB bài tập</th>
+              <th className="px-5 py-4">Chuyên cần</th>
+              <th className="px-5 py-4">Kết quả cuối</th>
+              <th className="px-5 py-4">Công bố</th>
+              <th className="px-5 py-4 text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-[#584140]">
+            {pageItems.map((entry) => (
+              <tr className="hover:bg-[#fffafb]/40" key={entry.studentId || entry.id}>
+                <td className="px-5 py-4 text-sm font-bold text-[#0b1c30]">
+                  {entry.studentName || `Học viên #${entry.studentId}`}
+                </td>
+                <td className="px-5 py-4 font-extrabold text-[#730014]">{formatScore(entry.homeworkAverage)}</td>
+                <td className="px-5 py-4 font-bold">{entry.attendancePercent == null ? '—' : `${entry.attendancePercent}%`}</td>
+                <td className="px-5 py-4">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
+                    isGradebookPassed(entry.finalResult) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                  }`}>
+                    {formatGradebookFinalResult(entry.finalResult)}
+                  </span>
+                </td>
+                <td className="px-5 py-4"><StatusBadge status={entry.status} /></td>
+                <td className="px-5 py-4 text-right">
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd]/50 bg-white px-3 py-2 text-xs font-extrabold text-[#730014] transition hover:bg-rose-50"
+                    onClick={() => onOpenStudent(entry)}
+                    type="button"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Xem tổng hợp
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 ? (
+        <div className="border-t border-gray-100 bg-[#fffafb]/50 px-5 py-4">
+          <Pagination
+            onChange={setPage}
+            page={page}
+            pageSize={STUDENTS_PER_PAGE}
+            totalItems={totalItems}
+            totalPages={totalPages}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function HomeworkGradingChoiceModal({ choices, onClose, onSelect, studentName }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      aria-labelledby="homework-choice-title"
+      aria-modal="true"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-6"
+      role="dialog"
+    >
+      <section className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-[#dfbfbd]/40 bg-white shadow-2xl">
+        <header className="flex items-start justify-between gap-4 border-b border-gray-100 bg-[#fffafb] px-5 py-4 sm:px-6">
+          <div>
+            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#730014]">Chọn bài tập</p>
+            <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]" id="homework-choice-title">
+              {studentName}
+            </h3>
+          </div>
+          <button
+            aria-label="Đóng danh sách bài tập"
+            className="rounded-xl border border-gray-200 bg-white p-2 text-[#584140] transition hover:bg-gray-50"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
+          {choices.map((homework) => (
+            <article
+              className="grid gap-3 rounded-2xl border border-gray-100 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"
+              key={homework.id}
+            >
+              <div className="min-w-0">
+                <h4 className="break-words text-sm font-extrabold text-[#2b2828]">{homework.title}</h4>
+                <p className="mt-1 text-xs text-[#8b706e]">{formatScore(homework.score, homework.maxScore)}</p>
+              </div>
+              <HomeworkStatusBadge status={homework.status} />
+              <button
+                className={`rounded-xl px-3.5 py-2 text-xs font-extrabold transition ${
+                  homework.status === 'SUBMITTED'
+                    ? 'bg-amber-500 text-white hover:bg-amber-600'
+                    : 'border border-[#dfbfbd]/50 bg-white text-[#730014] hover:bg-rose-50'
+                }`}
+                onClick={() => onSelect(homework)}
+                type="button"
+              >
+                {homework.status === 'SUBMITTED'
+                  ? 'Chấm bài'
+                  : homework.status === 'GRADED'
+                    ? 'Xem / sửa'
+                    : 'Xem chi tiết'}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function GradebookStudentModal({
   entry,
   homeworkIds,
@@ -161,6 +308,7 @@ function GradebookStudentModal({
   mode,
   onClose,
   onEdit,
+  onOpenHomework,
   onSave,
   saving,
 }) {
@@ -191,7 +339,7 @@ function GradebookStudentModal({
       setValidationMessage(message);
       return;
     }
-    onSave(form, homeworks);
+    onSave(form);
   };
 
   return (
@@ -201,11 +349,11 @@ function GradebookStudentModal({
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-6"
       role="dialog"
     >
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-[#dfbfbd]/40 bg-white shadow-2xl">
+      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-[#dfbfbd]/40 bg-white shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-[#fffafb] px-5 py-4 sm:px-7 sm:py-5">
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#9b1c31]">
-              {isEditing ? 'Chấm điểm theo bài học' : 'Chi tiết điểm bài học'}
+              {isEditing ? 'Cập nhật tổng kết học viên' : 'Chi tiết điểm bài học'}
             </p>
             <h3 className="mt-1 font-['Manrope'] text-xl font-extrabold text-[#2b2828]" id="gradebook-student-modal-title">
               {entry.studentName || `Học viên #${entry.studentId}`}
@@ -244,40 +392,22 @@ function GradebookStudentModal({
                 ) : (
                   <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-100">
                     {homeworks.map((homework) => (
-                      <div className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_130px_110px] sm:items-center" key={homework.id}>
+                      <div className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_90px_110px_108px] sm:items-center" key={homework.id}>
                         <div className="min-w-0">
                           <p className="break-words text-sm font-extrabold text-[#2b2828]">{homework.title}</p>
                           <p className="mt-1 text-[11px] text-[#8b706e]">Điểm tối đa: {homework.maxScore ?? 10}</p>
                         </div>
-                        {isEditing ? (
-                          <div className="relative">
-                            <input
-                              aria-label={`Điểm ${homework.title}`}
-                              className="w-full rounded-xl border border-[#dfbfbd]/60 bg-white px-3 py-2.5 pr-12 text-sm font-bold text-[#2b2828] outline-none focus:border-[#730014]"
-                              max={homework.maxScore ?? 10}
-                              min="0"
-                              onChange={(event) => setForm((current) => ({
-                                ...current,
-                                homeworkScores: {
-                                  ...current.homeworkScores,
-                                  [homework.id]: event.target.value,
-                                },
-                              }))}
-                              placeholder="—"
-                              step="0.01"
-                              type="number"
-                              value={form.homeworkScores[homework.id] ?? ''}
-                            />
-                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-[#8b706e]">
-                              /{homework.maxScore ?? 10}
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="text-sm font-extrabold text-[#2b2828] sm:text-right">
-                            {formatScore(homework.score, homework.maxScore)}
-                          </p>
-                        )}
-                        <div className="sm:text-right"><HomeworkStatusBadge status={homework.status} /></div>
+                        <p className="text-sm font-extrabold text-[#2b2828] sm:text-right">
+                          {formatScore(homework.score, homework.maxScore)}
+                        </p>
+                        <div className="sm:text-center"><HomeworkStatusBadge status={homework.status} /></div>
+                        <button
+                          className="rounded-lg border border-[#dfbfbd]/50 bg-white px-3 py-2 text-[11px] font-extrabold text-[#730014] transition hover:bg-rose-50"
+                          onClick={() => onOpenHomework(homework.id, entry.studentId)}
+                          type="button"
+                        >
+                          Mở bài chấm
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -358,7 +488,7 @@ function GradebookStudentModal({
                 type="button"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Lưu điểm
+                Lưu tổng kết
               </button>
             ) : (
               <button
@@ -368,7 +498,7 @@ function GradebookStudentModal({
                 type="button"
               >
                 <Pencil className="h-4 w-4" />
-                Chấm / sửa điểm
+                Sửa tổng kết
               </button>
             )}
           </div>
@@ -424,6 +554,7 @@ export default function TeacherGradebookSection({
   onExport,
   onGradebookChange,
   onMessage,
+  onOpenHomeworkGrading,
   onPublish,
   onUnpublish,
   sessions = [],
@@ -437,6 +568,7 @@ export default function TeacherGradebookSection({
   const [lessonFilter, setLessonFilter] = useState('ALL');
   const [lessonSearch, setLessonSearch] = useState('');
   const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [gradingSelection, setGradingSelection] = useState(null);
 
   const lessons = useMemo(() => buildGradebookLessons({
     curriculumUnits,
@@ -445,26 +577,24 @@ export default function TeacherGradebookSection({
     sessions,
   }), [curriculumUnits, gradebook, homework, sessions]);
 
-  const currentLesson = lessons.find((lesson) => lesson.positionStatus === LESSON_POSITION_STATUS.CURRENT);
-  const selectedLesson = lessons.find((lesson) => lesson.id === selectedLessonId)
+  const gradingLessons = useMemo(
+    () => lessons.filter((lesson) => lesson.assignments.length > 0),
+    [lessons],
+  );
+  const pendingLesson = gradingLessons.find((lesson) => lesson.gradingStatus === LESSON_GRADING_STATUS.PENDING);
+  const currentLesson = gradingLessons.find((lesson) => lesson.positionStatus === LESSON_POSITION_STATUS.CURRENT);
+  const selectedLesson = gradingLessons.find((lesson) => lesson.id === selectedLessonId)
+    || pendingLesson
     || currentLesson
-    || lessons[0]
+    || gradingLessons[0]
     || null;
   const hasPublishedEntries = gradebook.some((entry) => entry.status === 'PUBLISHED');
   const allEntriesPublished = gradebook.length > 0
     && gradebook.every((entry) => entry.status === 'PUBLISHED');
-  const numberedLessons = lessons.filter((lesson) => lesson.displayOrder != null);
-  const reachedLessonCount = numberedLessons.filter((lesson) => (
-    lesson.positionStatus !== LESSON_POSITION_STATUS.NOT_REACHED
-  )).length;
-  const gradedLessonCount = lessons.filter((lesson) => lesson.gradingStatus === LESSON_GRADING_STATUS.GRADED).length;
-  const futureLessonCount = lessons.filter((lesson) => lesson.positionStatus === LESSON_POSITION_STATUS.NOT_REACHED).length;
   const pendingSubmissionCount = homework.reduce((total, item) => total + Number(item.pendingGradingCount || 0), 0);
-  const courseProgress = numberedLessons.length
-    ? Math.round((reachedLessonCount / numberedLessons.length) * 100)
-    : 0;
+  const publishedStudentCount = gradebook.filter((entry) => entry.status === 'PUBLISHED').length;
 
-  const visibleLessons = lessons.filter((lesson) => {
+  const visibleLessons = gradingLessons.filter((lesson) => {
     const activeFilter = LESSON_FILTERS.find((filter) => filter.id === lessonFilter);
     const matchesFilter = lessonFilter === 'ALL'
       || (activeFilter?.gradingStatus && lesson.gradingStatus === activeFilter.gradingStatus)
@@ -473,6 +603,30 @@ export default function TeacherGradebookSection({
     const matchesSearch = !query || `${lesson.title} ${lesson.displayOrder || ''}`.toLocaleLowerCase('vi').includes(query);
     return matchesFilter && matchesSearch;
   });
+  const {
+    page: gradingPage,
+    setPage: setGradingPage,
+    totalPages: gradingTotalPages,
+    pageItems: gradingPageItems,
+    totalItems: gradingTotalItems,
+  } = usePagination(
+    gradebook,
+    STUDENTS_PER_PAGE,
+    `${selectedLesson?.id || 'none'}|${gradebook.length}`,
+  );
+
+  const openHomeworkGrading = (entry, results) => {
+    const choices = orderHomeworkGradingChoices(results);
+    if (choices.length === 1) {
+      onOpenHomeworkGrading?.(choices[0].id, entry.studentId);
+      return;
+    }
+    setGradingSelection({
+      choices,
+      studentId: entry.studentId,
+      studentName: entry.studentName || `Học viên #${entry.studentId}`,
+    });
+  };
 
   const handleConfirmPublicationAction = () => {
     if (confirmationAction === 'publish') onPublish?.();
@@ -504,17 +658,14 @@ export default function TeacherGradebookSection({
     setModalLesson(null);
   };
 
-  const saveEntry = async (form, visibleHomeworks) => {
+  const saveEntry = async (form) => {
     if (!selectedEntry) return;
     setSaving(true);
     onMessage?.('');
     try {
       const payload = {
         studentId: selectedEntry.studentId,
-        homeworkScores: visibleHomeworks.map((item) => ({
-          homeworkId: item.id,
-          score: form.homeworkScores[item.id] === '' ? null : Number(form.homeworkScores[item.id]),
-        })),
+        homeworkScores: [],
       };
       if (form.attendancePercent !== '') payload.attendancePercent = Number(form.attendancePercent);
       if (form.finalResult !== '') payload.finalResult = Number(form.finalResult);
@@ -547,31 +698,15 @@ export default function TeacherGradebookSection({
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#730014] px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-white">
-                Chấm điểm theo tiến độ
+                Bảng điểm lớp học
               </span>
-              {currentLesson ? <LessonPositionBadge status={currentLesson.positionStatus} /> : null}
             </div>
             <h4 className="mt-3 font-['Manrope'] text-xl font-extrabold text-[#2b2828]">
-              {currentLesson
-                ? `Lớp đang ở Bài ${currentLesson.displayOrder}: ${currentLesson.title}`
-                : numberedLessons.length
-                  ? 'Lớp đã hoàn thành toàn bộ giáo trình'
-                  : 'Theo dõi bài học và điểm số'}
+              Theo dõi kết quả của {gradebook.length} học viên
             </h4>
             <p className="mt-1.5 text-sm leading-6 text-[#584140]">
-              Các bài đã học, đang học và chưa học tới được tách rõ để giáo viên không chấm nhầm bài tương lai.
+              Xem kết quả toàn lớp, xử lý bài chờ chấm và công bố điểm tại cùng một nơi.
             </p>
-            {numberedLessons.length ? (
-              <div className="mt-4 max-w-xl">
-                <div className="mb-1.5 flex items-center justify-between text-[11px] font-extrabold text-[#8b706e]">
-                  <span>Đã đi đến {reachedLessonCount}/{numberedLessons.length} bài</span>
-                  <span>{courseProgress}% giáo trình</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-rose-100">
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#730014] to-[#c43c53] transition-all" style={{ width: `${courseProgress}%` }} />
-                </div>
-              </div>
-            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
@@ -604,10 +739,10 @@ export default function TeacherGradebookSection({
 
         <div className="grid border-t border-[#dfbfbd]/20 bg-white/75 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: 'Bài đã chấm xong', value: gradedLessonCount, icon: CheckCircle2, className: 'text-emerald-600' },
-            { label: 'Bài đang học', value: currentLesson ? `Bài ${currentLesson.displayOrder}` : '—', icon: Clock3, className: 'text-[#9b1c31]' },
+            { label: 'Học viên', value: gradebook.length, icon: Users, className: 'text-[#9b1c31]' },
+            { label: 'Bài tập', value: homework.length, icon: BookOpenCheck, className: 'text-blue-600' },
             { label: 'Lượt bài chờ chấm', value: pendingSubmissionCount, icon: AlertTriangle, className: 'text-amber-600' },
-            { label: 'Bài chưa học tới', value: futureLessonCount, icon: LockKeyhole, className: 'text-slate-500' },
+            { label: 'Học viên đã công bố', value: publishedStudentCount, icon: CheckCircle2, className: 'text-emerald-600' },
           ].map((item) => (
             <div className="flex items-center gap-3 border-b border-[#dfbfbd]/15 px-5 py-4 last:border-b-0 sm:odd:border-r lg:border-b-0 lg:border-r lg:last:border-r-0" key={item.label}>
               <item.icon className={`h-5 w-5 flex-shrink-0 ${item.className}`} />
@@ -620,16 +755,24 @@ export default function TeacherGradebookSection({
         </div>
       </section>
 
+      {gradebook.length ? (
+        <AggregateGradebookTable
+          gradebook={gradebook}
+          onOpenStudent={(entry) => openStudentModal(entry, 'detail', allHomeworkLesson)}
+        />
+      ) : null}
+
       {!gradebook.length ? (
         <ClassroomEmptyState
           description="Chưa có học viên hoặc dữ liệu bảng điểm để tổ chức theo bài học."
           title="Chưa có dữ liệu chấm điểm"
         />
-      ) : !lessons.length ? (
-        <ClassroomEmptyState
-          description="Hãy thêm giáo trình hoặc bài tập để bắt đầu chấm điểm theo tiến độ."
-          title="Chưa có bài học"
-        />
+      ) : !gradingLessons.length ? (
+        <section className="rounded-3xl border border-dashed border-[#dfbfbd]/60 bg-[#fffafb] px-6 py-10 text-center">
+          <CircleDashed className="mx-auto h-9 w-9 text-[#c9adab]" />
+          <h5 className="mt-3 font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">Chưa có bài tập để chấm</h5>
+          <p className="mt-1 text-sm text-[#8b706e]">Thêm bài tập trong tab Bài tập để bắt đầu nhận và chấm bài.</p>
+        </section>
       ) : (
         <section className="grid min-h-[620px] gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-[#fffafb]/70 p-4">
@@ -736,12 +879,6 @@ export default function TeacherGradebookSection({
                   Bạn vẫn có thể xem bài trong danh sách tiến độ, nhưng thao tác chấm được khóa để tránh nhập điểm nhầm trước khi lớp học tới bài này.
                 </p>
               </div>
-            ) : !selectedLesson.assignments.length ? (
-              <div className="m-5 flex min-h-72 flex-col items-center justify-center rounded-3xl border border-dashed border-gray-200 px-6 text-center sm:m-6">
-                <CircleDashed className="h-9 w-9 text-[#c9adab]" />
-                <h6 className="mt-3 font-['Manrope'] text-base font-extrabold text-[#2b2828]">Chưa có bài tập để chấm</h6>
-                <p className="mt-1 max-w-sm text-sm leading-6 text-[#8b706e]">Hãy gắn bài tập với bài học này trong tab Bài tập.</p>
-              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] divide-y divide-gray-100 text-left text-sm">
@@ -756,7 +893,7 @@ export default function TeacherGradebookSection({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-[#584140]">
-                    {gradebook.map((entry) => {
+                    {gradingPageItems.map((entry) => {
                       const progress = getStudentLessonProgress(entry, selectedLesson.assignments);
                       return (
                         <tr className="hover:bg-[#fffafb]/50" key={entry.studentId || entry.id}>
@@ -794,11 +931,13 @@ export default function TeacherGradebookSection({
                                   ? 'bg-amber-500 text-white hover:bg-amber-600'
                                   : 'border border-[#dfbfbd]/50 bg-white text-[#730014] hover:bg-rose-50'
                               }`}
-                              onClick={() => openStudentModal(entry, 'edit', selectedLesson)}
+                              onClick={() => openHomeworkGrading(entry, progress.results)}
                               type="button"
                             >
                               <Pencil className="h-3.5 w-3.5" />
-                              {progress.isComplete ? 'Sửa điểm' : 'Chấm điểm'}
+                              {progress.results.length > 1
+                                ? 'Chọn bài'
+                                : progress.isComplete ? 'Sửa điểm' : 'Chấm điểm'}
                             </button>
                           </td>
                         </tr>
@@ -806,66 +945,22 @@ export default function TeacherGradebookSection({
                     })}
                   </tbody>
                 </table>
+                {gradingTotalPages > 1 ? (
+                  <div className="border-t border-gray-100 bg-[#fffafb]/50 px-5 py-4 sm:px-6">
+                    <Pagination
+                      onChange={setGradingPage}
+                      page={gradingPage}
+                      pageSize={STUDENTS_PER_PAGE}
+                      totalItems={gradingTotalItems}
+                      totalPages={gradingTotalPages}
+                    />
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
         </section>
       )}
-
-      {gradebook.length ? (
-        <details className="group overflow-hidden rounded-2xl border border-gray-100 bg-white">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-[#fffafb] px-5 py-4 marker:hidden">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-[#730014]"><Users className="h-4.5 w-4.5" /></span>
-              <div>
-                <p className="text-sm font-extrabold text-[#2b2828]">Bảng điểm tổng hợp toàn lớp</p>
-                <p className="text-[11px] text-[#8b706e]">Xem chuyên cần, điểm trung bình và kết quả cuối của {gradebook.length} học viên.</p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-[#8b706e] transition group-open:rotate-90" />
-          </summary>
-          <div className="overflow-x-auto border-t border-gray-100">
-            <table className="w-full min-w-[820px] divide-y divide-gray-100 text-left text-sm">
-              <thead className="bg-white text-xs font-bold uppercase tracking-wider text-[#8b706e]">
-                <tr>
-                  <th className="px-5 py-4">Học viên</th>
-                  <th className="px-5 py-4">Điểm TB bài tập</th>
-                  <th className="px-5 py-4">Chuyên cần</th>
-                  <th className="px-5 py-4">Kết quả cuối</th>
-                  <th className="px-5 py-4">Công bố</th>
-                  <th className="px-5 py-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 text-[#584140]">
-                {gradebook.map((entry) => (
-                  <tr className="hover:bg-[#fffafb]/40" key={entry.studentId || entry.id}>
-                    <td className="px-5 py-4 font-extrabold text-[#2b2828]">{entry.studentName || `Học viên #${entry.studentId}`}</td>
-                    <td className="px-5 py-4 font-extrabold text-[#730014]">{formatScore(entry.homeworkAverage)}</td>
-                    <td className="px-5 py-4 font-bold">{entry.attendancePercent == null ? '—' : `${entry.attendancePercent}%`}</td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
-                        isGradebookPassed(entry.finalResult) ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {formatGradebookFinalResult(entry.finalResult)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4"><StatusBadge status={entry.status} /></td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd]/50 bg-white px-3 py-2 text-xs font-extrabold text-[#730014] transition hover:bg-rose-50"
-                        onClick={() => openStudentModal(entry, 'detail', allHomeworkLesson)}
-                        type="button"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> Xem tổng hợp
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      ) : null}
 
       {selectedEntry && modalLesson ? (
         <GradebookStudentModal
@@ -876,8 +971,25 @@ export default function TeacherGradebookSection({
           mode={modalMode}
           onClose={closeModal}
           onEdit={() => setModalMode('edit')}
+          onOpenHomework={(homeworkId, studentId) => {
+            closeModal();
+            onOpenHomeworkGrading?.(homeworkId, studentId);
+          }}
           onSave={saveEntry}
           saving={saving}
+        />
+      ) : null}
+
+      {gradingSelection ? (
+        <HomeworkGradingChoiceModal
+          choices={gradingSelection.choices}
+          onClose={() => setGradingSelection(null)}
+          onSelect={(homeworkItem) => {
+            const studentId = gradingSelection.studentId;
+            setGradingSelection(null);
+            onOpenHomeworkGrading?.(homeworkItem.id, studentId);
+          }}
+          studentName={gradingSelection.studentName}
         />
       ) : null}
 

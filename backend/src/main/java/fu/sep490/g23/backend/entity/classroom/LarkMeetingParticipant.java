@@ -1,9 +1,11 @@
 package fu.sep490.g23.backend.entity.classroom;
 
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,22 +18,22 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(
-        name = "lark_meeting_participants",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_lark_session_participant",
-                columnNames = {"classroom_session_id", "participant_key"}
-        )
-)
+@Table(name = "classroom_operation_records")
+@SQLRestriction("record_type = 'lark_meeting_participants'")
 @EntityListeners(AuditingEntityListener.class)
-public class LarkMeetingParticipant {
+public class LarkMeetingParticipant extends DomainRecord {
+
+    @Override
+    protected String domainRecordType() {
+        return "lark_meeting_participants";
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "classroom_session_id", nullable = false)
+    @JoinColumn(name = "classroom_session_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ClassroomSession classroomSession;
 
     @Column(name = "participant_key", nullable = false, length = 255)

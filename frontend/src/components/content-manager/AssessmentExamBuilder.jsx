@@ -18,6 +18,8 @@ const createQuestion = (number = 1) => ({
   prompt: '',
   promptBefore: '',
   promptAfter: '',
+  imageUrl: '',
+  audioUrl: '',
   options: [
     { value: 'A', label: '' },
     { value: 'B', label: '' },
@@ -30,7 +32,11 @@ const createGroup = (number = 1) => ({
   title: `Câu ${number}`,
   instructions: '',
   descriptionHtml: '',
+  passageHtml: '',
   type: 'text',
+  hideOptionText: false,
+  perQuestionAudio: false,
+  audioUrl: '',
   questions: [createQuestion(number)],
   questionNumbers: [],
   maxSelections: 2,
@@ -109,7 +115,7 @@ const createSpeakingPart = (index = 0) => {
     key: `part_${partNumber}`,
     label: `Part ${partNumber}`,
     ...partDefaults,
-    prompts: (partDefaults.prompts || ['']).map((text) => ({ text, videoUrl: '' })),
+    prompts: (partDefaults.prompts || ['']).map((text) => ({ text, videoUrl: '', audioUrl: '' })),
   };
 };
 
@@ -133,19 +139,24 @@ const createSpeakingConfig = (assessment) => ({
   variants: [createSpeakingVariant(0)],
 });
 
-const createConfig = (assessment) => ({
-  version: 1,
-  type: getAssessmentSkill(assessment) === 'READING'
-    ? 'ielts_reading_exam'
-    : 'ielts_listening_exam',
-  key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
-  title: assessment.title || 'Bài thi mới',
-  durationMinutes: Number(assessment.timeLimitMinutes || 40),
-  audioLabel: 'Bản nghe',
-  audioUrl: '',
-  rules: [],
-  parts: [createPart(0, 1)],
-});
+const createConfig = (assessment) => {
+  const skill = getAssessmentSkill(assessment);
+  const examType = resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
+  return {
+    version: 1,
+    examType,
+    type: resolveObjectiveExamTypeLabel(examType, skill),
+    key: `englishlab_${String(assessment.title || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+    title: assessment.title || 'Bài thi mới',
+    durationMinutes: Number(assessment.timeLimitMinutes || 40),
+    audioLabel: 'Bản nghe',
+    audioUrl: '',
+    rules: [],
+    parts: [createPart(0, 1)],
+  };
+};
+
+const getAssessmentExamType = (assessment) => resolveObjectiveExamType(assessment, safeParse(assessment?.uiConfigJson, {}));
 
 const safeParse = (value, fallback) => {
   try {
@@ -154,6 +165,23 @@ const safeParse = (value, fallback) => {
   } catch {
     return fallback;
   }
+};
+
+const resolveObjectiveExamType = (assessment, parsed = {}) => {
+  const fromProp = String(assessment?.examType || '').toUpperCase();
+  if (fromProp === 'TOEIC' || fromProp === 'IELTS') return fromProp;
+  const fromConfig = String(parsed?.examType || '').toUpperCase();
+  if (fromConfig === 'TOEIC' || fromConfig === 'IELTS') return fromConfig;
+  const type = String(parsed?.type || '').toLowerCase();
+  if (type.startsWith('toeic_')) return 'TOEIC';
+  return 'IELTS';
+};
+
+const resolveObjectiveExamTypeLabel = (examType, skill) => {
+  if (examType === 'TOEIC') {
+    return skill === 'READING' ? 'toeic_reading_exam' : 'toeic_listening_exam';
+  }
+  return skill === 'READING' ? 'ielts_reading_exam' : 'ielts_listening_exam';
 };
 
 const nextQuestionNumber = (parts) => {
@@ -199,7 +227,9 @@ const normalizeConfig = (assessment) => {
   if (skill === 'SPEAKING') {
     const variants = Array.isArray(safeConfig.variants) && safeConfig.variants.length
       ? safeConfig.variants
-      : fallback.variants;
+      : Array.isArray(safeConfig.parts) && safeConfig.parts.length
+        ? [{ key: 'test_1', label: 'Đề 1', parts: safeConfig.parts }]
+        : fallback.variants;
     return {
       ...fallback,
       ...safeConfig,
@@ -217,19 +247,58 @@ const normalizeConfig = (assessment) => {
             label: part.label || `Part ${partIndex + 1}`,
             prompts: (Array.isArray(part.prompts) && part.prompts.length ? part.prompts : ['']).map((prompt) => (
               typeof prompt === 'string'
-                ? { text: prompt, videoUrl: '' }
-                : { text: String(prompt?.text || ''), videoUrl: String(prompt?.videoUrl || '') }
+                ? { text: prompt, videoUrl: '', audioUrl: '' }
+                : {
+                  text: String(prompt?.text || ''),
+                  videoUrl: String(prompt?.videoUrl || ''),
+                  audioUrl: String(prompt?.audioUrl || ''),
+                }
             )),
           })),
       })),
     };
   }
 
+  const legacyQuestions = Array.isArray(safeConfig.questions) ? safeConfig.questions : [];
+  const normalizedParts = Array.isArray(safeConfig.parts) && safeConfig.parts.length
+    ? safeConfig.parts
+    : legacyQuestions.length
+      ? [{
+        ...createPart(0, 1),
+        title: safeConfig.title || fallback.title,
+        questionGroups: legacyQuestions.map((question, index) => {
+          const number = Number(question.number || index + 1);
+          const options = Array.isArray(question.options) ? question.options : [];
+          return {
+            ...createGroup(number),
+            title: `Câu ${number}`,
+            type: options.length ? 'single_choice' : 'text',
+            questions: [{
+              ...createQuestion(number),
+              ...question,
+              number,
+              options: options.length
+                ? options.map((option, optionIndex) => (
+                  typeof option === 'object'
+                    ? {
+                      value: String(option.value || String.fromCharCode(65 + optionIndex)),
+                      label: String(option.label || option.text || ''),
+                    }
+                    : { value: String.fromCharCode(65 + optionIndex), label: String(option) }
+                ))
+                : [],
+            }],
+          };
+        }),
+      }]
+      : fallback.parts;
+
   return {
     ...fallback,
     ...safeConfig,
-    type: fallback.type,
-    parts: Array.isArray(safeConfig.parts) && safeConfig.parts.length ? safeConfig.parts : fallback.parts,
+    examType: resolveObjectiveExamType(assessment, safeConfig),
+    type: resolveObjectiveExamTypeLabel(resolveObjectiveExamType(assessment, safeConfig), skill),
+    parts: normalizedParts,
   };
 };
 
@@ -684,11 +753,45 @@ export default function AssessmentExamBuilder({ assessment, onChange }) {
                           <div className="mt-3">
                             <Field label="Hướng dẫn" value={group.instructions || ''} onChange={(value) => updateGroup(partIndex, groupIndex, { instructions: value })} />
                           </div>
+                          <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <Field
+                              label="Audio nhóm (URL)"
+                              value={group.audioUrl || ''}
+                              onChange={(value) => updateGroup(partIndex, groupIndex, { audioUrl: value })}
+                            />
+                            <div className="flex flex-wrap items-end gap-4 pb-1">
+                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                <input
+                                  checked={Boolean(group.hideOptionText)}
+                                  className="h-4 w-4 accent-[#4b0009]"
+                                  onChange={(event) => updateGroup(partIndex, groupIndex, { hideOptionText: event.target.checked })}
+                                  type="checkbox"
+                                />
+                                Ẩn chữ lựa chọn (A/B/C/D)
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-sm font-semibold text-[#584140]">
+                                <input
+                                  checked={Boolean(group.perQuestionAudio)}
+                                  className="h-4 w-4 accent-[#4b0009]"
+                                  onChange={(event) => updateGroup(partIndex, groupIndex, { perQuestionAudio: event.target.checked })}
+                                  type="checkbox"
+                                />
+                                Audio từng câu
+                              </label>
+                            </div>
+                          </div>
                           <div className="mt-3">
                             <TextAreaField
                               label="Nội dung dẫn nhập hoặc biểu mẫu"
                               value={group.descriptionHtml || ''}
                               onChange={(value) => updateGroup(partIndex, groupIndex, { descriptionHtml: value })}
+                            />
+                          </div>
+                          <div className="mt-3">
+                            <TextAreaField
+                              label="Passage HTML (TOEIC Reading Part 6/7)"
+                              value={group.passageHtml || ''}
+                              onChange={(value) => updateGroup(partIndex, groupIndex, { passageHtml: value })}
                             />
                           </div>
 
@@ -918,18 +1021,63 @@ function SpeakingConfigEditor({ config, onChange }) {
                     })}
                   />
                 </div>
-                <div className="mt-3">
-                  <TextAreaField
-                    label="Câu hỏi, mỗi dòng một câu"
-                    value={(part.prompts || []).map((prompt) => prompt.text || '').join('\n')}
-                    onChange={(value) => updatePart(variantIndex, partIndex, {
-                      prompts: value.split('\n').map((line) => line.trim()).filter(Boolean).map((text, promptIndex) => ({
-                        ...(part.prompts?.[promptIndex] || {}),
-                        text,
-                        videoUrl: part.prompts?.[promptIndex]?.videoUrl || '',
-                      })),
-                    })}
-                  />
+                <div className="mt-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#8b706e]">Câu hỏi và media</p>
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-[#dfbfbd] bg-white px-3 py-2 text-xs font-bold text-[#730014] transition hover:bg-[#fff4f5]"
+                      onClick={() => updatePart(variantIndex, partIndex, {
+                        prompts: [...(part.prompts || []), { text: '', videoUrl: '', audioUrl: '' }],
+                      })}
+                      type="button"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi
+                    </button>
+                  </div>
+                  {(part.prompts || []).map((prompt, promptIndex) => (
+                    <div
+                      className="grid gap-3 rounded-2xl border border-[#eadcdc] bg-white p-4 md:grid-cols-[1fr_1fr_auto]"
+                      key={`${part.key || partIndex}-prompt-${promptIndex}`}
+                    >
+                      <div className="md:col-span-2">
+                        <TextAreaField
+                          label={`Câu hỏi ${promptIndex + 1}`}
+                          value={prompt.text || ''}
+                          onChange={(value) => updatePart(variantIndex, partIndex, {
+                            prompts: (part.prompts || []).map((item, index) => (
+                              index === promptIndex ? { ...item, text: value } : item
+                            )),
+                          })}
+                        />
+                      </div>
+                      <IconButton
+                        label="Xóa câu hỏi"
+                        onClick={() => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).filter((_, index) => index !== promptIndex),
+                        })}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
+                      <Field
+                        label="Liên kết video minh họa"
+                        value={prompt.videoUrl || ''}
+                        onChange={(value) => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).map((item, index) => (
+                            index === promptIndex ? { ...item, videoUrl: value } : item
+                          )),
+                        })}
+                      />
+                      <Field
+                        label="Liên kết audio câu hỏi"
+                        value={prompt.audioUrl || ''}
+                        onChange={(value) => updatePart(variantIndex, partIndex, {
+                          prompts: (part.prompts || []).map((item, index) => (
+                            index === promptIndex ? { ...item, audioUrl: value } : item
+                          )),
+                        })}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div className="mt-3">
                   <TextAreaField label="Rubric" value={part.rubric || ''} onChange={(value) => updatePart(variantIndex, partIndex, { rubric: value })} />
@@ -1008,6 +1156,12 @@ function QuestionEditor({ answer, groupType, onAnswerChange, onChange, onNumberC
         <Field label={evidenceLabel} value={question.evidence || ''} onChange={(value) => onChange({ evidence: value })} />
         <TextAreaField label="Giải thích" value={question.explanation || ''} onChange={(value) => onChange({ explanation: value })} />
       </div>
+      {OBJECTIVE_SKILLS.includes(skill) ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <Field label="Ảnh câu hỏi (URL)" value={question.imageUrl || ''} onChange={(value) => onChange({ imageUrl: value })} />
+          <Field label="Audio câu hỏi (URL)" value={question.audioUrl || ''} onChange={(value) => onChange({ audioUrl: value })} />
+        </div>
+      ) : null}
     </div>
   );
 }

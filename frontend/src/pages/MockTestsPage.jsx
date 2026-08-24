@@ -1,78 +1,73 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, CheckCircle2, FileQuestion, Headphones, Mic, PenLine, Search } from 'lucide-react';
-import Header from '../components/ai-learning/Header';
-import ListeningExamMode from '../components/course-assessment/ListeningExamMode';
-import ReadingExamMode from '../components/course-assessment/ReadingExamMode';
-import WritingExamMode from '../components/course-assessment/WritingExamMode';
-import SpeakingExamMode from '../components/course-assessment/SpeakingExamMode';
-import CourseFooter from '../components/course/CourseFooter';
-import BrandedSelect from '../components/ui/BrandedSelect';
-import BrandLoadingState from '../components/ui/BrandLoadingState';
+import { ArrowLeft, BookOpen, Headphones, Mic, PenLine, Search } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
 import mockTestApi from '../api/mockTestApi';
-import Pagination, { usePagination } from '../components/ui/Pagination';
 import placementTestApi from '../api/placementTestApi';
-import { exitExamFullscreen, requestExamFullscreen } from '../utils/examFullscreen';
+import LearnerPageShell from '../components/learner/LearnerPageShell';
+import MockSkillPack from '../components/mock-tests/MockSkillPack';
+import MockYearBook from '../components/mock-tests/MockYearBook';
+import BrandLoadingState from '../components/ui/BrandLoadingState';
+import useMockTestSession from '../hooks/useMockTestSession';
+import {
+  buildMockLibrary,
+  filterLibrary,
+  monthProgress,
+  monthSkillPresence,
+  SKILL_ORDER,
+  TOEIC_SKILL_ORDER,
+  splitMockTests,
+} from '../utils/mockTestLibrary';
 
-const skillOptions = [
-  { label: 'Tất cả kỹ năng', value: 'ALL' },
-  { label: 'Listening', value: 'LISTENING' },
-  { label: 'Reading', value: 'READING' },
-  { label: 'Writing', value: 'WRITING' },
-  { label: 'Speaking', value: 'SPEAKING' },
-  { label: 'Tổng hợp', value: 'MIXED' },
-];
-
-const examOptions = [
-  { label: 'Tất cả kỳ thi', value: 'ALL' },
-  { label: 'IELTS', value: 'IELTS' },
-  { label: 'TOEIC', value: 'TOEIC' },
-];
-
-const resolveExamType = (item) => {
-  const explicit = item.rubric?.examType || item.examType;
-  if (explicit) return String(explicit).toUpperCase();
-  const searchable = `${item.title || ''} ${item.description || ''}`.toUpperCase();
-  if (searchable.includes('TOEIC')) return 'TOEIC';
-  if (searchable.includes('IELTS')) return 'IELTS';
-  return 'GENERAL';
+const SKILL_MARK = {
+  LISTENING: Headphones,
+  READING: BookOpen,
+  WRITING: PenLine,
+  SPEAKING: Mic,
 };
 
-const skillMeta = {
-  LISTENING: { label: 'Listening', icon: Headphones },
-  READING: { label: 'Reading', icon: BookOpen },
-  WRITING: { label: 'Writing', icon: PenLine },
-  SPEAKING: { label: 'Speaking', icon: Mic },
-  MIXED: { label: 'Mock tổng hợp', icon: FileQuestion },
-};
-
-const TOEIC_PART_START = {
-  LISTENING: { 1: 1, 2: 7, 3: 32, 4: 71 },
-  READING: { 5: 101, 6: 131, 7: 147 },
-};
+function MockResult({ result }) {
+  if (!result) return null;
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <p className="font-extrabold">{result.title}</p>
+      {result.total != null ? (
+        <p className="mt-1 text-xs">
+          {result.correct}/{result.total} câu đúng
+          {result.percent != null ? ` · ${Number(result.percent).toFixed(0)}%` : ''}
+          {result.score != null ? ` · ${result.score}` : ''}.
+        </p>
+      ) : (
+        <p className="mt-1 text-xs">{result.message}</p>
+      )}
+    </div>
+  );
+}
 
 export default function MockTestsPage() {
+  const { exam, year, monthKey } = useParams();
+  const examType = String(exam || '').toLowerCase() === 'toeic' ? 'TOEIC' : 'IELTS';
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [keyword, setKeyword] = useState('');
-  const [examType, setExamType] = useState('ALL');
-  const [skill, setSkill] = useState('ALL');
-  const [activeTest, setActiveTest] = useState(null);
-  const [activeConfig, setActiveConfig] = useState(null);
-  const [activeSkill, setActiveSkill] = useState(null);
-  const [result, setResult] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [hasPlacement, setHasPlacement] = useState(false);
+  const session = useMockTestSession();
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
-      setError('');
+      setLoadError('');
       try {
-        const data = await mockTestApi.listMockTests();
-        if (active) setTests(data);
+        const [data, placement] = await Promise.all([
+          mockTestApi.listMockTests(),
+          placementTestApi.getCurrent().catch(() => null),
+        ]);
+        if (!active) return;
+        setTests(Array.isArray(data) ? data : []);
+        setHasPlacement(Boolean(placement?.latestAttempt));
       } catch (requestError) {
-        if (active) setError(requestError?.response?.data?.message || 'Không tải được ngân hàng đề thi thử.');
+        if (active) setLoadError(requestError?.response?.data?.message || 'Không tải được ngân hàng đề thi thử.');
       } finally {
         if (active) setLoading(false);
       }
@@ -81,360 +76,286 @@ export default function MockTestsPage() {
     return () => { active = false; };
   }, []);
 
-  const filteredTests = useMemo(() => {
-    const query = keyword.trim().toLowerCase();
-    return tests.filter((item) => {
-      const matchesExam = examType === 'ALL' || resolveExamType(item) === examType;
-      const matchesSkill = skill === 'ALL' || item.skill === skill;
-      const matchesKeyword = !query || [item.title, item.description, item.skill, item.type]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
-      return matchesExam && matchesSkill && matchesKeyword;
+  const { practiceTests } = useMemo(() => splitMockTests(tests), [tests]);
+  const ieltsLibrary = useMemo(() => buildMockLibrary(tests, 'IELTS'), [tests]);
+  const toeicLibrary = useMemo(() => buildMockLibrary(tests, 'TOEIC'), [tests]);
+  const fullLibrary = examType === 'TOEIC' ? toeicLibrary : ieltsLibrary;
+  const overviewLibrary = useMemo(
+    () => [...filterLibrary(ieltsLibrary, { keyword }), ...filterLibrary(toeicLibrary, { keyword })],
+    [ieltsLibrary, toeicLibrary, keyword]
+  );
+  const overviewLibraries = useMemo(() => [...ieltsLibrary, ...toeicLibrary], [ieltsLibrary, toeicLibrary]);
+  const selectedYear = fullLibrary.find((entry) => String(entry.year) === String(year));
+  const selectedMonth = selectedYear?.months.find((month) => month.monthKey === monthKey);
+  const scores = session.completedScoresMap;
+
+  const overview = useMemo(() => {
+    let packs = 0;
+    let completed = 0;
+    let total = 0;
+    overviewLibraries.forEach((yearEntry) => {
+      yearEntry.months.forEach((month) => {
+        packs += month.packs.length;
+        const progress = monthProgress(month, scores);
+        completed += progress.completed;
+        total += progress.total;
+      });
     });
-  }, [examType, tests, keyword, skill]);
+    return {
+      years: overviewLibraries.length,
+      packs,
+      completed,
+      total,
+      percent: total ? Math.round((completed * 100) / total) : 0,
+    };
+  }, [overviewLibraries, scores]);
 
-  const { page, setPage, totalPages, pageItems: paginatedTests, totalItems } = usePagination(
-    filteredTests,
-    6,
-    `mock-tests-${examType}-${skill}-${keyword}`
-  );
+  const continueMonth = useMemo(() => {
+    for (const yearEntry of overviewLibraries) {
+      for (const month of yearEntry.months) {
+        const progress = monthProgress(month, scores);
+        if (progress.total > 0 && progress.completed < progress.total) {
+          return {
+            exam: yearEntry.examType === 'TOEIC' ? 'toeic' : 'ielts',
+            year: yearEntry.year,
+            month,
+            progress,
+          };
+        }
+      }
+    }
+    return null;
+  }, [overviewLibraries, scores]);
 
-  const startTest = async (item) => {
-    setError('');
-    setResult(null);
-    const fullscreenStarted = await requestExamFullscreen();
-    if (!fullscreenStarted) {
-      setError('Không thể bật chế độ toàn màn hình. Hãy cho phép trình duyệt mở toàn màn hình rồi thử lại.');
-      return;
-    }
-    try {
-      const detail = await mockTestApi.getMockTest(item.id);
-      const config = parseJson(detail.uiConfigJson);
-      const resolved = resolveMockConfig(detail, config);
-      setActiveTest(detail);
-      setActiveConfig(resolved.config);
-      setActiveSkill(resolved.skill);
-    } catch (requestError) {
-      if (fullscreenStarted) await exitExamFullscreen();
-      setError(requestError?.response?.data?.message || 'Không mở được đề thi thử.');
-    }
+  const scrollToYear = (examKey, targetYear) => {
+    const node = document.getElementById(`mock-year-${examKey}-${targetYear}`);
+    node?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const closeExam = () => {
-    setActiveTest(null);
-    setActiveConfig(null);
-    setActiveSkill(null);
-    setSubmitting(false);
-  };
+  if (session.examView) return session.examView;
 
-  const handleObjectiveSubmit = async (payload) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const savedAttempt = await mockTestApi.submitMockTest(activeTest.id, {
-        objectiveAnswersJson: payload.objectiveAnswersJson,
-      });
-      setResult({
-        title: savedAttempt.mockTestTitle || activeTest?.title,
-        skill: savedAttempt.skill || activeSkill,
-        correct: savedAttempt.correctCount,
-        total: savedAttempt.totalQuestions,
-        percent: savedAttempt.percent,
-        score: savedAttempt.score,
-        submittedAt: savedAttempt.submittedAt,
-      });
-      closeExam();
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Chưa thể nộp bài thi thử.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSubjectiveSubmit = async (_assessmentId, payload = {}) => {
-    setSubmitting(true);
-    setError('');
-    try {
-      const savedAttempt = await mockTestApi.submitMockTest(activeTest.id, {
-        objectiveAnswersJson: payload.objectiveAnswersJson,
-        submittedText: payload.submittedText || '',
-        submittedAudioUrl: payload.submittedAudioUrl || '',
-      });
-      setResult({
-        title: savedAttempt.mockTestTitle || activeTest?.title,
-        skill: savedAttempt.skill || activeSkill,
-        submittedText: savedAttempt.submittedText || payload.submittedText || '',
-        submittedAudioUrl: savedAttempt.submittedAudioUrl || payload.submittedAudioUrl || '',
-        submittedAt: savedAttempt.submittedAt,
-        message: 'Bài thi thử đã được lưu. Giáo viên có thể dùng dữ liệu này để review nếu cần.',
-      });
-      closeExam();
-      return savedAttempt;
-    } catch (requestError) {
-      setError(requestError?.response?.data?.message || 'Chưa thể nộp bài thi thử.');
-      throw requestError;
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (activeTest && activeConfig && activeSkill === 'LISTENING') {
+  if (year && monthKey) {
     return (
-      <ListeningExamMode
-        assessment={{ title: activeTest.title, timeLimitMinutes: activeTest.timeLimitMinutes || activeConfig.durationMinutes }}
-        config={activeConfig}
-        onClose={closeExam}
-        onSubmit={handleObjectiveSubmit}
-        submitLabel="Nộp bài thi thử Listening"
-        submitting={submitting}
-      />
-    );
-  }
-
-  if (activeTest && activeConfig && activeSkill === 'READING') {
-    return (
-      <ReadingExamMode
-        assessment={{ title: activeTest.title, timeLimitMinutes: activeTest.timeLimitMinutes || activeConfig.durationMinutes }}
-        config={activeConfig}
-        onClose={closeExam}
-        onSubmit={handleObjectiveSubmit}
-        submitLabel="Nộp bài thi thử Reading"
-        submitting={submitting}
-      />
-    );
-  }
-
-  if (activeTest && activeConfig && activeSkill === 'WRITING') {
-    return (
-      <WritingExamMode
-        assessment={{ title: activeTest.title, timeLimitMinutes: activeTest.timeLimitMinutes || activeConfig.durationMinutes }}
-        config={activeConfig}
-        onClose={closeExam}
-        onSubmit={handleSubjectiveSubmit}
-        submitLabel="Nộp bài thi thử Writing"
-        submitting={submitting}
-      />
-    );
-  }
-
-  if (activeTest && activeConfig && activeSkill === 'SPEAKING') {
-    return (
-      <SpeakingExamMode
-        config={{ ...activeConfig, submissionLabel: activeTest.title }}
-        onClose={closeExam}
-        onSubmit={(payload) => handleSubjectiveSubmit('mock-speaking', payload)}
-        submitting={submitting}
-        uploadAudio={placementTestApi.uploadSpeakingAudio}
-      />
-    );
-  }
-
-  return (
-    <div className="flex min-h-[100dvh] flex-col bg-[#f8f4f1]">
-      <Header />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-10">
-        <section className="flex flex-1 flex-col min-h-[calc(100vh-320px)] rounded-[32px] border border-[#dfbfbd]/40 bg-white p-6 shadow-xl md:p-9">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#8a0018]">Mock Test</p>
-              <h1 className="mt-3 font-['Manrope'] text-4xl font-black text-[#341c1d]">Ngân hàng đề thi thử</h1>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-[#584140]">
-                Chọn đề IELTS, TOEIC hoặc từng kỹ năng để luyện trong giao diện thi. Các đề được lấy từ ngân hàng đề thi thử đã xuất bản.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:w-[680px] lg:grid-cols-[minmax(240px,1fr)_170px_190px]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
-                <input
-                  className="h-12 w-full rounded-2xl border border-[#dfbfbd]/60 bg-[#fffafb] pl-11 pr-4 text-sm outline-none focus:border-[#8a0018]"
-                  onChange={(event) => setKeyword(event.target.value)}
-                  placeholder="Tìm đề thi thử..."
-                  value={keyword}
-                />
-              </div>
-              <BrandedSelect onChange={(event) => setExamType(event.target.value)} options={examOptions} value={examType} />
-              <BrandedSelect onChange={(event) => setSkill(event.target.value)} options={skillOptions} value={skill} />
-            </div>
-          </div>
-
-          {error ? <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div> : null}
-          {result ? <MockResult result={result} /> : null}
-
+      <LearnerPageShell
+        title={selectedMonth ? `${examType} · ${selectedMonth.monthLabel} ${selectedYear.year}` : `Đề thi thử ${examType}`}
+        description={selectedMonth ? `${selectedMonth.packs.length} đề thi thử ${examType}.` : ''}
+        actions={(
+          <Link className="inline-flex items-center gap-2 text-sm font-extrabold text-[#730014]" to="/mock-tests">
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại thư viện
+          </Link>
+        )}
+      >
+        <div className="flex flex-1 flex-col space-y-5">
+          {session.error ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">{session.error}</div> : null}
+          <MockResult result={session.result} />
           {loading ? (
-            <BrandLoadingState className="mt-8" message="Đang tải ngân hàng đề thi thử..." />
-          ) : filteredTests.length ? (
-            <div className="space-y-6">
-              <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {paginatedTests.map((item) => {
-                  const meta = skillMeta[item.skill] || skillMeta.MIXED;
-                  const Icon = meta.icon;
-                  return (
-                    <article className="flex min-h-[260px] flex-col rounded-2xl border border-[#ead7d5] bg-[#fffdfc] p-5 transition hover:border-[#8a0018]/35 hover:shadow-md" key={item.id}>
-                      <div className="flex items-start justify-between gap-3">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff0f1] text-[#8a0018]">
-                          <Icon className="h-5 w-5" />
-                        </span>
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <span className="rounded-full border border-[#ead7d5] bg-white px-3 py-1 text-xs font-black text-[#8a0018]">{resolveExamType(item)}</span>
-                          <span className="rounded-full bg-[#fff0f1] px-3 py-1 text-xs font-black text-[#8a0018]">{meta.label}</span>
-                        </div>
-                      </div>
-                      <h2 className="mt-4 font-['Manrope'] text-xl font-black text-[#341c1d]">{item.title}</h2>
-                      <p className="mt-2 line-clamp-3 flex-1 text-sm leading-6 text-[#584140]">{item.description || item.instructions || 'Đề thi thử đã sẵn sàng.'}</p>
-                      <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold text-[#8b706e]">
-                        <span>{item.timeLimitMinutes ? `${item.timeLimitMinutes} phút` : 'Không giới hạn thời gian'}</span>
-                        <span>·</span>
-                        <span>{item.maxScore ? `${item.maxScore} điểm` : 'Thi thử'}</span>
-                      </div>
-                      <button className="mt-5 rounded-2xl bg-[#8a0018] px-5 py-3 text-sm font-black text-white transition hover:bg-[#650012]" onClick={() => startTest(item)} type="button">
-                        Vào thi thử
-                      </button>
-                    </article>
-                  );
-                })}
-              </div>
-
-              {filteredTests.length > 6 && (
-                <div className="flex justify-end">
-                  <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onChange={setPage}
-                    totalItems={totalItems}
-                    pageSize={6}
-                  />
-                </div>
-              )}
-            </div>
+            <BrandLoadingState className="flex-1 py-16" message="Đang tải đề thi thử..." />
+          ) : selectedMonth ? (
+            selectedMonth.packs.map((pack) => (
+              <MockSkillPack
+                completedScoresMap={session.completedScoresMap}
+                heading={`${selectedMonth.monthLabel} · ${pack.title}`}
+                examType={examType}
+                key={pack.testNumber}
+                onStart={session.startTest}
+                pack={pack}
+              />
+            ))
           ) : (
-            <div className="mt-8 rounded-2xl border border-dashed border-[#dfbfbd] bg-[#fffafb] p-10 text-center text-sm font-bold text-[#584140]">
-              Chưa có đề thi thử phù hợp bộ lọc.
+            <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-[#ead9db] bg-[#fffaf9] p-12 text-center text-sm font-bold text-[#564241]">
+              Không tìm thấy đề của tháng này.
             </div>
           )}
-        </section>
-      </main>
-      <CourseFooter />
-    </div>
-  );
-}
-
-function MockResult({ result }) {
-  return (
-    <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-      <div className="flex items-start gap-3">
-        <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" />
-        <div>
-          <p className="font-black">{result.title}</p>
-          {result.total != null ? (
-            <p className="mt-1">Kết quả: {result.correct}/{result.total} câu đúng{result.percent != null ? ` · ${Number(result.percent).toFixed(0)}%` : ''}{result.score != null ? ` · ${result.score} điểm` : ''}.</p>
-          ) : (
-            <p className="mt-1">{result.message}</p>
-          )}
-          {result.submittedAt ? <p className="mt-1 text-xs font-semibold opacity-80">Đã lưu lúc {new Date(result.submittedAt).toLocaleString('vi-VN')}</p> : null}
         </div>
+      </LearnerPageShell>
+    );
+  }
+
+  return (
+    <LearnerPageShell
+      eyebrow="Thư viện đề thi thử"
+      title="Đề thi thử IELTS và TOEIC"
+      description="Chọn sách IELTS hoặc TOEIC, rồi mở đề để làm bài."
+      actions={continueMonth ? (
+        <Link
+          className="inline-flex items-center rounded-xl bg-[#730014] px-4 py-2.5 text-sm font-extrabold text-white hover:bg-[#4b0009]"
+          to={`/mock-tests/${continueMonth.exam}/${continueMonth.year}/${continueMonth.month.monthKey}`}
+        >
+          Tiếp tục {continueMonth.month.monthLabel} {continueMonth.year}
+        </Link>
+      ) : null}
+    >
+      <div className="flex flex-1 flex-col space-y-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-[#eadcdc] bg-white px-4 py-4">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Năm</p>
+            <p className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{overview.years}</p>
+          </div>
+          <div className="rounded-2xl border border-[#eadcdc] bg-white px-4 py-4">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Đề</p>
+            <p className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">{overview.packs}</p>
+          </div>
+          <div className="rounded-2xl border border-[#eadcdc] bg-white px-4 py-4">
+            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Đã làm</p>
+            <p className="mt-1 font-['Manrope'] text-2xl font-extrabold text-[#0b1c30]">
+              {overview.total ? `${overview.completed}/${overview.total}` : '0'}
+            </p>
+            {overview.total ? (
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#f3e8e8]">
+                <div className="h-full rounded-full bg-[#730014]" style={{ width: `${overview.percent}%` }} />
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full max-w-md">
+            <input
+              className="h-10 w-full rounded-full border border-[#ead9db] bg-white pl-4 pr-10 text-sm outline-none focus:border-[#730014]"
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="Tìm tháng hoặc số đề..."
+              value={keyword}
+            />
+            <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8b706e]" />
+          </div>
+          {overviewLibrary.length > 1 ? (
+            <div className="flex flex-wrap gap-2">
+              {overviewLibrary.map((yearEntry) => (
+                <button
+                  className="rounded-full border border-[#ead9db] bg-white px-4 py-1.5 text-xs font-extrabold text-[#564241] hover:border-[#730014] hover:text-[#730014]"
+                  key={`${yearEntry.examType}-${yearEntry.year}`}
+                  onClick={() => scrollToYear(yearEntry.examType, yearEntry.year)}
+                  type="button"
+                >
+                  {yearEntry.examType} {yearEntry.year}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {loadError || session.error ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
+            {loadError || session.error}
+          </div>
+        ) : null}
+        <MockResult result={session.result} />
+
+        {!hasPlacement ? (
+          <Link
+            className="flex items-center justify-between gap-4 rounded-2xl border border-[#eadcdc] bg-white px-5 py-4 hover:border-[#730014]"
+            to="/placement-test"
+          >
+            <div>
+              <p className="font-['Manrope'] text-sm font-extrabold text-[#0b1c30]">Đánh giá đầu vào</p>
+              <p className="mt-1 text-xs text-[#8b706e]">IELTS 4 kỹ năng hoặc TOEIC.</p>
+            </div>
+            <span className="shrink-0 text-sm font-extrabold text-[#730014]">Bắt đầu</span>
+          </Link>
+        ) : practiceTests.length ? (
+          <Link
+            className="flex items-center justify-between gap-4 rounded-2xl border border-[#eadcdc] bg-white px-5 py-4 hover:border-[#730014]"
+            to="/mock-tests/practice"
+          >
+            <div>
+              <p className="font-['Manrope'] text-sm font-extrabold text-[#0b1c30]">Đề luyện thêm</p>
+              <p className="mt-1 text-xs text-[#8b706e]">{practiceTests.length} đề luyện thêm.</p>
+            </div>
+            <span className="shrink-0 text-sm font-extrabold text-[#730014]">Mở đề</span>
+          </Link>
+        ) : null}
+
+        {loading ? (
+          <BrandLoadingState className="flex-1 py-16" message="Đang tải đề thi thử..." />
+        ) : overviewLibrary.length ? (
+          <div className="space-y-6">
+            {overviewLibrary.map((yearEntry) => {
+              const packCount = yearEntry.months.reduce((sum, month) => sum + month.packs.length, 0);
+              const examKey = yearEntry.examType === 'TOEIC' ? 'toeic' : 'ielts';
+              const examSkills = yearEntry.examType === 'TOEIC' ? TOEIC_SKILL_ORDER : SKILL_ORDER;
+              return (
+                <article
+                  className="scroll-mt-6 overflow-visible rounded-[28px] border border-[#eadcdc] bg-white p-5 sm:p-8"
+                  id={`mock-year-${yearEntry.examType}-${yearEntry.year}`}
+                  key={`${yearEntry.examType}-${yearEntry.year}`}
+                >
+                  <div className="grid items-center gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+                    <MockYearBook examType={yearEntry.examType} year={yearEntry.year} />
+                    <div className="min-w-0 space-y-4">
+                      <div>
+                        <h2 className="font-['Manrope'] text-lg font-extrabold text-[#0b1c30]">{yearEntry.title}</h2>
+                        <p className="mt-1 text-sm text-[#8b706e]">
+                          {yearEntry.months.length} {yearEntry.examType === 'TOEIC' ? 'bộ đề' : 'tháng'} · {packCount} đề
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {yearEntry.months.map((month) => {
+                          const progress = monthProgress(month, scores);
+                          const presentSkills = new Set(monthSkillPresence(month));
+                          return (
+                            <Link
+                              className="rounded-2xl border border-[#eadcdc] bg-[#fffaf9] px-4 py-4 text-left transition hover:border-[#730014]"
+                              key={month.monthKey}
+                              to={`/mock-tests/${examKey}/${yearEntry.year}/${month.monthKey}`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-['Manrope'] text-sm font-extrabold text-[#0b1c30]">{month.monthLabel}</p>
+                                  <p className="mt-1 text-xs text-[#8b706e]">
+                                    {month.packs.length} đề · {month.packs.map((pack) => pack.title).join(' · ')}
+                                  </p>
+                                </div>
+                                {progress.total ? (
+                                  <span className="shrink-0 text-xs font-bold text-[#730014]">{progress.percent}%</span>
+                                ) : null}
+                              </div>
+                              <div className="mt-3 flex items-center gap-1.5">
+                                {examSkills.map((skill) => {
+                                  const Mark = SKILL_MARK[skill];
+                                  const available = presentSkills.has(skill);
+                                  const done = (month.packs || []).some((pack) => {
+                                    const item = pack.skills[skill];
+                                    return item && scores[item.id];
+                                  });
+                                  return (
+                                    <span
+                                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${
+                                        done
+                                          ? 'bg-[#730014] text-white'
+                                          : available
+                                            ? 'bg-white text-[#730014] ring-1 ring-[#eadcdc]'
+                                            : 'bg-[#f3ecec] text-[#c4b4b3]'
+                                      }`}
+                                      key={skill}
+                                      title={skill}
+                                    >
+                                      <Mark className="h-3 w-3" />
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              {progress.total ? (
+                                <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#f3e8e8]">
+                                  <div className="h-full rounded-full bg-[#730014]" style={{ width: `${progress.percent}%` }} />
+                                </div>
+                              ) : null}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-[#ead9db] bg-[#fffaf9] p-12 text-center text-sm font-bold text-[#564241]">
+            Chưa có đề thi thử phù hợp.
+          </div>
+        )}
       </div>
-    </div>
+    </LearnerPageShell>
   );
-}
-
-function parseJson(value, fallback = {}) {
-  if (value && typeof value === 'object') {
-    return value;
-  }
-  try {
-    const parsed = JSON.parse(String(value || ''));
-    return parsed && typeof parsed === 'object' ? parsed : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function resolveMockConfig(test, config) {
-  const skill = String(test.skill || 'MIXED').toUpperCase();
-  if (skill !== 'MIXED') {
-    const keyedConfig = config.sections?.[skill.toLowerCase()] || config[skill.toLowerCase()] || config;
-    return { skill, config: normalizeObjectiveConfig(keyedConfig, skill) };
-  }
-  const sections = config.sections || config;
-  if (sections?.toeic?.listening) {
-    return { skill: 'LISTENING', config: normalizeObjectiveConfig(sections.toeic.listening, 'LISTENING') };
-  }
-  if (sections?.toeic?.reading) {
-    return { skill: 'READING', config: normalizeObjectiveConfig(sections.toeic.reading, 'READING') };
-  }
-  for (const key of ['listening', 'reading', 'writing', 'speaking']) {
-    if (sections?.[key]) {
-      const resolvedSkill = key.toUpperCase();
-      return { skill: resolvedSkill, config: normalizeObjectiveConfig(sections[key], resolvedSkill) };
-    }
-  }
-  return { skill: 'READING', config };
-}
-
-function normalizeObjectiveConfig(config = {}, skill = '') {
-  if (!['LISTENING', 'READING'].includes(skill)) return config;
-  const parts = Array.isArray(config.parts) ? config.parts : [];
-  const firstPartAudioUrl = parts.find((part) => part.audioUrl)?.audioUrl || '';
-  if (!parts.length || parts.every((part) => Array.isArray(part.questionGroups))) {
-    return skill === 'LISTENING' && firstPartAudioUrl && !config.audioUrl
-      ? { ...config, audioUrl: firstPartAudioUrl }
-      : config;
-  }
-  return {
-    ...config,
-    audioUrl: config.audioUrl || firstPartAudioUrl || '',
-    parts: parts.map((part, index) => normalizeToeicStylePart(part, index, skill)),
-  };
-}
-
-function normalizeToeicStylePart(part = {}, index = 0, skill = '') {
-  const partNumber = Number(part.partNumber || part.part || index + 1);
-  const start = TOEIC_PART_START[skill]?.[partNumber] || Number(part.startQuestion || 1);
-  const sourceQuestions = Array.isArray(part.questions) && part.questions.length
-    ? part.questions
-    : Array.from({ length: Number(part.questionCount || 0) }, (_, questionIndex) => ({ number: start + questionIndex }));
-  const questions = sourceQuestions.map((question, questionIndex) => normalizeToeicStyleQuestion(question, question.number || start + questionIndex));
-  return {
-    ...part,
-    key: part.key || `toeic_${skill.toLowerCase()}_${partNumber}`,
-    partNumber,
-    title: part.title || `Part ${partNumber}`,
-    questionRange: questions.length ? `Questions ${questions[0].number}-${questions[questions.length - 1].number}` : '',
-    passage: part.passage || {
-      title: part.title || `Part ${partNumber}`,
-      paragraphs: part.description || part.instructions ? [{ text: part.description || part.instructions }] : [],
-    },
-    questionGroups: [{
-      title: part.groupTitle || part.title || `Part ${partNumber}`,
-      instructions: part.instructions || '',
-      type: part.type || 'single_choice',
-      questions,
-    }],
-  };
-}
-
-function normalizeToeicStyleQuestion(question = {}, fallbackNumber) {
-  const options = Array.isArray(question.options) && question.options.length
-    ? question.options.map((option, index) => normalizeToeicStyleOption(option, index))
-    : ['A', 'B', 'C', 'D'].map((option, index) => normalizeToeicStyleOption(option, index));
-  return {
-    ...question,
-    number: Number(question.number || question.id || fallbackNumber),
-    prompt: question.prompt || question.question || question.text || `Câu ${fallbackNumber}`,
-    options,
-  };
-}
-
-function normalizeToeicStyleOption(option, index) {
-  if (option && typeof option === 'object') {
-    const value = String(option.value || option.key || String.fromCharCode(65 + index)).trim();
-    return { value, label: option.label || option.text || value };
-  }
-  const text = String(option || '').trim();
-  const match = text.match(/^([A-D])[\).:\s-]*(.*)$/i);
-  if (match) {
-    return { value: match[1].toUpperCase(), label: match[2] || match[1].toUpperCase() };
-  }
-  const value = String.fromCharCode(65 + index);
-  return { value, label: text || value };
 }

@@ -788,13 +788,21 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail) {
+      public List<PaymentOrderSummaryResponse> listMyOrders(String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
         return paymentOrderRepository.findByStudentOrderByCreatedAtDesc(student).stream()
                 .map(this::toOrderSummary)
-                .toList();
-    }
+                  .toList();
+      }
+
+      @Override
+      @Transactional(readOnly = true)
+      public Page<PaymentOrderSummaryResponse> pageMyOrders(String studentEmail, Pageable pageable) {
+          User student = userRepository.findByEmail(studentEmail)
+                  .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
+          return paymentOrderRepository.findByStudent(student, pageable).map(this::toOrderSummary);
+      }
 
     @Override
     @Transactional(readOnly = true)

@@ -13,6 +13,8 @@ import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +44,14 @@ public class AppNotificationServiceImpl implements AppNotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<AppNotificationResponse> pageForUser(String userEmail, Pageable pageable) {
+        User user = accessHelper.requireUser(userEmail);
+        return notificationRepository.findByUserId(user.getId(), pageable)
+                .map(classroomMapper::toNotificationResponse);
+    }
+
+    @Override
     public AppNotificationResponse markRead(Long notificationId, String userEmail) {
         User user = accessHelper.requireUser(userEmail);
         AppNotification notification = notificationRepository.findById(notificationId)
@@ -57,13 +67,7 @@ public class AppNotificationServiceImpl implements AppNotificationService {
     @Override
     public void markAllRead(String userEmail) {
         User user = accessHelper.requireUser(userEmail);
-        notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId()).stream()
-                .filter(notification -> !notification.isRead())
-                .forEach(notification -> {
-                    notification.setRead(true);
-                    notification.setReadAt(LocalDateTime.now());
-                    notificationRepository.save(notification);
-                });
+        notificationRepository.markAllRead(user.getId(), LocalDateTime.now());
     }
 
     @Override

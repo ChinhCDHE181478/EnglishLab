@@ -952,7 +952,7 @@ export function InlineFlashcardSetEditor({
         <div className="space-y-4">
           {cards.map((card, index) => (
             <div
-              key={`${index}-${card.term}-${card.meaning}`}
+              key={card._key || index}
               className="rounded-2xl border border-[#f0e3e4] bg-[#fcfbfb] p-5"
             >
               <div className="mb-4 flex items-center justify-between gap-3">

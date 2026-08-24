@@ -7,24 +7,12 @@ import CourseFooter from '../components/course/CourseFooter';
 import CourseGlobalStyles from '../components/course/CourseGlobalStyles';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import { formatCoursePrice } from '../components/course/courseFormatters';
+import { EMPTY_PAGE, pageParams } from '../utils/pagination';
 
 export default function LearningPathCatalogPage() {
   const [paths, setPaths] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    const load = async () => {
-      try {
-        setPaths(await courseApi.getLearningPathOffers());
-      } catch (err) {
-        console.error('Error loading courses:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
 
   const {
     page,
@@ -32,7 +20,23 @@ export default function LearningPathCatalogPage() {
     totalPages,
     pageItems: pagePaths,
     totalItems,
-  } = usePagination(paths, 10);
+  } = usePagination(paths, 10, 'public-learning-paths', pageResult);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const load = async () => {
+      try {
+        const result = await courseApi.getLearningPathOffersPage(pageParams(page, 10));
+        setPaths(result.content);
+        setPageResult(result);
+      } catch (err) {
+        console.error('Error loading courses:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [page]);
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f9f9f9] text-[#2b2828]">
@@ -99,7 +103,7 @@ export default function LearningPathCatalogPage() {
                       </li>
                     )}
                   </ol>
-                  <div className="mt-5 border-t border-[#f0e3e4] pt-4">
+                  <div className="mt-auto border-t border-[#f0e3e4] pt-4">
                     {path.discountApplied ? (
                       <p className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700">
                         <BadgePercent className="h-4 w-4" /> Giảm {path.discountPercent}% khi mua từ {path.minimumCoursesForDiscount} khóa

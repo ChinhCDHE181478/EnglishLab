@@ -42,7 +42,7 @@ const CourseFooter = () => (
       <div>
         <h4 className="mb-6 font-bold text-white">Liên hệ</h4>
         <ul className="space-y-4 text-sm text-[#e2e2e2]/80">
-          <li className="flex items-start gap-3 text-white"><MapPin size={18} className="mt-0.5 shrink-0 text-[#ffdad8]" />123 Đường Sư Vạn Hạnh, Quận 10, TP. Hồ Chí Minh</li>
+          <li className="flex items-start gap-3 text-white"><MapPin size={18} className="mt-0.5 shrink-0 text-[#ffdad8]" />123 Phố Huế, Hai Bà Trưng, Hà Nội</li>
           <li className="flex items-center gap-3 text-white"><Phone size={18} className="shrink-0 text-[#ffdad8]" />1900 6789</li>
           <li className="flex items-center gap-3 text-white"><Mail size={18} className="shrink-0 text-[#ffdad8]" />contact@englishlab.edu.vn</li>
         </ul>

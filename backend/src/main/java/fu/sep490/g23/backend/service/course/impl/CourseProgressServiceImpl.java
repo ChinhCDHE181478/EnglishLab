@@ -39,12 +39,16 @@ public class CourseProgressServiceImpl implements CourseProgressService {
     public PackageEnrollment refreshEnrollmentProgress(PackageEnrollment enrollment, OnlineCourse course, User student) {
         CompletionSnapshot snapshot = buildSnapshot(enrollment, course, student);
 
-        long totalItems = (long) snapshot.totalLessons() + snapshot.totalAssessments();
-        long completedItems = (long) snapshot.completedLessons() + snapshot.completedAssessments();
-        enrollment.setProgressPercent(totalItems == 0 ? 0 : (int) Math.round((completedItems * 100.0) / totalItems));
-        if (enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
-            enrollment.setStatus(snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE);
+        int progressPercent = calculateProgressPercent(snapshot);
+        EnrollmentStatus nextStatus = enrollment.getStatus() == EnrollmentStatus.CANCELLED
+                ? EnrollmentStatus.CANCELLED
+                : snapshot.eligibleForCertificate() ? EnrollmentStatus.COMPLETED : EnrollmentStatus.ACTIVE;
+        if (java.util.Objects.equals(enrollment.getProgressPercent(), progressPercent)
+                && enrollment.getStatus() == nextStatus) {
+            return enrollment;
         }
+        enrollment.setProgressPercent(progressPercent);
+        enrollment.setStatus(nextStatus);
         return enrollmentRepository.save(enrollment);
     }
 
@@ -54,13 +58,14 @@ public class CourseProgressServiceImpl implements CourseProgressService {
         CourseCompletionStatus status = resolveStatus(snapshot, enrollment);
         String statusReason = resolveStatusReason(snapshot, status);
         boolean eligibleForCertificate = snapshot.eligibleForCertificate();
+        int progressPercent = calculateProgressPercent(snapshot);
 
         return CourseCompletionResponse.builder()
                 .courseId(course.getId())
                 .enrollmentId(enrollment.getId())
                 .courseTitle(course.getLearningPackage().getTitle())
                 .courseSlug(course.getLearningPackage().getSlug())
-                .progressPercent(enrollment.getProgressPercent())
+                .progressPercent(progressPercent)
                 .totalLessons(snapshot.totalLessons())
                 .completedLessons(snapshot.completedLessons())
                 .totalAssessments(snapshot.totalAssessments())
@@ -75,6 +80,12 @@ public class CourseProgressServiceImpl implements CourseProgressService {
                 .latestLessonTitle(snapshot.latestLessonTitle())
                 .latestLessonAccessedAt(snapshot.latestLessonAccessedAt())
                 .build();
+    }
+
+    private int calculateProgressPercent(CompletionSnapshot snapshot) {
+        long totalItems = (long) snapshot.totalLessons() + snapshot.totalAssessments();
+        long completedItems = (long) snapshot.completedLessons() + snapshot.completedAssessments();
+        return totalItems == 0 ? 0 : (int) Math.round((completedItems * 100.0) / totalItems);
     }
 
     private CompletionSnapshot buildSnapshot(PackageEnrollment enrollment, OnlineCourse course, User student) {

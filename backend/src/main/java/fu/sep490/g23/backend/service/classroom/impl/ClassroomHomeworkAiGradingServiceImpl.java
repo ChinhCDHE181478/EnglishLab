@@ -65,6 +65,7 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
 
         submission.setScore(score);
         submission.setTeacherFeedback(feedback);
+        submission.setAiFeedbackJson(result.getFeedbackJson());
         submission.setGradedAt(LocalDateTime.now());
         submission.setGradedBy(null);
         submission.setStatus(HomeworkSubmissionStatus.GRADED);
@@ -132,9 +133,12 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
                 {
                   "estimatedScore": number,
                   "summary": "Vietnamese feedback summary",
-                  "criterionFeedback": [{"name":"...", "feedback":"Vietnamese"}],
+                  "criteria": [{"name":"...", "score": number, "feedback":"Vietnamese"}],
                   "strengths": ["..."],
-                  "improvements": ["..."]
+                  "weaknesses": ["..."],
+                  "suggestions": ["specific next action in Vietnamese"],
+                  "recommendedReview": ["topic or skill to review"],
+                  "correctedExamples": [{"original":"...", "corrected":"...", "explanation":"Vietnamese"}]
                 }
 
                 Homework title: %s
@@ -153,6 +157,9 @@ public class ClassroomHomeworkAiGradingServiceImpl implements ClassroomHomeworkA
 
                 Rules:
                 - Write summary and feedback in Vietnamese.
+                - Evaluate every rubric criterion separately with a score and actionable feedback.
+                - Give at least two concrete strengths, weaknesses, and suggestions when the submission has enough content.
+                - Include correctedExamples for important language errors when applicable.
                 - estimatedScore must fit the rubric scoring scale before mapping to homework max score.
                 - For Speaking/Writing use IELTS-like band 0-9 in estimatedScore.
                 - For Vocabulary use 0-10 in estimatedScore.

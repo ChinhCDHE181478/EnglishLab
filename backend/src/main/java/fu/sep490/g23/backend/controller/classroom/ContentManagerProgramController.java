@@ -13,6 +13,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content-manager")
@@ -85,6 +89,35 @@ public class ContentManagerProgramController {
     @GetMapping("/material-library")
     public ResponseEntity<List<CenterMaterialLibraryItemResponse>> listMaterialLibrary() {
         return ResponseEntity.ok(centerMaterialLibraryService.listForContentManager());
+    }
+
+    @GetMapping("/material-library/page")
+    public ResponseEntity<Page<CenterMaterialLibraryItemResponse>> pageMaterialLibrary(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String examCategory,
+            @RequestParam(required = false) String materialType,
+            @RequestParam(required = false) String skill,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String provider,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        return ResponseEntity.ok(centerMaterialLibraryService.pageForContentManager(
+                keyword, examCategory, materialType, skill, status, provider,
+                PageRequest.of(Math.max(page, 0), safeSize,
+                        Sort.by(Sort.Order.desc("updatedAt"), Sort.Order.desc("id")))
+        ));
+    }
+
+    @GetMapping("/material-library/stats")
+    public ResponseEntity<Map<String, Long>> getMaterialLibraryStats() {
+        return ResponseEntity.ok(centerMaterialLibraryService.getStats());
+    }
+
+    @GetMapping("/material-library/providers")
+    public ResponseEntity<List<String>> listMaterialLibraryProviders() {
+        return ResponseEntity.ok(centerMaterialLibraryService.listProviders());
     }
 
     @PostMapping("/material-library")

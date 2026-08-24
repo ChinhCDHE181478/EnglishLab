@@ -1,11 +1,13 @@
 package fu.sep490.g23.backend.dto.response.assessment;
 
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -18,6 +20,7 @@ public class PlacementTestAttemptResponse {
     private String learnerEmail;
     private String testCode;
     private String examType;
+    private List<AssessmentSkill> selectedSkills;
     private BigDecimal listeningScore;
     private BigDecimal readingScore;
     private BigDecimal writingScore;

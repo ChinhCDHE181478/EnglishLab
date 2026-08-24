@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { ClipboardList, Inbox, MessageSquarePlus, RefreshCw, Search, Send, UserCheck } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import supportApi from '../../api/supportApi';
@@ -21,6 +21,7 @@ import {
   supportStatusOptions,
   supportApiError,
 } from '../../utils/supportTicketLabels';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../../utils/pagination';
 
 const allStatusOptions = [{ value: 'ALL', label: 'Tất cả trạng thái' }, ...supportStatusOptions];
 const allPriorityOptions = [{ value: 'ALL', label: 'Tất cả ưu tiên' }, ...supportPriorityOptions];
@@ -30,6 +31,7 @@ export default function ManagerSupportTicketsPage() {
   const location = useLocation();
   const apiScope = location.pathname.startsWith('/manager/') ? 'manager' : 'staff';
   const [tickets, setTickets] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [status, setStatus] = useState('ALL');
@@ -41,16 +43,26 @@ export default function ManagerSupportTicketsPage() {
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const deferredKeyword = useDeferredValue(keyword.trim());
+  const resetKey = `${status}-${priority}-${deferredKeyword}`;
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    tickets,
+    PAGE_SIZE,
+    resetKey,
+    pageResult,
+  );
 
   const loadQueue = async (preferredId) => {
     setLoading(true);
     setError('');
     try {
-      const data = await supportApi.listQueue({
+      const result = normalizePage(await supportApi.pageQueue(pageParams(page, PAGE_SIZE, {
         status: status === 'ALL' ? undefined : status,
         priority: priority === 'ALL' ? undefined : priority,
-      }, apiScope);
-      const items = Array.isArray(data) ? data : [];
+        keyword: deferredKeyword || undefined,
+      }), apiScope));
+      const items = result.content;
+      setPageResult(result);
       setTickets(items);
       const nextId = preferredId ?? selectedId ?? null;
       const valid = nextId && items.some((item) => item.id === nextId) ? nextId : null;
@@ -76,25 +88,11 @@ export default function ManagerSupportTicketsPage() {
     }
   };
 
-  useEffect(() => { loadQueue(); }, [apiScope, status, priority]);
+  useEffect(() => { loadQueue(); }, [apiScope, deferredKeyword, page, priority, status]);
   useEffect(() => {
     if (selectedId) loadDetail(selectedId);
     else setDetail(null);
   }, [selectedId]);
-
-  const filtered = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    if (!normalized) return tickets;
-    return tickets.filter((ticket) => [ticket.subject, ticket.requesterName, ticket.requesterEmail, ticket.id]
-      .filter((value) => value !== null && value !== undefined)
-      .some((value) => String(value).toLowerCase().includes(normalized)));
-  }, [keyword, tickets]);
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    filtered,
-    PAGE_SIZE,
-    `${status}-${priority}-${keyword}`,
-  );
 
   const refresh = async (updated) => {
     setDetail(updated);

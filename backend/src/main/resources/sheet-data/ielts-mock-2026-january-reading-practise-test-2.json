@@ -1,0 +1,520 @@
+{
+  "version": 1,
+  "type": "ielts_reading_exam",
+  "key": "ielts_mock_2026_january_reading_practise_test_2",
+  "title": "IELTS Mock Test 2026 January Reading Practise Test 2",
+  "sourceLabel": "Imported from local HTML 2026de2r.html",
+  "durationMinutes": 60,
+  "rules": [
+    "Do not switch tabs or leave the exam screen during the test."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Reading Passage 1",
+      "questionRange": "Questions 1-13",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-6",
+          "instructions": "Look at the following issues (Questions 1-6 ) and the list of people and organisations below.",
+          "type": "select",
+          "options": [
+            "A Scott Klara",
+            "B Intergovernmental Panel on Climate Change",
+            "C International Energy Agency",
+            "D Klaus Lackner",
+            "E David Hawkins",
+            "F World Wide Fund for Nature Australia"
+          ],
+          "questions": [
+            {
+              "number": 1,
+              "prompt": "The cost implications of fitting plants with the necessary equipment."
+            },
+            {
+              "number": 2,
+              "prompt": "The effects of sequestration could have on sea creatures."
+            },
+            {
+              "number": 3,
+              "prompt": "The reasons why products such as oil and gas continue to be popular energy sources."
+            },
+            {
+              "number": 4,
+              "prompt": "The need for industrialised countries to give aid to less wealthy countries."
+            },
+            {
+              "number": 5,
+              "prompt": "The significant increase in carbon dioxide concentrations in the air over the last 100 years."
+            },
+            {
+              "number": 6,
+              "prompt": "The potential for sequestration to harm human life. List of People and organisations A. Scott Klara B. Intergovernmental Panel on Climate Change C. International Energy Agency D. Klaus Lackner E. David Hawkins F. World Wide Fund for Nature Australia"
+            }
+          ]
+        },
+        {
+          "title": "Questions 7-9",
+          "instructions": "Reading Passage has ten paragraphs, A-J .",
+          "type": "select",
+          "options": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F",
+            "G",
+            "H",
+            "I",
+            "J"
+          ],
+          "questions": [
+            {
+              "number": 7,
+              "prompt": "Examples of sequestration already in use in several parts of the world"
+            },
+            {
+              "number": 8,
+              "prompt": "An example of putting carbon dioxide emissions to use in the food and beverage industry"
+            },
+            {
+              "number": 9,
+              "prompt": "Current examples of the environmental harm attributed to carbon dioxide in the air"
+            }
+          ]
+        },
+        {
+          "title": "Questions 10-13",
+          "instructions": "In boxes 10-13 below, choose",
+          "type": "select",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "questions": [
+            {
+              "number": 10,
+              "prompt": "Both developing and developed nations have decided to investigate carbon dioxide sequestration."
+            },
+            {
+              "number": 11,
+              "prompt": "A growing economy will use more power."
+            },
+            {
+              "number": 12,
+              "prompt": "Capturing carbon dioxide has become financially attractive."
+            },
+            {
+              "number": 13,
+              "prompt": "More forests need to be planted to improve the atmosphere."
+            }
+          ]
+        }
+      ],
+      "passage": {
+        "title": "Answers Underground",
+        "paragraphs": [
+          {
+            "label": "",
+            "text": "Burying greenhouse gases to slow global warming"
+          },
+          {
+            "label": "",
+            "text": "One way to slow global warming is to take the greenhouse gases that cause it and bury them. That is the idea behind projects now under way to capture emissions from power plants and factories and force them underground or deep into the ocean. There, proponents argue, they could be trapped for thousands of years."
+          },
+          {
+            "label": "",
+            "text": "This concept, known as carbon sequestration, is already being used by oil companies to improve the efficiency of oil wells, and now engineers have begun exploring ways to capture carbon dioxide emissions from power plants to reduce their impact on the environment. At a recent conference, delegates from fourteen industrialised and developing countries agreed to engage in cooperative research into capturing and storing carbon dioxide."
+          },
+          {
+            "label": "",
+            "text": "The goal is to stabilise emissions of greenhouse gases that trap heat in the atmosphere. Over the past century, airborne carbon dioxide concentrations have risen by nearly a third, according to Scott Klara, sequestration manager at the US National Energy Technology Laboratory. Unless emissions are slashed by two thirds worldwide, the Intergovernmental Panel on Climate Change predicts that concentrations will rise to double the levels of the early 1700s, before the Industrial Revolution. These increased levels of carbon-based compounds in the atmosphere are believed to be the cause of rising temperatures and sea levels around the world. Ignoring the problem is therefore not an option."
+          },
+          {
+            "label": "",
+            "text": "Limiting emissions, however, is not an easy undertaking since increased energy consumption is a key to economic growth. Two thirds of the world's power-generating capacity, expected to come into use by 2030, has not been constructed yet, according to the International Energy Agency. The developing world will be particularly important. China and India alone are expected to account for two thirds of the global increase in coal usage over the next fifteen years."
+          },
+          {
+            "label": "",
+            "text": "Solutions are being sought. Work is being undertaken with alternatives to fossil fuels such as wind and solar energy, but it will be a long time before these alternative sources play a major role in fulfilling the world's energy needs. Geophysicist Klaus Lackner points out that around 85% of the world's energy is derived from fossil fuels, the cheapest and most plentiful energy source available, and the developing world in particular is unlikely to give them up. That is why many scientists support sequestration"
+          },
+          {
+            "label": "",
+            "text": "However, several problems must be resolved before sequestration plays a key role in a low-carbon future. One is the cost of capturing carbon dioxide. A second is storing the gas safely once it's been captured. Today, it costs about $US50 to extract and store a tonne of carbon dioxide from a power plant, which raises the cost of producing electricity by 30-80%. Lackner argues that it is too expensive to adapt existing plants to capture carbon dioxide. Instead, he recommends that carbon- capturing capacity be built into future plants. Economic incentives are needed to encourage companies to identify low-cost carbon-sequestration solutions. A government-supported program in the US has enabled some factories to partially capture carbon emissions, which they then sell for various uses, including carbonating soft drinks. However, there are no power plants ready for full carbon capture."
+          },
+          {
+            "label": "",
+            "text": "Once the carbon has been captured it must be stored. Natural carbon sinks, such as forests and wetlands, can remove some carbon dioxide from the atmosphere, but not nearly enough. Carbon dioxide could be pumped to the bottom of the ocean, where the pressure would keep it pinned to the seabed in liquid form for decades, but that has serious long-term environmental risks. David Hawkins, from the Natural Resources Defense Council in Washington, warns that the carbon dioxide could radically alter the chemical balance in the ocean, with potentially harmful consequences for marine life. Others worry that the carbon dioxide could escape back into the atmosphere."
+          },
+          {
+            "label": "",
+            "text": "A few promising attempts at underground carbon sequestration are currently under way. In western Canada, an oil company is pumping liquefied carbon dioxide into oil wells to force more oil to the surface and boost recovery by 10-15%. The company gets the carbon dioxide via a pipeline from North Dakota in the US, where the gas is captured from a synthetic-fuel plant. In another instance in the North Sea, a Norwegian energy firm is injecting carbon dioxide waste from its natural-gas operations into a saline aquifer 1,000 metres beneath the ocean floor."
+          },
+          {
+            "label": "",
+            "text": "Clearly, storing large amounts of gas underground raises environmental fears. Environmentalists argue that more research is needed on potential storage sites, such as oil and gas reservoirs and coal seams unsuitable for mining, to ensure that they offer long-term solutions. The World Wide Fund for Nature Australia has argued that the primary risk of underground storage is that dangerously large volumes of carbon dioxide might escape and people become asphyxiated."
+          },
+          {
+            "label": "",
+            "text": "Little progress in slashing global greenhouse gases can be achieved without involving developing countries, but for now carbon sequestration is not their priority because of the increased costs this would add to energy production. Hawkins argues that, to encourage developing nations to use sequestration, developed nations will have to provide assistance. He suggests a multilateral initiative in which developed nations, perhaps by purchasing carbon credits from poorer countries, finance the difference between the cost of a regular coal-fired power plant and one that captures carbon emissions. That is, the rich - who will remain the world's biggest polluters for years to come - would buy the right to emit carbon from the poor, who would use the proceeds to build better plants."
+          }
+        ]
+      }
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Reading Passage 2",
+      "questionRange": "Questions 14-26",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 14-21",
+          "instructions": "Reading Passage has nine paragraphs, A-l",
+          "type": "select",
+          "options": [
+            "i An analysis of protective coatings",
+            "v Techniques of mass production",
+            "x Preferences of top musicians"
+          ],
+          "questions": [
+            {
+              "number": 14,
+              "prompt": "Paragraph A Example: Paragraph B Vii"
+            },
+            {
+              "number": 15,
+              "prompt": "Paragraph C"
+            },
+            {
+              "number": 16,
+              "prompt": "Paragraph D"
+            },
+            {
+              "number": 17,
+              "prompt": "Paragraph E"
+            },
+            {
+              "number": 18,
+              "prompt": "Paragraph F"
+            },
+            {
+              "number": 19,
+              "prompt": "Paragraph G"
+            },
+            {
+              "number": 20,
+              "prompt": "Paragraph H"
+            },
+            {
+              "number": 21,
+              "prompt": "Paragraph I"
+            }
+          ]
+        },
+        {
+          "title": "Questions 22-26",
+          "instructions": "In boxes 22-26 below, choose",
+          "type": "select",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "questions": [
+            {
+              "number": 22,
+              "prompt": "The quality of any particular note played on the same violin varies."
+            },
+            {
+              "number": 23,
+              "prompt": "Scientific instruments analyse complex sound more accurately than humans."
+            },
+            {
+              "number": 24,
+              "prompt": "The quality of handmade violins varies according to the musical ability of the craftsman."
+            },
+            {
+              "number": 25,
+              "prompt": "Modern violins seem to improve in their early years."
+            },
+            {
+              "number": 26,
+              "prompt": "Modern violins are gaining in popularity amongst the top violinists"
+            }
+          ]
+        }
+      ],
+      "passage": {
+        "title": "Science and the Stradivarius:Uncovering the secret of quality",
+        "paragraphs": [
+          {
+            "label": "",
+            "text": "Violins made by long-dead Italian craftsmen from the Cremona region are beautiful works of art, coveted by collectors as well as players. Particularly outstanding violins have reputedly changed hands for over a million pounds. In contrast, fine modern instruments can be bought for under £100. Do such figures really reflect such large differences in quality? After more than a hundred years of vigorous debate, this question remains highly contentious, provoking strongly held but divergent views among musicians, violin makers and scientists alike."
+          },
+          {
+            "label": "",
+            "text": "Every violin, whether a Stradivarius or the cheapest factory- made copy, has a distinctive 'voice’ of its 0. Just as any musician can immediately recognise the difference between Domingo and Pavarotti singing the same operatic aria, so a skilled violinist can distinguish between different qualities in the sound produced by individual Stradivari or Guarneri violins. Individual notes on a single instrument sound different each time they are played, which suggests that the perceived tone of a violin must be related to the overall design of the instrument, rather than the frequencies of particular resonances on it. But although various attempts have been made to analyse such global properties, it is extremely difficult to distinguish between a fine Stradivarius instrument and an indifferent modern copy on the basis of the measured response alone. The ear is a supreme detection device, and a system has yet to be developed which can match the brain's sophisticated ability to assess complex sounds."
+          },
+          {
+            "label": "",
+            "text": "So how do skilled violinmakers optimise the tone of an instrument during the construction process? They begin by selecting a wood of the highest possible quality for the front and back plates (or parts of the violin), which they test by tapping with a hammer and judging how well it 'rings’. The next important step is to skillfully carve the plates out of the solid wood, taking great care to get the right degree of arching and variations in thickness. Traditional makers optimise the thickness by testing the ‘feel’ of the plates when they are flexed, and by the sounds produced when they are tapped at different positions with the knuckles."
+          },
+          {
+            "label": "",
+            "text": "However, in the last 50 years or so a group of violin makers has emerged who have tried to take a more overtly scientific approach to violin making. One common practice they have adopted is to replace the traditional flexing and tapping of plates by controlled measurements. During the carving process, the thinned plates are sprinkled with flakes of glitter and suspended horizontally above a loudspeaker. The glitter forms a pattern each time the loudspeaker excites a resonance. The aim is to interactively 'tune' these first few free plate resonances to specified patterns."
+          },
+          {
+            "label": "",
+            "text": "Unfortunately, there are very few examples of such measurements for really fine Italian instruments because their owners are naturally reluctant to allow their violins to be taken apart for the sake of science. The few tests that have been performed suggest that the first Italian makers may have tuned the resonant modes of the individual plates - which they could identify as they tapped them - to exact musical intervals. This would be consistent with the prevailing Renaissance view of ’perfection1, which was measured in terms of numbers and exact ratios. However, there is no historical data to support this case."
+          },
+          {
+            "label": "",
+            "text": "Another factor that affects sound quality is the presence of moisture. To achieve the quality of “vibrancy” in a violin requires high-quality wood with low internal damping. By measuring the pattern of growth-rings in the wood of a Stradivarius, we know that the Italian violin makers sometimes used planks of wood that had only been seasoned for five years. However, such wood is now 300 years old, and the intrinsic internal damping will almost certainly have decreased with time. The age of the wood may therefore automatically contribute to the improved quality of older instruments. This may also explain why the quality of a modern instrument appears to improve in its first few years."
+          },
+          {
+            "label": "",
+            "text": "Another factor thought to account for sound quality is the nature of the varnish used to protect the instrument. One of the most popular theories for well over a century to account for the Stradivarius secret has been that the varnish had some sort of 'magic' composition. However, historical research has shown that it was very similar to the varnish used today. So apart from the possibility that the Italian varnish was contaminated with the wings of passing insects and debris from the workshop floor, there is no convincing evidence to support the idea of a secret formula."
+          },
+          {
+            "label": "",
+            "text": "Other researchers, meanwhile, have claimed that Stradivarius's secret was to soak the timber in water, to leach out supposedly harmful chemicals, before it was seasoned. Although this would be consistent with the idea that the masts and cars of recently sunken Venetian war galleys might have been used to make violins, other scientific and historical evidence to support this view is unconvincing."
+          },
+          {
+            "label": "",
+            "text": "In conclusion, science has not provided any convincing evidence to set Cremonese instruments apart from the finest violins made by skilled craftsmen today. Indeed, some leading soloists do occasionally play on modern instruments. However, the foremost soloists - and, not surprisingly, violin dealers, who have a vested interest in maintaining the Cremonese legend of intrinsic superiority - remain utterly unconvinced."
+          }
+        ]
+      }
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Reading Passage 3",
+      "questionRange": "Questions 27-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 27-31",
+          "instructions": "Choose the correct letter, A, B, C or D. Choose the correct letter in boxes 27-31 below.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 27,
+              "prompt": "What does the writer tell US about people with tone deafness (amusia) in the first paragraph?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Some can play a musical instrument very well"
+                },
+                {
+                  "value": "C",
+                  "label": "They have several inabilities in regard to music"
+                }
+              ]
+            },
+            {
+              "number": 28,
+              "prompt": "What is the writer doing in the second paragraph?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "summarising some findings about people with amusia"
+                },
+                {
+                  "value": "C",
+                  "label": "comparing the sing ability of amusia with their sense"
+                }
+              ]
+            },
+            {
+              "number": 29,
+              "prompt": "What does the writer say about the relationship between language ability and musical ability?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "People with amusia usually have language problems too"
+                },
+                {
+                  "value": "C",
+                  "label": "People with amusia have difficulty recognizing people by their voices"
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "In the third paragraph, the writer notes that most amusics are able to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "identify a song by its tune"
+                },
+                {
+                  "value": "C",
+                  "label": "recognise when a singer is not sing in tune"
+                }
+              ]
+            },
+            {
+              "number": 31,
+              "prompt": "What is the writer doing in the fourth paragraph?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "outlining progress in understanding the brains of amusics"
+                },
+                {
+                  "value": "C",
+                  "label": "explaining why studies of hearing are difficult"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 32 - 35",
+          "instructions": "In boxes 32-35 below, choose",
+          "type": "select",
+          "options": [
+            "YES",
+            "NO",
+            "NOT GIVEN"
+          ],
+          "questions": [
+            {
+              "number": 32,
+              "prompt": "Perezt's research suggesting that amusia is a disorder is convincing."
+            },
+            {
+              "number": 33,
+              "prompt": "People with musical ability are happier than those without this ability."
+            },
+            {
+              "number": 34,
+              "prompt": "It is inappropriate to consider amusia as real disorder."
+            },
+            {
+              "number": 35,
+              "prompt": "People with amusia often have bad handwriting."
+            }
+          ]
+        },
+        {
+          "title": "Questions 36-40",
+          "instructions": "Choose the correct letter, A-H in boxes 36-40 below.",
+          "type": "select",
+          "options": [
+            "B considered to be desirable.",
+            "C an inability to follow the beat of music.",
+            "D not a problem.",
+            "E not yet well understood.",
+            "F a result of injury to the mother.",
+            "G more marked that with other people.",
+            "H associated with intelligence."
+          ],
+          "questions": [
+            {
+              "number": 36,
+              "prompt": "The reason why some people are born with amusia is"
+            },
+            {
+              "number": 37,
+              "prompt": "One of the difficulties amusia experience is"
+            },
+            {
+              "number": 38,
+              "prompt": "For amusia, discrimination of meaning in speech is"
+            },
+            {
+              "number": 39,
+              "prompt": "Certain reactions in the brain of an amusia are"
+            },
+            {
+              "number": 40,
+              "prompt": "In most cultures, musical ability is Thank you for your feedback, we will investigate and resolve the issue within 48 hours. Part 1 : 0 of 13 questions 1 2 3 4 5 6 7 8 9 10 11 12 13 Part 2 : 0 of 13 questions 14 15 16 17 18 19 20 21 22 23 24 25 26 Part 3 : 0 of 14 questions 27 28 29 30 31 32 33 34 35 36 37 38 39 40 Notifications Look up Translate Setting Searching for ..."
+            }
+          ]
+        }
+      ],
+      "passage": {
+        "title": "When People Are 'Deaf' to Music",
+        "paragraphs": [
+          {
+            "label": "",
+            "text": "Music has long been considered a uniquely human concept. In fact, most psychologists agree that music is a universal human instinct. Like any ability, however, there is great variation in people's musical competence. For every brilliant pianist in the world, there are several people we refer to as ‘tone deaf’. It is not simply that people with tone deafness (or ‘amusia’) are unable to sing in tune; they are also unable to discriminate between tones or recognize familiar melodies. Such a ‘disorder’ can occur after some sort of brain damage, but recently research has been undertaken in an attempt to discover the cause of congenital amusia (when people are born with the condition), which is not associated with any brain damage, hearing problems, or lack of exposure to music."
+          },
+          {
+            "label": "",
+            "text": "According to the research of Dr. Isabelle Peretz of the University of Montreal, amusia is more complicated than the inability to distinguish pitches. An amusic (a person who has the condition of amusia) can distinguish between two pitches that are far apart but cannot tell the difference between intervals smaller than a half step on the Western diatonic scale, while most people can easily distinguish differences smaller than that. When listening to melodies that have had a single note altered so that it is out of key with the rest of the melody, amusics do not notice a problem. As would be expected, amusics perform significantly worse at singing and tapping a rhythm along with a melody than do non-amusics."
+          },
+          {
+            "label": "",
+            "text": "The most fascinating aspect of amusia is how specific to music it is. Because of music’s close ties to language, it might be expected that a musical impairment may be caused by a language impairment. Studies suggest, however, that language and music ability are independent of one another. People with brain damage in areas critical to language are often still able to sing, despite being unable to communicate through speech. Moreover, while amusics show deficiencies in their recognition of pitch differences in melodies, they show no deficiencies in tonal languages, such as Chinese, and do not report having any difficulty discriminating between words that differ only in their intonation. The linguistic cues inherent in speech make discrimination of meaning much easier for amusics. Amusics are also successful most of the time at detecting the mood of a melody, can identify a speaker based on his or her voice, and can discriminate and identify environmental sounds."
+          },
+          {
+            "label": "",
+            "text": "Recent work has been focused on locating the part of the brain that is responsible for amusia. The temporal lobes of the brain, the location of the primary auditory cortex, have been considered. It has long been believed that the temporal lobes, especially the right temporal lobe, are most active when processing musical activity, so any musical disability should logically stem from here as well. Because it has been shown that there is no hearing deficit in amusia, researchers moved on to the temporal neocortex, which is where more sophisticated processing of musical cues was thought to take place. New studies, however, have suggested that the deficits in amusics are located outside the auditory cortex. Brain scans of amusics do not show any reaction at all to differences smaller than a half step. When changes in tones are large, their brains overreact, showing twice as much activity on the right side of the brain as a normal brain hearing the same thing. These differences do not occur in the auditory cortex, indicating again that the deficits of amusia do not lie in hearing impairment, but in higher processing of melodies."
+          },
+          {
+            "label": "",
+            "text": "So what does this all mean? Looking only at the research of Peretz in the field of the neuropsychology of music, it would appear that amusia is some sort of disorder. As a student of neurobiology, however, I am skeptical. Certainly, the studies by Peretz that have found significant differences between the brains of so-called amusics and normal brains are legitimate. The more important question now becomes one of normality. Every trait-from skin color to intelligence to mood-exists on a continuum; there is a great deal of variation from one extreme to the other. Just because we recognize that basic musical ability is something that the vast majority of people have, it doesn’t mean that the lack of it is abnormal."
+          },
+          {
+            "label": "",
+            "text": "What makes an amusic worse off than a musical prodigy? Musical ability is culturally valued and may have been a factor in survival at one point in human history, but it does not seem likely that it is being selected for on an evolutionary scale any longer. Darwin believed that music was adaptive as a way of finding a mate, but who needs to be able to sing to find a partner in an age when it is possible to express your emotions through a song on your iPod?"
+          },
+          {
+            "label": "",
+            "text": "While the idea of amusia is interesting, it seems to be just one end of the continuum of innate musical ability. Comparing this ‘disorder’ to learning disorders like specific language impairment seems to be going too far. Before amusia can be declared a disability, further research must be done to determine whether a lack of musical ability is actually detrimental in any way. If no disadvantages can be found in having amusia, then it is no more a disability than having poor fashion sense or bad handwriting."
+          }
+        ]
+      }
+    }
+  ],
+  "answerKey": {
+    "1": "D",
+    "2": "E",
+    "3": "D",
+    "4": "E",
+    "5": "A",
+    "6": "F",
+    "7": "H",
+    "8": "F",
+    "9": "C",
+    "10": "TRUE",
+    "11": "TRUE",
+    "12": "FALSE",
+    "13": "NOT GIVEN",
+    "14": "iv",
+    "15": "ix",
+    "16": "ii",
+    "17": "viii",
+    "18": "vi",
+    "19": "i",
+    "20": "xi",
+    "21": "x",
+    "22": "TRUE",
+    "23": "FALSE",
+    "24": "NOT GIVEN",
+    "25": "TRUE",
+    "26": "FALSE",
+    "27": "D",
+    "28": "B",
+    "29": "A",
+    "30": "C",
+    "31": "B",
+    "32": "NO",
+    "33": "NOT GIVEN",
+    "34": "YES",
+    "35": "NOT GIVEN",
+    "36": "E",
+    "37": "C",
+    "38": "D",
+    "39": "G",
+    "40": "B"
+  }
+}

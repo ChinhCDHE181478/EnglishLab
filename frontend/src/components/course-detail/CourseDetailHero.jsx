@@ -168,8 +168,13 @@ const buildTabItems = ({ course, bandFit, focusSkills, prerequisites }) => [
 
 const CourseDetailHero = ({ course, currentBand = null }) => {
   const bandFit = getBandFitInfo(course, currentBand);
-  const priceLabel = formatCoursePrice(course.salePrice || course.price);
-  const statusLabel = course.registered ? 'Đã đăng ký' : Number(course.salePrice || course.price) > 0 ? 'Học phí' : '';
+  const completed = Number(course.progressPercent || 0) >= 100 || course.enrollmentStatus === 'COMPLETED';
+  const priceLabel = course.registered
+    ? `${Number(course.progressPercent || 0)}% hoàn thành`
+    : formatCoursePrice(course.salePrice || course.price);
+  const statusLabel = course.registered
+    ? completed ? 'Đã hoàn thành' : 'Đã đăng ký'
+    : Number(course.salePrice || course.price) > 0 ? 'Học phí' : '';
   const heroBackgroundStyle = course.thumbnailUrl ? { backgroundImage: `url(${course.thumbnailUrl})` } : undefined;
   const focusSkills = course.focusSkills?.length ? course.focusSkills : [];
   const prerequisites = course.prerequisites?.length ? course.prerequisites : ['Không có yêu cầu học trước bắt buộc.'];
@@ -242,7 +247,7 @@ const CourseDetailHero = ({ course, currentBand = null }) => {
             <div className="inline-flex flex-col gap-1">
               <LearnerCourseActions course={course} onDetailPage />
             </div>
-            {!course.registered && <CourseCommerceActions course={course} />}
+            {!course.registered && !course.enrollmentAccessCheckFailed ? <CourseCommerceActions course={course} /> : null}
             <span aria-hidden="true" className="hidden h-px w-8 bg-[#d9c3c0] sm:block" />
             <span className="inline-flex items-center gap-2 text-sm font-medium text-[#6e5957]">
               <span className="material-symbols-outlined text-[18px] text-[#8a0018]">groups</span>

@@ -1,8 +1,10 @@
 package fu.sep490.g23.backend.entity.teacher;
 
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -16,15 +18,20 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "teacher_professional_profiles")
-public class TeacherProfessionalProfile {
+@Table(name = "user_auxiliary_records")
+@SQLRestriction("record_type = 'teacher_professional_profiles'")
+public class TeacherProfessionalProfile extends DomainRecord {
+    @Override
+    protected String domainRecordType() {
+        return "teacher_professional_profiles";
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, unique = true)
+    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User teacher;
 
     @Column(length = 180)

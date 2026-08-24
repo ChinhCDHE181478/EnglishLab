@@ -1,4 +1,5 @@
 import axiosClient from './axiosClient';
+import { normalizePage } from '../utils/pagination';
 
 const unwrapData = (response) => response?.data?.data ?? response?.data;
 const asList = (data) => (Array.isArray(data) ? data : data?.content || data?.items || []);
@@ -7,6 +8,11 @@ export const curriculumApi = {
   async getCurriculumPrograms(params = {}) {
     const response = await axiosClient.get('/api/content-manager/curriculum-programs', { params });
     return asList(unwrapData(response));
+  },
+
+  async getCurriculumProgramsPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/curriculum-programs/page', { params });
+    return normalizePage(unwrapData(response));
   },
 
   async getCurriculumProgram(id) {
@@ -99,6 +105,16 @@ export const curriculumApi = {
     return asList(unwrapData(response));
   },
 
+  async getAssessmentBankPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/assessment-bank/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getAssessmentBankStats(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/assessment-bank/stats', { params });
+    return unwrapData(response) || {};
+  },
+
   async createAssessmentBankItem(payload) {
     const response = await axiosClient.post('/api/content-manager/assessment-bank', payload);
     return unwrapData(response);
@@ -114,9 +130,24 @@ export const curriculumApi = {
     return unwrapData(response);
   },
 
-  async getFlashcardSets() {
-    const response = await axiosClient.get('/api/content-manager/flashcard-sets');
+  async getFlashcardSets(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/flashcard-sets', { params });
     return asList(unwrapData(response));
+  },
+
+  async getFlashcardSet(id) {
+    const response = await axiosClient.get(`/api/content-manager/flashcard-sets/${id}`);
+    return unwrapData(response);
+  },
+
+  async getFlashcardSetsPage(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/flashcard-sets/page', { params });
+    return normalizePage(unwrapData(response));
+  },
+
+  async getFlashcardSetStats(params = {}) {
+    const response = await axiosClient.get('/api/content-manager/flashcard-sets/stats', { params });
+    return unwrapData(response) || {};
   },
 
   async createFlashcardSet(payload) {

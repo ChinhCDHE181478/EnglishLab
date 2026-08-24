@@ -7,6 +7,8 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -23,5 +25,15 @@ public interface CourseDiscussionReportRepository extends JpaRepository<CourseDi
     List<CourseDiscussionReport> findByStatusAndReasonCategoryOrderByCreatedAtDesc(
             CourseDiscussionReportStatus status,
             CourseDiscussionReportReasonCategory reasonCategory
+    );
+
+    @EntityGraph(attributePaths = {"reporter", "reviewedBy"})
+    Page<CourseDiscussionReport> findByStatus(CourseDiscussionReportStatus status, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"reporter", "reviewedBy"})
+    Page<CourseDiscussionReport> findByStatusAndReasonCategory(
+            CourseDiscussionReportStatus status,
+            CourseDiscussionReportReasonCategory reasonCategory,
+            Pageable pageable
     );
 }

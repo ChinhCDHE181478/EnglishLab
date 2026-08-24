@@ -20,6 +20,7 @@ import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
@@ -54,6 +55,8 @@ class OnlineCourseVersionServiceImplTest {
     @Mock
     private CourseAssessmentRepository courseAssessmentRepository;
     @Mock
+    private AssessmentSubmissionRepository assessmentSubmissionRepository;
+    @Mock
     private LessonProgressRepository lessonProgressRepository;
     @Mock
     private UserRepository userRepository;
@@ -73,6 +76,7 @@ class OnlineCourseVersionServiceImplTest {
                 onlineCourseRepository,
                 versionRepository,
                 courseAssessmentRepository,
+                assessmentSubmissionRepository,
                 lessonProgressRepository,
                 userRepository,
                 mapper,
@@ -310,6 +314,63 @@ class OnlineCourseVersionServiceImplTest {
                 insertedLesson.getId(),
                 true
         )).doesNotThrowAnyException();
+    }
+
+    @Test
+    void cannotCompleteNextModuleLessonBeforePreviousModuleTestPassed() throws Exception {
+        LessonResponse firstModuleLesson = LessonResponse.builder().id(61L).title("Bài 1").build();
+        LessonResponse nextModuleLesson = LessonResponse.builder().id(71L).title("Bài mô-đun 2").build();
+        ModuleResponse firstModule = ModuleResponse.builder()
+                .id(51L)
+                .title("Module 1")
+                .lessons(List.of(firstModuleLesson))
+                .build();
+        ModuleResponse secondModule = ModuleResponse.builder()
+                .id(52L)
+                .title("Module 2")
+                .lessons(List.of(nextModuleLesson))
+                .build();
+        versionTwo.setStatus(CourseVersionStatus.PUBLISHED);
+        versionTwo.setContentSnapshotJson(new ObjectMapper().writeValueAsString(
+                OnlineCourseResponse.builder().id(course.getId()).modules(List.of(firstModule, secondModule)).build()
+        ));
+        User student = User.builder().id(7L).email("learner@englishlab.vn").build();
+        PackageEnrollment enrollment = PackageEnrollment.builder()
+                .id(41L)
+                .student(student)
+                .learningPackage(course.getLearningPackage())
+                .courseVersion(versionTwo)
+                .build();
+        CourseAssessment moduleTest = new CourseAssessment();
+        moduleTest.setId(101L);
+        moduleTest.setModule(fu.sep490.g23.backend.entity.course.CourseModule.builder().id(51L).build());
+        LessonProgress completedProgress = LessonProgress.builder()
+                .enrollment(enrollment)
+                .lesson(Lesson.builder().id(firstModuleLesson.getId()).build())
+                .status(LessonProgressStatus.COMPLETED)
+                .build();
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PUBLISHED
+        )).thenReturn(Optional.of(versionTwo));
+        when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
+                enrollment,
+                LessonProgressStatus.COMPLETED
+        )).thenReturn(List.of(completedProgress));
+        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course))
+                .thenReturn(List.of(moduleTest));
+        when(assessmentSubmissionRepository.existsByAssessmentAndStudentAndStatusIn(
+                org.mockito.ArgumentMatchers.eq(moduleTest),
+                org.mockito.ArgumentMatchers.eq(student),
+                org.mockito.ArgumentMatchers.anySet()
+        )).thenReturn(false);
+
+        assertThatThrownBy(() -> service.assertLessonProgressTransitionAllowed(
+                enrollment,
+                nextModuleLesson.getId(),
+                true
+        )).isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("bài đánh giá của mô-đun trước");
     }
 
     @Test

@@ -15,7 +15,6 @@ import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReaction;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReplyVote;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
@@ -27,7 +26,6 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyVoteRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
@@ -66,7 +64,6 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final CourseDiscussionThreadRepository threadRepository;
     private final CourseDiscussionReplyRepository replyRepository;
     private final CourseDiscussionReactionRepository reactionRepository;
-    private final CourseDiscussionReplyVoteRepository voteRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final LessonRepository lessonRepository;
@@ -199,12 +196,25 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         if (reply.getAuthor().getId().equals(user.getId())) {
             throw new RuntimeException("Bạn không thể tự đánh dấu câu trả lời của mình là hữu ích.");
         }
-        voteRepository.findByReplyAndUser(reply, user)
+        reactionRepository.findByTargetTypeAndTargetIdAndUser(CourseDiscussionReactionTarget.REPLY, replyId, user)
                 .ifPresentOrElse(existing -> {
-                    voteRepository.delete(existing);
-                    reply.setHelpfulCount(Math.max(0, reply.getHelpfulCount() - 1));
+                    if (existing.isHelpful()) {
+                        existing.setHelpful(false);
+                        if (existing.getReactionType() == null) {
+                            reactionRepository.delete(existing);
+                        }
+                        reply.setHelpfulCount(Math.max(0, reply.getHelpfulCount() - 1));
+                    } else {
+                        existing.setHelpful(true);
+                        reply.setHelpfulCount(reply.getHelpfulCount() + 1);
+                    }
                 }, () -> {
-                    voteRepository.save(CourseDiscussionReplyVote.builder().reply(reply).user(user).build());
+                    reactionRepository.save(CourseDiscussionReaction.builder()
+                            .targetType(CourseDiscussionReactionTarget.REPLY)
+                            .targetId(replyId)
+                            .user(user)
+                            .helpful(true)
+                            .build());
                     reply.setHelpfulCount(reply.getHelpfulCount() + 1);
                 });
         return toReplyResponse(reply, user);
@@ -393,7 +403,10 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         reactionRepository.findByTargetTypeAndTargetIdAndUser(targetType, targetId, user)
                 .ifPresentOrElse(existing -> {
                     if (existing.getReactionType() == reactionType) {
-                        reactionRepository.delete(existing);
+                        existing.setReactionType(null);
+                        if (!existing.isHelpful()) {
+                            reactionRepository.delete(existing);
+                        }
                     } else {
                         existing.setReactionType(reactionType);
                     }
@@ -452,6 +465,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private Map<String, Integer> getReactionCounts(CourseDiscussionReactionTarget targetType, Long targetId) {
         Map<CourseDiscussionReactionType, Integer> counts = new EnumMap<>(CourseDiscussionReactionType.class);
         reactionRepository.findByTargetTypeAndTargetId(targetType, targetId)
+                .stream()
+                .filter(reaction -> reaction.getReactionType() != null)
                 .forEach(reaction -> counts.merge(reaction.getReactionType(), 1, Integer::sum));
 
         Map<String, Integer> response = new java.util.LinkedHashMap<>();
@@ -466,12 +481,15 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             return null;
         }
         Optional<CourseDiscussionReaction> reaction = reactionRepository.findByTargetTypeAndTargetIdAndUser(targetType, targetId, currentUser);
-        return reaction.map(item -> item.getReactionType().name()).orElse(null);
+        return reaction.map(CourseDiscussionReaction::getReactionType)
+                .map(Enum::name)
+                .orElse(null);
     }
 
     private List<CourseDiscussionReactionResponse> getReactionResponses(CourseDiscussionReactionTarget targetType, Long targetId) {
         return reactionRepository.findByTargetTypeAndTargetIdOrderByUpdatedAtDesc(targetType, targetId)
                 .stream()
+                .filter(reaction -> reaction.getReactionType() != null)
                 .map(reaction -> CourseDiscussionReactionResponse.builder()
                         .userId(reaction.getUser().getId())
                         .userName(resolveAuthorName(reaction.getUser()))

@@ -1,0 +1,2680 @@
+{
+  "version": 1,
+  "type": "toeic_reading_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_3_reading",
+  "title": "TOEIC Mock Test 2026 Collection Reading Practice Test 3",
+  "sourceLabel": "toeicde3",
+  "durationMinutes": 75,
+  "audioUrl": "",
+  "audioLabel": "",
+  "rules": [
+    "100 câu",
+    "3 Part"
+  ],
+  "parts": [
+    {
+      "part": 5,
+      "partNumber": 5,
+      "title": "Incomplete Sentences",
+      "instructions": "Select the word or phrase that best completes the sentence.",
+      "questionCount": 30,
+      "audioUrl": "",
+      "questionRange": "Questions 101-130",
+      "passage": {
+        "title": "Incomplete Sentences",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 101-130",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "questions": [
+            {
+              "number": 101,
+              "prompt": "Once the renovation was complete, the corner café attracted more customers than ever _____ the higher prices introduced on its new menu.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "besides"
+                },
+                {
+                  "value": "B",
+                  "label": "during"
+                },
+                {
+                  "value": "C",
+                  "label": "despite"
+                },
+                {
+                  "value": "D",
+                  "label": "across"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 102,
+              "prompt": "During busy afternoon periods the branch tellers respond to customer questions _____.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "promptly"
+                },
+                {
+                  "value": "B",
+                  "label": "promptness"
+                },
+                {
+                  "value": "C",
+                  "label": "prompt"
+                },
+                {
+                  "value": "D",
+                  "label": "prompter"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 103,
+              "prompt": "At Castleford Manufacturing, each submitted expense report is examined _____ before any reimbursement is approved by the finance office.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "completion"
+                },
+                {
+                  "value": "B",
+                  "label": "had completed"
+                },
+                {
+                  "value": "C",
+                  "label": "completely"
+                },
+                {
+                  "value": "D",
+                  "label": "complete"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 104,
+              "prompt": "Guests at the Ashcombe Hotel _____ request rooms on the upper floors, so the front desk now keeps several reserved for late arrivals.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "rarely"
+                },
+                {
+                  "value": "B",
+                  "label": "frequently"
+                },
+                {
+                  "value": "C",
+                  "label": "politely"
+                },
+                {
+                  "value": "D",
+                  "label": "briefly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 105,
+              "prompt": "Each new client of Marsden Freight Services is assigned a dedicated point of _____ who responds to shipping questions throughout the delivery process.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reference"
+                },
+                {
+                  "value": "B",
+                  "label": "contact"
+                },
+                {
+                  "value": "C",
+                  "label": "connection"
+                },
+                {
+                  "value": "D",
+                  "label": "entry"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 106,
+              "prompt": "With every flat-pack order, Kelvindale Furnishings encloses clear _____ that show customers how to assemble the item at home.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "impressions"
+                },
+                {
+                  "value": "B",
+                  "label": "intentions"
+                },
+                {
+                  "value": "C",
+                  "label": "estimates"
+                },
+                {
+                  "value": "D",
+                  "label": "instructions"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 107,
+              "prompt": "The regional fulfillment center _____ hundreds of online orders every afternoon before the parcels are collected for overnight delivery.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "places"
+                },
+                {
+                  "value": "B",
+                  "label": "fills"
+                },
+                {
+                  "value": "C",
+                  "label": "takes"
+                },
+                {
+                  "value": "D",
+                  "label": "ships"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 108,
+              "prompt": "Once the software upgrade is complete, the self-checkout system at Marwell Grocers will _____ and reliably process every customer transaction during peak shopping hours.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "smoothing"
+                },
+                {
+                  "value": "B",
+                  "label": "smoother"
+                },
+                {
+                  "value": "C",
+                  "label": "smooth"
+                },
+                {
+                  "value": "D",
+                  "label": "smoothly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 109,
+              "prompt": "_____ parking permits issued to employees at Ellsworth Tower must be renewed at the front desk before the end of the month.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "All"
+                },
+                {
+                  "value": "B",
+                  "label": "Each"
+                },
+                {
+                  "value": "C",
+                  "label": "Much"
+                },
+                {
+                  "value": "D",
+                  "label": "Nearly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 110,
+              "prompt": "_____ the delicate jacket required extra treatment, the order will still be ready by Friday afternoon.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Because"
+                },
+                {
+                  "value": "B",
+                  "label": "However"
+                },
+                {
+                  "value": "C",
+                  "label": "Yet"
+                },
+                {
+                  "value": "D",
+                  "label": "Although"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 111,
+              "prompt": "The Larkfield Playhouse reported a fairly _____ increase in season-ticket sales after last spring's renovation.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "hollow"
+                },
+                {
+                  "value": "B",
+                  "label": "modest"
+                },
+                {
+                  "value": "C",
+                  "label": "shallow"
+                },
+                {
+                  "value": "D",
+                  "label": "narrow"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 112,
+              "prompt": "The attendance totals compiled by Woodmere Exhibitions Group remain _____, since several regional branches have yet to report their complete counts.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "comparable"
+                },
+                {
+                  "value": "B",
+                  "label": "provisional"
+                },
+                {
+                  "value": "C",
+                  "label": "accessible"
+                },
+                {
+                  "value": "D",
+                  "label": "final"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 113,
+              "prompt": "Before the evening collection, the dispatch team at Ravenshill Logistics is responsible for _____ every parcel to the correct regional hub.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "distributing"
+                },
+                {
+                  "value": "B",
+                  "label": "being distributed"
+                },
+                {
+                  "value": "C",
+                  "label": "distribute"
+                },
+                {
+                  "value": "D",
+                  "label": "distributed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 114,
+              "prompt": "The fulfillment team at Norwood Office Supplies _____ processes online orders during the busy holiday season.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "efficient"
+                },
+                {
+                  "value": "B",
+                  "label": "efficiently"
+                },
+                {
+                  "value": "C",
+                  "label": "efficiency"
+                },
+                {
+                  "value": "D",
+                  "label": "efficiencies"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 115,
+              "prompt": "Before the client presentation, Ms. Delacroix stepped away to compose _____ in the quiet meeting room down the hall.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "her"
+                },
+                {
+                  "value": "B",
+                  "label": "she"
+                },
+                {
+                  "value": "C",
+                  "label": "herself"
+                },
+                {
+                  "value": "D",
+                  "label": "hers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 116,
+              "prompt": "Brookline Event Services has approved the final program, and every completed entry form will be submitted _____ the posted deadline.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "until"
+                },
+                {
+                  "value": "B",
+                  "label": "since"
+                },
+                {
+                  "value": "C",
+                  "label": "upon"
+                },
+                {
+                  "value": "D",
+                  "label": "before"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 117,
+              "prompt": "New account holders at Wexford Savings Bank will benefit over the coming year _____ reduced fees on all online transfers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "for"
+                },
+                {
+                  "value": "B",
+                  "label": "of"
+                },
+                {
+                  "value": "C",
+                  "label": "with"
+                },
+                {
+                  "value": "D",
+                  "label": "from"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 118,
+              "prompt": "At Halveston Group, the selection committee agreed to assess the incoming bids _____ rather than review each proposal individually.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "collectively"
+                },
+                {
+                  "value": "B",
+                  "label": "separately"
+                },
+                {
+                  "value": "C",
+                  "label": "cautiously"
+                },
+                {
+                  "value": "D",
+                  "label": "gradually"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 119,
+              "prompt": "The east gallery at the Cranleigh Art Museum will remain closed _____ the entire renovation period, reopening to the public in early autumn.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "during"
+                },
+                {
+                  "value": "B",
+                  "label": "until"
+                },
+                {
+                  "value": "C",
+                  "label": "since"
+                },
+                {
+                  "value": "D",
+                  "label": "at"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 120,
+              "prompt": "The shop supervisor stayed remarkably composed _____ the main oven had failed only an hour before the morning rush.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "despite"
+                },
+                {
+                  "value": "B",
+                  "label": "although"
+                },
+                {
+                  "value": "C",
+                  "label": "nonetheless"
+                },
+                {
+                  "value": "D",
+                  "label": "than"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 121,
+              "prompt": "The Redfern Market schedules _____ of fresh produce every morning before opening.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "deliver"
+                },
+                {
+                  "value": "B",
+                  "label": "delivering"
+                },
+                {
+                  "value": "C",
+                  "label": "delivered"
+                },
+                {
+                  "value": "D",
+                  "label": "deliveries"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 122,
+              "prompt": "The plant manager at Kelmore Fabrication attributes the recent drop in defects _____ the extra training given to the assembly crew.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "for"
+                },
+                {
+                  "value": "B",
+                  "label": "on"
+                },
+                {
+                  "value": "C",
+                  "label": "to"
+                },
+                {
+                  "value": "D",
+                  "label": "by"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 123,
+              "prompt": "During the safety review, staff without current certification will not be permitted to operate the loading crane _____ the conveyor system.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "then"
+                },
+                {
+                  "value": "B",
+                  "label": "like"
+                },
+                {
+                  "value": "C",
+                  "label": "so"
+                },
+                {
+                  "value": "D",
+                  "label": "or"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 124,
+              "prompt": "At closing time, cashiers at Halstead Grocery must _____ count the cash in each register so that the recorded total matches the day's receipts.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "accurately"
+                },
+                {
+                  "value": "B",
+                  "label": "loosely"
+                },
+                {
+                  "value": "C",
+                  "label": "briefly"
+                },
+                {
+                  "value": "D",
+                  "label": "eagerly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 125,
+              "prompt": "The tailor shop's senior seamstress has served the same loyal clients _____ nearly twenty years.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "in"
+                },
+                {
+                  "value": "B",
+                  "label": "on"
+                },
+                {
+                  "value": "C",
+                  "label": "for"
+                },
+                {
+                  "value": "D",
+                  "label": "by"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 126,
+              "prompt": "After several months of delays, Harefield Linen Services modernized the main sorting facility in order to expand _____ processing capacity before the busy summer season.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "their"
+                },
+                {
+                  "value": "B",
+                  "label": "his"
+                },
+                {
+                  "value": "C",
+                  "label": "its"
+                },
+                {
+                  "value": "D",
+                  "label": "this"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 127,
+              "prompt": "Regular customers at Brightpoint Print Shop may select _____ paper finish they prefer, provided the request is noted when the order is submitted.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "whichever"
+                },
+                {
+                  "value": "B",
+                  "label": "everywhere"
+                },
+                {
+                  "value": "C",
+                  "label": "whenever"
+                },
+                {
+                  "value": "D",
+                  "label": "whoever"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 128,
+              "prompt": "After reviewing last year's sales figures, the directors of Halloway Textiles approved a major _____ of the company's retail operations.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "expand"
+                },
+                {
+                  "value": "B",
+                  "label": "expansively"
+                },
+                {
+                  "value": "C",
+                  "label": "expansive"
+                },
+                {
+                  "value": "D",
+                  "label": "expansion"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 129,
+              "prompt": "The reservations coordinator at Oakridge Car Rental personally _____ every vehicle booking to avoid last-minute scheduling conflicts.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "management"
+                },
+                {
+                  "value": "B",
+                  "label": "manage"
+                },
+                {
+                  "value": "C",
+                  "label": "manages"
+                },
+                {
+                  "value": "D",
+                  "label": "managing"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 130,
+              "prompt": "The orientation session at Marfield Distribution is intended to _____ every new employee with the company's standard procedures before the first shift begins.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "introduce"
+                },
+                {
+                  "value": "B",
+                  "label": "notify"
+                },
+                {
+                  "value": "C",
+                  "label": "familiarize"
+                },
+                {
+                  "value": "D",
+                  "label": "alert"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 6,
+      "partNumber": 6,
+      "title": "Text Completion",
+      "instructions": "Select the best answer to complete the text.",
+      "questionCount": 16,
+      "audioUrl": "",
+      "questionRange": "Questions 131-146",
+      "passage": {
+        "title": "Text Completion",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 131-134",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Review: The Lumavo Snap</b></p><div><p>Lumavo has earned a strong reputation --(131)-- compact consumer devices. Its newest --(132)-- printer, the Snap, promises to deliver instant prints wherever you travel.</p><p>The Snap pairs with a smartphone over a wireless connection. Once you have chosen an image in the companion app, you press a single button --(133)-- a finished print in under a minute. The unit slips easily into a bag and runs on a rechargeable battery.</p><p>Compared with larger desktop models, the Snap is far more convenient for use on the road. --(134)--. Buyers who print frequently should weigh that expense carefully before deciding.</p></div></div>",
+          "questions": [
+            {
+              "number": 131,
+              "prompt": "Câu 131",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "into"
+                },
+                {
+                  "value": "B",
+                  "label": "among"
+                },
+                {
+                  "value": "C",
+                  "label": "by"
+                },
+                {
+                  "value": "D",
+                  "label": "for"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 132,
+              "prompt": "Câu 132",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "label"
+                },
+                {
+                  "value": "B",
+                  "label": "photo"
+                },
+                {
+                  "value": "C",
+                  "label": "receipt"
+                },
+                {
+                  "value": "D",
+                  "label": "document"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 133,
+              "prompt": "Câu 133",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "to produce"
+                },
+                {
+                  "value": "B",
+                  "label": "produces"
+                },
+                {
+                  "value": "C",
+                  "label": "by producing"
+                },
+                {
+                  "value": "D",
+                  "label": "productively"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 134,
+              "prompt": "Câu 134",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Its running costs stay remarkably low because the paper it uses is cheap and plentiful"
+                },
+                {
+                  "value": "B",
+                  "label": "The rechargeable battery holds enough power to last through an entire day of travel"
+                },
+                {
+                  "value": "C",
+                  "label": "Setup takes only moments, and the wireless pairing rarely drops during printing"
+                },
+                {
+                  "value": "D",
+                  "label": "Each sheet of specialized photo paper, however, adds noticeably to the cost of every print"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 135-138",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>March 12<br>Harold Bennett<br>Corner Fresh Grocery<br>48 Linden Street<br>Fairview, OH 45001</p><p>Dear Mr. Bennett,</p><p>Over the past year, your store has placed a steady --(135)-- of orders with our company, and we are genuinely grateful for the confidence you have shown in us. --(136)--. This consistent purchasing history, sustained through a season when many retailers scaled back, is exactly what qualifies you for our new wholesale account.</p><p>Under this program, discounted pricing --(137)-- automatically to every order that exceeds the minimum monthly threshold, and members also receive priority scheduling for weekly deliveries.</p><p>You may assume that enrolling commits you to a long-term contract. --(138)--, the account carries no obligation and may be closed whenever you wish.</p><p>To begin enrollment, please contact our office at your convenience so that we can set up your account. We look forward to serving you for many years to come.</p><p>Sincerely,<br>Denise Palmer<br>Account Manager<br>Meadowline Produce Distributors</p></div>",
+          "questions": [
+            {
+              "number": 135,
+              "prompt": "Câu 135",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "growth"
+                },
+                {
+                  "value": "B",
+                  "label": "stream"
+                },
+                {
+                  "value": "C",
+                  "label": "range"
+                },
+                {
+                  "value": "D",
+                  "label": "batch"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 136,
+              "prompt": "Câu 136",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A commitment like yours is exactly the sort of partnership we value most"
+                },
+                {
+                  "value": "B",
+                  "label": "Our delivery fleet has recently expanded to cover three additional counties"
+                },
+                {
+                  "value": "C",
+                  "label": "All invoices must now be submitted through our new online portal"
+                },
+                {
+                  "value": "D",
+                  "label": "Several new seasonal items will appear in next month's product catalog"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 137,
+              "prompt": "Câu 137",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "applying"
+                },
+                {
+                  "value": "B",
+                  "label": "apply"
+                },
+                {
+                  "value": "C",
+                  "label": "was applied"
+                },
+                {
+                  "value": "D",
+                  "label": "is applied"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 138,
+              "prompt": "Câu 138",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Furthermore"
+                },
+                {
+                  "value": "B",
+                  "label": "Likewise"
+                },
+                {
+                  "value": "C",
+                  "label": "In fact"
+                },
+                {
+                  "value": "D",
+                  "label": "For example"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 139-142",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><b>Same-Day Business Cards at Cavendish Print Works</b></div><div><br></div><div>Do you need business cards before an important meeting tomorrow? At Cavendish Print Works, our new same-day service is designed --(139)-- you the cards you need without the usual wait.</div><div><br></div><div>Simply bring us your design, and our team will prepare a printed --(140)-- for your approval within a few hours. Once you confirm the details, we complete the job the same day.</div><div><br></div><div>You can rely on us for clean, professional results every time. --(141)--. Each order is inspected before pickup, so nothing is overlooked.</div><div><br></div><div>Whenever your schedule is tight, you can have your cards printed --(142)-- and return to your work. Stop by our counter on Marden Street to place your order today.</div></div>",
+          "questions": [
+            {
+              "number": 139,
+              "prompt": "Câu 139",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "gives"
+                },
+                {
+                  "value": "B",
+                  "label": "giving"
+                },
+                {
+                  "value": "C",
+                  "label": "to give"
+                },
+                {
+                  "value": "D",
+                  "label": "given"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 140,
+              "prompt": "Câu 140",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "estimate"
+                },
+                {
+                  "value": "B",
+                  "label": "proof"
+                },
+                {
+                  "value": "C",
+                  "label": "receipt"
+                },
+                {
+                  "value": "D",
+                  "label": "invoice"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 141,
+              "prompt": "Câu 141",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "We also design custom logos for local companies"
+                },
+                {
+                  "value": "B",
+                  "label": "Our prices remain the lowest anywhere in town"
+                },
+                {
+                  "value": "C",
+                  "label": "Our experienced staff checks each card by hand"
+                },
+                {
+                  "value": "D",
+                  "label": "Errors sometimes slip through when orders pile up"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 142,
+              "prompt": "Câu 142",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "promptly"
+                },
+                {
+                  "value": "B",
+                  "label": "prompt"
+                },
+                {
+                  "value": "C",
+                  "label": "prompter"
+                },
+                {
+                  "value": "D",
+                  "label": "promptness"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 143-146",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Brookvale Couriers Cuts Delivery Times with New Routing System</b></p><div><p>--(143)--, small courier firms have absorbed rising fuel costs as an unavoidable part of the business. Brookvale Couriers set out to challenge that view. Last spring the company installed route-planning software that maps the most efficient path between stops.</p><p>The effect was quick to show. Within three months, the firm recorded a --(145)-- reduction in its weekly fuel spending. --(144)--. Drivers now finish their scheduled rounds almost an hour earlier each afternoon.</p><p>\"By mapping every route before the vans leave, we have gained real --(146)-- over our daily schedule,\" said Owen Mercer, the firm's operations director. He expects further savings as the system learns from each delivery.</p></div></div>",
+          "questions": [
+            {
+              "number": 143,
+              "prompt": "Câu 143",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Recently"
+                },
+                {
+                  "value": "B",
+                  "label": "Reluctantly"
+                },
+                {
+                  "value": "C",
+                  "label": "Occasionally"
+                },
+                {
+                  "value": "D",
+                  "label": "Traditionally"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 144,
+              "prompt": "Câu 144",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The routing software was designed by a local technology company"
+                },
+                {
+                  "value": "B",
+                  "label": "Fuel prices across the region are expected to rise again soon"
+                },
+                {
+                  "value": "C",
+                  "label": "The shorter routes have also cut the hours drivers spend on the road"
+                },
+                {
+                  "value": "D",
+                  "label": "Customers have often praised the company's courteous delivery staff"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 145,
+              "prompt": "Câu 145",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "significance"
+                },
+                {
+                  "value": "B",
+                  "label": "significant"
+                },
+                {
+                  "value": "C",
+                  "label": "significantly"
+                },
+                {
+                  "value": "D",
+                  "label": "signify"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 146,
+              "prompt": "Câu 146",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "control"
+                },
+                {
+                  "value": "B",
+                  "label": "delay"
+                },
+                {
+                  "value": "C",
+                  "label": "distance"
+                },
+                {
+                  "value": "D",
+                  "label": "progress"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 7,
+      "partNumber": 7,
+      "title": "Reading Comprehension",
+      "instructions": "Read the following text then answer the questions.",
+      "questionCount": 54,
+      "audioUrl": "",
+      "questionRange": "Questions 147-200",
+      "passage": {
+        "title": "Reading Comprehension",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 147-148",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Introducing the Trailwynd Rolling Case Collection from Bellhaven Luggage Co.</b></p><p>Every Trailwynd case earns its place in the overhead bin. Recognized with the National Design Council's Travel Gear Award, each case has a shell molded from a single sheet of impact-resistant polycarbonate and rolls on four silent spinner wheels. Most cases come in six coordinated colors to suit any traveler.</p><table><tr><th>Model</th><th>Best for</th><th>Capacity note</th></tr><tr><td>Skimmer</td><td>Overnight and one-to-two-night getaways</td><td>Fits under most seats; two colors only</td></tr><tr><td>Meridian</td><td>Trips of up to a week</td><td>Expands to 40 liters</td></tr><tr><td>Continental</td><td>Journeys of one to two weeks</td><td>Divided main compartment</td></tr><tr><td>Odyssey</td><td>Extended travel beyond two weeks</td><td>Largest shell, 90 liters</td></tr></table><p>Order today at any Bellhaven showroom. Every Trailwynd case is backed by a ten-year repair guarantee.</p></div>",
+          "questions": [
+            {
+              "number": 147,
+              "prompt": "What is NOT indicated about the Trailwynd collection?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It has been recognized for its design."
+                },
+                {
+                  "value": "B",
+                  "label": "It offers models for several trip lengths."
+                },
+                {
+                  "value": "C",
+                  "label": "It has become the company's best-selling line."
+                },
+                {
+                  "value": "D",
+                  "label": "It provides long-term repair coverage."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 148,
+              "prompt": "Which model is best for a traveler preparing for a six-day trip?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Skimmer"
+                },
+                {
+                  "value": "B",
+                  "label": "Meridian"
+                },
+                {
+                  "value": "C",
+                  "label": "Continental"
+                },
+                {
+                  "value": "D",
+                  "label": "Odyssey"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 149-150",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Willowdale Costume Rentals</b></p><p>Choose one of the rental packages below when you visit our front counter.</p><table><tr><th>Package</th><th>Rental period</th><th>Fee</th></tr><tr><td>Single Evening</td><td>1 day</td><td>$25</td></tr><tr><td>Weekend Bundle</td><td>3 days</td><td>$45, includes a free accessory kit</td></tr><tr><td>Full Week</td><td>7 days</td><td>$70</td></tr></table><p><b>Returning your costume</b></p><p>1. Bring all items back by 6:00 P.M. on the due date.<br>2. Make sure each item is clean and free of damage.<br>3. Show your receipt at the counter to have your $20 deposit refunded.</p><p>Questions? Call the shop at 555-0182. Open Monday through Saturday, 10:00 A.M. to 7:00 P.M.</p></div>",
+          "questions": [
+            {
+              "number": 149,
+              "prompt": "What is indicated about the Weekend Bundle package?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It costs seventy dollars."
+                },
+                {
+                  "value": "B",
+                  "label": "It may be borrowed for one day."
+                },
+                {
+                  "value": "C",
+                  "label": "It includes a complimentary item."
+                },
+                {
+                  "value": "D",
+                  "label": "It is the cheapest package offered."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 150,
+              "prompt": "According to the notice, what must a customer do when returning a costume?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Submit a twenty-dollar deposit."
+                },
+                {
+                  "value": "B",
+                  "label": "Send the costume by mail."
+                },
+                {
+                  "value": "C",
+                  "label": "Return it within seven days."
+                },
+                {
+                  "value": "D",
+                  "label": "Ensure the costume is undamaged."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 151-152",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Weekend Toy Event Setup Team</b></p><p>Dana Whitmore [8:02 A.M.]: Morning, both of you. Doors open at ten for the weekend toy showcase, and two setup jobs are still outstanding. The vendor's demonstration table arrived flat-packed and needs assembling, and the sample bins by the entrance need restocking before customers arrive.</p><p>Oscar Reinholt [8:04 A.M.]: I'll take the heavier one.</p><p>Dana Whitmore [8:05 A.M.]: Great, thanks, Oscar. The toolkit is on the shelf behind the register.</p><p>Dana Whitmore [8:06 A.M.]: Nina, can you cover the sample bins? Everything has to be done by nine thirty—the vendor's representative is stopping in then to inspect the display before we open.</p><p>Nina Castellano [8:12 A.M.]: Just walked in—the bus ran late. Sure, I've got the bins. Roughly how many are we filling?</p><p>Dana Whitmore [8:13 A.M.]: Around twenty. The refill crates are stacked by the front counter, ready to go.</p><p>Nina Castellano [8:14 A.M.]: Twenty's manageable. I'll start now.</p></div>",
+          "questions": [
+            {
+              "number": 151,
+              "prompt": "At 8:04 A.M., what does Mr. Reinholt most likely mean when he writes, \"I'll take the heavier one\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He is volunteering for the task that involves assembly."
+                },
+                {
+                  "value": "B",
+                  "label": "He is offering to refill the entrance sample bins."
+                },
+                {
+                  "value": "C",
+                  "label": "He is responding to Ms. Whitmore's expression of thanks."
+                },
+                {
+                  "value": "D",
+                  "label": "He is carrying a heavy object to the counter."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 152,
+              "prompt": "What is suggested about Ms. Castellano?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She is unlikely to complete her task before the deadline."
+                },
+                {
+                  "value": "B",
+                  "label": "She has been assigned to assemble the demonstration table."
+                },
+                {
+                  "value": "C",
+                  "label": "She will be working at the front counter during the event."
+                },
+                {
+                  "value": "D",
+                  "label": "She should finish her task in time despite arriving late."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 153-154",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Northcliff Ferry Service</b><br>Comfortable passenger crossings across Tarn Bay, every day of the week.</p><p>Whether you are commuting or exploring the coast, our ferry is a reliable way to reach the far shore, with eight sailings daily and a crossing of about forty minutes.</p><p><b>On Board</b><br>Settle into the heated indoor lounge, or pick up a hot drink and a light snack from our café attendant at the counter.</p><p><b>Before You Sail</b><br>Please arrive at least fifteen minutes early, as boarding closes promptly so that every sailing departs on time.</p><p><b>Traveling With Us</b><br>Ticketing and check-in are handled by our terminal staff at the dock, while our crew remain aboard throughout the voyage, guiding travelers to available seats and answering questions about the route.</p><p>Because places fill quickly in the busy season, travelers are encouraged to arrange a crossing ahead of time.</p></div>",
+          "questions": [
+            {
+              "number": 153,
+              "prompt": "What is the purpose of the Web page?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To describe the onboard dining options"
+                },
+                {
+                  "value": "B",
+                  "label": "To encourage travelers to use the ferry service"
+                },
+                {
+                  "value": "C",
+                  "label": "To announce a new sailing schedule"
+                },
+                {
+                  "value": "D",
+                  "label": "To explain the boarding procedure for passengers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 154,
+              "prompt": "According to the Web page, what do the crew do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They process check-in at the dock."
+                },
+                {
+                  "value": "B",
+                  "label": "They direct travelers to open seats."
+                },
+                {
+                  "value": "C",
+                  "label": "They serve refreshments at the counter."
+                },
+                {
+                  "value": "D",
+                  "label": "They collect fares during the crossing."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 155-157",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Crystalpane Home Window Care</b><br>Bright windows, brighter homes</p><p>Crystalpane Home Window Care brings sparkling, streak-free glass to owners of private residences across the region. Whether you live in a small cottage or a spacious family house, our fully trained crews reach every pane so you never have to climb a ladder again. We do not service commercial buildings or rental portfolios; our attention is given entirely to the family home. Choose the plan that fits your routine.</p><table><tr><th>Package</th><th>Frequency and scope</th><th>Price per month</th></tr><tr><td>Monthly Refresh</td><td>Exterior glass, one visit each month</td><td>$45</td></tr><tr><td>Steady Shine</td><td>Exterior glass, two visits each month (limited-time introductory discount)</td><td>$80</td></tr><tr><td>Weekly Sparkle</td><td>Exterior glass, one visit each week</td><td>$150</td></tr></table><p>Interior cleaning is not included in any package. To <b>secure</b> your chosen plan, book online at crystalpane.com or telephone our home care line. First-time customers receive a friendly walkthrough before any work begins.</p><p>Please note: because our crews work only in this area, each week's schedule fills quickly, and once it does we cannot take on any more homes until the following week, so early reservations are advised.</p></div>",
+          "questions": [
+            {
+              "number": 155,
+              "prompt": "For whom is the brochure most likely intended?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "People hoping to be hired as window cleaners"
+                },
+                {
+                  "value": "B",
+                  "label": "Owners of properties they rent out to tenants"
+                },
+                {
+                  "value": "C",
+                  "label": "People who own the homes they live in"
+                },
+                {
+                  "value": "D",
+                  "label": "Homeowners seeking to have indoor glass cleaned"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 156,
+              "prompt": "In the brochure's booking instructions, the word \"secure\" is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "fasten"
+                },
+                {
+                  "value": "B",
+                  "label": "protect"
+                },
+                {
+                  "value": "C",
+                  "label": "strengthen"
+                },
+                {
+                  "value": "D",
+                  "label": "reserve"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 157,
+              "prompt": "What is indicated about Crystalpane Home Window Care?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Only a limited number of new homes can be booked weekly."
+                },
+                {
+                  "value": "B",
+                  "label": "Its introductory discount applies to all three packages."
+                },
+                {
+                  "value": "C",
+                  "label": "Its top package includes cleaning of interior glass."
+                },
+                {
+                  "value": "D",
+                  "label": "A preliminary visit takes place before every cleaning."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 158-160",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Northgate Signworks</b><br>Custom Signs and Exterior Lettering<br>88 Tanner Row, Millhaven</p><p>14 March</p><p>Ms. Eleanor Prewitt<br>40 Oakbourne Place<br>Millhaven</p><p>Dear Ms. Prewitt,</p><p>I am writing to introduce Northgate Signworks, a design and fabrication studio based in your community. --[1]-- You may already have engaged Verona Interiors or a similar firm to complete your interior fit-out. --[2]-- Over the past ten years, our lettering and panels have earned warm feedback from owners throughout the district. --[3]-- Northgate Signworks would be glad to design and produce the exterior signage for your building, and our team can complete the work well before your opening day. Clear signs matter in your line of work, since many guests arrive after dark and must find their way from the street to the entrance and up to their rooms for the night. Please write or call if you would like to arrange a visit to discuss your plans. --[4]--</p><p>Sincerely,</p><p>Gregory Holt<br>Owner, Northgate Signworks</p><p>Enclosure: Portfolio of recent work</p></div>",
+          "questions": [
+            {
+              "number": 158,
+              "prompt": "What is the main purpose of the letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To confirm the date of an appointment"
+                },
+                {
+                  "value": "B",
+                  "label": "To offer to carry out a project for the recipient"
+                },
+                {
+                  "value": "C",
+                  "label": "To recommend a firm for interior work"
+                },
+                {
+                  "value": "D",
+                  "label": "To reply to an inquiry from the recipient"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 159,
+              "prompt": "What type of business does Ms. Prewitt most likely operate?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A restaurant"
+                },
+                {
+                  "value": "B",
+                  "label": "A retail store"
+                },
+                {
+                  "value": "C",
+                  "label": "A school"
+                },
+                {
+                  "value": "D",
+                  "label": "A hotel"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 160,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? \"I understand that you are preparing to open new premises on Oakbourne Place this spring.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 161-164",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Bright Lane Mobile Car Wash — We Come to Your Driveway</b></p><p>Tired of waiting in line at a busy wash bay? Our crews travel across the Ferncroft area to clean your car exactly where it is parked. No trip across town, no long line, and no wasted afternoon.</p><p>Every standard visit covers seven cleaning tasks. Our team washes and dries the exterior, cleans the wheels and the windows, and then moves inside to vacuum the seats and carpets, wipe down the dashboard, and freshen the cabin. Engine-bay cleaning is offered as a separate add-on and is not part of the standard visit.</p><p><b>Our Promise:</b> Every wash is backed by a 48-hour satisfaction guarantee. We supply all cleaning products ourselves and use them on-site, and you receive a printed receipt listing the work completed at the end of each visit.</p><p>Booking is simple. Just call the number below to arrange a time. There is no form to fill out in advance, and no payment is required until the work is finished. All we ask is that you have an accessible parking space ready at your home so the crew can reach the vehicle. Our team arrives with its own water tank and equipment, so nothing needs to be prepared on your end.</p><p>Give your car the care it deserves without leaving home. Call today and book your first visit.</p><p>Bright Lane Mobile Car Wash | Phone: 555-0148 | Serving the Ferncroft area seven days a week<br>If you are not satisfied with any wash, our crew will return and re-clean your vehicle at no charge.</p></div>",
+          "questions": [
+            {
+              "number": 161,
+              "prompt": "According to the advertisement, what does a routine wash appointment include?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Cleaning of the engine bay"
+                },
+                {
+                  "value": "B",
+                  "label": "Only an exterior wash and dry"
+                },
+                {
+                  "value": "C",
+                  "label": "Cleaning of the home's surfaces"
+                },
+                {
+                  "value": "D",
+                  "label": "Both interior and exterior cleaning"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 162,
+              "prompt": "What does Bright Lane offer its customers?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A catalog of products for sale"
+                },
+                {
+                  "value": "B",
+                  "label": "A discount for repeat customers"
+                },
+                {
+                  "value": "C",
+                  "label": "Free cleaning supplies to keep"
+                },
+                {
+                  "value": "D",
+                  "label": "An assurance about each wash's quality"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 163,
+              "prompt": "According to the advertisement, what must customers provide for a scheduled visit?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Their own water and equipment"
+                },
+                {
+                  "value": "B",
+                  "label": "A booking form filled out ahead of time"
+                },
+                {
+                  "value": "C",
+                  "label": "An accessible space to park the car"
+                },
+                {
+                  "value": "D",
+                  "label": "Payment before the work begins"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 164,
+              "prompt": "What will Bright Lane do if a customer is unhappy with a wash?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Refund the full amount paid"
+                },
+                {
+                  "value": "B",
+                  "label": "Offer a discount on a later visit"
+                },
+                {
+                  "value": "C",
+                  "label": "Clean the vehicle again at no cost"
+                },
+                {
+                  "value": "D",
+                  "label": "Carry out a different service instead"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 165-167",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>New Secure Bicycle Storage Room</b></p><p>Effective March 3 · Posted by Wrenfield Business Center Management</p><p>We are pleased to announce that the ground-floor bicycle storage room is now open to all building occupants. The room offers covered racks and improved lighting, and access is controlled by a personal entry code, so tenants no longer need to leave bicycles in the crowded outdoor lot.</p><p>To register for a personal entry code, please complete the following steps:</p><p>1. Visit the management office in Suite 100 during business hours.</p><p>2. Present the building access card that was issued to you when you moved in.</p><p>3. Provide the make and color of each bicycle you intend to store.</p><p>4. Sign the storage agreement and collect your entry code on the spot.</p><p>Once registered, occupants must <b>observe</b> the posted access hours of 6 A.M. to 10 P.M. and remove bicycles promptly if a rack is needed for maintenance. Please note that the room is monitored and that spaces are assigned on a first-come basis. Any questions may be directed to the management office.</p><p>Bicycle Storage Room, Ground Level, north corridor · Management Office, Suite 100 · 555-0148</p></div>",
+          "questions": [
+            {
+              "number": 165,
+              "prompt": "What is the purpose of the notice?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To warn tenants that a storage area will close for repairs"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce revised operating hours for the entire building"
+                },
+                {
+                  "value": "C",
+                  "label": "To invite occupants to submit feedback about outdoor parking"
+                },
+                {
+                  "value": "D",
+                  "label": "To introduce a new facility and describe how to register for it"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 166,
+              "prompt": "What is suggested about the building occupants?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They are required to obtain a new access card first"
+                },
+                {
+                  "value": "B",
+                  "label": "Their offices are situated along the building's north corridor"
+                },
+                {
+                  "value": "C",
+                  "label": "They received a means of building access before the storage room opened"
+                },
+                {
+                  "value": "D",
+                  "label": "They first moved into the building during the month of March"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 167,
+              "prompt": "The word \"observe\" in the notice is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "follow"
+                },
+                {
+                  "value": "B",
+                  "label": "watch"
+                },
+                {
+                  "value": "C",
+                  "label": "notice"
+                },
+                {
+                  "value": "D",
+                  "label": "mention"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 168-171",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<p>To: Angela Ruiz<br>From: Nolan Pierce<br>Subject: Designer recommendation<br>Date: March 12<br><br>Dear Angela,<br><br>You asked last week whether I knew a reliable graphic designer for your product catalog, and I am glad to recommend Curtis Holloway.<br><br>Curtis spent several years at Brookmere Creative Agency before opening his own practice. When I asked why he had struck out on his own, he explained that what he valued most was sitting down directly with the local business owners he served, rather than routing every decision through account managers. That focus is clear in how he operates today. He works almost entirely with small companies in our region, and he takes on several kinds of projects, including logos, printed brochures, and graphics for websites.<br><br>If you decide to reach out, Curtis offers a first meeting at no cost, so you can describe your project and view samples of his earlier work before committing to anything. You do not need to book weeks in advance, and the meeting is open to anyone considering his services, not only first-time clients. Once a project begins, he usually delivers the finished files within two weeks.<br><br>I engaged Curtis myself last quarter for our conference materials, and I was impressed from start to finish. When the completed booklet reached my supervisor, Ms. Loretta Vance, she was delighted with the result and asked who had produced it. That reaction alone should tell you a great deal about the quality of his work.<br><br>Please feel free to mention my name when you contact him. I am confident you will find him easy to work with, and I would be happy to answer any further questions.<br><br>Best regards,<br>Nolan Pierce</p>",
+          "questions": [
+            {
+              "number": 168,
+              "prompt": "According to the e-mail, why did Mr. Holloway decide to work independently?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He wanted to work more directly with local clients"
+                },
+                {
+                  "value": "B",
+                  "label": "He hoped to return to agency work"
+                },
+                {
+                  "value": "C",
+                  "label": "He wanted to shorten his project turnaround"
+                },
+                {
+                  "value": "D",
+                  "label": "He wanted to broaden his range of services"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 169,
+              "prompt": "What is NOT indicated about Mr. Holloway?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He has previously been employed at an agency"
+                },
+                {
+                  "value": "B",
+                  "label": "He works with clients located in his region"
+                },
+                {
+                  "value": "C",
+                  "label": "He handles several types of design work"
+                },
+                {
+                  "value": "D",
+                  "label": "He has received recognition from an industry group"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 170,
+              "prompt": "What is indicated about the first meeting that Mr. Holloway offers?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It must be scheduled several weeks in advance"
+                },
+                {
+                  "value": "B",
+                  "label": "It is available only to first-time clients"
+                },
+                {
+                  "value": "C",
+                  "label": "It lets prospective clients assess his work before they commit"
+                },
+                {
+                  "value": "D",
+                  "label": "It ends with the delivery of the finished files"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 171,
+              "prompt": "What does the e-mail suggest about Ms. Vance?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She selected Mr. Holloway for the conference project"
+                },
+                {
+                  "value": "B",
+                  "label": "She did not know who had created the booklet"
+                },
+                {
+                  "value": "C",
+                  "label": "She once worked at Brookmere Creative Agency"
+                },
+                {
+                  "value": "D",
+                  "label": "She designs promotional materials herself"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 172-175",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Copperkettle Coffee Roasters — Home Bean Subscription Plans</b></p><p>Freshly roasted beans delivered to your door for the perfect cup at home. Whether you stay loyal to one blend or enjoy trying a new coffee with every delivery, there is a plan to match the way you brew at home.</p><table><tr><th>Plan</th><th>Includes</th><th>Delivery</th><th>Price</th></tr><tr><td>Daily Roast</td><td>One 250-gram bag of our house blend and a short monthly newsletter</td><td>Once a month</td><td>$15</td></tr><tr><td>Bean Explorer</td><td>Two 500-gram bags of rotating coffees and a compact hand grinder</td><td>Every two weeks</td><td>$34</td></tr><tr><td>Connoisseur Select</td><td>Single-origin beans from selected farms, a tasting notes booklet, and a brewing tips card</td><td>Every week</td><td>$40</td></tr><tr><td>Grand Reserve</td><td>A limited seasonal roast and a signed certificate of origin</td><td>Every three months</td><td>$28</td></tr></table><p>All subscription plans are shipped nationwide, with the exception of Grand Reserve, whose beans must be collected in person at our roastery at 48 Harwick Lane. Our weekend stall at Brindley Square Market does not handle subscription pickups. For account inquiries, please contact our administrative office in Suite 300.</p></div>",
+          "questions": [
+            {
+              "number": 172,
+              "prompt": "For whom are the subscription plans most likely intended?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Café owners buying beans in large quantities"
+                },
+                {
+                  "value": "B",
+                  "label": "People who prepare coffee in their own homes"
+                },
+                {
+                  "value": "C",
+                  "label": "Growers who sell their coffee harvest"
+                },
+                {
+                  "value": "D",
+                  "label": "Baristas competing in professional contests"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 173,
+              "prompt": "What is NOT included in the Connoisseur Select plan?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A tool for grinding beans"
+                },
+                {
+                  "value": "B",
+                  "label": "Beans grown on particular farms"
+                },
+                {
+                  "value": "C",
+                  "label": "A booklet describing flavor characteristics"
+                },
+                {
+                  "value": "D",
+                  "label": "A card offering preparation advice"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 174,
+              "prompt": "How often does the least expensive plan deliver coffee?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Once a month"
+                },
+                {
+                  "value": "B",
+                  "label": "Every two weeks"
+                },
+                {
+                  "value": "C",
+                  "label": "Every week"
+                },
+                {
+                  "value": "D",
+                  "label": "Every three months"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 175,
+              "prompt": "How can customers obtain the beans from the plan that includes a signed certificate of origin?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "By having them shipped to a home address"
+                },
+                {
+                  "value": "B",
+                  "label": "By picking them up at the weekend market stall"
+                },
+                {
+                  "value": "C",
+                  "label": "By collecting them in person at the roastery"
+                },
+                {
+                  "value": "D",
+                  "label": "By retrieving them from the Suite 300 office"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 176-180",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Vanmoor Packaging Wholesale — Dispatch Notice</b></p><p>Dispatch Reference: VP-40712<br>Carrier: Redwing Freight<br>Account Holder: Thornbury Café Group<br>Account Tier: Priority<br>Contents: 24 cartons — takeaway cups, lids, napkins, and paper bags<br>Order Status: Dispatched in full — 24 of 24 cartons<br>Dispatch Date: 3 March<br>Delivery Window: 5–7 March<br>Handling Terms: Accounts on our top service tier receive weekend delivery and a same-day dispatch confirmation at no extra cost. Accounts on the standard tier are limited to weekday delivery only.<br>Inquiries: For any question about this shipment, contact the dispatch desk at 555-0192 or reply directly to your account manager.</p></div><p>----------------------</p><div><p>From: Desmond Fairlie<br>To: Vanmoor Packaging Wholesale — Dispatch Desk<br>Subject: Regarding dispatch VP-40712</p><p>Hello Vanmoor Team,</p><p>I am writing to confirm that the 24 cartons listed on dispatch VP-40712 reached our main café on 6 March. Everything arrived in good order, the cartons have been unpacked, and the counts matched the notice exactly. Thank you for the smooth handover.</p><p>With that settled, I would like to sort out a few points for future shipments. First, please send all of our standing orders to our new central storeroom on Kelbrook Lane rather than to the café on Prentice Street. We have decided to hold all packaging stock in one place, and having it delivered directly there will save our staff a good deal of moving around. The storeroom is staffed from eight in the morning, so a delivery at any point during the day will be received without trouble.</p><p>Second, I wanted to ask about faster turnaround. During our busiest weeks we sometimes run low on cups with very little warning. If a same-week shipment can be arranged when that happens, could you let me know what such a request would involve and whether our account already <b>covers</b> it?</p><p>One last item to flag: please remove the wooden stirrers from our regular order. We have arranged those through a local supplier now, so there is no need to include them going forward. Everything else on the list should stay exactly as it is.</p><p>Thank you again for keeping our deliveries running so smoothly. I look forward to hearing how the storeroom change and the faster option can be set up.</p><p>Best,<br>Desmond Fairlie<br>Operations Manager<br>Thornbury Café Group<br>Direct line: 555-0148</p></div>",
+          "questions": [
+            {
+              "number": 176,
+              "prompt": "Why does the company Mr. Fairlie represents qualify for weekend delivery at no extra cost?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It took advantage of a limited-time delivery promotion."
+                },
+                {
+                  "value": "B",
+                  "label": "It holds the wholesaler's highest service level."
+                },
+                {
+                  "value": "C",
+                  "label": "It collected the cartons directly from the carrier."
+                },
+                {
+                  "value": "D",
+                  "label": "It was owed credit from an earlier shipment."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 177,
+              "prompt": "What is indicated about the shipment sent under dispatch VP-40712?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It reached the café on the day it was dispatched."
+                },
+                {
+                  "value": "B",
+                  "label": "It arrived within the promised delivery period."
+                },
+                {
+                  "value": "C",
+                  "label": "It came one day after the delivery window closed."
+                },
+                {
+                  "value": "D",
+                  "label": "It was delayed beyond the wholesaler's estimate."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 178,
+              "prompt": "What does Mr. Fairlie ask Vanmoor to do with the company's regular future orders?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Deliver them to a newly designated storage site."
+                },
+                {
+                  "value": "B",
+                  "label": "Divide them between the café and the storeroom."
+                },
+                {
+                  "value": "C",
+                  "label": "Continue sending them to the café as before."
+                },
+                {
+                  "value": "D",
+                  "label": "Deliver them only before eight in the morning."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 179,
+              "prompt": "What is one reason Mr. Fairlie wrote the e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To report that part of the shipment was missing."
+                },
+                {
+                  "value": "B",
+                  "label": "To recommend a different freight carrier."
+                },
+                {
+                  "value": "C",
+                  "label": "To arrange adjustments to future shipments."
+                },
+                {
+                  "value": "D",
+                  "label": "To dispute an extra charge on the delivery."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 180,
+              "prompt": "In the e-mail, the word \"covers\" is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "conceals"
+                },
+                {
+                  "value": "B",
+                  "label": "protects"
+                },
+                {
+                  "value": "C",
+                  "label": "includes"
+                },
+                {
+                  "value": "D",
+                  "label": "reports"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 181-185",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Account Reference: New Enrollment — Maple Court Apartments<br>Attention: Ms. Renata Voss, Scheduling Coordinator<br>From: Gordon Selby, Property Manager<br>Date: 14 April<br>Subject: Setting up a recurring treatment plan</p><p>Dear Ms. Voss,</p><p>I manage Maple Court Apartments, a fourteen-unit residential building on Ashbury Lane. The property has never used an outside pest-control provider, but after comparing several companies I have decided that Hollowbrook Pest Solutions is the right choice for us, and I would like to open a regular service account.</p><p>Please enroll the building in the Steady Defense plan, which appears well suited to a property of our size. We would like the service to begin in May, and I would be grateful if the first visit could be scheduled for that month according to the day your plan already assigns.</p><p>The treatment should cover the following: ants and other crawling insects, rodents in the basement storage area, and wasp nests along the exterior walls. Several tenants have also mentioned the garden beds at the rear, so please treat those as a lower priority rather than a requirement.</p><p>Kindly confirm the arrangement and let me know the visit day tied to our plan. You can reach me directly on extension 218 during office hours.</p><p>Kind regards,<br>Gordon Selby<br>Property Manager, Maple Court Apartments<br>Direct line: extension 218</p></div><p>----------------------</p><div><p><b>Hollowbrook Pest Solutions — Residential Treatment Plans</b></p><p>All plans are carried out by licensed technicians and apply to buildings of up to twenty units. The rates shown below are effective from 1 March.</p><table><tr><th>Plan</th><th>Frequency</th><th>Assigned Visit</th><th>Price per visit</th></tr><tr><td>Seasonal Shield</td><td>Every three months</td><td>First Monday, afternoon</td><td>$95</td></tr><tr><td>Steady Defense</td><td>Monthly</td><td>Second Wednesday, morning</td><td>$70</td></tr><tr><td>Full Coverage</td><td>Every two weeks</td><td>Thursday, morning</td><td>$55</td></tr></table><p>Note: Every plan includes a complimentary termite inspection once each year. Optional mosquito fogging may be added to any plan for an extra $40 per visit.</p></div>",
+          "questions": [
+            {
+              "number": 181,
+              "prompt": "When is the first treatment at Maple Court Apartments most likely to take place?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "On the first Monday of May, in the afternoon"
+                },
+                {
+                  "value": "B",
+                  "label": "On the second Wednesday of May, in the morning"
+                },
+                {
+                  "value": "C",
+                  "label": "On the first Thursday of May, in the morning"
+                },
+                {
+                  "value": "D",
+                  "label": "On the second Wednesday of April, in the morning"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 182,
+              "prompt": "What is NOT indicated about Maple Court Apartments?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It stands on Ashbury Lane."
+                },
+                {
+                  "value": "B",
+                  "label": "It contains fourteen dwelling units."
+                },
+                {
+                  "value": "C",
+                  "label": "It has been free of pest problems until now."
+                },
+                {
+                  "value": "D",
+                  "label": "It has a basement used for storage."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 183,
+              "prompt": "What does Selby indicate about the Steady Defense plan?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It seems appropriate for a building with his number of units."
+                },
+                {
+                  "value": "B",
+                  "label": "It was recommended to him by Ms. Voss."
+                },
+                {
+                  "value": "C",
+                  "label": "It provides visits every two weeks."
+                },
+                {
+                  "value": "D",
+                  "label": "It was the least costly plan he compared."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 184,
+              "prompt": "According to the documents, what will Maple Court Apartments receive that Selby did not request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Removal of wasp nests"
+                },
+                {
+                  "value": "B",
+                  "label": "Biweekly service visits"
+                },
+                {
+                  "value": "C",
+                  "label": "Mosquito fogging at no charge"
+                },
+                {
+                  "value": "D",
+                  "label": "A yearly termite inspection"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 185,
+              "prompt": "What is indicated about Hollowbrook Pest Solutions?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Its prices increased on 1 March."
+                },
+                {
+                  "value": "B",
+                  "label": "It only serves buildings below a certain size."
+                },
+                {
+                  "value": "C",
+                  "label": "Its technicians are still in training."
+                },
+                {
+                  "value": "D",
+                  "label": "It provides mosquito fogging free with every plan."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 186-190",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Harlow Yard Commercial Kitchens — Available Suites</b></p><p>Full rates and specifications are kept at our office; a summary is shown below.</p><table><tr><th>Suite</th><th>District</th><th>Key equipment</th><th>Available from</th><th>Minimum term</th><th>Notes</th></tr><tr><td>Copper Loft</td><td>Pennington</td><td>Two deck ovens</td><td>1 June</td><td>6 months</td><td>Access by keypad, day or night</td></tr><tr><td>Fenwick Prep Suite</td><td>Fenwick</td><td>Blast chiller</td><td>1 April</td><td>12 months</td><td>Keypad entry available around the clock</td></tr><tr><td>Oldgate Suite</td><td>Oldgate</td><td>Blast chiller</td><td>1 July</td><td>12 months</td><td>Enter at any hour using the keypad</td></tr><tr><td>Dellwood Room</td><td>Dellwood</td><td>Proofing cabinet</td><td>1 April</td><td>3 months</td><td>Round-the-clock keypad access</td></tr></table><p>To book a viewing, contact the leasing team during office hours.</p></div><p>----------------------</p><div><p>To: Leasing Office, Harlow Yard Commercial Kitchens<br>From: Miriam Foss<br>Date: 12 February<br>Subject: Suite requirements for a preserves business</p><p>Dear Leasing Office,</p><p>I run a small business that makes fruit preserves, and I am ready to move production out of a home kitchen into a rented suite. Before arranging a visit, I would like to confirm a few requirements.</p><p>First, my recipes depend on a blast chiller, so the suite must include one. Second, I hope to begin production at the start of April. Third, I am prepared to sign for a full year, so a longer minimum term is not a concern for me.</p><p>As an aside, our retail shop currently sits on Bantry Street in the Oldgate district, so I already know that part of the city fairly well.</p><p>I look forward to your recommendation.</p><p>Sincerely,<br>Miriam Foss<br>Owner, Wildfern Preserves<br>Retail shop: Bantry Street, Oldgate</p></div><p>----------------------</p><div><p>To: Miriam Foss<br>From: Declan Pryce, Leasing Team<br>Date: 12 February<br>Subject: Re: Suite requirements for a preserves business<br>Enclosure: Floor plan of the recommended suite</p><p>Dear Ms. Foss,</p><p>Thank you for setting out your needs so clearly. Weighing all three of your conditions together, there is exactly one suite that satisfies every one of them, and I have enclosed its floor plan so you can picture the space.</p><p>That suite becomes available on the first of April. Separately, I should mention that the Copper Loft will become free at the start of June, so if your production grows later in the year, a second space could be worth keeping in mind.</p><p>If it would help, I can send you a copy of our standard lease agreement so that you can review the terms before you visit.</p><p>One more thought: your retail shop happens to sit in one of the very districts we operate a kitchen in, so if staying close to your current premises ever appeals to you, we have a suite in that same part of the city.</p><p>Please tell me when you would like to tour the site.</p><p>Best regards,<br>Declan Pryce<br>Leasing Team, Harlow Yard Commercial Kitchens<br>Visits by appointment, Tuesday to Saturday</p></div>",
+          "questions": [
+            {
+              "number": 186,
+              "prompt": "What is true about all four suites listed in the Harlow Yard directory?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They become available on 1 April."
+                },
+                {
+                  "value": "B",
+                  "label": "They require a twelve-month minimum term."
+                },
+                {
+                  "value": "C",
+                  "label": "They can be entered at any time of day."
+                },
+                {
+                  "value": "D",
+                  "label": "They are fitted with a blast chiller."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 187,
+              "prompt": "Based on the requirements Ms. Foss sets out in her message, which suite would best suit her?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The Fenwick Prep Suite"
+                },
+                {
+                  "value": "B",
+                  "label": "The Oldgate Suite"
+                },
+                {
+                  "value": "C",
+                  "label": "The Dellwood Room"
+                },
+                {
+                  "value": "D",
+                  "label": "The Copper Loft"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 188,
+              "prompt": "According to Mr. Pryce, what will happen over the coming months?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The minimum term for one suite will be reduced."
+                },
+                {
+                  "value": "B",
+                  "label": "Ms. Foss will relocate her retail shop."
+                },
+                {
+                  "value": "C",
+                  "label": "The leasing office will add extra viewing days."
+                },
+                {
+                  "value": "D",
+                  "label": "Two suites will become available for rent."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 189,
+              "prompt": "What does Mr. Pryce offer to send Ms. Foss?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A floor plan of the suite"
+                },
+                {
+                  "value": "B",
+                  "label": "A copy of the standard lease agreement"
+                },
+                {
+                  "value": "C",
+                  "label": "A summary of the suite rates"
+                },
+                {
+                  "value": "D",
+                  "label": "A schedule of viewing appointments"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 190,
+              "prompt": "What does Mr. Pryce suggest about Ms. Foss's retail shop?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is closer to the Copper Loft than to any other suite."
+                },
+                {
+                  "value": "B",
+                  "label": "It is in the same district as one of the available suites."
+                },
+                {
+                  "value": "C",
+                  "label": "It is close to the Fenwick Prep Suite."
+                },
+                {
+                  "value": "D",
+                  "label": "It is on the same street as the Dellwood Room."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 191-195",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Calderwood Timepieces Receives Northfield Design Prize</b></p><p><b>Award announced alongside the launch of a new collection</b></p><p>HAVENPORT, March 3, 2024 — Calderwood Timepieces reported today that it has received the Northfield Design Prize, an honor given each year by the Institute of Industrial Design to a single watch manufacturer.</p><p>The judges praised the clean lines and lasting build of the company's Voyage model, noting in particular its clear, easy-to-read dial.</p><p>Founder Harriet Osei, who has personally overseen every watch design since she opened the company five years ago, said that the prize reflects the effort of the entire workshop rather than any single person.</p><p>Calderwood introduced its very first model in the year it opened, and that watch still sells steadily today. This month the company adds a new collection led by the Nocturne, its most recent design.</p><p>Calderwood designs and manufactures all of its wristwatches in-house, and the complete range is carried by retailers across the country.</p><p>Media inquiries: press@calderwoodtime.com. Contact: Harriet Osei, Founder.</p><p>About Calderwood Timepieces: Opened five years ago, the company builds durable everyday watches and sells them through independent shops nationwide.</p></div><p>----------------------</p><table><tr><th>Model</th><th>Year introduced</th><th>Case size</th><th>Water resistance</th><th>Strap</th><th>Power source</th><th>Price band</th></tr><tr><td>Aurora</td><td>2022</td><td>38 mm</td><td>30 m</td><td>Leather</td><td>Solar</td><td>Standard</td></tr><tr><td>Coastal</td><td>2019</td><td>40 mm</td><td>50 m</td><td>Leather</td><td>Standard battery</td><td>Standard</td></tr><tr><td>Drifter</td><td>2023</td><td>43 mm</td><td>100 m</td><td>Fabric</td><td>Standard battery</td><td>Standard</td></tr><tr><td>Nocturne</td><td>2024</td><td>41 mm</td><td>50 m</td><td>Steel</td><td>Standard battery</td><td>Premium</td></tr><tr><td>Summit</td><td>2020</td><td>44 mm</td><td>100 m</td><td>Steel</td><td>Standard battery</td><td>Premium</td></tr><tr><td>Voyage</td><td>2021</td><td>42 mm</td><td>200 m</td><td>Rubber</td><td>Standard battery</td><td>Premium</td></tr><tr><td>Note: All models carry a two-year warranty. Final prices vary by retailer.</td></tr></table><p>----------------------</p><div><p>Subject: Your recent visit to our service desk</p><p>Dear Mr. Delaney,</p><p>Thank you for bringing your watch to our service desk last week. Our technicians have cleaned the movement and fitted a fresh leather strap, and the piece is now ready for you to collect. Because your watch runs on light rather than a battery, there was no battery for us to replace. Please pick it up at the front counter between 9 A.M. and 5 P.M., Monday through Friday.</p><p>Best regards,</p><p>Owen Castleton, Service Desk Coordinator</p><p>Service reference: CW-3308</p></div>",
+          "questions": [
+            {
+              "number": 191,
+              "prompt": "According to the press release, what is indicated about Calderwood Timepieces?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It sells its products straight to shoppers."
+                },
+                {
+                  "value": "B",
+                  "label": "It was founded by two business partners."
+                },
+                {
+                  "value": "C",
+                  "label": "It builds its products at its own facility."
+                },
+                {
+                  "value": "D",
+                  "label": "It awards a yearly prize to watch designers."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 192,
+              "prompt": "What does the press release suggest about Ms. Osei?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She founded the business with a partner."
+                },
+                {
+                  "value": "B",
+                  "label": "She takes part in the company's design work."
+                },
+                {
+                  "value": "C",
+                  "label": "She personally created the award-winning model."
+                },
+                {
+                  "value": "D",
+                  "label": "She intends to reduce her design duties."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 193,
+              "prompt": "What is the case size of the first watch Calderwood produced?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "40 mm"
+                },
+                {
+                  "value": "B",
+                  "label": "41 mm"
+                },
+                {
+                  "value": "C",
+                  "label": "42 mm"
+                },
+                {
+                  "value": "D",
+                  "label": "44 mm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 194,
+              "prompt": "Why did Mr. Castleton send the message to Mr. Delaney?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To set up a future service appointment"
+                },
+                {
+                  "value": "B",
+                  "label": "To report that a repair could not be finished"
+                },
+                {
+                  "value": "C",
+                  "label": "To confirm that a new battery was fitted"
+                },
+                {
+                  "value": "D",
+                  "label": "To tell a customer that an item is ready"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 195,
+              "prompt": "Which model does Mr. Delaney most likely own?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Aurora"
+                },
+                {
+                  "value": "B",
+                  "label": "Coastal"
+                },
+                {
+                  "value": "C",
+                  "label": "Nocturne"
+                },
+                {
+                  "value": "D",
+                  "label": "Voyage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 196-200",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Willowbank Weekend Makers Market — Vendor Participation Program</b></p><p>Effective throughout the year</p><p><b>Eligibility</b><br>1. Every item offered for sale must be handmade by the vendor who presents it.<br>2. Goods bought for resale or produced in a factory may not be sold.</p><p><b>Stall Setup</b><br>1. No single stall may be wider than three meters.<br>2. Vendors must provide their own table and weather covering, as the market supplies neither.</p><p><b>Applying</b><br>1. A completed application form must reach the market office at least two weeks before the season opens.<br>2. First-time vendors are exempt from the usual booth fee of twenty-five dollars.</p><p><b>Participation</b><br>1. Approved vendors receive a stipend of forty dollars for every market day they attend.<br>2. Trading takes place on Saturdays and Sundays only.</p><p>Questions may be sent to the Willowbank Market Office at office@willowbankmakers.org.</p></div><p>----------------------</p><div><p><b>Willowbank Weekend Makers Market — Vendor Application</b></p><p>Applicant name: Claudia Renwick<br>Home town: Ashfield<br>Telephone: 555-0148<br>Product category: Hand-knitted wool scarves and shawls<br>About your goods and interest: I dye and knit every piece myself using local wool. It was a friend — a regular customer here — whose enthusiasm first drew my attention to the market, and when I came to look around last spring I admired the carved wooden serving boards on sale at one of the stalls; that visit finally persuaded me to apply.<br>Season(s) applied for: Autumn<br>Declaration: I confirm that the details above are accurate.<br>Signature: Claudia Renwick    Date: 12 August</p></div><p>----------------------</p><div><p>Subject: Your autumn stall<br>To: Claudia Renwick<br>From: Theodore Marsh, Willowbank Market Office<br>Date: 20 August</p><p>Dear Ms. Renwick,</p><p>Welcome to the market. Your application has been approved, and a stall has been set aside for you for the whole autumn season. Please note that the daily stipend paid to vendors will rise to sixty dollars from the spring season next year.</p><p>I would also like to invite you to join our Featured Stall spotlight. Each month our features coordinator, Frances Underhill, chooses one vendor, photographs their work, and writes a short profile that appears in the market newsletter and on the notice board. Please let me know whether you would be willing to be featured.</p><p>Theodore Marsh<br>Vendor Relations, Willowbank Market Office<br>Replies are answered Monday to Thursday.</p></div>",
+          "questions": [
+            {
+              "number": 196,
+              "prompt": "What is indicated about the Willowbank Weekend Makers Market?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It provides tables and coverings for vendors."
+                },
+                {
+                  "value": "B",
+                  "label": "It permits the sale of factory-made goods."
+                },
+                {
+                  "value": "C",
+                  "label": "It requires a booth fee from every vendor."
+                },
+                {
+                  "value": "D",
+                  "label": "It is open to shoppers only on weekends."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 197,
+              "prompt": "According to the application, how did Ms. Renwick first become aware of the market?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "By reading the market newsletter"
+                },
+                {
+                  "value": "B",
+                  "label": "During a visit last spring"
+                },
+                {
+                  "value": "C",
+                  "label": "From the market's notice board"
+                },
+                {
+                  "value": "D",
+                  "label": "Through a friend's recommendation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 198,
+              "prompt": "What can be concluded about the wooden serving boards described in the application?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They were made by hand by their seller."
+                },
+                {
+                  "value": "B",
+                  "label": "They were manufactured in a factory for resale."
+                },
+                {
+                  "value": "C",
+                  "label": "They were exempt from the handmade requirement."
+                },
+                {
+                  "value": "D",
+                  "label": "They were produced in the town of Ashfield."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 199,
+              "prompt": "How much will Ms. Renwick be paid for each day she attends the market this autumn?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "$30"
+                },
+                {
+                  "value": "B",
+                  "label": "$25"
+                },
+                {
+                  "value": "C",
+                  "label": "$40"
+                },
+                {
+                  "value": "D",
+                  "label": "$60"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 200,
+              "prompt": "What does the e-mail suggest about Frances Underhill?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She approves vendors' applications."
+                },
+                {
+                  "value": "B",
+                  "label": "She photographs every vendor's work."
+                },
+                {
+                  "value": "C",
+                  "label": "She writes profiles for a market publication."
+                },
+                {
+                  "value": "D",
+                  "label": "She answers inquiries on weekdays."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

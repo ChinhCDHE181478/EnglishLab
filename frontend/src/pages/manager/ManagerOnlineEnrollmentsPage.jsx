@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useState } from 'react';
 import { RefreshCw, Search, Users } from 'lucide-react';
 import courseApi from '../../api/courseApi';
 import BrandedSelect from '../../components/ui/BrandedSelect';
@@ -12,6 +12,7 @@ import {
   SECONDARY_BUTTON_CLASS,
   SUCCESS_NOTICE_CLASS,
 } from '../../utils/formStyles';
+import { EMPTY_PAGE, pageParams } from '../../utils/pagination';
 
 const statusOptions = [
   { label: 'Tất cả', value: 'ALL' },
@@ -28,22 +29,31 @@ const statusMeta = {
 
 export default function ManagerOnlineEnrollmentsPage() {
   const [enrollments, setEnrollments] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
   const [status, setStatus] = useState('ALL');
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [workingId, setWorkingId] = useState(null);
+  const deferredKeyword = useDeferredValue(keyword.trim());
+  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
+    enrollments,
+    10,
+    `${deferredKeyword}|${status}`,
+    pageResult,
+  );
 
   const loadEnrollments = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await courseApi.getManagerOnlineEnrollments({
+      const data = await courseApi.getManagerOnlineEnrollmentsPage(pageParams(page, 10, {
         status: status === 'ALL' ? undefined : status,
-        keyword: keyword.trim() || undefined,
-      });
-      setEnrollments(Array.isArray(data) ? data : []);
+        keyword: deferredKeyword || undefined,
+      }));
+      setPageResult(data);
+      setEnrollments(data.content);
     } catch (err) {
       setError(err?.response?.data?.message || 'Không tải được danh sách ghi danh online.');
     } finally {
@@ -51,21 +61,7 @@ export default function ManagerOnlineEnrollmentsPage() {
     }
   };
 
-  useEffect(() => { loadEnrollments(); }, [status]);
-
-  const filtered = useMemo(() => {
-    const normalized = keyword.trim().toLowerCase();
-    if (!normalized) return enrollments;
-    return enrollments.filter((item) => [item.studentName, item.studentEmail, item.packageTitle]
-      .filter(Boolean)
-      .some((value) => String(value).toLowerCase().includes(normalized)));
-  }, [enrollments, keyword]);
-
-  const { page, setPage, totalPages, pageItems, totalItems } = usePagination(
-    filtered,
-    10,
-    `${keyword}|${status}`,
-  );
+  useEffect(() => { loadEnrollments(); }, [deferredKeyword, page, status]);
 
   const updateStatus = async (enrollmentId, nextStatus) => {
     setWorkingId(enrollmentId);
@@ -111,7 +107,7 @@ export default function ManagerOnlineEnrollmentsPage() {
           <div className="h-11 animate-pulse rounded-xl bg-slate-100" />
           <div className="h-64 animate-pulse rounded-xl bg-slate-100" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : enrollments.length === 0 ? (
         <div className={EMPTY_STATE_CLASS}>
           <Users className="mx-auto mb-3 h-8 w-8 text-slate-400" />
           Chưa có ghi danh phù hợp.

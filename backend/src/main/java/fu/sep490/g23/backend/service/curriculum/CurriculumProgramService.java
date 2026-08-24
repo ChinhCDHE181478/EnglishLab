@@ -14,11 +14,23 @@ import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 public interface CurriculumProgramService {
     List<CurriculumProgramResponse> listPrograms(ClassroomDeliveryMode deliveryMode);
+
+    Page<CurriculumProgramResponse> pagePrograms(
+            ClassroomDeliveryMode deliveryMode,
+            String keyword,
+            String examCategory,
+            String entryLevel,
+            String status,
+            Pageable pageable
+    );
 
     CurriculumProgramResponse getProgram(Long id);
 
@@ -56,6 +68,17 @@ public interface CurriculumProgramService {
 
     List<AssessmentBankItemResponse> listAssessmentBank(AssessmentSkill skill, AssessmentType type);
 
+    Page<AssessmentBankItemResponse> pageAssessmentBank(
+            AssessmentSkill skill,
+            AssessmentType type,
+            String status,
+            String keyword,
+            String examCategory,
+            Pageable pageable
+    );
+
+    Map<String, Long> getAssessmentBankStats(AssessmentSkill skill, AssessmentType type);
+
     AssessmentBankItemResponse getAssessmentBankItem(Long id);
 
     List<AssessmentBankItemResponse> listPublishedMockTests();
@@ -69,6 +92,16 @@ public interface CurriculumProgramService {
     void archiveAssessmentBankItem(Long id);
 
     List<FlashcardSetResponse> listFlashcardSets();
+
+    Page<FlashcardSetResponse> pageFlashcardSets(
+            String keyword,
+            String examCategory,
+            String skill,
+            String status,
+            Pageable pageable
+    );
+
+    Map<String, Long> getFlashcardSetStats(String examCategory, String skill);
 
     FlashcardSetResponse getFlashcardSet(Long id);
 

@@ -101,6 +101,7 @@ const CourseWorkspace = () => {
     const modules = course?.modules || [];
     const progressByModule = new Map();
     let canEnterCurrentModule = true;
+    let previousAssessmentsReady = true;
     const furthestReachedModuleIndex = findFurthestReachedModuleIndex({
       modules,
       completedLessonIds,
@@ -127,6 +128,7 @@ const CourseWorkspace = () => {
         sequentiallyUnlocked: canEnterCurrentModule,
         moduleIndex,
         furthestReachedModuleIndex,
+        previousAssessmentsReady,
       });
       progressByModule.set(String(module.id), {
         moduleUnlocked,
@@ -137,6 +139,8 @@ const CourseWorkspace = () => {
       });
 
       canEnterCurrentModule = moduleUnlocked && readyForNextModule;
+      previousAssessmentsReady = previousAssessmentsReady
+        && (moduleAssessments.length === 0 || moduleAssessmentsPassed);
     });
 
     return progressByModule;
@@ -153,8 +157,8 @@ const CourseWorkspace = () => {
       return moduleLessonItems.map((item, lessonIndex) => {
         const previousLessonId = lessonIndex > 0 ? moduleLessonItems[lessonIndex - 1]?.id : null;
         const isCompleted = completedLessonIds.has(item.id);
-        const isLocked = !isCompleted
-          && (!moduleUnlocked || (lessonIndex > 0 && !completedLessonIds.has(previousLessonId)));
+        const isLocked = !moduleUnlocked
+          || (!isCompleted && lessonIndex > 0 && !completedLessonIds.has(previousLessonId));
 
         return {
           ...item,

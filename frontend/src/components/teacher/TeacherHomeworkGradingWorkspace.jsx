@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import AuthenticatedFileLink from '../classroom/AuthenticatedFileLink';
 import AuthenticatedAudioPlayer from '../classroom/AuthenticatedAudioPlayer';
+import HomeworkAiFeedbackPanel from '../classroom/HomeworkAiFeedbackPanel';
+import RichTextEditor from '../content-manager/RichTextEditor';
 import { formatClassroomDateTime, getHomeworkMaxScore } from '../../utils/classroomHelpers';
 import { getHomeworkActivityTypeLabel } from '../../utils/homeworkGradingConfig';
 import TeacherWritingAnnotationEditor from './TeacherWritingAnnotationEditor';
@@ -149,13 +151,17 @@ export default function TeacherHomeworkGradingWorkspace({
   onGrade,
   onSaveAnnotations,
   onBack,
+  initialStudentId = null,
 }) {
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(
+    initialStudentId ? Number(initialStudentId) : null,
+  );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
   const [showInstruction, setShowInstruction] = useState(true);
 
-  const isAutoGraded = ['QUIZ', 'ONLINE_TEST', 'FLASHCARD_PRACTICE'].includes(homework?.activityType);
+  const isAutoGraded = homework?.gradingMode === 'AUTO'
+    || ['QUIZ', 'ONLINE_TEST', 'FLASHCARD_PRACTICE'].includes(homework?.activityType);
 
   const counts = useMemo(
     () => ({
@@ -197,9 +203,18 @@ export default function TeacherHomeworkGradingWorkspace({
     }
   }, [visibleSubmissions, selectedStudentId]);
 
+  useEffect(() => {
+    if (!initialStudentId) return;
+    const nextStudentId = Number(initialStudentId);
+    if (submissions.some((item) => item.studentId === nextStudentId)) {
+      setSelectedStudentId(nextStudentId);
+    }
+  }, [initialStudentId, submissions]);
+
   const selected = submissions.find((item) => item.studentId === selectedStudentId) || null;
   const formState = selected ? gradingForms[selected.studentId] || { score: '', teacherFeedback: '', annotations: [] } : null;
   const structuredAnswers = selected?.submitted ? readStructuredSubmission(homework, selected.textAnswer) : null;
+  const canAnnotateText = Boolean(selected?.textAnswer && !structuredAnswers && !isAutoGraded);
 
   const updateForm = (field, value) => {
     if (!selected) return;
@@ -214,7 +229,7 @@ export default function TeacherHomeworkGradingWorkspace({
 
   const appendFeedbackTemplate = (text) => {
     const current = formState?.teacherFeedback || '';
-    const updated = current ? `${current.trim()}\n- ${text}` : `- ${text}`;
+    const updated = current ? `${current.trim()}<p>${text}</p>` : `<p>${text}</p>`;
     updateForm('teacherFeedback', updated);
   };
 
@@ -462,7 +477,7 @@ export default function TeacherHomeworkGradingWorkspace({
                     <h5 className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
                       Nội dung bài làm của học viên
                     </h5>
-                    {homework.skill === 'WRITING' && selected.textAnswer ? (
+                    {canAnnotateText ? (
                       <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">
                         {wordCount} từ
                       </span>
@@ -518,7 +533,7 @@ export default function TeacherHomeworkGradingWorkspace({
                       </article>
                     ))}
                   </div>
-                ) : homework.skill === 'WRITING' && selected.textAnswer ? (
+                ) : canAnnotateText ? (
                   <TeacherWritingAnnotationEditor
                     annotations={formState?.annotations || []}
                     onChange={(annotations) => onSaveAnnotations
@@ -570,18 +585,20 @@ export default function TeacherHomeworkGradingWorkspace({
                       />
                     </label>
 
-                    <label className="block space-y-2">
-                      <span className="text-xs font-extrabold uppercase tracking-wider text-[#730014]">
-                        Nhận xét chung cho học viên
-                      </span>
-                      <textarea
-                        className="min-h-[105px] w-full rounded-xl border border-gray-300 bg-white p-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-[#730014] focus:ring-2 focus:ring-[#730014]/10"
-                        onChange={(e) => updateForm('teacherFeedback', e.target.value)}
-                        placeholder="Nêu rõ điểm làm tốt, các lỗi cần chú ý và hướng cải thiện cho học viên..."
-                        value={formState?.teacherFeedback || ''}
-                      />
-                    </label>
+                    <RichTextEditor
+                      className="min-w-0"
+                      helperText=""
+                      label="Nhận xét chung cho học viên"
+                      onChange={(value) => updateForm('teacherFeedback', value)}
+                      placeholder="Nêu rõ điểm làm tốt, lỗi cần chú ý và hướng cải thiện..."
+                      size="compact"
+                      value={formState?.teacherFeedback || ''}
+                    />
                   </div>
+
+                  {selected.aiFeedbackJson ? (
+                    <HomeworkAiFeedbackPanel value={selected.aiFeedbackJson} />
+                  ) : null}
 
                   {gradingNotice?.studentId === selected.studentId ? (
                     <div

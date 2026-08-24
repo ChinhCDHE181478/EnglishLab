@@ -15,6 +15,9 @@ public class TeacherFeedbackSchemaMigration implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS teacher_course_feedback (
                     id BIGSERIAL PRIMARY KEY,
@@ -69,5 +72,12 @@ public class TeacherFeedbackSchemaMigration implements ApplicationRunner {
                     END IF;
                 END $$;
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.user_auxiliary_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

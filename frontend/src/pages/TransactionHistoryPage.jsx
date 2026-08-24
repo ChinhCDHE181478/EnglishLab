@@ -5,6 +5,7 @@ import LearnerPageShell from '../components/learner/LearnerPageShell';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import BrandLoadingState from '../components/ui/BrandLoadingState';
 import { hasAccessToken } from '../utils/auth';
+import { EMPTY_PAGE, normalizePage, pageParams } from '../utils/pagination';
 
 const statusLabel = (status) => {
   switch (status) {
@@ -28,6 +29,13 @@ const TransactionHistoryPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [orders, setOrders] = useState([]);
+  const [pageResult, setPageResult] = useState(EMPTY_PAGE);
+  const { page, setPage, totalPages, pageItems: paginatedOrders, totalItems } = usePagination(
+    orders,
+    5,
+    'transaction-history',
+    pageResult,
+  );
 
   useEffect(() => {
     let active = true;
@@ -41,9 +49,10 @@ const TransactionHistoryPage = () => {
       setLoading(true);
       setError('');
       try {
-        const data = await paymentApi.listMyOrders();
+        const result = normalizePage(await paymentApi.pageMyOrders(pageParams(page, 5)));
         if (!active) return;
-        setOrders(Array.isArray(data) ? data : []);
+        setPageResult(result);
+        setOrders(result.content);
       } catch (err) {
         if (!active) return;
         setError(err?.response?.data?.message || 'Không thể tải lịch sử giao dịch. Vui lòng thử lại.');
@@ -56,13 +65,7 @@ const TransactionHistoryPage = () => {
     return () => {
       active = false;
     };
-  }, []);
-
-  const { page, setPage, totalPages, pageItems: paginatedOrders, totalItems } = usePagination(
-    orders,
-    5,
-    'transaction-history'
-  );
+  }, [page]);
 
   return (
     <LearnerPageShell
@@ -92,7 +95,7 @@ const TransactionHistoryPage = () => {
           <h2 className="font-['Manrope'] text-3xl font-extrabold text-[#2b2828]">Bạn chưa có giao dịch nào.</h2>
           <p className="mt-3 max-w-xl text-sm leading-7 text-[#584140]">Các đơn thanh toán sẽ xuất hiện tại đây sau khi bạn mua khóa học.</p>
           <div className="mt-6">
-            <Link className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/courses">
+            <Link className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:bg-[#730014]" to="/courses#recommended">
               Xem khóa học
             </Link>
           </div>
@@ -141,7 +144,7 @@ const TransactionHistoryPage = () => {
             })}
           </section>
 
-          {orders.length > 5 && (
+          {totalItems > 5 && (
             <div className="flex justify-end">
               <Pagination
                 page={page}

@@ -1,0 +1,2680 @@
+{
+  "version": 1,
+  "type": "toeic_reading_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_6_reading",
+  "title": "TOEIC Mock Test 2026 Collection Reading Practice Test 6",
+  "sourceLabel": "toeicde6",
+  "durationMinutes": 75,
+  "audioUrl": "",
+  "audioLabel": "",
+  "rules": [
+    "100 câu",
+    "3 Part"
+  ],
+  "parts": [
+    {
+      "part": 5,
+      "partNumber": 5,
+      "title": "Incomplete Sentences",
+      "instructions": "Select the word or phrase that best completes the sentence.",
+      "questionCount": 30,
+      "audioUrl": "",
+      "questionRange": "Questions 101-130",
+      "passage": {
+        "title": "Incomplete Sentences",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 101-130",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "questions": [
+            {
+              "number": 101,
+              "prompt": "The maintenance crew at Denby Athletic Club _____ each treadmill on the main floor since the revised safety checklist was introduced in April.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "has inspected"
+                },
+                {
+                  "value": "B",
+                  "label": "inspected"
+                },
+                {
+                  "value": "C",
+                  "label": "will inspect"
+                },
+                {
+                  "value": "D",
+                  "label": "inspecting"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 102,
+              "prompt": "During the holiday season, Brightwave Mobile advertises a more _____ plan for first-time subscribers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "attract"
+                },
+                {
+                  "value": "B",
+                  "label": "attracted"
+                },
+                {
+                  "value": "C",
+                  "label": "attractive"
+                },
+                {
+                  "value": "D",
+                  "label": "attraction"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 103,
+              "prompt": "The Marlin Street Parking Garage advertises a _____ monthly rate for employees who work in the surrounding offices.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "competes"
+                },
+                {
+                  "value": "B",
+                  "label": "competitively"
+                },
+                {
+                  "value": "C",
+                  "label": "competitive"
+                },
+                {
+                  "value": "D",
+                  "label": "competed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 104,
+              "prompt": "_____ have applied for the warehouse supervisor position at Halloran Freight, since the qualifications required for the role were exceptionally demanding.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Few"
+                },
+                {
+                  "value": "B",
+                  "label": "Many"
+                },
+                {
+                  "value": "C",
+                  "label": "Each"
+                },
+                {
+                  "value": "D",
+                  "label": "Every"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 105,
+              "prompt": "New readers can activate a full digital _____ by entering the code printed on the welcome card.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "subscribe"
+                },
+                {
+                  "value": "B",
+                  "label": "subscribed"
+                },
+                {
+                  "value": "C",
+                  "label": "subscription"
+                },
+                {
+                  "value": "D",
+                  "label": "subscribing"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 106,
+              "prompt": "Fernhill Community Library's temporary visitor passes are _____ by front-desk staff at the main entrance.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "issuing"
+                },
+                {
+                  "value": "B",
+                  "label": "issued"
+                },
+                {
+                  "value": "C",
+                  "label": "issuance"
+                },
+                {
+                  "value": "D",
+                  "label": "issue"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 107,
+              "prompt": "Warehouse staff at Merrivale Logistics are not permitted onto the loading floor without _____ a high-visibility vest during operating hours.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "holding"
+                },
+                {
+                  "value": "B",
+                  "label": "buying"
+                },
+                {
+                  "value": "C",
+                  "label": "folding"
+                },
+                {
+                  "value": "D",
+                  "label": "wearing"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 108,
+              "prompt": "Because the confirmed guest list had grown, the events team at Halsford Grand Hotel finalized every _____ for the awards dinner two days ahead of schedule.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "arrangement"
+                },
+                {
+                  "value": "B",
+                  "label": "arrange"
+                },
+                {
+                  "value": "C",
+                  "label": "arranging"
+                },
+                {
+                  "value": "D",
+                  "label": "arranged"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 109,
+              "prompt": "During the two-week trial, the new online ticketing system at Larkmoor Playhouse operated _____ despite the heavy weekend demand.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "successful"
+                },
+                {
+                  "value": "B",
+                  "label": "succeed"
+                },
+                {
+                  "value": "C",
+                  "label": "success"
+                },
+                {
+                  "value": "D",
+                  "label": "successfully"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 110,
+              "prompt": "The technicians at Delford Appliance Repair expect to finish every scheduled job on time _____ the replacement parts arrived two days later than the supplier had promised.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "despite"
+                },
+                {
+                  "value": "B",
+                  "label": "although"
+                },
+                {
+                  "value": "C",
+                  "label": "however"
+                },
+                {
+                  "value": "D",
+                  "label": "until"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 111,
+              "prompt": "The souvenir counter at Tidewater Aquarium stocks magnets and other _____ items for visiting children.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "decorative"
+                },
+                {
+                  "value": "B",
+                  "label": "decorators"
+                },
+                {
+                  "value": "C",
+                  "label": "decorator"
+                },
+                {
+                  "value": "D",
+                  "label": "decoratively"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 112,
+              "prompt": "By upgrading its automated sorting machines, Bramwell Parcel Center _____ its overall processing time and now clears every parcel for delivery before noon.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "shortened"
+                },
+                {
+                  "value": "B",
+                  "label": "lengthened"
+                },
+                {
+                  "value": "C",
+                  "label": "transferred"
+                },
+                {
+                  "value": "D",
+                  "label": "calculated"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 113,
+              "prompt": "The recently installed dryers at Sundale Laundry are _____ than the older units when the store is busiest in the evening.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "quick"
+                },
+                {
+                  "value": "B",
+                  "label": "quicker"
+                },
+                {
+                  "value": "C",
+                  "label": "quickly"
+                },
+                {
+                  "value": "D",
+                  "label": "most quickly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 114,
+              "prompt": "_____ the shipment arrives before Ashworth Hardware opens, place the cartons in the rear stockroom.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "If"
+                },
+                {
+                  "value": "B",
+                  "label": "Though"
+                },
+                {
+                  "value": "C",
+                  "label": "During"
+                },
+                {
+                  "value": "D",
+                  "label": "Every"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 115,
+              "prompt": "_____ the unusually short notice, the team at Kingsley Print Studio completed every business-card order before the client's afternoon deadline.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Although"
+                },
+                {
+                  "value": "B",
+                  "label": "Instead of"
+                },
+                {
+                  "value": "C",
+                  "label": "In spite of"
+                },
+                {
+                  "value": "D",
+                  "label": "Nevertheless"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 116,
+              "prompt": "_____ wishing to reserve a kiln slot for the autumn term at Ambleside Ceramics Studio should submit a completed request form by Friday.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Each other"
+                },
+                {
+                  "value": "B",
+                  "label": "Whoever"
+                },
+                {
+                  "value": "C",
+                  "label": "These"
+                },
+                {
+                  "value": "D",
+                  "label": "Those"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 117,
+              "prompt": "When the front counter is closed, staff at Elmridge Courier deliver prepaid parcels _____ the hours of eight and eleven each morning.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "nearly"
+                },
+                {
+                  "value": "B",
+                  "label": "by"
+                },
+                {
+                  "value": "C",
+                  "label": "soon"
+                },
+                {
+                  "value": "D",
+                  "label": "between"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 118,
+              "prompt": "The pastry team at Hollybrook Bakery arranges the seasonal display cakes _____ each morning before the shop opens for customers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "creative"
+                },
+                {
+                  "value": "B",
+                  "label": "creatively"
+                },
+                {
+                  "value": "C",
+                  "label": "creation"
+                },
+                {
+                  "value": "D",
+                  "label": "creativity"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 119,
+              "prompt": "Last Saturday, the Brookmere Community Hall _____ a career fair for local jobseekers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "hosted"
+                },
+                {
+                  "value": "B",
+                  "label": "will host"
+                },
+                {
+                  "value": "C",
+                  "label": "is hosting"
+                },
+                {
+                  "value": "D",
+                  "label": "host"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 120,
+              "prompt": "The delivery charges for weekend orders placed with Verdemont Grocers are almost the same as _____ of standard weekday deliveries.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "those"
+                },
+                {
+                  "value": "B",
+                  "label": "them"
+                },
+                {
+                  "value": "C",
+                  "label": "they"
+                },
+                {
+                  "value": "D",
+                  "label": "themselves"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 121,
+              "prompt": "Penfold Stationers extended its evening opening hours last month _____ demand from local students had risen sharply.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "although"
+                },
+                {
+                  "value": "B",
+                  "label": "whenever"
+                },
+                {
+                  "value": "C",
+                  "label": "because"
+                },
+                {
+                  "value": "D",
+                  "label": "owing to"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 122,
+              "prompt": "Travelers who rent from Kelbridge Auto Rentals more than five times each year are _____ a complimentary vehicle upgrade on their next reservation.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "similar to"
+                },
+                {
+                  "value": "B",
+                  "label": "opposed to"
+                },
+                {
+                  "value": "C",
+                  "label": "entitled to"
+                },
+                {
+                  "value": "D",
+                  "label": "attached to"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 123,
+              "prompt": "The staff at Wanderhorn Travel processed every refund request _____ despite the unusually high number of cancellations this month.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "considerably"
+                },
+                {
+                  "value": "B",
+                  "label": "efficiently"
+                },
+                {
+                  "value": "C",
+                  "label": "extremely"
+                },
+                {
+                  "value": "D",
+                  "label": "greatly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 124,
+              "prompt": "Before any work begins, Oakvale Landscaping gives each homeowner a written _____ of the total project cost.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "forecast"
+                },
+                {
+                  "value": "B",
+                  "label": "receipt"
+                },
+                {
+                  "value": "C",
+                  "label": "prediction"
+                },
+                {
+                  "value": "D",
+                  "label": "estimate"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 125,
+              "prompt": "Every member of the kitchen staff at Redstone Catering Services must complete the online food-safety module _____ exception before the new contract begins.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "beyond"
+                },
+                {
+                  "value": "B",
+                  "label": "during"
+                },
+                {
+                  "value": "C",
+                  "label": "besides"
+                },
+                {
+                  "value": "D",
+                  "label": "without"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 126,
+              "prompt": "The front lounge at Fairlawn Hair Studio was recently redesigned for greater _____ and convenience during peak weekend hours.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "comfortable"
+                },
+                {
+                  "value": "B",
+                  "label": "comfort"
+                },
+                {
+                  "value": "C",
+                  "label": "comfortably"
+                },
+                {
+                  "value": "D",
+                  "label": "comforted"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 127,
+              "prompt": "During the clearance sale, shoppers at Brindle Home Goods may take home _____ display models remain unsold by Saturday.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "which"
+                },
+                {
+                  "value": "B",
+                  "label": "whose"
+                },
+                {
+                  "value": "C",
+                  "label": "whichever"
+                },
+                {
+                  "value": "D",
+                  "label": "whoever"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 128,
+              "prompt": "The team at Thornbury Books arranged a memorable _____ to mark the shop's twentieth year in the neighborhood.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "celebrate"
+                },
+                {
+                  "value": "B",
+                  "label": "celebration"
+                },
+                {
+                  "value": "C",
+                  "label": "celebrating"
+                },
+                {
+                  "value": "D",
+                  "label": "celebrated"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 129,
+              "prompt": "The customer care team at Norwood Utilities _____ every complaint that account holders submit through the online portal.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "responds"
+                },
+                {
+                  "value": "B",
+                  "label": "corresponds"
+                },
+                {
+                  "value": "C",
+                  "label": "reacts"
+                },
+                {
+                  "value": "D",
+                  "label": "resolves"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 130,
+              "prompt": "The training schedule proposed for the newer employees is remarkably similar _____ the plan approved by the regional director last year.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "with"
+                },
+                {
+                  "value": "B",
+                  "label": "from"
+                },
+                {
+                  "value": "C",
+                  "label": "to"
+                },
+                {
+                  "value": "D",
+                  "label": "toward"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 6,
+      "partNumber": 6,
+      "title": "Text Completion",
+      "instructions": "Select the best answer to complete the text.",
+      "questionCount": 16,
+      "audioUrl": "",
+      "questionRange": "Questions 131-146",
+      "passage": {
+        "title": "Text Completion",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 131-134",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div>To: All Factory Staff</div><div>From: Karl Whitmore, Operations Manager</div><div>Date: 14 March</div><div>Subject: Staff Appreciation Luncheon</div><div><br></div><p>Over the past several months, our entire team completed one of the most demanding production seasons on record. Your --(131)-- effort made this result possible. To recognize everyone who helped us reach this --(132)--, management is hosting an appreciation luncheon here at Ridgemark Apparel.</p><p>The event will take place in the main hall on the final Friday of the month. A complete meal and refreshments will be provided at no charge. --(133)--. Work shifts will be adjusted that day so that every employee can attend without losing pay.</p><p>There is nothing you need to bring, and no cost will fall to you. Please tell your supervisor by next Wednesday whether you plan to join us, so that we --(134)-- enough seating for the entire staff.</p><p>Thank you again for your hard work. We look forward to celebrating together.</p></div>",
+          "questions": [
+            {
+              "number": 131,
+              "prompt": "Câu 131",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "persistently"
+                },
+                {
+                  "value": "B",
+                  "label": "persistent"
+                },
+                {
+                  "value": "C",
+                  "label": "persistence"
+                },
+                {
+                  "value": "D",
+                  "label": "more persistent"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 132,
+              "prompt": "Câu 132",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "conclusion"
+                },
+                {
+                  "value": "B",
+                  "label": "agreement"
+                },
+                {
+                  "value": "C",
+                  "label": "deadline"
+                },
+                {
+                  "value": "D",
+                  "label": "milestone"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 133,
+              "prompt": "Câu 133",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Refreshments are set out in the break room every single morning"
+                },
+                {
+                  "value": "B",
+                  "label": "The company picnic held last summer drew a much smaller crowd"
+                },
+                {
+                  "value": "C",
+                  "label": "The food will be served buffet-style from noon until two o'clock"
+                },
+                {
+                  "value": "D",
+                  "label": "Replacement uniforms will reach the sewing floor early next week"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 134,
+              "prompt": "Câu 134",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "arranged"
+                },
+                {
+                  "value": "B",
+                  "label": "have arranged"
+                },
+                {
+                  "value": "C",
+                  "label": "can arrange"
+                },
+                {
+                  "value": "D",
+                  "label": "were arranging"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 135-138",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><b>Join the Brackley Art Supply Co. Rewards Club!</b></div><div><br></div><div>Are you a painter, sketcher, or crafter who visits us often? This month we are --(135)-- a brand-new loyalty program designed for our most dedicated shoppers.</div><div><br></div><div>Members earn points on every purchase and unlock greater --(136)-- the longer they stay enrolled. Over time, these rewards add up to meaningful savings on the materials you use most.</div><div><br></div><div>To celebrate the launch, we are offering a --(137)-- discount of fifteen percent on your first qualifying order when you sign up before June 30.</div><div><br></div><div>Enrolling takes only a minute at our front counter or on our website. Present your membership code at checkout to claim the offer. --(138)--.</div><div><br></div><div>We look forward to rewarding your creativity all year long.</div></div>",
+          "questions": [
+            {
+              "number": 135,
+              "prompt": "Câu 135",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "renewing"
+                },
+                {
+                  "value": "B",
+                  "label": "rewarding"
+                },
+                {
+                  "value": "C",
+                  "label": "discontinuing"
+                },
+                {
+                  "value": "D",
+                  "label": "introducing"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 136,
+              "prompt": "Câu 136",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "rewards"
+                },
+                {
+                  "value": "B",
+                  "label": "points"
+                },
+                {
+                  "value": "C",
+                  "label": "discounts"
+                },
+                {
+                  "value": "D",
+                  "label": "distances"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 137,
+              "prompt": "Câu 137",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "specially"
+                },
+                {
+                  "value": "B",
+                  "label": "specialize"
+                },
+                {
+                  "value": "C",
+                  "label": "special"
+                },
+                {
+                  "value": "D",
+                  "label": "specialties"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 138,
+              "prompt": "Câu 138",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Our shelves hold everything from paints to fine brushes"
+                },
+                {
+                  "value": "B",
+                  "label": "Members also enjoy early access to our seasonal sales"
+                },
+                {
+                  "value": "C",
+                  "label": "Turn left at the second light to reach our entrance"
+                },
+                {
+                  "value": "D",
+                  "label": "This district has long welcomed painters and sculptors"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 139-142",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div>To: All Sales-Floor Staff</div><div>From: Tomás Herrera, Floor Manager</div><div>Re: Extended Holiday Hours</div><div>Date: November 12</div><div><br></div><p>The weeks leading up to the winter holidays are our busiest of the year, and we expect a steady increase in shoppers.</p><p>Beginning December 1, the showroom will stay open two hours later each evening. This change will be --(139)--, lasting only through the end of December. --(140)--.</p><p>Please review the posted shift chart and indicate which extra evenings you can work by November 20. --(141)--, we will confirm the final schedule and post it in the break room.</p><p>If you have questions about the new hours, speak with Rachel Okafor at the service desk. She is responsible for --(142)-- the additional shifts and answering any scheduling concerns.</p></div>",
+          "questions": [
+            {
+              "number": 139,
+              "prompt": "Câu 139",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "temporary"
+                },
+                {
+                  "value": "B",
+                  "label": "permanent"
+                },
+                {
+                  "value": "C",
+                  "label": "gradual"
+                },
+                {
+                  "value": "D",
+                  "label": "routine"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 140,
+              "prompt": "Câu 140",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "New product lines will arrive in the spring catalog"
+                },
+                {
+                  "value": "B",
+                  "label": "Staff discounts increase during the holiday season"
+                },
+                {
+                  "value": "C",
+                  "label": "The service desk closes at noon on weekends"
+                },
+                {
+                  "value": "D",
+                  "label": "Our regular daytime hours will stay the same"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 141,
+              "prompt": "Câu 141",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In addition"
+                },
+                {
+                  "value": "B",
+                  "label": "After that"
+                },
+                {
+                  "value": "C",
+                  "label": "Even so"
+                },
+                {
+                  "value": "D",
+                  "label": "In summary"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 142,
+              "prompt": "Câu 142",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "coordinated"
+                },
+                {
+                  "value": "B",
+                  "label": "coordinate"
+                },
+                {
+                  "value": "C",
+                  "label": "coordinating"
+                },
+                {
+                  "value": "D",
+                  "label": "coordinates"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 143-146",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>March 12<br>Mr. Nathan Baird<br>48 Larch Street<br>Calderton, OH 44018</p><p>Dear Mr. Baird,</p><p>Thank you for your recent inquiry about the charge on your February statement. We --(143)-- your account in full. Since receiving your message, our billing team has examined each of your recent payments.</p><p>After this review, we confirmed that a billing --(144)-- had indeed occurred, and the amount you were charged has been corrected. The overcharged sum will be credited to your account within five business days. --(145)--, your next statement will reflect a lower balance than usual.</p><p>We have enclosed a corrected copy of your February statement, which shows the adjusted total for your records. Should you need any additional information, please contact our customer service office at any time. --(146)--.</p><p>Sincerely,<br>Paula Okoro<br>Calder Valley Energy</p></div>",
+          "questions": [
+            {
+              "number": 143,
+              "prompt": "Câu 143",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "have reviewed"
+                },
+                {
+                  "value": "B",
+                  "label": "were reviewing"
+                },
+                {
+                  "value": "C",
+                  "label": "might review"
+                },
+                {
+                  "value": "D",
+                  "label": "would have reviewed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 144,
+              "prompt": "Câu 144",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "refund"
+                },
+                {
+                  "value": "B",
+                  "label": "statement"
+                },
+                {
+                  "value": "C",
+                  "label": "payment"
+                },
+                {
+                  "value": "D",
+                  "label": "error"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 145,
+              "prompt": "Câu 145",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In addition"
+                },
+                {
+                  "value": "B",
+                  "label": "As a result"
+                },
+                {
+                  "value": "C",
+                  "label": "However"
+                },
+                {
+                  "value": "D",
+                  "label": "Meanwhile"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 146,
+              "prompt": "Câu 146",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Our staff is always glad to assist you"
+                },
+                {
+                  "value": "B",
+                  "label": "Congratulations on opening a new store"
+                },
+                {
+                  "value": "C",
+                  "label": "We could not locate your account records"
+                },
+                {
+                  "value": "D",
+                  "label": "We will start reviewing your account soon"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 7,
+      "partNumber": 7,
+      "title": "Reading Comprehension",
+      "instructions": "Read the following text then answer the questions.",
+      "questionCount": 54,
+      "audioUrl": "",
+      "questionRange": "Questions 147-200",
+      "passage": {
+        "title": "Reading Comprehension",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 147-148",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Elmswood Planetarium — Our Renovated Dome Theater Is Open Again</b></p><p>We are delighted to welcome you back to the Elmswood Planetarium dome theater, which has reopened following a three-month renovation. Our long-standing theater has been thoroughly updated to give you a fresh viewing experience.</p><p>At the heart of the update is a new digital projection system. It displays each show with far greater sharpness and detail, so the stars and planets on the dome appear crisper and more lifelike than before.</p><p>The theater seats 90 guests and presents shows every afternoon and evening. Reserve your seats through our website and join us beneath the night sky.</p></div>",
+          "questions": [
+            {
+              "number": 147,
+              "prompt": "What is the purpose of the web page?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To present a newly upgraded attraction to the public"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce the construction of a new venue"
+                },
+                {
+                  "value": "C",
+                  "label": "To alert visitors to a temporary closure"
+                },
+                {
+                  "value": "D",
+                  "label": "To provide instructions for reserving tickets"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 148,
+              "prompt": "According to the web page, what is one benefit of the new projection system?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It presents a wider selection of shows."
+                },
+                {
+                  "value": "B",
+                  "label": "It makes images look clearer and more detailed."
+                },
+                {
+                  "value": "C",
+                  "label": "It lasts longer than the previous equipment."
+                },
+                {
+                  "value": "D",
+                  "label": "It allows the theater to seat more guests."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 149-150",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<p>From: Windmere Audio Member Team<br>To: Nathaniel Dawes<br>Subject: A new collection is now part of your membership<br><br>Dear Mr. Dawes,<br><br>As a current member of Windmere Audio, you and thousands of fellow listeners now have access to a newly added collection at no extra cost to your account.<br><br>Selection: 40 recent titles spanning mystery and travel writing<br>Recordings: performed entirely by professional narrators<br>Listening: continuous playback with no advertisements between chapters<br><br>To begin, open the New Additions menu from your account home screen. These titles were gathered in partnership with several independent bookshops. Thank you for listening with us.<br><br>The Windmere Audio Member Team</p>",
+          "questions": [
+            {
+              "number": 149,
+              "prompt": "For whom is the e-mail most likely intended?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Professional voice performers"
+                },
+                {
+                  "value": "B",
+                  "label": "Employees of the streaming service"
+                },
+                {
+                  "value": "C",
+                  "label": "People who already hold accounts"
+                },
+                {
+                  "value": "D",
+                  "label": "Owners of independent bookshops"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 150,
+              "prompt": "According to the e-mail, what does the new collection feature?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Recordings made by trained voice professionals"
+                },
+                {
+                  "value": "B",
+                  "label": "Samples of printed cover illustrations"
+                },
+                {
+                  "value": "C",
+                  "label": "Advertising messages between chapters"
+                },
+                {
+                  "value": "D",
+                  "label": "Reviews submitted by other listeners"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 151-153",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Now Open: The Refreshment Bar in the Fourth-Floor Staff Lounge</b></p><p>A complimentary self-service refreshment bar is now available in the fourth-floor staff lounge, effective Monday, June 3. --[1]-- All employees are welcome to help themselves throughout the workday at no charge.</p><p>The bar is open from 7:30 A.M. to 6:00 P.M. on every business day. --[2]-- Our team restocks the coffee, tea, and snack selection twice each day, once in the early morning and again just after lunch, so fresh items are available in both halves of the day. A full inventory count and deep clean of the counters is carried out once a week, and packaged supplies are delivered from our vendor once a month.</p><p>--[3]-- Each day between 1:00 P.M. and 1:30 P.M., the bar is closed briefly while the machines are cleaned and sanitized, so please plan around this short window. When using the bar, rinse any shared mugs after use and report empty containers to the front desk. --[4]--</p><p>Questions may be directed to Nadine Kessler at extension 214.</p><p>Workplace Services Team, Dunbar Group</p></div>",
+          "questions": [
+            {
+              "number": 151,
+              "prompt": "According to the notice, how often is the refreshment bar restocked?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Twice a day"
+                },
+                {
+                  "value": "B",
+                  "label": "Once a week"
+                },
+                {
+                  "value": "C",
+                  "label": "Once a month"
+                },
+                {
+                  "value": "D",
+                  "label": "Once a day"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 152,
+              "prompt": "Why might employees be unable to use the refreshment bar at certain times?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is available only during scheduled break times."
+                },
+                {
+                  "value": "B",
+                  "label": "It is open only until the middle of the afternoon."
+                },
+                {
+                  "value": "C",
+                  "label": "It is closed for one full day each week."
+                },
+                {
+                  "value": "D",
+                  "label": "It is closed briefly for a daily cleaning period."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 153,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? \"Thank you for observing these simple guidelines so that the bar remains pleasant for everyone.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 154-155",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Introducing Custom Photo Books at Willowmere Photo &amp; Print!</b></p><p>We are excited to launch our brand-new photo-book creation service. Gather your favorite images and let us turn them into a keepsake you will treasure for years. Choose from three finishes: softcover, hardcover, and premium layflat. Each is offered in a range of sizes to suit any occasion.</p><p>Getting started is simple. Bring your prints to our front counter, or upload your images from home through our website, whichever is more convenient for you. Once your order is placed, your finished book will be ready in just five business days.</p><p>Books start at only $22, and every first-time order includes a free gift box. Stop in today and begin your first album!</p><p>Willowmere Photo &amp; Print, 48 Larch Street. Open Monday through Saturday, 9 a.m. to 6 p.m. Call 555-0193.</p></div>",
+          "questions": [
+            {
+              "number": 154,
+              "prompt": "What is one purpose of the advertisement?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To announce a temporary price reduction"
+                },
+                {
+                  "value": "B",
+                  "label": "To collect feedback from recent customers"
+                },
+                {
+                  "value": "C",
+                  "label": "To notify readers of new business hours"
+                },
+                {
+                  "value": "D",
+                  "label": "To advertise a recently launched service"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 155,
+              "prompt": "What is suggested about Willowmere Photo & Print?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It accepts orders only through its own website"
+                },
+                {
+                  "value": "B",
+                  "label": "It welcomes both walk-in and remote customers"
+                },
+                {
+                  "value": "C",
+                  "label": "It completes all book orders on the same day"
+                },
+                {
+                  "value": "D",
+                  "label": "It charges the same price for every book size"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 156-157",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>SHARP KNIVES, RIGHT AT YOUR DOOR</b></p><p>Truedge Mobile Sharpening drives directly into your neighborhood, so a dull blade never means a trip across town.</p><p>For more than fifteen years, we have kept household kitchens across the region cutting cleanly and safely, serving residents rather than restaurants or trade suppliers.</p><p>Each week our van visits Marden Heights on Tuesdays, Coldbrook on Thursdays, and Ferrywood on Saturdays. A standard kitchen knife is sharpened for only eight dollars, with scissors and garden tools also welcome.</p><p>Visit www.truedgesharpening.example to check when our van will next reach your area, then set out anything that needs sharpening.</p><p>Truedge Mobile Sharpening</p></div>",
+          "questions": [
+            {
+              "number": 156,
+              "prompt": "Where would the advertisement most likely be seen?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In a kitchenware store's mail-order catalog"
+                },
+                {
+                  "value": "B",
+                  "label": "In an article in a national cooking magazine"
+                },
+                {
+                  "value": "C",
+                  "label": "On a professional chefs' association's Web site"
+                },
+                {
+                  "value": "D",
+                  "label": "On a bulletin board in a residential neighborhood"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 157,
+              "prompt": "According to the advertisement, what can readers do on the Web site?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Order replacement blades for their knives"
+                },
+                {
+                  "value": "B",
+                  "label": "Find out when the service will visit them"
+                },
+                {
+                  "value": "C",
+                  "label": "Watch demonstrations of the sharpening process"
+                },
+                {
+                  "value": "D",
+                  "label": "Request a price quote for their tools"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 158-160",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Home Delivery and Installation Service — Meadowbrook Appliance Center<br>Rating: 4 out of 5 stars<br>Posted by newkitchen_beth on March 14</p><p>Last month I finally replaced the dishwasher that came with my apartment, and I bought a new one from Meadowbrook Appliance Center. --[1]--. I am posting this because helpful reviews made my own decision much easier, and I want to do the same for other shoppers. The crew arrived right at the start of the promised window and began with my old machine, which had rusted along the base and leaked whenever it ran. --[2]--. They wrapped it in a blanket and carried it out without marking a single wall. The new unit is a Northvale Appliances model, and that company's factory is known for its quiet, low-energy designs. --[3]--. The two installers connected it, ran a test cycle, and explained every setting before they left. The entire setup took about forty minutes. My one small complaint is that they left the empty cardboard boxes for me to break down and throw out myself. --[4]--.</p><p>Overall, a smooth experience — recommended for anyone who would rather not install a heavy appliance alone.</p></div>",
+          "questions": [
+            {
+              "number": 158,
+              "prompt": "Why did newkitchen_beth post this review?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To request a refund for a faulty appliance"
+                },
+                {
+                  "value": "B",
+                  "label": "To report a delivery that arrived late"
+                },
+                {
+                  "value": "C",
+                  "label": "To help other shoppers with their decisions"
+                },
+                {
+                  "value": "D",
+                  "label": "To compare two nearby appliance retailers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 159,
+              "prompt": "What is indicated about Northvale Appliances?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It manufactures household appliances."
+                },
+                {
+                  "value": "B",
+                  "label": "It owns Meadowbrook Appliance Center."
+                },
+                {
+                  "value": "C",
+                  "label": "It provides free installation service."
+                },
+                {
+                  "value": "D",
+                  "label": "It removed the customer's old machine."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 160,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? \"It was clearly beyond repair.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 161-163",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Cranmore Aquatic Center</b></p><p><b>Notice to Visitors: Opening of the Cascade Wing</b></p><p>We are pleased to announce that the Cascade Wing will open to the public on March 14. This new addition nearly doubles the swimming space available at our facility.</p><p>Over the past three years, annual visits to Cranmore have risen from 84,000 to 121,000. On weekends, all six lanes of the main pool are regularly full, and many visitors have had to wait for space or return during quieter hours. The Cascade Wing has been designed with these visitors in mind.</p><p>Cranmore is now recognized as the busiest public aquatic center in the region, and we remain committed to keeping our facilities open and welcoming to swimmers of every age and ability.</p><p>The new wing offers the following:<br>- a warm-water therapy pool for gentle exercise<br>- a shallow splash pool for young children<br>- a poolside café with indoor and outdoor seating<br>- family changing rooms with step-free access</p><p>For opening-day details and session times, please contact Member Services at 555-0142 or ask staff at the front desk.</p><p>Gregory Nash<br>Center Manager, Cranmore Aquatic Center</p></div>",
+          "questions": [
+            {
+              "number": 161,
+              "prompt": "Why is the Cascade Wing being added at Cranmore Aquatic Center?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To extend the center's weekend opening hours"
+                },
+                {
+                  "value": "B",
+                  "label": "To increase income from new memberships"
+                },
+                {
+                  "value": "C",
+                  "label": "To replace a pool that had become unsafe"
+                },
+                {
+                  "value": "D",
+                  "label": "To serve a growing number of visitors"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 162,
+              "prompt": "What is suggested about Cranmore Aquatic Center?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It is used mainly by older swimmers."
+                },
+                {
+                  "value": "B",
+                  "label": "Its visitor numbers have recently fallen."
+                },
+                {
+                  "value": "C",
+                  "label": "It charges lower prices than nearby centers."
+                },
+                {
+                  "value": "D",
+                  "label": "It is popular with swimmers across the area."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 163,
+              "prompt": "What is NOT mentioned as a feature of the new wing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A pool for young children"
+                },
+                {
+                  "value": "B",
+                  "label": "An eating area with outdoor seating"
+                },
+                {
+                  "value": "C",
+                  "label": "Extra lanes for lap swimming"
+                },
+                {
+                  "value": "D",
+                  "label": "Changing rooms with step-free access"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 164-167",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Oakvale Food Cooperative — A Community-Owned Grocery</b></p><p>Welcome! This page is for anyone thinking about shopping with us as a member. Below you will find how our cooperative works and the simple steps to join.</p><p><b>How our co-op works</b></p><p>Oakvale is owned by the people who shop here. Since we opened in 2009, our members have shared in the decisions that shape the store, from the products we stock to the local farms we partner with. Members are not employees; they are neighbors who help guide the store and buy their weekly groceries here. Today more than 1,200 households hold a membership. Two years ago, members funded a new solar roof, which now supplies part of our electricity. All members also receive a monthly newsletter and reduced prices on cooking workshops.</p><p><b>A shared goal this year</b></p><p>This year we are working to open a fresh bakery counter at the back of the store. Building it is a demanding project that cannot be finished by staff alone. It will require both contributions from members and hours of volunteer help. We expect the counter to open before the end of the year, offering bread baked on site each morning.</p><p><b>Becoming a member</b></p><p>Joining is easy. First, complete a short form at the customer service desk. Second, pay a one-time equity share of $25, which is refunded if you ever decide to leave. Third, attend a brief orientation so you understand how the store runs. There is no monthly charge, and your share makes you a part-owner right away.</p><p>Store hours: Monday to Saturday, 8:00 A.M. to 8:00 P.M. Questions? Speak with any staff member or stop by the service desk. We look forward to welcoming you.</p></div>",
+          "questions": [
+            {
+              "number": 164,
+              "prompt": "What is the main purpose of the web page?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To advertise reduced prices on upcoming cooking workshops"
+                },
+                {
+                  "value": "B",
+                  "label": "To recruit new employees for the customer service desk"
+                },
+                {
+                  "value": "C",
+                  "label": "To explain how the cooperative works and how to join it"
+                },
+                {
+                  "value": "D",
+                  "label": "To let customers order their weekly groceries online"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 165,
+              "prompt": "What is most likely true about the members of Oakvale?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They receive free tickets to cooking workshops."
+                },
+                {
+                  "value": "B",
+                  "label": "They regularly buy their groceries at the store."
+                },
+                {
+                  "value": "C",
+                  "label": "They installed solar roofs on their own homes."
+                },
+                {
+                  "value": "D",
+                  "label": "They are paid for working at the store."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 166,
+              "prompt": "According to the web page, what is the cooperative currently trying to accomplish?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Opening a new bakery counter"
+                },
+                {
+                  "value": "B",
+                  "label": "Installing a solar roof"
+                },
+                {
+                  "value": "C",
+                  "label": "Publishing a monthly newsletter"
+                },
+                {
+                  "value": "D",
+                  "label": "Partnering with more local farms"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 167,
+              "prompt": "What is indicated about the equity share paid by new members?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It must be paid as a monthly membership charge."
+                },
+                {
+                  "value": "B",
+                  "label": "It is returned to members who leave the co-op"
+                },
+                {
+                  "value": "C",
+                  "label": "It gives members a discount on all groceries."
+                },
+                {
+                  "value": "D",
+                  "label": "It is collected during the orientation session."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 168-171",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Group thread: Kitchen Team — Cobblestone Catering</p><p>Bridget [06:48]: Morning, everyone. I came in a full hour before my usual start to get ahead on the prep for today's luncheon. One problem though — I just checked the cooler, and the crate of fresh basil never arrived with yesterday's produce delivery.</p><p>Andre [06:52]: That's not good. The whole tomato salad is built around the basil, and we're plating ninety portions for the noon sitting.</p><p>Lorna [06:55]: Don't panic. We've still got a full case of arugula left over from Tuesday. We could fold that into the salad in place of the basil.</p><p>Bridget [06:56]: That will work just as well.</p><p>Andre [06:59]: Good thinking. I handle all the produce ordering for the kitchen, so I'll call the farm, let them know the basil crate was left off the truck, and ask them to credit the account.</p><p>Lorna [07:01]: Great. I'll rinse and portion the arugula right now — it'll be ready well before nine. One more thing: do you want me to set aside a dozen plates without dressing for the vegetarian guests?</p><p>Andre [07:03]: Yes, keep twelve aside. Bridget, once the arugula is in, can you taste the dressing again? It might need a little less lemon than usual.</p><p>Bridget [07:05]: Will do. Confirmed on my end — we're on track for the noon service.</p></div>",
+          "questions": [
+            {
+              "number": 168,
+              "prompt": "What is indicated as true about Bridget?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She is in charge of ordering produce."
+                },
+                {
+                  "value": "B",
+                  "label": "She usually arrives later than her coworkers."
+                },
+                {
+                  "value": "C",
+                  "label": "She started her shift ahead of her normal time."
+                },
+                {
+                  "value": "D",
+                  "label": "She is plating ninety portions on her own."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 169,
+              "prompt": "What is indicated about today's luncheon order?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It has been canceled because of the shortage."
+                },
+                {
+                  "value": "B",
+                  "label": "It must be plated by nine o'clock."
+                },
+                {
+                  "value": "C",
+                  "label": "It will feature arugula in place of tomatoes."
+                },
+                {
+                  "value": "D",
+                  "label": "It will serve about ninety people at midday."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 170,
+              "prompt": "At 06:56, what does Bridget most likely mean when she writes, \"That will work just as well\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She agrees the alternative ingredient is a good choice."
+                },
+                {
+                  "value": "B",
+                  "label": "She doubts the replacement will taste acceptable."
+                },
+                {
+                  "value": "C",
+                  "label": "She is praising a colleague's earlier work."
+                },
+                {
+                  "value": "D",
+                  "label": "She thinks the swap will cost the company less."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 171,
+              "prompt": "Who most likely is Andre?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The staff member who portions the vegetables"
+                },
+                {
+                  "value": "B",
+                  "label": "The person responsible for ordering supplies"
+                },
+                {
+                  "value": "C",
+                  "label": "The company's event planner"
+                },
+                {
+                  "value": "D",
+                  "label": "A worker at the produce farm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 172-175",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Celebrate Big at Skyleap Trampoline Park!</b></p><p>Searching for an exciting place to gather your friends, teammates, or family? At Skyleap Trampoline Park, our group event packages turn any occasion into an afternoon of bouncing, games, and laughter. Simply choose the option below that best suits your party, and leave the rest to our team.</p><table><tr><th>Package</th><th>Group size</th><th>Included features</th></tr><tr><td>Bounce Basic</td><td>Up to 10 guests</td><td>60 minutes of open jump time and a reserved seating area</td></tr><tr><td>Party Plus</td><td>11 to 20 guests</td><td>90 minutes of jump time, a dedicated party host, and pizza with drinks</td></tr><tr><td>Grand Celebration</td><td>21 to 30 guests</td><td>Two hours of jump time, a private room, a host, a full meal, and a souvenir photo</td></tr></table><p>Good to know: every package includes grip socks and full use of our safety gear, and all jumpers receive a short orientation from our staff. Once you have chosen a package, we can <b>hold</b> your preferred time slot for 48 hours before a deposit is required. Larger groups of more than thirty can also be arranged by calling ahead.</p><p>Ready to make it official? Book online or call our events coordinator, Miriam Colwell, to lock in your date before weekend slots fill up.</p><p>Skyleap Trampoline Park<br>18 Denholm Avenue, Weldon<br>Phone: 555-0148<br>www.skyleapjump.example</p></div>",
+          "questions": [
+            {
+              "number": 172,
+              "prompt": "What is the purpose of the advertisement?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To describe the safety equipment provided to jumpers"
+                },
+                {
+                  "value": "B",
+                  "label": "To encourage readers to book a group event package"
+                },
+                {
+                  "value": "C",
+                  "label": "To explain the benefits of the Grand Celebration package only"
+                },
+                {
+                  "value": "D",
+                  "label": "To review customer experiences at the park"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 173,
+              "prompt": "What is indicated about the Grand Celebration package?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It offers the same jump time as the Bounce Basic package"
+                },
+                {
+                  "value": "B",
+                  "label": "It is the only package that comes with a party host"
+                },
+                {
+                  "value": "C",
+                  "label": "It provides a private room for the group"
+                },
+                {
+                  "value": "D",
+                  "label": "It requires a deposit at the time of booking"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 174,
+              "prompt": "The word \"hold\" in the advertisement is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "grasp"
+                },
+                {
+                  "value": "B",
+                  "label": "contain"
+                },
+                {
+                  "value": "C",
+                  "label": "reserve"
+                },
+                {
+                  "value": "D",
+                  "label": "delay"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 175,
+              "prompt": "What is suggested about groups of more than 30 guests?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They must contact the park directly to make arrangements"
+                },
+                {
+                  "value": "B",
+                  "label": "They can be accommodated with the Grand Celebration package"
+                },
+                {
+                  "value": "C",
+                  "label": "They receive a discount on the total price"
+                },
+                {
+                  "value": "D",
+                  "label": "They are limited to sixty minutes of jump time"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 176-180",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Fairwind Marina Group — Seasonal Berth Rental Rates</b></p><p>Fairwind Marina Group manages recreational boat berths at three coastal harbors and offers the following packages for the full season.</p><table><tr><th>Package</th><th>Maximum length</th><th>Seasonal fee</th><th>Included services</th><th>Harbor site</th><th>Submit with request</th></tr><tr><td>Coveside</td><td>Up to 8 meters</td><td>$1,450</td><td>Dock power and water hookup</td><td>Weyford (fuel dock on site)</td><td>Vessel registration; signed berth agreement</td></tr><tr><td>Bayfront</td><td>Up to 12 meters</td><td>$2,100</td><td>Dock power, water hookup, weekly hull check</td><td>Stanmoor (repair-and-refit yard on site)</td><td>Vessel registration; signed berth agreement</td></tr><tr><td>Deepwater</td><td>Up to 16 meters</td><td>$2,900</td><td>Dock power, water hookup, weekly hull check, winter haul-out</td><td>Bellhaven (visitor moorings on site)</td><td>Vessel registration; signed berth agreement</td></tr></table><p>Proof of current vessel insurance must accompany every reservation request, whichever package is chosen. A refundable security deposit is collected when the vessel first arrives at its berth. Requests are processed in the order received, and berths at each site are limited.</p><p>For assistance, contact the Fairwind Marina Group booking office in Redcliff.</p></div><p>----------------------</p><div><p>To: Fairwind Marina Group Booking Office<br>From: Douglas Prentice<br>Date: March 3<br>Subject: Seasonal berth reservation — Deepwater Package</p><p>Good morning,</p><p>I am writing to reserve a seasonal berth for my sailboat, the Seaflower, under the Deepwater Package at your Bellhaven harbor. The vessel measures fourteen meters, which is <b>comfortably</b> within the length allowed for that package, and I would like the berth for the whole season.</p><p>I have attached the three items needed to secure the reservation: my vessel registration certificate, the signed berth agreement, and current proof of insurance. If anything further is required before you confirm the booking, please let me know and I will send it right away.</p><p>My boat is presently kept at Northmoor, and I plan to bring it around a few days before the season opens. I will also be attending the regional boat show being held near your repair-and-refit yard later this month, so I would be glad to stop by the office in person while I am in the area.</p><p>With thanks,</p><p>Douglas Prentice<br>Boat owner<br>Direct line: 555-0148</p></div>",
+          "questions": [
+            {
+              "number": 176,
+              "prompt": "What is indicated about Fairwind Marina Group?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It offers berths in only one size."
+                },
+                {
+                  "value": "B",
+                  "label": "It provides repair facilities at each of its sites."
+                },
+                {
+                  "value": "C",
+                  "label": "It charges the same fee for every package."
+                },
+                {
+                  "value": "D",
+                  "label": "It maintains boat berths at multiple harbors."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 177,
+              "prompt": "In the email, the word \"comfortably\" is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "pleasantly"
+                },
+                {
+                  "value": "B",
+                  "label": "tightly"
+                },
+                {
+                  "value": "C",
+                  "label": "easily"
+                },
+                {
+                  "value": "D",
+                  "label": "securely"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 178,
+              "prompt": "Which service is included with every one of the three packages?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Electrical power and water at the dock"
+                },
+                {
+                  "value": "B",
+                  "label": "A weekly inspection of the hull"
+                },
+                {
+                  "value": "C",
+                  "label": "Removal of the boat from the water in winter"
+                },
+                {
+                  "value": "D",
+                  "label": "Use of an on-site fuel dock"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 179,
+              "prompt": "What did Mr. Prentice most likely NOT provide together with his reservation request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Documentation of the vessel's registration"
+                },
+                {
+                  "value": "B",
+                  "label": "A payment held as a deposit"
+                },
+                {
+                  "value": "C",
+                  "label": "A signed rental agreement"
+                },
+                {
+                  "value": "D",
+                  "label": "Evidence of current insurance coverage"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 180,
+              "prompt": "Near which harbor site will Mr. Prentice attend the boat show?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Bellhaven"
+                },
+                {
+                  "value": "B",
+                  "label": "Stanmoor"
+                },
+                {
+                  "value": "C",
+                  "label": "Northmoor"
+                },
+                {
+                  "value": "D",
+                  "label": "Redcliff"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 181-185",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Workshop Spotlight</b></p><p><b>Cut, Stitch, Repeat</b></p><p>By Rebecca Lyle</p><p>A quiet studio in Braxton is teaching newcomers to make their own leather goods entirely by hand.</p><p>On a side street in Braxton, behind the wide windows of Thornbury Leather Studio, a row of visitors bend over their workbenches, pressing needles through strips of tan hide. None of them had made anything from leather before this month, and that is exactly the point. This spring the studio began offering a set of hands-on workshops built for complete beginners, and the seats have been filling quickly.</p><p>The program is arranged in three levels. First Stitch, the entry point, is a single two-hour session that requires no experience and sends participants home with a finished card holder. Everyday Carry runs across two evenings and guides makers through cutting, dyeing, and assembling a folded wallet. The longest option, Satchel Studio, fills a full weekend and ends with a completed shoulder bag. Each level <b>draws</b> a different sort of visitor, from the curious first-timer to the hobbyist ready for a larger project. Tools and materials are provided at every level.</p><p>Every session is led in person by Julian Reyes, who opened the studio after spending three years apprenticing with a saddlemaker in Florence. \"I was taught slowly, by hand, and that is how I teach here,\" Reyes said. \"People are surprised by how much they can finish in one sitting once someone shows them where to place the needle.\"</p><p>Classes run on weekday evenings and weekends, and places can be reserved through the studio's website. Reyes recommends First Stitch as a starting point for anyone unsure whether the craft suits them.</p></div><p>----------------------</p><div><p>Rating: 5 out of 5 stars<br>Workshop attended: First Stitch<br>Would recommend: Yes<br>Review title: Made something real in one afternoon<br>Posted by: newtocraft_gina<br>Date: May 14</p><p>I booked the shortest class on the list because I only wanted to find out whether making things by hand was for me, and I had never picked up a leather tool in my life. Two hours later I walked out with a card holder that I had cut and stitched myself. The person leading the session was endlessly patient. At one point he mentioned that he had been shaping and repairing leather since he was a boy, and it showed in the way he fixed our mistakes without ever taking the work out of our hands. The studio sits inside an old glove factory just a few streets from my apartment, one I had walked past for years without going in. I am already looking at signing up for the wallet class next.</p><p>Was this review helpful? 22 of 24 readers said yes.</p></div>",
+          "questions": [
+            {
+              "number": 181,
+              "prompt": "What is stated about Thornbury Leather Studio in the article?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It supplies materials to everyone who takes part."
+                },
+                {
+                  "value": "B",
+                  "label": "It requires participants to have prior experience."
+                },
+                {
+                  "value": "C",
+                  "label": "It sells finished leather goods to visitors."
+                },
+                {
+                  "value": "D",
+                  "label": "It holds classes only on weekends."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 182,
+              "prompt": "What is most likely true about the person who led the reviewer's session?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He trained under an experienced craftsman."
+                },
+                {
+                  "value": "B",
+                  "label": "He wrote the article about the studio."
+                },
+                {
+                  "value": "C",
+                  "label": "He designed the studio's interior."
+                },
+                {
+                  "value": "D",
+                  "label": "He only recently took up leatherwork."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 183,
+              "prompt": "In the article, the word \"draws\" is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "sketches"
+                },
+                {
+                  "value": "B",
+                  "label": "pulls"
+                },
+                {
+                  "value": "C",
+                  "label": "extends"
+                },
+                {
+                  "value": "D",
+                  "label": "attracts"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 184,
+              "prompt": "What is suggested about the reviewer?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She completed the two-evening wallet course."
+                },
+                {
+                  "value": "B",
+                  "label": "She lives near the studio in Braxton."
+                },
+                {
+                  "value": "C",
+                  "label": "She is unlikely to take another class."
+                },
+                {
+                  "value": "D",
+                  "label": "She once worked at a glove factory."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 185,
+              "prompt": "What does the reviewer indicate about the session she attended?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It ran longer than the scheduled two hours."
+                },
+                {
+                  "value": "B",
+                  "label": "It allowed her to produce a finished item."
+                },
+                {
+                  "value": "C",
+                  "label": "It required experience with leather tools."
+                },
+                {
+                  "value": "D",
+                  "label": "It was taught by several different instructors."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 186-190",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>Caldermoor Business Internet</p><p>Home / Business Plans / Compare and Sign Up</p><p>Caldermoor Business Internet provides dependable connections built for small and growing companies across the region. Every plan includes free installation and around-the-clock technical support. Compare our four plans below and choose the monthly rate that matches your contract length.</p><table><tr><th>Plan</th><th>Included features</th><th>1-year term (per month)</th><th>2-year term (per month)</th></tr><tr><td>Basic</td><td>50 Mbps, standard support</td><td>$60</td><td>$50</td></tr><tr><td>Standard</td><td>200 Mbps, standard support</td><td>$95</td><td>$80</td></tr><tr><td>Advanced</td><td>500 Mbps, priority support</td><td>$140</td><td>$120</td></tr><tr><td>Premier</td><td>1,000 Mbps, priority support, fixed address</td><td>$210</td><td>$185</td></tr></table><p>Premier customers also receive a complimentary on-site network review by one of our engineers each year.</p><p>To sign up: (1) Select a plan and a contract term. (2) Complete the online order form. (3) Book an installation date. (4) Receive a written confirmation of your account.</p><p>Questions? Speak with a sales agent through our live chat window, open weekdays from 8 A.M. to 6 P.M.</p></div><p>----------------------</p><div><p>Live chat session with Rosa Penrose, Sales Agent. Tuesday, 10:15 A.M.</p><p>Rosa Penrose: Good morning, and welcome to Caldermoor. How can I help you today?</p><p>Helen Ridgeway: Hello. I run a veterinary clinic, and we are moving into a larger building next month, so I need to arrange a new internet plan.</p><p>Rosa Penrose: Congratulations on the move. Were you referred to us, or did you find us online?</p><p>Helen Ridgeway: Owen at Holbeck Bakery recommended you. He has been very happy with his service.</p><p>Rosa Penrose: Wonderful. What sort of speed and budget did you have in mind?</p><p>Helen Ridgeway: We handle a lot of digital records and video consultations, so I would want at least 200 Mbps. I would like to keep the cost under $100 a month.</p><p>Rosa Penrose: That is easily done. Would you prefer a one-year or a two-year agreement?</p><p>Helen Ridgeway: A two-year term, since we plan to stay in the new building for a good while.</p><p>Rosa Penrose: Understood. I will note your requirements and send you a link to the order form.</p></div><p>----------------------</p><div><p>To: Owen Holbeck, Holbeck Bakery</p><p>From: Priscilla Hart, Account Services</p><p>Subject: Your Renewal Is Confirmed</p><p>Date: October 14</p><p>Account Reference: CM-4471</p><p>Dear Mr. Holbeck,</p><p>Thank you for renewing your Premier plan for another two years. Your service will continue without interruption, and your monthly rate stays the same as before.</p><p>We are also grateful that you recommended us to Dr. Helen Ridgeway of Ridgeway Veterinary Clinic. Personal referrals mean a great deal to a small provider like ours.</p><p>If you have any questions about your account, please reply to this message or call our office.</p><p>Kind regards,</p><p>Priscilla Hart<br>Account Services, Caldermoor Business Internet<br>support@caldermoor.example</p></div>",
+          "questions": [
+            {
+              "number": 186,
+              "prompt": "What is the main purpose of the Web page?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To announce a temporary discount on plans"
+                },
+                {
+                  "value": "B",
+                  "label": "To compare rival internet companies"
+                },
+                {
+                  "value": "C",
+                  "label": "To promote a free installation service"
+                },
+                {
+                  "value": "D",
+                  "label": "To describe service plans and how to subscribe"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 187,
+              "prompt": "What is mentioned about Caldermoor Business Internet?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It serves customers nationwide"
+                },
+                {
+                  "value": "B",
+                  "label": "It provides support at all hours"
+                },
+                {
+                  "value": "C",
+                  "label": "It charges a fee for installation"
+                },
+                {
+                  "value": "D",
+                  "label": "It focuses on home internet users"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 188,
+              "prompt": "What type of business does Helen Ridgeway own?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A bakery"
+                },
+                {
+                  "value": "B",
+                  "label": "An internet provider"
+                },
+                {
+                  "value": "C",
+                  "label": "An animal care practice"
+                },
+                {
+                  "value": "D",
+                  "label": "A record-keeping firm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 189,
+              "prompt": "Based on the requirements Helen Ridgeway states, which plan will she most likely choose?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The Standard plan"
+                },
+                {
+                  "value": "B",
+                  "label": "The Basic plan"
+                },
+                {
+                  "value": "C",
+                  "label": "The Advanced plan"
+                },
+                {
+                  "value": "D",
+                  "label": "The Premier plan"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 190,
+              "prompt": "What is suggested about Mr. Holbeck?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He will receive a yearly on-site network review"
+                },
+                {
+                  "value": "B",
+                  "label": "He has upgraded to a higher plan"
+                },
+                {
+                  "value": "C",
+                  "label": "He now pays a lower monthly rate"
+                },
+                {
+                  "value": "D",
+                  "label": "He plans to move to a larger building"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 191-195",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Halstead Commercial Flooring</b></p><p>Professional flooring installation for retail and commercial premises across the Fairhaven area.</p><p><b>Standard Install — Code FL-100</b><br>Includes: carpet tile laying, basic floor cleaning<br>Coverage: up to 100 square meters<br>Completion: 2 working days</p><p><b>Retail Fit — Code FL-200</b><br>Includes: vinyl plank flooring, subfloor leveling, edge trim finishing<br>Coverage: up to 250 square meters<br>Completion: 4 working days</p><p><b>Premium Commercial — Code FL-300</b><br>Includes: polished stone flooring, moisture sealing, edge trim finishing<br>Coverage: up to 500 square meters<br>Completion: 7 working days</p><p><b>Full Refit — Code FL-400</b><br>Includes: all premium surfaces, custom design work, moisture sealing<br>Coverage: no area limit<br>Completion: scheduled to the project</p><p>Free on-site estimate: included with any package of FL-200 or higher, provided the premises lie within our Fairhaven service area and the visit is booked at least two weeks in advance. Purchases of FL-100 are charged a separate measurement fee.</p><p>To book, call our office or visit any Halstead branch.</p></div><p>----------------------</p><div><p>From: Gordon Fairlie<br>To: Marguerite Vance<br>Date: March 3<br>Subject: Your booked measurement visit</p><p>Dear Ms. Vance,</p><p>Thank you for booking with Halstead Commercial Flooring. This message confirms your on-site measurement visit at your new Westport store on March 14. Our team will measure the sales floor and inspect the subfloor before installation.</p><p>To help us prepare, please reply with details of the existing floor surface now in the space, including its material and general condition. This tells us whether any extra leveling work will be needed before your chosen package is scheduled.</p><p>Once we have your reply, we will confirm the final installation date.</p><p>Gordon Fairlie<br>Scheduling Coordinator, Halstead Commercial Flooring<br>Booking reference: BK-2291</p></div><p>----------------------</p><div><p><b>A Fresh Look for Ashcombe Kitchen and Table</b></p><p>By Damien Cross, Westport</p><p>When Ashcombe Kitchen and Table opened its newest branch in Westport last month, shoppers found more than the cookware and tableware the company has built its name on.</p><p>The retailer, which has run its established stores in Redmill for more than a decade, picked Westport for its latest expansion and is said to be weighing a further store in Northgate.</p><p>Owner Marguerite Vance credited the store's bright new look partly to its flooring. Contractors laid durable vinyl plank across roughly 200 square meters of sales floor, leveled the subfloor beneath it, and finished every edge with matching trim — all completed in four working days.</p><p>\"The floor makes the whole space feel finished,\" Vance said. \"Customers notice it the moment they walk in.\"</p></div>",
+          "questions": [
+            {
+              "number": 191,
+              "prompt": "According to the brochure, what is NOT necessary to qualify for a free on-site estimate?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Choosing a package of FL-200 or higher"
+                },
+                {
+                  "value": "B",
+                  "label": "Having the premises inside the service area"
+                },
+                {
+                  "value": "C",
+                  "label": "Scheduling the visit at least two weeks ahead"
+                },
+                {
+                  "value": "D",
+                  "label": "Paying a separate measurement charge"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 192,
+              "prompt": "Where is the store that Ms. Vance is having fitted out most likely located?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Westport"
+                },
+                {
+                  "value": "B",
+                  "label": "Redmill"
+                },
+                {
+                  "value": "C",
+                  "label": "Northgate"
+                },
+                {
+                  "value": "D",
+                  "label": "Fairhaven"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 193,
+              "prompt": "In the e-mail, what does Mr. Fairlie ask Ms. Vance to send in her reply?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The measurements of the sales floor"
+                },
+                {
+                  "value": "B",
+                  "label": "A preferred date for the installation"
+                },
+                {
+                  "value": "C",
+                  "label": "Information about the current floor surface"
+                },
+                {
+                  "value": "D",
+                  "label": "The reference number for her booking"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 194,
+              "prompt": "Based on the work described in the article, which package code did Ms. Vance most likely select?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "FL-100"
+                },
+                {
+                  "value": "B",
+                  "label": "FL-200"
+                },
+                {
+                  "value": "C",
+                  "label": "FL-300"
+                },
+                {
+                  "value": "D",
+                  "label": "FL-400"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 195,
+              "prompt": "According to the article, what does Ashcombe Kitchen and Table sell?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Flooring materials"
+                },
+                {
+                  "value": "B",
+                  "label": "Home furniture"
+                },
+                {
+                  "value": "C",
+                  "label": "Building supplies"
+                },
+                {
+                  "value": "D",
+                  "label": "Cookware and tableware"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 196-200",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Amberline Furniture Restoration</b></p><p><b>Autumn Renewal Event</b></p><p>To our returning clients: thank you for trusting us with your treasured pieces year after year. As a small studio, we owe our reputation to customers who come back to us.</p><p>Book a restoration job of three or more pieces before October 15, for work carried out between November 1 and December 20, and choose one complimentary add-on service:</p><p>(A) Protective wax finish - keeps restored surfaces resistant to moisture and everyday marks.<br>(B) Hardware polishing - brings a fresh shine to original handles, hinges, and locks.<br>(C) New fabric seat covering - replaces worn upholstery on one chair or bench.<br>(D) Pickup and return delivery within the Millbrook area, free of charge.</p><p>Add-on selections are subject to availability at the time your booking is scheduled. Reserve your place at www.amberlinerestoration.example.</p></div><p>----------------------</p><div><p><b>Restoration Booking Request</b></p><p>Booking Reference: RF-3072</p><p>Date Submitted: October 9<br>Client Name: Gerald Foster<br>Phone: 555-0148<br>Email: gfoster@mailexample.com<br>Preferred Drop-off Date: November 6<br>Requested Add-on: (C) New fabric seat covering</p><table><tr><th>Item</th><th>Condition</th><th>Service Requested</th></tr><tr><td>Oak dining table</td><td>Scratched top</td><td>Refinishing</td></tr><tr><td>Walnut armchair</td><td>Worn upholstery, loose joint</td><td>Reupholstery and repair</td></tr><tr><td>Pine bookcase</td><td>Faded, chipped edges</td><td>Restaining</td></tr></table><p>Preferences: Please reach me by email. I would like all pieces returned before the winter holidays.</p></div><p>----------------------</p><div><p>Subject: Booking Reference RF-3072 - Confirmation<br>Date: October 12<br>To: Gerald Foster<br>From: Lydia Crane</p><p>Dear Mr. Foster,</p><p>Thank you for booking three pieces with us this season. Your job qualifies for a complimentary add-on under our Autumn Renewal Event, and we have you scheduled with a drop-off on November 6.</p><p>Unfortunately, our upholstery supplier cannot provide seat covering during this period, so the fabric option you requested is not available. In its place, and at no charge, we will apply a treatment that keeps the finished surfaces resistant to moisture and everyday marks.</p><p>To thank you for your continued business, I would also like to offer you a 15 percent discount on your next restoration booking.</p><p>Kind regards,<br>Lydia Crane<br>Studio Manager, Amberline Furniture Restoration<br>Direct line: 555-0192</p></div>",
+          "questions": [
+            {
+              "number": 196,
+              "prompt": "Why most likely was the Autumn Renewal Event advertisement sent to Mr. Foster?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He owns several treasured pieces."
+                },
+                {
+                  "value": "B",
+                  "label": "He lives within the Millbrook area."
+                },
+                {
+                  "value": "C",
+                  "label": "He was referred by another client."
+                },
+                {
+                  "value": "D",
+                  "label": "He has hired the studio before."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 197,
+              "prompt": "What is suggested about the job Mr. Foster submitted on his booking form?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It qualifies for free pickup and delivery."
+                },
+                {
+                  "value": "B",
+                  "label": "It contains the minimum number of pieces required."
+                },
+                {
+                  "value": "C",
+                  "label": "It was paid for at the time of booking."
+                },
+                {
+                  "value": "D",
+                  "label": "It is the reason for the studio's reputation."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 198,
+              "prompt": "According to the form, when did Mr. Foster send in his booking request?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "October 9"
+                },
+                {
+                  "value": "B",
+                  "label": "October 12"
+                },
+                {
+                  "value": "C",
+                  "label": "October 15"
+                },
+                {
+                  "value": "D",
+                  "label": "November 6"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 199,
+              "prompt": "Which add-on service will Mr. Foster actually receive on his current job?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A protective wax finish"
+                },
+                {
+                  "value": "B",
+                  "label": "A hardware polishing service"
+                },
+                {
+                  "value": "C",
+                  "label": "A new fabric seat covering"
+                },
+                {
+                  "value": "D",
+                  "label": "A free delivery service"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 200,
+              "prompt": "What does Ms. Crane offer to do for Mr. Foster?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Waive the fee for pickup and delivery"
+                },
+                {
+                  "value": "B",
+                  "label": "Provide an extra add-on at no cost"
+                },
+                {
+                  "value": "C",
+                  "label": "Refund part of the upholstery cost"
+                },
+                {
+                  "value": "D",
+                  "label": "Reduce the price of a future booking"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

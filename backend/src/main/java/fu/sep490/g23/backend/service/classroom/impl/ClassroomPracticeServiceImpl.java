@@ -1,6 +1,5 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomPracticeAttemptHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
 
@@ -13,7 +12,6 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttempt;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -25,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +33,6 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
 
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
-    private final ClassroomPracticeAttemptRepository attemptRepository;
     private final ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -46,9 +42,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     public List<ClassroomPracticeResponse> listForLearner(Long offeringId, String learnerEmail) {
         User learner = requireLearnerAccess(offeringId, learnerEmail);
         ClassroomOffering offering = requireOffering(offeringId);
-        Map<Long, ClassroomPracticeAttempt> attempts = attemptRepository
-                .findByClassroomOfferingIdAndStudentId(offeringId, learner.getId()).stream()
-                .collect(Collectors.toMap(attempt -> attempt.getExercise().getId(), Function.identity()));
+        Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offeringId, learner.getId());
         return practiceRefs(offering).stream()
                 .map(ref -> toResponse(offering, ref, attempts.get(ref.getExercise().getId()), learner.getId()))
                 .toList();
@@ -63,9 +57,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .flatMap(offering -> {
-                    Map<Long, ClassroomPracticeAttempt> attempts = attemptRepository
-                            .findByClassroomOfferingIdAndStudentId(offering.getId(), learner.getId()).stream()
-                            .collect(Collectors.toMap(attempt -> attempt.getExercise().getId(), Function.identity()));
+                    Map<Long, ClassroomPracticeAttemptHistory> attempts = latestAttempts(offering.getId(), learner.getId());
                     return practiceRefs(offering).stream()
                             .map(ref -> toResponse(offering, ref, attempts.get(ref.getExercise().getId()), learner.getId()));
                 })
@@ -87,8 +79,10 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         User learner = requireLearnerAccess(offeringId, learnerEmail);
         ClassroomOffering offering = requireOffering(offeringId);
         CurriculumExerciseRef ref = requirePracticeRef(offering, exerciseId);
-        ClassroomPracticeAttempt attempt = attemptRepository
-                .findByClassroomOfferingIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId)
+        ClassroomPracticeAttemptHistory attempt = attemptHistoryRepository
+                .findByClassroomOfferingIdAndStudentIdAndExerciseIdOrderByCompletedAtDesc(
+                        offeringId, learner.getId(), exerciseId
+                ).stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lượt luyện tập vừa hoàn thành."));
         return toResponse(offering, ref, attempt, learner.getId());
     }
@@ -106,32 +100,8 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
         validateSubmission(request);
 
         LocalDateTime completedAt = LocalDateTime.now();
-        Optional<ClassroomPracticeAttempt> previousSummary = attemptRepository
-                .findByClassroomOfferingIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
         long historyCount = attemptHistoryRepository
                 .countByClassroomOfferingIdAndStudentIdAndExerciseId(offeringId, learner.getId(), exerciseId);
-        if (historyCount == 0 && previousSummary.isPresent()) {
-            ClassroomPracticeAttempt legacy = previousSummary.get();
-            attemptHistoryRepository.save(ClassroomPracticeAttemptHistory.builder()
-                    .classroomOffering(offering)
-                    .student(learner)
-                    .exercise(ref.getExercise())
-                    .attemptNumber(1)
-                    .responseText(legacy.getResponseText())
-                    .completedAt(legacy.getCompletedAt())
-                    .build());
-            historyCount = 1;
-        }
-
-        ClassroomPracticeAttempt summary = previousSummary
-                .orElseGet(() -> ClassroomPracticeAttempt.builder()
-                        .classroomOffering(offering)
-                        .student(learner)
-                        .exercise(ref.getExercise())
-                        .build());
-        summary.setResponseText(request.getResponseText());
-        summary.setCompletedAt(completedAt);
-        attemptRepository.save(summary);
 
         ScoreResult score = score(request.getAnswersJson(), ref.getExercise().getAnswerKey());
         int attemptNumber = Math.toIntExact(historyCount + 1);
@@ -166,13 +136,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 ).stream()
                 .map(this::toAttemptResponse)
                 .toList();
-        if (!history.isEmpty()) return history;
-
-        return attemptRepository.findByClassroomOfferingIdAndStudentIdAndExerciseId(
-                        offeringId, learner.getId(), exerciseId
-                )
-                .map(summary -> List.of(toLegacyAttemptResponse(summary)))
-                .orElseGet(List::of);
+        return history;
     }
 
     private User requireLearnerAccess(Long offeringId, String learnerEmail) {
@@ -208,7 +172,7 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
     private ClassroomPracticeResponse toResponse(
             ClassroomOffering offering,
             CurriculumExerciseRef ref,
-            ClassroomPracticeAttempt attempt,
+            ClassroomPracticeAttemptHistory attempt,
             Long learnerId
     ) {
         List<ClassroomPracticeAttemptHistory> history = attemptHistoryRepository
@@ -255,17 +219,16 @@ public class ClassroomPracticeServiceImpl implements ClassroomPracticeService {
                 .build();
     }
 
-    private ClassroomPracticeAttemptResponse toLegacyAttemptResponse(ClassroomPracticeAttempt attempt) {
-        return ClassroomPracticeAttemptResponse.builder()
-                .id(-attempt.getId())
-                .classroomOfferingId(attempt.getClassroomOffering().getId())
-                .exerciseId(attempt.getExercise().getId())
-                .exerciseTitle(attempt.getExercise().getTitle())
-                .attemptNumber(1)
-                .responseText(attempt.getResponseText())
-                .completedAt(attempt.getCompletedAt())
-                .explanation(attempt.getExercise().getExplanation())
-                .build();
+    private Map<Long, ClassroomPracticeAttemptHistory> latestAttempts(Long offeringId, Long learnerId) {
+        return attemptHistoryRepository
+                .findByClassroomOfferingIdAndStudentIdOrderByCompletedAtDesc(offeringId, learnerId)
+                .stream()
+                .collect(Collectors.toMap(
+                        attempt -> attempt.getExercise().getId(),
+                        attempt -> attempt,
+                        (latest, ignored) -> latest,
+                        LinkedHashMap::new
+                ));
     }
 
     private void validateSubmission(CompletePracticeRequest request) {

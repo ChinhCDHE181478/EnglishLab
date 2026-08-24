@@ -38,4 +38,13 @@ describe('course progress access across published versions', () => {
       getLessonId,
     })).toBe(1);
   });
+
+  it('does not unlock a later module from leftover lesson progress when the previous module test is not passed', () => {
+    expect(isReachedModuleUnlocked({
+      sequentiallyUnlocked: false,
+      moduleIndex: 2,
+      furthestReachedModuleIndex: 7,
+      previousAssessmentsReady: false,
+    })).toBe(false);
+  });
 });

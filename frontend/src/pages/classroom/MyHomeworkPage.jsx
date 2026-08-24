@@ -25,7 +25,7 @@ import classroomApi from '../../api/classroomApi';
 import ClassroomFlashcardsPanel from '../../components/classroom/ClassroomFlashcardsPanel';
 import WorkspaceFlashcards from '../../components/course-workspace/WorkspaceFlashcards';
 import AuthenticatedFileLink from '../../components/classroom/AuthenticatedFileLink';
-import HomeworkAnnotatedText from '../../components/classroom/HomeworkAnnotatedText';
+import HomeworkSubmissionReview, { hasHomeworkTeacherEvaluation } from '../../components/classroom/HomeworkSubmissionReview';
 import {
   ClassroomEmptyState,
   ClassroomErrorState,
@@ -41,6 +41,7 @@ import SpeakingExamMode from '../../components/course-assessment/SpeakingExamMod
 import WritingExamMode from '../../components/course-assessment/WritingExamMode';
 import { getClassroomErrorMessage } from '../../utils/classroomErrorMessages';
 import { requestExamFullscreen } from '../../utils/examFullscreen';
+import { stripRichTextToPlain } from '../../utils/lessonRichText';
 import { formatClassroomDateTime, getHomeworkMaxScore, getSubmissionFeedback } from '../../utils/classroomHelpers';
 import {
   getHomeworkActivityTypeLabel,
@@ -509,6 +510,7 @@ export default function MyHomeworkPage() {
                     const isGraded = status === 'GRADED';
                     const isOverdue = status === 'OVERDUE';
                     const hasSubmission = !!item.mySubmission;
+                    const hasTeacherEvaluation = hasHomeworkTeacherEvaluation(item.mySubmission);
 
                     const isUrgent = !hasSubmission && !isOverdue && new Date(item.deadline) - new Date() < 24 * 60 * 60 * 1000;
                     const statusInfo = getMinimalistStatusInfo(status);
@@ -611,14 +613,14 @@ export default function MyHomeworkPage() {
                             )}
 
                             {/* Teacher Feedback testimonial block */}
-                            {isGraded && getSubmissionFeedback(item.mySubmission) && (
+                            {hasTeacherEvaluation && getSubmissionFeedback(item.mySubmission) && (
                               <div className="rounded-2xl bg-[#fff0f1]/30 border border-[#dfbfbd]/20 p-3 space-y-1">
                                 <p className="text-[9px] font-extrabold text-[#730014] uppercase tracking-wider flex items-center gap-1">
                                   <MessageSquare className="h-3 w-3" />
                                   {getHomeworkFeedbackLabel(item)}
                                 </p>
                                 <p className="text-[11px] text-[#584140] italic leading-normal line-clamp-2">
-                                  "{getSubmissionFeedback(item.mySubmission)}"
+                                  "{stripRichTextToPlain(getSubmissionFeedback(item.mySubmission))}"
                                 </p>
                               </div>
                             )}
@@ -648,15 +650,30 @@ export default function MyHomeworkPage() {
                                 : usesModuleExamWorkspace(item) ? 'Vào làm bài' : 'Làm & nộp bài'}
                             </button>
                           ) : canResubmitHomework(item) ? (
-                            <button
-                              className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/20 bg-white px-4 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
-                              disabled={flashcardLoadingId === item.id}
-                              onClick={() => handleOpenHomework(item)}
-                              type="button"
-                            >
-                              {flashcardLoadingId === item.id ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                              {item.activityType === 'FLASHCARD_REVIEW' ? 'Ôn lại flashcard' : 'Nộp lại bài'}
-                            </button>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              {hasTeacherEvaluation ? (
+                                <button
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95"
+                                  onClick={() => {
+                                    setSelectedSession(item);
+                                    setIsDrawerOpen(true);
+                                  }}
+                                  type="button"
+                                >
+                                  <MessageSquare className="h-3.5 w-3.5 text-[#730014]" />
+                                  Xem đánh giá
+                                </button>
+                              ) : null}
+                              <button
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-[#730014]/20 bg-white px-3 py-2.5 text-xs font-bold text-[#730014] transition hover:bg-[#fff0f1] active:scale-95"
+                                disabled={flashcardLoadingId === item.id}
+                                onClick={() => handleOpenHomework(item)}
+                                type="button"
+                              >
+                                {flashcardLoadingId === item.id ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                                {item.activityType === 'FLASHCARD_REVIEW' ? 'Ôn lại flashcard' : 'Nộp lại bài'}
+                              </button>
+                            </div>
                           ) : (
                             <button
                               className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-50 active:scale-95"
@@ -712,9 +729,9 @@ export default function MyHomeworkPage() {
         onClose={() => setIsDrawerOpen(false)}
         title={
           selectedHomework?.mySubmission && !canResubmitHomework(selectedHomework)
-            ? 'Bài nộp chi tiết'
+            ? 'Đánh giá bài nộp'
             : selectedHomework?.mySubmission
-              ? 'Nộp bài mới'
+              ? 'Đánh giá & nộp lại'
               : 'Gửi bài làm'
         }
       >
@@ -764,62 +781,12 @@ export default function MyHomeworkPage() {
 
             {/* Answer Display or Submission Workspace Form */}
             {selectedHomework.mySubmission && !canResubmitHomework(selectedHomework) ? (
-              <div className="space-y-6">
-                
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/15 p-5 space-y-4">
-                  <h4 className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    Bài nộp đã ghi nhận
-                  </h4>
-                  <HomeworkAnnotatedText
-                    annotations={selectedHomework.mySubmission.annotations || []}
-                    className="text-xs"
-                    text={selectedHomework.mySubmission.textAnswer || 'Không ghi nhận câu trả lời dạng chữ.'}
-                  />
-                  
-                  {selectedHomework.mySubmission.attachmentUrl && (
-                    <AuthenticatedFileLink
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#730014] hover:underline"
-                      url={selectedHomework.mySubmission.attachmentUrl}
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      Tải tệp đính kèm bài làm cũ
-                    </AuthenticatedFileLink>
-                  )}
-                  <p className="text-[10px] text-gray-400">
-                    Thời điểm nộp: {formatClassroomDateTime(selectedHomework.mySubmission.submittedAt)}
-                  </p>
-                </div>
-
-                {/* Graded info details */}
-                {selectedHomework.mySubmission.score != null && (
-                  <div className="rounded-2xl border border-[#dfbfbd]/40 bg-white p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-extrabold text-[#730014] uppercase tracking-wider flex items-center gap-1.5">
-                        <Award className="h-4 w-4" />
-                        Kết quả đánh giá
-                      </h4>
-                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-800">
-                        {selectedHomework.mySubmission.score} / {getHomeworkMaxScore(selectedHomework)} Điểm
-                      </span>
-                    </div>
-
-                    {getSubmissionFeedback(selectedHomework.mySubmission) ? (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-extrabold text-[#8b706e]">{getHomeworkFeedbackLabel(selectedHomework)}:</p>
-                        <p className="text-xs text-[#584140] italic bg-[#fffafb] border border-[#dfbfbd]/20 p-4 rounded-xl leading-relaxed">
-                          "{getSubmissionFeedback(selectedHomework.mySubmission)}"
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-[#8b706e] italic">Giảng viên chưa để lại nhận xét chi tiết.</p>
-                    )}
-                  </div>
-                )}
-
-              </div>
+              <HomeworkSubmissionReview homework={selectedHomework} submission={selectedHomework.mySubmission} />
             ) : (
               <div className="space-y-5">
+                {selectedHomework.mySubmission ? (
+                  <HomeworkSubmissionReview homework={selectedHomework} submission={selectedHomework.mySubmission} />
+                ) : null}
                 <h4 className="text-xs font-extrabold text-[#8b706e] uppercase tracking-wider flex items-center gap-1">
                   <FileText className="h-4 w-4 text-[#730014]" />
                   Chi tiết nội dung câu trả lời
@@ -1252,7 +1219,11 @@ function buildHomeworkWritingConfig(homework) {
 
 function buildHomeworkSpeakingConfig(homework) {
   const source = parseActivityConfig(homework?.activityConfigJson);
-  const parts = Array.isArray(source.parts) && source.parts.length ? source.parts : [{
+  const selectedVariant = Array.isArray(source.variants) && source.variants.length
+    ? source.variants[0]
+    : null;
+  const sourceParts = selectedVariant?.parts || source.parts;
+  const parts = Array.isArray(sourceParts) && sourceParts.length ? sourceParts : [{
     key: 'part_1',
     title: homework?.curriculumUnitTitle || 'Speaking response',
     prompts: [homework?.instruction || 'Trình bày câu trả lời theo yêu cầu của giáo viên.'],
@@ -1262,6 +1233,8 @@ function buildHomeworkSpeakingConfig(homework) {
     ...source,
     title: homework?.title || 'Bài tập Speaking',
     submissionLabel: homework?.title || 'Bài tập Speaking',
+    variantKey: selectedVariant?.key || null,
+    variantLabel: selectedVariant?.label || null,
     parts,
   };
 }
@@ -1415,7 +1388,13 @@ function getHomeworkExamSummary(homework) {
   const skill = String(homework?.skill || '').toUpperCase();
   const questionCount = getActivityQuestions(config).length;
   const writingTaskCount = Array.isArray(config.tasks) ? config.tasks.length : 0;
-  const speakingPromptCount = Array.isArray(config.prompts) ? config.prompts.length : 0;
+  const speakingParts = Array.isArray(config.variants) && config.variants.length
+    ? config.variants[0]?.parts || []
+    : config.parts || [];
+  const speakingPromptCount = speakingParts.reduce(
+    (total, part) => total + (part.prompts || []).length,
+    0,
+  );
   const duration = Number(config.durationMinutes || config.timeLimitMinutes || (skill === 'WRITING' ? 40 : 30));
 
   let contentLabel = `${questionCount} câu hỏi`;

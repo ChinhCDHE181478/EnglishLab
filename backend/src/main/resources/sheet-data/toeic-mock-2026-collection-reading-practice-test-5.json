@@ -1,0 +1,2680 @@
+{
+  "version": 1,
+  "type": "toeic_reading_exam",
+  "examType": "TOEIC",
+  "key": "toeic_mock_2026_collection_5_reading",
+  "title": "TOEIC Mock Test 2026 Collection Reading Practice Test 5",
+  "sourceLabel": "toeicde5",
+  "durationMinutes": 75,
+  "audioUrl": "",
+  "audioLabel": "",
+  "rules": [
+    "100 câu",
+    "3 Part"
+  ],
+  "parts": [
+    {
+      "part": 5,
+      "partNumber": 5,
+      "title": "Incomplete Sentences",
+      "instructions": "Select the word or phrase that best completes the sentence.",
+      "questionCount": 30,
+      "audioUrl": "",
+      "questionRange": "Questions 101-130",
+      "passage": {
+        "title": "Incomplete Sentences",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 101-130",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "questions": [
+            {
+              "number": 101,
+              "prompt": "During annual reviews, managers evaluate individual performance _____ overall team contributions.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "but"
+                },
+                {
+                  "value": "B",
+                  "label": "while"
+                },
+                {
+                  "value": "C",
+                  "label": "as well as"
+                },
+                {
+                  "value": "D",
+                  "label": "so that"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 102,
+              "prompt": "The upgraded employee portal allows managers to _____ team meetings without administrative assistance.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "scheduled"
+                },
+                {
+                  "value": "B",
+                  "label": "schedule"
+                },
+                {
+                  "value": "C",
+                  "label": "scheduling"
+                },
+                {
+                  "value": "D",
+                  "label": "schedules"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 103,
+              "prompt": "_____ supervising the accounts team at Bellwood Consulting, Mr. Alvarez also conducts monthly training workshops for new hires.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Whereas"
+                },
+                {
+                  "value": "B",
+                  "label": "Either"
+                },
+                {
+                  "value": "C",
+                  "label": "Besides"
+                },
+                {
+                  "value": "D",
+                  "label": "Why"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 104,
+              "prompt": "The paralegal at Ellsworth Legal must _____ that every client document has been signed before the case is filed.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "verify"
+                },
+                {
+                  "value": "B",
+                  "label": "perform"
+                },
+                {
+                  "value": "C",
+                  "label": "purchase"
+                },
+                {
+                  "value": "D",
+                  "label": "transport"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 105,
+              "prompt": "After reviewing the latest survey results, the editor rewrote the newsletter opening to _____ describe the team's recent achievements.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "yet"
+                },
+                {
+                  "value": "B",
+                  "label": "better"
+                },
+                {
+                  "value": "C",
+                  "label": "soon"
+                },
+                {
+                  "value": "D",
+                  "label": "either"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 106,
+              "prompt": "Customers who are dissatisfied with a purchase from Winslow Home Goods may ship the item back to the warehouse within thirty days under the store's generous _____ policy.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "warranty"
+                },
+                {
+                  "value": "B",
+                  "label": "delivery"
+                },
+                {
+                  "value": "C",
+                  "label": "return"
+                },
+                {
+                  "value": "D",
+                  "label": "cancellation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 107,
+              "prompt": "_____ the booth layout has been approved by the organizers, the setup crew may begin installing the display panels for the trade fair.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Now that"
+                },
+                {
+                  "value": "B",
+                  "label": "Whether"
+                },
+                {
+                  "value": "C",
+                  "label": "Neither"
+                },
+                {
+                  "value": "D",
+                  "label": "How"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 108,
+              "prompt": "After last week's upgrade, the platform processes customer orders _____ across all regional warehouses.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "quicken"
+                },
+                {
+                  "value": "B",
+                  "label": "quickly"
+                },
+                {
+                  "value": "C",
+                  "label": "quick"
+                },
+                {
+                  "value": "D",
+                  "label": "quickness"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 109,
+              "prompt": "In order to _____ an item, customers must show the original receipt within thirty days of purchase.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "exchanged"
+                },
+                {
+                  "value": "B",
+                  "label": "exchange"
+                },
+                {
+                  "value": "C",
+                  "label": "exchanging"
+                },
+                {
+                  "value": "D",
+                  "label": "exchanges"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 110,
+              "prompt": "After the morning briefing concludes, the shift supervisor will distribute the safety _____ to every new employee.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "instructed"
+                },
+                {
+                  "value": "B",
+                  "label": "instructive"
+                },
+                {
+                  "value": "C",
+                  "label": "instructions"
+                },
+                {
+                  "value": "D",
+                  "label": "instructively"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 111,
+              "prompt": "Ridgemont Electronics plans to introduce more _____ prices during the holiday season to draw new customers.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "competitive"
+                },
+                {
+                  "value": "B",
+                  "label": "competitively"
+                },
+                {
+                  "value": "C",
+                  "label": "competing"
+                },
+                {
+                  "value": "D",
+                  "label": "competes"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 112,
+              "prompt": "The new organic snack line was _____ received by customers who praised its unique flavors at every tasting event.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "abruptly"
+                },
+                {
+                  "value": "B",
+                  "label": "warmly"
+                },
+                {
+                  "value": "C",
+                  "label": "tightly"
+                },
+                {
+                  "value": "D",
+                  "label": "coldly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 113,
+              "prompt": "New customers receive a welcome discount after _____ up for the store's monthly newsletter through its main website.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "sign"
+                },
+                {
+                  "value": "B",
+                  "label": "signs"
+                },
+                {
+                  "value": "C",
+                  "label": "signing"
+                },
+                {
+                  "value": "D",
+                  "label": "signed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 114,
+              "prompt": "Once the renovation begins next month, there will be _____ access to the parking garage.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "restricted"
+                },
+                {
+                  "value": "B",
+                  "label": "restriction"
+                },
+                {
+                  "value": "C",
+                  "label": "restrict"
+                },
+                {
+                  "value": "D",
+                  "label": "restricts"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 115,
+              "prompt": "After signing in at the registration desk, attendees received a name badge _____ a welcome folder before entering the main hall.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "and"
+                },
+                {
+                  "value": "B",
+                  "label": "but"
+                },
+                {
+                  "value": "C",
+                  "label": "nor"
+                },
+                {
+                  "value": "D",
+                  "label": "so"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 116,
+              "prompt": "To meet the client's deadline, event planner Marcelo Vieira updated the existing venue layout _____ designing a new one from scratch.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "whenever"
+                },
+                {
+                  "value": "B",
+                  "label": "rather than"
+                },
+                {
+                  "value": "C",
+                  "label": "unless"
+                },
+                {
+                  "value": "D",
+                  "label": "while"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 117,
+              "prompt": "The proposal drafted for the new client was _____ revised before the final review meeting.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "extensive"
+                },
+                {
+                  "value": "B",
+                  "label": "extension"
+                },
+                {
+                  "value": "C",
+                  "label": "extensively"
+                },
+                {
+                  "value": "D",
+                  "label": "extended"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 118,
+              "prompt": "Patrons can renew a borrowed book for another three weeks _____ another reader has already requested it.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "either"
+                },
+                {
+                  "value": "B",
+                  "label": "unless"
+                },
+                {
+                  "value": "C",
+                  "label": "because"
+                },
+                {
+                  "value": "D",
+                  "label": "nor"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 119,
+              "prompt": "Under its new loyalty program, Brightwater Cleaners _____ reduced prices to customers who visit its branches regularly.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "offering"
+                },
+                {
+                  "value": "B",
+                  "label": "are offered"
+                },
+                {
+                  "value": "C",
+                  "label": "have been offered"
+                },
+                {
+                  "value": "D",
+                  "label": "offers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 120,
+              "prompt": "All visitors must present a valid photo ID to the security _____ stationed at the main lobby before proceeding to the elevators.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "resident"
+                },
+                {
+                  "value": "B",
+                  "label": "observer"
+                },
+                {
+                  "value": "C",
+                  "label": "assistant"
+                },
+                {
+                  "value": "D",
+                  "label": "officer"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 121,
+              "prompt": "_____ the training seminar covers essential workplace safety topics, veteran technicians at the service center are still required to attend every session.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Once"
+                },
+                {
+                  "value": "B",
+                  "label": "Unless"
+                },
+                {
+                  "value": "C",
+                  "label": "Whether"
+                },
+                {
+                  "value": "D",
+                  "label": "Although"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 122,
+              "prompt": "The consultant's presentation was _____ received by the members of the board, several of whom requested follow-up materials afterward.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "very"
+                },
+                {
+                  "value": "B",
+                  "label": "highly"
+                },
+                {
+                  "value": "C",
+                  "label": "greatly"
+                },
+                {
+                  "value": "D",
+                  "label": "well"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 123,
+              "prompt": "To cover several corporate events on the same weekend, the agency maintains an _____ roster of freelance photographers on call.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "experienced"
+                },
+                {
+                  "value": "B",
+                  "label": "ordered"
+                },
+                {
+                  "value": "C",
+                  "label": "extensive"
+                },
+                {
+                  "value": "D",
+                  "label": "interim"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 124,
+              "prompt": "By the time Ms. Whitcomb returned from the client meeting, most of her colleagues _____ for the day.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "had departed"
+                },
+                {
+                  "value": "B",
+                  "label": "departed"
+                },
+                {
+                  "value": "C",
+                  "label": "depart"
+                },
+                {
+                  "value": "D",
+                  "label": "will depart"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 125,
+              "prompt": "_____ marks the third consecutive quarter that our downtown branch has exceeded its monthly sales targets by a significant margin.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "These"
+                },
+                {
+                  "value": "B",
+                  "label": "those"
+                },
+                {
+                  "value": "C",
+                  "label": "This"
+                },
+                {
+                  "value": "D",
+                  "label": "that"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 126,
+              "prompt": "Ms. Ostrowski was accountable for the annual sales _____ at Meridian Retail Group.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "analyze"
+                },
+                {
+                  "value": "B",
+                  "label": "analysis"
+                },
+                {
+                  "value": "C",
+                  "label": "analytical"
+                },
+                {
+                  "value": "D",
+                  "label": "analytically"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 127,
+              "prompt": "All requests for early contract termination will be reviewed and either approved or denied at the sole _____ of the regional director.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "judgment"
+                },
+                {
+                  "value": "B",
+                  "label": "preference"
+                },
+                {
+                  "value": "C",
+                  "label": "discretion"
+                },
+                {
+                  "value": "D",
+                  "label": "choice"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 128,
+              "prompt": "All expense reports must be forwarded to the corporate accounting office _____ the traveling employee returns from the business trip.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "therefore"
+                },
+                {
+                  "value": "B",
+                  "label": "in the meantime"
+                },
+                {
+                  "value": "C",
+                  "label": "as soon as"
+                },
+                {
+                  "value": "D",
+                  "label": "nevertheless"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 129,
+              "prompt": "Although flattered by the recognition, Ms. Ostberg _____ the invitation to speak at the industry conference due to her existing commitments.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "attended"
+                },
+                {
+                  "value": "B",
+                  "label": "reported"
+                },
+                {
+                  "value": "C",
+                  "label": "submitted"
+                },
+                {
+                  "value": "D",
+                  "label": "declined"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 130,
+              "prompt": "The operations department at Harnett Industrial is _____ modernizing its supply-chain network.",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "progress"
+                },
+                {
+                  "value": "B",
+                  "label": "progressively"
+                },
+                {
+                  "value": "C",
+                  "label": "progressive"
+                },
+                {
+                  "value": "D",
+                  "label": "progresses"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 6,
+      "partNumber": 6,
+      "title": "Text Completion",
+      "instructions": "Select the best answer to complete the text.",
+      "questionCount": 16,
+      "audioUrl": "",
+      "questionRange": "Questions 131-146",
+      "passage": {
+        "title": "Text Completion",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 131-134",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div>To: Design Team</div><div>From: Blake Sinclair, Operations Lead</div><div>Date: October 15</div><div>Subject: ProjectStream Rollout on November 3</div><div><br></div><div>On November 3, our design team will move from our current tracking tool to ProjectStream, a new project-management platform selected after several months of review. The change will give us clearer scheduling views, simpler client reporting, and better version control across teams. --(131)--, please complete the online training module before October 31. Once you have finished the module, your active project files --(132)-- to the new platform on your behalf. --(133)--. If you anticipate any difficulty meeting the deadline, please contact me directly so we can arrange support and minimize any disruption to your work. Thank you for your cooperation in helping this transition proceed as --(134)-- as possible.</div></div>",
+          "questions": [
+            {
+              "number": 131,
+              "prompt": "Câu 131",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Nonetheless"
+                },
+                {
+                  "value": "B",
+                  "label": "Otherwise"
+                },
+                {
+                  "value": "C",
+                  "label": "Accordingly"
+                },
+                {
+                  "value": "D",
+                  "label": "Similarly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 132,
+              "prompt": "Câu 132",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will be transferred"
+                },
+                {
+                  "value": "B",
+                  "label": "had been transferred"
+                },
+                {
+                  "value": "C",
+                  "label": "transferring"
+                },
+                {
+                  "value": "D",
+                  "label": "are being transferred"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 133,
+              "prompt": "Câu 133",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Recent client feedback has been favorable"
+                },
+                {
+                  "value": "B",
+                  "label": "Do not attempt to transfer files manually"
+                },
+                {
+                  "value": "C",
+                  "label": "Our former tool worked well until this year"
+                },
+                {
+                  "value": "D",
+                  "label": "Book the annual retreat by Friday morning"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 134,
+              "prompt": "Câu 134",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reluctantly"
+                },
+                {
+                  "value": "B",
+                  "label": "actively"
+                },
+                {
+                  "value": "C",
+                  "label": "directly"
+                },
+                {
+                  "value": "D",
+                  "label": "seamlessly"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 135-138",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div>To: All Staff</div><div>From: Nicola Trent, Operations Manager</div><div>Date: August 4</div><div>Subject: Upcoming Office Relocation</div><p>Dear Colleagues,</p><p>Our team will move from the 12th floor to the newly renovated 15th floor over the weekend of August 16-17. --(135)--, our mailing address and main phone number will stay the same, since the building's central mailroom will continue to route all deliveries as before.</p><p>The new floor offers more meeting rooms, additional natural light, and a larger break area, all intended to improve collaboration and minimize disruption to client-facing work.</p><p>All computers, monitors, and shared furniture --(136)-- by the facilities team during the move, so that daily operations can resume without delay. Each employee is asked to pack any personal desk items that they wish to keep into the boxes provided near the mailroom by 5:00 P.M. on Friday, August 15. Please note that building access badges will be reprogrammed over the weekend, so the 15th floor will not be reachable until Monday. Your --(137)-- to meet this deadline will allow the movers to finish before Monday morning.</p><p>For questions or special arrangements, please speak with Owen Bergman in Operations, who will coordinate any individual needs. We appreciate the enthusiasm everyone has shown for the new space. --(138)--.</p><p>Sincerely,<br>Nicola Trent</p></div>",
+          "questions": [
+            {
+              "number": 135,
+              "prompt": "Câu 135",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "In addition"
+                },
+                {
+                  "value": "B",
+                  "label": "As a result"
+                },
+                {
+                  "value": "C",
+                  "label": "However"
+                },
+                {
+                  "value": "D",
+                  "label": "For instance"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 136,
+              "prompt": "Câu 136",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will have relocated"
+                },
+                {
+                  "value": "B",
+                  "label": "had been relocated"
+                },
+                {
+                  "value": "C",
+                  "label": "relocated"
+                },
+                {
+                  "value": "D",
+                  "label": "will be relocated"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 137,
+              "prompt": "Câu 137",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "willingness"
+                },
+                {
+                  "value": "B",
+                  "label": "reluctance"
+                },
+                {
+                  "value": "C",
+                  "label": "hesitation"
+                },
+                {
+                  "value": "D",
+                  "label": "permission"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 138,
+              "prompt": "Câu 138",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Please confirm your new seating assignment by replying to this message"
+                },
+                {
+                  "value": "B",
+                  "label": "We are grateful for your cooperation and look forward to the move"
+                },
+                {
+                  "value": "C",
+                  "label": "I look forward to discussing these changes at next week's meeting"
+                },
+                {
+                  "value": "D",
+                  "label": "Any unused boxes should be returned to the mailroom after unpacking"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 139-142",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>From:</b> Wendy Kessler<br><b>To:</b> All Staff<br><b>Date:</b> October 3<br><b>Subject:</b> Quarterly Peer Excellence Award</p><p>Dear colleagues,</p><p>The nomination window for our quarterly Peer Excellence Award is now open at Ellery Design Group. This --(139)-- celebrates team members whose steady efforts shape our studio culture and elevate the quality of our work. Any employee may be nominated for --(140)-- work on client projects, thoughtful mentoring of junior architects, or improvements to shared internal processes. --(141)-- examples of collaboration, initiative, and design leadership qualify for consideration. Nomination forms are posted on the staff portal and must reach HR by Friday, October 25. All submissions are treated confidentially. We encourage each of you to put forward a colleague this quarter. --(142)--.</p><p>Sincerely,<br>Wendy Kessler<br>HR Coordinator</p></div>",
+          "questions": [
+            {
+              "number": 139,
+              "prompt": "Câu 139",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "ceremony"
+                },
+                {
+                  "value": "B",
+                  "label": "program"
+                },
+                {
+                  "value": "C",
+                  "label": "proposal"
+                },
+                {
+                  "value": "D",
+                  "label": "survey"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 140,
+              "prompt": "Câu 140",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "exceptional"
+                },
+                {
+                  "value": "B",
+                  "label": "exceptionally"
+                },
+                {
+                  "value": "C",
+                  "label": "exception"
+                },
+                {
+                  "value": "D",
+                  "label": "exceptions"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 141,
+              "prompt": "Câu 141",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Hardly"
+                },
+                {
+                  "value": "B",
+                  "label": "Too"
+                },
+                {
+                  "value": "C",
+                  "label": "All"
+                },
+                {
+                  "value": "D",
+                  "label": "Every"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 142,
+              "prompt": "Câu 142",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Your participation makes this recognition genuinely meaningful"
+                },
+                {
+                  "value": "B",
+                  "label": "Turnout at last quarter's ceremony far exceeded expectations"
+                },
+                {
+                  "value": "C",
+                  "label": "Winners will be honored at our end-of-year company banquet"
+                },
+                {
+                  "value": "D",
+                  "label": "A revised submission form will circulate by next Monday"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 143-146",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><b>To:</b> All Warehouse Staff</div><div><b>From:</b> Vincent Marlowe, Operations Manager</div><div><b>Date:</b> March 4</div><div><b>Re:</b> Annual Inventory Count</div><div><br></div><p>Our annual inventory count takes place next Tuesday and Wednesday. Zones A and B will be counted on Tuesday and Zones C and D on Wednesday.</p><p>The --(143)-- needed for this task will be provided at every counting station. Handheld scanners, tally sheets, and markers --(144)-- at each station by 7:00 A.M. --(145)--. Please confirm this code matches your zone before you begin.</p><p>During the count, scan each pallet, record the quantity, and attach a green tag. A supervisor will spot-check entries, so keep your sheet ready. Stock must not be moved between zones during the count. --(146)--, orders staged for outbound shipment may still leave the dock.</p><p>Thank you for your careful attention.</p></div>",
+          "questions": [
+            {
+              "number": 143,
+              "prompt": "Câu 143",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Supplies"
+                },
+                {
+                  "value": "B",
+                  "label": "Credentials"
+                },
+                {
+                  "value": "C",
+                  "label": "Deliveries"
+                },
+                {
+                  "value": "D",
+                  "label": "Inventories"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 144,
+              "prompt": "Câu 144",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "will distribute"
+                },
+                {
+                  "value": "B",
+                  "label": "are distributing"
+                },
+                {
+                  "value": "C",
+                  "label": "were distributed"
+                },
+                {
+                  "value": "D",
+                  "label": "will be distributed"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 145,
+              "prompt": "Câu 145",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Extra markers are stored in the supply cabinet"
+                },
+                {
+                  "value": "B",
+                  "label": "Forklift movement will pause during those hours"
+                },
+                {
+                  "value": "C",
+                  "label": "A zone code is printed on the lid of each tote"
+                },
+                {
+                  "value": "D",
+                  "label": "She will meet you at the loading dock at noon"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 146,
+              "prompt": "Câu 146",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Likewise"
+                },
+                {
+                  "value": "B",
+                  "label": "Furthermore"
+                },
+                {
+                  "value": "C",
+                  "label": "Meanwhile"
+                },
+                {
+                  "value": "D",
+                  "label": "Nevertheless"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "part": 7,
+      "partNumber": 7,
+      "title": "Reading Comprehension",
+      "instructions": "Read the following text then answer the questions.",
+      "questionCount": 54,
+      "audioUrl": "",
+      "questionRange": "Questions 147-200",
+      "passage": {
+        "title": "Reading Comprehension",
+        "paragraphs": []
+      },
+      "questionGroups": [
+        {
+          "title": "Questions 147-148",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Introducing Doorstep Rx — Now Available at Rowanbrook Pharmacy</b></p><p><b>A convenient new way to receive your routine prescriptions at home at no extra charge.</b></p><p>Beginning June 1, Rowanbrook Pharmacy will bring regular monthly prescriptions directly to customers who live within five kilometers of our shop. The service is offered free of charge to every registered patron and will run on a set weekly schedule.</p><p>As part of the program, we will send a short text message reminder several days before each prescription is due to run out.</p><p>To enroll, please complete a brief registration form at our front counter or through our website.</p><p>Questions? Call us at 555-0142 or visit www.rowanbrookpharmacy.com.</p></div></div>",
+          "questions": [
+            {
+              "number": 147,
+              "prompt": "What is the main purpose of the flyer?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To remind patrons about an upcoming schedule change"
+                },
+                {
+                  "value": "B",
+                  "label": "To encourage residents to join a newly offered service"
+                },
+                {
+                  "value": "C",
+                  "label": "To outline the qualifications needed to receive deliveries"
+                },
+                {
+                  "value": "D",
+                  "label": "To provide details for reaching a pharmacist"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 148,
+              "prompt": "Why does the pharmacy plan to send text messages?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To confirm that an online registration has been completed"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce adjustments to the weekly delivery schedule"
+                },
+                {
+                  "value": "C",
+                  "label": "To improve the pharmacy's overall service quality"
+                },
+                {
+                  "value": "D",
+                  "label": "To alert patrons that their current supply is nearly finished"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 149-150",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Kelbrook Home Appliances — Warranty Registration Form</b></p><p>Please complete every section below so that we may register your recently purchased appliance for manufacturer warranty coverage without delay.</p><p><b>Product Information</b><br>Product Category: Refrigerator<br>Model Number: KHR-4820<br>Purchase Date: 14 March</p><p><b>Owner Information</b><br>Owner Name: Harold Cheney<br>Delivery Address: 27 Merlebrook Avenue<br>Contact Phone: 555-0198</p><p><b>Coverage Selection</b><br>[X] Standard Coverage — a two-year term that is included automatically with every purchase, at no additional cost.<br>[ ] Extended Coverage — a five-year term; although no extra fee applies, owners electing this option must attach a copy of the original sales receipt before the form is submitted.</p><p><b>Submission</b><br>Return the completed form to the customer service counter at any Kelbrook Home Appliances branch within 30 days of purchase; forms received after this period cannot be processed.</p><p><b>Support and Status Inquiries</b><br>For questions about your registration or to check the current status of your coverage, telephone our warranty helpline at 555-0142, available on weekdays only.</p></div></div>",
+          "questions": [
+            {
+              "number": 149,
+              "prompt": "What must an owner do to select the extended coverage option?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Submitting a contact phone number"
+                },
+                {
+                  "value": "B",
+                  "label": "Attaching the original sales receipt"
+                },
+                {
+                  "value": "C",
+                  "label": "Delivering the form to a counter"
+                },
+                {
+                  "value": "D",
+                  "label": "Scheduling an inspection visit"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 150,
+              "prompt": "How can the owner check the status of the coverage?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "By telephoning a helpline"
+                },
+                {
+                  "value": "B",
+                  "label": "By visiting a service counter"
+                },
+                {
+                  "value": "C",
+                  "label": "By going to the delivery address"
+                },
+                {
+                  "value": "D",
+                  "label": "By attending a store demonstration"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 151-152",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Renata Molina [4:22 P.M.]</b>: Hi Isaac, Vivien — several items still open before tomorrow's client presentation. We need the site plan revisions finished and a final rendering ready to walk through.</p><p><b>Isaac Trembley [4:24 P.M.]</b>: I can take the rendering tonight. One issue though — I've got a site visit at nine tomorrow morning, so the plan revisions won't fit before the meeting.</p><p><b>Vivien Chao [4:25 P.M.]</b>: I can swap in for the site visit if that helps, though my afternoon is already tight.</p><p><b>Renata Molina [4:27 P.M.]</b>: That would save us. Isaac, take the plan revisions after the rendering. And Vivien, could you finish the elevation drawings once you're back from the site?</p><p><b>Isaac Trembley [4:28 P.M.]</b>: Done. I'll also touch up the scale model so every design is ready to present.</p><p><b>Vivien Chao [4:30 P.M.]</b>: Pile it on.</p><p><b>Renata Molina [4:31 P.M.]</b>: Thank you both. Let's regroup at eight.</p></div>",
+          "questions": [
+            {
+              "number": 151,
+              "prompt": "At what type of business do the writers most likely work?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A graphic design agency"
+                },
+                {
+                  "value": "B",
+                  "label": "A construction firm"
+                },
+                {
+                  "value": "C",
+                  "label": "An architecture firm"
+                },
+                {
+                  "value": "D",
+                  "label": "A management consulting firm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 152,
+              "prompt": "At 4:30 P.M., what does Ms. Chao most likely mean when she writes, \"Pile it on\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She is willing to take on the extra work."
+                },
+                {
+                  "value": "B",
+                  "label": "She thinks she has been assigned too much work."
+                },
+                {
+                  "value": "C",
+                  "label": "She wants to handle only the site visit."
+                },
+                {
+                  "value": "D",
+                  "label": "She needs to postpone her afternoon plans."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 153-154",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Harriet Doyle (2:10 P.M.):</b> Team, quick heads-up — Devon just called in sick, so the 2:30 strength class has no instructor. Twelve people are signed up and several are already checking in, so we've got barely twenty minutes to figure this out.</p><p><b>Miles Okafor (2:11 P.M.):</b> I could try to lead it, but I've only shadowed that format twice. Honestly, I'd rather not run it on my own this afternoon.</p><p><b>Harriet Doyle (2:12 P.M.):</b> Understood. Sabine, you taught this same class last month — any chance you can step in and cover today?</p><p><b>Sabine Klein (2:13 P.M.):</b> I've done it more than twice, so I should be fine. Give me a minute to pull up Devon's playlist and grab my notes.</p><p><b>Harriet Doyle (2:14 P.M.):</b> Great, thank you. Miles, since Sabine's teaching, I'll need you out front for the next hour — the members who've already arrived still have to be signed in, and anyone turning up late should be told the session is going ahead.</p><p><b>Miles Okafor (2:15 P.M.):</b> Understood. I'll take over from here so Sabine can get straight to the studio.</p><p><b>Sabine Klein (2:16 P.M.):</b> Thanks, both. See you back at the desk after class.</p></div>",
+          "questions": [
+            {
+              "number": 153,
+              "prompt": "What will Mr. Okafor most likely do next?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Lead the 2:30 strength class"
+                },
+                {
+                  "value": "B",
+                  "label": "Head over to the studio room"
+                },
+                {
+                  "value": "C",
+                  "label": "Sign in members at the front desk"
+                },
+                {
+                  "value": "D",
+                  "label": "Contact the members who have not yet arrived"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 154,
+              "prompt": "At 2:13 P.M., what does Ms. Klein mean when she writes, \"more than twice\"?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has more experience with the class than Mr. Okafor."
+                },
+                {
+                  "value": "B",
+                  "label": "She has covered for Devon on multiple prior occasions."
+                },
+                {
+                  "value": "C",
+                  "label": "She has attended more than two of these classes."
+                },
+                {
+                  "value": "D",
+                  "label": "She has practiced the playlist more than twice already."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 155-157",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Museum Notebook</b></p><p>By Camilla Neumann</p><p>The Millpond Community Science Museum, a longstanding Bellrose Street landmark, opened its newest hands-on gallery, The Discovery Wing, on 12 March. The space fills the museum's renovated east hall and is aimed at families with school-aged children. It also lends out a rotating set of take-home experiment kits, free with a refundable deposit. --[1]--.</p><p>Inside, three themed zones offer different kinds of play. --[2]--. The Wind and Water zone lets older children experiment with hand pumps, sails, and turbines. The Sound Studio lets visitors record short clips and see their voices as colored waves on a wall screen. --[3]--. However, the quietest area is the Little Sparks corner, a soft-floored space set aside for children under six. --[4]--.</p><p>The Discovery Wing is open Tuesday through Sunday and is included with standard admission, though the Little Sparks corner issues timed passes on busy weekends. A planetarium-style dome with short shows about weather and the night sky will open beside it later this autumn. Families seeking a rainy-weekend outing will find plenty to enjoy.</p></div></div>",
+          "questions": [
+            {
+              "number": 155,
+              "prompt": "What is the main purpose of the article?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To bring a newly opened attraction to the public's attention"
+                },
+                {
+                  "value": "B",
+                  "label": "To explain how visitors may borrow experiment kits"
+                },
+                {
+                  "value": "C",
+                  "label": "To review the full range of the museum's exhibits"
+                },
+                {
+                  "value": "D",
+                  "label": "To request contributions toward a future addition"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 156,
+              "prompt": "What is indicated about the Little Sparks corner?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It contains hand pumps, sails, and turbines"
+                },
+                {
+                  "value": "B",
+                  "label": "It is the loudest space in the gallery"
+                },
+                {
+                  "value": "C",
+                  "label": "It lends out take-home experiment kits"
+                },
+                {
+                  "value": "D",
+                  "label": "It is reserved for the museum's youngest visitors"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 157,
+              "prompt": "In which of the positions marked [1], [2], [3] and [4] does the following sentence best belong? \"These younger children can explore at their own pace, away from the busier displays.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 158-160",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Open Bench at Marleigh Pottery Studio</b></p><p>Our Open Bench tier opens for enrollment this October. It is designed for returning students who have finished one of our beginners' or intermediate courses and want their own regular time at the wheel between the classes they take with us.</p><p><b>What's Included</b></p><p>Your $85 monthly fee <b>meets</b> the cost of up to 20 hours of self-directed studio time each cycle, along with use of every wheel, hand-building table, and shared hand tool on the floor. Members also receive a labeled storage shelf for works in progress and a standing 15 percent discount on clay and glazes purchased at the front counter.</p><p><b>How to Enroll</b></p><p>To join, first submit the interest form on our website, then book a thirty-minute orientation visit, and finally sign the workshop safety agreement and pay for your first month. Enrollment is capped at 25 active members per cycle; if the current cycle is already full, your name is added to a waiting list and you will be contacted when a place opens.</p><p><b>End-of-Cycle Extras</b></p><p>Members who log studio hours every week are also thanked for their consistency: once the 30-day period wraps up, the studio adds a no-charge kiln firing for one large piece to the account, to be used at the next scheduled loading. Missed weeks reset the count.</p><p>Questions about the tier? Please contact Miriam Alcott, Studio Coordinator, at extension 4.</p></div></div>",
+          "questions": [
+            {
+              "number": 158,
+              "prompt": "What is the main purpose of the web page?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To advertise the discount available on studio supplies"
+                },
+                {
+                  "value": "B",
+                  "label": "To promote the studio's upcoming beginners' course"
+                },
+                {
+                  "value": "C",
+                  "label": "To describe a new access option for former students"
+                },
+                {
+                  "value": "D",
+                  "label": "To explain the process for joining a pottery course"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 159,
+              "prompt": "The word \"meets\" in paragraph 2, line 1, is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "reaches"
+                },
+                {
+                  "value": "B",
+                  "label": "greets"
+                },
+                {
+                  "value": "C",
+                  "label": "encounters"
+                },
+                {
+                  "value": "D",
+                  "label": "covers"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 160,
+              "prompt": "According to the web page, what does a member with an unbroken record of weekly attendance receive?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "An orientation visit with a staff member"
+                },
+                {
+                  "value": "B",
+                  "label": "A free firing for one large piece"
+                },
+                {
+                  "value": "C",
+                  "label": "A 15 percent discount on studio supplies"
+                },
+                {
+                  "value": "D",
+                  "label": "A place on the members' waiting list"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 161-163",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>Ashmoor Hotels &amp; Resorts<br>Guest Loyalty Office<br>14 March</p><p>Dear Valued Member,</p><p>We are pleased to introduce Ashmoor Compass, a new middle tier in our rewards program, created in response to suggestions received from members over the past year. Compass sits between our entry Explorer tier and our top Summit tier, and is being added to the program rather than replacing either.</p><p>At the Compass tier, you will enjoy guaranteed late checkout of up to two hours, complimentary breakfast for two on every second night of your stay, and priority use of the fitness facilities at our newly renovated coastal properties. Complimentary room upgrades continue to be a privilege enjoyed exclusively by our Summit members.</p><p>To activate Compass, please sign in at our member website and select the Join Compass option on your profile page. Once enrolled, you may collect a small welcome gift at the front desk of any Ashmoor property during your next visit. For questions about existing reservations, our guest services telephone line remains available.</p><p>Warm regards,</p><p>Rowena Halliwell<br>Director of Member Programs<br>Ashmoor Hotels &amp; Resorts</p></div></div>",
+          "questions": [
+            {
+              "number": 161,
+              "prompt": "Why is the Compass tier being introduced?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Coastal properties have been renovated."
+                },
+                {
+                  "value": "B",
+                  "label": "Members have offered suggestions."
+                },
+                {
+                  "value": "C",
+                  "label": "The Explorer tier has been discontinued."
+                },
+                {
+                  "value": "D",
+                  "label": "A rival program has emerged."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 162,
+              "prompt": "What is NOT included as a benefit at the Compass tier?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Extended late checkout"
+                },
+                {
+                  "value": "B",
+                  "label": "Complimentary breakfast on alternate nights"
+                },
+                {
+                  "value": "C",
+                  "label": "Complimentary room upgrades"
+                },
+                {
+                  "value": "D",
+                  "label": "Priority access to fitness facilities"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 163,
+              "prompt": "How should members activate the Compass tier?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "By telephoning guest services"
+                },
+                {
+                  "value": "B",
+                  "label": "By visiting an Ashmoor property"
+                },
+                {
+                  "value": "C",
+                  "label": "By mailing the loyalty office"
+                },
+                {
+                  "value": "D",
+                  "label": "By using the member website"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 164-167",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p>From: Terrence Ahmadi<br>To: Helena Voskamp<br>Date: 8 September<br>Subject: Your 14 October appearance — next steps</p><p>Dear Dr. Voskamp,</p><p>Thank you for accepting our invitation to speak at the North Ridge Logistics Forum on 14 October. --[1]--. I am pleased to confirm that your session, titled Cross-Border Freight in a Changing Market, has been scheduled for the second morning block of the program, from 10:15 to 11:00.</p><p>To support your presentation, our technical team will supply a laptop connected to the main projection screen, a wireless lapel microphone, and a printed set of handouts if you would like copies distributed to the audience. --[2]--. An honorarium of six hundred dollars — the association's standard rate for invited speakers — will be transferred to the account we hold on file within two weeks of the event, and a car will collect you from your hotel on the morning of the session.</p><p>So that we can prepare the program booklet and load the visuals in advance, please send a short biography of no more than 150 words together with a copy of your final slide deck by 20 September. --[3]--. If any images in the slides require permission from a third party, kindly note this in your reply.</p><p>It was a genuine pleasure to see you at our chapter dinner in Ellisport last April, when you had just returned from covering the shipping-line strike in Rotterdam. Several of our members are still asking about that assignment. --[4]--. I will write again in early October with the full program and travel details.</p><p>Warm regards,</p><p>Terrence Ahmadi<br>Program Director, North Ridge Logistics Association</p></div></div>",
+          "questions": [
+            {
+              "number": 164,
+              "prompt": "What is the purpose of the e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To invite Dr. Voskamp to speak at the forum"
+                },
+                {
+                  "value": "B",
+                  "label": "To confirm session details and request pre-event materials"
+                },
+                {
+                  "value": "C",
+                  "label": "To transmit final travel and program information"
+                },
+                {
+                  "value": "D",
+                  "label": "To arrange payment of an honorarium already earned"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 165,
+              "prompt": "According to the e-mail, what will the association supply for Dr. Voskamp's session?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A wireless microphone"
+                },
+                {
+                  "value": "B",
+                  "label": "A speaker biography"
+                },
+                {
+                  "value": "C",
+                  "label": "A completed slide deck"
+                },
+                {
+                  "value": "D",
+                  "label": "A hotel reservation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 166,
+              "prompt": "What is suggested about Dr. Voskamp?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has recently moved to Rotterdam"
+                },
+                {
+                  "value": "B",
+                  "label": "She previously worked as a shipping-line executive"
+                },
+                {
+                  "value": "C",
+                  "label": "She reports on the freight industry"
+                },
+                {
+                  "value": "D",
+                  "label": "She did not attend the chapter dinner"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 167,
+              "prompt": "In which of the positions marked [1], [2], [3], [4] does the following sentence best belong? \"The paragraphs below set out both what our team will handle on the day and what we will need from you in advance.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 168-171",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Hollingford Recycling Program Opens Second Drop-Off Center</b></p><p>The Hollingford Recycling Program is pleased to announce that a second neighborhood drop-off center will open in Ferngate on Saturday, 11 October. The long-standing center on Marston Road will remain in full operation at its usual hours; the new Ferngate facility gives residents in one of the town's fastest-growing districts a nearby option for diverting everyday household materials. --[1]--.</p><p>The Ferngate center will accept paper, glass, metal, and rigid plastics. Weekend hours at the new site have been extended: it will be open from 8:00 A.M. to 6:00 P.M. on both Saturday and Sunday, several hours longer than the Marston Road location keeps on weekends. For a full list of accepted items and other general program information, please visit www.hollingfordrecycles.gov. --[2]--.</p><p>Visits to Ferngate can also earn credits through our new Recycler Rewards feature. To take part, register your household account on the program's website before your first drop-off. On each subsequent visit, scan the QR code posted at the entrance to log your activity. Accumulated credits may be redeemed at the customer counter for reusable containers and yard-waste bags.</p><p>During opening weekend, program staff will be joined by members of Green Hollow, which has organized neighborhood park clean-ups and monthly tree-planting outings across the district since 2015. They will guide first-time users through sorting and field questions about Recycler Rewards. --[3]--.</p><p>The program is inviting other neighborhood groups to apply as official collection partners. Partners host quarterly drop-off drives in their own area and receive materials-handling training from program staff. To learn more, call 555-0142 or submit an application at www.hollingfordrecycles.gov/partners. --[4]--.</p></div>",
+          "questions": [
+            {
+              "number": 168,
+              "prompt": "What is NOT indicated about the Ferngate drop-off center?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It accepts glass and rigid plastics for recycling."
+                },
+                {
+                  "value": "B",
+                  "label": "It is the program's original recycling drop-off site."
+                },
+                {
+                  "value": "C",
+                  "label": "It is located in a rapidly growing part of town."
+                },
+                {
+                  "value": "D",
+                  "label": "It offers longer weekend hours than the Marston Road site."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 169,
+              "prompt": "What most likely is Green Hollow?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A commercial recycling firm"
+                },
+                {
+                  "value": "B",
+                  "label": "A community volunteer group"
+                },
+                {
+                  "value": "C",
+                  "label": "A municipal government office"
+                },
+                {
+                  "value": "D",
+                  "label": "A landscaping business"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 170,
+              "prompt": "What must residents do to take part in Recycler Rewards?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Call the recycling program's main office"
+                },
+                {
+                  "value": "B",
+                  "label": "Bring a printed form to the customer counter"
+                },
+                {
+                  "value": "C",
+                  "label": "Scan a QR code before the first drop-off"
+                },
+                {
+                  "value": "D",
+                  "label": "Register a household account online"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 171,
+              "prompt": "In which of the positions marked [1], [2], [3], and [4] does the following sentence best belong? \"The names of successful applicants will be posted on the program's website by 1 October.\"",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "[1]"
+                },
+                {
+                  "value": "B",
+                  "label": "[2]"
+                },
+                {
+                  "value": "C",
+                  "label": "[3]"
+                },
+                {
+                  "value": "D",
+                  "label": "[4]"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 172-175",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Writing at Work: A New Weekend Series from Ardwick Learning Partners</b></p><p>Launching this autumn — a four-session Saturday program in business writing, designed for mid-career professionals.</p><p><b>Who this is for</b></p><p>This series is for managers, team leaders and specialists who have moved past their first promotion and now spend a large share of their week producing written material — reports for internal committees, proposals for external partners, project updates, and briefing notes for senior colleagues. If you write regularly for readers who are busier than you are, this series was designed with you in mind.</p><p><b>Background</b></p><p>Over the past year, several corporate clients approached us at the close of unrelated consultancy engagements to ask whether Ardwick could put together a structured business-writing course for their mid-career staff. We began sketching the program after those conversations, drawing also on feedback we had gathered from graduates of our earlier presentation-skills course and on broader concerns about writing standards across the sector.</p><p><b>What you'll do</b></p><p>Each session <b>presents</b> a specific writing challenge drawn from workplace practice. The first Saturday concentrates on the short internal report, examining how to lead with the decision the reader must make. The second turns to persuasive documents — proposals, funding requests, recommendations — and how evidence is best arranged for a skeptical audience. The third looks at correspondence with external clients, including messages that must decline or delay. The fourth session brings all three together in a full drafting workshop, with individual feedback from the lead facilitator.</p><p><b>Format and schedule</b></p><p>The series comprises four consecutive Saturdays from 9:30 a.m. to 12:30 p.m., beginning 18 October, at our Charter Street studio. Places are capped at twelve participants per cohort so that written work can be reviewed in detail. Pre-work materials — short readings and a diagnostic writing task — are e-mailed one week in advance of each session, and every participant receives a printed workbook at the opening meeting. An optional online follow-up module for graduates of the series will be released next spring.</p><p>The series is led by Ruth Farnsworth, formerly head of internal communications at a regional bank and a visiting lecturer in business writing at Ashvale University. It runs alongside our long-standing one-to-one executive coaching service, which remains available separately.</p><p><b>A word from a returning participant</b></p><p>\"I completed Ardwick's presentation-skills course two years ago and signed up for this the day it was announced. I trust the way the team structures a course — it always feels like time well spent.\" — Callum Beattie, senior operations analyst</p><p><b>How to enroll</b></p><p>Visit www.ardwicklearning.com/writing to reserve a place or to request the full syllabus.</p></div></div>",
+          "questions": [
+            {
+              "number": 172,
+              "prompt": "What is the purpose of the brochure?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To advertise the consultancy's coaching program"
+                },
+                {
+                  "value": "B",
+                  "label": "To highlight the credentials of the lead facilitator"
+                },
+                {
+                  "value": "C",
+                  "label": "To publicize an upcoming business-writing program"
+                },
+                {
+                  "value": "D",
+                  "label": "To announce the release of a business handbook"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 173,
+              "prompt": "What led Ardwick to develop the programme?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Requests from several corporate clients"
+                },
+                {
+                  "value": "B",
+                  "label": "Feedback from an earlier presentation course"
+                },
+                {
+                  "value": "C",
+                  "label": "Concerns about industry writing standards"
+                },
+                {
+                  "value": "D",
+                  "label": "A proposal from the lead facilitator"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 174,
+              "prompt": "The word \"presents\" in paragraph 4, line 1, is closest in meaning to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "awards"
+                },
+                {
+                  "value": "B",
+                  "label": "poses"
+                },
+                {
+                  "value": "C",
+                  "label": "performs"
+                },
+                {
+                  "value": "D",
+                  "label": "reveals"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 175,
+              "prompt": "What is indicated about the program?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "The program includes the follow-up online module at no cost"
+                },
+                {
+                  "value": "B",
+                  "label": "The program accepts an unrestricted number of participants"
+                },
+                {
+                  "value": "C",
+                  "label": "The program has enrolled some former Ardwick course clients"
+                },
+                {
+                  "value": "D",
+                  "label": "The program is led by a previous Ardwick course attendee"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 176-180",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>From: Dominic Halloran<br>To: Beatrice Manning<br>Subject: Cooling problem, Ashfield Conference Room<br>Date: October 14</p><p>Dear Ms. Manning,</p><p>I am writing to report a persistent cooling failure in the Ashfield Conference Room, which serves as the primary client meeting space for Thornwood &amp; Associates here in Suite 402. For the past several days the room has been unable to hold a comfortable temperature, and the airflow from the ceiling vents is noticeably weaker than in the adjoining offices on our floor.</p><p>This is the third such incident since we relocated to the building in March. The unit was serviced in June following a similar complaint, and again in late August after two of our attorneys had to move a deposition to a neighboring firm's suite because the room was unusable. On both previous occasions the temperature returned to normal within a day, but the problem has now come back. If a longer-term diagnosis is warranted, we would prefer that path over another short-term reset.</p><p>A delegation from a corporate client is scheduled to arrive on the morning of October 21, and the Ashfield Room is booked for a full day of meetings and document review. I would be very grateful if a technician could be dispatched no later than October 19 so that the room is reliably in service before the visit begins. Please confirm the repair window once it has been assigned.</p><p>Thank you for your prompt attention to this matter.</p><p>Sincerely,<br>Dominic Halloran</p></div><p>----------------------</p><div><p><b>Kingsley Tower Facilities — Repair Work Order</b></p><p>Work Order #: WO-10842<br>Date Issued: October 15<br>Requesting Tenant: Thornwood &amp; Associates, Suite 402<br>Building Contact: Dominic Halloran<br>Service Location: Ashfield Conference Room, 4th Floor (north side)<br>Equipment Identifier: AHU-04 (north bank)<br>Reported Problem: reduced supply airflow at ceiling registers; unit performance intermittent<br>Priority Level: High (tenant client visit within the week)<br>Assigned Technician: Owen Fitzgerald<br>Scheduled Date and Window: October 18, 8:00 A.M. to 11:00 A.M.<br>Estimated Duration: 3 hours<br>Special Instructions / Notes: This is the third service call logged against AHU-04 within the current year; please inspect the return damper and coil rather than resetting the controller. Tenant is to be credited one month of standard maintenance charges on the November invoice. Roof platform access must be arranged in advance through the ground-floor security desk. Confirm system performance in the Ashfield Room before leaving the site, as the tenant has a full-day client meeting scheduled for October 21.</p></div>",
+          "questions": [
+            {
+              "number": 176,
+              "prompt": "Why did Mr. Halloran write the e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To reschedule a client meeting"
+                },
+                {
+                  "value": "B",
+                  "label": "To seek reimbursement for earlier repairs"
+                },
+                {
+                  "value": "C",
+                  "label": "To request a repair ahead of an upcoming visit"
+                },
+                {
+                  "value": "D",
+                  "label": "To announce the firm's relocation in the building"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 177,
+              "prompt": "What most likely is Mr. Halloran's job title?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Building superintendent"
+                },
+                {
+                  "value": "B",
+                  "label": "Office manager"
+                },
+                {
+                  "value": "C",
+                  "label": "Maintenance technician"
+                },
+                {
+                  "value": "D",
+                  "label": "Attorney at the firm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 178,
+              "prompt": "What most likely is AHU-04?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A unit that cools a meeting room"
+                },
+                {
+                  "value": "B",
+                  "label": "A fan that ventilates several offices"
+                },
+                {
+                  "value": "C",
+                  "label": "A platform that provides roof access"
+                },
+                {
+                  "value": "D",
+                  "label": "A panel that controls the system"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 179,
+              "prompt": "What is indicated about Thornwood & Associates?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It has occupied the building for many years"
+                },
+                {
+                  "value": "B",
+                  "label": "It shares Suite 402 with another firm"
+                },
+                {
+                  "value": "C",
+                  "label": "It occupies several floors of the building"
+                },
+                {
+                  "value": "D",
+                  "label": "It employs legal professionals"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 180,
+              "prompt": "According to the work order, what will Thornwood & Associates receive?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It will receive a credit on an upcoming invoice"
+                },
+                {
+                  "value": "B",
+                  "label": "It will have the faulty unit replaced"
+                },
+                {
+                  "value": "C",
+                  "label": "It will be credited on every future invoice"
+                },
+                {
+                  "value": "D",
+                  "label": "It will be charged for three hours of labor"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 181-185",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p>To: Nolan Rivas<br>From: Claire Whitmore<br>Date: Wednesday, March 12, 9:40 A.M.<br>Subject: Lobby refurbishment quotes</p><p>Nolan:</p><p>The owners of Marchwood Center, Hessington Plaza, and Underhill Court have all approved lobby refurbishment work this quarter, and each site needs a written repair estimate from a pre-vetted contractor before I can consolidate a single recommendation to send back to the owners. Please reach out to the following three firms today:</p><p>- Renwick &amp; Sons — request a full repair quote for the Marchwood Center lobby, with particular attention to the cracked terrazzo flooring along the entryway.<br>- Talmadge Contracting — request a full repair quote for Hessington Plaza together with an on-site walk-through so their estimator can complete the reception-area survey he began earlier.<br>- Fossett Restoration — request a full repair quote for Underhill Court, covering the lobby floor and the reception desk.</p><p>All three written quotes must reach us by Friday, March 21, and the owners have set a firm ceiling of $12,000 per lobby, so ask each firm to keep its estimate at or below that figure. Please also note that Vernon Cade, our finance manager, will be traveling from March 18 onward and will not be available to review pricing during the second half of that window, so any figures that arrive late will have to wait until he returns.</p><p>Thank you again for the excellent work you did last month locating an emergency roofer for Underhill Court on almost no notice. I have not forgotten it.</p><p>Regards,</p><p>Claire Whitmore<br>Facilities Director<br>Halden Group</p></div><p>----------------------</p><div><p>To: Claire Whitmore<br>From: Nolan Rivas<br>Date: Wednesday, March 12, 1:20 P.M.<br>Subject: RE: Lobby refurbishment quotes</p><p>Claire:</p><p>I reached all three contractors this morning and can report back as follows.</p><p>Renwick &amp; Sons will not be able to bid on the Marchwood Center lobby. Their operations manager told me the firm has just signed an exclusive maintenance agreement with Broadmere Property Partners and can no longer take on repair work from other property groups until that arrangement expires next year. I have removed them from the Marchwood file.</p><p>Talmadge Contracting confirmed within the hour. Their written quote for Hessington Plaza — $11,400, comfortably under the ceiling — arrived by e-mail just before noon, and I have booked their on-site walk-through for Tuesday, March 18 at 10:00 A.M.</p><p>Fossett Restoration is willing to bid on Underhill Court but, before it will commit to a price, has asked me to confirm whether the scope stops at the lobby floor and reception desk or also takes in the corridor lighting behind the desk. Could you send me your answer by 4:00 P.M. today so I can pass it on to them before their office closes?</p><p>Nolan Rivas<br>Administrative Coordinator</p></div>",
+          "questions": [
+            {
+              "number": 181,
+              "prompt": "What is one purpose of the first e-mail?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "To ask that specific firms be contacted for estimates"
+                },
+                {
+                  "value": "B",
+                  "label": "To announce a set of approved renovation projects"
+                },
+                {
+                  "value": "C",
+                  "label": "To confirm the list of pre-vetted contractors"
+                },
+                {
+                  "value": "D",
+                  "label": "To award a repair contract to a chosen firm"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 182,
+              "prompt": "What type of company most likely is Halden Group?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A general contracting firm"
+                },
+                {
+                  "value": "B",
+                  "label": "A property management company"
+                },
+                {
+                  "value": "C",
+                  "label": "An architectural design firm"
+                },
+                {
+                  "value": "D",
+                  "label": "A commercial cleaning service"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 183,
+              "prompt": "What is suggested about Talmadge Contracting?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It has entered into an exclusive maintenance agreement"
+                },
+                {
+                  "value": "B",
+                  "label": "It has asked for clarification on a project's scope"
+                },
+                {
+                  "value": "C",
+                  "label": "It has already done some work at one property"
+                },
+                {
+                  "value": "D",
+                  "label": "It has been dropped from one of the property files"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 184,
+              "prompt": "What will Ms. Whitmore most likely do about Marchwood Center?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Reach out to Broadmere Property Partners"
+                },
+                {
+                  "value": "B",
+                  "label": "Approach another firm to provide a bid"
+                },
+                {
+                  "value": "C",
+                  "label": "Extend the March 21 quote deadline"
+                },
+                {
+                  "value": "D",
+                  "label": "Send scope details for Underhill Court"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 185,
+              "prompt": "What was Mr. Rivas NOT able to do?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Confirm a site walk-through with a contractor"
+                },
+                {
+                  "value": "B",
+                  "label": "Handle a previous urgent repair task"
+                },
+                {
+                  "value": "C",
+                  "label": "Reach every named firm in a single morning"
+                },
+                {
+                  "value": "D",
+                  "label": "Obtain a usable estimate from every firm named"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 186-190",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>Ridgeway Camera Club Bulletin — Autumn Workshop Preview</b></p><p><b>Colette Ramsey Brings Night Landscapes to Ridgeway</b></p><p>By Sylvia Pemberton<br>September 12</p><p>Colette Ramsey, a landscape photographer whose long-exposure work has appeared in three regional gallery shows, will lead one of the two guest workshop tracks at the club's autumn weekend on October 18 and 19.</p><p>Her Night Landscapes track covers rural scenery from twilight through full darkness. Across the two evenings, participants will practice bulb-mode exposures, star-trail composition, and the handling of ambient light. All sessions in this track run after sundown, and the group meets outdoors on both nights.</p><p>Each registrant in the track receives a printed reference booklet on exposure settings, and everyone enrolled is entitled to a personal one-to-one critique session of half an hour with Ms. Ramsey at the close of the weekend. A sturdy tripod is required; remote shutter releases can be borrowed from the instructor for anyone who does not own one. Enrollment in the track is limited to twelve participants.</p><p>The schedule for the second track, led by Warren Halliday, appears elsewhere in this bulletin. Members with questions about their enrollment should contact Emmett Blackwood at the club office.</p></div></div><p>----------------------</p><div><div><p><b>Warren Halliday — Wildlife in Motion: Session Schedule</b></p><table><tr><th>Session</th><th>Date and Time</th><th>Topic</th><th>Location</th><th>Group Cap</th><th>Notes</th></tr><tr><td>1</td><td>Saturday, October 18, 6:30 A.M.</td><td>Dawn shorebirds</td><td>Hesketh Marsh boardwalk</td><td>10</td><td>Waterproof footwear advised</td></tr><tr><td>2</td><td>Saturday, October 18, 10:00 A.M.</td><td>Fast-shutter techniques</td><td>Ashgrove Community Hall, Room 2</td><td>10</td><td>Classroom session</td></tr><tr><td>3</td><td>Saturday, October 18, 1:30 P.M.</td><td>Field practice: meadow subjects</td><td>Hesketh Marsh, west trail</td><td>10</td><td>Telephoto lens recommended</td></tr><tr><td>4</td><td>Sunday, October 19, 7:00 A.M.</td><td>Forest canopy species</td><td>Larkmont Preserve</td><td>10</td><td>Meet at the main parking lot</td></tr><tr><td>5</td><td>Sunday, October 19, 2:00 P.M.</td><td>Review and image selection</td><td>Ashgrove Community Hall, Room 2</td><td>10</td><td>Personal laptop optional</td></tr></table><p>Registrants must sign in at the front desk no later than fifteen minutes before each session begins; anyone arriving after that time cannot join a field session already under way.</p><p>Every registered participant is invited to an individual review appointment lasting thirty minutes with Mr. Halliday before departure on Sunday afternoon.</p></div></div><p>----------------------</p><div><div><p>To: Nadine Whitaker<br>From: Emmett Blackwood, Workshop Registrar<br>Subject: Your autumn workshop registration<br>Date: October 15</p><p>Thank you for enrolling in this year's autumn workshop weekend at Ridgeway Camera Club. Your place is confirmed, and your registration payment has been received.</p><p>Please bring a sturdy tripod for use on both evenings; if you would like to borrow a remote shutter release, one can be lent to you at the meeting point. As your sessions will run outdoors well after sundown on Saturday and Sunday, please dress warmly and wear closed shoes suitable for uneven ground.</p><p>Before Saturday, please charge at least two camera batteries and bring one empty memory card, as there will not be time to clear cards during the sessions. In addition, kindly reply to this message no later than Thursday evening with one photograph you would like discussed during your review meeting with the instructor at the end of the weekend.</p><p>Meeting instructions for each of your sessions will be posted at the club office by Friday afternoon, and a list of individual review time slots will be circulated on site.</p></div></div>",
+          "questions": [
+            {
+              "number": 186,
+              "prompt": "Who most likely is Ms. Pemberton?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "An instructor at one of the workshop tracks"
+                },
+                {
+                  "value": "B",
+                  "label": "A writer for the club's bulletin"
+                },
+                {
+                  "value": "C",
+                  "label": "An office staff member at the club"
+                },
+                {
+                  "value": "D",
+                  "label": "A photographer exhibited in regional galleries"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 187,
+              "prompt": "According to the schedule, by what time must a registrant sign in for the Saturday dawn session?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "By 6:15 A.M. on Saturday"
+                },
+                {
+                  "value": "B",
+                  "label": "By 6:30 A.M. on Saturday"
+                },
+                {
+                  "value": "C",
+                  "label": "By 6:45 A.M. on Sunday"
+                },
+                {
+                  "value": "D",
+                  "label": "By 1:45 P.M. on Sunday"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 188,
+              "prompt": "What do both instructor tracks offer to registered participants?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A loaner remote shutter release for participants"
+                },
+                {
+                  "value": "B",
+                  "label": "A private consultation with the instructor"
+                },
+                {
+                  "value": "C",
+                  "label": "A dedicated indoor classroom session"
+                },
+                {
+                  "value": "D",
+                  "label": "A weekend equipment package"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 189,
+              "prompt": "What does Mr. Blackwood ask Ms. Whitaker to do before the weekend?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Post meeting instructions at the club office"
+                },
+                {
+                  "value": "B",
+                  "label": "Circulate a list of individual review time slots"
+                },
+                {
+                  "value": "C",
+                  "label": "Sign in fifteen minutes before every session"
+                },
+                {
+                  "value": "D",
+                  "label": "Send a photograph for her review meeting"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 190,
+              "prompt": "What is suggested about Ms. Whitaker?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has attended previous workshop weekends at the club"
+                },
+                {
+                  "value": "B",
+                  "label": "She is enrolled in both instructor tracks"
+                },
+                {
+                  "value": "C",
+                  "label": "She is registered in Ms. Ramsey's workshop track"
+                },
+                {
+                  "value": "D",
+                  "label": "She will attend a session at Larkmont Preserve"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 191-195",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><p><b>Hazelwood Kitchen</b><br>44 Palmer Street, Northwood</p><p>February 18</p><p>Dear Members of the Northwood Planning Board,</p><p>I am writing on behalf of Hazelwood Kitchen, which has leased the corner storefront at 44 Palmer Street for the past four years. During that time we have built a steady following among neighborhood residents, and we are grateful for the community's continued support of a small independent restaurant.</p><p>I would like to request a seasonal use permit to place tables and chairs on the section of public sidewalk directly in front of our entrance from May 15 through October 15 each year. The proposed seating area would occupy approximately 120 square feet along the frontage of our unit and would accommodate roughly sixteen guests at a time.</p><p>In recognition of the impact this arrangement may have on people walking along Palmer Street, we are prepared to fund the installation of two planter barriers and a widened crossing marker at the nearest curb, according to whatever specifications the board considers appropriate. We hope these commitments demonstrate our willingness to share responsibility for the public space we would be using.</p><p>Sincerely,</p><p>Grant Holloway</p><p>Grant Holloway, Owner-Operator</p></div><p>----------------------</p><div><p><b>Northwood Planning Board<br>Meeting Minutes of March 11</b></p><p>In attendance: Chair Deborah Winters and all board members.</p><p><b>Approved items</b><br>• Member Naomi Draper submitted the final contract for the Palmer Street resurfacing project; the contract was accepted as read.<br>• Member Patrick Egan presented the revised quarterly budget for the department, which was approved without amendment.<br>• Member Simon Bhatt reported on the procurement of replacement office equipment for the municipal records room, and the purchase was authorized.</p><p><b>Discussion items</b><br>The board opened discussion on a request from Hazelwood Kitchen for a seasonal permit to place outdoor seating on the public sidewalk in front of its premises at 44 Palmer Street. Members raised questions about the width of the remaining walkway, the effect on the flow of people during the lunch hour, and whether an initial trial period should be attached to any approval.</p><p><b>Public comment</b><br>Alicia Moreno, building manager of Chesterton Court at 42 Palmer Street, addressed the board in opposition to the request. Ms. Moreno stated that pedestrian traffic on the block is already heavy at mealtimes and that outdoor seating would make it more difficult for the residents of her building to reach their entrance and receive deliveries at the curb.</p><p>The board agreed to postpone a formal decision until its April session in order to review additional written comments submitted by Palmer Street residents.</p></div><p>----------------------</p><div><p><b>Hazelwood Kitchen — Spring Menu</b></p><table><tr><th>Item</th><th>Description</th><th>Portion</th><th>Price</th></tr><tr><td colspan=\"4\"><b>Starters</b></td></tr><tr><td>Roasted Beet Salad</td><td>Baby beets and orange segments with goat cheese on mixed greens</td><td>Single</td><td>$9</td></tr><tr><td>White Bean Soup</td><td>Slow-cooked with rosemary and finished with a drizzle of olive oil</td><td>Cup or Bowl</td><td>$6 / $9</td></tr><tr><td colspan=\"4\"><b>Mains</b></td></tr><tr><td>Pan-Seared Trout</td><td>Served with lemon-butter potatoes and a portion of seasonal greens</td><td>8 oz</td><td>$22</td></tr><tr><td>Roast Herb Chicken</td><td>Half chicken with garlic bread and a small house salad</td><td>Half bird</td><td>$19</td></tr><tr><td>Wild Mushroom Pasta</td><td>Hand-cut pappardelle with cream sauce and fresh thyme</td><td>Regular</td><td>$17</td></tr><tr><td colspan=\"4\"><b>Desserts</b></td></tr><tr><td>Warm Almond Cake</td><td>Baked to order and served with vanilla ice cream</td><td>Slice</td><td>$8</td></tr><tr><td>Fruit Sorbet</td><td>Rotating selection; please ask your server for today's flavors</td><td>Two scoops</td><td>$6</td></tr></table><p>Our sidewalk terrace is open from May 15 through October 15, weather permitting. Residents of 42 Palmer Street receive fifteen percent off dinner service and may reserve terrace tables one week ahead of general booking. For reservations, call 555-0148 or visit our website.</p></div>",
+          "questions": [
+            {
+              "number": 191,
+              "prompt": "What does Mr. Holloway's letter suggest about the restaurant?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It plans to relocate to a larger space."
+                },
+                {
+                  "value": "B",
+                  "label": "It expects a permit decision within the month."
+                },
+                {
+                  "value": "C",
+                  "label": "It has operated in the neighborhood for several years."
+                },
+                {
+                  "value": "D",
+                  "label": "It is planning to hire additional serving staff."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 192,
+              "prompt": "According to the meeting minutes, who presented a financial plan to the board?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Simon Bhatt"
+                },
+                {
+                  "value": "B",
+                  "label": "Naomi Draper"
+                },
+                {
+                  "value": "C",
+                  "label": "Patrick Egan"
+                },
+                {
+                  "value": "D",
+                  "label": "Alicia Moreno"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 193,
+              "prompt": "How did the Northwood Planning Board most likely respond to Mr. Holloway's letter?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "It canceled its scheduled April session."
+                },
+                {
+                  "value": "B",
+                  "label": "It approved a request from a local business."
+                },
+                {
+                  "value": "C",
+                  "label": "It endorsed a street infrastructure contract."
+                },
+                {
+                  "value": "D",
+                  "label": "It scheduled a follow-up with an objecting resident."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 194,
+              "prompt": "What is indicated about the residents of Chesterton Court?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "They may reserve terrace seating before other guests."
+                },
+                {
+                  "value": "B",
+                  "label": "Their access to their building has been reduced."
+                },
+                {
+                  "value": "C",
+                  "label": "They typically walk to their jobs downtown."
+                },
+                {
+                  "value": "D",
+                  "label": "They will vote on the permit at the April board session."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 195,
+              "prompt": "What is a feature of a dessert offered on the menu?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Fresh fruit garnish"
+                },
+                {
+                  "value": "B",
+                  "label": "Multiple portion options"
+                },
+                {
+                  "value": "C",
+                  "label": "Vegan-friendly preparation"
+                },
+                {
+                  "value": "D",
+                  "label": "Made-to-order preparation"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        },
+        {
+          "title": "Questions 196-200",
+          "type": "single_choice",
+          "hideOptionText": false,
+          "perQuestionAudio": false,
+          "audioUrl": "",
+          "imageUrl": "",
+          "passageHtml": "<div><div><p><b>To:</b> Priscilla Osei; Damon Kroll; Beatrix Lemaire<br><b>From:</b> Wesley Tanaka<br><b>Date:</b> October 8, 9:12 A.M.<br><b>Subject:</b> Copier lease shortlist — Truro branch</p><p>Team,</p><p>Following last week's tender review, which I ran on behalf of the department, I have shortlisted four vendors for the copier lease at our new Truro branch, which opens to clients in January. Please score each option against the following criteria and return your comments by Friday.</p><p>1. Monthly lease cost measured against the approved procurement budget.<br>2. Print speed sufficient for the expected departmental print volume at Truro.<br>3. On-site service response window, which our operations team has flagged as the most sensitive variable, given the distance from any regional service center.</p><p>The attached comparison chart sets out all four packages side by side. I will consolidate your scored responses before our meeting next Tuesday.</p><p>Wesley Tanaka<br>Cartwright Analytics</p></div></div><p>----------------------</p><div><div><p><b>Copier Lease Shortlist — Truro Branch</b></p><table><tr><th>Vendor</th><th>Monthly Lease</th><th>Print Speed</th><th>Service Response Window</th><th>Installation</th><th>Standout Inclusion</th></tr><tr><td>OptiPrint Solutions</td><td>$340</td><td>42 pages per minute</td><td>3 business hours</td><td>On-site setup by vendor technician</td><td>Quarterly toner replenishment included</td></tr><tr><td>Northshore Office Systems</td><td>$295</td><td>55 pages per minute</td><td>4 business hours</td><td>On-site setup by vendor technician</td><td>Two staff training sessions included</td></tr><tr><td>Vantage Copier Group</td><td>$315</td><td>60 pages per minute</td><td>Next business day</td><td>On-site setup by vendor technician</td><td>Secure cloud scanning module included</td></tr><tr><td>Kestrel Business Machines</td><td>$360</td><td>48 pages per minute</td><td>12 business hours</td><td>On-site setup by vendor technician</td><td>Two-year replacement warranty included</td></tr></table><p>All figures reflect the 36-month lease term negotiated during the tender.</p></div></div><p>----------------------</p><div><div><p><b>To:</b> Wesley Tanaka; Priscilla Osei; Beatrix Lemaire<br><b>From:</b> Damon Kroll<br><b>Date:</b> October 10, 2:45 P.M.<br><b>Re:</b> Copier lease shortlist — Truro branch</p><p>Wesley,</p><p>Thanks for pulling this together — I realize I am the last of us to send my comments back.</p><p>From here at the Halifax office, where we run two machines of the same class, I can tell you that any vendor that would leave the branch waiting more than four business hours for a technician simply will not work for Truro. The site is more than an hour from the technician base most of these vendors use, and a full day without a copier during month-end client billing has cost us real time before. Anything beyond that four-hour mark should be set aside regardless of price.</p><p>A higher print speed would also be welcome, since the new branch will absorb most of the client reporting we currently handle here, but I would treat that as a preference rather than a hard filter.</p><p>One further note: on total cost of ownership, the figure Priscilla and I have gone back and forth on most, her reasoning lines up closely with the criteria you set out, and it is worth circulating to the group before we meet on Tuesday.</p><p>Damon Kroll<br>Cartwright Analytics</p></div></div>",
+          "questions": [
+            {
+              "number": 196,
+              "prompt": "Who most likely is Mr. Tanaka?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "A copier supplier bidding for the lease"
+                },
+                {
+                  "value": "B",
+                  "label": "A branch manager based in Truro"
+                },
+                {
+                  "value": "C",
+                  "label": "A procurement coordinator"
+                },
+                {
+                  "value": "D",
+                  "label": "A reviewer scoring the shortlist"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 197,
+              "prompt": "What is one feature mentioned in the comparison chart?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Toner replenishment is included in every lease."
+                },
+                {
+                  "value": "B",
+                  "label": "All four vendors provide on-site installation."
+                },
+                {
+                  "value": "C",
+                  "label": "Every vendor offers a multi-year replacement warranty."
+                },
+                {
+                  "value": "D",
+                  "label": "Each lease term extends beyond three years."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 198,
+              "prompt": "What is suggested about Mr. Kroll?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "He treats print speed as the deciding factor."
+                },
+                {
+                  "value": "B",
+                  "label": "He will consolidate the team's feedback."
+                },
+                {
+                  "value": "C",
+                  "label": "He works at an existing office of the firm."
+                },
+                {
+                  "value": "D",
+                  "label": "He would recommend the least expensive package."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 199,
+              "prompt": "What is indicated about Ms. Osei?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "She has previously discussed vendor costs with Mr. Kroll."
+                },
+                {
+                  "value": "B",
+                  "label": "She works from the same office as Mr. Kroll."
+                },
+                {
+                  "value": "C",
+                  "label": "She is scheduled to consolidate the team's scores."
+                },
+                {
+                  "value": "D",
+                  "label": "She organized the vendor tender."
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            },
+            {
+              "number": 200,
+              "prompt": "Which vendor does Mr. Kroll likely favor?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "OptiPrint Solutions"
+                },
+                {
+                  "value": "B",
+                  "label": "Northshore Office Systems"
+                },
+                {
+                  "value": "C",
+                  "label": "Vantage Copier Group"
+                },
+                {
+                  "value": "D",
+                  "label": "Kestrel Business Machines"
+                }
+              ],
+              "imageUrl": "",
+              "audioUrl": ""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {}
+}

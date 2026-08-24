@@ -76,7 +76,7 @@ export function ContentManagerLayout({ children }) {
   const mobileNavValue = resolveMobileNavValue(location.pathname, mobileNavOptions);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-['Inter'] text-slate-800 antialiased">
+    <div className="min-h-[100dvh] overflow-x-clip bg-[#f8fafc] font-['Inter'] text-slate-800 antialiased">
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.02]"
         style={{
@@ -214,7 +214,7 @@ export function ContentManagerLayout({ children }) {
           <div className="mx-auto flex max-w-[1680px] items-center gap-3 border-t border-slate-100 px-4 py-2.5 sm:px-6 lg:hidden">
             <div className="min-w-0 flex-1">
               <BrandedSelect
-                onChange={(val) => navigate(val)}
+                onChange={(event) => navigate(event.target.value)}
                 options={mobileNavOptions}
                 value={mobileNavValue}
               />

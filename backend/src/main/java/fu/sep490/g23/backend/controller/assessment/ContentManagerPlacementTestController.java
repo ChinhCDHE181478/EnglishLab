@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,7 +33,9 @@ public class ContentManagerPlacementTestController {
     }
 
     @GetMapping("/monitoring")
-    public ResponseEntity<PlacementTestMonitoringResponse> getMonitoring() {
-        return ResponseEntity.ok(definitionService.getMonitoring());
+    public ResponseEntity<PlacementTestMonitoringResponse> getMonitoring(
+            @RequestParam(required = false, defaultValue = "IELTS") String examType
+    ) {
+        return ResponseEntity.ok(definitionService.getMonitoring(examType));
     }
 }

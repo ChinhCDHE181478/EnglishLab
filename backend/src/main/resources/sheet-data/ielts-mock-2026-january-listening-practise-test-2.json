@@ -1,0 +1,386 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2026_january_listening_practise_test_2",
+  "title": "IELTS Mock Test 2026 January Listening Practise Test 2",
+  "sourceLabel": "Imported from local HTML 2026de2.html",
+  "durationMinutes": 32,
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-10",
+          "instructions": "Complete the notes below.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 1,
+              "promptBefore": "on request Example Name: Anna Black Type of accommodation: a house Preferred location: the",
+              "promptAfter": "of the town Facilities required: furnished property - with a <span class=\"test-p"
+            },
+            {
+              "number": 2,
+              "promptBefore": "of the town Facilities required: furnished property - with a",
+              "promptAfter": "Period of time required: one year Start date of rental period: <span class=\"test"
+            },
+            {
+              "number": 3,
+              "promptBefore": "Period of time required: one year Start date of rental period:",
+              "promptAfter": "Present address: 56, Stone Street Phone number: (mobile)07942 326584 Reference f"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Present address: 56, Stone Street Phone number: (mobile)07942 326584 Reference from: her",
+              "promptAfter": "Maximum rent: £ 5 <input type=\"text\" class=\"iot-q"
+            },
+            {
+              "number": 5,
+              "promptBefore": "Maximum rent: £",
+              "promptAfter": "per month Applicant's job: 6 <input type=\"text\""
+            },
+            {
+              "number": 6,
+              "promptBefore": "per month Applicant's job:",
+              "promptAfter": "Documents to be supplied ID check: applicant's passport Credit check: a <span cl"
+            },
+            {
+              "number": 7,
+              "promptBefore": "Documents to be supplied ID check: applicant's passport Credit check: a",
+              "promptAfter": "Viewing arrangements Address of property: 33, <span class=\"test-panel__"
+            },
+            {
+              "number": 8,
+              "promptBefore": "Viewing arrangements Address of property: 33,",
+              "promptAfter": "Street Viewing day and time: Saturday 4 p.m To check: Is there a <span class=\"te"
+            },
+            {
+              "number": 9,
+              "promptBefore": "Street Viewing day and time: Saturday 4 p.m To check: Is there a",
+              "promptAfter": "in the house? Is there 10 <input type=\"text\" cla"
+            },
+            {
+              "number": 10,
+              "promptBefore": "in the house? Is there",
+              "promptAfter": "nearby? <div class=\"te"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 11-14",
+          "instructions": "Choose the correct letter, A, B or C. Information for fire wardens",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 11,
+              "prompt": "The company is having this meeting about fire procedures because",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "there have been changes in the building layout."
+                }
+              ]
+            },
+            {
+              "number": 12,
+              "prompt": "There has been a recent upgrade to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "the fire extinguishers."
+                }
+              ]
+            },
+            {
+              "number": 13,
+              "prompt": "During the minor fire in January, some staff working in the factory",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "left fire doors open."
+                }
+              ]
+            },
+            {
+              "number": 14,
+              "prompt": "In the fire in January, the problem with office staff was that they",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "moved too slowly during the evacuation."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 15-20",
+          "instructions": "Choose the correct letter, A, B or C , next to questions 15-20",
+          "type": "select",
+          "options": [
+            "A It should be a priority for fire wardens",
+            "B It will be dealt with by an external specialist",
+            "C It does not require attention"
+          ],
+          "questions": [
+            {
+              "number": 15,
+              "prompt": "ensuring there are no obstacles in fire escape routes"
+            },
+            {
+              "number": 16,
+              "prompt": "checking that fire doors are easily opened"
+            },
+            {
+              "number": 17,
+              "prompt": "showing staff how to look after each other"
+            },
+            {
+              "number": 18,
+              "prompt": "training staff to use fire extinguishers correctly"
+            },
+            {
+              "number": 19,
+              "prompt": "checking that staff are aware of evacuation points"
+            },
+            {
+              "number": 20,
+              "prompt": "checking that flammable liquids are properly stored"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 21-25",
+          "instructions": "Choose FIVE answers from the box and choose the correct letter, A-H , next to questions 21-25.",
+          "type": "select",
+          "options": [
+            "A eats meat",
+            "B communicates with its wings",
+            "C is found in a variety of locations",
+            "D feeds on a particular type of plant",
+            "E sings to attract a mate",
+            "F is endangered",
+            "G is brightly coloured",
+            "H avoids the ground"
+          ],
+          "questions": [
+            {
+              "number": 21,
+              "prompt": "Australian crested pigeon"
+            },
+            {
+              "number": 22,
+              "prompt": "Rock pigeon"
+            },
+            {
+              "number": 23,
+              "prompt": "Black-banded pigeon"
+            },
+            {
+              "number": 24,
+              "prompt": "Galapagos pigeon"
+            },
+            {
+              "number": 25,
+              "prompt": "Nicobar pigeon"
+            }
+          ]
+        },
+        {
+          "title": "Questions 26-30",
+          "instructions": "Choose the correct letter, A, B or C. Pigeons",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 26,
+              "prompt": "When people feed city pigeons, it causes them to",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "become overweight."
+                }
+              ]
+            },
+            {
+              "number": 27,
+              "prompt": "The Melbourne city council are tackling their pigeon problem by",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "scaring away pigeons."
+                }
+              ]
+            },
+            {
+              "number": 28,
+              "prompt": "Jennifer and Adam agree that the second stage of the council scheme is",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "cruel."
+                }
+              ]
+            },
+            {
+              "number": 29,
+              "prompt": "What method of pigeon control was most successful in the city of Basel?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "educating the public"
+                }
+              ]
+            },
+            {
+              "number": 30,
+              "prompt": "Adam and Jennifer decide to do some more research on how pigeons can",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "damage buildings."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 31-40",
+          "instructions": "Complete the notes below",
+          "type": "text",
+          "questions": [
+            {
+              "number": 31,
+              "promptBefore": "ian island is known as the tree of life' produces delicious juice has a fruit resembling a",
+              "promptAfter": "(female trees only) People climbing the trees fix <span clas"
+            },
+            {
+              "number": 32,
+              "promptBefore": "(female trees only) People climbing the trees fix",
+              "promptAfter": "to the tree trunks to help them climb keep their tools attached to a <span class"
+            },
+            {
+              "number": 33,
+              "promptBefore": "to the tree trunks to help them climb keep their tools attached to a",
+              "promptAfter": "often own particular trees contribute to the upkeep of the communal fence Using "
+            },
+            {
+              "number": 34,
+              "promptBefore": "ar trees contribute to the upkeep of the communal fence Using the juice It quickly becomes",
+              "promptAfter": "if left unprocessed. A concentrated form of it is drunk in the rainy season. it "
+            },
+            {
+              "number": 35,
+              "promptBefore": "cessed. A concentrated form of it is drunk in the rainy season. it can be made into sugary",
+              "promptAfter": "Using other parts of the treе The leaf is used: to make containers, bags and roo"
+            },
+            {
+              "number": 36,
+              "promptBefore": "g other parts of the treе The leaf is used: to make containers, bags and roofing as garden",
+              "promptAfter": "for brightly decorated hats worn at a 37 <inpu"
+            },
+            {
+              "number": 37,
+              "promptBefore": "for brightly decorated hats worn at a",
+              "promptAfter": "for a musical instrument which sounds like a 38</span"
+            },
+            {
+              "number": 38,
+              "promptBefore": "for a musical instrument which sounds like a",
+              "promptAfter": "The stalk is used to make 39 <input type=\""
+            },
+            {
+              "number": 39,
+              "promptBefore": "The stalk is used to make",
+              "promptAfter": "The trunk is used in the construction of 40 <inp"
+            },
+            {
+              "number": 40,
+              "promptBefore": "The trunk is used in the construction of",
+              "promptAfter": "<div class=\"test-panel__n"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "southeast",
+    "2": "washing machine",
+    "3": "15th May",
+    "4": "employer",
+    "5": "675",
+    "6": "translator",
+    "7": "bank statement",
+    "8": "Ainsworth",
+    "9": "telephone",
+    "10": "bus stop",
+    "11": "B",
+    "12": "C",
+    "13": "C",
+    "14": "C",
+    "15": "A",
+    "16": "A",
+    "17": "B",
+    "18": "B",
+    "19": "A",
+    "20": "C",
+    "21": "B",
+    "22": "C",
+    "23": "H",
+    "24": "D",
+    "25": "G",
+    "26": "A",
+    "27": "C",
+    "28": "A",
+    "29": "B",
+    "30": "A",
+    "31": "coconut",
+    "32": "stones",
+    "33": "belt",
+    "34": "sour",
+    "35": "biscuits",
+    "36": [
+      "fertiliser",
+      "fertilizer"
+    ],
+    "37": "celebration",
+    "38": "harp",
+    "39": "ropes",
+    "40": "houses"
+  }
+}

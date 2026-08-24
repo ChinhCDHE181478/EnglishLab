@@ -1,11 +1,13 @@
 package fu.sep490.g23.backend.entity.teacher;
 
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,34 +15,34 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "teacher_course_feedback",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_teacher_feedback_enrollment_teacher",
-                columnNames = {"enrollment_id", "teacher_id"}
-        )
-)
+@Table(name = "user_auxiliary_records")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TeacherCourseFeedback {
+@SQLRestriction("record_type = 'teacher_course_feedback'")
+public class TeacherCourseFeedback extends DomainRecord {
+    @Override
+    protected String domainRecordType() {
+        return "teacher_course_feedback";
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "enrollment_id", nullable = false)
+    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ClassroomEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
+    @JoinColumn(name = "classroom_offering_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private ClassroomOffering classroomOffering;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false)
+    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User teacher;
 
     @Column(name = "clarity_score", nullable = false)
@@ -49,13 +51,13 @@ public class TeacherCourseFeedback {
     @Column(name = "engagement_score", nullable = false)
     private int engagementScore;
 
-    @Column(name = "learner_support_score", nullable = false)
+    @Column(name = "feedback_learner_support_score", nullable = false)
     private int learnerSupportScore;
 
     @Column(name = "feedback_timeliness_score", nullable = false)
     private int feedbackTimelinessScore;
 
-    @Column(name = "professionalism_score", nullable = false)
+    @Column(name = "feedback_professionalism_score", nullable = false)
     private int professionalismScore;
 
     @Enumerated(EnumType.STRING)

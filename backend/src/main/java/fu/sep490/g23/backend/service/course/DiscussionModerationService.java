@@ -6,9 +6,16 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportStatus;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface DiscussionModerationService {
     List<DiscussionModerationReportResponse> getReports(CourseDiscussionReportStatus status, CourseDiscussionReportReasonCategory category);
+    Page<DiscussionModerationReportResponse> getReports(
+            CourseDiscussionReportStatus status,
+            CourseDiscussionReportReasonCategory category,
+            Pageable pageable
+    );
     DiscussionModerationReportResponse hide(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail);
     DiscussionModerationReportResponse dismiss(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail);
 }

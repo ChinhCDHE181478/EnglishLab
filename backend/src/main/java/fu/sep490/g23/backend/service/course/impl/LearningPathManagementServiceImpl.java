@@ -183,6 +183,14 @@ public class LearningPathManagementServiceImpl implements LearningPathManagement
 
     @Override
     @Transactional(readOnly = true)
+    public Page<LearningPathOfferResponse> getPublicOffers(String studentEmail, Pageable pageable) {
+        User student = optionalStudent(studentEmail);
+        return learningPathRepository.findPublicPaths(pageable)
+                .map(path -> toOfferResponse(path, student));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public LearningPathOfferResponse getPublicOffer(String code, String studentEmail) {
         LearningPath path = learningPathRepository.findByCodeIgnoreCase(required(code, "Mã lộ trình"))
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lộ trình."));

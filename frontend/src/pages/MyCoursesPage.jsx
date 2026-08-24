@@ -96,25 +96,46 @@ const MyCoursesPage = () => {
         if (!active) return;
         setEnrollments(myEnrollments);
 
-        const detailResults = await Promise.allSettled(
+        const courseItemsWithFallback = await Promise.all(
           myEnrollments.map(async (enrollment) => {
-            const courseResponse = await courseApi.getOnlineCourse(enrollment.courseSlug || enrollment.courseId);
-            const completionResponse = await courseApi.getCourseCompletion(enrollment.courseId);
+            let courseResponse = null;
+            let completionResponse = null;
+            try {
+              courseResponse = await courseApi.getOnlineCourse(enrollment.courseSlug || enrollment.courseId);
+            } catch {
+              courseResponse = null;
+            }
+            try {
+              completionResponse = await courseApi.getCourseCompletion(enrollment.courseId);
+            } catch {
+              completionResponse = null;
+            }
+
+            const progressPercent = Number(
+              completionResponse?.progressPercent ?? enrollment.progressPercent ?? 0,
+            );
             return {
-              course: normalizeCourse({ ...courseResponse, registered: true, progressPercent: enrollment.progressPercent }),
+              course: normalizeCourse({
+                ...(courseResponse || {}),
+                id: courseResponse?.id ?? enrollment.courseId,
+                slug: courseResponse?.slug ?? enrollment.courseSlug,
+                title: courseResponse?.title ?? enrollment.courseTitle,
+                thumbnailUrl: courseResponse?.thumbnailUrl ?? enrollment.thumbnailUrl,
+                registered: true,
+                progressPercent,
+              }),
               enrollment,
-              completion: completionResponse,
+              completion: completionResponse || {
+                progressPercent,
+                eligibleForCertificate: progressPercent >= 100,
+              },
             };
           }),
         );
 
         if (!active) return;
 
-        const successfulItems = detailResults
-          .filter((result) => result.status === 'fulfilled')
-          .map((result) => result.value);
-
-        setCourseItems(successfulItems);
+        setCourseItems(courseItemsWithFallback);
         setUser(getStoredUser());
       } catch {
         if (!active) return;

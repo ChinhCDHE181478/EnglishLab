@@ -57,13 +57,26 @@ class PlacementRecommendationServiceImplTest {
     }
 
     @Test
-    void manualReviewPendingDoesNotBuildFinalRecommendations() {
+    void manualReviewPendingBuildsRecommendationsWhenBandIsAvailable() {
+        when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(false, PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED));
+        when(onlineCourseService.recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any())).thenReturn(List.of());
+        when(trainingProgramRepository.findAllByOrderByDisplayOrderAscUpdatedAtDescIdDesc()).thenReturn(List.of());
+
+        PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
+
+        assertThat(result.isRecommendationReady()).isTrue();
+        assertThat(result.getOverallScore()).isEqualByComparingTo("5.5");
+        verify(onlineCourseService).recommendCourses(org.mockito.ArgumentMatchers.eq(learner), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void manualReviewPendingStillWaitsWhenBandIsMissing() {
+        attempt.setOverallScore(null);
         when(eligibilityService.evaluateEligibility(1L, 10L)).thenReturn(eligibility(false, PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED));
 
         PlacementRecommendationResponse result = service.getRecommendations(10L, learner.getEmail());
 
         assertThat(result.isRecommendationReady()).isFalse();
-        assertThat(result.getRecommendedOnlineCourses()).isEmpty();
         verify(onlineCourseService, never()).recommendCourses(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 

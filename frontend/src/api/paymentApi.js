@@ -30,6 +30,11 @@ export const paymentApi = {
     return unwrapData(response) ?? [];
   },
 
+  async pageMyOrders(params = {}) {
+    const response = await axiosClient.get('/api/student/payments/orders/page', { params });
+    return unwrapData(response);
+  },
+
   async getRevenueAnalytics() {
     const response = await axiosClient.get('/api/content-manager/revenue/analytics');
     return unwrapData(response);

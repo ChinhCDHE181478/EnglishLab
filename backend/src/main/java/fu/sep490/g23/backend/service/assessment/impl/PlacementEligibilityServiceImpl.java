@@ -92,7 +92,10 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
                 : attempt.getEvaluationStatus();
         LocalDateTime now = LocalDateTime.now();
 
-        if (attempt.getCancelledAt() != null) {
+        if (isSkillAssessment(attempt)) {
+            status = PlacementEvaluationStatus.NOT_ELIGIBLE;
+            missing.add("FULL_PLACEMENT_REQUIRED");
+        } else if (attempt.getCancelledAt() != null) {
             status = PlacementEvaluationStatus.NOT_ELIGIBLE;
             missing.add("ATTEMPT_CANCELLED");
         } else if (attempt.getExpiresAt() != null && attempt.getExpiresAt().isBefore(now)) {
@@ -149,6 +152,10 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         return String.valueOf(attempt.getAiFeedbackJson()).contains("\"examType\":\"TOEIC\"");
     }
 
+    private boolean isSkillAssessment(PlacementTestAttempt attempt) {
+        return String.valueOf(attempt.getAiFeedbackJson()).contains("\"examType\":\"SKILL\"");
+    }
+
     private PlacementLevel toeicLevel(BigDecimal score) {
         if (score.compareTo(BigDecimal.valueOf(450)) < 0) return PlacementLevel.BEGINNER;
         if (score.compareTo(BigDecimal.valueOf(700)) < 0) return PlacementLevel.INTERMEDIATE;
@@ -162,7 +169,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
                 .learnerName(attempt.getStudent().getFullName())
                 .learnerEmail(attempt.getStudent().getEmail())
                 .testCode(attempt.getTestCode())
-                .examType(isToeic(attempt) ? "TOEIC" : "IELTS")
+                .examType(isToeic(attempt) ? "TOEIC" : isSkillAssessment(attempt) ? "SKILL" : "IELTS")
                 .listeningScore(attempt.getListeningScore())
                 .readingScore(attempt.getReadingScore())
                 .writingScore(attempt.getWritingScore())

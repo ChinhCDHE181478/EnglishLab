@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "type": "ielts_speaking_exam",
+  "key": "ielts_mock_2026_january_speaking_practice_test_1",
+  "title": "IELTS Mock Test 2026 January Speaking Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2026de1s.html",
+  "durationMinutes": 14,
+  "parts": [
+    {
+      "key": "part_1",
+      "title": "Part 1 · Introduction and Interview",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "What is your full name?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/1/P1-1.%20What%20is%20your%20full%20name_.mp4"
+        },
+        {
+          "text": "Where are you from?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/1/P1-2.%20Where%20are%20you%20from_.mp4"
+        },
+        {
+          "text": "Do you work or study?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/1/P1-3.%20Do%20you%20work%20or%20study_.mp4"
+        },
+        {
+          "text": "What kind of clothes do you like to wear?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P1.4._%20What%20kind%20of%20clothes%20do%20you%20like%20to%20wear_.mp4"
+        },
+        {
+          "text": "Do you prefer to wear comfortable and casual clothes or smart clothes?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P1.5._%20Do%20you%20prefer%20to%20wear%20comfortable%20and%20casual%20clothes%20or%20s.mp4"
+        },
+        {
+          "text": "Do you like wearing T-shirts?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/1/3/Practice%203/P1.9.%20Do%20you%20like%20wearing%20T-shirts_.mp4"
+        },
+        {
+          "text": "Do you spend a lot of time choosing clothes?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/1/1/P1.7._%20Do%20you%20spend%20a%20lot%20of%20time%20choosing%20clothes_.mp4"
+        },
+        {
+          "text": "Do you often use maps?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/2/2/P1.4._Do%20you%20often%20use%20maps_.mp4"
+        },
+        {
+          "text": "Do you use paper maps?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/2/2/P1.5._Do%20you%20use%20paper%20maps_.mp4"
+        },
+        {
+          "text": "How often do you use maps on your phone?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/2/2/P1.6._How%20often%20do%20you%20use%20maps%20on%20your%20phone.mp4"
+        },
+        {
+          "text": "Do you have maps at home?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/2/2/P1.7._Do%20you%20have%20maps%20at%20home_.mp4"
+        },
+        {
+          "text": "Are robots important?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/3/3/P1.4._Are%20robots%20important_.mp4"
+        },
+        {
+          "text": "Would robots affect people's lives?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/2/3/3/P1.5._Would%20robots%20affect%20people%27s%20lives_.mp4"
+        },
+        {
+          "text": "Have you ever watched a movie about robots?",
+          "videoUrl": "https://test4kynang.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/Speaking/De22/1.1.mp4"
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "title": "Part 2 · Topic",
+      "prepSeconds": 60,
+      "answerSeconds": 120,
+      "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/3/1/1/P2.%20Describe%20a%20picture_photograph%20of%20you%20that%20you%20like.mp4",
+      "cueCardTitle": "Describe a picture/photograph of you that you like.",
+      "cueCardBullets": [
+        "And explain how you felt about it"
+      ]
+    },
+    {
+      "key": "part_3",
+      "title": "Part 3 · Topic Discussion",
+      "prepSeconds": 0,
+      "answerSeconds": 300,
+      "prompts": [
+        {
+          "text": "Why do people take photos?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/3/1/1/P3.1.%20_Why%20do%20people%20take%20photos_.mp4"
+        },
+        {
+          "text": "What do people use to take photos these days, cameras or phones?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/3/1/1/P3.2.%20_What%20do%20people%20use%20to%20take%20photos%20these%20days%2C%20cameras%20or%20.mp4"
+        },
+        {
+          "text": "Is it difficult for people to learn how to take good photos?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/3/1/1/P3.3._Is%20it%20difficult%20for%20people%20to%20learn%20how%20to.mp4"
+        },
+        {
+          "text": "How do people keep their photos?",
+          "videoUrl": "https://ieltsonlinetests.oss-ap-southeast-1.aliyuncs.com/IOT%20Videos/IELTS%20Mock%20Test%202024/3/1/1/P3.4.%20_How%20do%20people%20keep%20their%20photos_.mp4"
+        }
+      ]
+    }
+  ]
+}

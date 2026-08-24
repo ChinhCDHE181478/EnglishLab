@@ -1,36 +1,25 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@SuperBuilder
 @Entity
-@Table(
-        name = "curriculum_exercise_refs",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"unit_id", "exercise_id"})
-)
-public class CurriculumExerciseRef {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@DiscriminatorValue("EXERCISE")
+public class CurriculumExerciseRef extends CurriculumResourceRef {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "unit_id", nullable = false)
-    private CurriculumUnit unit;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exercise_id", nullable = false)
+    @JoinColumn(name = "exercise_id")
     private ExerciseBankItem exercise;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
-
-    @Column(length = 500)
-    private String note;
 }

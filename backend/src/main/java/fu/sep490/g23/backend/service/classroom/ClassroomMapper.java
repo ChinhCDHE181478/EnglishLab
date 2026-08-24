@@ -56,6 +56,7 @@ import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.notification.AppNotification;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
@@ -87,6 +88,7 @@ public class ClassroomMapper {
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
+    private final ClassroomSessionRepository sessionRepository;
     private final VirtualMeetingService virtualMeetingService;
     private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
 
@@ -109,7 +111,9 @@ public class ClassroomMapper {
                 : List.of();
 
         ClassroomSessionResponse nextSession = resolveNextSession(sessions);
-        Integer progressPercent = viewerStudentId == null ? null : computeProgressPercent(sessions);
+        Integer progressPercent = viewerStudentId == null
+                ? null
+                : computeProgressPercent(offering, sessions, includeSessions);
         ScheduleSummary scheduleSummary = computeScheduleSummary(offering);
 
         return ClassroomOfferingResponse.builder()
@@ -475,7 +479,7 @@ public class ClassroomMapper {
         ClassroomHomeworkSubmissionResponse mySubmission = null;
         if (studentId != null) {
             mySubmission = homeworkSubmissionRepository.findByHomeworkIdAndStudentId(homework.getId(), studentId)
-                    .map(this::toHomeworkSubmissionResponse)
+                    .map(this::toLearnerHomeworkSubmissionResponse)
                     .orElse(null);
         }
         boolean overdue = homework.getDeadline() != null
@@ -536,6 +540,18 @@ public class ClassroomMapper {
         return toHomeworkSubmissionResponse(submission.getHomework(), submission.getStudent(), submission);
     }
 
+    ClassroomHomeworkSubmissionResponse toLearnerHomeworkSubmissionResponse(ClassroomHomeworkSubmission submission) {
+        ClassroomHomeworkSubmissionResponse response = toHomeworkSubmissionResponse(submission);
+          if (submission.getStatus() != HomeworkSubmissionStatus.GRADED) {
+              response.setScore(null);
+              response.setTeacherFeedback(null);
+              response.setAiFeedbackJson(null);
+              response.setAnnotations(List.of());
+            response.setGradedAt(null);
+        }
+        return response;
+    }
+
     public ClassroomHomeworkSubmissionResponse toHomeworkSubmissionResponse(
             ClassroomHomework homework,
             User student,
@@ -563,9 +579,10 @@ public class ClassroomMapper {
                 .attachmentUrl(submission == null ? null : submission.getAttachmentUrl())
                 .submittedAt(submission == null ? null : submission.getSubmittedAt())
                 .status(submission == null ? null : submission.getStatus())
-                .score(submission == null ? null : submission.getScore())
-                .teacherFeedback(submission == null ? null : submission.getTeacherFeedback())
-                .annotations(submission == null
+                  .score(submission == null ? null : submission.getScore())
+                  .teacherFeedback(submission == null ? null : submission.getTeacherFeedback())
+                  .aiFeedbackJson(submission == null ? null : submission.getAiFeedbackJson())
+                  .annotations(submission == null
                         ? List.of()
                         : homeworkTextAnnotationCodec.deserialize(submission.getTeacherAnnotationsJson()))
                 .gradedAt(submission == null ? null : submission.getGradedAt())
@@ -933,13 +950,41 @@ public class ClassroomMapper {
         return new ScheduleSummary(dayText + timeText, days, start, end);
     }
 
-    private Integer computeProgressPercent(List<ClassroomSession> sessions) {
-        if (sessions.isEmpty()) {
+    private Integer computeProgressPercent(
+            ClassroomOffering offering,
+            List<ClassroomSession> sessions,
+            boolean includeSessions
+    ) {
+        if (includeSessions) {
+            return percentFromSessions(sessions);
+        }
+        if (offering.getId() == null || sessionRepository == null) {
             return 0;
         }
-        long completed = sessions.stream()
+        long total = sessionRepository.countByClassroomOfferingIdAndStatusNot(
+                offering.getId(),
+                ClassroomSessionStatus.CANCELLED
+        );
+        if (total == 0) {
+            return 0;
+        }
+        long completed = sessionRepository.countByClassroomOfferingIdAndStatus(
+                offering.getId(),
+                ClassroomSessionStatus.COMPLETED
+        );
+        return (int) Math.round((completed * 100.0) / total);
+    }
+
+    private Integer percentFromSessions(List<ClassroomSession> sessions) {
+        List<ClassroomSession> counted = sessions.stream()
+                .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
+                .toList();
+        if (counted.isEmpty()) {
+            return 0;
+        }
+        long completed = counted.stream()
                 .filter(session -> session.getStatus() == ClassroomSessionStatus.COMPLETED)
                 .count();
-        return (int) Math.round((completed * 100.0) / sessions.size());
+        return (int) Math.round((completed * 100.0) / counted.size());
     }
 }

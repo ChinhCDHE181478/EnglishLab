@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
 import fu.sep490.g23.backend.dto.response.course.LessonResponse;
+import fu.sep490.g23.backend.dto.response.course.ModuleResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCoursePreviewResponse;
 import fu.sep490.g23.backend.dto.response.course.OnlineCourseVersionResponse;
 import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.PackageEnrollment;
@@ -18,6 +20,7 @@ import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
@@ -53,6 +56,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository versionRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
+    private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
@@ -461,6 +465,52 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         }
         if (lessonIndex > 0 && !completedLessonIds.contains(orderedLessonIds.get(lessonIndex - 1))) {
             throw new IllegalStateException("Bạn cần hoàn thành bài học trước đó trong phiên bản này trước khi tiếp tục.");
+        }
+        assertPreviousModuleAssessmentsPassed(enrollment, course, snapshot, lessonId);
+    }
+
+    private void assertPreviousModuleAssessmentsPassed(
+            PackageEnrollment enrollment,
+            OnlineCourse course,
+            OnlineCourseResponse snapshot,
+            Long lessonId
+    ) {
+        User student = enrollment.getStudent();
+        if (student == null || snapshot.getModules() == null) {
+            return;
+        }
+        int moduleIndex = -1;
+        for (int index = 0; index < snapshot.getModules().size(); index++) {
+            boolean belongsToModule = snapshot.getModules().get(index).getLessons().stream()
+                    .anyMatch(lesson -> lessonId.equals(lesson.getId()));
+            if (belongsToModule) {
+                moduleIndex = index;
+                break;
+            }
+        }
+        if (moduleIndex <= 0) {
+            return;
+        }
+        Set<Long> previousModuleIds = snapshot.getModules().subList(0, moduleIndex).stream()
+                .map(ModuleResponse::getId)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toSet());
+        if (previousModuleIds.isEmpty()) {
+            return;
+        }
+        List<CourseAssessment> previousModuleTests = courseAssessmentRepository
+                .findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
+                .stream()
+                .filter(assessment -> assessment.getModule() != null && previousModuleIds.contains(assessment.getModule().getId()))
+                .toList();
+        boolean previousTestsPassed = previousModuleTests.stream().allMatch(assessment ->
+                assessmentSubmissionRepository.existsByAssessmentAndStudentAndStatusIn(
+                        assessment,
+                        student,
+                        Set.of(SubmissionStatus.PASSED, SubmissionStatus.AI_EVALUATED)
+                ));
+        if (!previousTestsPassed) {
+            throw new IllegalStateException("Bạn cần hoàn thành bài đánh giá của mô-đun trước trước khi học mô-đun tiếp theo.");
         }
     }
 

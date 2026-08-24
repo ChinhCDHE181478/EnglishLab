@@ -1,9 +1,11 @@
 package fu.sep490.g23.backend.entity.teacher;
 
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherEvaluationStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -19,19 +21,24 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-@Table(name = "teacher_performance_evaluations")
-public class TeacherPerformanceEvaluation {
+@Table(name = "user_auxiliary_records")
+@SQLRestriction("record_type = 'teacher_performance_evaluations'")
+public class TeacherPerformanceEvaluation extends DomainRecord {
+    @Override
+    protected String domainRecordType() {
+        return "teacher_performance_evaluations";
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false)
+    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User teacher;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "evaluator_id", nullable = false)
+    @JoinColumn(name = "evaluator_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User evaluator;
 
     @Column(name = "period_start", nullable = false)
@@ -43,13 +50,13 @@ public class TeacherPerformanceEvaluation {
     @Column(name = "lesson_delivery_score", nullable = false, precision = 3, scale = 2)
     private BigDecimal lessonDeliveryScore;
 
-    @Column(name = "learner_support_score", nullable = false, precision = 3, scale = 2)
+    @Column(name = "evaluation_learner_support_score", nullable = false, precision = 3, scale = 2)
     private BigDecimal learnerSupportScore;
 
     @Column(name = "grading_timeliness_score", nullable = false, precision = 3, scale = 2)
     private BigDecimal gradingTimelinessScore;
 
-    @Column(name = "professionalism_score", nullable = false, precision = 3, scale = 2)
+    @Column(name = "evaluation_professionalism_score", nullable = false, precision = 3, scale = 2)
     private BigDecimal professionalismScore;
 
     @Column(name = "overall_score", nullable = false, precision = 3, scale = 2)
@@ -65,7 +72,7 @@ public class TeacherPerformanceEvaluation {
     private String actionPlan;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "evaluation_status", nullable = false, length = 20)
     @Builder.Default
     private TeacherEvaluationStatus status = TeacherEvaluationStatus.DRAFT;
 

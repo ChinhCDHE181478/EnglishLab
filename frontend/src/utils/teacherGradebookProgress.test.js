@@ -4,6 +4,7 @@ import {
   getStudentLessonProgress,
   LESSON_GRADING_STATUS,
   LESSON_POSITION_STATUS,
+  orderHomeworkGradingChoices,
 } from './teacherGradebookProgress';
 
 const buildUnits = (count) => Array.from({ length: count }, (_, index) => ({
@@ -101,5 +102,18 @@ describe('getStudentLessonProgress', () => {
     expect(progress.pendingCount).toBe(1);
     expect(progress.isComplete).toBe(false);
     expect(progress.results[0].score).toBe(8.5);
+  });
+});
+
+describe('orderHomeworkGradingChoices', () => {
+  it('đưa bài chờ chấm lên trước nhưng vẫn giữ đủ lựa chọn của học viên', () => {
+    const choices = orderHomeworkGradingChoices([
+      { id: 1, status: 'GRADED' },
+      { id: 2, status: 'NOT_SUBMITTED' },
+      { id: 3, status: 'SUBMITTED' },
+      { id: 4, status: 'RETURNED' },
+    ]);
+
+    expect(choices.map((item) => item.id)).toEqual([3, 4, 1, 2]);
   });
 });

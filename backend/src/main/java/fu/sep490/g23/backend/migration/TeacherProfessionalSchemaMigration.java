@@ -2,17 +2,22 @@ package fu.sep490.g23.backend.migration;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Order(500)
 public class TeacherProfessionalSchemaMigration implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 create table if not exists teacher_professional_profiles (
                     id bigserial primary key,
@@ -94,5 +99,12 @@ public class TeacherProfessionalSchemaMigration implements CommandLineRunner {
                 create index if not exists idx_teacher_evaluations_teacher_period
                 on teacher_performance_evaluations(teacher_id, period_end desc)
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.user_auxiliary_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

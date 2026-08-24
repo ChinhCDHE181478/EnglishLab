@@ -2,17 +2,22 @@ package fu.sep490.g23.backend.migration;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Order(500)
 public class TeacherGoogleMeetConnectionSchemaMigration implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        if (consolidated()) {
+            return;
+        }
         jdbcTemplate.execute("""
                 CREATE TABLE IF NOT EXISTS teacher_google_meet_connections (
                     id BIGSERIAL PRIMARY KEY,
@@ -142,5 +147,12 @@ public class TeacherGoogleMeetConnectionSchemaMigration implements CommandLineRu
                   AND target.recording_url = duplicated.recording_url
                   AND target.recording_provider = 'GOOGLE_MEET'
                 """);
+    }
+
+    private boolean consolidated() {
+        return Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+                "SELECT to_regclass('public.user_auxiliary_records') IS NOT NULL",
+                Boolean.class
+        ));
     }
 }

@@ -75,6 +75,7 @@ const renderPromptContent = (task) => {
 export default function WritingExamMode({
   assessment,
   config,
+  exitDestinationLabel = 'màn hình khóa học',
   initialSubmissionText = '',
   isLocked = false,
   submitting = false,
@@ -468,7 +469,7 @@ export default function WritingExamMode({
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#8a0018]">Thoát chế độ thi?</p>
             <h3 className="mt-2 font-['Manrope'] text-2xl font-black text-[#341c1d]">Bài viết hiện chưa được nộp</h3>
             <p className="mt-3 text-sm leading-7 text-[#584140]">
-              Nếu bạn thoát bây giờ, EnglishLab sẽ quay về màn hình khóa học và lần làm bài này chưa được ghi nhận nộp.
+              Nếu bạn thoát bây giờ, EnglishLab sẽ quay về {exitDestinationLabel} và lần làm bài này chưa được ghi nhận nộp.
             </p>
             <div className="mt-5 flex gap-3">
               <button

@@ -11,6 +11,7 @@ import fu.sep490.g23.backend.dto.request.assessment.PlacementTestSubmissionReque
 import fu.sep490.g23.backend.dto.response.assessment.PlacementTestAttemptResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
+import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -69,8 +70,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         response.put("examType", definition.getExamType());
         long attemptCount = attemptRepository.countByStudentAndTestCode(student, TEST_CODE);
         response.put("attemptCount", attemptCount);
-        response.put("maxAttempts", definition.getMaxAttempts());
-        response.put("canRetake", attemptCount < definition.getMaxAttempts());
+        response.put("canRetake", true);
         Map<String, Object> sections = new LinkedHashMap<>();
         sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
         sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
@@ -90,13 +90,14 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         if (!definition.isActive()) {
             throw new IllegalStateException("Bài đánh giá đầu vào hiện đang tạm dừng.");
         }
-        if (attemptRepository.countByStudentAndTestCode(student, TEST_CODE) >= definition.getMaxAttempts()) {
-            throw new IllegalStateException("Bạn đã dùng hết lượt làm bài đánh giá đầu vào.");
-        }
         String examType = normalizeExamType(request.getExamType() == null ? definition.getExamType() : request.getExamType());
         if ("TOEIC".equals(examType)) {
             validateToeicSubmission(request);
             return submitToeicPlacement(request, student, definition);
+        }
+        if ("SKILL".equals(examType)) {
+            validateSkillAssessmentSubmission(request);
+            return submitSkillAssessment(request, student, definition);
         }
 
         validateSubmission(request);
@@ -151,6 +152,82 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         student.setCurrentBand(overall == null ? null : overall.doubleValue());
         userRepository.save(student);
         return toResponse(savedAttempt);
+    }
+
+    private PlacementTestAttemptResponse submitSkillAssessment(
+            PlacementTestSubmissionRequest request,
+            User student,
+            PlacementTestDefinition definition
+    ) {
+        Set<AssessmentSkill> selectedSkills = EnumSet.copyOf(request.getSelectedSkills());
+        JsonNode listeningAnswers = objectMapper.valueToTree(request.getListeningAnswers());
+        JsonNode readingAnswers = objectMapper.valueToTree(request.getReadingAnswers());
+        JsonNode writingAnswers = objectMapper.valueToTree(request.getWritingAnswers());
+        JsonNode deviceCheck = objectMapper.valueToTree(request.getDeviceCheck());
+
+        ObjectiveScore listening = selectedSkills.contains(AssessmentSkill.LISTENING)
+                ? scoreObjective(listeningAnswers, definitionService.getConfig(definition, "listening").path("answerKey"))
+                : null;
+        ObjectiveScore reading = selectedSkills.contains(AssessmentSkill.READING)
+                ? scoreObjective(readingAnswers, definitionService.getConfig(definition, "reading").path("answerKey"))
+                : null;
+        BigDecimal listeningBand = listening == null ? null : listeningBand(listening.correct());
+        BigDecimal readingBand = reading == null ? null : readingBand(reading.correct());
+
+        boolean evaluatesProductiveSkill = selectedSkills.contains(AssessmentSkill.WRITING)
+                || selectedSkills.contains(AssessmentSkill.SPEAKING);
+        AiEvaluationResult aiResult = evaluatesProductiveSkill
+                ? evaluateProductiveSkills(
+                        request,
+                        definitionService.getConfig(definition, "writing"),
+                        definitionService.getConfig(definition, "speaking"),
+                        selectedSkills
+                )
+                : null;
+        BigDecimal productiveBand = normalizeBand(aiResult == null ? null : aiResult.getEstimatedScore());
+        BigDecimal writingBand = selectedSkills.contains(AssessmentSkill.WRITING)
+                ? extractBand(aiResult, "writingBand", productiveBand)
+                : null;
+        BigDecimal speakingBand = selectedSkills.contains(AssessmentSkill.SPEAKING)
+                ? extractBand(aiResult, "speakingBand", productiveBand)
+                : null;
+        boolean productiveEvaluationComplete = !evaluatesProductiveSkill
+                || (selectedSkills.contains(AssessmentSkill.WRITING) ? writingBand != null : true)
+                && (selectedSkills.contains(AssessmentSkill.SPEAKING) ? speakingBand != null : true);
+        BigDecimal overall = averageAvailable(listeningBand, readingBand, writingBand, speakingBand);
+
+        ObjectNode answers = objectMapper.createObjectNode();
+        answers.put("examType", "SKILL");
+        var selectedSkillsNode = answers.putArray("selectedSkills");
+        selectedSkills.forEach(skill -> selectedSkillsNode.add(skill.name()));
+        if (selectedSkills.contains(AssessmentSkill.LISTENING)) answers.set("listening", listeningAnswers);
+        if (selectedSkills.contains(AssessmentSkill.READING)) answers.set("reading", readingAnswers);
+        if (selectedSkills.contains(AssessmentSkill.WRITING)) answers.set("writing", writingAnswers);
+        if (selectedSkills.contains(AssessmentSkill.SPEAKING)) {
+            answers.put("speakingTranscript", safe(request.getSpeakingTranscript()));
+            answers.put("speakingAudioUrl", safe(request.getSpeakingAudioUrl()));
+        }
+
+        PlacementTestAttempt attempt = PlacementTestAttempt.builder()
+                .student(student)
+                .testCode(TEST_CODE)
+                .answersJson(writeJson(answers))
+                .deviceCheckJson(writeJson(deviceCheck))
+                .listeningScore(listeningBand)
+                .readingScore(readingBand)
+                .writingScore(writingBand)
+                .speakingScore(speakingBand)
+                .overallScore(overall)
+                .correctListening(listening == null ? null : listening.correct())
+                .correctReading(reading == null ? null : reading.correct())
+                .aiFeedbackJson(skillAssessmentFeedback(aiResult, selectedSkills))
+                .status(productiveEvaluationComplete ? "COMPLETED" : "OBJECTIVE_EVALUATED")
+                .evaluationStatus(PlacementEvaluationStatus.SUBMITTED)
+                .recommendedLevel(null)
+                .submittedAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(180))
+                .build();
+        return toResponse(attemptRepository.save(attempt), "SKILL");
     }
 
     private PlacementTestAttemptResponse submitToeicPlacement(
@@ -261,11 +338,27 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     }
 
     private AiEvaluationResult evaluateProductiveSkills(PlacementTestSubmissionRequest request, JsonNode writingConfig, JsonNode speakingConfig) {
+        return evaluateProductiveSkills(
+                request,
+                writingConfig,
+                speakingConfig,
+                EnumSet.of(AssessmentSkill.WRITING, AssessmentSkill.SPEAKING)
+        );
+    }
+
+    private AiEvaluationResult evaluateProductiveSkills(
+            PlacementTestSubmissionRequest request,
+            JsonNode writingConfig,
+            JsonNode speakingConfig,
+            Set<AssessmentSkill> selectedSkills
+    ) {
+        boolean evaluateWriting = selectedSkills.contains(AssessmentSkill.WRITING);
+        boolean evaluateSpeaking = selectedSkills.contains(AssessmentSkill.SPEAKING);
         String writing = request.getWritingAnswers() == null ? "" : writeJson(objectMapper.valueToTree(request.getWritingAnswers()));
         String speaking = safe(request.getSpeakingTranscript());
 
         Optional<AssessmentAudioStorageService.StoredAssessmentAudio> storedAudio =
-                request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank()
+                evaluateSpeaking && request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank()
                         ? audioStorageService.loadStoredAudioFromUrl(request.getSpeakingAudioUrl())
                         : Optional.empty();
         boolean audioAttached = storedAudio.isPresent();
@@ -277,8 +370,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         String prompt = """
                 You are evaluating an IELTS placement test for course placement, not issuing an official IELTS result.
                 Score the learner on the IELTS 0-9 band scale using half-band increments.
-                Evaluate Writing for task response, coherence, lexical resource, grammar.
-                Evaluate Speaking for fluency/coherence, lexical resource, grammar, pronunciation evidence when audio is available.
+                Evaluate only these selected productive skills: %s.
+                For Writing, evaluate task response, coherence, lexical resource, grammar.
+                For Speaking, evaluate fluency/coherence, lexical resource, grammar, pronunciation evidence when audio is available.
+                Return null for a productive skill that is not selected.
                 If a response is clearly off-topic, nonsensical, irrelevant to the prompt, or made of filler unrelated to the actual task, assign 0.0 for that skill.
                 If there is not enough real evidence to judge Writing reliably, set writingBand to 0.0 when the writing is present but clearly irrelevant, or null only when no meaningful writing content exists.
                 Speaking scoring policy: %s
@@ -295,12 +390,19 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
 //                SPEAKING TRANSCRIPT:
                 %s
-                """.formatted(speakingAudioPolicy, writeJson(writingConfig), writing, writeJson(speakingConfig), speaking);
+                """.formatted(
+                        selectedSkills.stream().map(Enum::name).sorted().toList(),
+                        speakingAudioPolicy,
+                        evaluateWriting ? writeJson(writingConfig) : "Not selected",
+                        evaluateWriting ? writing : "Not selected",
+                        evaluateSpeaking ? writeJson(speakingConfig) : "Not selected",
+                        evaluateSpeaking ? speaking : "Not selected"
+                );
         try {
             AiEvaluationResult aiResult = audioAttached
                     ? aiEvaluationClient.evaluateWithAudio(prompt, storedAudio.get().bytes(), storedAudio.get().contentType())
                     : aiEvaluationClient.evaluate(prompt);
-            return applyProductiveGuards(aiResult, request);
+            return applyProductiveGuards(aiResult, request, selectedSkills);
         } catch (RuntimeException exception) {
             log.warn("Placement test AI evaluation for writing/speaking failed; falling back to objective-only result. Reason: {}",
                     exception.getMessage(), exception);
@@ -308,7 +410,11 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
-    private AiEvaluationResult applyProductiveGuards(AiEvaluationResult aiResult, PlacementTestSubmissionRequest request) {
+    private AiEvaluationResult applyProductiveGuards(
+            AiEvaluationResult aiResult,
+            PlacementTestSubmissionRequest request,
+            Set<AssessmentSkill> selectedSkills
+    ) {
         if (aiResult == null) {
             return null;
         }
@@ -318,30 +424,38 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     ? objectMapper.createObjectNode()
                     : (ObjectNode) objectMapper.readTree(aiResult.getFeedbackJson());
 
-            BigDecimal writingBand = readBand(root.path("writingBand"), normalizeBand(aiResult.getEstimatedScore()));
-            BigDecimal speakingBand = readBand(root.path("speakingBand"), normalizeBand(aiResult.getEstimatedScore()));
+            BigDecimal writingBand = selectedSkills.contains(AssessmentSkill.WRITING)
+                    ? readBand(root.path("writingBand"), normalizeBand(aiResult.getEstimatedScore()))
+                    : null;
+            BigDecimal speakingBand = selectedSkills.contains(AssessmentSkill.SPEAKING)
+                    ? readBand(root.path("speakingBand"), normalizeBand(aiResult.getEstimatedScore()))
+                    : null;
 
-            WritingEvidence writingEvidence = evaluateWritingEvidence(request.getWritingAnswers());
-            SpeakingEvidence speakingEvidence = evaluateSpeakingEvidence(request, aiResult.isAudioInputAnalyzed());
+            WritingEvidence writingEvidence = selectedSkills.contains(AssessmentSkill.WRITING)
+                    ? evaluateWritingEvidence(request.getWritingAnswers())
+                    : null;
+            SpeakingEvidence speakingEvidence = selectedSkills.contains(AssessmentSkill.SPEAKING)
+                    ? evaluateSpeakingEvidence(request, aiResult.isAudioInputAnalyzed())
+                    : null;
 
-            if (writingEvidence.offTopicAllTasks()) {
+            if (writingEvidence != null && writingEvidence.offTopicAllTasks()) {
                 writingBand = band(0);
                 appendGuardFeedback(root,
                         "Phần Writing đang lệch đề nặng hoặc nội dung không liên quan tới cả hai task, nên bị chấm 0.",
                         "Viết lại đúng trọng tâm: Task 1 phải mô tả quy trình sản xuất ethanol từ ngô; Task 2 phải bàn về physical strength và mental strength trong thể thao.");
-            } else if (writingEvidence.hasSevereProblem()) {
+            } else if (writingEvidence != null && writingEvidence.hasSevereProblem()) {
                 writingBand = minBand(writingBand, band(2.5));
                 appendGuardFeedback(root,
                         "Phần Writing có ít nhất một task quá ngắn hoặc lệch đề rõ rệt, nên điểm bị hạ mạnh.",
                         "Hoàn thành đầy đủ cả hai task, bám đúng đề và phát triển ý rõ ràng trước khi nộp lại.");
             }
 
-            if (speakingEvidence.insufficientEvidence()) {
+            if (speakingEvidence != null && speakingEvidence.insufficientEvidence()) {
                 speakingBand = null;
                 appendGuardFeedback(root,
                         speakingEvidence.message(),
                         "Hãy nộp lại bài nói với bản ghi thật rõ hoặc transcript thực sự phản ánh câu trả lời của bạn.");
-            } else if (speakingEvidence.offTopic()) {
+            } else if (speakingEvidence != null && speakingEvidence.offTopic()) {
                 speakingBand = band(0);
                 appendGuardFeedback(root,
                         "Phần Speaking lệch đề nặng hoặc nội dung nói không liên quan tới các câu hỏi đã cho, nên bị chấm 0.",
@@ -630,8 +744,42 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    private void validateSkillAssessmentSubmission(PlacementTestSubmissionRequest request) {
+        if (request == null || request.getSelectedSkills() == null || request.getSelectedSkills().isEmpty()) {
+            throw new RuntimeException("Hãy chọn ít nhất một kỹ năng cần đánh giá.");
+        }
+        if (request.getSelectedSkills().stream().anyMatch(Objects::isNull)) {
+            throw new RuntimeException("Danh sách kỹ năng được chọn không hợp lệ.");
+        }
+        Set<AssessmentSkill> selectedSkills = EnumSet.copyOf(request.getSelectedSkills());
+        if (selectedSkills.size() != request.getSelectedSkills().size()
+                || selectedSkills.contains(AssessmentSkill.MIXED)) {
+            throw new RuntimeException("Danh sách kỹ năng được chọn không hợp lệ.");
+        }
+        if (request.getDeviceCheck() == null || !Boolean.TRUE.equals(request.getDeviceCheck().get("completed"))) {
+            throw new RuntimeException("Bạn cần hoàn thành kiểm tra thiết bị trước khi nộp bài.");
+        }
+        if (selectedSkills.contains(AssessmentSkill.LISTENING) && request.getListeningAnswers() == null) {
+            throw new RuntimeException("Phần Listening chưa có dữ liệu bài làm.");
+        }
+        if (selectedSkills.contains(AssessmentSkill.READING) && request.getReadingAnswers() == null) {
+            throw new RuntimeException("Phần Reading chưa có dữ liệu bài làm.");
+        }
+        if (selectedSkills.contains(AssessmentSkill.WRITING) && request.getWritingAnswers() == null) {
+            throw new RuntimeException("Phần Writing chưa có dữ liệu bài làm.");
+        }
+        if (selectedSkills.contains(AssessmentSkill.SPEAKING)
+                && (request.getSpeakingTranscript() == null || request.getSpeakingTranscript().isBlank())
+                && (request.getSpeakingAudioUrl() == null || request.getSpeakingAudioUrl().isBlank())) {
+            throw new RuntimeException("Phần Speaking cần có bản ghi âm hoặc nội dung trả lời.");
+        }
+    }
+
     private String normalizeExamType(String value) {
-        return "TOEIC".equalsIgnoreCase(safe(value)) ? "TOEIC" : "IELTS";
+        String normalized = safe(value).toUpperCase(Locale.ROOT);
+        if ("TOEIC".equals(normalized)) return "TOEIC";
+        if ("SKILL".equals(normalized)) return "SKILL";
+        return "IELTS";
     }
 
     private User requireStudent(String email) {
@@ -653,6 +801,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .learnerEmail(attempt.getStudent().getEmail())
                 .testCode(attempt.getTestCode())
                 .examType(resolvedExamType)
+                .selectedSkills(resolveSelectedSkills(attempt, resolvedExamType))
                 .listeningScore(attempt.getListeningScore())
                 .readingScore(attempt.getReadingScore())
                 .writingScore(attempt.getWritingScore())
@@ -685,12 +834,61 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
     private String resolveStoredExamType(PlacementTestAttempt attempt) {
         String feedback = safe(attempt.getAiFeedbackJson());
+        if (feedback.contains("\"examType\":\"SKILL\"")) {
+            return "SKILL";
+        }
         if (feedback.contains("\"examType\":\"TOEIC\"")) {
             return "TOEIC";
         }
         return attempt.getOverallScore() != null && attempt.getOverallScore().compareTo(BigDecimal.valueOf(9)) > 0
                 ? "TOEIC"
                 : "IELTS";
+    }
+
+    private List<AssessmentSkill> resolveSelectedSkills(PlacementTestAttempt attempt, String examType) {
+        if ("TOEIC".equals(examType)) {
+            return List.of(AssessmentSkill.LISTENING, AssessmentSkill.READING);
+        }
+        if (!"SKILL".equals(examType)) {
+            return List.of(
+                    AssessmentSkill.LISTENING,
+                    AssessmentSkill.READING,
+                    AssessmentSkill.WRITING,
+                    AssessmentSkill.SPEAKING
+            );
+        }
+        try {
+            JsonNode root = objectMapper.readTree(attempt.getAnswersJson());
+            List<AssessmentSkill> selected = new ArrayList<>();
+            for (JsonNode value : root.withArray("selectedSkills")) {
+                selected.add(AssessmentSkill.valueOf(value.asText().toUpperCase(Locale.ROOT)));
+            }
+            return List.copyOf(selected);
+        } catch (Exception ignored) {
+            List<AssessmentSkill> inferred = new ArrayList<>();
+            if (attempt.getListeningScore() != null) inferred.add(AssessmentSkill.LISTENING);
+            if (attempt.getReadingScore() != null) inferred.add(AssessmentSkill.READING);
+            if (attempt.getWritingScore() != null) inferred.add(AssessmentSkill.WRITING);
+            if (attempt.getSpeakingScore() != null) inferred.add(AssessmentSkill.SPEAKING);
+            return List.copyOf(inferred);
+        }
+    }
+
+    private String skillAssessmentFeedback(AiEvaluationResult aiResult, Set<AssessmentSkill> selectedSkills) {
+        try {
+            ObjectNode root = aiResult == null || aiResult.getFeedbackJson() == null || aiResult.getFeedbackJson().isBlank()
+                    ? objectMapper.createObjectNode()
+                    : (ObjectNode) objectMapper.readTree(aiResult.getFeedbackJson());
+            root.put("examType", "SKILL");
+            var selectedSkillsNode = root.putArray("selectedSkills");
+            selectedSkills.forEach(skill -> selectedSkillsNode.add(skill.name()));
+            if (aiResult == null) {
+                root.put("message", "Đã chấm các kỹ năng khách quan. Kỹ năng tự luận sẽ được chấm lại khi dịch vụ AI sẵn sàng.");
+            }
+            return objectMapper.writeValueAsString(root);
+        } catch (Exception exception) {
+            throw new IllegalStateException("Không thể lưu kết quả đánh giá kỹ năng.", exception);
+        }
     }
 
     private String fallbackFeedback() {

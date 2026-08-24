@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,7 @@ class ClassroomMapperHomeworkGradingModeTest {
                 mock(ClassroomHomeworkSubmissionRepository.class),
                 mock(ClassroomHomeworkGradingCatalogService.class),
                 mock(ClassroomTuitionPaymentRepository.class),
+                mock(ClassroomSessionRepository.class),
                 mock(VirtualMeetingService.class),
                 new ClassroomHomeworkObjectiveGrader()
         );

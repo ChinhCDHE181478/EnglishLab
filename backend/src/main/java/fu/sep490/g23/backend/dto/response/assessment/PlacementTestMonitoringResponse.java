@@ -10,6 +10,7 @@ import java.util.List;
 @Value
 @Builder
 public class PlacementTestMonitoringResponse {
+    String examType;
     long totalAttempts;
     long uniqueParticipants;
     long completedAttempts;
@@ -32,6 +33,7 @@ public class PlacementTestMonitoringResponse {
     @Builder
     public static class RecentAttempt {
         Long id;
+        String examType;
         String learnerName;
         String learnerEmail;
         BigDecimal overallBand;

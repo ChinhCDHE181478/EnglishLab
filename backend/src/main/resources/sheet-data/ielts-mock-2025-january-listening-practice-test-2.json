@@ -1,0 +1,372 @@
+{
+  "version": 1,
+  "type": "ielts_listening_exam",
+  "key": "ielts_mock_2025_january_listening_practice_test_2",
+  "title": "IELTS Mock Test 2025 January Listening Practice Test 2",
+  "sourceLabel": "Imported from local HTML 2025de2.html",
+  "durationMinutes": 32,
+  "rules": [
+    "Complete all four parts in one sitting.",
+    "Do not switch tabs or leave the exam window."
+  ],
+  "parts": [
+    {
+      "key": "part_1",
+      "partNumber": 1,
+      "title": "Part 1",
+      "questionRange": "Questions 1-10",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 1-5",
+          "instructions": "Complete the form below.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 1,
+              "promptBefore": "HAN TWO WORDS AND/OR A NUMBER for each answer. Southern Rental Car – booking Name: William",
+              "promptAfter": "Address: 10 2 <input type=\"text"
+            },
+            {
+              "number": 2,
+              "promptBefore": "Address: 10",
+              "promptAfter": "Nelson Contact number: 07 3 <in"
+            },
+            {
+              "number": 3,
+              "promptBefore": "Nelson Contact number: 07",
+              "promptAfter": "Payment by credit card type: 4"
+            },
+            {
+              "number": 4,
+              "promptBefore": "Payment by credit card type:",
+              "promptAfter": "card. Card No. 4550 1392 8309 3221 Card expiry date: July 20XX Rental period: <"
+            },
+            {
+              "number": 5,
+              "promptBefore": "card. Card No. 4550 1392 8309 3221 Card expiry date: July 20XX Rental period:",
+              "promptAfter": "days <div class=\"test-panel__questi"
+            }
+          ]
+        },
+        {
+          "title": "Questions 6-10",
+          "instructions": "Answer the following questions USING NO MORE THAN TWO WORDS OR A NUMBER",
+          "type": "text",
+          "questions": [
+            {
+              "number": 6,
+              "promptBefore": " following questions USING NO MORE THAN TWO WORDS OR A NUMBER How much is the car per day?",
+              "promptAfter": "What does the price include? 7 <input type"
+            },
+            {
+              "number": 7,
+              "promptBefore": "What does the price include?",
+              "promptAfter": "Who will he be visiting? 8 <input type=\"te"
+            },
+            {
+              "number": 8,
+              "promptBefore": "Who will he be visiting?",
+              "promptAfter": "What kind of car does the agent recommend? 9</spa"
+            },
+            {
+              "number": 9,
+              "promptBefore": "What kind of car does the agent recommend?",
+              "promptAfter": "What does he need to collect the car? 10 <"
+            },
+            {
+              "number": 10,
+              "promptBefore": "What does he need to collect the car?",
+              "promptAfter": "<div class=\"test-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_2",
+      "partNumber": 2,
+      "title": "Part 2",
+      "questionRange": "Questions 11-20",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 11-15",
+          "instructions": "Complete the tables below. If there is no information given, write X .",
+          "type": "text",
+          "questions": [
+            {
+              "number": 11,
+              "promptBefore": "X . Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer. Overlander Distance / km",
+              "promptAfter": "Highlight 3 volcanoes Time / hours 11 Transalpine</s"
+            },
+            {
+              "number": 12,
+              "promptBefore": "Highlight 3 volcanoes Time / hours 11 Transalpine Distance / km 223 Highlight 16",
+              "promptAfter": "Time / hours 13 <input type=\""
+            },
+            {
+              "number": 13,
+              "promptBefore": "Time / hours",
+              "promptAfter": "Transcoastal Distance / km <s"
+            },
+            {
+              "number": 14,
+              "promptBefore": "Transcoastal Distance / km",
+              "promptAfter": "Highlight 15 <input type=\"tex"
+            },
+            {
+              "number": 15,
+              "promptBefore": "Highlight",
+              "promptAfter": "Time / hours 5 <div class=\"test-panel__item\" bis_skin_checked=\"1\""
+            }
+          ]
+        },
+        {
+          "title": "Questions 16-20",
+          "instructions": "Complete the summary below USING NO MORE THAN TWO WORDS OR A NUMBER.",
+          "type": "text",
+          "questions": [
+            {
+              "number": 16,
+              "promptBefore": "summary below USING NO MORE THAN TWO WORDS OR A NUMBER. Taking three days to complete, the",
+              "promptAfter": "is one of the world’s longest train journeys. The Ghan is shorter, passing throu"
+            },
+            {
+              "number": 17,
+              "promptBefore": "he world’s longest train journeys. The Ghan is shorter, passing through towns built by the",
+              "promptAfter": "There is also a sculpture designed to mark the laying of the"
+            },
+            {
+              "number": 18,
+              "promptBefore": "There is also a sculpture designed to mark the laying of the",
+              "promptAfter": "concrete sleeper. The Overland was the first train to travel between the capital"
+            },
+            {
+              "number": 19,
+              "promptBefore": "rete sleeper. The Overland was the first train to travel between the capital cities in two",
+              "promptAfter": "and it is also the oldest journey of its kind on 20 <i"
+            },
+            {
+              "number": 20,
+              "promptBefore": "and it is also the oldest journey of its kind on",
+              "promptAfter": "<section class=\"test-panel\" style=\"overflow-y: hidden; outline: none;\" tab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_3",
+      "partNumber": 3,
+      "title": "Part 3",
+      "questionRange": "Questions 21-30",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 21-25",
+          "instructions": "Circle the correct letter A–C.",
+          "type": "single_choice",
+          "questions": [
+            {
+              "number": 21,
+              "prompt": "Lyn is having difficulty completing her project because",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "she can’t organise her presentation."
+                }
+              ]
+            },
+            {
+              "number": 22,
+              "prompt": "Her presentation is going to focus on",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "solar-powered water heaters."
+                }
+              ]
+            },
+            {
+              "number": 23,
+              "prompt": "Why does Lyn think we should be looking for alternative sources of energy?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "Fossil fuels have an impact on the environment."
+                }
+              ]
+            },
+            {
+              "number": 24,
+              "prompt": "Solar power is a good form of alternative energy because",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "it is infinite"
+                }
+              ]
+            },
+            {
+              "number": 25,
+              "prompt": "Which graph best indicates what Lyn is describing?",
+              "options": [
+                {
+                  "value": "A",
+                  "label": "B"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Questions 26-30",
+          "instructions": "Label the following diagram USING NO MORE THAN TWO WORDS AND / OR A NUMBER",
+          "type": "text",
+          "questions": [
+            {
+              "number": 26,
+              "promptBefore": "Label the following diagram USING NO MORE THAN TWO WORDS AND / OR A NUMBER",
+              "promptAfter": "27 <input type=\"text\" class=\"iot-question iot-lr"
+            },
+            {
+              "number": 27,
+              "promptBefore": "Question 27",
+              "promptAfter": "28 <input type=\"text\" class=\"iot-question iot-lr"
+            },
+            {
+              "number": 28,
+              "promptBefore": "Question 28",
+              "promptAfter": "29 <input type=\"text\" class=\"iot-question iot-lr"
+            },
+            {
+              "number": 29,
+              "promptBefore": "Question 29",
+              "promptAfter": "30 <input type=\"text\" class=\"iot-question iot-lr"
+            },
+            {
+              "number": 30,
+              "promptBefore": "Question 30",
+              "promptAfter": "<div class=\"test-panel"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "part_4",
+      "partNumber": 4,
+      "title": "Part 4",
+      "questionRange": "Questions 31-40",
+      "summary": "",
+      "questionGroups": [
+        {
+          "title": "Questions 31-40",
+          "instructions": "Complete the sentences below using NO MORE THAN TWO WORDS OR A NUMBER",
+          "type": "text",
+          "questions": [
+            {
+              "number": 31,
+              "promptBefore": "Complete the sentences below using NO MORE THAN TWO WORDS OR A NUMBER Lecture on",
+              "promptAfter": "Examples: tourism and 32 <input type=\"text\" clas"
+            },
+            {
+              "number": 32,
+              "promptBefore": "Examples: tourism and",
+              "promptAfter": "Common misconception is that marketing points to 33</sp"
+            },
+            {
+              "number": 33,
+              "promptBefore": "Common misconception is that marketing points to",
+              "promptAfter": "in what is being provided. Marketing is actually essential in maintaining <span "
+            },
+            {
+              "number": 34,
+              "promptBefore": "in what is being provided. Marketing is actually essential in maintaining",
+              "promptAfter": "Selling a product is easier because it is 35 <in"
+            },
+            {
+              "number": 35,
+              "promptBefore": "Selling a product is easier because it is",
+              "promptAfter": "and customers do not have such different 36 <input typ"
+            },
+            {
+              "number": 36,
+              "promptBefore": "and customers do not have such different",
+              "promptAfter": "Aim: offer service beyond hopes of 37 <input typ"
+            },
+            {
+              "number": 37,
+              "promptBefore": "Aim: offer service beyond hopes of",
+              "promptAfter": "Important to: (a) keep informed & (b) 38 <inp"
+            },
+            {
+              "number": 38,
+              "promptBefore": "Important to: (a) keep informed & (b)",
+              "promptAfter": "One way to achieve this: 39 <input type=\"text\" c"
+            },
+            {
+              "number": 39,
+              "promptBefore": "One way to achieve this:",
+              "promptAfter": "40 <input type=\"text\" class=\"iot-question iot-lr"
+            },
+            {
+              "number": 40,
+              "promptBefore": "Question 40",
+              "promptAfter": "must always be available for any queries or problems. <div class=\"test-pane"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "answerKey": {
+    "1": "Waddell",
+    "2": "Robyn Place",
+    "3": "263 8666",
+    "4": "Visa",
+    "5": "10",
+    "6": "$35",
+    "7": "Unlimited kilometres",
+    "8": "Relatives",
+    "9": "(An) automatic",
+    "10": [
+      "Driving license",
+      "Drivers license"
+    ],
+    "11": "681",
+    "12": "Tunnels",
+    "13": "5",
+    "14": "X",
+    "15": "Whale watching",
+    "16": "Indian Pacific",
+    "17": [
+      "Earlier",
+      "early settlers"
+    ],
+    "18": "1 Millionth",
+    "19": "States",
+    "20": "The continent",
+    "21": "B",
+    "22": "B",
+    "23": "C",
+    "24": "A",
+    "25": "A",
+    "26": "40 litres (or liters)",
+    "27": "Solar coil",
+    "28": "20",
+    "29": "65",
+    "30": "Rigid foam",
+    "31": "Services marketing",
+    "32": "Legal advice",
+    "33": "Weakness",
+    "34": "Customer numbers",
+    "35": "Tangible",
+    "36": "Expectations",
+    "37": "Clients",
+    "38": "Constantly improve",
+    "39": "(Conduct) surveys",
+    "40": "A representative"
+  }
+}

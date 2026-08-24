@@ -9,9 +9,10 @@ const formatSeconds = (value) => {
 };
 
 const normalizePrompt = (prompt) => (
-  typeof prompt === 'string' ? { text: prompt, videoUrl: '' } : {
+  typeof prompt === 'string' ? { text: prompt, videoUrl: '', audioUrl: '' } : {
     text: String(prompt?.text || ''),
     videoUrl: String(prompt?.videoUrl || ''),
+    audioUrl: String(prompt?.audioUrl || ''),
   }
 );
 
@@ -20,11 +21,12 @@ const normalizeParts = (config = {}) => (config.parts || []).map((part, index) =
   return {
     ...part,
     key: part.key || `part_${index + 1}`,
-    label: `Part ${index + 1}`,
-    caption: String(part.title || '').replace(/^Part\s*\d+\s*[·:|-]?\s*/i, '') || `Phần ${index + 1}`,
+    label: String(part.label || `Part ${index + 1}`),
+    caption: String(part.caption || part.title || '').replace(/^Part\s*\d+\s*[·:|-]?\s*/i, '') || `Phần ${index + 1}`,
     prompts: prompts.length ? prompts : [{
       text: String(part.cueCardTitle || ''),
       videoUrl: String(part.videoUrl || ''),
+      audioUrl: String(part.audioUrl || ''),
     }],
   };
 });
@@ -72,6 +74,9 @@ export default function SpeakingExamMode({
   const activePart = parts[partIndex] || parts[0];
   const activePrompts = activePart?.prompts || [];
   const activePrompt = activePrompts[questionIndex] || activePrompts[0] || {};
+  const promptAudioUrl = String(activePrompt.audioUrl || '').trim();
+  const promptVideoUrl = String(activePrompt.videoUrl || '').trim();
+  const hasPromptMedia = Boolean(promptAudioUrl || promptVideoUrl);
   const isLastQuestion = questionIndex >= activePrompts.length - 1;
   const isLastPart = partIndex >= parts.length - 1;
   const isFinalPrompt = isLastPart && isLastQuestion;
@@ -267,10 +272,10 @@ export default function SpeakingExamMode({
   }, [partIndex, pendingSubmit, stage, submitting, uploading]);
 
   useEffect(() => {
-    if (stage !== 'exam' || activePrompt.videoUrl || isRecording) return undefined;
+    if (stage !== 'exam' || hasPromptMedia || isRecording) return undefined;
     const timeout = window.setTimeout(() => void startRecording(), 350);
     return () => window.clearTimeout(timeout);
-  }, [partIndex, questionIndex, activePrompt.videoUrl, stage]);
+  }, [partIndex, questionIndex, hasPromptMedia, stage]);
 
   useEffect(() => {
     intentionalExitRef.current = false;
@@ -370,9 +375,9 @@ export default function SpeakingExamMode({
               </p>
 
               <div className="mx-auto mt-8 max-w-[430px]">
-                {activePrompt.videoUrl ? (
+                {promptVideoUrl ? (
                   <video
-                    key={activePrompt.videoUrl}
+                    key={promptVideoUrl}
                     className="h-[250px] w-full rounded-[10px] object-cover"
                     autoPlay
                     controls={false}
@@ -382,8 +387,21 @@ export default function SpeakingExamMode({
                     onContextMenu={(event) => event.preventDefault()}
                     playsInline
                     preload="auto"
-                    src={activePrompt.videoUrl}
+                    src={promptVideoUrl}
                   />
+                ) : promptAudioUrl ? (
+                  <div className="flex h-[250px] w-full flex-col items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)] px-4">
+                    <UserRound className="text-[#cf6f83]" size={64} strokeWidth={1.5} />
+                    <p className="mt-3 text-sm font-bold text-[#21446d]">Câu hỏi ghi âm</p>
+                    <audio
+                      autoPlay
+                      className="mt-4 w-full"
+                      key={promptAudioUrl}
+                      onEnded={() => void startRecording()}
+                      preload="auto"
+                      src={promptAudioUrl}
+                    />
+                  </div>
                 ) : (
                   <div className="flex h-[250px] w-full items-center justify-center rounded-[10px] bg-[linear-gradient(135deg,#eef2f8,#fbfcfe)]">
                     <UserRound className="text-[#cf6f83]" size={76} strokeWidth={1.5} />

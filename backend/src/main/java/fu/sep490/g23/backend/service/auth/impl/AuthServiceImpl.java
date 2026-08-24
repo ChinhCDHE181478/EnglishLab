@@ -19,6 +19,7 @@ import fu.sep490.g23.backend.service.mail.AuthMailService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -75,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail().trim().toLowerCase())
-                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng."));
+                .orElseThrow(() -> new BadCredentialsException("Email hoặc mật khẩu không đúng."));
 
         if (!user.isEmailVerified()) {
             throw new RuntimeException("Tài khoản của bạn chưa xác thực email. Vui lòng kiểm tra hộp thư, nhập mã xác thực rồi thử lại.");

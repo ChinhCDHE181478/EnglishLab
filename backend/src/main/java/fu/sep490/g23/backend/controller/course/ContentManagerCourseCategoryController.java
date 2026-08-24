@@ -15,7 +15,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -29,6 +33,16 @@ public class ContentManagerCourseCategoryController {
     @GetMapping
     public ResponseEntity<List<CourseCategoryResponse>> getCategories() {
         return ResponseEntity.ok(categoryService.getCategories());
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<CourseCategoryResponse>> getCategoriesPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        return ResponseEntity.ok(categoryService.getCategories(
+                PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("name").ascending()))
+        ));
     }
 
     @PostMapping

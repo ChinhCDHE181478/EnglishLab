@@ -21,6 +21,7 @@ import { persistOptimisticReorder, reorderItems } from '../../utils/courseReorde
 import { createCourseBuilderFingerprint } from '../../utils/courseBuilderState';
 import { findEditableCourseVersion } from '../../utils/courseVersionUi';
 import { normalizeTranscriptTimeline } from '../../utils/transcriptSegments';
+import { canAutoFetchTranscript, isBunnyVideoUrl, isYouTubeVideoUrl } from '../../utils/youtubeVideoUrl';
 
 const COURSE_LEVEL_KEY = 'course';
 const CONTENT_TYPE_OPTIONS = ['VIDEO', 'ARTICLE', 'ASSIGNMENT', 'QUIZ'];
@@ -766,8 +767,23 @@ export default function ContentManagerCourseBuilderPage() {
   };
 
   const handleRefreshTranscript = async () => {
-    if (!course?.id || !activeLesson?.id || !activeLesson.videoUrl) {
-      pushToast('Hãy lưu bài học và thêm liên kết YouTube trước khi lấy bản chép lời.', 'warning');
+    if (!course?.id) {
+      pushToast('Hãy mở khóa học hợp lệ trước khi lấy bản chép lời.', 'warning');
+      return;
+    }
+    if (!activeLesson) {
+      pushToast('Hãy chọn bài học video trước.', 'warning');
+      return;
+    }
+    if (!canAutoFetchTranscript({
+      videoUrl: activeLesson.videoUrl,
+      bunnyVideoId: activeLesson.bunnyVideoId,
+    })) {
+      pushToast('Dán link YouTube/Bunny hoặc tải video lên hệ thống trước khi lấy bản chép lời.', 'warning');
+      return;
+    }
+    if (!activeLesson.id) {
+      pushToast('Bấm Lưu thay đổi để tạo ID bài học, rồi bấm lại nút lấy bản chép lời.', 'warning');
       return;
     }
 
@@ -783,12 +799,17 @@ export default function ContentManagerCourseBuilderPage() {
       if (updatedLesson) {
         patchActiveLesson({ transcriptSegments: updatedLesson.transcriptSegments || [] });
       }
+      const sourceLabel = isYouTubeVideoUrl(activeLesson.videoUrl)
+        ? 'YouTube'
+        : (activeLesson.bunnyVideoId || isBunnyVideoUrl(activeLesson.videoUrl) ? 'Bunny' : 'video');
       pushToast(segmentCount
-        ? `Đã lấy ${segmentCount} đoạn bản chép lời từ video.`
-        : 'Video chưa có caption công khai. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
-        segmentCount ? 'success' : 'warning');
+        ? `Đã lấy ${segmentCount} đoạn bản chép lời từ ${sourceLabel}.`
+        : 'Video chưa có caption. Bạn vẫn có thể nhập bản chép lời thủ công bên dưới.',
+      segmentCount ? 'success' : 'warning');
     } catch (refreshError) {
-      setError(refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.');
+      const message = refreshError?.response?.data?.message || 'Không thể lấy bản chép lời từ video lúc này.';
+      setError(message);
+      pushToast(message, 'error');
     } finally {
       setRefreshingTranscript(false);
     }
@@ -1365,7 +1386,9 @@ export default function ContentManagerCourseBuilderPage() {
         onChangeLesson={updateLesson}
         onPatchLesson={patchActiveLesson}
         onClose={() => setLessonModalOpen(false)}
+        onRefreshTranscript={handleRefreshTranscript}
         open={lessonModalOpen}
+        refreshingTranscript={refreshingTranscript}
         uploadFile={uploadFile}
         uploadingVideo={uploadingVideo}
         uploadProgress={uploadProgress}
@@ -1591,7 +1614,7 @@ function AssessmentEditorCard({ assessment, rubricOptions, onDelete, onFieldChan
         <div className="mb-4 rounded-2xl border border-[#dfbfbd] bg-white px-4 py-3 text-sm text-[#584140]">
           <p className="font-semibold text-[#4b0009]">{assessment.title}</p>
           <p className="mt-1">{getAssessmentTypeLabel(assessment.type)} • {getSkillLabel(assessment.skill)} • {getAiModeLabel(assessment.aiEvaluationMode)}</p>
-          {assessment.description ? <p className="mt-2 leading-6">{assessment.description}</p> : null}
+          {assessment.description ? <RichTextHtml className="mt-2 leading-6" value={assessment.description} /> : null}
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#8b706e]">Nguồn: ngân hàng đề #{assessment.assessmentBankItemId}</p>
         </div>
       ) : null}
@@ -1653,8 +1676,10 @@ function LessonEditorModal({
   onChangeLesson,
   onPatchLesson,
   onClose,
+  onRefreshTranscript,
   onSelectUploadFile,
   open,
+  refreshingTranscript,
   uploadFile,
   uploadingVideo,
   uploadProgress,
@@ -1755,7 +1780,7 @@ function LessonEditorModal({
                         </div>
                         <div>
                           <p className="text-xs font-extrabold text-[#1a1c1c]">Dùng liên kết</p>
-                          <p className="mt-1 text-[10px] leading-4 text-slate-500">Dán đường dẫn từ YouTube, Vimeo...</p>
+                          <p className="mt-1 text-[10px] leading-4 text-slate-500">YouTube hoặc Bunny (mediadelivery).</p>
                         </div>
                       </button>
 
@@ -1785,7 +1810,9 @@ function LessonEditorModal({
                   </div>
 
                   {videoSource === 'LINK' ? (
-                    <TextField label="Liên kết video" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
+                    <div className="space-y-3">
+                      <TextField label="Liên kết video (YouTube hoặc Bunny)" onChange={onChangeLesson('videoUrl')} value={activeLesson.videoUrl || ''} />
+                    </div>
                   ) : (
                     <div className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
                       <div className="mb-3 flex items-center justify-between gap-3">
@@ -1825,7 +1852,11 @@ function LessonEditorModal({
                   )}
 
                   <TranscriptEditor
+                    bunnyVideoId={activeLesson.bunnyVideoId}
+                    lessonSaved={Boolean(activeLesson.id)}
                     onChange={(transcriptSegments) => onPatchLesson({ transcriptSegments })}
+                    onRefresh={onRefreshTranscript}
+                    refreshing={refreshingTranscript}
                     segments={activeLesson.transcriptSegments}
                     videoUrl={activeLesson.videoUrl}
                   />
@@ -1859,8 +1890,17 @@ function LessonEditorModal({
   );
 }
 
-function TranscriptEditor({ segments, onChange, videoUrl }) {
+function TranscriptEditor({
+  segments,
+  onChange,
+  onRefresh,
+  refreshing,
+  videoUrl,
+  bunnyVideoId = '',
+  lessonSaved = false,
+}) {
   const normalizedSegments = normalizeTranscriptSegments(segments, true);
+  const canRefresh = canAutoFetchTranscript({ videoUrl, bunnyVideoId });
   const updateSegment = (index, field, value) => {
     const next = normalizedSegments.map((segment, segmentIndex) => (
       segmentIndex === index
@@ -1871,13 +1911,28 @@ function TranscriptEditor({ segments, onChange, videoUrl }) {
   };
 
   return (
-    <section className="rounded-2xl border border-[#dfbfbd]/65 bg-[#fffafb] p-4">
+    <section className="rounded-2xl border-2 border-[#4b0009]/25 bg-[#fff2f3] p-4 shadow-[0_10px_28px_rgba(75,0,9,0.08)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8b706e]">Bản chép lời video</p>
-          <p className="mt-1 text-sm leading-6 text-[#584140]">Thêm từng đoạn có mốc thời gian để học viên theo dõi và bấm chuyển đến đúng vị trí trong video.</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#730014]">Bản chép lời video</p>
+          <p className="mt-1 text-sm leading-6 text-[#584140]">
+            Lấy tự động từ YouTube hoặc Bunny, hoặc thêm đoạn thủ công bên dưới.
+          </p>
         </div>
+        <button
+          className="shrink-0 rounded-xl bg-[#4b0009] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#730014] disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={refreshing || !canRefresh || !lessonSaved}
+          onClick={onRefresh}
+          type="button"
+        >
+          {refreshing ? 'Đang lấy...' : 'Lấy bản chép lời tự động'}
+        </button>
       </div>
+      {!canRefresh ? (
+        <p className="mt-3 text-xs font-semibold text-[#8b706e]">Dán link YouTube/Bunny hoặc tải video lên hệ thống để bật nút này.</p>
+      ) : !lessonSaved ? (
+        <p className="mt-3 text-xs font-semibold text-[#93000a]">Bấm Lưu thay đổi trước, rồi lấy bản chép lời.</p>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         {normalizedSegments.map((segment, index) => (

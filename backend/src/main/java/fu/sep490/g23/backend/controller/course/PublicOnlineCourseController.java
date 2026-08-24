@@ -34,12 +34,14 @@ public class PublicOnlineCourseController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Double currentBand,
             @RequestParam(required = false) Double targetBand,
+            @RequestParam(required = false) Integer targetScore,
             @RequestParam(required = false) AssessmentSkill skill,
+            @RequestParam(required = false) String promotion,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
-        return ResponseEntity.ok(onlineCourseService.getPublicCourses(keyword, category, currentBand, targetBand, skill, pageable));
+        return ResponseEntity.ok(onlineCourseService.getPublicCourses(keyword, category, currentBand, targetBand, targetScore, skill, promotion, pageable));
     }
 
     @GetMapping("/categories")

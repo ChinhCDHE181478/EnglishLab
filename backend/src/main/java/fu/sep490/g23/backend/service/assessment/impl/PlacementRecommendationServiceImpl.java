@@ -62,7 +62,7 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 eligibility,
                 context
         );
-        if (!eligibility.isEligible()) {
+        if (!canBuildRecommendations(attempt, eligibility)) {
             return response
                     .recommendationReady(false)
                     .message(readinessMessage(eligibility.getStatus()))
@@ -79,6 +79,17 @@ public class PlacementRecommendationServiceImpl implements PlacementRecommendati
                 .recommendedTrainingPrograms(recommendTrainingPrograms(context))
                 .recommendedLearningPath(learningPathRecommendationService.recommend(learner, context, true))
                 .build();
+    }
+
+    private boolean canBuildRecommendations(
+            PlacementTestAttempt attempt,
+            PlacementEligibilityResult eligibility
+    ) {
+        if (eligibility.isEligible()) return true;
+        PlacementEvaluationStatus status = eligibility.getStatus();
+        boolean awaitingReview = status == PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED
+                || status == PlacementEvaluationStatus.UNDER_REVIEW;
+        return awaitingReview && attempt.getOverallScore() != null;
     }
 
     private PlacementRecommendationResponse.PlacementRecommendationResponseBuilder baseResponse(

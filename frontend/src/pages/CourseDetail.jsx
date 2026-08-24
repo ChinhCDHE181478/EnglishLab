@@ -58,29 +58,39 @@ const CourseDetail = () => {
     setError('');
 
     const loadEnrollments = async () => {
-      if (!hasAccessToken()) return [];
+      if (!hasAccessToken()) return { items: [], failed: false };
       try {
-        return await courseApi.getMyOnlineCourses();
+        return { items: await courseApi.getMyOnlineCourses(), failed: false };
       } catch {
-        return [];
+        return { items: [], failed: true };
       }
     };
 
     const loadCourse = async () => {
       try {
-        const [response, enrollments] = await Promise.all([
+        const [response, enrollmentResult] = await Promise.all([
           courseApi.getOnlineCourse(slugOrId),
           loadEnrollments(),
         ]);
         if (!active) return;
 
         const normalized = normalizeCourse(response);
-        const normalizedEnrollments = enrollments.map(normalizeEnrollment);
+        const normalizedEnrollments = enrollmentResult.items.map(normalizeEnrollment);
         const matchedEnrollment = normalizedEnrollments.find(
           (item) => item.courseSlug === normalized.slug || String(item.courseId) === String(normalized.id),
         );
 
-        setCourse({ ...normalized, registered: Boolean(matchedEnrollment) });
+        setCourse({
+          ...normalized,
+          registered: Boolean(matchedEnrollment),
+          enrollmentAccessCheckFailed: enrollmentResult.failed,
+          enrollmentId: matchedEnrollment?.id ?? null,
+          enrollmentStatus: matchedEnrollment?.status ?? null,
+          progressPercent: matchedEnrollment?.progressPercent ?? normalized.progressPercent,
+        });
+        if (enrollmentResult.failed) {
+          setError('Không thể kiểm tra quyền truy cập khóa học. Vui lòng tải lại trang.');
+        }
       } catch {
         if (!active) return;
         setCourse(null);

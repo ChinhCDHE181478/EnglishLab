@@ -18,6 +18,8 @@ import fu.sep490.g23.backend.service.course.DiscussionModerationService;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -46,8 +48,24 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<DiscussionModerationReportResponse> getReports(
+            CourseDiscussionReportStatus status,
+            CourseDiscussionReportReasonCategory category,
+            Pageable pageable
+    ) {
+        CourseDiscussionReportStatus resolvedStatus = status == null
+                ? CourseDiscussionReportStatus.PENDING
+                : status;
+        Page<CourseDiscussionReport> reports = category == null
+                ? reportRepository.findByStatus(resolvedStatus, pageable)
+                : reportRepository.findByStatusAndReasonCategory(resolvedStatus, category, pageable);
+        return reports.map(this::toResponse);
+    }
+
+    @Override
     public DiscussionModerationReportResponse hide(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
-        CourseDiscussionReport report = findPendingReport(reportId);
+        CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.DISMISSED);
         if (report.getTargetType() == CourseDiscussionReportTarget.THREAD) {
             findThread(report.getTargetId()).setStatus(CourseDiscussionStatus.HIDDEN);
         } else {
@@ -60,7 +78,14 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
 
     @Override
     public DiscussionModerationReportResponse dismiss(Long reportId, DiscussionModerationActionRequest request, String reviewerEmail) {
-        CourseDiscussionReport report = findPendingReport(reportId);
+        CourseDiscussionReport report = findActionableReport(reportId, CourseDiscussionReportStatus.PENDING, CourseDiscussionReportStatus.ACTION_TAKEN);
+        if (report.getStatus() == CourseDiscussionReportStatus.ACTION_TAKEN) {
+            if (report.getTargetType() == CourseDiscussionReportTarget.THREAD) {
+                findThread(report.getTargetId()).setStatus(CourseDiscussionStatus.OPEN);
+            } else {
+                findReply(report.getTargetId()).setStatus(CourseDiscussionStatus.OPEN);
+            }
+        }
         review(report, CourseDiscussionReportStatus.DISMISSED, request, reviewerEmail);
         auditLogService.record(reviewerEmail,"DISCUSSION_REPORT_DISMISSED",report.getTargetType().name(),report.getTargetId().toString(),"Bỏ qua báo cáo #"+reportId);
         return toResponse(report);
@@ -75,9 +100,10 @@ public class DiscussionModerationServiceImpl implements DiscussionModerationServ
         reportRepository.save(report);
     }
 
-    private CourseDiscussionReport findPendingReport(Long reportId) {
+    private CourseDiscussionReport findActionableReport(Long reportId, CourseDiscussionReportStatus... allowedStatuses) {
         CourseDiscussionReport report = reportRepository.findById(reportId).orElseThrow(() -> new RuntimeException("Không tìm thấy báo cáo."));
-        if (report.getStatus() != CourseDiscussionReportStatus.PENDING) {
+        boolean allowed = java.util.Arrays.stream(allowedStatuses).anyMatch(status -> status == report.getStatus());
+        if (!allowed) {
             throw new RuntimeException("Báo cáo này đã được xử lý.");
         }
         return report;

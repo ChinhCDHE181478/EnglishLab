@@ -1,4 +1,5 @@
 package fu.sep490.g23.backend.entity.course;
+import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 
 import fu.sep490.g23.backend.entity.course.enums.*;
@@ -9,6 +10,7 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -18,37 +20,40 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(
-        name = "lesson_progress",
-        uniqueConstraints = @UniqueConstraint(name = "uk_lesson_progress_student_lesson", columnNames = {"student_id", "lesson_id"})
-)
+@Table(name = "learner_progress_records")
 @EntityListeners(AuditingEntityListener.class)
-public class LessonProgress {
+@SQLRestriction("record_type = 'lesson_progress'")
+public class LessonProgress extends DomainRecord {
+    @Override
+    protected String domainRecordType() {
+        return "lesson_progress";
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @JoinColumn(name = "student_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
+    @JoinColumn(name = "lesson_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Lesson lesson;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "enrollment_id", nullable = false)
+    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private PackageEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_version_id")
+    @JoinColumn(name = "course_version_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private OnlineCourseVersion courseVersion;
 
     @Column(name = "lesson_key", length = 120)
     private String lessonKey;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(name = "lesson_progress_status", nullable = false, length = 30)
     @Builder.Default
     private LessonProgressStatus status = LessonProgressStatus.NOT_STARTED;
 

@@ -18,5 +18,6 @@ public interface LearningPathManagementService {
     void deletePath(Long pathId);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     java.util.List<LearningPathOfferResponse> getPublicOffers(String studentEmail);
+    org.springframework.data.domain.Page<LearningPathOfferResponse> getPublicOffers(String studentEmail, org.springframework.data.domain.Pageable pageable);
     LearningPathOfferResponse getPublicOffer(String code, String studentEmail);
 }

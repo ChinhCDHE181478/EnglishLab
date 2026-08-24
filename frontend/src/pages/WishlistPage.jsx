@@ -94,7 +94,7 @@ const WishlistPage = () => {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               className="rounded-2xl bg-[#4b0009] px-6 py-4 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#730014]"
-              to="/courses"
+              to="/courses#recommended"
             >
               Xem khóa học
             </Link>

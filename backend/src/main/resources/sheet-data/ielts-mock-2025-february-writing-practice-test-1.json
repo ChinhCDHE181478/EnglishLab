@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "type": "ielts_writing_exam",
+  "key": "ielts_mock_2025_february_writing_practice_test_1",
+  "title": "IELTS Mock Test 2025 February Writing Practice Test 1",
+  "sourceLabel": "Imported from local HTML 2025de3w.html",
+  "durationMinutes": 60,
+  "rules": [
+    "Stay in full-screen mode until you submit the exam."
+  ],
+  "tasks": [
+    {
+      "key": "task_1",
+      "title": "Task 1",
+      "heading": "Writing Task 1",
+      "summary": "Complete Task 1 in at least 150 words.",
+      "recommendedMinutes": 20,
+      "minimumWords": 150,
+      "promptParagraphs": [
+        "You should spend about 20 minutes on this task. The bar chart shows the percentage of the total world population in 4 countries in 1950 and 2002, and projections for 2050.",
+        "Summarise the information by selecting and reporting the main features and make comparisons where relevant.",
+        "You should write at least 150 words."
+      ],
+      "imageUrl": "/sheet-exams/ielts-mock-2025-february-writing-practice-test-1/writing-task1.jpg"
+    },
+    {
+      "key": "task_2",
+      "title": "Task 2",
+      "heading": "Writing Task 2",
+      "summary": "Complete Task 2 in at least 250 words.",
+      "recommendedMinutes": 40,
+      "minimumWords": 250,
+      "promptParagraphs": [
+        "You should spend about 40 minutes on this task. The use of social media is replacing face-to-face interaction among many people in society. Do you think the advantages outweigh the disadvantages?",
+        "You should write at least 250 words."
+      ]
+    }
+  ]
+}

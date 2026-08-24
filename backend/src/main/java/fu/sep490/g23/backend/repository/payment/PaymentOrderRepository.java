@@ -20,6 +20,7 @@ public interface PaymentOrderRepository extends JpaRepository<PaymentOrder, Long
     List<PaymentOrder> findByStatusIn(Collection<PaymentOrderStatus> statuses);
     Page<PaymentOrder> findByStatus(PaymentOrderStatus status, Pageable pageable);
     List<PaymentOrder> findByStudentOrderByCreatedAtDesc(User student);
+    Page<PaymentOrder> findByStudent(User student, Pageable pageable);
     long countByDiscountCode_Id(Long discountCodeId);
     long countByStatus(PaymentOrderStatus status);
     long countByStatusIn(Collection<PaymentOrderStatus> statuses);
