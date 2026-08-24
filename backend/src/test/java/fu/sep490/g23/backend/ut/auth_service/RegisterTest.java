@@ -1,4 +1,4 @@
-package fu.sep490.g23.backend.service.auth_service;
+package fu.sep490.g23.backend.ut.auth_service;
 import java.util.Set;
 
 import fu.sep490.g23.backend.dto.request.RegisterRequest;
