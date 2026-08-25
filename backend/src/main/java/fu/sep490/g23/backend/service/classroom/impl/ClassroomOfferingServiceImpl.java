@@ -69,11 +69,13 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
+import fu.sep490.g23.backend.repository.course.CourseLessonRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.ClassroomConflictService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import fu.sep490.g23.backend.service.classroom.ClassroomOfferingService;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -154,6 +156,8 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
     private final LarkMeetingParticipantRepository larkParticipantRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final VirtualAttendanceService virtualAttendanceService;
+    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
+    private final CourseLessonRepository courseLessonRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -382,6 +386,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         offering.setDeliveryMode(request.getDeliveryMode());
         offering.setTrainingProgram(trainingProgram);
         offering.setCurriculumProgram(curriculumProgram);
+        linkInstructorLedCourse(offering);
         if (request.getClassroomStatus() != null) {
             offering.setStatus(request.getClassroomStatus());
         }
@@ -1762,6 +1767,7 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
             }
         }
         session.setCurriculumSessionPlan(sessionPlan);
+        linkCourseLesson(session, sessionPlan);
         session.setSessionContent(sessionPlan == null ? request.getSessionContent() : sessionPlan.getTitle());
         session.setNote(request.getNote());
     }
@@ -2309,5 +2315,31 @@ public class ClassroomOfferingServiceImpl implements ClassroomOfferingService {
         String slug = NONLATIN.matcher(normalized).replaceAll("");
         slug = slug.replaceAll("-+", "-").toLowerCase(Locale.ENGLISH);
         return slug.isBlank() ? "classroom" : slug;
+    }
+
+    private void linkInstructorLedCourse(ClassroomOffering offering) {
+        if (offering.getTrainingProgram() != null && offering.getTrainingProgram().getId() != null) {
+            instructorLedCourseIdResolver.resolveFromTrainingProgramId(offering.getTrainingProgram().getId())
+                    .ifPresentOrElse(offering::setInstructorLedCourse, () -> offering.setInstructorLedCourse(null));
+            return;
+        }
+        if (offering.getCurriculumProgram() != null && offering.getCurriculumProgram().getId() != null) {
+            instructorLedCourseIdResolver.resolveFromCurriculumProgramId(offering.getCurriculumProgram().getId())
+                    .ifPresentOrElse(offering::setInstructorLedCourse, () -> offering.setInstructorLedCourse(null));
+            return;
+        }
+        offering.setInstructorLedCourse(null);
+    }
+
+    private void linkCourseLesson(ClassroomSession session, CurriculumSessionPlan sessionPlan) {
+        if (sessionPlan == null || sessionPlan.getId() == null) {
+            session.setCourseLesson(null);
+            return;
+        }
+        if (courseLessonRepository.existsById(sessionPlan.getId())) {
+            session.setCourseLesson(courseLessonRepository.getReferenceById(sessionPlan.getId()));
+        } else {
+            session.setCourseLesson(null);
+        }
     }
 }

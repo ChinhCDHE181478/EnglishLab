@@ -71,6 +71,8 @@ import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.service.user.UserRoleService;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -170,6 +172,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomGradebookEntryRepository gradebookRepository;
+    private final InstructorLedCourseSync instructorLedCourseSync;
+    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean enabled;
@@ -510,7 +514,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private TrainingProgram ensureTrainingProgram(CurriculumProgram curriculum) {
-        return trainingProgramRepository.findBySlug(TRAINING_SLUG)
+        TrainingProgram program = trainingProgramRepository.findBySlug(TRAINING_SLUG)
                 .orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
                         .title("TOEIC 650 Complete - Training Program")
                         .code("TP-TOEIC-650-COMPLETE")
@@ -527,6 +531,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .displayOrder(1)
                         .featured(true)
                         .build()));
+        instructorLedCourseSync.syncFromTrainingProgram(program);
+        return program;
     }
 
     private ClassroomOffering ensureOffering(
@@ -572,6 +578,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .interactionActivities(curriculum.getInteractionActivities())
                             .build();
                 });
+        instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
+                .ifPresent(offering::setInstructorLedCourse);
         if (!StringUtils.hasText(offering.getRecordingUrl()) || isDemoRecordingUrl(offering.getRecordingUrl())) {
             offering.setRecordingUrl(null);
             offering.setRecordingVisible(false);

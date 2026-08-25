@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.CourseLesson;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import jakarta.persistence.*;
 import lombok.*;
@@ -144,6 +145,10 @@ public class ClassroomSession {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curriculum_session_plan_id")
     private CurriculumSessionPlan curriculumSessionPlan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_lesson_id")
+    private CourseLesson courseLesson;
 
     @Column(length = 500)
     private String note;

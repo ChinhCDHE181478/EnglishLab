@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomMaterialSyncServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,11 +31,14 @@ class ClassroomMaterialSyncServiceImplTest {
     @Mock
     private ClassroomMaterialRepository materialRepository;
 
+    @Mock
+    private CourseUnitRepository courseUnitRepository;
+
     private ClassroomMaterialSyncServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ClassroomMaterialSyncServiceImpl(materialRepository);
+        service = new ClassroomMaterialSyncServiceImpl(materialRepository, courseUnitRepository);
     }
 
     @Test

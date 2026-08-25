@@ -101,6 +101,8 @@ import fu.sep490.g23.backend.service.assessment.PlacementTestDefinitionService;
 import fu.sep490.g23.backend.service.assessment.PlacementTestService;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import fu.sep490.g23.backend.service.user.UserRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -189,6 +191,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final PlacementTestService placementTestService;
     private final CurriculumProgramService curriculumProgramService;
     private final ClassroomMaterialSyncService classroomMaterialSyncService;
+    private final InstructorLedCourseSync instructorLedCourseSync;
+    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
     private final ExerciseBankItemRepository exerciseBankItemRepository;
     private final FlashcardSetRepository flashcardSetRepository;
@@ -455,6 +459,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         CurriculumProgram curriculum = program.getCurriculumProgram();
         offering.setTrainingProgram(program);
         offering.setCurriculumProgram(curriculum);
+        instructorLedCourseIdResolver.resolveFromTrainingProgramId(program.getId())
+                .ifPresent(offering::setInstructorLedCourse);
         offering.setEntryLevel(curriculum.getEntryLevel());
         offering.setTargetOutcome(curriculum.getOutcomes());
         offering.setSyllabusSummary(curriculum.getOutcomes());
@@ -1082,7 +1088,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private TrainingProgram ensureSheetTrainingProgram(String slug, String title, ClassroomDeliveryMode mode) {
         boolean toeic = slug.contains("toeic");
         CurriculumProgram curriculum = ensureSheetCurriculum(slug + "-curriculum", title, mode, toeic);
-        return trainingProgramRepository.findBySlug(slug).orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
+        TrainingProgram program = trainingProgramRepository.findBySlug(slug).orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
                 .title(title)
                 .code("TP_" + slug.replace("center-sheet-", "").replace("-", "_").toUpperCase())
                 .slug(slug)
@@ -1097,6 +1103,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 .displayOrder(1)
                 .featured(true)
                 .build()));
+        instructorLedCourseSync.syncFromTrainingProgram(program);
+        return program;
     }
 
     private CurriculumProgram ensureSheetCurriculum(

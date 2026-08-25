@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMaterialSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
     );
 
     private final ClassroomMaterialRepository materialRepository;
+    private final CourseUnitRepository courseUnitRepository;
 
     @Override
     public void synchronizeMandatoryMaterials(ClassroomOffering offering, User actor) {
@@ -99,6 +101,7 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
         target.setSourceType(required.sourceType());
         target.setCenterMaterialId(source.getId());
         target.setCurriculumUnit(required.unit());
+        linkCourseUnit(target, required.unit());
         target.setSession(null);
         target.setReviewStatus(ContentReviewStatus.APPROVED);
         target.setReviewNote(null);
@@ -115,6 +118,18 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
     private boolean isMandatory(ClassroomMaterial material) {
         return material.getSourceType() != null
                 && MANDATORY_SOURCE_TYPES.contains(material.getSourceType().toUpperCase());
+    }
+
+    private void linkCourseUnit(ClassroomMaterial material, CurriculumUnit unit) {
+        if (unit == null || unit.getId() == null) {
+            material.setCourseUnit(null);
+            return;
+        }
+        if (courseUnitRepository.existsById(unit.getId())) {
+            material.setCourseUnit(courseUnitRepository.getReferenceById(unit.getId()));
+        } else {
+            material.setCourseUnit(null);
+        }
     }
 
     private record RequiredMaterial(

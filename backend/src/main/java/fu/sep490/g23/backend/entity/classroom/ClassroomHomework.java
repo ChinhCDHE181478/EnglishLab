@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.course.CourseUnit;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import jakarta.persistence.*;
 import lombok.*;
@@ -44,6 +45,10 @@ public class ClassroomHomework {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curriculum_unit_id")
     private CurriculumUnit curriculumUnit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_unit_id")
+    private CourseUnit courseUnit;
 
     @Column(nullable = false, length = 220)
     private String title;

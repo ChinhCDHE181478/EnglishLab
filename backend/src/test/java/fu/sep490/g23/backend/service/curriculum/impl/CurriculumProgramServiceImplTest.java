@@ -56,6 +56,7 @@ class CurriculumProgramServiceImplTest {
     @Mock private FlashcardSetRepository flashcardSetRepository;
     @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync contentBankLinkSync;
     @Mock private fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver contentBankIdResolver;
+    @Mock private fu.sep490.g23.backend.service.course.InstructorLedCourseSync instructorLedCourseSync;
     @Mock private ClassroomAccessHelper accessHelper;
 
     @InjectMocks

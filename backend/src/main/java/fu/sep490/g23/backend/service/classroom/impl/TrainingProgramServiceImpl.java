@@ -10,6 +10,7 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.service.classroom.TrainingProgramService;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
 
     private final TrainingProgramRepository programRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
+    private final InstructorLedCourseSync instructorLedCourseSync;
 
     @Override
     @Transactional(readOnly = true)
@@ -88,7 +90,9 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .build();
         apply(program, request);
         validatePublishable(program);
-        return toResponse(programRepository.save(program));
+        TrainingProgram saved = programRepository.save(program);
+        instructorLedCourseSync.syncFromTrainingProgram(saved);
+        return toResponse(saved);
     }
 
     @Override
@@ -111,7 +115,9 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
             );
         }
         validatePublishable(program);
-        return toResponse(programRepository.save(program));
+        TrainingProgram saved = programRepository.save(program);
+        instructorLedCourseSync.syncFromTrainingProgram(saved);
+        return toResponse(saved);
     }
 
     @Override
@@ -133,7 +139,9 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .status(PackageStatus.DRAFT)
                 .featured(false)
                 .build();
-        return toResponse(programRepository.save(clone));
+        TrainingProgram saved = programRepository.save(clone);
+        instructorLedCourseSync.syncFromTrainingProgram(saved);
+        return toResponse(saved);
     }
 
     @Override
@@ -143,7 +151,8 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
             throw new RuntimeException("Không thể lưu trữ khóa học đang được lớp sắp khai giảng hoặc đang hoạt động sử dụng.");
         }
         program.setStatus(PackageStatus.ARCHIVED);
-        programRepository.save(program);
+        TrainingProgram saved = programRepository.save(program);
+        instructorLedCourseSync.syncFromTrainingProgram(saved);
     }
 
     private void apply(TrainingProgram program, TrainingProgramRequest request) {

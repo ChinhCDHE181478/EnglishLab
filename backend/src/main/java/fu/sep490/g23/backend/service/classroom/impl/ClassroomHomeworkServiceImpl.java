@@ -43,6 +43,7 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
+import fu.sep490.g23.backend.repository.course.CourseUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.*;
@@ -73,6 +74,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomOfferingRepository offeringRepository;
     private final ClassroomSessionRepository sessionRepository;
     private final CurriculumUnitRepository curriculumUnitRepository;
+    private final CourseUnitRepository courseUnitRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final ClassroomEnrollmentRepository enrollmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
@@ -206,6 +208,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .createdBy(creator)
                 .build();
         applyGradingConfig(homework, request);
+        linkCourseUnit(homework, curriculumUnit);
 
         ClassroomHomework saved = homeworkRepository.save(homework);
         if (saved.getStatus() == HomeworkStatus.OPEN) {
@@ -238,6 +241,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             homework.setSession(null);
         }
         homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassroomOffering(), request.getCurriculumUnitId()));
+        linkCourseUnit(homework, homework.getCurriculumUnit());
         homework.setActivityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType());
         homework.setActivityConfigJson(request.getActivityConfigJson());
         applyGradingConfig(homework, request);
@@ -439,6 +443,18 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             throw new RuntimeException("Unit được chọn không thuộc giáo trình của lớp học này.");
         }
         return unit;
+    }
+
+    private void linkCourseUnit(ClassroomHomework homework, CurriculumUnit unit) {
+        if (unit == null || unit.getId() == null) {
+            homework.setCourseUnit(null);
+            return;
+        }
+        if (courseUnitRepository.existsById(unit.getId())) {
+            homework.setCourseUnit(courseUnitRepository.getReferenceById(unit.getId()));
+        } else {
+            homework.setCourseUnit(null);
+        }
     }
 
     private boolean isLearnerInClass(User user, Long offeringId) {

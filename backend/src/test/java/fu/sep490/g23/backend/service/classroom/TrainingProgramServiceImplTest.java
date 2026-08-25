@@ -7,6 +7,7 @@ import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import fu.sep490.g23.backend.service.classroom.impl.TrainingProgramServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,18 @@ class TrainingProgramServiceImplTest {
     @Mock
     private CurriculumProgramRepository curriculumProgramRepository;
 
+    @Mock
+    private InstructorLedCourseSync instructorLedCourseSync;
+
     private TrainingProgramServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new TrainingProgramServiceImpl(programRepository, curriculumProgramRepository);
+        service = new TrainingProgramServiceImpl(
+                programRepository,
+                curriculumProgramRepository,
+                instructorLedCourseSync
+        );
     }
 
     @Test

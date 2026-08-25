@@ -73,6 +73,8 @@ import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.*;
 import fu.sep490.g23.backend.service.user.UserRoleService;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseIdResolver;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -150,6 +152,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     private final FlashcardSetRepository flashcardSetRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final ClassroomPracticeAttemptHistoryRepository practiceAttemptHistoryRepository;
+    private final InstructorLedCourseSync instructorLedCourseSync;
+    private final InstructorLedCourseIdResolver instructorLedCourseIdResolver;
 
     @Value("${app.seed.test.enabled:false}")
     private boolean seedEnabled;
@@ -251,6 +255,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
         offeringRepository.findByLearningPackageSlug("ielts-intermediate-live").ifPresent(interOffering -> {
             interOffering.setCurriculumProgram(curriculum);
             interOffering.setTrainingProgram(trainingProgram);
+            instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
+                    .ifPresent(interOffering::setInstructorLedCourse);
             offeringRepository.save(interOffering);
             log.info("[ChinhTestSeeder] Đã liên kết giáo trình ID: {} cho lớp IELTS Intermediate (ID: {})", curriculum.getId(), interOffering.getId());
         });
@@ -262,6 +268,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
             offering = existingOffering.get();
             offering.setCurriculumProgram(curriculum);
             offering.setTrainingProgram(trainingProgram);
+            instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
+                    .ifPresent(offering::setInstructorLedCourse);
             offering = offeringRepository.save(offering);
             log.info("[ChinhTestSeeder] Lớp học đã tồn tại (ID: {}), đã liên kết giáo trình ID: {}", offering.getId(), curriculum.getId());
         } else {
@@ -595,7 +603,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
     }
 
     private TrainingProgram ensureTrainingProgram(CurriculumProgram curriculum) {
-        return trainingProgramRepository.findBySlug(TRAINING_PROGRAM_SLUG)
+        TrainingProgram program = trainingProgramRepository.findBySlug(TRAINING_PROGRAM_SLUG)
                 .orElseGet(() -> trainingProgramRepository.save(TrainingProgram.builder()
                         .title("IELTS Intensive 6.5+ Program")
                         .code("TR-IELTS-650-V1")
@@ -612,6 +620,8 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                         .displayOrder(1)
                         .featured(true)
                         .build()));
+        instructorLedCourseSync.syncFromTrainingProgram(program);
+        return program;
     }
 
     // ── Practice Attempts ────────────────────────────────────────────────────
@@ -684,7 +694,7 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .createdBy(teacher)
                 .build());
 
-        return offeringRepository.save(ClassroomOffering.builder()
+        ClassroomOffering offering = ClassroomOffering.builder()
                 .learningPackage(pkg)
                 .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                 .trainingProgram(trainingProgram)
@@ -702,7 +712,10 @@ public class ChinhTestClassroomSeeder implements CommandLineRunner {
                 .programOutcomes("Đạt band 6.5 IELTS tổng. Viết task 1 và task 2 đạt band 6.0+. Nói liên tục 2 phút không dừng.")
                 .teacherGuide("Mỗi buổi: review 10 phút + dạy chiến lược 30 phút + luyện tập có hướng dẫn 40 phút + Q&A 10 phút.")
                 .interactionActivities("Mock test, pair speaking, error log review, timed writing, peer feedback.")
-                .build());
+                .build();
+        instructorLedCourseIdResolver.resolveFromTrainingProgramId(trainingProgram.getId())
+                .ifPresent(offering::setInstructorLedCourse);
+        return offeringRepository.save(offering);
     }
 
     // ── Teacher assignment ────────────────────────────────────────────────────

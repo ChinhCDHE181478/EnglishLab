@@ -49,6 +49,7 @@ import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
 import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
+import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
@@ -123,6 +124,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final FlashcardSetRepository flashcardSetRepository;
     private final ContentBankLinkSync contentBankLinkSync;
     private final ContentBankIdResolver contentBankIdResolver;
+    private final InstructorLedCourseSync instructorLedCourseSync;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -203,7 +205,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         if ("PUBLISHED".equals(program.getStatus())) {
             throw new RuntimeException("Giáo trình mới tạo chưa có Unit và buổi học nên chưa thể xuất bản. Hãy lưu nháp trước.");
         }
-        return toProgramResponse(programRepository.save(program), true);
+        return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
     @Override
@@ -232,7 +234,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setStatus(nextStatus);
         program.setDisplayOrder(defaultInt(request.getDisplayOrder()));
         applyVirtualConfig(program, request);
-        return toProgramResponse(programRepository.save(program), true);
+        return toProgramResponse(saveAndSyncProgram(program), true);
     }
 
     @Override
@@ -245,7 +247,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                             + " lớp sắp khai giảng hoặc đang diễn ra sử dụng.");
         }
         program.setStatus("ARCHIVED");
-        programRepository.save(program);
+        saveAndSyncProgram(program);
     }
 
     @Override
@@ -326,7 +328,10 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                     .learningObjectives(sessionPlan.getLearningObjectives())
                     .build()));
         }
-        return toProgramResponse(programRepository.save(clone), true);
+        CurriculumProgram saved = programRepository.save(clone);
+        instructorLedCourseSync.syncCurriculumProgramFields(saved);
+        instructorLedCourseSync.syncCurriculumProgramTree(saved);
+        return toProgramResponse(saved, true);
     }
 
     @Override
@@ -343,7 +348,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         program.setSubmittedAt(LocalDateTime.now());
         program.setReviewedBy(actor);
         program.setReviewedAt(LocalDateTime.now());
-        program = programRepository.save(program);
+        program = saveAndSyncProgram(program);
         return toProgramResponse(program, true);
     }
 
@@ -358,7 +363,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .sessionPlan(trimOrNull(request.getSessionPlan()))
                 .build();
         program.addUnit(unit);
-        return toUnitResponse(unitRepository.save(unit));
+        CurriculumUnit saved = unitRepository.save(unit);
+        instructorLedCourseSync.syncUnit(saved);
+        return toUnitResponse(saved);
     }
 
     @Override
@@ -368,7 +375,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         unit.setTitle(requireText(request.getTitle(), "Tên Unit không được để trống."));
         unit.setDescription(trimOrNull(request.getDescription()));
         unit.setSessionPlan(trimOrNull(request.getSessionPlan()));
-        return toUnitResponse(unitRepository.save(unit));
+        CurriculumUnit saved = unitRepository.save(unit);
+        instructorLedCourseSync.syncUnit(saved);
+        return toUnitResponse(saved);
     }
 
     @Override
@@ -380,6 +389,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         CurriculumProgram program = unit.getProgram();
         unitRepository.delete(unit);
         unitRepository.flush();
+        instructorLedCourseSync.deleteUnit(unitId);
         synchronizeTotalSessions(program);
     }
 
@@ -400,6 +410,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .learningObjectives(trimOrNull(request.getLearningObjectives()))
                 .build();
         sessionPlan = sessionPlanRepository.save(sessionPlan);
+        instructorLedCourseSync.syncSessionPlan(sessionPlan);
         synchronizeTotalSessions(unit.getProgram());
         return toSessionPlanResponse(sessionPlan);
     }
@@ -421,7 +432,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         sessionPlan.setTitle(requireText(request.getTitle(), "Tiêu đề buổi học không được để trống."));
         sessionPlan.setDescription(trimOrNull(request.getDescription()));
         sessionPlan.setLearningObjectives(trimOrNull(request.getLearningObjectives()));
-        return toSessionPlanResponse(sessionPlanRepository.save(sessionPlan));
+        sessionPlan = sessionPlanRepository.save(sessionPlan);
+        instructorLedCourseSync.syncSessionPlan(sessionPlan);
+        return toSessionPlanResponse(sessionPlan);
     }
 
     @Override
@@ -435,6 +448,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         CurriculumProgram program = sessionPlan.getUnit().getProgram();
         sessionPlanRepository.delete(sessionPlan);
         sessionPlanRepository.flush();
+        instructorLedCourseSync.deleteSessionPlan(sessionPlanId);
         synchronizeTotalSessions(program);
     }
 
@@ -444,12 +458,13 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         CenterMaterialLibraryItem material = materialRepository.findById(request.getResourceId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học liệu trong kho."));
         if (!materialRefRepository.existsByUnitIdAndMaterialId(unitId, material.getId())) {
-            materialRefRepository.save(CurriculumMaterialRef.builder()
+            CurriculumMaterialRef ref = materialRefRepository.save(CurriculumMaterialRef.builder()
                     .unit(unit)
                     .material(material)
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
+            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
@@ -462,13 +477,14 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         ExerciseBankItem exercise = exerciseRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
         if (!exerciseRefRepository.existsByUnitIdAndExerciseId(unitId, exercise.getId())) {
-            exerciseRefRepository.save(CurriculumExerciseRef.builder()
+            CurriculumExerciseRef ref = exerciseRefRepository.save(CurriculumExerciseRef.builder()
                     .unit(unit)
                     .exercise(exercise)
                     .legacyExerciseId(contentBankLinkSync.legacyIdForExercise(exercise))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
+            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
@@ -481,13 +497,14 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         AssessmentBankItem assessment = assessmentBankRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
         if (!assessmentRefRepository.existsByUnitIdAndAssessmentId(unitId, assessment.getId())) {
-            assessmentRefRepository.save(CurriculumAssessmentRef.builder()
+            CurriculumAssessmentRef ref = assessmentRefRepository.save(CurriculumAssessmentRef.builder()
                     .unit(unit)
                     .assessment(assessment)
                     .legacyAssessmentId(contentBankLinkSync.legacyIdForAssessment(assessment))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
+            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
@@ -500,13 +517,14 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         FlashcardSet flashcardSet = flashcardSetRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
         if (!flashcardRefRepository.existsByUnitIdAndFlashcardSetId(unitId, flashcardSet.getId())) {
-            flashcardRefRepository.save(CurriculumFlashcardRef.builder()
+            CurriculumFlashcardRef ref = flashcardRefRepository.save(CurriculumFlashcardRef.builder()
                     .unit(unit)
                     .flashcardSet(flashcardSet)
                     .legacyFlashcardSetId(contentBankLinkSync.legacyIdForFlashcard(flashcardSet))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
+            instructorLedCourseSync.syncResourceRef(ref);
         }
         return toUnitResponse(findUnit(unitId));
     }
@@ -520,6 +538,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             case "FLASHCARD" -> flashcardRefRepository.deleteById(referenceId);
             default -> throw new RuntimeException("Loại tài nguyên không hợp lệ.");
         }
+        instructorLedCourseSync.deleteResourceRef(referenceId);
     }
 
     @Override
@@ -794,6 +813,12 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
         FlashcardSet set = findFlashcardSet(id);
         set.setStatus("ARCHIVED");
         flashcardSetRepository.save(set);
+    }
+
+    private CurriculumProgram saveAndSyncProgram(CurriculumProgram program) {
+        CurriculumProgram saved = programRepository.save(program);
+        instructorLedCourseSync.syncCurriculumProgramFields(saved);
+        return saved;
     }
 
     private CurriculumProgram findProgram(Long id) {
