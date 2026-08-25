@@ -47,8 +47,8 @@ public class OnlineCourse {
     private Long id;
 
     /**
-     * Legacy commercial twin row. Kept through Slice 1 for classroom Package FKs and dual-write.
-     * Prefer commercial fields on this entity for online catalog/enrollment flows.
+     * Legacy package twin. Compatibility only — OnlineCourse is canonical commercial source.
+     * Do not reverse-sync Package → OnlineCourse. Remove with final Package drop slice.
      */
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "package_id", nullable = false, unique = true)
@@ -164,12 +164,13 @@ public class OnlineCourse {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "onlineCourse", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("displayOrder ASC, id ASC")
+    /** Convenience listing via legacy course FK; canonical ownership is OnlineCourseVersion.modules. */
+    @OneToMany(mappedBy = "onlineCourse")
+    @OrderBy("sequenceNumber ASC, id ASC")
     @Builder.Default
-    private List<CourseModule> modules = new ArrayList<>();
+    private List<OnlineCourseModule> modules = new ArrayList<>();
 
-    public void addModule(CourseModule module) {
+    public void addModule(OnlineCourseModule module) {
         modules.add(module);
         module.setOnlineCourse(this);
     }
@@ -178,7 +179,11 @@ public class OnlineCourse {
         return PackageStatus.PUBLISHED.equals(status) && !deleted;
     }
 
-    /** Dual-write commercial fields onto legacy packages row until Package drop. */
+    /**
+     * @deprecated Slice-1 bridge only. Do not add new call sites. Remove in final Package drop slice.
+     * Never reverse-sync Package → OnlineCourse.
+     */
+    @Deprecated
     public void syncCommercialToLegacyPackage() {
         if (learningPackage == null) {
             return;

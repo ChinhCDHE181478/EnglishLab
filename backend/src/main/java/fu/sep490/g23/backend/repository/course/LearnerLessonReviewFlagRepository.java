@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.repository.course;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.LearnerLessonReviewFlag;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,5 +13,5 @@ public interface LearnerLessonReviewFlagRepository extends JpaRepository<Learner
     @EntityGraph(attributePaths = {"course.learningPackage", "lesson"})
     List<LearnerLessonReviewFlag> findByUserOrderByCreatedAtDesc(User user);
 
-    Optional<LearnerLessonReviewFlag> findByUserAndLesson(User user, Lesson lesson);
+    Optional<LearnerLessonReviewFlag> findByUserAndLesson(User user, OnlineLesson lesson);
 }

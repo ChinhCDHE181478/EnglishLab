@@ -23,11 +23,25 @@ public interface OnlineCourseVersionService {
 
     void assertEditableDraft(OnlineCourse course, String actorEmail);
 
+    /**
+     * Returns the DRAFT or PENDING_REVIEW version for editing; throws the same message as
+     * {@link #assertEditableDraft} when neither exists (published-only course).
+     */
+    OnlineCourseVersion requireEditableVersion(OnlineCourse course);
+
+    /**
+     * Working content preference: DRAFT &gt; PENDING_REVIEW &gt; PUBLISHED &gt; any highest version_number.
+     */
+    OnlineCourseVersion resolveWorkingVersion(OnlineCourse course);
+
     void synchronizeDraftSnapshot(OnlineCourse course);
 
     OnlineCourseVersion requirePublishedVersion(OnlineCourse course);
 
     void refreshPublishedSnapshot(OnlineCourse course);
+
+    /** Ensures enrollment.courseVersion belongs to the same online course as the enrollment. */
+    void assertEnrollmentCourseVersionBelongsToCourse(OnlineCourseEnrollment enrollment, OnlineCourse course);
 
     OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse);
 

@@ -10,18 +10,21 @@ import fu.sep490.g23.backend.dto.response.course.OnlineCourseEnrollmentResponse;
 import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -39,28 +42,41 @@ import java.util.Set;
 public class OnlineCourseMapper {
 
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OnlineCourseResponse toResponse(OnlineCourse course) {
-        return toResponse(course, false, null, null, true);
+        return toResponse(course, false, null, null, true, resolveWorkingModules(course));
+    }
+
+    public OnlineCourseResponse toResponse(OnlineCourse course, List<OnlineCourseModule> modulesOverride) {
+        return toResponse(course, false, null, null, true, modulesOverride);
     }
 
     public OnlineCourseResponse toPublicResponse(OnlineCourse course) {
-        return toResponse(course, false, null, null, false);
+        return toResponse(course, false, null, null, false, resolveWorkingModules(course));
     }
 
     public OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId) {
-        return toResponse(course, registered, progressPercent, enrollmentId, true);
+        return toResponse(course, registered, progressPercent, enrollmentId, true, resolveWorkingModules(course));
     }
 
-    private OnlineCourseResponse toResponse(OnlineCourse course, boolean registered, Integer progressPercent, Long enrollmentId, boolean includeLessonContent) {
+    private OnlineCourseResponse toResponse(
+            OnlineCourse course,
+            boolean registered,
+            Integer progressPercent,
+            Long enrollmentId,
+            boolean includeLessonContent,
+            List<OnlineCourseModule> modules
+    ) {
         CourseCategory category = course.getCategory();
         BigDecimal originalPrice = safePrice(course.getPrice());
         BigDecimal salePrice = resolveSalePrice(course);
         Long packageId = course.getLearningPackage() == null ? null : course.getLearningPackage().getId();
+        List<OnlineCourseModule> effectiveModules = modules == null ? List.of() : modules;
         return OnlineCourseResponse.builder()
                 .id(course.getId())
                 .packageId(packageId)
@@ -99,8 +115,8 @@ public class OnlineCourseMapper {
                 .reviewCount(packageEnrollmentRepository.countByOnlineCourseAndReviewRatingIsNotNull(course))
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
-                .focusSkills(resolveFocusSkills(course))
-                .modules(toModuleResponses(course.getModules(), includeLessonContent))
+                .focusSkills(resolveFocusSkills(course, effectiveModules))
+                .modules(toModuleResponses(effectiveModules, includeLessonContent))
                 .build();
     }
 
@@ -132,9 +148,9 @@ public class OnlineCourseMapper {
                 .build();
     }
 
-    private List<ModuleResponse> toModuleResponses(List<CourseModule> modules, boolean includeLessonContent) {
+    private List<ModuleResponse> toModuleResponses(List<OnlineCourseModule> modules, boolean includeLessonContent) {
         return modules.stream()
-                .sorted(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(CourseModule::getId))
+                .sorted(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(OnlineCourseModule::getId))
                 .map(module -> ModuleResponse.builder()
                         .id(module.getId())
                         .title(module.getTitle())
@@ -145,9 +161,9 @@ public class OnlineCourseMapper {
                 .toList();
     }
 
-    private List<LessonResponse> toLessonResponses(List<Lesson> lessons, boolean includeLessonContent) {
+    private List<LessonResponse> toLessonResponses(List<OnlineLesson> lessons, boolean includeLessonContent) {
         return lessons.stream()
-                .sorted(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(Lesson::getId))
+                .sorted(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(OnlineLesson::getId))
                 .map(lesson -> {
                     boolean exposeContent = includeLessonContent || lesson.isPreview();
                     return LessonResponse.builder()
@@ -204,7 +220,7 @@ public class OnlineCourseMapper {
         return streak;
     }
 
-    private List<String> resolveFocusSkills(OnlineCourse course) {
+    private List<String> resolveFocusSkills(OnlineCourse course, List<OnlineCourseModule> modules) {
         Set<String> skills = new LinkedHashSet<>();
 
         courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course).stream()
@@ -217,8 +233,8 @@ public class OnlineCourseMapper {
                 .filter(skill -> skill != null && !skill.isBlank())
                 .forEach(skills::add);
 
-        if (skills.isEmpty()) {
-            course.getModules().stream()
+        if (skills.isEmpty() && modules != null) {
+            modules.stream()
                     .flatMap(module -> module.getLessons().stream())
                     .forEach(lesson -> inferSkillsFromLesson(lesson, skills));
         }
@@ -226,7 +242,34 @@ public class OnlineCourseMapper {
         return List.copyOf(skills);
     }
 
-    private void inferSkillsFromLesson(Lesson lesson, Set<String> skills) {
+    private List<OnlineCourseModule> resolveWorkingModules(OnlineCourse course) {
+        if (course == null) {
+            return List.of();
+        }
+        if (course.getId() != null) {
+            List<OnlineCourseVersion> versions = onlineCourseVersionRepository.findByOnlineCourseOrderByVersionNumberDesc(course);
+            for (CourseVersionStatus status : List.of(
+                    CourseVersionStatus.DRAFT,
+                    CourseVersionStatus.PENDING_REVIEW,
+                    CourseVersionStatus.PUBLISHED
+            )) {
+                OnlineCourseVersion match = versions.stream()
+                        .filter(version -> version.getStatus() == status)
+                        .findFirst()
+                        .orElse(null);
+                if (match != null) {
+                    List<OnlineCourseModule> modules = match.getModules();
+                    if (modules != null) {
+                        modules.forEach(module -> module.getLessons().size());
+                        return modules;
+                    }
+                }
+            }
+        }
+        return course.getModules() == null ? List.of() : course.getModules();
+    }
+
+    private void inferSkillsFromLesson(OnlineLesson lesson, Set<String> skills) {
         String content = String.join(" ",
                 safe(lesson.getTitle()),
                 safe(lesson.getDescription()),
@@ -285,7 +328,7 @@ public class OnlineCourseMapper {
         }
     }
 
-    private List<FlashcardSetResponse> toFlashcardSetResponses(Lesson lesson) {
+    private List<FlashcardSetResponse> toFlashcardSetResponses(OnlineLesson lesson) {
         if (lesson.getFlashcardRefs() == null) {
             return List.of();
         }

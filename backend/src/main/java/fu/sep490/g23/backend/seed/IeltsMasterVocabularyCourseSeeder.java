@@ -7,10 +7,12 @@ import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
@@ -18,6 +20,7 @@ import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
@@ -54,6 +57,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private final CourseCategoryRepository courseCategoryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final FlashcardSetRepository flashcardSetRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
@@ -131,18 +135,21 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             upsertModule(onlineCourse, seed.slug(), moduleSeed);
         }
 
-        onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        draftVersion.getModules().sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+        onlineCourseVersionRepository.save(draftVersion);
         onlineCourseRepository.save(onlineCourse);
         onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
     }
 
     private void upsertModule(OnlineCourse onlineCourse, String courseSlug, ModuleSeed moduleSeed) {
-        CourseModule module = onlineCourse.getModules().stream()
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        OnlineCourseModule module = draftVersion.getModules().stream()
                 .filter(existingModule -> existingModule.getDisplayOrder() != null && existingModule.getDisplayOrder().equals(moduleSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
-                    CourseModule newModule = new CourseModule();
-                    onlineCourse.addModule(newModule);
+                    OnlineCourseModule newModule = new OnlineCourseModule();
+                    draftVersion.addModule(newModule);
                     return newModule;
                 });
 
@@ -154,15 +161,29 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
             upsertLesson(module, courseSlug, lessonSeed);
         }
 
-        module.getLessons().sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        module.getLessons().sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
     }
 
-    private void upsertLesson(CourseModule module, String courseSlug, LessonSeed lessonSeed) {
-        Lesson lesson = module.getLessons().stream()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private void upsertLesson(OnlineCourseModule module, String courseSlug, LessonSeed lessonSeed) {
+        OnlineLesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder().equals(lessonSeed.order()))
                 .findFirst()
                 .orElseGet(() -> {
-                    Lesson newLesson = new Lesson();
+                    OnlineLesson newLesson = new OnlineLesson();
                     module.addLesson(newLesson);
                     return newLesson;
                 });
@@ -182,7 +203,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         upsertFlashcardSetForVocabularyLesson(module, lesson);
     }
 
-    private void upsertFlashcardSetForVocabularyLesson(CourseModule module, Lesson lesson) {
+    private void upsertFlashcardSetForVocabularyLesson(OnlineCourseModule module, OnlineLesson lesson) {
         if (lesson.getTitle() == null || !lesson.getTitle().contains("Vocabulary Bank and Model Usage")) {
             return;
         }

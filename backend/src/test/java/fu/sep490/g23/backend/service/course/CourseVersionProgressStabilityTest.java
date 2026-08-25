@@ -2,8 +2,8 @@ package fu.sep490.g23.backend.service.course;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
@@ -57,9 +57,9 @@ class CourseVersionProgressStabilityTest {
         User learner = User.builder().id(7L).email("learner@englishlab.vn").build();
         OnlineCourse courseWithTwentyLiveLessons = OnlineCourse.builder()
                 .id(1L)
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(java.util.stream.IntStream.range(0, 20)
-                                .mapToObj(index -> Lesson.builder().id((long) index + 1).build())
+                                .mapToObj(index -> OnlineLesson.builder().id((long) index + 1).build())
                                 .toList()))
                         .build())))
                 .build();
@@ -99,10 +99,10 @@ class CourseVersionProgressStabilityTest {
         OnlineCourse course = OnlineCourse.builder()
                 .id(3L)
                 .learningPackage(LearningPackage.builder().title("Khóa học chưa bắt đầu").slug("not-started").build())
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(List.of(
-                                Lesson.builder().id(1L).build(),
-                                Lesson.builder().id(2L).build()
+                                OnlineLesson.builder().id(1L).build(),
+                                OnlineLesson.builder().id(2L).build()
                         )))
                         .build())))
                 .build();
@@ -138,10 +138,10 @@ class CourseVersionProgressStabilityTest {
     @Test
     void historicalAssessmentSubmissionStillCountsAfterAssessmentRowIsVersioned() {
         User learner = User.builder().id(8L).email("learner2@englishlab.vn").build();
-        Lesson lesson = Lesson.builder().id(1L).build();
+        OnlineLesson lesson = OnlineLesson.builder().id(1L).build();
         OnlineCourse course = OnlineCourse.builder()
                 .id(2L)
-                .modules(new ArrayList<>(List.of(CourseModule.builder()
+                .modules(new ArrayList<>(List.of(OnlineCourseModule.builder()
                         .lessons(new ArrayList<>(List.of(lesson)))
                         .build())))
                 .build();

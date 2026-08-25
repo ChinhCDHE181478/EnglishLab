@@ -2,16 +2,18 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.admin.AuditLog;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -24,6 +26,7 @@ import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.user.UserRoleService;
@@ -59,6 +62,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
@@ -185,25 +189,41 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
         course.setTotalHours(4);
 
         if (course.getModules().isEmpty()) {
-            CourseModule module = CourseModule.builder()
+            OnlineCourseVersion draftVersion = ensureDraftVersion(course);
+            OnlineCourseModule module = OnlineCourseModule.builder()
                     .title("Foundation study plan")
                     .description("A guided starting module for this learning path.")
-                    .displayOrder(1)
+                    .sequenceNumber(1)
                     .build();
-            module.addLesson(Lesson.builder()
+            module.addLesson(OnlineLesson.builder()
                     .title("Welcome to " + title)
                     .description("Start your foundation study plan.")
                     .contentType("TEXT")
                     .contentText("Follow the study guide and complete the practice activities.")
                     .durationMinutes(30)
-                    .displayOrder(1)
+                    .sequenceNumber(1)
                     .preview(true)
-                    .lessonKey("%s-m1-l1".formatted(slug))
+                    .stableLessonKey("%s-m1-l1".formatted(slug))
                     .build());
-            course.addModule(module);
+            draftVersion.addModule(module);
+            onlineCourseVersionRepository.save(draftVersion);
         }
         onlineCourseRepository.save(course);
         onlineCourseVersionService.refreshPublishedSnapshot(course);
+    }
+
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
     }
 
     private void prepareCatalogAndCertificateDemo(OnlineCourse course) {
@@ -262,7 +282,7 @@ public class CertificateAndCatalogDemoSeeder implements CommandLineRunner {
                                 .build())));
     }
 
-    private void completeLesson(User learner, OnlineCourseEnrollment enrollment, Lesson lesson) {
+    private void completeLesson(User learner, OnlineCourseEnrollment enrollment, OnlineLesson lesson) {
         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                 .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
         progress.setEnrollment(enrollment);

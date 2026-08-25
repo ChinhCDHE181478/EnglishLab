@@ -26,7 +26,7 @@ public class CourseLessonFlashcardRef extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private Lesson lesson;
+    private OnlineLesson lesson;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flashcard_set_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))

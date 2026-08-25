@@ -50,7 +50,7 @@ public class CourseDiscussionThread {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
-    private Lesson lesson;
+    private OnlineLesson lesson;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)

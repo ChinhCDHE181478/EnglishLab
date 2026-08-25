@@ -6,16 +6,19 @@ import fu.sep490.g23.backend.dto.response.course.TranscriptSegmentResponse;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import fu.sep490.g23.backend.service.course.YouTubeTranscriptService;
@@ -45,6 +48,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
     private final CourseCategoryRepository courseCategoryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final YouTubeTranscriptService youTubeTranscriptService;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
@@ -176,12 +180,14 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 "Build a personal speaking bank with twenty questions, idea prompts, and strong vocabulary.");
 
         backfillMissingVideoTranscripts(onlineCourse);
+        onlineCourseVersionRepository.save(ensureDraftVersion(onlineCourse));
         onlineCourseRepository.save(onlineCourse);
         onlineCourseVersionService.refreshPublishedSnapshot(onlineCourse);
     }
 
     private void backfillMissingVideoTranscripts(OnlineCourse onlineCourse) {
-        onlineCourse.getModules().stream()
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        draftVersion.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .filter(lesson -> lesson.getVideoUrl() != null && !lesson.getVideoUrl().isBlank())
                 .filter(lesson -> lesson.getVideoUrl().contains("youtube.com") || lesson.getVideoUrl().contains("youtu.be"))
@@ -214,7 +220,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
             String preLessonDescription,
             String postLessonDescription
     ) {
-        CourseModule module = findModule(onlineCourse, order);
+        OnlineCourseModule module = findModule(onlineCourse, order);
         module.setTitle("Module " + order + ": " + videoTitle);
         module.setDescription(moduleDescription);
         module.setDisplayOrder(order);
@@ -222,7 +228,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         upsertLesson(
                 module,
                 1,
-                "Lesson " + order + ".1: Goals and strategy for " + skill,
+                "OnlineLesson " + order + ".1: Goals and strategy for " + skill,
                 preLessonDescription,
                 buildTextLessonContent(order, 1, "Mục tiêu và chiến lược cho " + skill, preLessonDescription),
                 null,
@@ -233,7 +239,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         upsertLesson(
                 module,
                 2,
-                "Lesson " + order + ".2: Video practice - " + videoTitle,
+                "OnlineLesson " + order + ".2: Video practice - " + videoTitle,
                 "Watch the original E2 IELTS video and track mistakes while following the guided practice flow.",
                 buildVideoLessonContent(order, videoTitle),
                 video,
@@ -244,7 +250,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
         upsertLesson(
                 module,
                 3,
-                "Lesson " + order + ".3: Review and post-video practice",
+                "OnlineLesson " + order + ".3: Review and post-video practice",
                 postLessonDescription,
                 buildTextLessonContent(order, 3, "Ôn tập sau video", postLessonDescription),
                 null,
@@ -252,27 +258,44 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
                 false
         );
 
-        module.getLessons().sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
-        onlineCourse.getModules().sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(moduleItem -> moduleItem.getId() == null ? Long.MAX_VALUE : moduleItem.getId()));
+        module.getLessons().sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+        if (onlineCourse.getModules() != null) {
+            onlineCourse.getModules().sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(moduleItem -> moduleItem.getId() == null ? Long.MAX_VALUE : moduleItem.getId()));
+        }
     }
 
-    private CourseModule findModule(OnlineCourse onlineCourse, int order) {
-        return onlineCourse.getModules().stream()
+    private OnlineCourseModule findModule(OnlineCourse onlineCourse, int order) {
+        OnlineCourseVersion draftVersion = ensureDraftVersion(onlineCourse);
+        return draftVersion.getModules().stream()
                 .filter(module -> module.getDisplayOrder() != null && module.getDisplayOrder() == order)
                 .findFirst()
                 .orElseGet(() -> {
-                    CourseModule module = new CourseModule();
-                    onlineCourse.addModule(module);
+                    OnlineCourseModule module = new OnlineCourseModule();
+                    draftVersion.addModule(module);
                     return module;
                 });
     }
 
-    private void upsertLesson(CourseModule module, int order, String title, String description, String contentText, BunnyLessonVideo video, int durationMinutes, boolean preview) {
-        Lesson lesson = module.getLessons().stream()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private void upsertLesson(OnlineCourseModule module, int order, String title, String description, String contentText, BunnyLessonVideo video, int durationMinutes, boolean preview) {
+        OnlineLesson lesson = module.getLessons().stream()
                 .filter(existingLesson -> existingLesson.getDisplayOrder() != null && existingLesson.getDisplayOrder() == order)
                 .findFirst()
                 .orElseGet(() -> {
-                    Lesson newLesson = new Lesson();
+                    OnlineLesson newLesson = new OnlineLesson();
                     module.addLesson(newLesson);
                     return newLesson;
                 });
@@ -295,7 +318,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private String buildTextLessonContent(int moduleOrder, int lessonOrder, String heading, String description) {
         return """
-                ## Lesson %d.%d: %s
+                ## OnlineLesson %d.%d: %s
 
                 %s
 
@@ -308,7 +331,7 @@ public class E2IeltsCompleteCourseSeeder implements CommandLineRunner {
 
     private String buildVideoLessonContent(int moduleOrder, String videoTitle) {
         return """
-                ## Lesson %d.2: Video practice - %s
+                ## OnlineLesson %d.2: Video practice - %s
 
                 Xem video theo đúng tiến độ bài học và ghi lại lỗi hoặc chiến thuật làm bài hữu ích cho bản thân.
 

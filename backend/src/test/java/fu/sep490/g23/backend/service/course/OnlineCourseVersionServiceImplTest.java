@@ -9,8 +9,9 @@ import fu.sep490.g23.backend.dto.request.course.CreateCourseVersionRequest;
 import fu.sep490.g23.backend.dto.response.curriculum.FlashcardSetResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
@@ -24,6 +25,7 @@ import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepositor
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.service.course.impl.OnlineCourseVersionServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,6 +61,8 @@ class OnlineCourseVersionServiceImplTest {
     @Mock
     private LessonProgressRepository lessonProgressRepository;
     @Mock
+    private OnlineLessonRepository lessonRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private OnlineCourseMapper mapper;
@@ -78,6 +82,7 @@ class OnlineCourseVersionServiceImplTest {
                 courseAssessmentRepository,
                 assessmentSubmissionRepository,
                 lessonProgressRepository,
+                lessonRepository,
                 userRepository,
                 mapper,
                 previewValidator
@@ -140,7 +145,7 @@ class OnlineCourseVersionServiceImplTest {
                 .build();
         LessonResponse lesson = LessonResponse.builder()
                 .id(61L)
-                .title("Lesson có flashcard")
+                .title("OnlineLesson có flashcard")
                 .flashcardSets(List.of(flashcardSet))
                 .transcriptSegments(List.of())
                 .build();
@@ -210,7 +215,7 @@ class OnlineCourseVersionServiceImplTest {
     }
 
     @Test
-    void publishRetiresOldVersionWhileExistingEnrollmentReceivesLatestContentAndKeepsProgress() {
+    void publishRetiresOldVersionWhileExistingEnrollmentKeepsPinnedSnapshot() {
         User contentManager = User.builder().id(3L).email("content@test.com").fullName("Content Manager").build();
         contentManager.setRole(RoleEnum.CONTENT_MANAGER);
         when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
@@ -233,7 +238,7 @@ class OnlineCourseVersionServiceImplTest {
                 .courseVersion(versionOne)
                 .progressPercent(80)
                 .build();
-        OnlineCourseResponse oldContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
+        OnlineCourseResponse pinnedContent = service.readLatestPublishedForEnrollment(existingEnrollment, course);
         OnlineCourseEnrollment newEnrollment = OnlineCourseEnrollment.builder()
                 .id(42L)
                 .courseVersion(service.requirePublishedVersion(course))
@@ -244,12 +249,12 @@ class OnlineCourseVersionServiceImplTest {
         assertThat(versionTwo.getStatus()).isEqualTo(CourseVersionStatus.PUBLISHED);
         assertThat(existingEnrollment.getCourseVersion()).isSameAs(versionOne);
         assertThat(newEnrollment.getCourseVersion()).isSameAs(versionTwo);
-        assertThat(oldContent.getTitle()).isEqualTo("Nội dung v2");
-        assertThat(oldContent.getProgressPercent()).isEqualTo(80);
+        assertThat(pinnedContent.getTitle()).isEqualTo("Nội dung v1");
+        assertThat(pinnedContent.getProgressPercent()).isEqualTo(80);
     }
 
     @Test
-    void learnerCanMarkEarlierLessonIncompleteWhileUsingLatestPublishedVersion() throws Exception {
+    void learnerCanMarkEarlierLessonIncompleteWhileUsingPinnedPublishedVersion() throws Exception {
         LessonResponse firstLesson = LessonResponse.builder().id(61L).title("Bài 1").build();
         LessonResponse secondLesson = LessonResponse.builder().id(62L).title("Bài 2").build();
         ModuleResponse module = ModuleResponse.builder()
@@ -264,13 +269,10 @@ class OnlineCourseVersionServiceImplTest {
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .learningPackage(course.getLearningPackage())
-                .courseVersion(versionOne)
+                .onlineCourse(course)
+                .courseVersion(versionTwo)
                 .progressPercent(80)
                 .build();
-        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course,
-                CourseVersionStatus.PUBLISHED
-        )).thenReturn(Optional.of(versionTwo));
 
         assertThatCode(() -> service.assertLessonProgressTransitionAllowed(enrollment, firstLesson.getId(), false))
                 .doesNotThrowAnyException();
@@ -293,17 +295,14 @@ class OnlineCourseVersionServiceImplTest {
         OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
                 .id(41L)
                 .learningPackage(course.getLearningPackage())
-                .courseVersion(versionOne)
+                .onlineCourse(course)
+                .courseVersion(versionTwo)
                 .build();
         LessonProgress completedProgress = LessonProgress.builder()
                 .enrollment(enrollment)
-                .lesson(Lesson.builder().id(completedLaterLesson.getId()).build())
+                .lesson(OnlineLesson.builder().id(completedLaterLesson.getId()).build())
                 .status(LessonProgressStatus.COMPLETED)
                 .build();
-        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course,
-                CourseVersionStatus.PUBLISHED
-        )).thenReturn(Optional.of(versionTwo));
         when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
                 enrollment,
                 LessonProgressStatus.COMPLETED
@@ -339,20 +338,17 @@ class OnlineCourseVersionServiceImplTest {
                 .id(41L)
                 .student(student)
                 .learningPackage(course.getLearningPackage())
+                .onlineCourse(course)
                 .courseVersion(versionTwo)
                 .build();
         CourseAssessment moduleTest = new CourseAssessment();
         moduleTest.setId(101L);
-        moduleTest.setModule(fu.sep490.g23.backend.entity.course.CourseModule.builder().id(51L).build());
+        moduleTest.setModule(fu.sep490.g23.backend.entity.course.OnlineCourseModule.builder().id(51L).build());
         LessonProgress completedProgress = LessonProgress.builder()
                 .enrollment(enrollment)
-                .lesson(Lesson.builder().id(firstModuleLesson.getId()).build())
+                .lesson(OnlineLesson.builder().id(firstModuleLesson.getId()).build())
                 .status(LessonProgressStatus.COMPLETED)
                 .build();
-        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course,
-                CourseVersionStatus.PUBLISHED
-        )).thenReturn(Optional.of(versionTwo));
         when(lessonProgressRepository.findByEnrollmentAndStatusOrderByCompletedAtDesc(
                 enrollment,
                 LessonProgressStatus.COMPLETED
@@ -551,5 +547,110 @@ class OnlineCourseVersionServiceImplTest {
         assertThat(publishedAssessment.isActive()).isFalse();
         assertThat(versionCaptor.getValue().getAssessmentIdsJson()).isEqualTo("[61]");
         assertThat(versionCaptor.getValue().getChangeNote()).isEqualTo("Cập nhật mock test");
+    }
+
+    @Test
+    void createDraftClonesPublishedModulesOntoNewDraft() {
+        User contentManager = User.builder()
+                .id(4L)
+                .email("content@test.com")
+                .fullName("Content Manager")
+                .build();
+        contentManager.setRole(RoleEnum.CONTENT_MANAGER);
+        OnlineLesson publishedLesson = OnlineLesson.builder()
+                .id(61L)
+                .stableLessonKey("stable-lesson-1")
+                .title("Listening intro")
+                .contentText("Body")
+                .sequenceNumber(1)
+                .preview(true)
+                .durationMinutes(12)
+                .flashcardRefs(new ArrayList<>())
+                .build();
+        OnlineCourseModule publishedModule = OnlineCourseModule.builder()
+                .id(51L)
+                .title("Module 1")
+                .sequenceNumber(1)
+                .lessons(new ArrayList<>(List.of(publishedLesson)))
+                .build();
+        publishedLesson.setModule(publishedModule);
+        versionOne.setModules(new ArrayList<>(List.of(publishedModule)));
+        publishedModule.setOnlineCourseVersion(versionOne);
+        publishedModule.setOnlineCourse(course);
+
+        when(userRepository.findByEmail(contentManager.getEmail())).thenReturn(Optional.of(contentManager));
+        when(onlineCourseRepository.findWithModulesById(course.getId())).thenReturn(Optional.of(course));
+        when(versionRepository.existsByOnlineCourseAndStatusIn(course, List.of(
+                CourseVersionStatus.DRAFT,
+                CourseVersionStatus.PENDING_REVIEW
+        ))).thenReturn(false);
+        when(versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course)).thenReturn(List.of(versionOne));
+        when(courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course))
+                .thenReturn(List.of());
+        when(versionRepository.save(any(OnlineCourseVersion.class))).thenAnswer(invocation -> {
+            OnlineCourseVersion version = invocation.getArgument(0);
+            if (version.getId() == null) {
+                version.setId(32L);
+            }
+            return version;
+        });
+
+        service.createDraft(course.getId(), null, contentManager.getEmail());
+
+        ArgumentCaptor<OnlineCourseVersion> versionCaptor = ArgumentCaptor.forClass(OnlineCourseVersion.class);
+        verify(versionRepository, org.mockito.Mockito.atLeastOnce()).save(versionCaptor.capture());
+        OnlineCourseVersion savedDraft = versionCaptor.getAllValues().get(versionCaptor.getAllValues().size() - 1);
+        assertThat(savedDraft.getModules()).hasSize(1);
+        OnlineCourseModule clonedModule = savedDraft.getModules().get(0);
+        assertThat(clonedModule.getId()).isNull();
+        assertThat(clonedModule.getTitle()).isEqualTo("Module 1");
+        assertThat(clonedModule.getLessons()).singleElement().satisfies(lesson -> {
+            assertThat(lesson.getId()).isNull();
+            assertThat(lesson.getStableLessonKey()).isEqualTo("stable-lesson-1");
+            assertThat(lesson.getTitle()).isEqualTo("Listening intro");
+            assertThat(lesson.getContentText()).isEqualTo("Body");
+        });
+        assertThat(versionOne.getModules()).hasSize(1);
+        assertThat(versionOne.getModules().get(0).getId()).isEqualTo(51L);
+    }
+
+    @Test
+    void requireEditableVersionRejectsPublishedOnlyCourse() {
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.DRAFT
+        )).thenReturn(Optional.empty());
+        when(versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                course,
+                CourseVersionStatus.PENDING_REVIEW
+        )).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.requireEditableVersion(course))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Hãy tạo phiên bản nháp mới");
+    }
+
+    @Test
+    void assertLessonBelongsToEnrollmentUsesPinnedVersionModules() {
+        OnlineLesson pinnedLesson = OnlineLesson.builder().id(61L).title("Pinned").build();
+        OnlineCourseModule pinnedModule = OnlineCourseModule.builder()
+                .id(51L)
+                .lessons(new ArrayList<>(List.of(pinnedLesson)))
+                .build();
+        pinnedLesson.setModule(pinnedModule);
+        versionOne.setModules(new ArrayList<>(List.of(pinnedModule)));
+        pinnedModule.setOnlineCourseVersion(versionOne);
+        OnlineCourseEnrollment enrollment = OnlineCourseEnrollment.builder()
+                .id(41L)
+                .onlineCourse(course)
+                .learningPackage(course.getLearningPackage())
+                .courseVersion(versionOne)
+                .build();
+
+        assertThatCode(() -> service.assertLessonBelongsToEnrollment(enrollment, 61L))
+                .doesNotThrowAnyException();
+        assertThatThrownBy(() -> service.assertLessonBelongsToEnrollment(enrollment, 999L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("phiên bản đã đăng ký");
     }
 }

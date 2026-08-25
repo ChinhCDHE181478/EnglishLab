@@ -6,7 +6,7 @@ import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
@@ -106,7 +106,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
         enroll(peerB, pack);
         enroll(peerC, pack);
 
-        Lesson firstLesson = firstLesson(course);
+        OnlineLesson firstLesson = firstLesson(course);
 
         if (vocabulary) {
             CourseDiscussionThread family = upsertThread(
@@ -307,7 +307,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private Lesson firstLesson(OnlineCourse course) {
+    private OnlineLesson firstLesson(OnlineCourse course) {
         return course.getModules().stream()
                 .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
                 .flatMap(module -> module.getLessons().stream()
@@ -318,7 +318,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
 
     private CourseDiscussionThread upsertThread(
             OnlineCourse course,
-            Lesson lesson,
+            OnlineLesson lesson,
             User author,
             String title,
             String content,

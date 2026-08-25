@@ -2,18 +2,21 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.CourseCategory;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.CourseCategoryCode;
 import fu.sep490.g23.backend.entity.course.enums.CourseLevel;
+import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class CenterSheetCourseCatalog {
     private final CourseCategoryRepository courseCategoryRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
+    private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     record CourseSpec(
@@ -175,13 +179,15 @@ public class CenterSheetCourseCatalog {
         course.setLearningPathOrder(spec.pathOrder());
         course.setRecommendedNextCourseSlug(spec.nextSlug());
         course.setTargetOutcome(spec.description());
+        OnlineCourseVersion draftVersion = null;
         if (course.getModules() == null || course.getModules().isEmpty()) {
+            draftVersion = ensureDraftVersion(course);
             int order = 1;
             for (String moduleTitle : spec.moduleTitles()) {
-                CourseModule module = CourseModule.builder()
+                OnlineCourseModule module = OnlineCourseModule.builder()
                         .title(moduleTitle)
                         .description("Module " + order + ": " + moduleTitle)
-                        .displayOrder(order)
+                        .sequenceNumber(order)
                         .build();
                 module.addLesson(article(moduleTitle + " - Orientation", 1, true,
                         "# " + moduleTitle + "\n\nMục tiêu: nắm chiến lược, từ vựng chủ đề và lỗi thường gặp.\n\n## Trước khi học\nViết 4 câu trả lời nhanh về chủ đề này, không dùng từ điển.\n\n## Cách học\n1. Đọc overview.\n2. Học collocation.\n3. Làm bài tập output."));
@@ -191,25 +197,43 @@ public class CenterSheetCourseCatalog {
                         "# Vocabulary bank\n\n1. **evening class** — lớp ca tối\n2. **intake** — đợt tuyển sinh\n3. **placement test** — bài xếp lớp\n4. **collocation** — cụm từ đi kèm\n5. **band descriptor** — mô tả band điểm\n\nViết 1 đoạn 80 từ dùng ít nhất 4 cụm trên."));
                 module.addLesson(article(moduleTitle + " - Practice", 4, false,
                         "# Practice\n\n1. Trả lời 3 câu Speaking trong 45 giây.\n2. Viết 1 đoạn Writing 120 từ.\n3. Ghi 5 lỗi bản thân hay mắc và cách sửa."));
-                course.addModule(module);
+                draftVersion.addModule(module);
                 order++;
             }
+            onlineCourseVersionRepository.save(draftVersion);
         }
-        int lessonCount = course.getModules().stream().mapToInt(module -> module.getLessons().size()).sum();
+        List<OnlineCourseModule> modulesForTotals = draftVersion != null
+                ? draftVersion.getModules()
+                : course.getModules();
+        int lessonCount = modulesForTotals.stream().mapToInt(module -> module.getLessons().size()).sum();
         course.setTotalLessons(lessonCount);
         course.setTotalHours(Math.max(4, lessonCount / 4));
         onlineCourseRepository.save(course);
         onlineCourseVersionService.refreshPublishedSnapshot(course);
     }
 
-    private Lesson article(String title, int order, boolean preview, String content) {
-        return Lesson.builder()
+    private OnlineCourseVersion ensureDraftVersion(OnlineCourse course) {
+        return onlineCourseVersionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .orElseGet(() -> onlineCourseVersionRepository.save(OnlineCourseVersion.builder()
+                        .onlineCourse(course)
+                        .versionNumber(1)
+                        .status(CourseVersionStatus.DRAFT)
+                        .contentSnapshotJson("{}")
+                        .assessmentIdsJson("[]")
+                        .totalRequiredLessons(0)
+                        .totalRequiredAssessments(0)
+                        .build()));
+    }
+
+    private OnlineLesson article(String title, int order, boolean preview, String content) {
+        return OnlineLesson.builder()
                 .title(title)
                 .description(title)
                 .contentType("ARTICLE")
                 .contentText(content)
                 .durationMinutes(12)
-                .displayOrder(order)
+                .sequenceNumber(order)
                 .preview(preview)
                 .build();
     }

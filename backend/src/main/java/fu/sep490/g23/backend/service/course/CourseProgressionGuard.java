@@ -4,8 +4,8 @@ import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepository;
@@ -30,7 +30,7 @@ public class CourseProgressionGuard {
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final AssessmentPassingThresholdResolver passingThresholdResolver;
 
-    public void ensureLessonCanBeCompleted(User student, OnlineCourse course, Lesson lesson) {
+    public void ensureLessonCanBeCompleted(User student, OnlineCourse course, OnlineLesson lesson) {
         List<OrderedLesson> orderedLessons = orderedLessons(course);
         int lessonIndex = indexOfLesson(orderedLessons, lesson.getId());
         if (lessonIndex < 0) {
@@ -39,7 +39,7 @@ public class CourseProgressionGuard {
 
         OrderedLesson currentLesson = orderedLessons.get(lessonIndex);
         if (currentLesson.moduleIndex() > 0) {
-            CourseModule previousModule = orderedModules(course).get(currentLesson.moduleIndex() - 1);
+            OnlineCourseModule previousModule = orderedModules(course).get(currentLesson.moduleIndex() - 1);
             if (!canAdvancePastModule(student, previousModule)) {
                 throw new RuntimeException("Bạn cần hoàn thành và đạt yêu cầu ở bài đánh giá cuối mô-đun trước khi mở mô-đun tiếp theo.");
             }
@@ -57,21 +57,21 @@ public class CourseProgressionGuard {
 
     public void ensureAssessmentCanBeSubmitted(User student, CourseAssessment assessment) {
         OnlineCourse course = assessment.getOnlineCourse();
-        CourseModule module = assessment.getModule();
+        OnlineCourseModule module = assessment.getModule();
         if (module == null) {
             ensureAllLessonsCompleted(student, course);
             ensureAllModuleChecksPassed(student, course);
             return;
         }
 
-        List<CourseModule> orderedModules = orderedModules(course);
+        List<OnlineCourseModule> orderedModules = orderedModules(course);
         int moduleIndex = indexOfModule(orderedModules, module.getId());
         if (moduleIndex < 0) {
             throw new RuntimeException("Mô-đun không thuộc khóa học hiện tại.");
         }
 
         if (moduleIndex > 0) {
-            CourseModule previousModule = orderedModules.get(moduleIndex - 1);
+            OnlineCourseModule previousModule = orderedModules.get(moduleIndex - 1);
             if (!canAdvancePastModule(student, previousModule)) {
                 throw new RuntimeException("Bạn cần hoàn thành và đạt yêu cầu ở bài đánh giá cuối mô-đun trước đó trước khi làm bài đánh giá này.");
             }
@@ -80,7 +80,7 @@ public class CourseProgressionGuard {
         ensureModuleLessonsCompleted(student, module);
     }
 
-    public boolean canAdvancePastModule(User student, CourseModule module) {
+    public boolean canAdvancePastModule(User student, OnlineCourseModule module) {
         if (module == null) {
             return true;
         }
@@ -122,7 +122,7 @@ public class CourseProgressionGuard {
                 .orElse(false);
     }
 
-    private void ensureModuleLessonsCompleted(User student, CourseModule module) {
+    private void ensureModuleLessonsCompleted(User student, OnlineCourseModule module) {
         if (!areModuleLessonsCompleted(student, module)) {
             throw new RuntimeException("Bạn cần hoàn thành toàn bộ bài học trong mô-đun trước khi làm bài đánh giá cuối mô-đun.");
         }
@@ -138,14 +138,14 @@ public class CourseProgressionGuard {
     }
 
     private void ensureAllModuleChecksPassed(User student, OnlineCourse course) {
-        for (CourseModule module : orderedModules(course)) {
+        for (OnlineCourseModule module : orderedModules(course)) {
             if (!canAdvancePastModule(student, module)) {
                 throw new RuntimeException("Bạn cần hoàn thành và đạt yêu cầu ở các bài đánh giá cuối mô-đun trước khi làm bài đánh giá cuối khóa.");
             }
         }
     }
 
-    private boolean areModuleLessonsCompleted(User student, CourseModule module) {
+    private boolean areModuleLessonsCompleted(User student, OnlineCourseModule module) {
         return orderedLessonsOfModule(module).stream()
                 .allMatch(lesson -> isLessonCompleted(student, lesson.getId()));
     }
@@ -158,24 +158,24 @@ public class CourseProgressionGuard {
         return !lessonProgressRepository.findByStudentAndLessonIdInAndStatus(student, lessonIds, LessonProgressStatus.COMPLETED).isEmpty();
     }
 
-    private List<CourseModule> orderedModules(OnlineCourse course) {
-        List<CourseModule> modules = new ArrayList<>(course.getModules() == null ? List.of() : course.getModules());
-        modules.sort(Comparator.comparing(CourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
+    private List<OnlineCourseModule> orderedModules(OnlineCourse course) {
+        List<OnlineCourseModule> modules = new ArrayList<>(course.getModules() == null ? List.of() : course.getModules());
+        modules.sort(Comparator.comparing(OnlineCourseModule::getDisplayOrder).thenComparing(module -> module.getId() == null ? Long.MAX_VALUE : module.getId()));
         return modules;
     }
 
-    private List<Lesson> orderedLessonsOfModule(CourseModule module) {
-        List<Lesson> lessons = new ArrayList<>(module.getLessons() == null ? List.of() : module.getLessons());
-        lessons.sort(Comparator.comparing(Lesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
+    private List<OnlineLesson> orderedLessonsOfModule(OnlineCourseModule module) {
+        List<OnlineLesson> lessons = new ArrayList<>(module.getLessons() == null ? List.of() : module.getLessons());
+        lessons.sort(Comparator.comparing(OnlineLesson::getDisplayOrder).thenComparing(lesson -> lesson.getId() == null ? Long.MAX_VALUE : lesson.getId()));
         return lessons;
     }
 
     private List<OrderedLesson> orderedLessons(OnlineCourse course) {
         List<OrderedLesson> orderedLessons = new ArrayList<>();
-        List<CourseModule> modules = orderedModules(course);
+        List<OnlineCourseModule> modules = orderedModules(course);
         for (int moduleIndex = 0; moduleIndex < modules.size(); moduleIndex++) {
-            CourseModule module = modules.get(moduleIndex);
-            List<Lesson> lessons = orderedLessonsOfModule(module);
+            OnlineCourseModule module = modules.get(moduleIndex);
+            List<OnlineLesson> lessons = orderedLessonsOfModule(module);
             for (int lessonIndex = 0; lessonIndex < lessons.size(); lessonIndex++) {
                 orderedLessons.add(new OrderedLesson(moduleIndex, lessonIndex, module, lessons.get(lessonIndex)));
             }
@@ -192,7 +192,7 @@ public class CourseProgressionGuard {
         return -1;
     }
 
-    private int indexOfModule(List<CourseModule> modules, Long moduleId) {
+    private int indexOfModule(List<OnlineCourseModule> modules, Long moduleId) {
         for (int index = 0; index < modules.size(); index++) {
             if (moduleId.equals(modules.get(index).getId())) {
                 return index;
@@ -201,6 +201,6 @@ public class CourseProgressionGuard {
         return -1;
     }
 
-    private record OrderedLesson(int moduleIndex, int lessonIndex, CourseModule module, Lesson lesson) {
+    private record OrderedLesson(int moduleIndex, int lessonIndex, OnlineCourseModule module, OnlineLesson lesson) {
     }
 }

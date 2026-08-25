@@ -39,7 +39,7 @@ public class LearnerLessonReviewFlag extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private Lesson lesson;
+    private OnlineLesson lesson;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -13,9 +13,12 @@ import fu.sep490.g23.backend.dto.response.assessment.CourseAssessmentResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
+import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
@@ -24,6 +27,7 @@ import fu.sep490.g23.backend.repository.assessment.AssessmentSubmissionRepositor
 import fu.sep490.g23.backend.repository.assessment.CourseAssessmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.security.ContentManagementRolePolicy;
 import fu.sep490.g23.backend.service.course.OnlineCourseMapper;
@@ -41,6 +45,7 @@ import java.util.List;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,6 +63,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     private final CourseAssessmentRepository courseAssessmentRepository;
     private final AssessmentSubmissionRepository assessmentSubmissionRepository;
     private final LessonProgressRepository lessonProgressRepository;
+    private final OnlineLessonRepository lessonRepository;
     private final UserRepository userRepository;
     private final OnlineCourseMapper mapper;
     private final OnlineCoursePreviewValidator previewValidator;
@@ -163,7 +169,15 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 .changeNote(normalize(request == null ? null : request.getChangeNote()))
                 .createdBy(actor)
                 .build();
-        return toResponse(versionRepository.save(draft), true);
+        OnlineCourseVersion savedDraft = versionRepository.save(draft);
+        if (published != null) {
+            cloneModulesOntoDraft(published, savedDraft);
+            if (!savedDraft.getModules().isEmpty()) {
+                savedDraft.setTotalRequiredLessons(countLessons(savedDraft.getModules()));
+                savedDraft = versionRepository.save(savedDraft);
+            }
+        }
+        return toResponse(savedDraft, true);
     }
 
     @Override
@@ -206,16 +220,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         if (actorEmail != null && !actorEmail.isBlank()) {
             requireEditor(actorEmail);
         }
-        OnlineCourseVersion draft = versionRepository
-                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
-                .orElse(null);
-        if (draft != null) {
-            return;
-        }
-        OnlineCourseVersion pending = versionRepository
-                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.PENDING_REVIEW)
-                .orElse(null);
-        if (pending != null) {
+        if (findEditableVersion(course).isPresent()) {
             return;
         }
         OnlineCourseVersion published = versionRepository
@@ -231,16 +236,59 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseVersion requireEditableVersion(OnlineCourse course) {
+        return findEditableVersion(course)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Khóa học đã xuất bản. Hãy tạo phiên bản nháp mới trước khi chỉnh sửa."
+                ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OnlineCourseVersion resolveWorkingVersion(OnlineCourse course) {
+        if (course == null) {
+            return null;
+        }
+        List<OnlineCourseVersion> versions = versionRepository.findByOnlineCourseOrderByVersionNumberDesc(course);
+        for (CourseVersionStatus status : List.of(
+                CourseVersionStatus.DRAFT,
+                CourseVersionStatus.PENDING_REVIEW,
+                CourseVersionStatus.PUBLISHED
+        )) {
+            OnlineCourseVersion match = versions.stream()
+                    .filter(version -> version.getStatus() == status)
+                    .findFirst()
+                    .orElse(null);
+            if (match != null) {
+                initializeVersionModules(match);
+                return match;
+            }
+        }
+        OnlineCourseVersion any = versions.stream().findFirst().orElse(null);
+        if (any != null) {
+            initializeVersionModules(any);
+        }
+        return any;
+    }
+
+    @Override
     public void synchronizeDraftSnapshot(OnlineCourse course) {
-        OnlineCourseVersion editableVersion = versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course,
-                CourseVersionStatus.DRAFT
-        ).orElseGet(() -> versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
-                course,
-                CourseVersionStatus.PENDING_REVIEW
-        ).orElse(null));
+        OnlineCourseVersion editableVersion = findEditableVersion(course).orElse(null);
         if (editableVersion != null) {
             synchronizeSnapshot(editableVersion, course);
+        }
+    }
+
+    @Override
+    public void assertEnrollmentCourseVersionBelongsToCourse(OnlineCourseEnrollment enrollment, OnlineCourse course) {
+        if (enrollment == null || course == null || enrollment.getCourseVersion() == null) {
+            return;
+        }
+        OnlineCourseVersion version = enrollment.getCourseVersion();
+        OnlineCourse versionCourse = version.getOnlineCourse();
+        if (versionCourse == null || !course.getId().equals(versionCourse.getId())) {
+            throw new IllegalArgumentException("Phiên bản khóa học không thuộc khóa học của enrollment.");
         }
     }
 
@@ -284,8 +332,8 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     @Override
     @Transactional(readOnly = true)
     public OnlineCourseResponse readLatestPublishedForEnrollment(OnlineCourseEnrollment enrollment, OnlineCourse liveCourse) {
-        OnlineCourseVersion published = findLatestPublishedVersion(liveCourse);
-        OnlineCourseResponse response = readSnapshot(published, liveCourse);
+        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, liveCourse);
+        OnlineCourseResponse response = readSnapshot(pinned, liveCourse);
         response.setRegistered(true);
         response.setProgressPercent(enrollment.getProgressPercent());
         response.setEnrollmentId(enrollment.getId());
@@ -423,12 +471,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     @Transactional(readOnly = true)
     public void assertLessonBelongsToEnrollment(OnlineCourseEnrollment enrollment, Long lessonId) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
-        OnlineCourseResponse snapshot = readSnapshot(findLatestPublishedVersion(course), course);
-        boolean found = snapshot.getModules() != null && snapshot.getModules().stream()
-                .flatMap(module -> module.getLessons().stream())
-                .anyMatch(lesson -> lessonId.equals(lesson.getId()));
-        if (!found) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
+        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, course);
+        if (!lessonBelongsToVersion(lessonId, pinned, course)) {
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
         }
     }
 
@@ -440,14 +485,17 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
             boolean completed
     ) {
         OnlineCourse course = resolveEnrollmentCourse(enrollment);
-        OnlineCourseResponse snapshot = readSnapshot(findLatestPublishedVersion(course), course);
-        List<Long> orderedLessonIds = snapshot.getModules().stream()
+        OnlineCourseVersion pinned = resolvePinnedOrLatestPublished(enrollment, course);
+        OnlineCourseResponse snapshot = readVersionContent(pinned, course);
+        List<Long> orderedLessonIds = snapshot.getModules() == null
+                ? List.of()
+                : snapshot.getModules().stream()
                 .flatMap(module -> module.getLessons().stream())
                 .map(LessonResponse::getId)
                 .toList();
         int lessonIndex = orderedLessonIds.indexOf(lessonId);
         if (lessonIndex < 0) {
-            throw new IllegalArgumentException("Bài học không thuộc phiên bản mới nhất của khóa học này.");
+            throw new IllegalArgumentException("Bài học không thuộc phiên bản đã đăng ký của khóa học này.");
         }
         if (!completed) {
             return;
@@ -667,11 +715,63 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         if (enrollment == null) {
             throw new IllegalArgumentException("Không tìm thấy enrollment khóa học.");
         }
+        if (enrollment.getOnlineCourse() != null) {
+            return enrollment.getOnlineCourse();
+        }
         if (enrollment.getCourseVersion() != null && enrollment.getCourseVersion().getOnlineCourse() != null) {
             return enrollment.getCourseVersion().getOnlineCourse();
         }
         return onlineCourseRepository.findByLearningPackage(enrollment.getLearningPackage())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khóa học của enrollment này."));
+    }
+
+    private OnlineCourseVersion resolvePinnedOrLatestPublished(OnlineCourseEnrollment enrollment, OnlineCourse course) {
+        OnlineCourseVersion pinned = enrollment == null ? null : enrollment.getCourseVersion();
+        if (pinned != null) {
+            OnlineCourse versionCourse = pinned.getOnlineCourse();
+            if (versionCourse != null && course != null && !course.getId().equals(versionCourse.getId())) {
+                throw new IllegalArgumentException("Phiên bản khóa học không thuộc khóa học của enrollment.");
+            }
+            initializeVersionModules(pinned);
+            return pinned;
+        }
+        return findLatestPublishedVersion(course);
+    }
+
+    private boolean lessonBelongsToVersion(Long lessonId, OnlineCourseVersion version, OnlineCourse course) {
+        if (lessonId == null) {
+            return false;
+        }
+        if (version != null) {
+            initializeVersionModules(version);
+            if (version.getModules() != null && !version.getModules().isEmpty()) {
+                return version.getModules().stream()
+                        .flatMap(module -> module.getLessons().stream())
+                        .anyMatch(lesson -> lessonId.equals(lesson.getId()));
+            }
+            OnlineLesson lesson = lessonRepository.findById(lessonId).orElse(null);
+            if (lesson != null
+                    && lesson.getModule() != null
+                    && lesson.getModule().getOnlineCourseVersion() != null
+                    && version.getId() != null
+                    && version.getId().equals(lesson.getModule().getOnlineCourseVersion().getId())) {
+                return true;
+            }
+        }
+        OnlineCourseResponse snapshot = readVersionContent(version, course);
+        return snapshot.getModules() != null && snapshot.getModules().stream()
+                .flatMap(module -> module.getLessons().stream())
+                .anyMatch(lesson -> lessonId.equals(lesson.getId()));
+    }
+
+    private OnlineCourseResponse readVersionContent(OnlineCourseVersion version, OnlineCourse fallbackCourse) {
+        if (version != null) {
+            initializeVersionModules(version);
+            if (version.getModules() != null && !version.getModules().isEmpty()) {
+                return mapper.toResponse(fallbackCourse, version.getModules());
+            }
+        }
+        return readSnapshot(version, fallbackCourse);
     }
 
     @Override
@@ -728,17 +828,33 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
     }
 
     private void synchronizeSnapshot(OnlineCourseVersion version, OnlineCourse course) {
-        version.setContentSnapshotJson(writeSnapshot(course));
+        List<OnlineCourseModule> versionModules = version.getModules();
+        if (versionModules != null) {
+            initializeVersionModules(version);
+        }
+        if (versionModules != null && !versionModules.isEmpty()) {
+            version.setContentSnapshotJson(writeSnapshot(course, versionModules));
+            version.setTotalRequiredLessons(countLessons(versionModules));
+        } else {
+            version.setContentSnapshotJson(writeSnapshot(course));
+            version.setTotalRequiredLessons(countLessons(course));
+        }
         version.setAssessmentIdsJson(writeAssessmentIds(
                 courseAssessmentRepository.findByOnlineCourseAndActiveTrueOrderByDisplayOrderAscIdAsc(course)
         ));
-        version.setTotalRequiredLessons(countLessons(course));
         version.setTotalRequiredAssessments(countAssessments(course));
     }
 
     private String writeSnapshot(OnlineCourse course) {
+        return writeSnapshot(course, null);
+    }
+
+    private String writeSnapshot(OnlineCourse course, List<OnlineCourseModule> modulesOverride) {
         try {
-            String snapshot = objectMapper.writeValueAsString(mapper.toResponse(course));
+            OnlineCourseResponse response = modulesOverride == null
+                    ? mapper.toResponse(course)
+                    : mapper.toResponse(course, modulesOverride);
+            String snapshot = objectMapper.writeValueAsString(response);
             objectMapper.readValue(snapshot, OnlineCourseResponse.class);
             return snapshot;
         } catch (JsonProcessingException ex) {
@@ -746,8 +862,87 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
         }
     }
 
+    private void cloneModulesOntoDraft(OnlineCourseVersion published, OnlineCourseVersion draft) {
+        if (published.getModules() == null) {
+            published.setModules(new ArrayList<>());
+        }
+        initializeVersionModules(published);
+        if (published.getModules().isEmpty()) {
+            return;
+        }
+        for (OnlineCourseModule sourceModule : published.getModules()) {
+            OnlineCourseModule clonedModule = OnlineCourseModule.builder()
+                    .title(sourceModule.getTitle())
+                    .description(sourceModule.getDescription())
+                    .sequenceNumber(sourceModule.getSequenceNumber())
+                    .build();
+            for (OnlineLesson sourceLesson : sourceModule.getLessons()) {
+                OnlineLesson clonedLesson = OnlineLesson.builder()
+                        .stableLessonKey(sourceLesson.getStableLessonKey())
+                        .title(sourceLesson.getTitle())
+                        .description(sourceLesson.getDescription())
+                        .contentType(sourceLesson.getContentType())
+                        .contentText(sourceLesson.getContentText())
+                        .videoUrl(sourceLesson.getVideoUrl())
+                        .bunnyVideoId(sourceLesson.getBunnyVideoId())
+                        .bunnyLibraryId(sourceLesson.getBunnyLibraryId())
+                        .bunnyCdnUrl(sourceLesson.getBunnyCdnUrl())
+                        .materialUrl(sourceLesson.getMaterialUrl())
+                        .transcriptJson(sourceLesson.getTranscriptJson())
+                        .durationMinutes(sourceLesson.getDurationMinutes())
+                        .sequenceNumber(sourceLesson.getSequenceNumber())
+                        .preview(sourceLesson.isPreview())
+                        .build();
+                if (sourceLesson.getFlashcardRefs() != null) {
+                    for (CourseLessonFlashcardRef sourceRef : sourceLesson.getFlashcardRefs()) {
+                        clonedLesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
+                                .flashcardSet(sourceRef.getFlashcardSet())
+                                .displayOrder(sourceRef.getDisplayOrder())
+                                .build());
+                    }
+                }
+                clonedModule.addLesson(clonedLesson);
+            }
+            draft.addModule(clonedModule);
+        }
+    }
+
+    private Optional<OnlineCourseVersion> findEditableVersion(OnlineCourse course) {
+        return versionRepository
+                .findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(course, CourseVersionStatus.DRAFT)
+                .or(() -> versionRepository.findFirstByOnlineCourseAndStatusOrderByVersionNumberDesc(
+                        course,
+                        CourseVersionStatus.PENDING_REVIEW
+                ))
+                .map(version -> {
+                    initializeVersionModules(version);
+                    return version;
+                });
+    }
+
+    private void initializeVersionModules(OnlineCourseVersion version) {
+        if (version == null || version.getModules() == null) {
+            return;
+        }
+        version.getModules().forEach(module -> {
+            module.getLessons().size();
+            module.getLessons().forEach(lesson -> {
+                if (lesson.getFlashcardRefs() != null) {
+                    lesson.getFlashcardRefs().size();
+                }
+            });
+        });
+    }
+
     private int countLessons(OnlineCourse course) {
-        return course.getModules().stream().mapToInt(module -> module.getLessons().size()).sum();
+        return countLessons(course.getModules());
+    }
+
+    private int countLessons(List<OnlineCourseModule> modules) {
+        if (modules == null) {
+            return 0;
+        }
+        return modules.stream().mapToInt(module -> module.getLessons().size()).sum();
     }
 
     private int countAssessments(OnlineCourse course) {

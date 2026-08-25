@@ -23,8 +23,8 @@ import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.AssessmentSubmission;
 import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -1396,12 +1396,12 @@ public class AiAssessmentServiceImpl implements AiAssessmentService {
         }
     }
 
-    private String extractTargetVocabulary(CourseModule module) {
+    private String extractTargetVocabulary(OnlineCourseModule module) {
         if (module == null || module.getLessons() == null) {
             return "Not provided";
         }
         return module.getLessons().stream()
-                .map(Lesson::getContentText)
+                .map(OnlineLesson::getContentText)
                 .filter(content -> content != null && content.contains("### "))
                 .flatMap(content -> VOCABULARY_HEADING.matcher(content).results().map(match -> cleanMarkdown(match.group(1))))
                 .filter(term -> !term.isBlank())

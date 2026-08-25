@@ -21,7 +21,7 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyRepository;
@@ -29,7 +29,7 @@ import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepositor
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
-import fu.sep490.g23.backend.repository.course.LessonRepository;
+import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.service.course.CourseDiscussionNotificationService;
 import fu.sep490.g23.backend.service.course.CourseDiscussionService;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
@@ -66,7 +66,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     private final CourseDiscussionReactionRepository reactionRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final LessonRepository lessonRepository;
+    private final OnlineLessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
     private final UserRepository userRepository;
     private final CourseDiscussionNotificationService discussionNotificationService;
@@ -139,7 +139,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     @Override
     public CourseDiscussionThreadResponse createLessonThread(Long courseId, Long lessonId, CourseDiscussionThreadRequest request, String email) {
         OnlineCourse course = findPublicCourse(courseId);
-        Lesson lesson = findLessonInCourse(courseId, lessonId);
+        OnlineLesson lesson = findLessonInCourse(courseId, lessonId);
         User author = findUser(email);
         ensureDiscussionAccess(author, course);
         String title = clean(request.getTitle());
@@ -346,7 +346,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         findPublicCourse(courseId);
     }
 
-    private Lesson findLessonInCourse(Long courseId, Long lessonId) {
+    private OnlineLesson findLessonInCourse(Long courseId, Long lessonId) {
         return lessonRepository.findByIdAndModuleOnlineCourseId(lessonId, courseId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học trong khóa học này."));
     }

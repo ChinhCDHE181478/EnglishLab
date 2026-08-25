@@ -1,10 +1,10 @@
 package fu.sep490.g23.backend.service.course.impl;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.CourseLessonFlashcardRef;
-import fu.sep490.g23.backend.entity.course.CourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.VocabularyProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -123,8 +123,8 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private List<VocabularyTermResponse> extractTerms(OnlineCourse course) {
         List<VocabularyTermResponse> bankTerms = new ArrayList<>();
-        for (CourseModule module : course.getModules()) {
-            for (Lesson lesson : module.getLessons()) {
+        for (OnlineCourseModule module : course.getModules()) {
+            for (OnlineLesson lesson : module.getLessons()) {
                 for (CourseLessonFlashcardRef ref : lesson.getFlashcardRefs()) {
                     if (!"ARCHIVED".equalsIgnoreCase(ref.getFlashcardSet().getStatus())) {
                         bankTerms.addAll(extractFlashcardSet(course, module, lesson, ref.getFlashcardSet()));
@@ -135,8 +135,8 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         if (!bankTerms.isEmpty()) return bankTerms;
 
         List<VocabularyTermResponse> contentTerms = new ArrayList<>();
-        for (CourseModule module : course.getModules()) {
-            for (Lesson lesson : module.getLessons()) {
+        for (OnlineCourseModule module : course.getModules()) {
+            for (OnlineLesson lesson : module.getLessons()) {
                 contentTerms.addAll(extractLessonContent(course, module, lesson));
             }
         }
@@ -167,7 +167,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return contentTerms;
     }
 
-    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, CourseModule module, Lesson lesson, FlashcardSet set) {
+    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, FlashcardSet set) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
         try {
             JsonNode cards = objectMapper.readTree(set.getCardsJson() == null ? "[]" : set.getCardsJson());
@@ -226,7 +226,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return terms;
     }
 
-    private List<VocabularyTermResponse> extractLessonContent(OnlineCourse course, CourseModule module, Lesson lesson) {
+    private List<VocabularyTermResponse> extractLessonContent(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         String content = lesson.getContentText();
         if (content == null || !content.contains("### ")) return List.of();
         var headings = VOCABULARY_HEADING.matcher(content).results().toList();
@@ -280,7 +280,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return terms;
     }
 
-    private VocabularyTermResponse.VocabularyTermResponseBuilder baseTerm(OnlineCourse course, CourseModule module, Lesson lesson) {
+    private VocabularyTermResponse.VocabularyTermResponseBuilder baseTerm(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson) {
         return VocabularyTermResponse.builder()
                 .courseId(course.getId())
                 .courseTitle(course.getLearningPackage().getTitle())

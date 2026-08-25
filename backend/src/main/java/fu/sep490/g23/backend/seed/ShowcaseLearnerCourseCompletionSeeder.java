@@ -10,8 +10,8 @@ import fu.sep490.g23.backend.entity.assessment.CourseAssessment;
 import fu.sep490.g23.backend.entity.assessment.enums.AiEvaluationMode;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.SubmissionStatus;
-import fu.sep490.g23.backend.entity.course.CourseModule;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
@@ -332,14 +332,14 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
             OnlineCourseVersion version,
             int maxModules
     ) {
-        List<Lesson> lessons = orderedModules(course).stream()
+        List<OnlineLesson> lessons = orderedModules(course).stream()
                 .limit(maxModules)
                 .flatMap(module -> module.getLessons().stream()
                         .sorted(Comparator.comparing(lesson -> lesson.getDisplayOrder() == null ? Integer.MAX_VALUE : lesson.getDisplayOrder())))
                 .toList();
         LocalDateTime firstCompletion = LocalDateTime.now().minusDays(30);
         for (int index = 0; index < lessons.size(); index++) {
-            Lesson lesson = lessons.get(index);
+            OnlineLesson lesson = lessons.get(index);
             LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                     .orElseGet(() -> LessonProgress.builder()
                             .student(learner)
@@ -366,7 +366,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         Set<Long> allowedLessonIds = orderedModules(course).stream()
                 .limit(keepModuleCount)
                 .flatMap(module -> module.getLessons().stream())
-                .map(Lesson::getId)
+                .map(OnlineLesson::getId)
                 .collect(Collectors.toSet());
         List<LessonProgress> extra = lessonProgressRepository.findByEnrollment(enrollment).stream()
                 .filter(progress -> progress.getLesson() == null || !allowedLessonIds.contains(progress.getLesson().getId()))
@@ -377,7 +377,7 @@ public class ShowcaseLearnerCourseCompletionSeeder implements CommandLineRunner 
         }
     }
 
-    private List<CourseModule> orderedModules(OnlineCourse course) {
+    private List<OnlineCourseModule> orderedModules(OnlineCourse course) {
         return course.getModules().stream()
                 .sorted(Comparator.comparing(module -> module.getDisplayOrder() == null ? Integer.MAX_VALUE : module.getDisplayOrder()))
                 .toList();

@@ -46,7 +46,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
-import fu.sep490.g23.backend.entity.course.Lesson;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
@@ -611,7 +611,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             packageEnrollmentRepository.save(enrollment);
             onlineCourseRepository.findByLearningPackage(pack).ifPresent(course -> {
                 for (var module : course.getModules()) {
-                    for (Lesson lesson : module.getLessons()) {
+                    for (OnlineLesson lesson : module.getLessons()) {
                         LessonProgress progress = lessonProgressRepository.findByStudentAndLesson(learner, lesson)
                                 .orElseGet(() -> LessonProgress.builder().student(learner).lesson(lesson).enrollment(enrollment).build());
                         progress.setEnrollment(enrollment);
