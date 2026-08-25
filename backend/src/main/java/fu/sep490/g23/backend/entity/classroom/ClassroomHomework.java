@@ -8,8 +8,9 @@ import fu.sep490.g23.backend.entity.classroom.enums.*;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.AssessmentRubric;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -91,12 +92,26 @@ public class ClassroomHomework {
     private AssessmentSkill skill;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rubric_id")
+    @JoinColumn(name = "rubric_content_bank_item_id")
     private AssessmentRubric rubric;
 
+    @Column(name = "rubric_id")
+    private Long legacyRubricId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id")
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
+
+    @Column(name = "assessment_bank_item_id")
+    private Long legacyAssessmentBankItemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem assessmentContentBankItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem rubricContentBankItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")

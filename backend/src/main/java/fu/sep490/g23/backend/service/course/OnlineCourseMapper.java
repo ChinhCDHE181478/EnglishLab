@@ -15,7 +15,7 @@ import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.LessonProgress;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
-import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.course.OnlineCourseVersion;
@@ -25,6 +25,7 @@ import fu.sep490.g23.backend.repository.course.LessonProgressRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -333,27 +334,27 @@ public class OnlineCourseMapper {
             return List.of();
         }
         return lesson.getFlashcardRefs().stream()
-                .map(ref -> toFlashcardSetResponse(ref.getFlashcardSet()))
+                .map(ref -> toFlashcardSetResponse(ref.getContentBankItem()))
                 .filter(response -> response != null)
                 .toList();
     }
 
-    private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
-        if (set == null) {
+    private FlashcardSetResponse toFlashcardSetResponse(ContentBankItem item) {
+        if (item == null) {
             return null;
         }
         return FlashcardSetResponse.builder()
-                .id(set.getId())
-                .title(set.getTitle())
-                .description(set.getDescription())
-                .examCategory(set.getExamCategory())
-                .skill(set.getSkill())
-                .tags(set.getTags())
-                .cardsJson(set.getCardsJson())
-                .status(set.getStatus())
-                .displayOrder(set.getDisplayOrder())
-                .createdAt(set.getCreatedAt())
-                .updatedAt(set.getUpdatedAt())
+                .id(item.getId())
+                .title(item.getTitle())
+                .description(item.getDescription())
+                .examCategory(item.getExamCategory())
+                .skill(item.getSkill())
+                .tags(item.getTags())
+                .cardsJson(ContentBankPayloadSupport.cardsJsonFromPayload(item.getPayloadJsonb()))
+                .status(item.getStatus())
+                .displayOrder(item.getDisplayOrder())
+                .createdAt(item.getCreatedAt())
+                .updatedAt(item.getUpdatedAt())
                 .build();
     }
 }

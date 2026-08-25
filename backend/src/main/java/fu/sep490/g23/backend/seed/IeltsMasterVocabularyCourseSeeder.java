@@ -16,12 +16,14 @@ import fu.sep490.g23.backend.entity.course.enums.CourseVersionStatus;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
 import fu.sep490.g23.backend.entity.course.PackageType;
 import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.course.CourseCategoryRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseVersionRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +61,7 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseVersionRepository onlineCourseVersionRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final OnlineCourseVersionService onlineCourseVersionService;
 
     @Value("${app.seed.test.enabled:false}")
@@ -228,11 +231,13 @@ public class IeltsMasterVocabularyCourseSeeder implements CommandLineRunner {
         FlashcardSet savedSet = flashcardSetRepository.save(set);
 
         boolean alreadyLinked = lesson.getFlashcardRefs().stream()
-                .anyMatch(ref -> ref.getFlashcardSet() != null && savedSet.getId() != null
-                        && savedSet.getId().equals(ref.getFlashcardSet().getId()));
+                .anyMatch(ref -> ref.getContentBankItem() != null && savedSet.getId() != null
+                        && savedSet.getId().equals(ref.getContentBankItem().getId()));
         if (!alreadyLinked) {
+            ContentBankItem bankItem = contentBankItemRepository.findById(savedSet.getId())
+                    .orElseThrow(() -> new IllegalStateException("Flashcard bank item missing after save"));
             lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
-                    .flashcardSet(savedSet)
+                    .contentBankItem(bankItem)
                     .displayOrder(lesson.getFlashcardRefs().size() + 1)
                     .build());
         }

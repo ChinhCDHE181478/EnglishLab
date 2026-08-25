@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -20,6 +21,9 @@ import lombok.experimental.SuperBuilder;
 public class CurriculumExerciseRef extends CurriculumResourceRef {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "exercise_id")
+    @JoinColumn(name = "content_bank_item_id")
     private ExerciseBankItem exercise;
+
+    @Column(name = "exercise_id")
+    private Long legacyExerciseId;
 }

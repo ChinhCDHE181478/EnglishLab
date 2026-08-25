@@ -46,6 +46,7 @@ import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import fu.sep490.g23.backend.service.classroom.*;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -84,6 +85,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     private final ClassroomHomeworkScoreCalculator homeworkScoreCalculator;
     private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
     private final HomeworkTextAnnotationCodec homeworkTextAnnotationCodec;
+    private final ContentBankLinkSync contentBankLinkSync;
 
     @Override
     @Transactional(readOnly = true)
@@ -470,13 +472,17 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 throw new RuntimeException("Hình thức bài tập này không hỗ trợ chọn đề từ ngân hàng.");
             }
             homework.setAssessmentBankItem(assessment);
+            homework.setLegacyAssessmentBankItemId(contentBankLinkSync.legacyIdForAssessment(assessment));
             homework.setSkill(assessment.getSkill());
             homework.setRubric(assessment.getRubric());
+            homework.setLegacyRubricId(contentBankLinkSync.legacyIdForRubric(assessment.getRubric()));
             homework.setActivityConfigJson(assessment.getUiConfigJson());
         } else {
             homework.setAssessmentBankItem(null);
+            homework.setLegacyAssessmentBankItemId(null);
             homework.setSkill(request.getSkill());
             homework.setRubric(null);
+            homework.setLegacyRubricId(null);
         }
 
         validateActivitySkillCompatibility(homework.getActivityType(), homework.getSkill());
@@ -514,6 +520,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
             throw new RuntimeException("Bộ tiêu chí của MODULE_TEST không khớp với kỹ năng bài thi.");
         }
         homework.setRubric(rubric);
+        homework.setLegacyRubricId(contentBankLinkSync.legacyIdForRubric(rubric));
     }
 
     private void validateActivitySkillCompatibility(HomeworkActivityType activityType, AssessmentSkill skill) {

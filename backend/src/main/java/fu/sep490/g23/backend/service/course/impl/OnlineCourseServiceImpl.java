@@ -81,7 +81,12 @@ import fu.sep490.g23.backend.service.assessment.PlacementRecommendationContextFa
 import fu.sep490.g23.backend.entity.assessment.RubricCriterion;
 import fu.sep490.g23.backend.entity.course.*;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
-import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
+import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
+import fu.sep490.g23.backend.service.curriculum.ContentBankTypeGuard;
 import fu.sep490.g23.backend.exception.CourseUnavailableException;
 import fu.sep490.g23.backend.security.ContentManagementRolePolicy;
 import fu.sep490.g23.backend.repository.UserRepository;
@@ -166,6 +171,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     private final FlashcardPracticeService flashcardPracticeService;
     private final CourseEnrollmentMailService courseEnrollmentMailService;
     private final YouTubeTranscriptService youTubeTranscriptService;
+    private final ContentBankIdResolver contentBankIdResolver;
+    private final ContentBankTypeGuard contentBankTypeGuard;
+    private final ContentBankLinkSync contentBankLinkSync;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -1612,6 +1620,8 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             assessment.setModule(targetModule);
             assessment.setRubric(rubric);
             assessment.setAssessmentBankItem(bankItem);
+            assessment.setLegacyAssessmentBankItemId(contentBankLinkSync.legacyIdForAssessment(bankItem));
+            assessment.setLegacyRubricId(contentBankLinkSync.legacyIdForRubric(rubric));
             if (bankItem == null) {
                 assessment.setTitle(request.getTitle().trim());
                 assessment.setDescription(request.getDescription());
@@ -1947,13 +1957,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         Set<Long> uniqueIds = new LinkedHashSet<>(flashcardSetIds);
         int displayOrder = 1;
         for (Long flashcardSetId : uniqueIds) {
-            FlashcardSet set = flashcardSetRepository.findById(flashcardSetId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
-            if ("ARCHIVED".equalsIgnoreCase(set.getStatus())) {
-                throw new RuntimeException("Bộ flashcard \"" + set.getTitle() + "\" đã được lưu trữ.");
+            ContentBankItem item = contentBankIdResolver.requireItem(ContentBankType.FLASHCARD, flashcardSetId);
+            contentBankTypeGuard.assertFlashcard(item);
+            if ("ARCHIVED".equalsIgnoreCase(item.getStatus())) {
+                throw new RuntimeException("Bộ flashcard \"" + item.getTitle() + "\" đã được lưu trữ.");
             }
             lesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
-                    .flashcardSet(set)
+                    .contentBankItem(item)
                     .displayOrder(displayOrder++)
                     .build());
         }
@@ -1964,27 +1974,27 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
             return List.of();
         }
         return lesson.getFlashcardRefs().stream()
-                .map(ref -> toFlashcardSetResponse(ref.getFlashcardSet()))
+                .map(ref -> toFlashcardSetResponse(ref.getContentBankItem()))
                 .filter(response -> response != null)
                 .toList();
     }
 
-    private FlashcardSetResponse toFlashcardSetResponse(FlashcardSet set) {
-        if (set == null) {
+    private FlashcardSetResponse toFlashcardSetResponse(ContentBankItem item) {
+        if (item == null) {
             return null;
         }
         return FlashcardSetResponse.builder()
-                .id(set.getId())
-                .title(set.getTitle())
-                .description(set.getDescription())
-                .examCategory(set.getExamCategory())
-                .skill(set.getSkill())
-                .tags(set.getTags())
-                .cardsJson(set.getCardsJson())
-                .status(set.getStatus())
-                .displayOrder(set.getDisplayOrder())
-                .createdAt(set.getCreatedAt())
-                .updatedAt(set.getUpdatedAt())
+                .id(item.getId())
+                .title(item.getTitle())
+                .description(item.getDescription())
+                .examCategory(item.getExamCategory())
+                .skill(item.getSkill())
+                .tags(item.getTags())
+                .cardsJson(ContentBankPayloadSupport.cardsJsonFromPayload(item.getPayloadJsonb()))
+                .status(item.getStatus())
+                .displayOrder(item.getDisplayOrder())
+                .createdAt(item.getCreatedAt())
+                .updatedAt(item.getUpdatedAt())
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -19,6 +20,9 @@ import lombok.experimental.SuperBuilder;
 public class CurriculumFlashcardRef extends CurriculumResourceRef {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "flashcard_set_id")
+    @JoinColumn(name = "content_bank_item_id")
     private FlashcardSet flashcardSet;
+
+    @Column(name = "flashcard_set_id")
+    private Long legacyFlashcardSetId;
 }

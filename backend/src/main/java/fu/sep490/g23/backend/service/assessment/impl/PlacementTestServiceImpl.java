@@ -14,11 +14,13 @@ import fu.sep490.g23.backend.entity.assessment.PlacementTestAttempt;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementEvaluationStatus;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
+import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.assessment.PlacementTestAttemptRepository;
+import fu.sep490.g23.backend.repository.curriculum.ContentBankItemRepository;
 import fu.sep490.g23.backend.service.ai.AiEvaluationClient;
 import fu.sep490.g23.backend.service.ai.AiEvaluationResult;
-import fu.sep490.g23.backend.entity.assessment.PlacementTestDefinition;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,6 +56,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final AiEvaluationClient aiEvaluationClient;
     private final AssessmentAudioStorageService audioStorageService;
     private final PlacementTestDefinitionService definitionService;
+    private final ContentBankItemRepository contentBankItemRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
@@ -132,6 +135,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         PlacementTestAttempt attempt = PlacementTestAttempt.builder()
                 .student(student)
                 .testCode(TEST_CODE)
+                .contentBankItem(placementBankItem(definition))
                 .answersJson(writeJson(answers))
                 .deviceCheckJson(writeJson(deviceCheck))
                 .listeningScore(listeningBand)
@@ -211,6 +215,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         PlacementTestAttempt attempt = PlacementTestAttempt.builder()
                 .student(student)
                 .testCode(TEST_CODE)
+                .contentBankItem(placementBankItem(definition))
                 .answersJson(writeJson(answers))
                 .deviceCheckJson(writeJson(deviceCheck))
                 .listeningScore(listeningBand)
@@ -254,6 +259,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         PlacementTestAttempt attempt = PlacementTestAttempt.builder()
                 .student(student)
                 .testCode(TEST_CODE)
+                .contentBankItem(placementBankItem(definition))
                 .answersJson(writeJson(answers))
                 .deviceCheckJson(writeJson(deviceCheck))
                 .listeningScore(listeningScore)
@@ -274,6 +280,13 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         student.setCurrentBand(null);
         userRepository.save(student);
         return toResponse(savedAttempt, "TOEIC");
+    }
+
+    private ContentBankItem placementBankItem(PlacementTestDefinition definition) {
+        if (definition == null || definition.getId() == null) {
+            return null;
+        }
+        return contentBankItemRepository.findById(definition.getId()).orElse(null);
     }
 
     private ObjectiveScore scoreToeicSection(JsonNode submitted, JsonNode answerKey, JsonNode sectionConfig, int fallbackFrom, int fallbackTo) {

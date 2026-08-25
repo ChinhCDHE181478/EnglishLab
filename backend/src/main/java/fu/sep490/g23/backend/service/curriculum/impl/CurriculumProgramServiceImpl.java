@@ -46,10 +46,13 @@ import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
 import fu.sep490.g23.backend.repository.curriculum.FlashcardSetRepository;
+import fu.sep490.g23.backend.service.curriculum.ContentBankIdResolver;
+import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
+import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
-import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -118,6 +121,8 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final AssessmentRubricRepository assessmentRubricRepository;
     private final AssessmentBankItemRepository assessmentBankRepository;
     private final FlashcardSetRepository flashcardSetRepository;
+    private final ContentBankLinkSync contentBankLinkSync;
+    private final ContentBankIdResolver contentBankIdResolver;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -295,18 +300,21 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
             unit.getExerciseRefs().forEach(ref -> unitClone.getExerciseRefs().add(CurriculumExerciseRef.builder()
                     .unit(unitClone)
                     .exercise(ref.getExercise())
+                    .legacyExerciseId(ref.getLegacyExerciseId())
                     .displayOrder(ref.getDisplayOrder())
                     .note(ref.getNote())
                     .build()));
             unit.getAssessmentRefs().forEach(ref -> unitClone.getAssessmentRefs().add(CurriculumAssessmentRef.builder()
                     .unit(unitClone)
                     .assessment(ref.getAssessment())
+                    .legacyAssessmentId(ref.getLegacyAssessmentId())
                     .displayOrder(ref.getDisplayOrder())
                     .note(ref.getNote())
                     .build()));
             unit.getFlashcardRefs().forEach(ref -> unitClone.getFlashcardRefs().add(CurriculumFlashcardRef.builder()
                     .unit(unitClone)
                     .flashcardSet(ref.getFlashcardSet())
+                    .legacyFlashcardSetId(ref.getLegacyFlashcardSetId())
                     .displayOrder(ref.getDisplayOrder())
                     .note(ref.getNote())
                     .build()));
@@ -449,12 +457,15 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public CurriculumUnitResponse attachExercise(Long unitId, CurriculumReferenceRequest request) {
         CurriculumUnit unit = findUnit(unitId);
-        ExerciseBankItem exercise = exerciseRepository.findById(request.getResourceId())
+        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.EXERCISE, request.getResourceId())
+                .orElse(request.getResourceId());
+        ExerciseBankItem exercise = exerciseRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập trong ngân hàng."));
         if (!exerciseRefRepository.existsByUnitIdAndExerciseId(unitId, exercise.getId())) {
             exerciseRefRepository.save(CurriculumExerciseRef.builder()
                     .unit(unit)
                     .exercise(exercise)
+                    .legacyExerciseId(contentBankLinkSync.legacyIdForExercise(exercise))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
@@ -465,12 +476,15 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public CurriculumUnitResponse attachAssessment(Long unitId, CurriculumReferenceRequest request) {
         CurriculumUnit unit = findUnit(unitId);
-        AssessmentBankItem assessment = assessmentBankRepository.findById(request.getResourceId())
+        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.ASSESSMENT, request.getResourceId())
+                .orElse(request.getResourceId());
+        AssessmentBankItem assessment = assessmentBankRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề trong ngân hàng."));
         if (!assessmentRefRepository.existsByUnitIdAndAssessmentId(unitId, assessment.getId())) {
             assessmentRefRepository.save(CurriculumAssessmentRef.builder()
                     .unit(unit)
                     .assessment(assessment)
+                    .legacyAssessmentId(contentBankLinkSync.legacyIdForAssessment(assessment))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());
@@ -481,12 +495,15 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public CurriculumUnitResponse attachFlashcard(Long unitId, CurriculumReferenceRequest request) {
         CurriculumUnit unit = findUnit(unitId);
-        FlashcardSet flashcardSet = flashcardSetRepository.findById(request.getResourceId())
+        Long resolvedId = contentBankIdResolver.resolve(ContentBankType.FLASHCARD, request.getResourceId())
+                .orElse(request.getResourceId());
+        FlashcardSet flashcardSet = flashcardSetRepository.findById(resolvedId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bộ flashcard."));
         if (!flashcardRefRepository.existsByUnitIdAndFlashcardSetId(unitId, flashcardSet.getId())) {
             flashcardRefRepository.save(CurriculumFlashcardRef.builder()
                     .unit(unit)
                     .flashcardSet(flashcardSet)
+                    .legacyFlashcardSetId(contentBankLinkSync.legacyIdForFlashcard(flashcardSet))
                     .displayOrder(defaultInt(request.getDisplayOrder()))
                     .note(trimOrNull(request.getNote()))
                     .build());

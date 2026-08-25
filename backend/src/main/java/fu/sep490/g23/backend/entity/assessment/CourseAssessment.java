@@ -8,6 +8,7 @@ import fu.sep490.g23.backend.entity.assessment.enums.*;
 import fu.sep490.g23.backend.entity.course.OnlineCourseModule;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,12 +36,28 @@ public class CourseAssessment {
     private OnlineCourseModule module;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rubric_id")
+    @JoinColumn(name = "rubric_content_bank_item_id")
     private AssessmentRubric rubric;
 
+    /** Legacy {@code assessment_rubrics.id} kept for dual-write while legacy table remains. */
+    @Column(name = "rubric_id")
+    private Long legacyRubricId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id")
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
+
+    /** Legacy {@code assessment_bank_items.id} kept for dual-write while legacy table remains. */
+    @Column(name = "assessment_bank_item_id")
+    private Long legacyAssessmentBankItemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem assessmentContentBankItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rubric_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem rubricContentBankItem;
 
     /**
      * Stable identity used to carry learner submissions across published course versions.

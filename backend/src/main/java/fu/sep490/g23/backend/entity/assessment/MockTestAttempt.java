@@ -3,6 +3,7 @@ package fu.sep490.g23.backend.entity.assessment;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +23,16 @@ public class MockTestAttempt {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assessment_bank_item_id", nullable = false)
+    @JoinColumn(name = "assessment_content_bank_item_id")
     private AssessmentBankItem assessmentBankItem;
+
+    /** Legacy assessment_bank_items.id — required by existing NOT NULL FK; dual-written via reverse map. */
+    @Column(name = "assessment_bank_item_id", nullable = false)
+    private Long legacyAssessmentBankItemId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_content_bank_item_id", insertable = false, updatable = false)
+    private ContentBankItem assessmentContentBankItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)

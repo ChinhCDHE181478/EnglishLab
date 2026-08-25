@@ -896,7 +896,7 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                 if (sourceLesson.getFlashcardRefs() != null) {
                     for (CourseLessonFlashcardRef sourceRef : sourceLesson.getFlashcardRefs()) {
                         clonedLesson.addFlashcardRef(CourseLessonFlashcardRef.builder()
-                                .flashcardSet(sourceRef.getFlashcardSet())
+                                .contentBankItem(sourceRef.getContentBankItem())
                                 .displayOrder(sourceRef.getDisplayOrder())
                                 .build());
                     }
@@ -977,7 +977,9 @@ public class OnlineCourseVersionServiceImpl implements OnlineCourseVersionServic
                             .onlineCourse(assessment.getOnlineCourse())
                             .module(assessment.getModule())
                             .rubric(assessment.getRubric())
+                            .legacyRubricId(assessment.getLegacyRubricId())
                             .assessmentBankItem(assessment.getAssessmentBankItem())
+                            .legacyAssessmentBankItemId(assessment.getLegacyAssessmentBankItemId())
                             .progressKey(progressKey)
                             .title(assessment.getTitle())
                             .description(assessment.getDescription())

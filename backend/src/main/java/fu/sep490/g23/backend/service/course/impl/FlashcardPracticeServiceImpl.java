@@ -19,7 +19,7 @@ import fu.sep490.g23.backend.entity.commerce.enums.CourseListType;
 import fu.sep490.g23.backend.entity.course.enums.FlashcardPracticeSource;
 import fu.sep490.g23.backend.entity.course.enums.VocabularyProgressStatus;
 import fu.sep490.g23.backend.entity.course.*;
-import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
+import fu.sep490.g23.backend.entity.curriculum.ContentBankItem;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.commerce.CourseListItemRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
@@ -27,6 +27,7 @@ import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.VocabularyProgressRepository;
 import fu.sep490.g23.backend.service.course.FlashcardPracticeService;
 import fu.sep490.g23.backend.service.course.OnlineCourseVersionService;
+import fu.sep490.g23.backend.service.curriculum.ContentBankPayloadSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,7 +119,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
 
     private void initializeCourse(OnlineCourse course) {
         course.getModules().forEach(module -> module.getLessons().forEach(lesson ->
-                lesson.getFlashcardRefs().forEach(ref -> ref.getFlashcardSet().getTitle())));
+                lesson.getFlashcardRefs().forEach(ref -> ref.getContentBankItem().getTitle())));
     }
 
     private List<VocabularyTermResponse> extractTerms(OnlineCourse course) {
@@ -126,8 +127,9 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         for (OnlineCourseModule module : course.getModules()) {
             for (OnlineLesson lesson : module.getLessons()) {
                 for (CourseLessonFlashcardRef ref : lesson.getFlashcardRefs()) {
-                    if (!"ARCHIVED".equalsIgnoreCase(ref.getFlashcardSet().getStatus())) {
-                        bankTerms.addAll(extractFlashcardSet(course, module, lesson, ref.getFlashcardSet()));
+                    ContentBankItem item = ref.getContentBankItem();
+                    if (item != null && !"ARCHIVED".equalsIgnoreCase(item.getStatus())) {
+                        bankTerms.addAll(extractFlashcardSet(course, module, lesson, item));
                     }
                 }
             }
@@ -167,10 +169,10 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
         return contentTerms;
     }
 
-    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, FlashcardSet set) {
+    private List<VocabularyTermResponse> extractFlashcardSet(OnlineCourse course, OnlineCourseModule module, OnlineLesson lesson, ContentBankItem item) {
         List<VocabularyTermResponse> terms = new ArrayList<>();
         try {
-            JsonNode cards = objectMapper.readTree(set.getCardsJson() == null ? "[]" : set.getCardsJson());
+            JsonNode cards = objectMapper.readTree(ContentBankPayloadSupport.cardsJsonFromPayload(item.getPayloadJsonb()));
             if (!cards.isArray()) return terms;
             int index = 0;
             for (JsonNode card : cards) {
@@ -178,7 +180,7 @@ public class FlashcardPracticeServiceImpl implements FlashcardPracticeService {
                 String meaning = firstText(card, "meaning", "back", "answer", "definition");
                 if (!term.isBlank() && !meaning.isBlank()) {
                     terms.add(baseTerm(course, module, lesson)
-                            .termKey("flashcard-set-%s-%s-%s".formatted(set.getId(), index, slug(term)))
+                            .termKey("flashcard-set-%s-%s-%s".formatted(item.getId(), index, slug(term)))
                             .term(term)
                             .meaning(meaning)
                             .example(firstText(card, "example", "sentence"))
