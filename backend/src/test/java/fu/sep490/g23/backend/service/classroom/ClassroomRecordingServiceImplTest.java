@@ -2,11 +2,11 @@ package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.dto.request.classroom.UpdateRecordingRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomSessionResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.impl.ClassroomRecordingServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,10 +24,10 @@ import static org.mockito.Mockito.when;
 class ClassroomRecordingServiceImplTest {
 
     @Mock
-    private ClassroomOfferingRepository offeringRepository;
+    private ClassSectionRepository offeringRepository;
 
     @Mock
-    private ClassroomSessionRepository sessionRepository;
+    private ClassScheduleRepository sessionRepository;
 
     @Mock
     private ClassroomMapper mapper;
@@ -39,7 +39,7 @@ class ClassroomRecordingServiceImplTest {
     private VirtualMeetingService virtualMeetingService;
 
     private ClassroomRecordingServiceImpl service;
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @BeforeEach
     void setUp() {
@@ -52,9 +52,9 @@ class ClassroomRecordingServiceImplTest {
                 virtualMeetingService,
                 new GoogleMeetProperties()
         );
-        session = ClassroomSession.builder()
+        session = ClassSchedule.builder()
                 .id(11L)
-                .classroomOffering(ClassroomOffering.builder().build())
+                .classSection(ClassSection.builder().build())
                 .larkMeetingId("meeting-11")
                 .recordingSyncStatus(RecordingSyncStatus.PROCESSING)
                 .recordingSyncAttempts(0)

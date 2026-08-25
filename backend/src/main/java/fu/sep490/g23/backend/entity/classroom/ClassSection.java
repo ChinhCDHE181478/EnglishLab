@@ -26,9 +26,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_offerings")
+@Table(name = "class_sections")
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomOffering {
+public class ClassSection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -64,15 +64,28 @@ public class ClassroomOffering {
     @Column(name = "target_outcome", length = 700)
     private String targetOutcome;
 
-    @Column(name = "max_capacity", nullable = false)
+    @Column(nullable = false, length = 120)
+    private String code;
+
+    @Column(nullable = false, length = 180)
+    private String name;
+
+    @Column(name = "tuition_fee_vnd", nullable = false, precision = 12, scale = 2)
     @Builder.Default
-    private Integer maxCapacity = 30;
+    private java.math.BigDecimal tuitionFeeVnd = java.math.BigDecimal.ZERO;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer capacity = 30;
 
     @Column(name = "start_date")
     private LocalDate startDate;
 
-    @Column(name = "end_date")
-    private LocalDate endDate;
+    @Column(name = "planned_end_date")
+    private LocalDate plannedEndDate;
+
+    @Column(name = "actual_end_date")
+    private LocalDate actualEndDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "primary_teacher_id")
@@ -83,8 +96,8 @@ public class ClassroomOffering {
     private User virtualMeetingOwner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "default_room_id")
-    private ClassroomRoom defaultRoom;
+    @JoinColumn(name = "regular_room_id")
+    private Room regularRoom;
 
     @Column(name = "offline_address", length = 500)
     private String offlineAddress;
@@ -119,9 +132,9 @@ public class ClassroomOffering {
     @Column(name = "interaction_activities", columnDefinition = "text")
     private String interactionActivities;
 
-    @OneToMany(mappedBy = "classroomOffering", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "classSection", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<ClassroomSession> sessions = new ArrayList<>();
+    private List<ClassSchedule> schedules = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)
@@ -131,8 +144,8 @@ public class ClassroomOffering {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public void addSession(ClassroomSession session) {
-        sessions.add(session);
-        session.setClassroomOffering(this);
+    public void addSchedule(ClassSchedule schedule) {
+        schedules.add(schedule);
+        schedule.setClassSection(this);
     }
 }

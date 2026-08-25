@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.service.mail.impl;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.service.mail.EmailTemplateUtil;
 import fu.sep490.g23.backend.service.mail.EnrollmentRequestMailService;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
@@ -47,7 +47,7 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     private String baseUrl;
 
     @Override
-    public void sendTestAppointment(EnrollmentRequest request) {
+    public void sendTestAppointment(CourseRegistrationRequest request) {
         String appointment = request.getTestAppointmentAt() == null
                 ? "Chưa xác định"
                 : request.getTestAppointmentAt().format(DATE_TIME_FORMAT);
@@ -75,7 +75,7 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
     }
 
     @Override
-    public void sendClassAssignment(EnrollmentRequest request, ClassroomOffering classroom) {
+    public void sendClassAssignment(CourseRegistrationRequest request, ClassSection classroom) {
         String startDate = classroom.getStartDate() == null
                 ? "Đang cập nhật"
                 : classroom.getStartDate().format(DATE_FORMAT);
@@ -129,7 +129,7 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
         send(request, "Bạn đã được xếp lớp thành công - EnglishLab", html);
     }
 
-    private void send(EnrollmentRequest request, String subject, String htmlContent) {
+    private void send(CourseRegistrationRequest request, String subject, String htmlContent) {
         User learner = request == null ? null : request.getLearner();
         if (learner != null && !notificationPreferenceService.isEmailEnabled(learner)) return;
         String recipient = request == null ? null : valueOrDefault(request.getContactEmail(), learner == null ? null : learner.getEmail());
@@ -148,7 +148,7 @@ public class EnrollmentRequestMailServiceImpl implements EnrollmentRequestMailSe
         }
     }
 
-    private String name(EnrollmentRequest request) {
+    private String name(CourseRegistrationRequest request) {
         String fallback = request.getLearner() == null ? "bạn" : request.getLearner().getFullName();
         return valueOrDefault(request.getContactName(), valueOrDefault(fallback, "bạn"));
     }

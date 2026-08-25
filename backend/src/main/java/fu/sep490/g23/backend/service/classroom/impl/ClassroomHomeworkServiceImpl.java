@@ -1,9 +1,9 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomRegistrationSupport;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
@@ -11,19 +11,19 @@ import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.service.classroom.HomeworkTextAnnotationCodec;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkObjectiveGrader;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkService;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkAiGradingService;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkScoreCalculator;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 
 
@@ -71,12 +71,12 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
 
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final CurriculumUnitRepository curriculumUnitRepository;
     private final CourseUnitRepository courseUnitRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final UserRepository userRepository;
     private final ClassroomMapper mapper;
@@ -94,7 +94,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     public List<ClassroomHomeworkResponse> listForClass(Long offeringId, String userEmail) {
         User user = accessHelper.requireUser(userEmail);
         Long studentId = isLearnerInClass(user, offeringId) ? user.getId() : null;
-        return homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .filter(homework -> studentId == null || homework.getStatus() == HomeworkStatus.OPEN)
                 .map(homework -> mapper.toHomeworkResponse(homework, studentId))
                 .toList();
@@ -106,8 +106,8 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User learner = accessHelper.requireUser(learnerEmail);
         return enrollmentRepository.findByStudentIdAndRegistrationStatusIn(learner.getId(), HAS_LEARNING_ACCESS).stream()
                 .flatMap(enrollment -> homeworkRepository
-                        .findByClassroomOfferingIdAndStatusOrderByDeadlineAsc(
-                                enrollment.getClassroomOffering().getId(),
+                        .findByClassSectionIdAndStatusOrderByDeadlineAsc(
+                                enrollment.getClassSection().getId(),
                                 HomeworkStatus.OPEN
                         ).stream())
                 .distinct()
@@ -127,10 +127,10 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                         submission -> submission.getStudent().getId(),
                         Function.identity()
                 ));
-        return enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
-                        homework.getClassroomOffering().getId(), HAS_LEARNING_ACCESS
+        return enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(
+                        homework.getClassSection().getId(), HAS_LEARNING_ACCESS
                 ).stream()
-                .map(ClassroomEnrollment::getStudent)
+                .map(ClassEnrollment::getStudent)
                 .filter(student -> student != null)
                 .sorted(Comparator.comparing(
                         User::getFullName,
@@ -183,9 +183,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertTeacher(creator);
 
-        ClassroomOffering offering = offeringRepository.findById(offeringId)
+        ClassSection offering = offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        ClassroomSession session = null;
+        ClassSchedule session = null;
         if (request.getSessionId() != null) {
             session = sessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
@@ -193,7 +193,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         CurriculumUnit curriculumUnit = resolveCurriculumUnit(offering, request.getCurriculumUnitId());
 
         ClassroomHomework homework = ClassroomHomework.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(session)
                 .curriculumUnit(curriculumUnit)
                 .title(request.getTitle().trim())
@@ -240,7 +240,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         } else {
             homework.setSession(null);
         }
-        homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassroomOffering(), request.getCurriculumUnitId()));
+        homework.setCurriculumUnit(resolveCurriculumUnit(homework.getClassSection(), request.getCurriculumUnitId()));
         linkCourseUnit(homework, homework.getCurriculumUnit());
         homework.setActivityType(request.getActivityType() == null ? HomeworkActivityType.TEXT_RESPONSE : request.getActivityType());
         homework.setActivityConfigJson(request.getActivityConfigJson());
@@ -265,7 +265,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomHomework homework = findHomework(homeworkId);
 
-        if (!isLearnerInClass(learner, homework.getClassroomOffering().getId())) {
+        if (!isLearnerInClass(learner, homework.getClassSection().getId())) {
             throw new RuntimeException("Bạn không thuộc lớp học này.");
         }
         if (homework.getStatus() != HomeworkStatus.OPEN) {
@@ -396,9 +396,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     }
 
     private void syncHomeworkScoreToGradebook(ClassroomHomework homework, Long studentId, User grader) {
-        Long offeringId = homework.getClassroomOffering().getId();
+        Long offeringId = homework.getClassSection().getId();
         List<ClassroomHomework> homeworks = homeworkRepository
-                .findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId);
+                .findByClassSectionIdOrderByCreatedAtDesc(offeringId);
         BigDecimal average = homeworkScoreCalculator.calculateAverage(
                 homeworks,
                 submissionRepository.findAllForStudentGradebook(offeringId, studentId)
@@ -411,9 +411,9 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên."));
 
         ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassroomOfferingIdAndStudentId(offeringId, studentId)
+                .findByClassSectionIdAndStudentId(offeringId, studentId)
                 .orElseGet(() -> ClassroomGradebookEntry.builder()
-                        .classroomOffering(homework.getClassroomOffering())
+                        .classSection(homework.getClassSection())
                         .student(student)
                         .status(GradebookEntryStatus.PENDING)
                         .build());
@@ -431,7 +431,7 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bài tập."));
     }
 
-    private CurriculumUnit resolveCurriculumUnit(ClassroomOffering offering, Long unitId) {
+    private CurriculumUnit resolveCurriculumUnit(ClassSection offering, Long unitId) {
         if (unitId == null) {
             return null;
         }
@@ -458,16 +458,16 @@ public class ClassroomHomeworkServiceImpl implements ClassroomHomeworkService {
     }
 
     private boolean isLearnerInClass(User user, Long offeringId) {
-        return enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        return enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 user.getId(), offeringId, HAS_LEARNING_ACCESS
         );
     }
 
     private void notifyStudents(ClassroomHomework homework) {
-        enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(
-                        homework.getClassroomOffering().getId(), HAS_LEARNING_ACCESS
+        enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(
+                        homework.getClassSection().getId(), HAS_LEARNING_ACCESS
                 ).stream()
-                .map(ClassroomEnrollment::getStudent)
+                .map(ClassEnrollment::getStudent)
                 .filter(student -> student != null && student.getEmail() != null && !student.getEmail().isBlank())
                 .forEach(student -> classroomHomeworkMailService.sendHomeworkAssigned(student, homework));
     }

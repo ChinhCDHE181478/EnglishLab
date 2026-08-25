@@ -2,14 +2,14 @@ package fu.sep490.g23.backend.service.payment;
 
 import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
@@ -47,7 +47,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Mock private OnlineCourseRepository onlineCourseRepository;
     @Mock private LearningPathRepository learningPathRepository;
     @Mock private LearningPathCourseRepository learningPathCourseRepository;
-    @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    @Mock private ClassEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
@@ -56,7 +56,7 @@ class PaymentServiceImplClassroomTuitionTest {
     private PaymentServiceImpl paymentService;
 
     private User student;
-    private ClassroomEnrollment enrollment;
+    private ClassEnrollment enrollment;
 
     @BeforeEach
     void setUp() {
@@ -76,11 +76,11 @@ class PaymentServiceImplClassroomTuitionTest {
 
         student = User.builder().id(7L).email("learner@example.com").fullName("Learner").build();
         LearningPackage learningPackage = LearningPackage.builder().id(3L).title("TOEIC Intensive").price(new BigDecimal("5000000")).build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(12L).learningPackage(learningPackage).build();
-        enrollment = ClassroomEnrollment.builder()
+        ClassSection offering = ClassSection.builder().id(12L).learningPackage(learningPackage).build();
+        enrollment = ClassEnrollment.builder()
                 .id(88L)
                 .student(student)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .registrationStatus(ClassroomRegistrationStatus.PENDING_TUITION_PAYMENT)
                 .tuitionAmountDue(new BigDecimal("5000000"))
                 .tuitionAmountPaid(BigDecimal.ZERO)
@@ -91,7 +91,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Test
     void quotePayment_classroomTuition_returnsRemainingBalance() {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
         when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
 
@@ -105,7 +105,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Test
     void quotePayment_classroomTuition_rejectsCoupon() {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
         when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
 
@@ -120,7 +120,7 @@ class PaymentServiceImplClassroomTuitionTest {
     void quotePayment_allowsLegacyPendingConfirmation() {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.PENDING_CONFIRMATION);
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
 
         when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
@@ -136,7 +136,7 @@ class PaymentServiceImplClassroomTuitionTest {
     void quotePayment_rejectsWaitlistedEnrollment() {
         enrollment.setRegistrationStatus(ClassroomRegistrationStatus.WAITLIST);
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
 
         RuntimeException ex = assertThrows(
@@ -153,7 +153,7 @@ class PaymentServiceImplClassroomTuitionTest {
                 .orderCode(123L)
                 .student(student)
                 .courseIdsCsv("")
-                .classroomOfferingIdsCsv("12")
+                .classSectionIdsCsv("12")
                 .enrollmentId(88L)
                 .amount(5_000_000L)
                 .originalAmount(5_000_000L)
@@ -178,7 +178,7 @@ class PaymentServiceImplClassroomTuitionTest {
     @Test
     void createPaymentLink_classroomTuition_zeroAmountShortcut_notUsedWhenBalancePositive() {
         when(userRepository.findByEmail("learner@example.com")).thenReturn(Optional.of(student));
-        when(classroomEnrollmentRepository.findByStudentIdAndClassroomOfferingId(7L, 12L))
+        when(classroomEnrollmentRepository.findByStudentIdAndClassSectionId(7L, 12L))
                 .thenReturn(Optional.of(enrollment));
         when(paymentOrderRepository.existsByEnrollmentIdAndStatusIn(eq(88L), any())).thenReturn(false);
         when(payosProperties.isEnabled()).thenReturn(false);

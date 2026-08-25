@@ -89,7 +89,7 @@ public class ClassroomProposal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
-    private ClassroomRoom room;
+    private Room room;
 
     @Column(name = "offline_address", length = 500)
     private String offlineAddress;
@@ -128,7 +128,7 @@ public class ClassroomProposal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_classroom_id")
-    private ClassroomOffering approvedClassroom;
+    private ClassSection approvedClassroom;
 
     @OneToMany(mappedBy = "proposal", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

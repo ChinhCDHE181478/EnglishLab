@@ -12,15 +12,15 @@ import fu.sep490.g23.backend.dto.response.classroom.ClassroomSyllabusItemRespons
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomSyllabusItem;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
@@ -47,9 +47,9 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     private final ClassroomMaterialRepository materialRepository;
     private final ClassroomAnnouncementRepository announcementRepository;
     private final ClassroomSyllabusItemRepository syllabusItemRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ClassroomMapper mapper;
@@ -57,9 +57,9 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
 
     @Override
     public List<ClassroomMaterialResponse> getMaterials(Long offeringId) {
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
-        return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return materialRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(mapper::toMaterialResponse)
                 .toList();
     }
@@ -67,7 +67,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     public List<ClassroomMaterialResponse> getTeacherMaterials(Long offeringId, String teacherEmail) {
         User teacher = accessHelper.requireUser(teacherEmail);
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         assertOfferingContentAccess(teacher, offering);
         return getMaterials(offeringId);
     }
@@ -75,9 +75,9 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     public List<ClassroomMaterialResponse> getLearnerMaterials(Long offeringId, String learnerEmail) {
         assertLearnerPortalAccess(offeringId, learnerEmail);
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         classroomMaterialSyncService.synchronizeMandatoryMaterials(offering, null);
-        return materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return materialRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(mapper::toMaterialResponse)
                 .toList();
     }
@@ -85,15 +85,15 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     public ClassroomMaterialResponse createMaterial(Long offeringId, CreateMaterialRequest request, String uploaderEmail) {
         User uploader = accessHelper.requireUser(uploaderEmail);
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         assertOfferingContentAccess(uploader, offering);
-        ClassroomSession session = resolveSession(offeringId, request.getSessionId());
+        ClassSchedule session = resolveSession(offeringId, request.getSessionId());
         if (!StringUtils.hasText(request.getFileUrl())) {
             throw new IllegalArgumentException("Vui lòng cung cấp tệp hoặc liên kết tài liệu.");
         }
 
         ClassroomMaterial material = ClassroomMaterial.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(session)
                 .title(request.getTitle().trim())
                 .fileUrl(request.getFileUrl().trim())
@@ -116,10 +116,10 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         User editor = accessHelper.requireUser(editorEmail);
         ClassroomMaterial material = materialRepository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu."));
-        assertOfferingContentAccess(editor, material.getClassroomOffering());
+        assertOfferingContentAccess(editor, material.getClassSection());
         assertSupplementaryMaterial(material);
-        Long offeringId = material.getClassroomOffering().getId();
-        ClassroomSession session = resolveSession(offeringId, request.getSessionId());
+        Long offeringId = material.getClassSection().getId();
+        ClassSchedule session = resolveSession(offeringId, request.getSessionId());
         if (!StringUtils.hasText(request.getFileUrl())) {
             throw new IllegalArgumentException("Vui lòng cung cấp tệp hoặc liên kết tài liệu.");
         }
@@ -144,7 +144,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
         User actor = accessHelper.requireUser(actorEmail);
         ClassroomMaterial material = materialRepository.findById(materialId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tài liệu."));
-        assertOfferingContentAccess(actor, material.getClassroomOffering());
+        assertOfferingContentAccess(actor, material.getClassSection());
         assertSupplementaryMaterial(material);
         materialRepository.delete(material);
     }
@@ -152,7 +152,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomAnnouncementResponse> getAnnouncements(Long offeringId) {
-        return announcementRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return announcementRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(mapper::toAnnouncementResponse)
                 .toList();
     }
@@ -171,10 +171,10 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
             String creatorEmail
     ) {
         User creator = accessHelper.requireUser(creatorEmail);
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         assertOfferingContentAccess(creator, offering);
         ClassroomAnnouncement announcement = ClassroomAnnouncement.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title(request.getTitle().trim())
                 .content(request.getContent())
                 .createdBy(creator)
@@ -192,7 +192,7 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomSyllabusItemResponse> getSyllabus(Long offeringId) {
-        return syllabusItemRepository.findByClassroomOfferingIdOrderByDisplayOrderAsc(offeringId).stream()
+        return syllabusItemRepository.findByClassSectionIdOrderByDisplayOrderAsc(offeringId).stream()
                 .map(mapper::toSyllabusItemResponse)
                 .toList();
     }
@@ -201,16 +201,16 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
     @Transactional(readOnly = true)
     public List<ClassroomSyllabusItemResponse> getLearnerSyllabus(Long offeringId, String learnerEmail) {
         assertLearnerPortalAccess(offeringId, learnerEmail);
-        return syllabusItemRepository.findByClassroomOfferingIdOrderByDisplayOrderAsc(offeringId).stream()
+        return syllabusItemRepository.findByClassSectionIdOrderByDisplayOrderAsc(offeringId).stream()
                 .map(mapper::toSyllabusItemResponse)
                 .toList();
     }
 
     @Override
     public ClassroomSyllabusItemResponse createSyllabusItem(Long offeringId, CreateSyllabusItemRequest request) {
-        ClassroomOffering offering = findOffering(offeringId);
+        ClassSection offering = findOffering(offeringId);
         ClassroomSyllabusItem item = ClassroomSyllabusItem.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title(request.getTitle().trim())
                 .description(request.getDescription())
                 .displayOrder(request.getDisplayOrder() == null ? 0 : request.getDisplayOrder())
@@ -257,20 +257,20 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy mục đề cương.")));
     }
 
-    private ClassroomOffering findOffering(Long offeringId) {
+    private ClassSection findOffering(Long offeringId) {
         return offeringRepository.findById(offeringId)
                 .filter(offering -> !offering.getLearningPackage().isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
     }
 
-    private void assertOfferingContentAccess(User user, ClassroomOffering offering) {
+    private void assertOfferingContentAccess(User user, ClassSection offering) {
         if (accessHelper.canManageTrainingOperations(user)) {
             return;
         }
         accessHelper.assertTeacher(user);
         LocalDate today = LocalDate.now();
         boolean assigned = teacherAssignmentRepository
-                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), user.getId())
+                .findAllByClassSectionIdAndTeacherId(offering.getId(), user.getId())
                 .stream()
                 .anyMatch(assignment -> (assignment.getEffectiveFrom() == null || !assignment.getEffectiveFrom().isAfter(today))
                         && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today)));
@@ -290,18 +290,18 @@ public class ClassroomContentServiceImpl implements ClassroomContentService {
 
     private void assertLearnerPortalAccess(Long offeringId, String learnerEmail) {
         User learner = accessHelper.requireUser(learnerEmail);
-        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offeringId)
+        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), offeringId)
                 .filter(enrollment -> ACTIVE_REGISTRATIONS.contains(enrollment.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập lớp học này."));
     }
 
-    private ClassroomSession resolveSession(Long offeringId, Long sessionId) {
+    private ClassSchedule resolveSession(Long offeringId, Long sessionId) {
         if (sessionId == null) {
             return null;
         }
-        ClassroomSession session = sessionRepository.findById(sessionId)
+        ClassSchedule session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
-        if (!session.getClassroomOffering().getId().equals(offeringId)) {
+        if (!session.getClassSection().getId().equals(offeringId)) {
             throw new IllegalArgumentException("Buổi học được chọn không thuộc lớp hiện tại.");
         }
         return session;

@@ -15,7 +15,7 @@ import java.time.LocalTime;
 @Builder
 public class ClassroomSessionResponse {
     private Long id;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String classroomTitle;
     private LocalDate sessionDate;
     private LocalTime startTime;

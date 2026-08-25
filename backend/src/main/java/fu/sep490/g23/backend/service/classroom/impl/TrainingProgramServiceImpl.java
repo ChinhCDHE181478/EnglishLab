@@ -207,7 +207,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
                 .statusLabel(statusLabel(program.getStatus()))
                 .displayOrder(program.getDisplayOrder())
                 .featured(program.isFeatured())
-                .classroomCount(program.getClassroomOfferings().size())
+                .classroomCount(program.getClassSections().size())
                 .activeClassroomCount((int) countActiveClassrooms(program))
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
@@ -235,7 +235,7 @@ public class TrainingProgramServiceImpl implements TrainingProgramService {
     }
 
     private long countActiveClassrooms(TrainingProgram program) {
-        return program.getClassroomOfferings().stream()
+        return program.getClassSections().stream()
                 .filter(offering -> ACTIVE_CLASS_STATUSES.contains(offering.getStatus()))
                 .count();
     }

@@ -3,9 +3,9 @@ package fu.sep490.g23.backend.service.classroom;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
@@ -39,7 +39,7 @@ class HomeworkAttachmentAccessServiceImplTest {
     @Mock private ClassroomTuitionPaymentProofRepository proofRepository;
     @Mock private ClassroomMaterialRepository materialRepository;
     @Mock private CenterMaterialLibraryItemRepository centerMaterialRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     @Mock private Resource resource;
 
@@ -66,7 +66,7 @@ class HomeworkAttachmentAccessServiceImplTest {
         ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
                 .student(learner)
                 .homework(ClassroomHomework.builder()
-                        .classroomOffering(ClassroomOffering.builder().id(20L).build())
+                        .classSection(ClassSection.builder().id(20L).build())
                         .build())
                 .build();
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
@@ -88,7 +88,7 @@ class HomeworkAttachmentAccessServiceImplTest {
         ClassroomHomeworkSubmission submission = ClassroomHomeworkSubmission.builder()
                 .student(owner)
                 .homework(ClassroomHomework.builder()
-                        .classroomOffering(ClassroomOffering.builder().id(20L).build())
+                        .classSection(ClassSection.builder().id(20L).build())
                         .build())
                 .build();
         when(accessHelper.requireUser("stranger@example.com")).thenReturn(stranger);

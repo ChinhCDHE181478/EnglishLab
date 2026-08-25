@@ -47,7 +47,7 @@ public class EnrollmentRequestStatusHistory extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "enrollment_request_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private EnrollmentRequest enrollmentRequest;
+    private CourseRegistrationRequest courseRegistrationRequest;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "from_status", length = 40)

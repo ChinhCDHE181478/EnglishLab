@@ -19,7 +19,7 @@ import fu.sep490.g23.backend.entity.teacher.TeacherCredential;
 import fu.sep490.g23.backend.entity.teacher.TeacherPerformanceEvaluation;
 import fu.sep490.g23.backend.entity.teacher.TeacherProfessionalProfile;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
 import fu.sep490.g23.backend.service.teacher.TeacherProfessionalService;
@@ -43,7 +43,7 @@ public class TeacherProfessionalServiceImpl implements TeacherProfessionalServic
     private final TeacherCredentialRepository credentialRepository;
     private final TeacherPerformanceEvaluationRepository evaluationRepository;
     private final ClassroomTeacherAssignmentRepository assignmentRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final AuditLogService auditLogService;
 
     @Override

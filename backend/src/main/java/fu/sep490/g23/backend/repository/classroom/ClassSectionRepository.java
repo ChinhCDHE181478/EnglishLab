@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomOfferingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,20 +16,20 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
-public interface ClassroomOfferingRepository extends JpaRepository<ClassroomOffering, Long> {
+public interface ClassSectionRepository extends JpaRepository<ClassSection, Long> {
 
-    @Query("SELECT co FROM ClassroomOffering co JOIN FETCH co.learningPackage lp WHERE lp.slug = :slugOrId AND lp.deleted = false")
-    Optional<ClassroomOffering> findByLearningPackageSlug(@Param("slugOrId") String slugOrId);
+    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE lp.slug = :slugOrId AND lp.deleted = false")
+    Optional<ClassSection> findByLearningPackageSlug(@Param("slugOrId") String slugOrId);
 
-    @Query("SELECT co FROM ClassroomOffering co JOIN FETCH co.learningPackage lp WHERE LOWER(lp.title) = LOWER(:title) AND lp.deleted = false")
-    Optional<ClassroomOffering> findByLearningPackageTitleIgnoreCase(@Param("title") String title);
+    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE LOWER(lp.title) = LOWER(:title) AND lp.deleted = false")
+    Optional<ClassSection> findByLearningPackageTitleIgnoreCase(@Param("title") String title);
 
-    @Query("SELECT co FROM ClassroomOffering co JOIN FETCH co.learningPackage lp WHERE lp.id = :packageId AND lp.deleted = false")
-    Optional<ClassroomOffering> findByLearningPackageId(@Param("packageId") Long packageId);
+    @Query("SELECT co FROM ClassSection co JOIN FETCH co.learningPackage lp WHERE lp.id = :packageId AND lp.deleted = false")
+    Optional<ClassSection> findByLearningPackageId(@Param("packageId") Long packageId);
 
     @Query("""
             SELECT co
-            FROM ClassroomOffering co
+            FROM ClassSection co
             JOIN co.learningPackage lp
             WHERE lp.deleted = false
               AND lp.status = 'PUBLISHED'
@@ -37,21 +37,21 @@ public interface ClassroomOfferingRepository extends JpaRepository<ClassroomOffe
               AND co.startDate > CURRENT_DATE
               AND (:mode IS NULL OR co.deliveryMode = :mode)
             """)
-    Page<ClassroomOffering> findPublished(@Param("mode") ClassroomDeliveryMode mode, Pageable pageable);
+    Page<ClassSection> findPublished(@Param("mode") ClassroomDeliveryMode mode, Pageable pageable);
 
     boolean existsByLearningPackage_TitleIgnoreCase(String title);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT co
-            FROM ClassroomOffering co
+            FROM ClassSection co
             JOIN FETCH co.learningPackage lp
             WHERE co.id = :id
               AND lp.deleted = false
             """)
-    Optional<ClassroomOffering> findByIdForUpdate(@Param("id") Long id);
+    Optional<ClassSection> findByIdForUpdate(@Param("id") Long id);
 
-    List<ClassroomOffering> findByEndDateBetween(LocalDate from, LocalDate to);
+    List<ClassSection> findByPlannedEndDateBetween(LocalDate from, LocalDate to);
 
-    List<ClassroomOffering> findByStatusIn(Collection<ClassroomOfferingStatus> statuses);
+    List<ClassSection> findByStatusIn(Collection<ClassroomOfferingStatus> statuses);
 }

@@ -33,7 +33,7 @@ public class ClassroomAttendance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)

@@ -1,6 +1,6 @@
 package fu.sep490.g23.backend.repository.classroom;
 
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
@@ -16,15 +16,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface ClassroomSessionRepository extends JpaRepository<ClassroomSession, Long> {
+public interface ClassScheduleRepository extends JpaRepository<ClassSchedule, Long> {
 
-    List<ClassroomSession> findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(Long classroomOfferingId);
+    List<ClassSchedule> findByClassSectionIdOrderBySessionDateAscStartTimeAsc(Long classSectionId);
 
-    long countByClassroomOfferingId(Long classroomOfferingId);
+    long countByClassSectionId(Long classSectionId);
 
-    long countByClassroomOfferingIdAndStatus(Long classroomOfferingId, ClassroomSessionStatus status);
+    long countByClassSectionIdAndStatus(Long classSectionId, ClassroomSessionStatus status);
 
-    long countByClassroomOfferingIdAndStatusNot(Long classroomOfferingId, ClassroomSessionStatus status);
+    long countByClassSectionIdAndStatusNot(Long classSectionId, ClassroomSessionStatus status);
 
     long countByTeacherId(Long teacherId);
 
@@ -34,45 +34,45 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
 
     boolean existsByCurriculumSessionPlanUnitId(Long unitId);
 
-    List<ClassroomSession> findByDeliveryModeAndStatusIn(
+    List<ClassSchedule> findByDeliveryModeAndStatusIn(
             ClassroomDeliveryMode deliveryMode,
             Collection<ClassroomSessionStatus> statuses
     );
 
-    List<ClassroomSession> findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
+    List<ClassSchedule> findByDeliveryModeAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
             ClassroomDeliveryMode deliveryMode,
             LocalDate fromDate,
             LocalDate toDate
     );
 
-    List<ClassroomSession> findByStatusInAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
+    List<ClassSchedule> findByStatusInAndSessionDateBetweenOrderBySessionDateAscStartTimeAsc(
             Collection<ClassroomSessionStatus> statuses,
             LocalDate fromDate,
             LocalDate toDate
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.status IN :statuses
               AND (s.sessionDate < :cutoffDate
                    OR (s.sessionDate = :cutoffDate AND s.endTime <= :cutoffTime))
             ORDER BY s.sessionDate ASC, s.endTime ASC
             """)
-    List<ClassroomSession> findSessionsEndedBefore(
+    List<ClassSchedule> findSessionsEndedBefore(
             @Param("statuses") Collection<ClassroomSessionStatus> statuses,
             @Param("cutoffDate") LocalDate cutoffDate,
             @Param("cutoffTime") LocalTime cutoffTime
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.deliveryMode = :deliveryMode
               AND s.status IN :sessionStatuses
               AND s.sessionDate >= :fromDate
               AND (s.larkSyncStatus IS NULL OR s.larkSyncStatus IN :syncStatuses)
             ORDER BY s.updatedAt ASC, s.id ASC
             """)
-    List<ClassroomSession> findVirtualMeetingsPendingSync(
+    List<ClassSchedule> findVirtualMeetingsPendingSync(
             @Param("deliveryMode") ClassroomDeliveryMode deliveryMode,
             @Param("sessionStatuses") Collection<ClassroomSessionStatus> sessionStatuses,
             @Param("syncStatuses") Collection<String> syncStatuses,
@@ -80,51 +80,51 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
             Pageable pageable
     );
 
-    Optional<ClassroomSession> findByLarkMeetingId(String larkMeetingId);
+    Optional<ClassSchedule> findByLarkMeetingId(String larkMeetingId);
 
-    Optional<ClassroomSession> findByLarkMeetingNo(String larkMeetingNo);
+    Optional<ClassSchedule> findByLarkMeetingNo(String larkMeetingNo);
 
-    List<ClassroomSession> findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(LocalDateTime cutoff);
+    List<ClassSchedule> findByLarkEmptySinceIsNotNullAndLarkEmptySinceBefore(LocalDateTime cutoff);
 
-    List<ClassroomSession> findByRecordingVisibleTrueAndRecordingExpiresAtBefore(LocalDateTime now);
+    List<ClassSchedule> findByRecordingVisibleTrueAndRecordingExpiresAtBefore(LocalDateTime now);
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.recordingSyncStatus IN :statuses
               AND s.larkMeetingId IS NOT NULL
               AND s.recordingSyncAttempts < :maxAttempts
               AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
             ORDER BY s.recordingLastAttemptAt ASC, s.id ASC
             """)
-    List<ClassroomSession> findRecordingsPendingSync(
+    List<ClassSchedule> findRecordingsPendingSync(
             @Param("statuses") Collection<RecordingSyncStatus> statuses,
             @Param("maxAttempts") int maxAttempts,
             @Param("retryBefore") LocalDateTime retryBefore
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.recordingSyncStatus IN :statuses
               AND s.larkMeetingId LIKE 'spaces/%'
               AND s.recordingSyncAttempts < :maxAttempts
               AND (s.recordingLastAttemptAt IS NULL OR s.recordingLastAttemptAt <= :retryBefore)
             ORDER BY s.recordingLastAttemptAt ASC, s.id ASC
             """)
-    List<ClassroomSession> findGoogleMeetRecordingsPendingSync(
+    List<ClassSchedule> findGoogleMeetRecordingsPendingSync(
             @Param("statuses") Collection<RecordingSyncStatus> statuses,
             @Param("maxAttempts") int maxAttempts,
             @Param("retryBefore") LocalDateTime retryBefore
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.teacher.id = :teacherId
               AND s.status IN :statuses
               AND s.sessionDate = :sessionDate
               AND s.startTime < :endTime AND s.endTime > :startTime
               AND (:excludeSessionId IS NULL OR s.id <> :excludeSessionId)
             """)
-    List<ClassroomSession> findTeacherConflicts(
+    List<ClassSchedule> findTeacherConflicts(
             @Param("teacherId") Long teacherId,
             @Param("sessionDate") LocalDate sessionDate,
             @Param("startTime") LocalTime startTime,
@@ -134,14 +134,14 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
+            SELECT s FROM ClassSchedule s
             WHERE s.room.id = :roomId
               AND s.status IN :statuses
               AND s.sessionDate = :sessionDate
               AND s.startTime < :endTime AND s.endTime > :startTime
               AND (:excludeSessionId IS NULL OR s.id <> :excludeSessionId)
             """)
-    List<ClassroomSession> findRoomConflicts(
+    List<ClassSchedule> findRoomConflicts(
             @Param("roomId") Long roomId,
             @Param("sessionDate") LocalDate sessionDate,
             @Param("startTime") LocalTime startTime,
@@ -151,8 +151,8 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
     );
 
     @Query("""
-            SELECT s FROM ClassroomSession s
-            JOIN ClassroomEnrollment e ON e.classroomOffering = s.classroomOffering
+            SELECT s FROM ClassSchedule s
+            JOIN ClassEnrollment e ON e.classSection = s.classSection
             WHERE e.student.id = :studentId
               AND e.status IN ('ENROLLED', 'WAITING')
               AND s.status IN :statuses
@@ -160,7 +160,7 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
               AND s.startTime < :endTime AND s.endTime > :startTime
               AND (:excludeSessionId IS NULL OR s.id <> :excludeSessionId)
             """)
-    List<ClassroomSession> findLearnerConflicts(
+    List<ClassSchedule> findLearnerConflicts(
             @Param("studentId") Long studentId,
             @Param("sessionDate") LocalDate sessionDate,
             @Param("startTime") LocalTime startTime,
@@ -170,17 +170,17 @@ public interface ClassroomSessionRepository extends JpaRepository<ClassroomSessi
     );
 
     @Query("""
-            SELECT DISTINCT s FROM ClassroomSession s
-            JOIN s.classroomOffering co
-            JOIN ClassroomTeacherAssignment ta ON ta.classroomOffering = co
+            SELECT DISTINCT s FROM ClassSchedule s
+            JOIN s.classSection co
+            JOIN ClassroomTeacherAssignment ta ON ta.classSection = co
             WHERE ta.teacher.id = :teacherId
               AND s.sessionDate >= :fromDate
               AND (ta.effectiveFrom IS NULL OR ta.effectiveFrom <= :fromDate)
               AND (ta.effectiveTo IS NULL OR ta.effectiveTo >= :fromDate)
-              AND (ta.classroomSession IS NULL OR ta.classroomSession = s)
+              AND (ta.classSchedule IS NULL OR ta.classSchedule = s)
             ORDER BY s.sessionDate ASC, s.startTime ASC
             """)
-    List<ClassroomSession> findTeacherSchedule(
+    List<ClassSchedule> findTeacherSchedule(
             @Param("teacherId") Long teacherId,
             @Param("fromDate") LocalDate fromDate
     );

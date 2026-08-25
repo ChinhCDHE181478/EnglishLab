@@ -3,11 +3,11 @@ package fu.sep490.g23.backend.service.classroom;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.impl.GoogleMeetServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +73,7 @@ class GoogleMeetServiceImplTest {
         GoogleMeetProperties properties = configuredProperties();
         TeacherGoogleMeetConnectionService connectionService = connectedTeacherService();
         VirtualMeetingService service = new GoogleMeetServiceImpl(properties, connectionService);
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
 
         service.syncMeeting(session);
 
@@ -98,7 +98,7 @@ class GoogleMeetServiceImplTest {
         });
         server.start();
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         session.setLarkMeetingId("spaces/existing-restricted-room");
         session.setLarkMeetingUrl("https://meet.google.com/existing-restricted-room");
 
@@ -118,7 +118,7 @@ class GoogleMeetServiceImplTest {
         ));
         server.start();
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         session.setLarkMeetingId("spaces/consumer-existing-room");
         session.setLarkMeetingUrl("https://meet.google.com/consumer-existing-room");
 
@@ -164,13 +164,13 @@ class GoogleMeetServiceImplTest {
 
         User classroomTeacher = User.builder().id(88L).fullName("Giáo viên chủ lớp").email("owner@example.com").build();
         User obsoleteStaffOwner = User.builder().id(99L).fullName("Nhân viên cũ").email("staff@example.com").build();
-        ClassroomOffering offering = ClassroomOffering.builder()
+        ClassSection offering = ClassSection.builder()
                 .id(9L)
                 .primaryTeacher(classroomTeacher)
                 .virtualMeetingOwner(obsoleteStaffOwner)
                 .build();
-        ClassroomSession session = sessionWithTeacher();
-        session.setClassroomOffering(offering);
+        ClassSchedule session = sessionWithTeacher();
+        session.setClassSection(offering);
         TeacherGoogleMeetConnectionService connectionService = connectedTeacherService();
 
         new GoogleMeetServiceImpl(configuredProperties(), connectionService).syncMeeting(session);
@@ -218,7 +218,7 @@ class GoogleMeetServiceImplTest {
                 mock(TeacherGoogleMeetConnectionService.class)
         );
 
-        assertThatThrownBy(() -> service.syncMeeting(new ClassroomSession()))
+        assertThatThrownBy(() -> service.syncMeeting(new ClassSchedule()))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("GOOGLE_MEET_CLIENT_ID")
                 .hasMessageContaining("GOOGLE_MEET_CLIENT_SECRET");
@@ -282,7 +282,7 @@ class GoogleMeetServiceImplTest {
                 configuredProperties(),
                 connectedTeacherService()
         );
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
 
         service.syncMeeting(session);
 
@@ -306,7 +306,7 @@ class GoogleMeetServiceImplTest {
         });
         server.start();
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         new GoogleMeetServiceImpl(configuredProperties(), connectedTeacherService()).syncMeeting(session);
 
         assertThat(spaceRequests).hasValue(2);
@@ -317,20 +317,20 @@ class GoogleMeetServiceImplTest {
 
     @Test
     void reusesTheExistingGoogleMeetRoomForAnotherSessionInTheSameClassroom() {
-        ClassroomSessionRepository sessionRepository = mock(ClassroomSessionRepository.class);
-        ClassroomOffering offering = ClassroomOffering.builder().id(9L).build();
-        ClassroomSession existing = new ClassroomSession();
+        ClassScheduleRepository sessionRepository = mock(ClassScheduleRepository.class);
+        ClassSection offering = ClassSection.builder().id(9L).build();
+        ClassSchedule existing = new ClassSchedule();
         existing.setId(20L);
-        existing.setClassroomOffering(offering);
+        existing.setClassSection(offering);
         existing.setLarkMeetingId("spaces/shared-room");
         existing.setLarkMeetingNo("shared-room");
         existing.setLarkMeetingUrl("https://meet.google.com/shared-room");
         existing.setRecordingSyncStatus(RecordingSyncStatus.SCHEDULED);
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         session.setId(21L);
-        session.setClassroomOffering(offering);
-        when(sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(9L))
+        session.setClassSection(offering);
+        when(sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(9L))
                 .thenReturn(List.of(existing, session));
 
         new GoogleMeetServiceImpl(configuredPropertiesWithoutServer(), connectedTeacherService(), sessionRepository)
@@ -365,7 +365,7 @@ class GoogleMeetServiceImplTest {
         ));
         server.start();
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         session.setLarkMeetingId("spaces/space-resource-id");
 
         VirtualMeetingRecordingInfo recording = new GoogleMeetServiceImpl(
@@ -400,7 +400,7 @@ class GoogleMeetServiceImplTest {
         ));
         server.start();
 
-        ClassroomSession session = sessionWithTeacher();
+        ClassSchedule session = sessionWithTeacher();
         session.setLarkMeetingId("spaces/shared-room");
         session.setSessionDate(LocalDate.of(2026, 8, 9));
         session.setStartTime(LocalTime.of(19, 30));
@@ -438,13 +438,13 @@ class GoogleMeetServiceImplTest {
         return service;
     }
 
-    private ClassroomSession sessionWithTeacher() {
+    private ClassSchedule sessionWithTeacher() {
         User teacher = User.builder()
                 .id(77L)
                 .fullName("Giáo viên kiểm thử")
                 .email("teacher@example.com")
                 .build();
-        ClassroomSession session = new ClassroomSession();
+        ClassSchedule session = new ClassSchedule();
         session.setTeacher(teacher);
         return session;
     }

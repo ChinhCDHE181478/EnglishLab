@@ -7,7 +7,7 @@ import fu.sep490.g23.backend.entity.payment.DiscountCode;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
@@ -42,7 +42,7 @@ class PaymentServiceImplRefundReceiptTest {
     @Mock private OnlineCourseRepository onlineCourseRepository;
     @Mock private LearningPathRepository learningPathRepository;
     @Mock private LearningPathCourseRepository learningPathCourseRepository;
-    @Mock private ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    @Mock private ClassEnrollmentRepository classroomEnrollmentRepository;
     @Mock private UserRepository userRepository;
     @Mock private OnlineCourseService onlineCourseService;
     @Mock private ClassroomOfferingService classroomOfferingService;
@@ -77,7 +77,7 @@ class PaymentServiceImplRefundReceiptTest {
                 .orderCode(1001L)
                 .student(student)
                 .courseIdsCsv("11,12")
-                .classroomOfferingIdsCsv("")
+                .classSectionIdsCsv("")
                 .enrollmentId(null)
                 .courseTitles("Course A | Course B")
                 .amount(500_000L)

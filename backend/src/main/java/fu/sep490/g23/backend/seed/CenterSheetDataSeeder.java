@@ -15,16 +15,16 @@ import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAttendance;
 import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.Room;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomAttendanceStatus;
@@ -75,16 +75,16 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepositor
 import fu.sep490.g23.backend.repository.classroom.ClassroomAttendanceRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomChangeRequestRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
-import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
+import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumUnitRepository;
@@ -167,14 +167,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LessonProgressRepository lessonProgressRepository;
     private final ClassroomCampusRepository campusRepository;
-    private final ClassroomRoomRepository roomRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final RoomRepository roomRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomChangeRequestRepository changeRequestRepository;
-    private final EnrollmentRequestRepository enrollmentRequestRepository;
+    private final CourseRegistrationRequestRepository enrollmentRequestRepository;
     private final TrainingProgramRepository trainingProgramRepository;
     private final CurriculumProgramRepository curriculumProgramRepository;
     private final CurriculumUnitRepository curriculumUnitRepository;
@@ -244,8 +244,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         seedPlacementViaApi(showcaseLearner);
 
         ClassroomCampus campus = ensureCampus();
-        List<ClassroomRoom> rooms = ensureRooms(campus);
-        List<ClassroomOffering> offerings = seedClasses(teachers, rooms, learners, showcaseLearner, alien);
+        List<Room> rooms = ensureRooms(campus);
+        List<ClassSection> offerings = seedClasses(teachers, rooms, learners, showcaseLearner, alien);
         seedShowcaseOnlineProgress(showcaseLearner);
         seedAlienClassExtras(offerings, alien, showcaseLearner);
         seedStaffOperationsData(staff, teachers, learners, offerings, alien, showcaseLearner);
@@ -281,14 +281,14 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private List<ClassroomRoom> ensureRooms(ClassroomCampus campus) {
-        List<ClassroomRoom> rooms = new ArrayList<>();
+    private List<Room> ensureRooms(ClassroomCampus campus) {
+        List<Room> rooms = new ArrayList<>();
         for (int i = 1; i <= 10; i++) {
             String name = "Phòng P%03d".formatted(i);
-            ClassroomRoom room = roomRepository.findByActiveTrue().stream()
+            Room room = roomRepository.findByActiveTrue().stream()
                     .filter(item -> name.equalsIgnoreCase(item.getName()))
                     .findFirst()
-                    .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
+                    .orElseGet(() -> roomRepository.save(Room.builder()
                             .name(name)
                             .campus(campus)
                             .capacity(12)
@@ -299,9 +299,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return rooms;
     }
 
-    private List<ClassroomOffering> seedClasses(
+    private List<ClassSection> seedClasses(
             List<User> teachers,
-            List<ClassroomRoom> rooms,
+            List<Room> rooms,
             List<User> learners,
             User showcaseLearner,
             User alien
@@ -314,7 +314,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 "center-sheet-ielts-live", "IELTS 4 kỹ năng Google Meet", ClassroomDeliveryMode.VIRTUAL);
         TrainingProgram toeicOffline = ensureSheetTrainingProgram(
                 "center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
-        List<ClassroomOffering> offerings = new ArrayList<>();
+        List<ClassSection> offerings = new ArrayList<>();
         int learnerCursor = 1;
         int[] classOrder = demoFirstClassIndexes(30);
         for (int classIndex : classOrder) {
@@ -324,7 +324,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             LocalDate end = start.plusWeeks(12);
             boolean mwf = classScheduleMwf(classIndex);
             boolean eveningTwo = classScheduleEveningTwo(classIndex);
-            ClassroomRoom room = online ? null : rooms.get(classIndex % 10);
+            Room room = online ? null : rooms.get(classIndex % 10);
             User teacher = (classIndex == 0 || classIndex == 24) ? alien : teachers.get(1 + (classIndex % 19));
             String slug = "center-sheet-class-%02d".formatted(classIndex + 1);
             boolean toeic = !online && intake == 2;
@@ -332,7 +332,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     + (intake == 0 ? "K1 " : intake == 1 ? "K2 " : "K3 ")
                     + (mwf ? "T2-4-6 " : "T3-5-7 ")
                     + (eveningTwo ? "Ca 2" : "Ca 1");
-            ClassroomOffering offering = upsertOffering(
+            ClassSection offering = upsertOffering(
                     classroomType, slug, title, online, start, end, teacher, room, eveningTwo);
             TrainingProgram program = online ? ieltsLive : (toeic ? toeicOffline : ieltsOffline);
             attachCurriculum(offering, program);
@@ -350,13 +350,13 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 }
             }
             for (User learner : classLearners) {
-                ensureClassroomEnrollment(offering, learner, teacher, start);
+                ensureClassEnrollment(offering, learner, teacher, start);
                 ensureGradebook(offering, learner, teacher, classIndex);
             }
             seedAttendance(offering, classLearners);
             offerings.add(offering);
         }
-        offerings.sort(java.util.Comparator.comparing(ClassroomOffering::getId, java.util.Comparator.nullsLast(Long::compareTo)));
+        offerings.sort(java.util.Comparator.comparing(ClassSection::getId, java.util.Comparator.nullsLast(Long::compareTo)));
         return offerings;
     }
 
@@ -373,7 +373,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return order;
     }
 
-    private ClassroomOffering upsertOffering(
+    private ClassSection upsertOffering(
             PackageType classroomType,
             String slug,
             String title,
@@ -381,7 +381,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             LocalDate start,
             LocalDate end,
             User teacher,
-            ClassroomRoom room,
+            Room room,
             boolean eveningTwo
     ) {
         String cover = online ? "/course-covers/classroom-online.png" : "/course-covers/classroom-offline.png";
@@ -391,7 +391,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             pack.setThumbnailUrl(cover);
             learningPackageRepository.save(pack);
             existing.setPrimaryTeacher(teacher);
-            existing.setDefaultRoom(room);
+            existing.setRegularRoom(room);
             return offeringRepository.save(existing);
         }).orElseGet(() -> {
             LearningPackage pack = LearningPackage.builder()
@@ -408,18 +408,18 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .displayOrder(100)
                     .deleted(false)
                     .build();
-            ClassroomOffering offering = ClassroomOffering.builder()
+            ClassSection offering = ClassSection.builder()
                     .learningPackage(pack)
                     .deliveryMode(online ? ClassroomDeliveryMode.VIRTUAL : ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.ACTIVE)
                     .entryLevel("IELTS 5.0")
                     .targetOutcome("Đạt band 6.0-6.5 sau 36 buổi.")
-                    .maxCapacity(10)
+                    .capacity(10)
                     .startDate(start)
-                    .endDate(end)
+                    .plannedEndDate(end)
                     .primaryTeacher(teacher)
                     .virtualMeetingOwner(online ? teacher : null)
-                    .defaultRoom(room)
+                    .regularRoom(room)
                     .offlineAddress(online ? null : ADDRESS)
                     .defaultLarkMeetingUrl(online ? "https://meet.google.com/englishlab-sheet-" + slug : null)
                     .larkMeetingStatus(online ? LarkMeetingStatus.SCHEDULED : LarkMeetingStatus.NOT_CREATED)
@@ -429,10 +429,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         });
     }
 
-    private void ensureTeacherAssignment(ClassroomOffering offering, User teacher) {
-        if (teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()).isEmpty()) {
+    private void ensureTeacherAssignment(ClassSection offering, User teacher) {
+        if (teacherAssignmentRepository.findAllByClassSectionIdAndTeacherId(offering.getId(), teacher.getId()).isEmpty()) {
             teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .teacher(teacher)
                     .role(ClassroomTeacherRole.PRIMARY)
                     .effectiveFrom(offering.getStartDate())
@@ -455,7 +455,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return classIndex % 2 == 1;
     }
 
-    private void attachCurriculum(ClassroomOffering offering, TrainingProgram program) {
+    private void attachCurriculum(ClassSection offering, TrainingProgram program) {
         CurriculumProgram curriculum = program.getCurriculumProgram();
         offering.setTrainingProgram(program);
         offering.setCurriculumProgram(curriculum);
@@ -476,9 +476,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     }
 
     private void seedSessions(
-            ClassroomOffering offering,
+            ClassSection offering,
             User teacher,
-            ClassroomRoom room,
+            Room room,
             boolean mwf,
             boolean eveningTwo,
             boolean online
@@ -486,10 +486,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         Set<DayOfWeek> days = mwf ? MWF : TTS;
         LocalTime start = eveningTwo ? SLOT_2_START : SLOT_1_START;
         LocalTime end = eveningTwo ? SLOT_2_END : SLOT_1_END;
-        List<ClassroomSession> existing = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
-        List<LocalDate> dates = sessionDates(offering.getStartDate(), offering.getEndDate(), days);
+        List<ClassSchedule> existing = sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        List<LocalDate> dates = sessionDates(offering.getStartDate(), offering.getPlannedEndDate(), days);
         if (!existing.isEmpty()) {
-            ClassroomSession first = existing.getFirst();
+            ClassSchedule first = existing.getFirst();
             boolean sameSlot = first.getStartTime().equals(start)
                     && days.contains(first.getSessionDate().getDayOfWeek());
             if (sameSlot) {
@@ -498,7 +498,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             }
             int limit = Math.min(existing.size(), dates.size());
             for (int i = 0; i < limit; i++) {
-                ClassroomSession session = existing.get(i);
+                ClassSchedule session = existing.get(i);
                 LocalDate date = dates.get(i);
                 session.setSessionDate(date);
                 session.setStartTime(start);
@@ -512,11 +512,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
         LocalDate cursor = offering.getStartDate();
         int index = 1;
-        while (!cursor.isAfter(offering.getEndDate())) {
+        while (!cursor.isAfter(offering.getPlannedEndDate())) {
             if (days.contains(cursor.getDayOfWeek())) {
                 ClassroomSessionStatus status = statusForSessionDate(cursor);
-                sessionRepository.save(ClassroomSession.builder()
-                        .classroomOffering(offering)
+                sessionRepository.save(ClassSchedule.builder()
+                        .classSection(offering)
                         .sessionDate(cursor)
                         .startTime(start)
                         .endTime(end)
@@ -536,8 +536,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private void refreshSessionStatuses(List<ClassroomSession> sessions) {
-        for (ClassroomSession session : sessions) {
+    private void refreshSessionStatuses(List<ClassSchedule> schedules) {
+        for (ClassSchedule session : schedules) {
             session.setStatus(statusForSessionDate(session.getSessionDate()));
             sessionRepository.save(session);
         }
@@ -553,11 +553,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return ClassroomSessionStatus.SCHEDULED;
     }
 
-    private void ensureClassroomEnrollment(ClassroomOffering offering, User learner, User teacher, LocalDate start) {
-        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offering.getId())
-                .orElseGet(() -> enrollmentRepository.save(ClassroomEnrollment.builder()
+    private void ensureClassEnrollment(ClassSection offering, User learner, User teacher, LocalDate start) {
+        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), offering.getId())
+                .orElseGet(() -> enrollmentRepository.save(ClassEnrollment.builder()
                         .student(learner)
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(4_690_000))
@@ -572,10 +572,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private void seedAttendance(ClassroomOffering offering, List<User> classLearners) {
-        List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+    private void seedAttendance(ClassSection offering, List<User> classLearners) {
+        List<ClassSchedule> schedules = sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
         int i = 0;
-        for (ClassroomSession session : sessions) {
+        for (ClassSchedule session : schedules) {
             if (session.getStatus() != ClassroomSessionStatus.COMPLETED && session.getStatus() != ClassroomSessionStatus.IN_PROGRESS) {
                 continue;
             }
@@ -649,10 +649,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         });
     }
 
-    private void seedAlienClassExtras(List<ClassroomOffering> offerings, User teacher, User learner) {
-        ClassroomOffering offering = offerings.get(0);
+    private void seedAlienClassExtras(List<ClassSection> offerings, User teacher, User learner) {
+        ClassSection offering = offerings.get(0);
         ClassroomHomework speaking = upsertSpeakingHomework(offering, teacher);
-        if (homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+        if (homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .noneMatch(item -> "Writing Task 2 - Family".equalsIgnoreCase(item.getTitle()))) {
             ClassroomHomework overdue = saveHomework(offering, "Writing Task 2 - Family", LocalDateTime.now().minusDays(2));
             saveHomework(offering, "Listening Section 1 Form", LocalDateTime.now().plusDays(5));
@@ -681,17 +681,17 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                         .attachmentUrl("/sheet-speaking/sample-answer.wav")
                         .submittedAt(LocalDateTime.now().minusHours(2))
                         .build()));
-        if (announcementRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
+        if (announcementRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
             announcementRepository.save(ClassroomAnnouncement.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .title("Lịch ca tối tuần này")
                     .content("Lớp học 18:00-19:30, nghỉ Chủ nhật. Mang tài liệu Writing.")
                     .createdBy(teacher)
                     .build());
         }
-        if (materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
+        if (materialRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).isEmpty()) {
             materialRepository.save(ClassroomMaterial.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .title("Đề cương 36 buổi")
                     .description("Syllabus lớp IELTS 3 tháng")
                     .fileUrl("https://cdn.englishlab.vn/sheet/ielts-36-sessions.pdf")
@@ -703,7 +703,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         }
     }
 
-    private ClassroomHomework upsertSpeakingHomework(ClassroomOffering offering, User teacher) {
+    private ClassroomHomework upsertSpeakingHomework(ClassSection offering, User teacher) {
         String title = "Speaking Part 1-2 ghi âm";
         String config = """
                 {"parts":[
@@ -717,10 +717,10 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                    "cueCardBullets":["What the class is about","When and where you take it","Who you study with","Why you enjoy it"]}
                 ]}
                 """;
-        ClassroomHomework homework = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+        ClassroomHomework homework = homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()) || "Speaking Part 2 Cue Card".equalsIgnoreCase(item.getTitle()))
                 .findFirst()
-                .orElseGet(() -> ClassroomHomework.builder().classroomOffering(offering).build());
+                .orElseGet(() -> ClassroomHomework.builder().classSection(offering).build());
         homework.setTitle(title);
         homework.setInstruction("Nghe câu hỏi ghi âm, rồi thu âm câu trả lời. Không gõ text thay cho bài nói.");
         homework.setDeadline(LocalDateTime.now().plusHours(8));
@@ -735,9 +735,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return homeworkRepository.save(homework);
     }
 
-    private ClassroomHomework saveHomework(ClassroomOffering offering, String title, LocalDateTime deadline) {
+    private ClassroomHomework saveHomework(ClassSection offering, String title, LocalDateTime deadline) {
         return homeworkRepository.save(ClassroomHomework.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .title(title)
                 .instruction("Làm bài và nộp trước hạn. Dùng từ vựng đã học trên lớp.")
                 .deadline(deadline)
@@ -880,7 +880,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             User staff,
             List<User> teachers,
             List<User> learners,
-            List<ClassroomOffering> offerings,
+            List<ClassSection> offerings,
             User alien,
             User showcaseLearner
     ) {
@@ -955,13 +955,13 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
     private void seedEnrollmentRequests(
             User staff,
             List<User> learners,
-            List<ClassroomOffering> offerings,
+            List<ClassSection> offerings,
             User showcaseLearner
     ) {
         TrainingProgram ieltsProgram = ensureSheetTrainingProgram("center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE);
         TrainingProgram toeicProgram = ensureSheetTrainingProgram("center-sheet-toeic-lr", "TOEIC Listening & Reading", ClassroomDeliveryMode.OFFLINE);
         if (enrollmentRequestRepository.count() > 0) {
-            for (EnrollmentRequest existing : enrollmentRequestRepository.findAll()) {
+            for (CourseRegistrationRequest existing : enrollmentRequestRepository.findAll()) {
                 if (existing.getCourseOffering() == null) {
                     boolean toeic = "TOEIC_2_SKILLS".equals(existing.getConsultationTrack());
                     existing.setCourseOffering(toeic ? toeicProgram : ieltsProgram);
@@ -1013,11 +1013,11 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 EnrollmentRequestStatus.REJECTED,
                 EnrollmentRequestStatus.REJECTED
         };
-        ClassroomOffering assigned = offerings.isEmpty() ? null : offerings.getFirst();
+        ClassSection assigned = offerings.isEmpty() ? null : offerings.getFirst();
         for (int i = 0; i < prospects.size(); i++) {
             User learner = prospects.get(i);
             EnrollmentRequestStatus status = statuses[i];
-            EnrollmentRequest.EnrollmentRequestBuilder builder = EnrollmentRequest.builder()
+            CourseRegistrationRequest.CourseRegistrationRequestBuilder builder = CourseRegistrationRequest.builder()
                     .learner(learner)
                     .contactName(learner.getFullName())
                     .contactEmail(learner.getEmail())
@@ -1054,8 +1054,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 builder.confirmedLevel(i % 3 == 0 ? PlacementLevel.BEGINNER : PlacementLevel.INTERMEDIATE);
             }
             if (status == EnrollmentRequestStatus.CLASS_ASSIGNED && assigned != null) {
-                builder.assignedClassroom(assigned);
-                builder.requestedClassroom(assigned);
+                builder.assignedClassSection(assigned);
+                builder.preferredClassSection(assigned);
             }
             if (status == EnrollmentRequestStatus.REJECTED) {
                 builder.rejectionReason("Chưa phù hợp lịch ca tối hiện tại.");
@@ -1063,7 +1063,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             enrollmentRequestRepository.save(builder.build());
         }
         if (showcaseLearner != null && assigned != null) {
-            enrollmentRequestRepository.save(EnrollmentRequest.builder()
+            enrollmentRequestRepository.save(CourseRegistrationRequest.builder()
                     .learner(showcaseLearner)
                     .contactName(showcaseLearner.getFullName())
                     .contactEmail(showcaseLearner.getEmail())
@@ -1072,8 +1072,8 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                     .studyWorkGoal("Học viên showcase đã được tư vấn và xếp lớp.")
                     .status(EnrollmentRequestStatus.CLASS_ASSIGNED)
                     .requestSource(EnrollmentRequestSource.CENTER)
-                    .assignedClassroom(assigned)
-                    .requestedClassroom(assigned)
+                    .assignedClassSection(assigned)
+                    .preferredClassSection(assigned)
                     .reviewedBy(staff)
                     .reviewedAt(LocalDateTime.now().minusDays(8))
                     .confirmedLevel(PlacementLevel.INTERMEDIATE)
@@ -1500,19 +1500,19 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         return dates;
     }
 
-    private void seedChangeRequests(User alien, List<ClassroomOffering> offerings) {
+    private void seedChangeRequests(User alien, List<ClassSection> offerings) {
         if (offerings.isEmpty() || changeRequestRepository.count() > 0) {
             return;
         }
-        ClassroomOffering offering = offerings.getFirst();
-        List<ClassroomSession> sessions = sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
-        ClassroomSession session = sessions.isEmpty() ? null : sessions.getFirst();
+        ClassSection offering = offerings.getFirst();
+        List<ClassSchedule> schedules = sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        ClassSchedule session = schedules.isEmpty() ? null : schedules.getFirst();
         changeRequestRepository.save(ClassroomChangeRequest.builder()
                 .requestType(ClassroomChangeRequestType.RESCHEDULE_SESSION)
                 .requester(alien)
                 .requesterRole(RoleEnum.TEACHER)
-                .classroomOffering(offering)
-                .targetSession(session)
+                .classSection(offering)
+                .targetClassSchedule(session)
                 .reason("Trùng lịch họp phụ huynh, xin dời buổi học ca 1.")
                 .status(ClassroomChangeRequestStatus.PENDING)
                 .build());
@@ -1520,7 +1520,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 .requestType(ClassroomChangeRequestType.CHANGE_ROOM)
                 .requester(alien)
                 .requesterRole(RoleEnum.TEACHER)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .reason("Phòng P001 đang bảo trì loa, xin chuyển phòng.")
                 .status(ClassroomChangeRequestStatus.PENDING)
                 .build());
@@ -1535,7 +1535,7 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
             return;
         }
         User teacher = teachers.get(1);
-        ClassroomOffering offering = upsertOffering(
+        ClassSection offering = upsertOffering(
                 classroomType,
                 "center-sheet-class-31",
                 "IELTS Center K4 T2-4-6 Ca 1",
@@ -1546,19 +1546,19 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
                 roomRepository.findByActiveTrue().stream().findFirst().orElse(null),
                 false
         );
-        offering.setMaxCapacity(10);
+        offering.setCapacity(10);
         offering.setStatus(ClassroomOfferingStatus.UPCOMING);
         offeringRepository.save(offering);
         attachCurriculum(offering, ensureSheetTrainingProgram(
                 "center-sheet-ielts-4skills", "IELTS 4 kỹ năng ca tối", ClassroomDeliveryMode.OFFLINE));
         ensureTeacherAssignment(offering, teacher);
-        ensureClassroomEnrollment(offering, learners.get(1), teacher, LocalDate.now());
-        ensureClassroomEnrollment(offering, learners.get(2), teacher, LocalDate.now());
+        ensureClassEnrollment(offering, learners.get(1), teacher, LocalDate.now());
+        ensureClassEnrollment(offering, learners.get(2), teacher, LocalDate.now());
         ensureGradebook(offering, learners.get(1), teacher, 30);
         ensureGradebook(offering, learners.get(2), teacher, 30);
     }
 
-    private void ensureGradebook(ClassroomOffering offering, User learner, User teacher, int salt) {
+    private void ensureGradebook(ClassSection offering, User learner, User teacher, int salt) {
         BigDecimal homework = BigDecimal.valueOf(6.5 + (salt + learner.getId().intValue()) % 30 * 0.1)
                 .min(BigDecimal.TEN);
         BigDecimal quiz = BigDecimal.valueOf(6.8 + (salt * 2 + learner.getId().intValue()) % 28 * 0.1)
@@ -1568,9 +1568,9 @@ public class CenterSheetDataSeeder implements CommandLineRunner {
         BigDecimal finalResult = homework.add(quiz).add(participation)
                 .divide(BigDecimal.valueOf(3), 2, java.math.RoundingMode.HALF_UP);
         ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassroomOfferingIdAndStudentId(offering.getId(), learner.getId())
+                .findByClassSectionIdAndStudentId(offering.getId(), learner.getId())
                 .orElseGet(() -> ClassroomGradebookEntry.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .student(learner)
                         .build());
         entry.setHomeworkScore(homework);

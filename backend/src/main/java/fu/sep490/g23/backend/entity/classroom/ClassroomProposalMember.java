@@ -49,10 +49,10 @@ public class ClassroomProposalMember extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "enrollment_request_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private EnrollmentRequest enrollmentRequest;
+    private CourseRegistrationRequest courseRegistrationRequest;
 
     @Column(name = "classroom_enrollment_id")
-    private Long classroomEnrollmentId;
+    private Long classEnrollmentId;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

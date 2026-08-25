@@ -44,7 +44,7 @@ public class ClassroomOfferingResponse {
     private CurriculumProgramResponse curriculumProgram;
     private String entryLevel;
     private String targetOutcome;
-    private Integer maxCapacity;
+    private Integer capacity;
     private Integer enrolledCount;
     private LocalDate startDate;
     private LocalDate endDate;

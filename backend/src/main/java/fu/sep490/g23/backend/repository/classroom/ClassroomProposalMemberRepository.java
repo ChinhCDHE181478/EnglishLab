@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Collection;
 
 public interface ClassroomProposalMemberRepository extends JpaRepository<ClassroomProposalMember, Long> {
-    boolean existsByEnrollmentRequestIdAndProposalApprovalStatusIn(
-            Long enrollmentRequestId,
+    boolean existsByCourseRegistrationRequestIdAndProposalApprovalStatusIn(
+            Long courseRegistrationRequestId,
             Collection<ClassroomApprovalStatus> statuses
     );
 }

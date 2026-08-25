@@ -1,17 +1,17 @@
 package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.classroom.ClassroomQuizQuestion;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomGradebookEntry;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomQuizAttempt;
 import fu.sep490.g23.backend.entity.classroom.ClassroomQuiz;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomQuizRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomQuizAttemptRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,10 +44,10 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
 
     private final ClassroomQuizRepository quizRepository;
     private final ClassroomQuizAttemptRepository attemptRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final ClassroomGradebookEntryRepository gradebookEntryRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomAccessHelper accessHelper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -55,7 +55,7 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
     @Transactional(readOnly = true)
     public List<ClassroomQuizResponse> listForClass(Long offeringId, String userEmail) {
         accessHelper.requireUser(userEmail);
-        return quizRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offeringId).stream()
+        return quizRepository.findByClassSectionIdOrderByCreatedAtDesc(offeringId).stream()
                 .map(quiz -> toResponse(quiz, null, true))
                 .toList();
     }
@@ -71,12 +71,12 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
                                 fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus.COMPLETED
                         ))
                 .stream()
-                .map(enrollment -> enrollment.getClassroomOffering().getId())
+                .map(enrollment -> enrollment.getClassSection().getId())
                 .distinct()
                 .toList();
         List<ClassroomQuizResponse> responses = new ArrayList<>();
         for (Long offeringId : offeringIds) {
-            quizRepository.findByClassroomOfferingIdAndStatusOrderByCreatedAtDesc(offeringId, ClassroomQuizStatus.OPEN)
+            quizRepository.findByClassSectionIdAndStatusOrderByCreatedAtDesc(offeringId, ClassroomQuizStatus.OPEN)
                     .forEach(quiz -> {
                         ClassroomQuizAttempt attempt = attemptRepository.findByQuizIdAndStudentId(quiz.getId(), learner.getId()).orElse(null);
                         responses.add(toResponse(quiz, attempt, false));
@@ -89,15 +89,15 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
     public ClassroomQuizResponse create(Long offeringId, CreateClassroomQuizRequest request, String creatorEmail) {
         User creator = accessHelper.requireUser(creatorEmail);
         accessHelper.assertTeacher(creator);
-        ClassroomOffering offering = offeringRepository.findById(offeringId)
+        ClassSection offering = offeringRepository.findById(offeringId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
-        ClassroomSession session = null;
+        ClassSchedule session = null;
         if (request.getSessionId() != null) {
             session = sessionRepository.findById(request.getSessionId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy buổi học."));
         }
         ClassroomQuiz quiz = ClassroomQuiz.builder()
-                .classroomOffering(offering)
+                .classSection(offering)
                 .session(session)
                 .title(request.getTitle().trim())
                 .description(request.getDescription())
@@ -149,8 +149,8 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
         if (quiz.getDueAt() != null && LocalDateTime.now().isAfter(quiz.getDueAt())) {
             throw new RuntimeException("Đã quá hạn nộp bài kiểm tra.");
         }
-        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), quiz.getClassroomOffering().getId())
-                .filter(ClassroomEnrollment::hasClassAccess)
+        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), quiz.getClassSection().getId())
+                .filter(ClassEnrollment::hasClassAccess)
                 .orElseThrow(() -> new RuntimeException("Bạn không thuộc lớp học này."));
         if (attemptRepository.findByQuizIdAndStudentId(quizId, learner.getId()).isPresent()) {
             throw new RuntimeException("Bạn đã nộp bài kiểm tra này.");
@@ -195,9 +195,9 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
 
     private void syncGradebook(ClassroomQuiz quiz, User learner, BigDecimal score) {
         ClassroomGradebookEntry entry = gradebookEntryRepository
-                .findByClassroomOfferingIdAndStudentId(quiz.getClassroomOffering().getId(), learner.getId())
+                .findByClassSectionIdAndStudentId(quiz.getClassSection().getId(), learner.getId())
                 .orElseGet(() -> ClassroomGradebookEntry.builder()
-                        .classroomOffering(quiz.getClassroomOffering())
+                        .classSection(quiz.getClassSection())
                         .student(learner)
                         .status(GradebookEntryStatus.PENDING)
                         .build());
@@ -231,7 +231,7 @@ public class ClassroomQuizServiceImpl implements ClassroomQuizService {
                 .toList();
         return ClassroomQuizResponse.builder()
                 .id(quiz.getId())
-                .classroomOfferingId(quiz.getClassroomOffering().getId())
+                .classSectionId(quiz.getClassSection().getId())
                 .sessionId(quiz.getSession() == null ? null : quiz.getSession().getId())
                 .title(quiz.getTitle())
                 .description(quiz.getDescription())

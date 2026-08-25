@@ -16,15 +16,21 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_rooms")
+@Table(name = "rooms")
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomRoom {
+public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, length = 120)
     private String name;
+
+    @Column(name = "location_name", length = 160)
+    private String locationName;
+
+    @Column(name = "location_address", length = 500)
+    private String locationAddress;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campus_id")

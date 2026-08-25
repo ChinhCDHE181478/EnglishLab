@@ -2,17 +2,17 @@ package fu.sep490.g23.backend.service.notification.impl;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.service.notification.NotificationPreferenceService;
 import fu.sep490.g23.backend.service.notification.AppNotificationService;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.service.notification.LearningReminderService;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
@@ -45,8 +45,8 @@ public class LearningReminderServiceImpl implements LearningReminderService {
     );
     private static final DateTimeFormatter DATE_TIME = DateTimeFormatter.ofPattern("HH:mm 'ngày' dd/MM/yyyy");
 
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomHomeworkRepository homeworkRepository;
     private final ClassroomHomeworkSubmissionRepository submissionRepository;
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
@@ -83,12 +83,12 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                     long minutes = Duration.between(now, start).toMinutes();
                     String window = minutes <= 120 ? "2H" : "24H";
                     String title = minutes <= 120 ? "Buổi học sắp bắt đầu" : "Nhắc lịch học ngày mai";
-                    String classTitle = session.getClassroomOffering().getLearningPackage().getTitle();
+                    String classTitle = session.getClassSection().getLearningPackage().getTitle();
                     String body = classTitle + " bắt đầu lúc " + start.format(DATE_TIME) + ".";
-                    String actionPath = "/my-classrooms/" + session.getClassroomOffering().getId();
-                    for (ClassroomEnrollment enrollment : enrollmentRepository
-                            .findByClassroomOfferingIdAndRegistrationStatusIn(
-                                    session.getClassroomOffering().getId(),
+                    String actionPath = "/my-classrooms/" + session.getClassSection().getId();
+                    for (ClassEnrollment enrollment : enrollmentRepository
+                            .findByClassSectionIdAndRegistrationStatusIn(
+                                    session.getClassSection().getId(),
                                     ACTIVE_REGISTRATION_STATUSES
                             )) {
                         User learner = enrollment.getStudent();
@@ -101,7 +101,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                                 body,
                                 actionPath,
                                 key,
-                                Map.of("sessionId", session.getId(), "classroomId", session.getClassroomOffering().getId())
+                                Map.of("sessionId", session.getId(), "classroomId", session.getClassSection().getId())
                         );
                         if (created && preferenceService.isEmailEnabled(learner)) {
                             mailService.sendReminder(learner, title + " - EnglishLab", title, body, actionPath);
@@ -117,9 +117,9 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                     String window = minutes <= 120 ? "2H" : "24H";
                     String title = minutes <= 120 ? "Bài tập sắp hết hạn" : "Nhắc hạn nộp bài tập";
                     String body = "Bài “" + homework.getTitle() + "” hết hạn lúc " + homework.getDeadline().format(DATE_TIME) + ".";
-                    for (ClassroomEnrollment enrollment : enrollmentRepository
-                            .findByClassroomOfferingIdAndRegistrationStatusIn(
-                                    homework.getClassroomOffering().getId(),
+                    for (ClassEnrollment enrollment : enrollmentRepository
+                            .findByClassSectionIdAndRegistrationStatusIn(
+                                    homework.getClassSection().getId(),
                                     ACTIVE_REGISTRATION_STATUSES
                             )) {
                         User learner = enrollment.getStudent();
@@ -136,7 +136,7 @@ public class LearningReminderServiceImpl implements LearningReminderService {
                                 body,
                                 "/my-homework",
                                 key,
-                                Map.of("homeworkId", homework.getId(), "classroomId", homework.getClassroomOffering().getId())
+                                Map.of("homeworkId", homework.getId(), "classroomId", homework.getClassSection().getId())
                         );
                         if (created && preferenceService.isEmailEnabled(learner)) {
                             mailService.sendReminder(learner, title + " - EnglishLab", title, body, "/my-homework");

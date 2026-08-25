@@ -85,7 +85,7 @@ public class CheckoutIT {
                 .orderCode(orderCode)
                 .student(learner)
                 .courseIdsCsv("")
-                .classroomOfferingIdsCsv("")
+                .classSectionIdsCsv("")
                 .courseTitles("IT webhook order")
                 .amount(10_000L)
                 .originalAmount(10_000L)

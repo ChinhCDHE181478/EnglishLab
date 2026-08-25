@@ -35,9 +35,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "course_enrollment_requests")
+@Table(name = "course_registration_requests")
 @EntityListeners(AuditingEntityListener.class)
-public class EnrollmentRequest {
+public class CourseRegistrationRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -51,16 +51,16 @@ public class EnrollmentRequest {
     private TrainingProgram courseOffering;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "requested_classroom_id")
-    private ClassroomOffering requestedClassroom;
+    @JoinColumn(name = "preferred_class_section_id")
+    private ClassSection preferredClassSection;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_class_section_id")
+    private ClassSection assignedClassSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "placement_attempt_id")
     private PlacementTestAttempt placementAttempt;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_classroom_id")
-    private ClassroomOffering assignedClassroom;
 
     @Column(name = "contact_name", length = 100)
     private String contactName;

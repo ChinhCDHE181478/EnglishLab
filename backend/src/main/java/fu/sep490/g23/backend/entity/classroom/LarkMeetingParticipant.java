@@ -33,8 +33,8 @@ public class LarkMeetingParticipant extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "classroom_session_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private ClassroomSession classroomSession;
+    @JoinColumn(name = "class_schedule_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    private ClassSchedule classSchedule;
 
     @Column(name = "participant_key", nullable = false, length = 255)
     private String participantKey;

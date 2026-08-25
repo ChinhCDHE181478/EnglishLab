@@ -15,7 +15,7 @@ public class ClassroomChangeRequestResponse {
     private String requestTypeLabel;
     private Long requesterId;
     private String requesterName;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private String classroomTitle;
     private Long targetSessionId;
     private String oldValuesJson;

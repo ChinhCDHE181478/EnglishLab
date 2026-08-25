@@ -35,7 +35,7 @@ public class ClassroomTuitionPayment extends DomainRecord {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
-    private ClassroomEnrollment enrollment;
+    private ClassEnrollment enrollment;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;

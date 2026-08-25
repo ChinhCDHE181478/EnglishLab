@@ -14,11 +14,11 @@ import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposalMember;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.Room;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -30,9 +30,9 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumSessionPlan;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomProposalRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
 import fu.sep490.g23.backend.security.TrainingRolePolicy;
@@ -65,12 +65,12 @@ import java.util.stream.Collectors;
 public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     private final ClassroomProposalRepository proposalRepository;
     private final TrainingProgramRepository trainingProgramRepository;
-    private final ClassroomRoomRepository roomRepository;
-    private final ClassroomOfferingRepository offeringRepository;
+    private final RoomRepository roomRepository;
+    private final ClassSectionRepository offeringRepository;
     private final UserRepository userRepository;
     private final ClassroomConflictService conflictService;
     private final ClassroomScheduleLockService scheduleLockService;
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
     private final CurriculumSessionPlanRepository curriculumSessionPlanRepository;
 
     @Override
@@ -183,7 +183,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 ? List.of()
                 : roomRepository.findByActiveTrue().stream()
                 .filter(room -> room.getCapacity() == null || room.getCapacity() >= proposal.getCapacity())
-                .sorted(Comparator.comparing(ClassroomRoom::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
+                .sorted(Comparator.comparing(Room::getName, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .filter(room -> {
                     proposal.setRoom(room);
                     return checkScheduleConflicts(proposal, excludeProposalId).getConflicts().stream()
@@ -268,14 +268,14 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
             );
         }
 
-        ClassroomOfferingResponse created = classroomOfferingService.createOffering(
+        ClassroomOfferingResponse created = classSectionService.createOffering(
                 toOfferingRequest(proposal),
                 managerEmail
         );
         for (int index = 0; index < dates.size(); index++) {
             LocalDate sessionDate = dates.get(index);
             CurriculumSessionPlan sessionPlan = sessionPlans.isEmpty() ? null : sessionPlans.get(index);
-            classroomOfferingService.createSession(created.getId(), CreateClassroomSessionRequest.builder()
+            classSectionService.createSession(created.getId(), CreateClassroomSessionRequest.builder()
                     .sessionDate(sessionDate)
                     .startTime(proposal.getSessionStartTime())
                     .endTime(proposal.getSessionEndTime())
@@ -292,7 +292,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                     .build());
         }
 
-        ClassroomOffering classroom = offeringRepository.findById(created.getId())
+        ClassSection classroom = offeringRepository.findById(created.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp vừa được tạo."));
         proposal.setApprovedClassroom(classroom);
         proposal.setApprovalStatus(ClassroomApprovalStatus.APPROVED);
@@ -335,7 +335,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         proposal.setTitle(payload.getTitle().trim());
         proposal.setCapacity(payload.getCapacity());
         proposal.setPlannedStartDate(payload.getPlannedStartDate());
-        proposal.setPlannedEndDate(payload.getPlannedEndDate());
+        proposal.setPlannedEndDate(payload.getEndDate());
         proposal.setScheduleWeekdays(payload.getWeekdays().stream()
                 .distinct()
                 .map(DayOfWeek::name)
@@ -367,7 +367,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         if (payload.getCapacity() == null || payload.getCapacity() < 1) {
             throw new IllegalArgumentException("Sức chứa phải lớn hơn 0.");
         }
-        if (payload.getPlannedStartDate() == null || payload.getPlannedEndDate() == null) {
+        if (payload.getPlannedStartDate() == null || payload.getEndDate() == null) {
             throw new IllegalArgumentException("Ngày bắt đầu và ngày kết thúc không được để trống.");
         }
         if (!payload.isDateRangeValid()) {
@@ -566,7 +566,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .packageStatus(PackageStatus.PUBLISHED)
                 .trainingProgramId(source.getId())
                 .entryLevel(null)
-                .maxCapacity(proposal.getCapacity())
+                .capacity(proposal.getCapacity())
                 .startDate(proposal.getPlannedStartDate())
                 .endDate(proposal.getPlannedEndDate())
                 .primaryTeacherId(proposal.getPrimaryTeacher().getId())
@@ -599,7 +599,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .learnerCount(members.size())
                 .levelDistribution(distribution)
                 .plannedStartDate(proposal.getPlannedStartDate())
-                .plannedEndDate(proposal.getPlannedEndDate())
+                .endDate(proposal.getPlannedEndDate())
                 .weekdays(new ArrayList<>(parseWeekdays(proposal.getScheduleWeekdays())))
                 .sessionStartTime(proposal.getSessionStartTime())
                 .sessionEndTime(proposal.getSessionEndTime())
@@ -628,7 +628,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
     }
 
     private ClassroomProposalMemberResponse toMemberResponse(ClassroomProposalMember member) {
-        EnrollmentRequest request = member.getEnrollmentRequest();
+        CourseRegistrationRequest request = member.getCourseRegistrationRequest();
         return ClassroomProposalMemberResponse.builder()
                 .enrollmentRequestId(request.getId())
                 .learnerId(request.getLearner().getId())
@@ -637,7 +637,7 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
                 .placementLevel(request.getConfirmedLevel())
                 .preferredSchedule(request.getPreferredSchedule())
                 .campusPreference(request.getCampusPreference())
-                .classroomEnrollmentId(member.getClassroomEnrollmentId())
+                .classEnrollmentId(member.getClassEnrollmentId())
                 .build();
     }
 
@@ -686,9 +686,9 @@ public class ClassroomProposalServiceImpl implements ClassroomProposalService {
         return teacher;
     }
 
-    private ClassroomRoom resolveRoom(Long id) {
+    private Room resolveRoom(Long id) {
         if (id == null) return null;
-        ClassroomRoom room = roomRepository.findById(id)
+        Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng học."));
         if (!room.isActive()) {
             throw new IllegalArgumentException("Phòng học đã ngừng hoạt động.");

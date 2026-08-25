@@ -2,7 +2,7 @@ package fu.sep490.g23.backend.service.classroom;
 
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
@@ -45,8 +45,8 @@ class ClassroomMaterialSyncServiceImplTest {
     void synchronizesCurriculumMaterialsAsMandatory() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Unit 1 worksheet");
         CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
-        ClassroomOffering offering = offering(unit);
-        when(materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
+        ClassSection offering = offering(unit);
+        when(materialRepository.findByClassSectionIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
 
         service.synchronizeMandatoryMaterials(offering, null);
 
@@ -68,15 +68,15 @@ class ClassroomMaterialSyncServiceImplTest {
     void upgradesPreviouslyAttachedCenterMaterialWhenItBecomesRequired() {
         CenterMaterialLibraryItem unitMaterial = material(20L, "Tên mới từ giáo trình");
         CurriculumUnit unit = unit(101L, "Unit 1", unitMaterial);
-        ClassroomOffering offering = offering(unit);
+        ClassSection offering = offering(unit);
         ClassroomMaterial existing = ClassroomMaterial.builder()
                 .id(301L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .centerMaterialId(20L)
                 .title("Tên cũ")
                 .sourceType("CENTER_LIBRARY")
                 .build();
-        when(materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(existing));
+        when(materialRepository.findByClassSectionIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(existing));
 
         service.synchronizeMandatoryMaterials(offering, null);
 
@@ -88,19 +88,19 @@ class ClassroomMaterialSyncServiceImplTest {
 
     @Test
     void removesStaleMandatoryMaterialButKeepsTeacherSupplement() {
-        ClassroomOffering offering = offering();
+        ClassSection offering = offering();
         ClassroomMaterial stale = ClassroomMaterial.builder()
                 .id(301L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .centerMaterialId(99L)
                 .sourceType("CURRICULUM_LIBRARY")
                 .build();
         ClassroomMaterial supplement = ClassroomMaterial.builder()
                 .id(302L)
-                .classroomOffering(offering)
+                .classSection(offering)
                 .sourceType("CLASSROOM_UPLOAD")
                 .build();
-        when(materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(1L))
+        when(materialRepository.findByClassSectionIdOrderByCreatedAtDesc(1L))
                 .thenReturn(List.of(stale, supplement));
 
         service.synchronizeMandatoryMaterials(offering, null);
@@ -109,11 +109,11 @@ class ClassroomMaterialSyncServiceImplTest {
         verify(materialRepository, never()).delete(supplement);
     }
 
-    private ClassroomOffering offering(CurriculumUnit... units) {
+    private ClassSection offering(CurriculumUnit... units) {
         CurriculumProgram curriculum = CurriculumProgram.builder()
                 .units(new ArrayList<>(List.of(units)))
                 .build();
-        return ClassroomOffering.builder()
+        return ClassSection.builder()
                 .id(1L)
                 .curriculumProgram(curriculum)
                 .build();

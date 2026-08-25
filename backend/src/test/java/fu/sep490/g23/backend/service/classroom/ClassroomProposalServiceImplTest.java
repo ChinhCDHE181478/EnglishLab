@@ -12,10 +12,10 @@ import fu.sep490.g23.backend.dto.response.classroom.ConflictCheckResultResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ConflictItemResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomProposal;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.Room;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomApprovalStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
@@ -28,11 +28,11 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.exception.ClassroomConflictException;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomProposalMemberRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomProposalRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
+import fu.sep490.g23.backend.repository.classroom.CourseRegistrationRequestRepository;
 import fu.sep490.g23.backend.repository.classroom.EnrollmentRequestStatusHistoryRepository;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumSessionPlanRepository;
@@ -64,11 +64,11 @@ class ClassroomProposalServiceImplTest {
 
     @Mock private ClassroomProposalRepository proposalRepository;
     @Mock private ClassroomProposalMemberRepository memberRepository;
-    @Mock private EnrollmentRequestRepository enrollmentRequestRepository;
+    @Mock private CourseRegistrationRequestRepository enrollmentRequestRepository;
     @Mock private EnrollmentRequestStatusHistoryRepository enrollmentHistoryRepository;
     @Mock private TrainingProgramRepository trainingProgramRepository;
-    @Mock private ClassroomRoomRepository roomRepository;
-    @Mock private ClassroomOfferingRepository offeringRepository;
+    @Mock private RoomRepository roomRepository;
+    @Mock private ClassSectionRepository offeringRepository;
     @Mock private UserRepository userRepository;
     @Mock private ClassroomConflictService conflictService;
     @Mock private ClassroomScheduleLockService scheduleLockService;
@@ -81,8 +81,8 @@ class ClassroomProposalServiceImplTest {
     private User manager;
     private User teacher;
     private TrainingProgram courseOffering;
-    private ClassroomRoom room;
-    private EnrollmentRequest enrollmentRequest;
+    private Room room;
+    private CourseRegistrationRequest courseRegistrationRequest;
 
     @BeforeEach
     void setUp() {
@@ -107,8 +107,8 @@ class ClassroomProposalServiceImplTest {
                 .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                 .status(PackageStatus.PUBLISHED)
                 .build();
-        room = ClassroomRoom.builder().id(11L).name("A101").capacity(25).active(true).build();
-        enrollmentRequest = EnrollmentRequest.builder()
+        room = Room.builder().id(11L).name("A101").capacity(25).active(true).build();
+        courseRegistrationRequest = CourseRegistrationRequest.builder()
                 .id(12L)
                 .learner(learner)
                 .courseOffering(courseOffering)
@@ -135,7 +135,7 @@ class ClassroomProposalServiceImplTest {
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.DRAFT);
         assertThat(response.getLearnerCount()).isZero();
         assertThat(response.getDeliveryType()).isEqualTo(ClassroomDeliveryMode.OFFLINE);
-        assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        assertThat(courseRegistrationRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(scheduleLockService).lockDates(any());
         verify(enrollmentHistoryRepository, never()).save(any());
     }
@@ -218,7 +218,7 @@ class ClassroomProposalServiceImplTest {
     @Test
     void managerApprovalCreatesOfficialClassAndSessionsWithoutAutoEnrollment() {
         ClassroomProposal proposal = pendingProposal();
-        ClassroomOffering classroom = ClassroomOffering.builder().id(100L).build();
+        ClassSection classroom = ClassSection.builder().id(100L).build();
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
         when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
@@ -230,7 +230,7 @@ class ClassroomProposalServiceImplTest {
 
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.APPROVED);
         assertThat(response.getApprovedClassroomId()).isEqualTo(classroom.getId());
-        assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        assertThat(courseRegistrationRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(scheduleLockService).lockDates(any());
         ArgumentCaptor<CreateClassroomSessionRequest> sessionCaptor =
                 ArgumentCaptor.forClass(CreateClassroomSessionRequest.class);
@@ -250,7 +250,7 @@ class ClassroomProposalServiceImplTest {
         proposal.setRoom(null);
         proposal.setOfflineAddress(null);
         proposal.setVirtualMeetingUrl(null);
-        ClassroomOffering classroom = ClassroomOffering.builder().id(101L).build();
+        ClassSection classroom = ClassSection.builder().id(101L).build();
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
         when(classroomOfferingService.createOffering(any(CreateClassroomOfferingRequest.class), any()))
@@ -278,7 +278,7 @@ class ClassroomProposalServiceImplTest {
     @Test
     void managerApprovalMapsFiveDatesToFiveStructuredSessionPlans() {
         ClassroomProposal proposal = structuredPendingProposal(5);
-        ClassroomOffering classroom = ClassroomOffering.builder().id(102L).build();
+        ClassSection classroom = ClassSection.builder().id(102L).build();
         List<CurriculumSessionPlan> plans = structuredPlans(proposal.getCourseOffering().getCurriculumProgram(), 5);
         when(userRepository.findByEmail(manager.getEmail())).thenReturn(Optional.of(manager));
         when(proposalRepository.findById(proposal.getId())).thenReturn(Optional.of(proposal));
@@ -340,12 +340,12 @@ class ClassroomProposalServiceImplTest {
 
         assertThat(response.getApprovalStatus()).isEqualTo(ClassroomApprovalStatus.REJECTED);
         assertThat(response.getReviewNote()).isEqualTo(payload.getReason());
-        assertThat(enrollmentRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        assertThat(courseRegistrationRequest.getStatus()).isEqualTo(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         verify(enrollmentHistoryRepository, never()).save(any());
     }
 
     private ClassroomProposal pendingProposal() {
-        enrollmentRequest.setStatus(EnrollmentRequestStatus.WAITING_FOR_CLASS);
+        courseRegistrationRequest.setStatus(EnrollmentRequestStatus.WAITING_FOR_CLASS);
         LocalDate firstMonday = nextMonday();
         ClassroomProposal proposal = ClassroomProposal.builder()
                 .id(50L)
@@ -406,7 +406,7 @@ class ClassroomProposalServiceImplTest {
         payload.setEnrollmentRequestIds(List.of());
         payload.setCapacity(20);
         payload.setPlannedStartDate(firstMonday);
-        payload.setPlannedEndDate(firstMonday.plusDays(2));
+        payload.setEndDate(firstMonday.plusDays(2));
         payload.setWeekdays(List.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY));
         payload.setSessionStartTime(LocalTime.of(18, 30));
         payload.setSessionEndTime(LocalTime.of(20, 30));

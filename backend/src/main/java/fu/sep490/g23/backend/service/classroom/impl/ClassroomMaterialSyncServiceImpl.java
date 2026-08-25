@@ -3,7 +3,7 @@ package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.ClassroomMaterial;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumMaterialRef;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
@@ -35,14 +35,14 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
     private final CourseUnitRepository courseUnitRepository;
 
     @Override
-    public void synchronizeMandatoryMaterials(ClassroomOffering offering, User actor) {
+    public void synchronizeMandatoryMaterials(ClassSection offering, User actor) {
         if (offering == null || offering.getId() == null) {
             return;
         }
 
         Map<Long, RequiredMaterial> requiredMaterials = collectRequiredMaterials(offering);
         List<ClassroomMaterial> existingMaterials = new ArrayList<>(
-                materialRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId())
+                materialRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId())
         );
         Map<Long, ClassroomMaterial> existingByCenterMaterialId = existingMaterials.stream()
                 .filter(material -> material.getSession() == null)
@@ -58,7 +58,7 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
             ClassroomMaterial classroomMaterial = existingByCenterMaterialId.get(required.material().getId());
             if (classroomMaterial == null) {
                 classroomMaterial = ClassroomMaterial.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .centerMaterialId(required.material().getId())
                         .uploadedBy(actor)
                         .build();
@@ -74,7 +74,7 @@ public class ClassroomMaterialSyncServiceImpl implements ClassroomMaterialSyncSe
                 .forEach(materialRepository::delete);
     }
 
-    private Map<Long, RequiredMaterial> collectRequiredMaterials(ClassroomOffering offering) {
+    private Map<Long, RequiredMaterial> collectRequiredMaterials(ClassSection offering) {
         Map<Long, RequiredMaterial> required = new LinkedHashMap<>();
         if (offering.getCurriculumProgram() != null) {
             for (CurriculumUnit unit : offering.getCurriculumProgram().getUnits()) {

@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
@@ -11,7 +11,7 @@ import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
@@ -54,7 +54,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
     private final OnlineCourseEnrollmentRepository packageEnrollmentRepository;
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
-    private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
     private final PaymentOrderRepository paymentOrderRepository;
     private final LearningPathRepository learningPathRepository;
 
@@ -110,9 +110,9 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
             created++;
         }
 
-        List<ClassroomEnrollment> classroomEnrollments = classroomEnrollmentRepository
+        List<ClassEnrollment> classEnrollments = classEnrollmentRepository
                 .findByStudentIdAndStatusIn(learner.getId(), CLASSROOM_STATUSES);
-        for (ClassroomEnrollment enrollment : classroomEnrollments) {
+        for (ClassEnrollment enrollment : classEnrollments) {
             if (coveredEnrollmentIds.contains(enrollment.getId())) {
                 continue;
             }
@@ -184,8 +184,8 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
                 .build();
     }
 
-    private PaymentOrder classroomOrder(User learner, ClassroomEnrollment enrollment, long orderCode) {
-        ClassroomOffering offering = enrollment.getClassroomOffering();
+    private PaymentOrder classroomOrder(User learner, ClassEnrollment enrollment, long orderCode) {
+        ClassSection offering = enrollment.getClassSection();
         String title = offering != null && offering.getLearningPackage() != null
                 ? offering.getLearningPackage().getTitle()
                 : "Học phí lớp";
@@ -197,7 +197,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
                 : enrollment.getEnrolledAt().plusHours(3);
         return baseOrder(learner, orderCode, paidAt)
                 .courseIdsCsv("")
-                .classroomOfferingIdsCsv(offering == null ? "" : String.valueOf(offering.getId()))
+                .classSectionIdsCsv(offering == null ? "" : String.valueOf(offering.getId()))
                 .enrollmentId(enrollment.getId())
                 .courseTitles(title)
                 .originalAmount(amount)
@@ -210,7 +210,7 @@ public class ShowcaseLearnerPaymentHistorySeeder implements CommandLineRunner {
         return PaymentOrder.builder()
                 .orderCode(orderCode)
                 .student(learner)
-                .classroomOfferingIdsCsv("")
+                .classSectionIdsCsv("")
                 .systemDiscountAmount(0L)
                 .couponDiscountAmount(0L)
                 .couponReservationReleased(true)

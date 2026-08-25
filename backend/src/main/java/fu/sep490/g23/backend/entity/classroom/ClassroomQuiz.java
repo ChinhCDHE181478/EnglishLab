@@ -25,12 +25,12 @@ public class ClassroomQuiz {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
-    private ClassroomSession session;
+    private ClassSchedule session;
 
     @Column(nullable = false, length = 200)
     private String title;

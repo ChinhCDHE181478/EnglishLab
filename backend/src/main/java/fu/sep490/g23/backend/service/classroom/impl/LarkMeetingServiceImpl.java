@@ -5,7 +5,7 @@ import fu.sep490.g23.backend.service.classroom.LarkProperties;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.enums.LarkMeetingStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.RecordingSyncStatus;
 import lombok.RequiredArgsConstructor;
@@ -77,7 +77,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     @Override
-    public void syncMeeting(ClassroomSession session) {
+    public void syncMeeting(ClassSchedule session) {
         validateConfiguration();
 
         String reservedMeetingUrl = "";
@@ -135,7 +135,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     @Override
-    public void deleteMeeting(ClassroomSession session) {
+    public void deleteMeeting(ClassSchedule session) {
         if (!properties.isEnabled()) {
             return;
         }
@@ -155,7 +155,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     @Override
-    public LarkRecordingInfo getRecording(ClassroomSession session) {
+    public LarkRecordingInfo getRecording(ClassSchedule session) {
         validateConfiguration();
         if (session.getLarkMeetingId() == null || session.getLarkMeetingId().isBlank()) {
             throw new RuntimeException("Buổi học chưa có meeting_id thật từ Lark.");
@@ -175,7 +175,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     @Override
-    public void inviteAttendee(ClassroomSession session, String email) {
+    public void inviteAttendee(ClassSchedule session, String email) {
         if (email == null || email.isBlank()
                 || session.getLarkCalendarId() == null
                 || session.getLarkEventId() == null) {
@@ -196,7 +196,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
     }
 
     @Override
-    public void inviteInternalAttendee(ClassroomSession session, String email) {
+    public void inviteInternalAttendee(ClassSchedule session, String email) {
         if (email == null || email.isBlank()
                 || session.getLarkCalendarId() == null
                 || session.getLarkEventId() == null) {
@@ -242,7 +242,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         return textAt(users.get(0), "user_id");
     }
 
-    private JsonNode createEvent(String calendarId, ClassroomSession session) {
+    private JsonNode createEvent(String calendarId, ClassSchedule session) {
         JsonNode root = send(
                 "POST",
                 "/calendar/v4/calendars/%s/events".formatted(encodePath(calendarId)),
@@ -251,7 +251,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         return root.path("data").path("event");
     }
 
-    private JsonNode syncReserve(ClassroomSession session) {
+    private JsonNode syncReserve(ClassSchedule session) {
         String teacherOpenId = resolveTeacherOpenId(session);
         String ownerOpenId = firstNonBlank(teacherOpenId, properties.getDefaultOwnerOpenId());
         if (ownerOpenId == null || ownerOpenId.isBlank()) {
@@ -271,7 +271,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         }
 
         Map<String, Object> meetingSettings = new LinkedHashMap<>();
-        meetingSettings.put("topic", session.getClassroomOffering().getLearningPackage().getTitle());
+        meetingSettings.put("topic", session.getClassSection().getLearningPackage().getTitle());
         meetingSettings.put("meeting_initial_type", 1);
         meetingSettings.put("auto_record", true);
         meetingSettings.put("assign_host_list", java.util.List.of(Map.of(
@@ -297,7 +297,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         return root.path("data").path("reserve");
     }
 
-    private String resolveTeacherOpenId(ClassroomSession session) {
+    private String resolveTeacherOpenId(ClassSchedule session) {
         if (session.getTeacher() == null) {
             return null;
         }
@@ -327,7 +327,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         }
     }
 
-    private JsonNode updateEvent(String calendarId, String eventId, ClassroomSession session) {
+    private JsonNode updateEvent(String calendarId, String eventId, ClassSchedule session) {
         JsonNode root = send(
                 "PATCH",
                 "/calendar/v4/calendars/%s/events/%s".formatted(
@@ -351,7 +351,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         return root.path("data").path("event");
     }
 
-    private Map<String, Object> buildEventBody(ClassroomSession session) {
+    private Map<String, Object> buildEventBody(ClassSchedule session) {
         ZoneId zoneId = ZoneId.of(properties.getTimezone());
         long startTimestamp = session.getStartDateTime().atZone(zoneId).toEpochSecond();
         long endTimestamp = session.getEndDateTime().atZone(zoneId).toEpochSecond();
@@ -366,7 +366,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         );
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("summary", session.getClassroomOffering().getLearningPackage().getTitle());
+        body.put("summary", session.getClassSection().getLearningPackage().getTitle());
         String description = buildDescription(session);
         if (properties.isAutoRecord() && session.getLarkMeetingUrl() != null) {
             description += "\nPhòng học Lark: " + session.getLarkMeetingUrl();
@@ -389,7 +389,7 @@ public class LarkMeetingServiceImpl implements LarkMeetingService {
         return body;
     }
 
-    private String buildDescription(ClassroomSession session) {
+    private String buildDescription(ClassSchedule session) {
         String teacherName = session.getTeacher() == null ? "Chưa phân công" : session.getTeacher().getFullName();
         return """
                 Buổi học trực tuyến của EnglishLab.

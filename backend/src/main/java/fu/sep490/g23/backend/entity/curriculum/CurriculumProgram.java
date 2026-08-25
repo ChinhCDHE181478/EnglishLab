@@ -1,7 +1,7 @@
 package fu.sep490.g23.backend.entity.curriculum;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.assessment.enums.PlacementLevel;
 import jakarta.persistence.*;
@@ -145,7 +145,7 @@ public class CurriculumProgram {
 
     @OneToMany(mappedBy = "curriculumProgram")
     @Builder.Default
-    private List<ClassroomOffering> classroomOfferings = new ArrayList<>();
+    private List<ClassSection> classSections = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

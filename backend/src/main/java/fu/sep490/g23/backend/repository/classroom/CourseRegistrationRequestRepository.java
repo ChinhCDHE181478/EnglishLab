@@ -1,21 +1,21 @@
 package fu.sep490.g23.backend.repository.classroom;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
 import java.util.List;
 
-public interface EnrollmentRequestRepository extends JpaRepository<EnrollmentRequest, Long> {
-    List<EnrollmentRequest> findByLearnerOrderByCreatedAtDesc(User learner);
+public interface CourseRegistrationRequestRepository extends JpaRepository<CourseRegistrationRequest, Long> {
+    List<CourseRegistrationRequest> findByLearnerOrderByCreatedAtDesc(User learner);
 
-    List<EnrollmentRequest> findAllByOrderByCreatedAtDesc();
+    List<CourseRegistrationRequest> findAllByOrderByCreatedAtDesc();
 
-    List<EnrollmentRequest> findByStatusOrderByCreatedAtAsc(EnrollmentRequestStatus status);
+    List<CourseRegistrationRequest> findByStatusOrderByCreatedAtAsc(EnrollmentRequestStatus status);
 
     boolean existsByLearnerAndCourseOfferingAndStatusNotIn(
             User learner,
@@ -23,9 +23,9 @@ public interface EnrollmentRequestRepository extends JpaRepository<EnrollmentReq
             Collection<EnrollmentRequestStatus> terminalStatuses
     );
 
-    boolean existsByLearnerAndRequestedClassroomAndStatusNotIn(
+    boolean existsByLearnerAndPreferredClassSectionAndStatusNotIn(
             User learner,
-            ClassroomOffering requestedClassroom,
+            ClassSection preferredClassSection,
             Collection<EnrollmentRequestStatus> terminalStatuses
     );
 

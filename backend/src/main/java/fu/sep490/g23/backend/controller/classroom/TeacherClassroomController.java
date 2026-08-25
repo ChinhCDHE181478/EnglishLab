@@ -35,7 +35,7 @@ import fu.sep490.g23.backend.dto.request.classroom.GradeHomeworkRequest;
 
 import fu.sep490.g23.backend.dto.response.assessment.AssessmentRubricResponse;
 import fu.sep490.g23.backend.entity.assessment.enums.AssessmentSkill;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.service.classroom.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +60,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TeacherClassroomController {
 
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
     private final ClassroomChangeRequestService changeRequestService;
     private final ClassroomAttendanceService attendanceService;
     private final ClassroomHomeworkService homeworkService;
@@ -68,13 +68,13 @@ public class TeacherClassroomController {
     private final ClassroomContentService contentService;
     private final HomeworkAttachmentStorageService homeworkAttachmentStorageService;
     private final ClassroomScheduleAvailabilityService scheduleAvailabilityService;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final TeacherClassroomAuthorizationService authorizationService;
 
     @GetMapping("/assigned")
     public ResponseEntity<List<ClassroomOfferingResponse>> getAssignedClasses(Authentication authentication) {
-        return ResponseEntity.ok(classroomOfferingService.getAssignedClasses(authentication.getName()));
+        return ResponseEntity.ok(classSectionService.getAssignedClasses(authentication.getName()));
     }
 
     @GetMapping("/{id}")
@@ -83,7 +83,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.getOffering(id, true));
+        return ResponseEntity.ok(classSectionService.getOffering(id, true));
     }
 
     @GetMapping("/{id}/sessions")
@@ -92,7 +92,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.getSessions(id));
+        return ResponseEntity.ok(classSectionService.getSessions(id));
     }
 
     @GetMapping("/sessions/{sessionId}")
@@ -101,7 +101,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertSessionAccess(sessionId, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.getSession(sessionId));
+        return ResponseEntity.ok(classSectionService.getSession(sessionId));
     }
 
     @PostMapping("/{id}/sessions")
@@ -111,7 +111,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertClassroomAccess(id, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.createSession(id, request));
+        return ResponseEntity.ok(classSectionService.createSession(id, request));
     }
 
     @PutMapping("/sessions/{sessionId}")
@@ -121,7 +121,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertSessionAccess(sessionId, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.updateSession(sessionId, request));
+        return ResponseEntity.ok(classSectionService.updateSession(sessionId, request));
     }
 
     @DeleteMapping("/sessions/{sessionId}")
@@ -130,7 +130,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertSessionAccess(sessionId, authentication.getName());
-        classroomOfferingService.deleteSession(sessionId);
+        classSectionService.deleteSession(sessionId);
         return ResponseEntity.noContent().build();
     }
 
@@ -140,7 +140,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertSessionAccess(sessionId, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.openVirtualSession(sessionId, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.openVirtualSession(sessionId, authentication.getName()));
     }
 
     @PostMapping("/sessions/{sessionId}/close")
@@ -149,7 +149,7 @@ public class TeacherClassroomController {
             Authentication authentication
     ) {
         authorizationService.assertSessionAccess(sessionId, authentication.getName());
-        return ResponseEntity.ok(classroomOfferingService.closeVirtualSession(sessionId, authentication.getName()));
+        return ResponseEntity.ok(classSectionService.closeVirtualSession(sessionId, authentication.getName()));
     }
 
     @GetMapping("/sessions/{sessionId}/attendance")
@@ -365,7 +365,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody CreateChangeRequestRequest request,
             Authentication authentication
     ) {
-        authorizationService.assertClassroomAccess(request.getClassroomOfferingId(), authentication.getName());
+        authorizationService.assertClassroomAccess(request.getClassSectionId(), authentication.getName());
         return ResponseEntity.ok(changeRequestService.checkConflict(request, authentication.getName()));
     }
 
@@ -412,7 +412,7 @@ public class TeacherClassroomController {
             @Valid @RequestBody CreateChangeRequestRequest request,
             Authentication authentication
     ) {
-        authorizationService.assertClassroomAccess(request.getClassroomOfferingId(), authentication.getName());
+        authorizationService.assertClassroomAccess(request.getClassSectionId(), authentication.getName());
         return ResponseEntity.ok(changeRequestService.create(request, authentication.getName()));
     }
 

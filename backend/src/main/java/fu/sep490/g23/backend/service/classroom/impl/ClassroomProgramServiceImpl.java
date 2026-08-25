@@ -2,9 +2,9 @@ package fu.sep490.g23.backend.service.classroom.impl;
 
 import fu.sep490.g23.backend.dto.request.classroom.UpdateClassroomProgramRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomMapper;
 import fu.sep490.g23.backend.service.classroom.ClassroomProgramService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import java.util.List;
 @Transactional
 public class ClassroomProgramServiceImpl implements ClassroomProgramService {
 
-    private final ClassroomOfferingRepository offeringRepository;
+    private final ClassSectionRepository offeringRepository;
     private final ClassroomMapper mapper;
 
     @Override
@@ -34,7 +34,7 @@ public class ClassroomProgramServiceImpl implements ClassroomProgramService {
 
     @Override
     public ClassroomOfferingResponse updateProgramProfile(Long offeringId, UpdateClassroomProgramRequest request) {
-        ClassroomOffering offering = offeringRepository.findById(offeringId)
+        ClassSection offering = offeringRepository.findById(offeringId)
                 .filter(item -> item.getLearningPackage() != null && !item.getLearningPackage().isDeleted())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học."));
 

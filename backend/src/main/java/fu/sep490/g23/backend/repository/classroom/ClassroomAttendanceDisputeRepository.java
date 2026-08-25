@@ -11,5 +11,5 @@ public interface ClassroomAttendanceDisputeRepository extends JpaRepository<Clas
     List<ClassroomAttendanceDispute> findByStatusOrderByCreatedAtDesc(AttendanceDisputeStatus status);
     List<ClassroomAttendanceDispute> findByStudentIdOrderByCreatedAtDesc(Long studentId);
     Optional<ClassroomAttendanceDispute> findByAttendanceIdAndStudentId(Long attendanceId, Long studentId);
-    List<ClassroomAttendanceDispute> findByAttendanceSessionClassroomOfferingIdOrderByCreatedAtDesc(Long offeringId);
+    List<ClassroomAttendanceDispute> findByAttendanceSessionClassSectionIdOrderByCreatedAtDesc(Long offeringId);
 }

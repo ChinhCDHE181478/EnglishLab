@@ -7,14 +7,14 @@ import java.util.Optional;
 
 public interface LarkMeetingParticipantRepository extends JpaRepository<LarkMeetingParticipant, Long> {
 
-    Optional<LarkMeetingParticipant> findByClassroomSessionIdAndParticipantKey(
-            Long classroomSessionId,
+    Optional<LarkMeetingParticipant> findByClassScheduleIdAndParticipantKey(
+            Long classScheduleId,
             String participantKey
     );
 
-    long countByClassroomSessionIdAndActiveTrue(Long classroomSessionId);
+    long countByClassScheduleIdAndActiveTrue(Long classScheduleId);
 
-    java.util.List<LarkMeetingParticipant> findByClassroomSessionId(Long classroomSessionId);
+    java.util.List<LarkMeetingParticipant> findByClassScheduleId(Long classScheduleId);
 
-    void deleteByClassroomSessionId(Long classroomSessionId);
+    void deleteByClassScheduleId(Long classScheduleId);
 }

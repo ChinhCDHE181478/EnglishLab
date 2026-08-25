@@ -7,8 +7,8 @@ import fu.sep490.g23.backend.service.mail.ClassroomHomeworkMailService;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.EnrollmentRequest;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.CourseRegistrationRequest;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
@@ -98,7 +98,7 @@ public class DevMailTestController {
 
         // 5. Test & Placement Appointment Email
         try {
-            EnrollmentRequest testRequest = EnrollmentRequest.builder()
+            CourseRegistrationRequest testRequest = CourseRegistrationRequest.builder()
                     .id(202L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)
@@ -119,7 +119,7 @@ public class DevMailTestController {
                     .title("IELTS Intensive Master 6.5+")
                     .build();
 
-            ClassroomOffering offering = ClassroomOffering.builder()
+            ClassSection offering = ClassSection.builder()
                     .id(303L)
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .offlineAddress("Phòng A201 - EnglishLab Cơ sở 1")
@@ -128,7 +128,7 @@ public class DevMailTestController {
                     .learningPackage(pkg)
                     .build();
 
-            EnrollmentRequest classRequest = EnrollmentRequest.builder()
+            CourseRegistrationRequest classRequest = CourseRegistrationRequest.builder()
                     .id(203L)
                     .contactName("Phạm Minh Đức")
                     .contactEmail(email)

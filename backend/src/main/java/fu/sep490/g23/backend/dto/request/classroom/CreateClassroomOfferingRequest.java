@@ -48,7 +48,7 @@ public class CreateClassroomOfferingRequest {
     private String targetOutcome;
 
     @Min(1)
-    private Integer maxCapacity;
+    private Integer capacity;
 
     private LocalDate startDate;
     private LocalDate endDate;

@@ -9,8 +9,8 @@ import fu.sep490.g23.backend.dto.response.payment.PaymentQuoteResponse;
 import fu.sep490.g23.backend.dto.response.payment.RevenueAnalyticsResponse;
 import fu.sep490.g23.backend.dto.response.payment.RevenueByMonthResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.course.LearningPath;
@@ -21,7 +21,7 @@ import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 import fu.sep490.g23.backend.entity.payment.PaymentOrder;
 import fu.sep490.g23.backend.entity.payment.enums.PaymentOrderStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathCourseRepository;
 import fu.sep490.g23.backend.repository.course.LearningPathRepository;
@@ -69,37 +69,37 @@ public class PaymentServiceImpl implements PaymentService {
     private final OnlineCourseRepository onlineCourseRepository;
     private final LearningPathRepository learningPathRepository;
     private final LearningPathCourseRepository learningPathCourseRepository;
-    private final ClassroomEnrollmentRepository classroomEnrollmentRepository;
+    private final ClassEnrollmentRepository classEnrollmentRepository;
     private final UserRepository userRepository;
     private final OnlineCourseService onlineCourseService;
-    private final ClassroomOfferingService classroomOfferingService;
+    private final ClassroomOfferingService classSectionService;
     private final PaymentReceiptPdfService paymentReceiptPdfService;
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail) {
-        return quotePayment(courseIds, classroomOfferingIds, null, couponCode, studentEmail);
+    public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classSectionIds, String couponCode, String studentEmail) {
+        return quotePayment(courseIds, classSectionIds, null, couponCode, studentEmail);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail) {
+    public PaymentQuoteResponse quotePayment(List<Long> courseIds, List<Long> classSectionIds, Long learningPathId, String couponCode, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-        PayableBundle bundle = resolvePayableBundle(courseIds, classroomOfferingIds, learningPathId, student);
+        PayableBundle bundle = resolvePayableBundle(courseIds, classSectionIds, learningPathId, student);
         return toQuoteResponse(calculateBreakdown(bundle, couponCode, false), bundle);
     }
 
     @Override
-    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, String couponCode, String studentEmail) {
-        return createPaymentLink(courseIds, classroomOfferingIds, null, couponCode, studentEmail);
+    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classSectionIds, String couponCode, String studentEmail) {
+        return createPaymentLink(courseIds, classSectionIds, null, couponCode, studentEmail);
     }
 
     @Override
-    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classroomOfferingIds, Long learningPathId, String couponCode, String studentEmail) {
+    public PaymentLinkResponse createPaymentLink(List<Long> courseIds, List<Long> classSectionIds, Long learningPathId, String couponCode, String studentEmail) {
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người học."));
-        PayableBundle bundle = resolvePayableBundle(courseIds, classroomOfferingIds, learningPathId, student);
+        PayableBundle bundle = resolvePayableBundle(courseIds, classSectionIds, learningPathId, student);
         PriceBreakdown previewBreakdown = calculateBreakdown(bundle, couponCode, false);
 
         if (previewBreakdown.totalAmount() <= 0) {
@@ -133,7 +133,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .orderCode(orderCode)
                 .student(student)
                 .courseIdsCsv(bundle.onlineCourses().stream().map(course -> String.valueOf(course.getId())).collect(Collectors.joining(",")))
-                .classroomOfferingIdsCsv(bundle.classroomTuitions().stream()
+                .classSectionIdsCsv(bundle.classroomTuitions().stream()
                         .map(item -> String.valueOf(item.offering().getId()))
                         .collect(Collectors.joining(",")))
                 .enrollmentId(bundle.primaryEnrollmentId())
@@ -221,7 +221,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .status(order.getStatus().name())
                 .paid(order.getStatus() == PaymentOrderStatus.PAID)
                 .message(resolveStatusMessage(order))
-                .classroomOfferingId(firstClassroomOfferingId(order))
+                .classSectionId(firstClassSectionId(order))
                 .enrollmentId(order.getEnrollmentId())
                 .build();
     }
@@ -438,7 +438,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
         BigDecimal amount = BigDecimal.valueOf(safeLong(order.getAmount()));
         String note = "PayOS #" + order.getOrderCode();
-        classroomOfferingService.applyPayosTuitionPayment(order.getEnrollmentId(), amount, note);
+        classSectionService.applyPayosTuitionPayment(order.getEnrollmentId(), amount, note);
     }
 
     private void consumeCouponReservation(PaymentOrder order) {
@@ -468,12 +468,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     private PayableBundle resolvePayableBundle(
             List<Long> courseIds,
-            List<Long> classroomOfferingIds,
+            List<Long> classSectionIds,
             Long learningPathId,
             User student
     ) {
         List<Long> normalizedCourseIds = normalizeIds(courseIds);
-        List<Long> normalizedClassroomIds = normalizeIds(classroomOfferingIds);
+        List<Long> normalizedClassroomIds = normalizeIds(classSectionIds);
         if (normalizedClassroomIds.isEmpty() && normalizedCourseIds.isEmpty() && learningPathId == null) {
             throw new RuntimeException("Không có khóa học hoặc lớp học hợp lệ để thanh toán.");
         }
@@ -510,14 +510,14 @@ public class PaymentServiceImpl implements PaymentService {
         return new PayableBundle(remainingCourses, List.of(), path);
     }
 
-    private List<PayableClassroomTuition> resolvePayableClassroomTuitions(List<Long> classroomOfferingIds, User student) {
-        if (classroomOfferingIds.size() != 1) {
+    private List<PayableClassroomTuition> resolvePayableClassroomTuitions(List<Long> classSectionIds, User student) {
+        if (classSectionIds.size() != 1) {
             throw new RuntimeException("Mỗi lần chỉ thanh toán học phí cho một lớp học.");
         }
 
-        Long offeringId = classroomOfferingIds.getFirst();
-        ClassroomEnrollment enrollment = classroomEnrollmentRepository
-                .findByStudentIdAndClassroomOfferingId(student.getId(), offeringId)
+        Long offeringId = classSectionIds.getFirst();
+        ClassEnrollment enrollment = classEnrollmentRepository
+                .findByStudentIdAndClassSectionId(student.getId(), offeringId)
                 .filter(item -> ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS.contains(item.getRegistrationStatus()))
                 .orElseThrow(() -> new RuntimeException("Bạn chưa có đăng ký hiệu lực cho lớp này."));
 
@@ -544,7 +544,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Bạn đang có đơn PayOS học phí chưa hoàn tất cho lớp này. Vui lòng hoàn tất hoặc chờ hết hạn trước khi tạo đơn mới.");
         }
 
-        ClassroomOffering offering = enrollment.getClassroomOffering();
+        ClassSection offering = enrollment.getClassSection();
         String title = offering.getLearningPackage() == null
                 ? "Lớp #" + offering.getId()
                 : offering.getLearningPackage().getTitle();
@@ -637,11 +637,11 @@ public class PaymentServiceImpl implements PaymentService {
         };
     }
 
-    private Long firstClassroomOfferingId(PaymentOrder order) {
-        if (order.getClassroomOfferingIdsCsv() == null || order.getClassroomOfferingIdsCsv().isBlank()) {
+    private Long firstClassSectionId(PaymentOrder order) {
+        if (order.getClassSectionIdsCsv() == null || order.getClassSectionIdsCsv().isBlank()) {
             return null;
         }
-        return parseCourseIds(order.getClassroomOfferingIdsCsv()).stream().findFirst().orElse(null);
+        return parseCourseIds(order.getClassSectionIdsCsv()).stream().findFirst().orElse(null);
     }
 
     private void syncOrderStatusFromProvider(PaymentOrder order) {
@@ -978,8 +978,8 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private record PayableClassroomTuition(
-            ClassroomEnrollment enrollment,
-            ClassroomOffering offering,
+            ClassEnrollment enrollment,
+            ClassSection offering,
             long amountVnd,
             String title
     ) {

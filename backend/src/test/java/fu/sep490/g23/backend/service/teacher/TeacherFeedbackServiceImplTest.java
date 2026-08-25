@@ -3,14 +3,14 @@ package fu.sep490.g23.backend.service.teacher;
 import fu.sep490.g23.backend.dto.request.teacher.UpsertTeacherCourseFeedbackRequest;
 import fu.sep490.g23.backend.dto.response.teacher.TeacherFeedbackAggregateResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.teacher.TeacherCourseFeedback;
 import fu.sep490.g23.backend.entity.teacher.enums.TeacherFeedbackPace;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.teacher.TeacherCourseFeedbackRepository;
 import fu.sep490.g23.backend.service.admin.AuditLogService;
@@ -35,7 +35,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TeacherFeedbackServiceImplTest {
     @Mock private UserRepository userRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomTeacherAssignmentRepository assignmentRepository;
     @Mock private TeacherCourseFeedbackRepository feedbackRepository;
     @Mock private AuditLogService auditLogService;
@@ -43,8 +43,8 @@ class TeacherFeedbackServiceImplTest {
     private TeacherFeedbackServiceImpl service;
     private User learner;
     private User teacher;
-    private ClassroomOffering classroom;
-    private ClassroomEnrollment enrollment;
+    private ClassSection classroom;
+    private ClassEnrollment enrollment;
 
     @BeforeEach
     void setUp() {
@@ -56,17 +56,17 @@ class TeacherFeedbackServiceImplTest {
         ReflectionTestUtils.setField(service, "anonymityThreshold", 3);
         learner = User.builder().id(1L).email("learner@example.com").fullName("Học viên").build();
         teacher = User.builder().id(2L).email("teacher@example.com").fullName("Giáo viên").build();
-        classroom = ClassroomOffering.builder()
+        classroom = ClassSection.builder()
                 .id(10L)
                 .learningPackage(LearningPackage.builder().title("IELTS Foundation").build())
                 .primaryTeacher(teacher)
                 .startDate(LocalDate.now().minusMonths(1))
-                .endDate(LocalDate.now().plusDays(3))
+                .plannedEndDate(LocalDate.now().plusDays(3))
                 .build();
-        enrollment = ClassroomEnrollment.builder()
+        enrollment = ClassEnrollment.builder()
                 .id(20L)
                 .student(learner)
-                .classroomOffering(classroom)
+                .classSection(classroom)
                 .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                 .build();
     }
@@ -76,8 +76,8 @@ class TeacherFeedbackServiceImplTest {
         UpsertTeacherCourseFeedbackRequest request = validRequest();
         TeacherCourseFeedback existing = feedback(99L, 4);
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(1L, 10L)).thenReturn(Optional.of(enrollment));
-        when(assignmentRepository.findByClassroomOfferingId(10L)).thenReturn(List.of());
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(1L, 10L)).thenReturn(Optional.of(enrollment));
+        when(assignmentRepository.findByClassSectionId(10L)).thenReturn(List.of());
         when(feedbackRepository.findByEnrollmentIdAndTeacherId(20L, 2L)).thenReturn(Optional.of(existing));
         when(feedbackRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -95,9 +95,9 @@ class TeacherFeedbackServiceImplTest {
 
     @Test
     void learnerCannotSubmitBeforeWindowOpens() {
-        classroom.setEndDate(LocalDate.now().plusDays(20));
+        classroom.setPlannedEndDate(LocalDate.now().plusDays(20));
         when(userRepository.findByEmail(learner.getEmail())).thenReturn(Optional.of(learner));
-        when(enrollmentRepository.findByStudentIdAndClassroomOfferingId(1L, 10L)).thenReturn(Optional.of(enrollment));
+        when(enrollmentRepository.findByStudentIdAndClassSectionId(1L, 10L)).thenReturn(Optional.of(enrollment));
 
         assertThatThrownBy(() -> service.saveLearnerFeedback(10L, 2L, learner.getEmail(), validRequest()))
                 .isInstanceOf(ResponseStatusException.class)
@@ -121,7 +121,7 @@ class TeacherFeedbackServiceImplTest {
 
     private TeacherCourseFeedback feedback(Long id, int rating) {
         return TeacherCourseFeedback.builder()
-                .id(id).enrollment(enrollment).classroomOffering(classroom).teacher(teacher)
+                .id(id).enrollment(enrollment).classSection(classroom).teacher(teacher)
                 .clarityScore(rating).engagementScore(rating).learnerSupportScore(rating)
                 .feedbackTimelinessScore(rating).professionalismScore(rating)
                 .pace(TeacherFeedbackPace.JUST_RIGHT).wouldRecommend(true)

@@ -9,8 +9,8 @@ import java.util.Optional;
 
 public interface ClassroomGradebookEntryRepository extends JpaRepository<ClassroomGradebookEntry, Long> {
     @EntityGraph(attributePaths = "student")
-    List<ClassroomGradebookEntry> findByClassroomOfferingId(Long classroomOfferingId);
+    List<ClassroomGradebookEntry> findByClassSectionId(Long classSectionId);
 
     @EntityGraph(attributePaths = "student")
-    Optional<ClassroomGradebookEntry> findByClassroomOfferingIdAndStudentId(Long classroomOfferingId, Long studentId);
+    Optional<ClassroomGradebookEntry> findByClassSectionIdAndStudentId(Long classSectionId, Long studentId);
 }

@@ -17,5 +17,5 @@ public interface ClassroomScheduleAvailabilityService {
             LocalTime endTime,
             Long excludeSessionId);
 
-    List<AvailableTeacherOptionResponse> listAvailableReplacementTeachers(Long classroomOfferingId);
+    List<AvailableTeacherOptionResponse> listAvailableReplacementTeachers(Long classSectionId);
 }

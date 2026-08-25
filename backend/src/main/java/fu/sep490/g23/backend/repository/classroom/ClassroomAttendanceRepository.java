@@ -11,5 +11,5 @@ public interface ClassroomAttendanceRepository extends JpaRepository<ClassroomAt
 
     Optional<ClassroomAttendance> findBySessionIdAndStudentId(Long sessionId, Long studentId);
 
-    List<ClassroomAttendance> findByStudentIdAndSession_ClassroomOfferingId(Long studentId, Long classroomOfferingId);
+    List<ClassroomAttendance> findByStudentIdAndSession_ClassSectionId(Long studentId, Long classSectionId);
 }

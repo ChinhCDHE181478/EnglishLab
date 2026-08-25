@@ -27,8 +27,8 @@ public class ClassroomTeacherAssignment {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
@@ -39,8 +39,8 @@ public class ClassroomTeacherAssignment {
      * Phân công giáo viên chính của cả lớp để trống trường này.
      */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_session_id", unique = true)
-    private ClassroomSession classroomSession;
+    @JoinColumn(name = "class_schedule_id", unique = true)
+    private ClassSchedule classSchedule;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

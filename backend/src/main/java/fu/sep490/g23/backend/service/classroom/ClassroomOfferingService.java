@@ -105,13 +105,13 @@ public interface ClassroomOfferingService {
 
     List<ClassroomEnrollmentResponse> listRegistrations(
             ClassroomRegistrationStatus status,
-            Long classroomOfferingId,
+            Long classSectionId,
             Boolean needsAction,
             Boolean settlementPending
     );
 
     List<ClassroomEnrollmentResponse> reorderWaitlist(
-            Long classroomOfferingId,
+            Long classSectionId,
             ReorderWaitlistRequest request,
             String actorEmail
     );

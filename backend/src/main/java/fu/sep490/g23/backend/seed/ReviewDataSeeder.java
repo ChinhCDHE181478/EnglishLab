@@ -2,10 +2,10 @@ package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
+import fu.sep490.g23.backend.entity.classroom.Room;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomDeliveryMode;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomEnrollmentStatus;
@@ -21,10 +21,10 @@ import fu.sep490.g23.backend.entity.course.enums.PackageTypeCode;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
 import fu.sep490.g23.backend.repository.course.PackageTypeRepository;
@@ -57,13 +57,13 @@ public class ReviewDataSeeder implements CommandLineRunner {
     private final UserRoleService userRoleService;
     private final PasswordEncoder passwordEncoder;
     private final ClassroomCampusRepository campusRepository;
-    private final ClassroomRoomRepository roomRepository;
+    private final RoomRepository roomRepository;
     private final PackageTypeRepository packageTypeRepository;
     private final LearningPackageRepository learningPackageRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
 
     @Value("${app.seed.review.enabled:false}")
     private boolean enabled;
@@ -79,8 +79,8 @@ public class ReviewDataSeeder implements CommandLineRunner {
         }
 
         ClassroomCampus campus = ensureCampus();
-        ClassroomRoom ieltsRoom = ensureRoom("IELTS 01", campus, 24);
-        ClassroomRoom toeicRoom = ensureRoom("TOEIC 01", campus, 30);
+        Room ieltsRoom = ensureRoom("IELTS 01", campus, 24);
+        Room toeicRoom = ensureRoom("TOEIC 01", campus, 30);
         ensureRoom("Speaking Studio", campus, 12);
 
         User manager = ensureUser("review.manager@englishlab.vn", "Nguyễn Hoài An", RoleEnum.MANAGER);
@@ -108,12 +108,12 @@ public class ReviewDataSeeder implements CommandLineRunner {
                         .active(true)
                         .build()));
 
-        ClassroomOffering ieltsClass = ensureClassroom(
+        ClassSection ieltsClass = ensureClassroom(
                 classroomType, manager, ieltsTeacher, ieltsRoom,
                 "Review IELTS Intermediate - 2-4-6", "review-ielts-intermediate-246",
                 "IELTS 5.0 - 6.0", "Nâng kỹ năng Reading và Writing học thuật.", 5_900_000
         );
-        ClassroomOffering toeicClass = ensureClassroom(
+        ClassSection toeicClass = ensureClassroom(
                 classroomType, manager, toeicTeacher, toeicRoom,
                 "Review TOEIC 650 - 3-5-7", "review-toeic-650-357",
                 "TOEIC 550 - 650", "Củng cố Listening và Reading để đạt 650+.", 4_900_000
@@ -144,11 +144,11 @@ public class ReviewDataSeeder implements CommandLineRunner {
         return savedCampus;
     }
 
-    private ClassroomRoom ensureRoom(String name, ClassroomCampus campus, int capacity) {
+    private Room ensureRoom(String name, ClassroomCampus campus, int capacity) {
         return roomRepository.findByCampusIdAndActiveTrueOrderByNameAsc(campus.getId()).stream()
                 .filter(room -> name.equalsIgnoreCase(room.getName()))
                 .findFirst()
-                .orElseGet(() -> roomRepository.save(ClassroomRoom.builder()
+                .orElseGet(() -> roomRepository.save(Room.builder()
                         .name(name)
                         .campus(campus)
                         .capacity(capacity)
@@ -170,11 +170,11 @@ public class ReviewDataSeeder implements CommandLineRunner {
         });
     }
 
-    private ClassroomOffering ensureClassroom(
+    private ClassSection ensureClassroom(
             PackageType classroomType,
             User manager,
             User teacher,
-            ClassroomRoom room,
+            Room room,
             String title,
             String slug,
             String entryLevel,
@@ -195,29 +195,29 @@ public class ReviewDataSeeder implements CommandLineRunner {
                     .createdBy(manager)
                     .build());
             LocalDate startDate = LocalDate.now().plusDays(7);
-            ClassroomOffering offering = offeringRepository.save(ClassroomOffering.builder()
+            ClassSection offering = offeringRepository.save(ClassSection.builder()
                     .learningPackage(learningPackage)
                     .deliveryMode(ClassroomDeliveryMode.OFFLINE)
                     .status(ClassroomOfferingStatus.UPCOMING)
                     .entryLevel(entryLevel)
                     .targetOutcome(outcome)
-                    .maxCapacity(room.getCapacity())
+                    .capacity(room.getCapacity())
                     .startDate(startDate)
-                    .endDate(startDate.plusWeeks(8))
+                    .plannedEndDate(startDate.plusWeeks(8))
                     .primaryTeacher(teacher)
-                    .defaultRoom(room)
+                    .regularRoom(room)
                     .offlineAddress("EnglishLab Center, Hà Nội")
                     .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                     .syllabusSummary("Lộ trình 10 buổi có bài tập và phản hồi từ giáo viên.")
                     .build());
             teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .teacher(teacher)
                     .role(ClassroomTeacherRole.PRIMARY)
                     .effectiveFrom(startDate)
                     .build());
-            sessionRepository.save(ClassroomSession.builder()
-                    .classroomOffering(offering)
+            sessionRepository.save(ClassSchedule.builder()
+                    .classSection(offering)
                     .sessionDate(startDate)
                     .startTime(LocalTime.of(19, 30))
                     .endTime(LocalTime.of(21, 0))
@@ -231,14 +231,14 @@ public class ReviewDataSeeder implements CommandLineRunner {
         });
     }
 
-    private void ensureEnrollment(ClassroomOffering offering, List<User> learners, User manager) {
+    private void ensureEnrollment(ClassSection offering, List<User> learners, User manager) {
         learners.forEach(learner -> {
-            if (enrollmentRepository.existsByStudentIdAndClassroomOfferingId(learner.getId(), offering.getId())) {
+            if (enrollmentRepository.existsByStudentIdAndClassSectionId(learner.getId(), offering.getId())) {
                 return;
             }
-            enrollmentRepository.save(ClassroomEnrollment.builder()
+            enrollmentRepository.save(ClassEnrollment.builder()
                     .student(learner)
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .status(ClassroomEnrollmentStatus.ENROLLED)
                     .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                     .tuitionAmountDue(offering.getLearningPackage().getPrice())

@@ -27,13 +27,13 @@ import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkSubmissionResponse;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.ClassroomChangeRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomOfferingResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomChangeRequestResponse;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomHomeworkResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomTeacherSummaryResponse;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomGradebookResponse;
@@ -54,9 +54,9 @@ import fu.sep490.g23.backend.entity.classroom.*;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.curriculum.*;
 import fu.sep490.g23.backend.entity.notification.AppNotification;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTuitionPaymentRepository;
 import fu.sep490.g23.backend.service.classroom.ClassroomHomeworkGradingCatalogService;
@@ -83,31 +83,31 @@ public class ClassroomMapper {
     private static final Set<ClassroomRegistrationStatus> ACTIVE_REGISTRATIONS = ClassroomRegistrationSupport.ACTIVE_REGISTRATIONS;
     private static final Set<ClassroomRegistrationStatus> WAITLIST_STATUSES = EnumSet.of(ClassroomRegistrationStatus.WAITLIST);
 
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomHomeworkSubmissionRepository homeworkSubmissionRepository;
     private final ClassroomHomeworkGradingCatalogService homeworkGradingCatalogService;
     private final ClassroomTuitionPaymentRepository tuitionPaymentRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final VirtualMeetingService virtualMeetingService;
     private final ClassroomHomeworkObjectiveGrader homeworkObjectiveGrader;
 
-    public ClassroomOfferingResponse toOfferingResponse(ClassroomOffering offering) {
+    public ClassroomOfferingResponse toOfferingResponse(ClassSection offering) {
         return toOfferingResponse(offering, false, null, null, false);
     }
 
     public ClassroomOfferingResponse toOfferingResponse(
-            ClassroomOffering offering,
+            ClassSection offering,
             boolean includeDetails,
             Long viewerStudentId,
-            ClassroomEnrollment enrollment,
+            ClassEnrollment enrollment,
             boolean includeSessions
     ) {
         LearningPackage learningPackage = offering.getLearningPackage();
         long enrolledCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), OCCUPIES_CLASS_SLOT);
         long waitlistCount = enrollmentRepository.countByOfferingAndRegistrationStatuses(offering.getId(), WAITLIST_STATUSES);
-        List<ClassroomSession> sessions = includeSessions
-                ? offering.getSessions()
+        List<ClassSchedule> sessions = includeSessions
+                ? offering.getSchedules()
                 : List.of();
 
         ClassroomSessionResponse nextSession = resolveNextSession(sessions);
@@ -142,14 +142,14 @@ public class ClassroomMapper {
                 .curriculumProgram(toCurriculumProgramResponse(offering.getCurriculumProgram(), includeDetails))
                 .entryLevel(offering.getEntryLevel())
                 .targetOutcome(offering.getTargetOutcome())
-                .maxCapacity(offering.getMaxCapacity())
+                .capacity(offering.getCapacity())
                 .enrolledCount((int) enrolledCount)
                 .startDate(offering.getStartDate())
-                .endDate(offering.getEndDate())
+                .endDate(offering.getPlannedEndDate())
                 .primaryTeacherId(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getId())
                 .primaryTeacherName(offering.getPrimaryTeacher() == null ? null : offering.getPrimaryTeacher().getFullName())
-                .roomId(offering.getDefaultRoom() == null ? null : offering.getDefaultRoom().getId())
-                .roomName(offering.getDefaultRoom() == null ? null : offering.getDefaultRoom().getName())
+                .roomId(offering.getRegularRoom() == null ? null : offering.getRegularRoom().getId())
+                .roomName(offering.getRegularRoom() == null ? null : offering.getRegularRoom().getName())
                 .offlineAddress(offering.getOfflineAddress())
                 .locationNote(offering.getLocationNote())
                 .defaultLarkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(offering.getDefaultLarkMeetingUrl())
@@ -201,10 +201,10 @@ public class ClassroomMapper {
                 .updatedAt(offering.getUpdatedAt())
                 .sessions(includeDetails ? sessions.stream().map(this::toSessionResponse).toList() : null)
                 .enrollments(includeDetails
-                        ? enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(offering.getId(), ACTIVE_REGISTRATIONS)
+                        ? enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(offering.getId(), ACTIVE_REGISTRATIONS)
                         .stream().map(this::toEnrollmentResponse).toList()
                         : null)
-                .teachers(teacherAssignmentRepository.findByClassroomOfferingId(offering.getId())
+                .teachers(teacherAssignmentRepository.findByClassSectionId(offering.getId())
                         .stream()
                         .filter(this::isActiveTeacherAssignment)
                         .map(this::toTeacherSummary)
@@ -216,7 +216,7 @@ public class ClassroomMapper {
      * Chi tiết lớp cho trang public: có lịch buổi học + giáo trình theo buổi,
      * nhưng loại bỏ dữ liệu nội bộ (danh sách học viên, link phòng học, recording, ghi chú giáo viên).
      */
-    public ClassroomOfferingResponse toPublicOfferingDetailResponse(ClassroomOffering offering) {
+    public ClassroomOfferingResponse toPublicOfferingDetailResponse(ClassSection offering) {
         ClassroomOfferingResponse response = toOfferingResponse(offering, true, null, null, true);
         response.setEnrollments(null);
         response.setTeacherGuide(null);
@@ -251,15 +251,15 @@ public class ClassroomMapper {
                 && (assignment.getEffectiveTo() == null || !assignment.getEffectiveTo().isBefore(today));
     }
 
-    public ClassroomSessionResponse toSessionResponse(ClassroomSession session) {
+    public ClassroomSessionResponse toSessionResponse(ClassSchedule session) {
         return toSessionResponse(session, false);
     }
 
-    public ClassroomSessionResponse toManagerSessionResponse(ClassroomSession session) {
+    public ClassroomSessionResponse toManagerSessionResponse(ClassSchedule session) {
         return toSessionResponse(session, true);
     }
 
-    private ClassroomSessionResponse toSessionResponse(ClassroomSession session, boolean includeHiddenRecording) {
+    private ClassroomSessionResponse toSessionResponse(ClassSchedule session, boolean includeHiddenRecording) {
         User teacher = session.getTeacher();
         CurriculumSessionPlan sessionPlan = session.getCurriculumSessionPlan();
         CurriculumUnit curriculumUnit = sessionPlan == null ? null : sessionPlan.getUnit();
@@ -269,8 +269,8 @@ public class ClassroomMapper {
         boolean recordingAvailable = Boolean.TRUE.equals(session.getRecordingVisible()) && !recordingExpired;
         return ClassroomSessionResponse.builder()
                 .id(session.getId())
-                .classroomOfferingId(session.getClassroomOffering().getId())
-                .classroomTitle(session.getClassroomOffering().getLearningPackage().getTitle())
+                .classSectionId(session.getClassSection().getId())
+                .classroomTitle(session.getClassSection().getLearningPackage().getTitle())
                 .sessionDate(session.getSessionDate())
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
@@ -281,7 +281,7 @@ public class ClassroomMapper {
                 .deliveryModeLabel(deliveryModeLabel(session.getDeliveryMode()))
                 .roomId(session.getRoom() == null ? null : session.getRoom().getId())
                 .roomName(session.getRoom() == null ? null : session.getRoom().getName())
-                .offlineAddress(session.getClassroomOffering().getOfflineAddress())
+                .offlineAddress(session.getClassSection().getOfflineAddress())
                 .larkMeetingUrl(virtualMeetingService.isLegacyOrPlaceholderUrl(session.getLarkMeetingUrl())
                         ? null
                         : session.getLarkMeetingUrl())
@@ -321,11 +321,11 @@ public class ClassroomMapper {
                 .build();
     }
 
-    public ClassroomEnrollmentResponse toEnrollmentResponse(ClassroomEnrollment enrollment) {
+    public ClassroomEnrollmentResponse toEnrollmentResponse(ClassEnrollment enrollment) {
         User confirmedBy = enrollment.getConfirmedBy();
         User assignedBy = enrollment.getAssignedBy();
         User tuitionRecordedBy = enrollment.getTuitionRecordedBy();
-        ClassroomOffering offering = enrollment.getClassroomOffering();
+        ClassSection offering = enrollment.getClassSection();
         BigDecimal remaining = enrollment.tuitionBalance();
         boolean waitlisted = enrollment.getRegistrationStatus() == ClassroomRegistrationStatus.WAITLIST;
         Integer waitlistSize = waitlisted
@@ -339,7 +339,7 @@ public class ClassroomMapper {
                 .studentId(enrollment.getStudent().getId())
                 .studentName(enrollment.getStudent().getFullName())
                 .studentEmail(enrollment.getStudent().getEmail())
-                .classroomOfferingId(offering.getId())
+                .classSectionId(offering.getId())
                 .classroomTitle(offering.getLearningPackage().getTitle())
                 .deliveryMode(offering.getDeliveryMode())
                 .deliveryModeLabel(deliveryModeLabel(offering.getDeliveryMode()))
@@ -394,7 +394,7 @@ public class ClassroomMapper {
                 .teacherId(assignment.getTeacher().getId())
                 .teacherName(assignment.getTeacher().getFullName())
                 .role(assignment.getRole())
-                .sessionId(assignment.getClassroomSession() == null ? null : assignment.getClassroomSession().getId())
+                .sessionId(assignment.getClassSchedule() == null ? null : assignment.getClassSchedule().getId())
                 .effectiveFrom(assignment.getEffectiveFrom())
                 .effectiveTo(assignment.getEffectiveTo())
                 .reason(assignment.getReason())
@@ -409,9 +409,9 @@ public class ClassroomMapper {
                 .requestTypeLabel(changeRequestTypeLabel(request.getRequestType()))
                 .requesterId(request.getRequester().getId())
                 .requesterName(request.getRequester().getFullName())
-                .classroomOfferingId(request.getClassroomOffering().getId())
-                .classroomTitle(request.getClassroomOffering().getLearningPackage().getTitle())
-                .targetSessionId(request.getTargetSession() == null ? null : request.getTargetSession().getId())
+                .classSectionId(request.getClassSection().getId())
+                .classroomTitle(request.getClassSection().getLearningPackage().getTitle())
+                .targetSessionId(request.getTargetClassSchedule() == null ? null : request.getTargetClassSchedule().getId())
                 .oldValuesJson(request.getOldValuesJson())
                 .newValuesJson(request.getNewValuesJson())
                 .reason(request.getReason())
@@ -426,8 +426,8 @@ public class ClassroomMapper {
     }
 
     public ClassroomAttendanceResponse toAttendanceResponse(ClassroomAttendance attendance) {
-        ClassroomSession session = attendance.getSession();
-        ClassroomOffering offering = session.getClassroomOffering();
+        ClassSchedule session = attendance.getSession();
+        ClassSection offering = session.getClassSection();
         return ClassroomAttendanceResponse.builder()
                 .id(attendance.getId())
                 .sessionId(session.getId())
@@ -444,7 +444,7 @@ public class ClassroomMapper {
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
                 .classroomTitle(offering.getLearningPackage() != null ? offering.getLearningPackage().getTitle() : null)
-                .classroomOfferingId(offering.getId())
+                .classSectionId(offering.getId())
                 .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
                 .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
                 .larkMeetingUrl(session.getLarkMeetingUrl())
@@ -456,8 +456,8 @@ public class ClassroomMapper {
      * Build a placeholder attendance response for an enrolled student who does not
      * yet have an attendance record for the given session.
      */
-    public ClassroomAttendanceResponse toPlaceholderAttendanceResponse(ClassroomSession session, User student) {
-        ClassroomOffering offering = session.getClassroomOffering();
+    public ClassroomAttendanceResponse toPlaceholderAttendanceResponse(ClassSchedule session, User student) {
+        ClassSection offering = session.getClassSection();
         return ClassroomAttendanceResponse.builder()
                 .sessionId(session.getId())
                 .studentId(student.getId())
@@ -467,7 +467,7 @@ public class ClassroomMapper {
                 .startTime(session.getStartTime())
                 .endTime(session.getEndTime())
                 .classroomTitle(offering.getLearningPackage() != null ? offering.getLearningPackage().getTitle() : null)
-                .classroomOfferingId(offering.getId())
+                .classSectionId(offering.getId())
                 .deliveryMode(session.getDeliveryMode() != null ? session.getDeliveryMode().name() : null)
                 .roomName(session.getRoom() != null ? session.getRoom().getName() : null)
                 .larkMeetingUrl(session.getLarkMeetingUrl())
@@ -501,7 +501,7 @@ public class ClassroomMapper {
         }
         return ClassroomHomeworkResponse.builder()
                 .id(homework.getId())
-                .classroomOfferingId(homework.getClassroomOffering().getId())
+                .classSectionId(homework.getClassSection().getId())
                 .sessionId(homework.getSession() == null ? null : homework.getSession().getId())
                 .curriculumUnitId(homework.getCurriculumUnit() == null ? null : homework.getCurriculumUnit().getId())
                 .curriculumUnitTitle(homework.getCurriculumUnit() == null ? null : homework.getCurriculumUnit().getTitle())
@@ -704,7 +704,7 @@ public class ClassroomMapper {
                 .studyMode(program.getStudyMode())
                 .status(program.getStatus())
                 .statusLabel(program.getStatus() == null ? null : program.getStatus().name())
-                .classroomCount(program.getClassroomOfferings().size())
+                .classroomCount(program.getClassSections().size())
                 .createdAt(program.getCreatedAt())
                 .updatedAt(program.getUpdatedAt())
                 .build();
@@ -883,7 +883,7 @@ public class ClassroomMapper {
         };
     }
 
-    private ClassroomSessionResponse resolveNextSession(List<ClassroomSession> sessions) {
+    private ClassroomSessionResponse resolveNextSession(List<ClassSchedule> sessions) {
         LocalDate today = LocalDate.now();
         return sessions.stream()
                 .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED
@@ -906,14 +906,14 @@ public class ClassroomMapper {
 
     private static final String[] DAY_OF_WEEK_LABELS = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
 
-    private ScheduleSummary computeScheduleSummary(ClassroomOffering offering) {
-        List<ClassroomSession> allSessions;
+    private ScheduleSummary computeScheduleSummary(ClassSection offering) {
+        List<ClassSchedule> allSessions;
         try {
-            allSessions = offering.getSessions();
+            allSessions = offering.getSchedules();
         } catch (RuntimeException exception) {
             return null;
         }
-        List<ClassroomSession> active = allSessions.stream()
+        List<ClassSchedule> active = allSessions.stream()
                 .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
                 .filter(session -> session.getSessionDate() != null && session.getStartTime() != null)
                 .toList();
@@ -951,8 +951,8 @@ public class ClassroomMapper {
     }
 
     private Integer computeProgressPercent(
-            ClassroomOffering offering,
-            List<ClassroomSession> sessions,
+            ClassSection offering,
+            List<ClassSchedule> sessions,
             boolean includeSessions
     ) {
         if (includeSessions) {
@@ -961,22 +961,22 @@ public class ClassroomMapper {
         if (offering.getId() == null || sessionRepository == null) {
             return 0;
         }
-        long total = sessionRepository.countByClassroomOfferingIdAndStatusNot(
+        long total = sessionRepository.countByClassSectionIdAndStatusNot(
                 offering.getId(),
                 ClassroomSessionStatus.CANCELLED
         );
         if (total == 0) {
             return 0;
         }
-        long completed = sessionRepository.countByClassroomOfferingIdAndStatus(
+        long completed = sessionRepository.countByClassSectionIdAndStatus(
                 offering.getId(),
                 ClassroomSessionStatus.COMPLETED
         );
         return (int) Math.round((completed * 100.0) / total);
     }
 
-    private Integer percentFromSessions(List<ClassroomSession> sessions) {
-        List<ClassroomSession> counted = sessions.stream()
+    private Integer percentFromSessions(List<ClassSchedule> sessions) {
+        List<ClassSchedule> counted = sessions.stream()
                 .filter(session -> session.getStatus() != ClassroomSessionStatus.CANCELLED)
                 .toList();
         if (counted.isEmpty()) {

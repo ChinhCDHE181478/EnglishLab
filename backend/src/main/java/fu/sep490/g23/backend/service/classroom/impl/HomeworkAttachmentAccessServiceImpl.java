@@ -2,12 +2,12 @@ package fu.sep490.g23.backend.service.classroom.impl;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomTeacherAssignment;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkSubmissionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
@@ -39,7 +39,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
     private final ClassroomTuitionPaymentProofRepository proofRepository;
     private final ClassroomMaterialRepository materialRepository;
     private final CenterMaterialLibraryItemRepository centerMaterialRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
 
     @Override
@@ -66,9 +66,9 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
         User learner = accessHelper.requireUser(learnerEmail);
         ClassroomHomework homework = homeworkRepository.findById(homeworkId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài tập."));
-        boolean enrolled = enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        boolean enrolled = enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 learner.getId(),
-                homework.getClassroomOffering().getId(),
+                homework.getClassSection().getId(),
                 ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
         );
         if (!enrolled) {
@@ -97,17 +97,17 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
             if (submission.get().getStudent().getId().equals(requester.getId())) {
                 return true;
             }
-            return canTeachClass(requester, submission.get().getHomework().getClassroomOffering());
+            return canTeachClass(requester, submission.get().getHomework().getClassSection());
         }
 
         var homework = homeworkRepository.findFirstByAttachmentUrlEndingWith(suffix);
         if (homework.isPresent()) {
-            return canAccessClassContent(requester, homework.get().getClassroomOffering());
+            return canAccessClassContent(requester, homework.get().getClassSection());
         }
 
         var material = materialRepository.findFirstByFileUrlEndingWith(suffix);
         if (material.isPresent()) {
-            return canAccessClassContent(requester, material.get().getClassroomOffering());
+            return canAccessClassContent(requester, material.get().getClassSection());
         }
 
         return requester.hasRole(RoleEnum.CONTENT_MANAGER)
@@ -122,18 +122,18 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
                 || centerMaterialRepository.existsByFileUrlEndingWith(suffix);
     }
 
-    private boolean canAccessClassContent(User requester, ClassroomOffering offering) {
+    private boolean canAccessClassContent(User requester, ClassSection offering) {
         if (requester.hasRole(RoleEnum.CONTENT_MANAGER) || canTeachClass(requester, offering)) {
             return true;
         }
-        return enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(
+        return enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(
                 requester.getId(),
                 offering.getId(),
                 ClassroomRegistrationSupport.HAS_LEARNING_ACCESS
         );
     }
 
-    private boolean canTeachClass(User requester, ClassroomOffering offering) {
+    private boolean canTeachClass(User requester, ClassSection offering) {
         if (!requester.hasRole(RoleEnum.TEACHER)) {
             return false;
         }
@@ -142,7 +142,7 @@ public class HomeworkAttachmentAccessServiceImpl implements HomeworkAttachmentAc
         }
         LocalDate today = LocalDate.now();
         return teacherAssignmentRepository
-                .findAllByClassroomOfferingIdAndTeacherId(offering.getId(), requester.getId())
+                .findAllByClassSectionIdAndTeacherId(offering.getId(), requester.getId())
                 .stream()
                 .anyMatch(assignment -> isActive(assignment, today));
     }

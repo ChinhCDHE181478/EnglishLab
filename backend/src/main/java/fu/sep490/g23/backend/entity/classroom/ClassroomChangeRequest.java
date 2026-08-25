@@ -40,12 +40,12 @@ public class ClassroomChangeRequest {
     private RoleEnum requesterRole;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "target_session_id")
-    private ClassroomSession targetSession;
+    private ClassSchedule targetClassSchedule;
 
     @Column(name = "old_values_json", columnDefinition = "text")
     private String oldValuesJson;

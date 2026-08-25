@@ -7,10 +7,10 @@ import fu.sep490.g23.backend.service.classroom.VirtualAttendanceService;
 import fu.sep490.g23.backend.service.classroom.LarkWebhookService;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.entity.classroom.LarkMeetingParticipant;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.classroom.LarkMeetingParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +44,7 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
     );
 
     private final LarkProperties properties;
-    private final ClassroomSessionRepository sessionRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final LarkMeetingParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final VirtualAttendanceService virtualAttendanceService;
@@ -68,7 +68,7 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         Map<String, Object> meeting = asMap(event.get("meeting"));
         String meetingId = stringValue(meeting.get("id"));
         String meetingNo = stringValue(meeting.get("meeting_no"));
-        ClassroomSession session = findSession(meetingId, meetingNo);
+        ClassSchedule session = findSession(meetingId, meetingNo);
         if (session == null) {
             log.warn("Không tìm thấy buổi học cho webhook Lark meetingId={}, meetingNo={}.", meetingId, meetingNo);
             return;
@@ -97,7 +97,7 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         sessionRepository.save(session);
     }
 
-    private void updateMeetingState(ClassroomSession session, String eventType) {
+    private void updateMeetingState(ClassSchedule session, String eventType) {
         switch (eventType) {
             case MEETING_STARTED -> {
                 session.setLarkMeetingStatus(LarkMeetingStatus.IN_PROGRESS);
@@ -132,18 +132,18 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         }
     }
 
-    private void markRecordingProcessing(ClassroomSession session) {
+    private void markRecordingProcessing(ClassSchedule session) {
         session.setRecordingProvider("LARK");
         session.setRecordingSyncStatus(RecordingSyncStatus.PROCESSING);
         session.setRecordingSyncError(null);
     }
 
-    private void markJoined(ClassroomSession session, String participantKey) {
+    private void markJoined(ClassSchedule session, String participantKey) {
         LocalDateTime now = LocalDateTime.now();
         LarkMeetingParticipant participant = participantRepository
-                .findByClassroomSessionIdAndParticipantKey(session.getId(), participantKey)
+                .findByClassScheduleIdAndParticipantKey(session.getId(), participantKey)
                 .orElseGet(() -> LarkMeetingParticipant.builder()
-                        .classroomSession(session)
+                        .classSchedule(session)
                         .participantKey(participantKey)
                         .build());
         participant.setActive(true);
@@ -156,21 +156,21 @@ public class LarkWebhookServiceImpl implements LarkWebhookService {
         session.setLarkMeetingStatus(LarkMeetingStatus.IN_PROGRESS);
     }
 
-    private void markLeft(ClassroomSession session, String participantKey) {
-        participantRepository.findByClassroomSessionIdAndParticipantKey(session.getId(), participantKey)
+    private void markLeft(ClassSchedule session, String participantKey) {
+        participantRepository.findByClassScheduleIdAndParticipantKey(session.getId(), participantKey)
                 .ifPresent(participant -> {
                     participant.setActive(false);
                     participant.setLeftAt(LocalDateTime.now());
                     participantRepository.save(participant);
                 });
-        if (participantRepository.countByClassroomSessionIdAndActiveTrue(session.getId()) == 0) {
+        if (participantRepository.countByClassScheduleIdAndActiveTrue(session.getId()) == 0) {
             session.setLarkEmptySince(LocalDateTime.now());
         }
     }
 
-    private ClassroomSession findSession(String meetingId, String meetingNo) {
+    private ClassSchedule findSession(String meetingId, String meetingNo) {
         if (!meetingId.isBlank()) {
-            ClassroomSession session = sessionRepository.findByLarkMeetingId(meetingId).orElse(null);
+            ClassSchedule session = sessionRepository.findByLarkMeetingId(meetingId).orElse(null);
             if (session != null) return session;
         }
         return meetingNo.isBlank() ? null : sessionRepository.findByLarkMeetingNo(meetingNo).orElse(null);

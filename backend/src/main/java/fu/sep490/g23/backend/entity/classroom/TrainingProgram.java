@@ -81,7 +81,7 @@ public class TrainingProgram {
 
     @OneToMany(mappedBy = "trainingProgram")
     @Builder.Default
-    private List<ClassroomOffering> classroomOfferings = new ArrayList<>();
+    private List<ClassSection> classSections = new ArrayList<>();
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

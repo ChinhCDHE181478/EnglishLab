@@ -4,13 +4,13 @@ import fu.sep490.g23.backend.service.classroom.ClassroomScheduleAvailabilityServ
 import fu.sep490.g23.backend.dto.response.classroom.AvailableRoomOptionResponse;
 import fu.sep490.g23.backend.dto.response.classroom.AvailableTeacherOptionResponse;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomSessionStatus;
 import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +34,9 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
             ClassroomSessionStatus.MAKEUP
     );
 
-    private final ClassroomRoomRepository roomRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
+    private final RoomRepository roomRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
     private final UserRepository userRepository;
 
     public List<AvailableRoomOptionResponse> listAvailableRooms(
@@ -86,15 +86,15 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
     }
 
     @Override
-    public List<AvailableTeacherOptionResponse> listAvailableReplacementTeachers(Long classroomOfferingId) {
+    public List<AvailableTeacherOptionResponse> listAvailableReplacementTeachers(Long classSectionId) {
         LocalDate today = LocalDate.now();
-        var offering = offeringRepository.findById(classroomOfferingId)
+        var offering = offeringRepository.findById(classSectionId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy lớp học."));
         Long currentPrimaryTeacherId = offering.getPrimaryTeacher() == null
                 ? null
                 : offering.getPrimaryTeacher().getId();
         var upcomingSessions = sessionRepository
-                .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(classroomOfferingId)
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(classSectionId)
                 .stream()
                 .filter(session -> !session.getSessionDate().isBefore(today))
                 .filter(session -> ACTIVE_SESSION_STATUSES.contains(session.getStatus()))
@@ -116,7 +116,7 @@ public class ClassroomScheduleAvailabilityServiceImpl implements ClassroomSchedu
                 .toList();
     }
 
-    private AvailableRoomOptionResponse toRoomOption(ClassroomRoom room) {
+    private AvailableRoomOptionResponse toRoomOption(Room room) {
         return AvailableRoomOptionResponse.builder()
                 .id(room.getId())
                 .name(room.getName())

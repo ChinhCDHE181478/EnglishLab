@@ -11,7 +11,7 @@ import fu.sep490.g23.backend.entity.classroom.enums.HomeworkGradingMode;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionSettlementType;
 import fu.sep490.g23.backend.entity.classroom.enums.ClassroomRegistrationStatus;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkActivityType;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
 import fu.sep490.g23.backend.entity.classroom.enums.ContentReviewStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomeworkSubmission;
 import fu.sep490.g23.backend.entity.classroom.ClassroomAnnouncement;
@@ -28,23 +28,23 @@ import fu.sep490.g23.backend.repository.classroom.ClassroomGradebookEntryReposit
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumUnit;
 import fu.sep490.g23.backend.repository.classroom.TrainingProgramRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
 import fu.sep490.g23.backend.entity.classroom.CenterMaterialLibraryItem;
 import fu.sep490.g23.backend.entity.classroom.enums.HomeworkSubmissionStatus;
 import fu.sep490.g23.backend.entity.classroom.ClassroomHomework;
 import fu.sep490.g23.backend.entity.classroom.TrainingProgram;
 import fu.sep490.g23.backend.repository.classroom.ClassroomSyllabusItemRepository;
-import fu.sep490.g23.backend.entity.classroom.ClassroomSession;
+import fu.sep490.g23.backend.entity.classroom.ClassSchedule;
 import fu.sep490.g23.backend.repository.classroom.ClassroomTeacherAssignmentRepository;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumProgram;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.classroom.ClassroomAnnouncementRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomMaterialRepository;
 import fu.sep490.g23.backend.entity.curriculum.AssessmentBankItem;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomHomeworkRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
@@ -162,9 +162,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     private final FlashcardSetRepository flashcardSetRepository;
     private final AssessmentBankItemRepository assessmentBankItemRepository;
     private final TrainingProgramRepository trainingProgramRepository;
-    private final ClassroomOfferingRepository offeringRepository;
-    private final ClassroomSessionRepository sessionRepository;
-    private final ClassroomEnrollmentRepository enrollmentRepository;
+    private final ClassSectionRepository offeringRepository;
+    private final ClassScheduleRepository sessionRepository;
+    private final ClassEnrollmentRepository enrollmentRepository;
     private final ClassroomTeacherAssignmentRepository teacherAssignmentRepository;
     private final ClassroomSyllabusItemRepository syllabusRepository;
     private final ClassroomMaterialRepository classroomMaterialRepository;
@@ -207,17 +207,17 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         synchronizeCurriculumResources(units, teacher);
         units = curriculumUnitRepository.findByProgramIdOrderByDisplayOrderAscIdAsc(curriculum.getId());
         TrainingProgram trainingProgram = ensureTrainingProgram(curriculum);
-        ClassroomOffering offering = ensureOffering(classroomType, trainingProgram, curriculum, teacher);
+        ClassSection offering = ensureOffering(classroomType, trainingProgram, curriculum, teacher);
         clearLegacyDemoLarkLinks(offering);
 
         ensureTeacherAssignment(offering, teacher);
         learners.forEach(student -> ensureEnrollment(offering, student, teacher));
-        List<ClassroomSession> sessions = ensureSessions(offering, teacher, units);
-        ensureSyllabus(offering, units, sessions);
+        List<ClassSchedule> schedules = ensureSessions(offering, teacher, units);
+        ensureSyllabus(offering, units, schedules);
         ensureClassroomMaterials(offering, units, teacher);
         AssessmentBankItem unitProgressCheck = ensureUnitProgressCheckBankItem();
         ensureCurriculumAssessment(units.get(4), unitProgressCheck);
-        ensureHomework(offering, units, sessions, teacher, unitProgressCheck);
+        ensureHomework(offering, units, schedules, teacher, unitProgressCheck);
         ensureHomeworkSubmissions(offering, learnerTwo, learnerThree, learnerFour, teacher);
         ensureAnnouncement(offering, teacher);
         learners.forEach(student -> ensureGradebook(offering, student, teacher));
@@ -535,13 +535,13 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         return program;
     }
 
-    private ClassroomOffering ensureOffering(
+    private ClassSection ensureOffering(
             PackageType classroomType,
             TrainingProgram trainingProgram,
             CurriculumProgram curriculum,
             User teacher
     ) {
-        ClassroomOffering offering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG)
+        ClassSection offering = offeringRepository.findByLearningPackageSlug(PACKAGE_SLUG)
                 .orElseGet(() -> {
                     LearningPackage learningPackage = learningPackageRepository.save(LearningPackage.builder()
                             .packageType(classroomType)
@@ -558,7 +558,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .featured(true)
                             .createdBy(teacher)
                             .build());
-                    return ClassroomOffering.builder()
+                    return ClassSection.builder()
                             .learningPackage(learningPackage)
                             .deliveryMode(ClassroomDeliveryMode.VIRTUAL)
                             .trainingProgram(trainingProgram)
@@ -566,9 +566,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                             .status(ClassroomOfferingStatus.ACTIVE)
                             .entryLevel("TOEIC 350+")
                             .targetOutcome("TOEIC 650+")
-                            .maxCapacity(16)
+                            .capacity(16)
                             .startDate(LocalDate.now().minusWeeks(3))
-                            .endDate(LocalDate.now().plusWeeks(5))
+                            .plannedEndDate(LocalDate.now().plusWeeks(5))
                             .primaryTeacher(teacher)
                             .larkMeetingStatus(LarkMeetingStatus.NOT_CREATED)
                             .recordingVisible(false)
@@ -587,13 +587,13 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         return offeringRepository.save(offering);
     }
 
-    private void clearLegacyDemoLarkLinks(ClassroomOffering offering) {
+    private void clearLegacyDemoLarkLinks(ClassSection offering) {
         if (LEGACY_DEMO_LARK_URL.equalsIgnoreCase(offering.getDefaultLarkMeetingUrl())) {
             offering.setDefaultLarkMeetingUrl(null);
             offering.setLarkMeetingStatus(LarkMeetingStatus.NOT_CREATED);
             offeringRepository.save(offering);
         }
-        sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId()).stream()
+        sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId()).stream()
                 .filter(session -> LEGACY_DEMO_LARK_URL.equalsIgnoreCase(session.getLarkMeetingUrl())
                         || "DEMO".equalsIgnoreCase(session.getLarkSyncStatus()))
                 .forEach(session -> {
@@ -605,10 +605,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 });
     }
 
-    private void ensureTeacherAssignment(ClassroomOffering offering, User teacher) {
-        if (teacherAssignmentRepository.findAllByClassroomOfferingIdAndTeacherId(offering.getId(), teacher.getId()).isEmpty()) {
+    private void ensureTeacherAssignment(ClassSection offering, User teacher) {
+        if (teacherAssignmentRepository.findAllByClassSectionIdAndTeacherId(offering.getId(), teacher.getId()).isEmpty()) {
             teacherAssignmentRepository.save(ClassroomTeacherAssignment.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .teacher(teacher)
                         .role(ClassroomTeacherRole.PRIMARY)
                         .effectiveFrom(offering.getStartDate())
@@ -617,11 +617,11 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         }
     }
 
-    private void ensureEnrollment(ClassroomOffering offering, User learner, User teacher) {
-        enrollmentRepository.findByStudentIdAndClassroomOfferingId(learner.getId(), offering.getId())
-                .orElseGet(() -> enrollmentRepository.save(ClassroomEnrollment.builder()
+    private void ensureEnrollment(ClassSection offering, User learner, User teacher) {
+        enrollmentRepository.findByStudentIdAndClassSectionId(learner.getId(), offering.getId())
+                .orElseGet(() -> enrollmentRepository.save(ClassEnrollment.builder()
                         .student(learner)
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .status(ClassroomEnrollmentStatus.ENROLLED)
                         .registrationStatus(ClassroomRegistrationStatus.ASSIGNED)
                         .tuitionAmountDue(BigDecimal.valueOf(3_490_000))
@@ -637,9 +637,9 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private List<ClassroomSession> ensureSessions(ClassroomOffering offering, User teacher, List<CurriculumUnit> units) {
-        List<ClassroomSession> existing = sessionRepository
-                .findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+    private List<ClassSchedule> ensureSessions(ClassSection offering, User teacher, List<CurriculumUnit> units) {
+        List<ClassSchedule> existing = sessionRepository
+                .findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
         if (!existing.isEmpty()) {
             existing.stream()
                     .filter(session -> isDemoRecordingUrl(session.getRecordingUrl()))
@@ -654,8 +654,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
             ClassroomSessionStatus status = index < 3
                     ? ClassroomSessionStatus.COMPLETED
                     : index == 3 ? ClassroomSessionStatus.OPEN : ClassroomSessionStatus.SCHEDULED;
-            sessionRepository.save(ClassroomSession.builder()
-                    .classroomOffering(offering)
+            sessionRepository.save(ClassSchedule.builder()
+                    .classSection(offering)
                     .sessionDate(LocalDate.now().minusWeeks(3).plusWeeks(index))
                     .startTime(LocalTime.of(19, 30))
                     .endTime(LocalTime.of(21, 0))
@@ -670,22 +670,22 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                     .note("Buổi học theo khung chương trình TOEIC 650 Complete")
                     .build());
         }
-        return sessionRepository.findByClassroomOfferingIdOrderBySessionDateAscStartTimeAsc(offering.getId());
+        return sessionRepository.findByClassSectionIdOrderBySessionDateAscStartTimeAsc(offering.getId());
     }
 
     private boolean isDemoRecordingUrl(String url) {
         return StringUtils.hasText(url) && url.contains("example.com/recordings/");
     }
 
-    private void ensureSyllabus(ClassroomOffering offering, List<CurriculumUnit> units, List<ClassroomSession> sessions) {
-        if (!syllabusRepository.findByClassroomOfferingIdOrderByDisplayOrderAsc(offering.getId()).isEmpty()) {
+    private void ensureSyllabus(ClassSection offering, List<CurriculumUnit> units, List<ClassSchedule> schedules) {
+        if (!syllabusRepository.findByClassSectionIdOrderByDisplayOrderAsc(offering.getId()).isEmpty()) {
             return;
         }
         for (int index = 0; index < units.size(); index++) {
             CurriculumUnit unit = units.get(index);
-            ClassroomSession session = index < sessions.size() ? sessions.get(index) : null;
+            ClassSchedule session = index < schedules.size() ? schedules.get(index) : null;
             syllabusRepository.save(ClassroomSyllabusItem.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .title(unit.getTitle())
                     .description(unit.getDescription())
                     .displayOrder(index + 1)
@@ -701,16 +701,16 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         }
     }
 
-    private void ensureClassroomMaterials(ClassroomOffering offering, List<CurriculumUnit> units, User teacher) {
+    private void ensureClassroomMaterials(ClassSection offering, List<CurriculumUnit> units, User teacher) {
         for (CurriculumUnit unit : units) {
             for (CurriculumMaterialRef ref : unit.getMaterialRefs()) {
                 CenterMaterialLibraryItem material = ref.getMaterial();
-                if (classroomMaterialRepository.existsByClassroomOfferingIdAndCenterMaterialIdAndSessionIsNull(
+                if (classroomMaterialRepository.existsByClassSectionIdAndCenterMaterialIdAndSessionIsNull(
                         offering.getId(), material.getId())) {
                     continue;
                 }
                 classroomMaterialRepository.save(ClassroomMaterial.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .title(material.getTitle())
                         .fileUrl(material.getFileUrl())
                         .fileType(material.getFileType())
@@ -728,15 +728,15 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private void ensureHomework(
-            ClassroomOffering offering,
+            ClassSection offering,
             List<CurriculumUnit> units,
-            List<ClassroomSession> sessions,
+            List<ClassSchedule> schedules,
             User teacher,
             AssessmentBankItem unitProgressCheck
     ) {
         ensureHomeworkItem(offering, "Unit 1 Quiz - Photographs", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(0))
+                .classSection(offering)
+                .session(schedules.get(0))
                 .curriculumUnit(units.get(0))
                 .title("Unit 1 Quiz - Photographs")
                 .instruction("Chọn đáp án đúng trực tiếp trên website. Đây là bài theo format trung tâm.")
@@ -757,8 +757,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
 
         ensureHomeworkItem(offering, "Unit 2 Worksheet - Nộp file", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(1))
+                .classSection(offering)
+                .session(schedules.get(1))
                 .curriculumUnit(units.get(1))
                 .title("Unit 2 Worksheet - Nộp file")
                 .instruction("Tải file đề, hoàn thành trên máy và nộp lại file đáp án cho giáo viên.")
@@ -774,8 +774,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
 
         Long flashcardId = units.get(2).getFlashcardRefs().getFirst().getFlashcardSet().getId();
         ensureHomeworkItem(offering, "Unit 3 Flashcard Review", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(2))
+                .classSection(offering)
+                .session(schedules.get(2))
                 .curriculumUnit(units.get(2))
                 .title("Unit 3 Flashcard Review")
                 .instruction("Ôn toàn bộ flashcard Unit 3 trước buổi Conversations tiếp theo.")
@@ -790,8 +790,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
 
         ensureHomeworkItem(offering, "Unit 4 Short Talks - Listening Summary", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(3))
+                .classSection(offering)
+                .session(schedules.get(3))
                 .curriculumUnit(units.get(3))
                 .title("Unit 4 Short Talks - Listening Summary")
                 .instruction("Nghe lại nội dung Short Talks trong buổi học và viết tóm tắt 120-150 từ, gồm mục đích và hành động tiếp theo.")
@@ -806,8 +806,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
 
         ensureHomeworkItem(offering, "Unit 3 Speaking Retell - Conversations", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(2))
+                .classSection(offering)
+                .session(schedules.get(2))
                 .curriculumUnit(units.get(2))
                 .title("Unit 3 Speaking Retell - Conversations")
                 .instruction("Tóm tắt bằng tiếng Anh nội dung một cuộc hội thoại về lịch hẹn hoặc dịch vụ khách hàng trong 60-90 giây.")
@@ -821,11 +821,11 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .createdBy(teacher)
                 .build());
 
-        ensureUnitProgressCheckHomework(offering, units.get(4), sessions.get(4), teacher, unitProgressCheck);
+        ensureUnitProgressCheckHomework(offering, units.get(4), schedules.get(4), teacher, unitProgressCheck);
 
         ensureHomeworkItem(offering, "Unit 6 Text Completion - System Practice", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(5))
+                .classSection(offering)
+                .session(schedules.get(5))
                 .curriculumUnit(units.get(5))
                 .title("Unit 6 Text Completion - System Practice")
                 .instruction("Hoàn thành bài Text Completion trực tiếp trên website và đánh dấu câu cần giáo viên giải thích.")
@@ -848,8 +848,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
 
         ensureHomeworkItem(offering, "Unit 7 Error Log - Reading", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(6))
+                .classSection(offering)
+                .session(schedules.get(6))
                 .curriculumUnit(units.get(6))
                 .title("Unit 7 Error Log - Reading")
                 .instruction("Viết 150-200 từ phân tích ba lỗi Reading gần nhất và kế hoạch tránh lặp lại.")
@@ -864,8 +864,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                 .build());
 
         ensureHomeworkItem(offering, "Unit 8 Full Test Strategy - Nộp kế hoạch", ClassroomHomework.builder()
-                .classroomOffering(offering)
-                .session(sessions.get(7))
+                .classSection(offering)
+                .session(schedules.get(7))
                 .curriculumUnit(units.get(7))
                 .title("Unit 8 Full Test Strategy - Nộp kế hoạch")
                 .instruction("Tải mẫu chiến lược, điền kế hoạch phân bổ 120 phút và nộp lại file hoàn chỉnh cho giáo viên.")
@@ -884,20 +884,20 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private void ensureUnitProgressCheckHomework(
-            ClassroomOffering offering,
+            ClassSection offering,
             CurriculumUnit unit,
-            ClassroomSession session,
+            ClassSchedule session,
             User teacher,
             AssessmentBankItem assessment
     ) {
         String legacyTitle = "Unit 5 Module Test - Incomplete Sentences";
         String title = "Unit 5 Progress Check - Incomplete Sentences";
-        ClassroomHomework homework = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+        ClassroomHomework homework = homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()) || legacyTitle.equalsIgnoreCase(item.getTitle()))
                 .findFirst()
                 .orElseGet(ClassroomHomework::new);
         boolean isNew = homework.getId() == null;
-        homework.setClassroomOffering(offering);
+        homework.setClassSection(offering);
         homework.setSession(session);
         homework.setCurriculumUnit(unit);
         homework.setTitle(title);
@@ -919,8 +919,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         homeworkRepository.save(homework);
     }
 
-    private void synchronizeObjectiveHomeworkGrading(ClassroomOffering offering) {
-        homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+    private void synchronizeObjectiveHomeworkGrading(ClassSection offering) {
+        homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .filter(item -> item.getActivityType() == HomeworkActivityType.SKILL_PRACTICE)
                 .filter(item -> StringUtils.hasText(item.getActivityConfigJson()) || item.getAssessmentBankItem() != null)
                 .forEach(item -> {
@@ -931,7 +931,7 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
     }
 
     private void ensureHomeworkSubmissions(
-            ClassroomOffering offering,
+            ClassSection offering,
             User learnerTwo,
             User learnerThree,
             User learnerFour,
@@ -1010,8 +1010,8 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         );
     }
 
-    private ClassroomHomework requireHomework(ClassroomOffering offering, String title) {
-        return homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+    private ClassroomHomework requireHomework(ClassSection offering, String title) {
+        return homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .filter(item -> title.equalsIgnoreCase(item.getTitle()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy bài tập showcase: " + title));
@@ -1048,20 +1048,20 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
                         .build()));
     }
 
-    private void ensureHomeworkItem(ClassroomOffering offering, String title, ClassroomHomework item) {
-        boolean exists = homeworkRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+    private void ensureHomeworkItem(ClassSection offering, String title, ClassroomHomework item) {
+        boolean exists = homeworkRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .anyMatch(existing -> title.equalsIgnoreCase(existing.getTitle()));
         if (!exists) {
             homeworkRepository.save(item);
         }
     }
 
-    private void ensureAnnouncement(ClassroomOffering offering, User teacher) {
-        boolean exists = announcementRepository.findByClassroomOfferingIdOrderByCreatedAtDesc(offering.getId()).stream()
+    private void ensureAnnouncement(ClassSection offering, User teacher) {
+        boolean exists = announcementRepository.findByClassSectionIdOrderByCreatedAtDesc(offering.getId()).stream()
                 .anyMatch(item -> "Chào mừng đến lớp TOEIC 650 Complete".equalsIgnoreCase(item.getTitle()));
         if (!exists) {
             announcementRepository.save(ClassroomAnnouncement.builder()
-                    .classroomOffering(offering)
+                    .classSection(offering)
                     .title("Chào mừng đến lớp TOEIC 650 Complete")
                     .content("Tài liệu, flashcard và bài tập của từng unit đã được mở. Quiz và bài file đều nằm trong mục Bài tập.")
                     .createdBy(teacher)
@@ -1069,10 +1069,10 @@ public class ToeicShowcaseClassroomSeeder implements CommandLineRunner {
         }
     }
 
-    private void ensureGradebook(ClassroomOffering offering, User learner, User teacher) {
-        gradebookRepository.findByClassroomOfferingIdAndStudentId(offering.getId(), learner.getId())
+    private void ensureGradebook(ClassSection offering, User learner, User teacher) {
+        gradebookRepository.findByClassSectionIdAndStudentId(offering.getId(), learner.getId())
                 .orElseGet(() -> gradebookRepository.save(ClassroomGradebookEntry.builder()
-                        .classroomOffering(offering)
+                        .classSection(offering)
                         .student(learner)
                         .attendancePercent(BigDecimal.valueOf(100))
                         .participationScore(BigDecimal.valueOf(8.5))

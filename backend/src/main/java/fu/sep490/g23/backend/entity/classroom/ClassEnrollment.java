@@ -24,14 +24,14 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(
-        name = "classroom_enrollments",
+        name = "class_enrollments",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_classroom_enrollment_student_offering",
-                columnNames = {"student_id", "classroom_offering_id"}
+                name = "uk_class_enrollment_student_section",
+                columnNames = {"student_id", "class_section_id"}
         )
 )
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomEnrollment {
+public class ClassEnrollment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -41,8 +41,8 @@ public class ClassroomEnrollment {
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_enrollment_id")
@@ -66,6 +66,9 @@ public class ClassroomEnrollment {
 
     @Column(name = "waitlist_priority")
     private Integer waitlistPriority;
+
+    @Column(name = "agreed_tuition_fee_vnd", precision = 12, scale = 2)
+    private BigDecimal agreedTuitionFeeVnd;
 
     @Column(name = "tuition_amount_due", precision = 12, scale = 2)
     private BigDecimal tuitionAmountDue;

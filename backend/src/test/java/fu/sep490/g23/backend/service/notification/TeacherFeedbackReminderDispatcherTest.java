@@ -1,11 +1,11 @@
 package fu.sep490.g23.backend.service.notification;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassEnrollment;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.repository.classroom.ClassroomEnrollmentRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomOfferingRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassEnrollmentRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassSectionRepository;
 import fu.sep490.g23.backend.service.mail.LearningReminderMailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,15 +27,15 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TeacherFeedbackReminderDispatcherTest {
 
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private AppNotificationService notificationService;
     @Mock private NotificationPreferenceService preferenceService;
     @Mock private LearningReminderMailService mailService;
 
     private TeacherFeedbackReminderDispatcher dispatcher;
     private User learner;
-    private ClassroomOffering classroom;
+    private ClassSection classroom;
 
     @BeforeEach
     void setUp() {
@@ -47,9 +47,9 @@ class TeacherFeedbackReminderDispatcherTest {
                 mailService
         );
         learner = User.builder().id(5L).email("learner@example.com").fullName("Học viên").build();
-        classroom = ClassroomOffering.builder()
+        classroom = ClassSection.builder()
                 .id(9L)
-                .endDate(LocalDate.now())
+                .plannedEndDate(LocalDate.now())
                 .learningPackage(LearningPackage.builder().title("IELTS Evening").build())
                 .build();
     }
@@ -57,8 +57,8 @@ class TeacherFeedbackReminderDispatcherTest {
     @Test
     void notificationTransactionFailureIsContainedAndDoesNotSendEmail() {
         when(offeringRepository.findById(9L)).thenReturn(Optional.of(classroom));
-        when(enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(any(), any()))
-                .thenReturn(List.of(ClassroomEnrollment.builder().student(learner).build()));
+        when(enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(any(), any()))
+                .thenReturn(List.of(ClassEnrollment.builder().student(learner).build()));
         when(preferenceService.isStudyAlertEnabled(learner)).thenReturn(true);
         when(notificationService.createForUserOnce(any(), any(), any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("isolated transaction rolled back"));
@@ -71,8 +71,8 @@ class TeacherFeedbackReminderDispatcherTest {
     @Test
     void mailFailureDoesNotAbortClassroomDispatch() {
         when(offeringRepository.findById(9L)).thenReturn(Optional.of(classroom));
-        when(enrollmentRepository.findByClassroomOfferingIdAndRegistrationStatusIn(any(), any()))
-                .thenReturn(List.of(ClassroomEnrollment.builder().student(learner).build()));
+        when(enrollmentRepository.findByClassSectionIdAndRegistrationStatusIn(any(), any()))
+                .thenReturn(List.of(ClassEnrollment.builder().student(learner).build()));
         when(preferenceService.isStudyAlertEnabled(learner)).thenReturn(true);
         when(preferenceService.isEmailEnabled(learner)).thenReturn(true);
         when(notificationService.createForUserOnce(any(), any(), any(), any(), any(), any(), any()))

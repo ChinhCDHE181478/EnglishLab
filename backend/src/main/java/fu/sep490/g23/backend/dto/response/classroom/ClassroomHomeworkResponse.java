@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ClassroomHomeworkResponse {
     private Long id;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long sessionId;
     private Long curriculumUnitId;
     private String curriculumUnitTitle;

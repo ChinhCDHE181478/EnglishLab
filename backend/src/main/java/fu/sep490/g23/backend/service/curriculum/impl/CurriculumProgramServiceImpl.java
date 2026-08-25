@@ -36,7 +36,7 @@ import fu.sep490.g23.backend.entity.curriculum.FlashcardSet;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumAssessmentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumExerciseRefRepository;
@@ -51,7 +51,7 @@ import fu.sep490.g23.backend.service.curriculum.ContentBankLinkSync;
 import fu.sep490.g23.backend.service.curriculum.CurriculumProgramService;
 import fu.sep490.g23.backend.service.course.InstructorLedCourseSync;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.curriculum.enums.ContentBankType;
 import fu.sep490.g23.backend.security.ClassroomAccessHelper;
 import lombok.RequiredArgsConstructor;
@@ -112,7 +112,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     private final CurriculumProgramRepository programRepository;
     private final CurriculumUnitRepository unitRepository;
     private final CurriculumSessionPlanRepository sessionPlanRepository;
-    private final ClassroomSessionRepository classroomSessionRepository;
+    private final ClassScheduleRepository classScheduleRepository;
     private final CurriculumMaterialRefRepository materialRefRepository;
     private final CurriculumExerciseRefRepository exerciseRefRepository;
     private final CurriculumAssessmentRefRepository assessmentRefRepository;
@@ -383,7 +383,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public void deleteUnit(Long unitId) {
         CurriculumUnit unit = findUnit(unitId);
-        if (classroomSessionRepository.existsByCurriculumSessionPlanUnitId(unitId)) {
+        if (classScheduleRepository.existsByCurriculumSessionPlanUnitId(unitId)) {
             throw new IllegalArgumentException("Unit đã có buổi học được sử dụng trong lớp và không thể xóa.");
         }
         CurriculumProgram program = unit.getProgram();
@@ -440,7 +440,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     @Override
     public void deleteSessionPlan(Long sessionPlanId) {
         CurriculumSessionPlan sessionPlan = findSessionPlan(sessionPlanId);
-        if (classroomSessionRepository.existsByCurriculumSessionPlanId(sessionPlanId)) {
+        if (classScheduleRepository.existsByCurriculumSessionPlanId(sessionPlanId)) {
             throw new IllegalArgumentException(
                     "Buổi " + sessionPlan.getSessionNumber() + " đã được sử dụng trong lớp học và không thể xóa."
             );
@@ -874,7 +874,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
                 .reviewedByName(program.getReviewedBy() == null ? null : program.getReviewedBy().getFullName())
                 .reviewedAt(program.getReviewedAt())
                 .displayOrder(program.getDisplayOrder())
-                .classroomUsageCount(program.getClassroomOfferings().size())
+                .classroomUsageCount(program.getClassSections().size())
                 .activeClassroomCount((int) countActiveClassrooms(program))
                 .virtualPlatform(program.getVirtualPlatform())
                 .recordingAllowed(program.getRecordingAllowed())
@@ -896,9 +896,9 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     private List<CurriculumProgramResponse.ClassroomUsage> toClassroomUsages(CurriculumProgram program) {
-        return program.getClassroomOfferings().stream()
+        return program.getClassSections().stream()
                 .sorted(Comparator.comparing(
-                        ClassroomOffering::getStartDate,
+                        ClassSection::getStartDate,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(offering -> CurriculumProgramResponse.ClassroomUsage.builder()
                         .id(offering.getId())
@@ -1259,7 +1259,7 @@ public class CurriculumProgramServiceImpl implements CurriculumProgramService {
     }
 
     private long countActiveClassrooms(CurriculumProgram program) {
-        return program.getClassroomOfferings().stream()
+        return program.getClassSections().stream()
                 .filter(offering -> offering.getStatus() == ClassroomOfferingStatus.UPCOMING
                         || offering.getStatus() == ClassroomOfferingStatus.ACTIVE)
                 .count();

@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ClassroomTeacherAssignmentRepository extends JpaRepository<ClassroomTeacherAssignment, Long> {
-    List<ClassroomTeacherAssignment> findByClassroomOfferingId(Long classroomOfferingId);
+    List<ClassroomTeacherAssignment> findByClassSectionId(Long classSectionId);
 
     List<ClassroomTeacherAssignment> findByTeacherId(Long teacherId);
 
-    List<ClassroomTeacherAssignment> findAllByClassroomOfferingIdAndTeacherId(Long classroomOfferingId, Long teacherId);
+    List<ClassroomTeacherAssignment> findAllByClassSectionIdAndTeacherId(Long classSectionId, Long teacherId);
 
-    Optional<ClassroomTeacherAssignment> findByClassroomSessionId(Long classroomSessionId);
+    Optional<ClassroomTeacherAssignment> findByClassScheduleId(Long classScheduleId);
 }

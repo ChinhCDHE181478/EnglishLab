@@ -2,12 +2,12 @@ package fu.sep490.g23.backend.service.classroom.impl;
 import fu.sep490.g23.backend.dto.request.classroom.UpsertRoomRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomRoomDetailResponse;
 import fu.sep490.g23.backend.dto.request.classroom.UpsertCampusRequest;
-import fu.sep490.g23.backend.repository.classroom.ClassroomRoomRepository;
+import fu.sep490.g23.backend.repository.classroom.RoomRepository;
 import fu.sep490.g23.backend.repository.classroom.ClassroomCampusRepository;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomCampusResponse;
 
 import fu.sep490.g23.backend.entity.classroom.ClassroomCampus;
-import fu.sep490.g23.backend.entity.classroom.ClassroomRoom;
+import fu.sep490.g23.backend.entity.classroom.Room;
 import fu.sep490.g23.backend.service.classroom.ClassroomInfrastructureService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ import java.util.List;
 public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructureService {
 
     private final ClassroomCampusRepository campusRepository;
-    private final ClassroomRoomRepository roomRepository;
+    private final RoomRepository roomRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +58,7 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
     @Override
     @Transactional(readOnly = true)
     public List<ClassroomRoomDetailResponse> listRooms(Long campusId) {
-        List<ClassroomRoom> rooms = campusId == null
+        List<Room> rooms = campusId == null
                 ? roomRepository.findByActiveTrueOrderByNameAsc()
                 : roomRepository.findByCampusIdAndActiveTrueOrderByNameAsc(campusId);
         return rooms.stream().map(this::toRoomResponse).toList();
@@ -66,7 +66,7 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
 
     @Override
     public ClassroomRoomDetailResponse createRoom(UpsertRoomRequest request) {
-        ClassroomRoom room = ClassroomRoom.builder()
+        Room room = Room.builder()
                 .name(request.getName().trim())
                 .capacity(request.getCapacity())
                 .active(request.getActive() == null || request.getActive())
@@ -77,7 +77,7 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
 
     @Override
     public ClassroomRoomDetailResponse updateRoom(Long id, UpsertRoomRequest request) {
-        ClassroomRoom room = roomRepository.findById(id)
+        Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng học."));
         room.setName(request.getName().trim());
         room.setCapacity(request.getCapacity());
@@ -108,7 +108,7 @@ public class ClassroomInfrastructureServiceImpl implements ClassroomInfrastructu
                 .build();
     }
 
-    private ClassroomRoomDetailResponse toRoomResponse(ClassroomRoom room) {
+    private ClassroomRoomDetailResponse toRoomResponse(Room room) {
         return ClassroomRoomDetailResponse.builder()
                 .id(room.getId())
                 .name(room.getName())

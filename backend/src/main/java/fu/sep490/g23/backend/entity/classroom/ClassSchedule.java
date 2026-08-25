@@ -25,16 +25,16 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "classroom_sessions")
+@Table(name = "class_schedules")
 @EntityListeners(AuditingEntityListener.class)
-public class ClassroomSession {
+public class ClassSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false)
-    private ClassroomOffering classroomOffering;
+    @JoinColumn(name = "class_section_id", nullable = false)
+    private ClassSection classSection;
 
     @Column(name = "session_date", nullable = false)
     private LocalDate sessionDate;
@@ -60,7 +60,10 @@ public class ClassroomSession {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
-    private ClassroomRoom room;
+    private Room room;
+
+    @Column(name = "meeting_url", length = 700)
+    private String meetingUrl;
 
     @Column(name = "lark_meeting_url", length = 700)
     private String larkMeetingUrl;

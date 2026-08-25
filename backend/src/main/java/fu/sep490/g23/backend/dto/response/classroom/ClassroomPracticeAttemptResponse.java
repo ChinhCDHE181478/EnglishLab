@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ClassroomPracticeAttemptResponse {
     private Long id;
-    private Long classroomOfferingId;
+    private Long classSectionId;
     private Long exerciseId;
     private String exerciseTitle;
     private Integer attemptNumber;

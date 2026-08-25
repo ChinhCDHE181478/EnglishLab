@@ -10,7 +10,7 @@ import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.repository.assessment.AssessmentRubricRepository;
 import fu.sep490.g23.backend.repository.assessment.ExerciseBankItemRepository;
 import fu.sep490.g23.backend.repository.classroom.CenterMaterialLibraryItemRepository;
-import fu.sep490.g23.backend.repository.classroom.ClassroomSessionRepository;
+import fu.sep490.g23.backend.repository.classroom.ClassScheduleRepository;
 import fu.sep490.g23.backend.repository.curriculum.AssessmentBankItemRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumAssessmentRefRepository;
 import fu.sep490.g23.backend.repository.curriculum.CurriculumExerciseRefRepository;
@@ -44,7 +44,7 @@ class CurriculumProgramServiceImplTest {
     @Mock private CurriculumProgramRepository programRepository;
     @Mock private CurriculumUnitRepository unitRepository;
     @Mock private CurriculumSessionPlanRepository sessionPlanRepository;
-    @Mock private ClassroomSessionRepository classroomSessionRepository;
+    @Mock private ClassScheduleRepository classroomSessionRepository;
     @Mock private CurriculumMaterialRefRepository materialRefRepository;
     @Mock private CurriculumExerciseRefRepository exerciseRefRepository;
     @Mock private CurriculumAssessmentRefRepository assessmentRefRepository;

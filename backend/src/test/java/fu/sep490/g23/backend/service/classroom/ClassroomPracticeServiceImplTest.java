@@ -4,7 +4,7 @@ import fu.sep490.g23.backend.dto.request.classroom.CompletePracticeRequest;
 import fu.sep490.g23.backend.dto.response.classroom.ClassroomPracticeAttemptResponse;
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.assessment.ExerciseBankItem;
-import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
+import fu.sep490.g23.backend.entity.classroom.ClassSection;
 import fu.sep490.g23.backend.entity.classroom.ClassroomPracticeAttemptHistory;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
 import fu.sep490.g23.backend.entity.curriculum.CurriculumExerciseRef;
@@ -31,8 +31,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ClassroomPracticeServiceImplTest {
-    @Mock private ClassroomOfferingRepository offeringRepository;
-    @Mock private ClassroomEnrollmentRepository enrollmentRepository;
+    @Mock private ClassSectionRepository offeringRepository;
+    @Mock private ClassEnrollmentRepository enrollmentRepository;
     @Mock private ClassroomPracticeAttemptHistoryRepository attemptHistoryRepository;
     @Mock private ClassroomAccessHelper accessHelper;
     @InjectMocks private ClassroomPracticeServiceImpl service;
@@ -46,7 +46,7 @@ class ClassroomPracticeServiceImplTest {
         CurriculumUnit unit = CurriculumUnit.builder().id(4L).displayOrder(1).title("Unit 1").build();
         unit.setExerciseRefs(List.of(CurriculumExerciseRef.builder().unit(unit).exercise(exercise).build()));
         CurriculumProgram program = CurriculumProgram.builder().id(5L).title("Program").units(List.of(unit)).build();
-        ClassroomOffering offering = ClassroomOffering.builder().id(6L)
+        ClassSection offering = ClassSection.builder().id(6L)
                 .learningPackage(LearningPackage.builder().title("Lớp TOEIC").build())
                 .curriculumProgram(program).build();
         CompletePracticeRequest request = new CompletePracticeRequest();
@@ -54,10 +54,10 @@ class ClassroomPracticeServiceImplTest {
         request.setStartedAt(Instant.parse("2026-08-06T10:15:30Z"));
 
         when(accessHelper.requireUser("learner@example.com")).thenReturn(learner);
-        when(enrollmentRepository.existsByStudentIdAndClassroomOfferingIdAndRegistrationStatusIn(any(), any(), any()))
+        when(enrollmentRepository.existsByStudentIdAndClassSectionIdAndRegistrationStatusIn(any(), any(), any()))
                 .thenReturn(true);
         when(offeringRepository.findById(6L)).thenReturn(Optional.of(offering));
-        when(attemptHistoryRepository.countByClassroomOfferingIdAndStudentIdAndExerciseId(6L, 7L, 3L))
+        when(attemptHistoryRepository.countByClassSectionIdAndStudentIdAndExerciseId(6L, 7L, 3L))
                 .thenReturn(1L);
         when(attemptHistoryRepository.save(any(ClassroomPracticeAttemptHistory.class)))
                 .thenAnswer(invocation -> {
