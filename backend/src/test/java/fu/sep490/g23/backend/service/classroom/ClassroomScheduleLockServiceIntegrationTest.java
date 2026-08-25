@@ -1,6 +1,7 @@
 package fu.sep490.g23.backend.service.classroom;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 @SpringBootTest
 @Transactional
+@EnabledIfEnvironmentVariable(named = "RUN_POSTGRES_INTEGRATION_TESTS", matches = "true")
 class ClassroomScheduleLockServiceIntegrationTest {
 
     @Autowired

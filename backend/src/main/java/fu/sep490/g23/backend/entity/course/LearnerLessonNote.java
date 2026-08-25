@@ -1,13 +1,14 @@
-package fu.sep490.g23.backend.entity.course;
+﻿package fu.sep490.g23.backend.entity.course;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -18,9 +19,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "user_auxiliary_records")
-@EntityListeners(AuditingEntityListener.class)
 @SQLRestriction("record_type = 'learner_lesson_notes'")
+@EntityListeners(AuditingEntityListener.class)
 public class LearnerLessonNote extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "learner_lesson_notes";
@@ -31,15 +33,15 @@ public class LearnerLessonNote extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "course_id", nullable = false)
     private OnlineCourse course;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
     @Column(nullable = false, length = 2000)

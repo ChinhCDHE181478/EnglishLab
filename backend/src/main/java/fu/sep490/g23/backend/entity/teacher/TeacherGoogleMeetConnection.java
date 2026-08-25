@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.teacher;
+﻿package fu.sep490.g23.backend.entity.teacher;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.GoogleMeetConnectionStatus;
 import jakarta.persistence.*;
@@ -19,9 +20,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "user_auxiliary_records")
-@EntityListeners(AuditingEntityListener.class)
 @SQLRestriction("record_type = 'teacher_google_meet_connections'")
+@EntityListeners(AuditingEntityListener.class)
 public class TeacherGoogleMeetConnection extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "teacher_google_meet_connections";
@@ -32,7 +34,7 @@ public class TeacherGoogleMeetConnection extends DomainRecord {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false, unique = true)
     private User teacher;
 
     @Column(name = "google_subject", nullable = false, length = 255)

@@ -16,6 +16,7 @@ import java.util.Optional;
 @Repository
 public interface LearningPackageRepository extends JpaRepository<LearningPackage, Long>, JpaSpecificationExecutor<LearningPackage> {
     boolean existsBySlug(String slug);
+    Optional<LearningPackage> findBySlug(String slug);
     Optional<LearningPackage> findByIdAndDeletedFalse(Long id);
     Optional<LearningPackage> findByIdAndDeletedFalseAndStatus(Long id, PackageStatus status);
     Optional<LearningPackage> findBySlugAndDeletedFalse(String slug);

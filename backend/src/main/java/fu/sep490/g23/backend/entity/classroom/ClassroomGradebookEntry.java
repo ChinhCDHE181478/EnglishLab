@@ -1,9 +1,7 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
+
 import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.classroom.enums.GradebookEntryStatus;
-
-import fu.sep490.g23.backend.entity.classroom.enums.*;
-
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,6 +23,7 @@ import java.time.LocalDateTime;
 @SQLRestriction("record_type = 'classroom_gradebook_entries'")
 @EntityListeners(AuditingEntityListener.class)
 public class ClassroomGradebookEntry extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "classroom_gradebook_entries";
@@ -35,11 +34,11 @@ public class ClassroomGradebookEntry extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "classroom_offering_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "classroom_offering_id", nullable = false)
     private ClassroomOffering classroomOffering;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
     @Column(name = "homework_score", precision = 6, scale = 2)
@@ -66,7 +65,7 @@ public class ClassroomGradebookEntry extends DomainRecord {
     private GradebookEntryStatus status = GradebookEntryStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "updated_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "updated_by_id")
     private User updatedBy;
 
     @CreatedDate

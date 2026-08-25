@@ -1,16 +1,15 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.EnrollmentRequestStatus;
 import jakarta.persistence.Column;
-import jakarta.persistence.ConstraintMode;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,7 +22,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -36,6 +34,7 @@ import java.time.LocalDateTime;
 @SQLRestriction("record_type = 'course_enrollment_request_history'")
 @EntityListeners(AuditingEntityListener.class)
 public class EnrollmentRequestStatusHistory extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "course_enrollment_request_history";
@@ -46,7 +45,7 @@ public class EnrollmentRequestStatusHistory extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "enrollment_request_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_request_id", nullable = false)
     private EnrollmentRequest enrollmentRequest;
 
     @Enumerated(EnumType.STRING)
@@ -58,7 +57,7 @@ public class EnrollmentRequestStatusHistory extends DomainRecord {
     private EnrollmentRequestStatus toStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "actor_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "actor_id")
     private User actor;
 
     @Column(name = "transition_reason", length = 700)

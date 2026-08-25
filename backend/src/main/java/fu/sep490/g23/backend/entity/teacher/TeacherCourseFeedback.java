@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.teacher;
+﻿package fu.sep490.g23.backend.entity.teacher;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.ClassroomEnrollment;
 import fu.sep490.g23.backend.entity.classroom.ClassroomOffering;
@@ -16,14 +17,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_auxiliary_records")
+@SQLRestriction("record_type = 'teacher_course_feedback'")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLRestriction("record_type = 'teacher_course_feedback'")
 public class TeacherCourseFeedback extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "teacher_course_feedback";
@@ -34,15 +36,15 @@ public class TeacherCourseFeedback extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_id", nullable = false)
     private ClassroomEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "classroom_offering_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "classroom_offering_id", nullable = false)
     private ClassroomOffering classroomOffering;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @Column(name = "clarity_score", nullable = false)

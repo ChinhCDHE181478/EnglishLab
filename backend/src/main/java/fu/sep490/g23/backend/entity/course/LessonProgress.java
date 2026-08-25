@@ -1,16 +1,14 @@
-package fu.sep490.g23.backend.entity.course;
+﻿package fu.sep490.g23.backend.entity.course;
+
 import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.course.enums.LessonProgressStatus;
-
-import fu.sep490.g23.backend.entity.course.enums.*;
-
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 
@@ -21,9 +19,10 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(name = "learner_progress_records")
-@EntityListeners(AuditingEntityListener.class)
 @SQLRestriction("record_type = 'lesson_progress'")
+@EntityListeners(AuditingEntityListener.class)
 public class LessonProgress extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "lesson_progress";
@@ -34,19 +33,19 @@ public class LessonProgress extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_id", nullable = false)
     private PackageEnrollment enrollment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_version_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "course_version_id")
     private OnlineCourseVersion courseVersion;
 
     @Column(name = "lesson_key", length = 120)

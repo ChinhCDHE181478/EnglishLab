@@ -1,7 +1,6 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
-import fu.sep490.g23.backend.entity.classroom.enums.*;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,7 +32,7 @@ public class LarkMeetingParticipant extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "classroom_session_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "classroom_session_id", nullable = false)
     private ClassroomSession classroomSession;
 
     @Column(name = "participant_key", nullable = false, length = 255)

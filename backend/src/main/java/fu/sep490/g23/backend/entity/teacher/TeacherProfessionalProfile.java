@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.teacher;
+﻿package fu.sep490.g23.backend.entity.teacher;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 @Table(name = "user_auxiliary_records")
 @SQLRestriction("record_type = 'teacher_professional_profiles'")
 public class TeacherProfessionalProfile extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "teacher_professional_profiles";
@@ -31,7 +33,7 @@ public class TeacherProfessionalProfile extends DomainRecord {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false, unique = true)
     private User teacher;
 
     @Column(length = 180)

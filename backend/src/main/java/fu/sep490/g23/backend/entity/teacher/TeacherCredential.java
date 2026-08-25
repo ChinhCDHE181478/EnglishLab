@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.teacher;
+﻿package fu.sep490.g23.backend.entity.teacher;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.teacher.enums.CredentialVerificationStatus;
 import jakarta.persistence.*;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 @Table(name = "user_auxiliary_records")
 @SQLRestriction("record_type = 'teacher_credentials'")
 public class TeacherCredential extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "teacher_credentials";
@@ -33,7 +35,7 @@ public class TeacherCredential extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "teacher_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "teacher_id", nullable = false)
     private User teacher;
 
     @Column(nullable = false, length = 40)
@@ -63,7 +65,7 @@ public class TeacherCredential extends DomainRecord {
     private CredentialVerificationStatus verificationStatus = CredentialVerificationStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "verified_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "verified_by_id")
     private User verifiedBy;
 
     @Column(name = "verified_at")

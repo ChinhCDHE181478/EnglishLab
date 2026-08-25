@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
@@ -14,6 +15,7 @@ import org.hibernate.annotations.SQLRestriction;
 @Table(name = "assessment_component_records")
 @SQLRestriction("record_type = 'classroom_quiz_questions'")
 public class ClassroomQuizQuestion extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "classroom_quiz_questions";
@@ -24,7 +26,7 @@ public class ClassroomQuizQuestion extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quiz_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "quiz_id", nullable = false)
     private ClassroomQuiz quiz;
 
     @Column(name = "sort_order", nullable = false)

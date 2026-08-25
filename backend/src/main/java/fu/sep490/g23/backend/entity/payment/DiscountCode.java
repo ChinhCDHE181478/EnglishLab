@@ -1,9 +1,6 @@
 package fu.sep490.g23.backend.entity.payment;
-import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
-
-import fu.sep490.g23.backend.entity.payment.enums.*;
-
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.payment.enums.DiscountType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -52,7 +49,7 @@ public class DiscountCode {
     @Column(nullable = false, length = 30)
     private DiscountType type;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(name = "discount_value", nullable = false, precision = 12, scale = 2)
     private BigDecimal value;
 
     @Column(name = "usage_limit", nullable = false)

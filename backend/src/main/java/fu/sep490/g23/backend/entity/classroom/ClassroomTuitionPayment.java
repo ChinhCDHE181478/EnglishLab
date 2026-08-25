@@ -1,9 +1,7 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
+
 import fu.sep490.g23.backend.entity.DomainRecord;
 import fu.sep490.g23.backend.entity.classroom.enums.TuitionPaymentKind;
-
-import fu.sep490.g23.backend.entity.classroom.enums.*;
-
 import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,6 +22,7 @@ import java.time.LocalDateTime;
 @SQLRestriction("record_type = 'classroom_tuition_payments'")
 @EntityListeners(AuditingEntityListener.class)
 public class ClassroomTuitionPayment extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "classroom_tuition_payments";
@@ -34,7 +33,7 @@ public class ClassroomTuitionPayment extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "enrollment_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "enrollment_id", nullable = false)
     private ClassroomEnrollment enrollment;
 
     @Column(nullable = false, precision = 12, scale = 2)
@@ -48,7 +47,7 @@ public class ClassroomTuitionPayment extends DomainRecord {
     private String note;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recorded_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "recorded_by_id")
     private User recordedBy;
 
     @CreatedDate

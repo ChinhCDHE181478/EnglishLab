@@ -1,6 +1,7 @@
-package fu.sep490.g23.backend.entity.classroom;
+﻿package fu.sep490.g23.backend.entity.classroom;
 
 import fu.sep490.g23.backend.entity.DomainRecord;
+
 import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.classroom.enums.AttendanceDisputeStatus;
 import jakarta.persistence.*;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 @SQLRestriction("record_type = 'classroom_attendance_disputes'")
 @EntityListeners(AuditingEntityListener.class)
 public class ClassroomAttendanceDispute extends DomainRecord {
+
     @Override
     protected String domainRecordType() {
         return "classroom_attendance_disputes";
@@ -32,11 +34,11 @@ public class ClassroomAttendanceDispute extends DomainRecord {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "attendance_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "attendance_id", nullable = false)
     private ClassroomAttendance attendance;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false, foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
     @Column(name = "dispute_reason", nullable = false, columnDefinition = "text")
@@ -51,7 +53,7 @@ public class ClassroomAttendanceDispute extends DomainRecord {
     private String reviewNote;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewed_by_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
+    @JoinColumn(name = "reviewed_by_id")
     private User reviewedBy;
 
     @Column(name = "reviewed_at")
