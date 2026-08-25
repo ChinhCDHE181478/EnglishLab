@@ -1,8 +1,8 @@
 package fu.sep490.g23.backend.service.course.impl;
 
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
 import fu.sep490.g23.backend.service.course.CourseDiscussionNotificationService;
 import fu.sep490.g23.backend.service.notification.ClassroomNotificationService;
 import lombok.RequiredArgsConstructor;
@@ -19,15 +19,18 @@ public class CourseDiscussionNotificationServiceImpl implements CourseDiscussion
     private final ClassroomNotificationService notificationService;
 
     @Override
-    public void notifyQuestionSent(CourseDiscussionThread thread) {
+    public void notifyQuestionSent(CourseDiscussionPost thread) {
         notifySafely(thread.getAuthor(), "DISCUSSION_QUESTION_SENT", "Đã gửi câu hỏi",
                 "Câu hỏi của bạn đã được đăng. Bạn sẽ nhận thông báo khi có người trả lời.",
                 threadMetadata(thread));
     }
 
     @Override
-    public void notifyNewReply(CourseDiscussionReply reply) {
-        CourseDiscussionThread thread = reply.getThread();
+    public void notifyNewReply(CourseDiscussionPost reply) {
+        CourseDiscussionPost thread = reply.getParentPost();
+        if (thread == null || thread.getPostType() != CourseDiscussionPostType.THREAD) {
+            return;
+        }
         if (thread.getAuthor().getId().equals(reply.getAuthor().getId())) {
             return;
         }
@@ -38,7 +41,7 @@ public class CourseDiscussionNotificationServiceImpl implements CourseDiscussion
                 preview(reply.getContent()), metadata);
     }
 
-    private Map<String, Object> threadMetadata(CourseDiscussionThread thread) {
+    private Map<String, Object> threadMetadata(CourseDiscussionPost thread) {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("courseId", thread.getCourse().getId());
         metadata.put("lessonId", thread.getLesson() == null ? null : thread.getLesson().getId());

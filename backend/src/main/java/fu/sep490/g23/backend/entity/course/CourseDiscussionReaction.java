@@ -1,7 +1,8 @@
 package fu.sep490.g23.backend.entity.course;
+
+import fu.sep490.g23.backend.entity.User;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
-import fu.sep490.g23.backend.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
@@ -47,10 +48,21 @@ public class CourseDiscussionReaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private CourseDiscussionPost post;
+
+    /**
+     * Legacy discriminator kept for DB NOT NULL + unique constraint compatibility.
+     * Prefer {@link #post} for runtime lookups; still written on save.
+     */
     @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, length = 20)
     private CourseDiscussionReactionTarget targetType;
 
+    /**
+     * Legacy target id (may be legacy thread/reply id for migrated rows, or post id for new writes).
+     */
     @Column(name = "target_id", nullable = false)
     private Long targetId;
 

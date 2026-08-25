@@ -1,14 +1,14 @@
 package fu.sep490.g23.backend.seed;
 
 import fu.sep490.g23.backend.entity.User;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReaction;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
 import fu.sep490.g23.backend.entity.course.LearningPackage;
-import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.OnlineCourse;
 import fu.sep490.g23.backend.entity.course.OnlineCourseEnrollment;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
@@ -17,13 +17,12 @@ import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
 import fu.sep490.g23.backend.entity.course.enums.EnrollmentStatus;
 import fu.sep490.g23.backend.repository.UserRepository;
+import fu.sep490.g23.backend.repository.course.CourseDiscussionPostRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.LearningPackageRepository;
-import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseEnrollmentRepository;
+import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,8 +50,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
     private final LearningPackageRepository learningPackageRepository;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineCourseEnrollmentRepository enrollmentRepository;
-    private final CourseDiscussionThreadRepository threadRepository;
-    private final CourseDiscussionReplyRepository replyRepository;
+    private final CourseDiscussionPostRepository postRepository;
     private final CourseDiscussionReportRepository reportRepository;
     private final CourseDiscussionReactionRepository reactionRepository;
 
@@ -109,7 +107,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
         OnlineLesson firstLesson = firstLesson(course);
 
         if (vocabulary) {
-            CourseDiscussionThread family = upsertThread(
+            CourseDiscussionPost family = upsertThread(
                     course,
                     firstLesson,
                     peerA,
@@ -117,7 +115,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     "Trong bài Family, mình vẫn hay lẫn immediate family với extended family khi viết Task 2. Có ai có câu ví dụ band 7 không?",
                     CourseDiscussionStatus.RESOLVED
             );
-            CourseDiscussionReply accepted = upsertReply(
+            CourseDiscussionPost accepted = upsertReply(
                     family,
                     showcase,
                     "Immediate family là bố mẹ và anh chị em. Extended family gồm ông bà, cô dì, chú bác. Ví dụ: Grandparents in the extended family often help with childcare.",
@@ -131,10 +129,10 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     false,
                     2
             );
-            react(CourseDiscussionReactionTarget.THREAD, family.getId(), showcase, CourseDiscussionReactionType.LIKE);
-            react(CourseDiscussionReactionTarget.THREAD, family.getId(), peerB, CourseDiscussionReactionType.LOVE);
-            react(CourseDiscussionReactionTarget.REPLY, accepted.getId(), peerA, CourseDiscussionReactionType.LIKE);
-            react(CourseDiscussionReactionTarget.REPLY, accepted.getId(), peerC, CourseDiscussionReactionType.WOW);
+            react(family, showcase, CourseDiscussionReactionType.LIKE);
+            react(family, peerB, CourseDiscussionReactionType.LOVE);
+            react(accepted, peerA, CourseDiscussionReactionType.LIKE);
+            react(accepted, peerC, CourseDiscussionReactionType.WOW);
 
             upsertThread(
                     course,
@@ -145,7 +143,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     CourseDiscussionStatus.OPEN
             );
 
-            CourseDiscussionThread collocation = upsertThread(
+            CourseDiscussionPost collocation = upsertThread(
                     course,
                     null,
                     peerB,
@@ -153,7 +151,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     "Mình muốn nói về người đã giúp mình tự tin hơn. nurture confidence nghe có tự nhiên không, hay nên đổi thành build confidence?",
                     CourseDiscussionStatus.OPEN
             );
-            CourseDiscussionReply rude = upsertReply(
+            CourseDiscussionPost rude = upsertReply(
                     collocation,
                     peerC,
                     "Hỏi linh tinh vậy học làm gì. Lên Google mà tìm, đừng spam diễn đàn.",
@@ -161,8 +159,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     0
             );
             ensureReport(
-                    CourseDiscussionReportTarget.REPLY,
-                    rude.getId(),
+                    rude,
                     showcase,
                     CourseDiscussionReportReasonCategory.INAPPROPRIATE_LANGUAGE,
                     "Bình luận thiếu tôn trọng, không giúp được người hỏi.",
@@ -171,9 +168,9 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     null
             );
             rude.setReportedCount(Math.max(rude.getReportedCount(), 1));
-            replyRepository.save(rude);
+            postRepository.save(rude);
 
-            CourseDiscussionThread spam = upsertThread(
+            CourseDiscussionPost spam = upsertThread(
                     course,
                     null,
                     peerC,
@@ -182,10 +179,9 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     CourseDiscussionStatus.HIDDEN
             );
             spam.setReportedCount(2);
-            threadRepository.save(spam);
+            postRepository.save(spam);
             ensureReport(
-                    CourseDiscussionReportTarget.THREAD,
-                    spam.getId(),
+                    spam,
                     showcase,
                     CourseDiscussionReportReasonCategory.SPAM,
                     "Quảng cáo khóa học bên ngoài, có link rút gọn.",
@@ -194,8 +190,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                     "Đã ẩn bài vì spam / quảng cáo."
             );
             ensureReport(
-                    CourseDiscussionReportTarget.THREAD,
-                    spam.getId(),
+                    spam,
                     peerA,
                     CourseDiscussionReportReasonCategory.SPAM,
                     "Bài này toàn link quảng cáo.",
@@ -206,7 +201,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
             return;
         }
 
-        CourseDiscussionThread listening = upsertThread(
+        CourseDiscussionPost listening = upsertThread(
                 course,
                 firstLesson,
                 peerA,
@@ -214,7 +209,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 "Đề map trong bài luyện có north arrow khá nhỏ. Mình hay bị lệch một nhãn. Mọi người có mẹo canh hướng không?",
                 CourseDiscussionStatus.RESOLVED
         );
-        CourseDiscussionReply tip = upsertReply(
+        CourseDiscussionPost tip = upsertReply(
                 listening,
                 showcase,
                 "Mình pause audio, khoanh north trước, rồi đánh số chỗ trống theo chiều kim đồng hồ trước khi nghe lại.",
@@ -228,10 +223,10 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 false,
                 1
         );
-        react(CourseDiscussionReactionTarget.THREAD, listening.getId(), peerB, CourseDiscussionReactionType.LIKE);
-        react(CourseDiscussionReactionTarget.REPLY, tip.getId(), peerA, CourseDiscussionReactionType.LOVE);
+        react(listening, peerB, CourseDiscussionReactionType.LIKE);
+        react(tip, peerA, CourseDiscussionReactionType.LOVE);
 
-        CourseDiscussionThread unanswered = upsertThread(
+        CourseDiscussionPost unanswered = upsertThread(
                 course,
                 null,
                 showcase,
@@ -239,7 +234,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 "Mình viết overview chỉ nêu xu hướng chung, không đưa số. Có bị trừ band Task Achievement không?",
                 CourseDiscussionStatus.OPEN
         );
-        CourseDiscussionReply offTopic = upsertReply(
+        CourseDiscussionPost offTopic = upsertReply(
                 unanswered,
                 peerC,
                 "Ai bán tài khoản Netflix premium không, inbox mình nhé.",
@@ -247,8 +242,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 0
         );
         ensureReport(
-                CourseDiscussionReportTarget.REPLY,
-                offTopic.getId(),
+                offTopic,
                 peerA,
                 CourseDiscussionReportReasonCategory.OFF_TOPIC,
                 "Bình luận không liên quan đến bài Writing.",
@@ -257,9 +251,9 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 null
         );
         offTopic.setReportedCount(Math.max(offTopic.getReportedCount(), 1));
-        replyRepository.save(offTopic);
+        postRepository.save(offTopic);
 
-        CourseDiscussionThread falseAlarm = upsertThread(
+        CourseDiscussionPost falseAlarm = upsertThread(
                 course,
                 null,
                 peerB,
@@ -267,7 +261,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 "Mình hay viết đầy đủ rồi không kịp nói. Có nên chỉ ghi từ khóa không?",
                 CourseDiscussionStatus.OPEN
         );
-        CourseDiscussionReply normal = upsertReply(
+        CourseDiscussionPost normal = upsertReply(
                 falseAlarm,
                 showcase,
                 "Nên ghi 8-10 từ khóa theo past-present-future. Viết câu đầy đủ dễ bị đọc bài.",
@@ -275,8 +269,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 2
         );
         ensureReport(
-                CourseDiscussionReportTarget.REPLY,
-                normal.getId(),
+                normal,
                 peerC,
                 CourseDiscussionReportReasonCategory.HARASSMENT,
                 "Bình luận này công kích mình.",
@@ -316,7 +309,7 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
                 .orElse(null);
     }
 
-    private CourseDiscussionThread upsertThread(
+    private CourseDiscussionPost upsertThread(
             OnlineCourse course,
             OnlineLesson lesson,
             User author,
@@ -324,25 +317,26 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
             String content,
             CourseDiscussionStatus status
     ) {
-        return threadRepository.findFirstByCourseAndTitle(course, title)
+        return postRepository.findFirstByCourseAndPostTypeAndTitle(course, CourseDiscussionPostType.THREAD, title)
                 .map(existing -> {
                     existing.setLesson(lesson);
                     existing.setContent(content);
                     existing.setStatus(status);
-                    return threadRepository.save(existing);
+                    return postRepository.save(existing);
                 })
-                .orElseGet(() -> threadRepository.save(CourseDiscussionThread.builder()
+                .orElseGet(() -> postRepository.save(CourseDiscussionPost.builder()
                         .course(course)
                         .lesson(lesson)
                         .author(author)
+                        .postType(CourseDiscussionPostType.THREAD)
                         .title(title)
                         .content(content)
                         .status(status)
                         .build()));
     }
 
-    private CourseDiscussionReply upsertReply(
-            CourseDiscussionThread thread,
+    private CourseDiscussionPost upsertReply(
+            CourseDiscussionPost thread,
             User author,
             String content,
             boolean accepted,
@@ -351,27 +345,31 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
         return thread.getReplies() == null
                 ? saveReply(thread, author, content, accepted, helpfulCount)
                 : thread.getReplies().stream()
+                .filter(reply -> reply.getPostType() == CourseDiscussionPostType.REPLY)
                 .filter(reply -> author.getId().equals(reply.getAuthor().getId()) && content.equals(reply.getContent()))
                 .findFirst()
                 .map(existing -> {
                     existing.setAccepted(accepted);
                     existing.setHelpfulCount(helpfulCount);
                     existing.setStatus(CourseDiscussionStatus.OPEN);
-                    return replyRepository.save(existing);
+                    return postRepository.save(existing);
                 })
                 .orElseGet(() -> saveReply(thread, author, content, accepted, helpfulCount));
     }
 
-    private CourseDiscussionReply saveReply(
-            CourseDiscussionThread thread,
+    private CourseDiscussionPost saveReply(
+            CourseDiscussionPost thread,
             User author,
             String content,
             boolean accepted,
             int helpfulCount
     ) {
-        CourseDiscussionReply saved = replyRepository.save(CourseDiscussionReply.builder()
-                .thread(thread)
+        CourseDiscussionPost saved = postRepository.save(CourseDiscussionPost.builder()
+                .course(thread.getCourse())
+                .lesson(thread.getLesson())
+                .parentPost(thread)
                 .author(author)
+                .postType(CourseDiscussionPostType.REPLY)
                 .content(content)
                 .accepted(accepted)
                 .helpfulCount(helpfulCount)
@@ -384,27 +382,28 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
         return saved;
     }
 
-    private void react(
-            CourseDiscussionReactionTarget targetType,
-            Long targetId,
-            User user,
-            CourseDiscussionReactionType type
-    ) {
-        reactionRepository.findByTargetTypeAndTargetIdAndUser(targetType, targetId, user)
+    private void react(CourseDiscussionPost post, User user, CourseDiscussionReactionType type) {
+        CourseDiscussionReactionTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
+                ? CourseDiscussionReactionTarget.THREAD
+                : CourseDiscussionReactionTarget.REPLY;
+        reactionRepository.findByPostAndUser(post, user)
                 .ifPresentOrElse(existing -> {
                     existing.setReactionType(type);
+                    if (existing.getPost() == null) {
+                        existing.setPost(post);
+                    }
                     reactionRepository.save(existing);
                 }, () -> reactionRepository.save(CourseDiscussionReaction.builder()
+                        .post(post)
                         .targetType(targetType)
-                        .targetId(targetId)
+                        .targetId(post.getId())
                         .user(user)
                         .reactionType(type)
                         .build()));
     }
 
     private void ensureReport(
-            CourseDiscussionReportTarget targetType,
-            Long targetId,
+            CourseDiscussionPost post,
             User reporter,
             CourseDiscussionReportReasonCategory category,
             String reason,
@@ -412,13 +411,20 @@ public class ShowcaseOnlineCourseDiscussionSeeder implements CommandLineRunner {
             User reviewer,
             String actionNote
     ) {
+        CourseDiscussionReportTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
+                ? CourseDiscussionReportTarget.THREAD
+                : CourseDiscussionReportTarget.REPLY;
         CourseDiscussionReport report = reportRepository
-                .findByTargetTypeAndTargetIdAndReporter(targetType, targetId, reporter)
+                .findByPostAndReporter(post, reporter)
                 .orElseGet(() -> CourseDiscussionReport.builder()
+                        .post(post)
                         .targetType(targetType)
-                        .targetId(targetId)
+                        .targetId(post.getId())
                         .reporter(reporter)
                         .build());
+        report.setPost(post);
+        report.setTargetType(targetType);
+        report.setTargetId(post.getId());
         report.setReasonCategory(category);
         report.setReason(reason);
         report.setStatus(status);

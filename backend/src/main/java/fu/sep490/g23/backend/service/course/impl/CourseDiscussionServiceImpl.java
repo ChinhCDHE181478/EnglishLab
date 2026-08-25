@@ -1,48 +1,48 @@
 package fu.sep490.g23.backend.service.course.impl;
 
-
-import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
 import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReactionRequest;
+import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReplyRequest;
 import fu.sep490.g23.backend.dto.request.course.CourseDiscussionReportRequest;
 import fu.sep490.g23.backend.dto.request.course.CourseDiscussionThreadRequest;
 import fu.sep490.g23.backend.dto.response.ApiResponse;
 import fu.sep490.g23.backend.dto.response.course.CourseDiscussionReactionResponse;
 import fu.sep490.g23.backend.dto.response.course.CourseDiscussionReplyResponse;
 import fu.sep490.g23.backend.dto.response.course.CourseDiscussionThreadResponse;
-import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.entity.User;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReply;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionPost;
 import fu.sep490.g23.backend.entity.course.CourseDiscussionReaction;
+import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
+import fu.sep490.g23.backend.entity.course.OnlineCourse;
+import fu.sep490.g23.backend.entity.course.OnlineLesson;
+import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionPostType;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReactionType;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionReport;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportReasonCategory;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionReportTarget;
 import fu.sep490.g23.backend.entity.course.enums.CourseDiscussionStatus;
-import fu.sep490.g23.backend.entity.course.CourseDiscussionThread;
-import fu.sep490.g23.backend.entity.course.OnlineCourse;
-import fu.sep490.g23.backend.entity.course.OnlineLesson;
 import fu.sep490.g23.backend.entity.course.enums.PackageStatus;
+import fu.sep490.g23.backend.entity.enums.RoleEnum;
 import fu.sep490.g23.backend.repository.UserRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionReplyRepository;
+import fu.sep490.g23.backend.repository.course.CourseDiscussionPostRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReactionRepository;
 import fu.sep490.g23.backend.repository.course.CourseDiscussionReportRepository;
-import fu.sep490.g23.backend.repository.course.CourseDiscussionThreadRepository;
 import fu.sep490.g23.backend.repository.course.OnlineCourseRepository;
 import fu.sep490.g23.backend.repository.course.OnlineLessonRepository;
 import fu.sep490.g23.backend.service.course.CourseDiscussionNotificationService;
 import fu.sep490.g23.backend.service.course.CourseDiscussionService;
 import fu.sep490.g23.backend.service.course.CourseEnrollmentAccessPolicy;
+import fu.sep490.g23.backend.service.course.DiscussionPostIdResolver;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.Normalizer;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -61,10 +61,10 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
             "chống phá", "phản động", "chia rẽ dân tộc", "kích động thù hằn"
     );
 
-    private final CourseDiscussionThreadRepository threadRepository;
-    private final CourseDiscussionReplyRepository replyRepository;
+    private final CourseDiscussionPostRepository postRepository;
     private final CourseDiscussionReactionRepository reactionRepository;
     private final CourseDiscussionReportRepository reportRepository;
+    private final DiscussionPostIdResolver discussionPostIdResolver;
     private final OnlineCourseRepository onlineCourseRepository;
     private final OnlineLessonRepository lessonRepository;
     private final CourseEnrollmentAccessPolicy courseEnrollmentAccessPolicy;
@@ -78,13 +78,15 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         ensureModuleInCourse(courseId, moduleId);
         User currentUser = email == null ? null : findUser(email);
         String normalizedFilter = normalizeFilter(filter);
-        return threadRepository.findCourseDiscussionPage(
+        return postRepository.findCourseDiscussionPage(
                         courseId,
                         moduleId,
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
                         CourseDiscussionStatus.RESOLVED,
+                        CourseDiscussionPostType.THREAD,
+                        CourseDiscussionPostType.REPLY,
                         pageable)
                 .map(thread -> toThreadResponse(thread, currentUser));
     }
@@ -96,13 +98,15 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         findLessonInCourse(courseId, lessonId);
         User currentUser = email == null ? null : findUser(email);
         String normalizedFilter = normalizeFilter(filter);
-        return threadRepository.findLessonDiscussionPage(
+        return postRepository.findLessonDiscussionPage(
                         courseId,
                         lessonId,
                         normalizedFilter,
                         currentUser == null ? null : currentUser.getId(),
                         CourseDiscussionStatus.HIDDEN,
                         CourseDiscussionStatus.RESOLVED,
+                        CourseDiscussionPostType.THREAD,
+                        CourseDiscussionPostType.REPLY,
                         pageable)
                 .map(thread -> toThreadResponse(thread, currentUser));
     }
@@ -123,15 +127,16 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 ? CourseDiscussionStatus.PENDING_REVIEW
                 : CourseDiscussionStatus.OPEN;
 
-        CourseDiscussionThread thread = CourseDiscussionThread.builder()
+        CourseDiscussionPost thread = CourseDiscussionPost.builder()
                 .course(course)
                 .author(author)
+                .postType(CourseDiscussionPostType.THREAD)
                 .title(title)
                 .content(content)
                 .status(status)
                 .build();
 
-        CourseDiscussionThread savedThread = threadRepository.save(thread);
+        CourseDiscussionPost savedThread = postRepository.save(thread);
         discussionNotificationService.notifyQuestionSent(savedThread);
         return toThreadResponse(savedThread, author);
     }
@@ -148,23 +153,24 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 ? CourseDiscussionStatus.PENDING_REVIEW
                 : CourseDiscussionStatus.OPEN;
 
-        CourseDiscussionThread thread = CourseDiscussionThread.builder()
+        CourseDiscussionPost thread = CourseDiscussionPost.builder()
                 .course(course)
                 .lesson(lesson)
                 .author(author)
+                .postType(CourseDiscussionPostType.THREAD)
                 .title(title)
                 .content(content)
                 .status(status)
                 .build();
 
-        CourseDiscussionThread savedThread = threadRepository.save(thread);
+        CourseDiscussionPost savedThread = postRepository.save(thread);
         discussionNotificationService.notifyQuestionSent(savedThread);
         return toThreadResponse(savedThread, author);
     }
 
     @Override
     public CourseDiscussionReplyResponse createReply(Long threadId, CourseDiscussionReplyRequest request, String email) {
-        CourseDiscussionThread thread = findThread(threadId);
+        CourseDiscussionPost thread = findThread(threadId);
         if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
             throw new RuntimeException("Thảo luận này hiện không khả dụng.");
         }
@@ -176,27 +182,30 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 ? CourseDiscussionStatus.PENDING_REVIEW
                 : CourseDiscussionStatus.OPEN;
 
-        CourseDiscussionReply reply = CourseDiscussionReply.builder()
-                .thread(thread)
+        CourseDiscussionPost reply = CourseDiscussionPost.builder()
+                .course(thread.getCourse())
+                .lesson(thread.getLesson())
+                .parentPost(thread)
                 .author(author)
+                .postType(CourseDiscussionPostType.REPLY)
                 .content(content)
                 .status(status)
                 .build();
 
-        CourseDiscussionReply savedReply = replyRepository.save(reply);
+        CourseDiscussionPost savedReply = postRepository.save(reply);
         discussionNotificationService.notifyNewReply(savedReply);
         return toReplyResponse(savedReply, author);
     }
 
     @Override
     public CourseDiscussionReplyResponse toggleHelpful(Long replyId, String email) {
-        CourseDiscussionReply reply = findReply(replyId);
+        CourseDiscussionPost reply = findReply(replyId);
         User user = findUser(email);
-        ensureDiscussionAccess(user, reply.getThread().getCourse());
+        ensureDiscussionAccess(user, reply.getCourse());
         if (reply.getAuthor().getId().equals(user.getId())) {
             throw new RuntimeException("Bạn không thể tự đánh dấu câu trả lời của mình là hữu ích.");
         }
-        reactionRepository.findByTargetTypeAndTargetIdAndUser(CourseDiscussionReactionTarget.REPLY, replyId, user)
+        reactionRepository.findByPostAndUser(reply, user)
                 .ifPresentOrElse(existing -> {
                     if (existing.isHelpful()) {
                         existing.setHelpful(false);
@@ -209,12 +218,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                         reply.setHelpfulCount(reply.getHelpfulCount() + 1);
                     }
                 }, () -> {
-                    reactionRepository.save(CourseDiscussionReaction.builder()
-                            .targetType(CourseDiscussionReactionTarget.REPLY)
-                            .targetId(replyId)
-                            .user(user)
-                            .helpful(true)
-                            .build());
+                    reactionRepository.save(newReaction(reply, user, null, true));
                     reply.setHelpfulCount(reply.getHelpfulCount() + 1);
                 });
         return toReplyResponse(reply, user);
@@ -222,51 +226,51 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
     @Override
     public CourseDiscussionThreadResponse toggleThreadReaction(Long threadId, CourseDiscussionReactionRequest request, String email) {
-        CourseDiscussionThread thread = findThread(threadId);
+        CourseDiscussionPost thread = findThread(threadId);
         if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
             throw new RuntimeException("Thảo luận này hiện không khả dụng.");
         }
         User user = findUser(email);
         ensureDiscussionAccess(user, thread.getCourse());
-        toggleReaction(CourseDiscussionReactionTarget.THREAD, threadId, request.getType(), user);
+        toggleReaction(thread, request.getType(), user);
         return toThreadResponse(thread, user);
     }
 
     @Override
     public CourseDiscussionReplyResponse toggleReplyReaction(Long replyId, CourseDiscussionReactionRequest request, String email) {
-        CourseDiscussionReply reply = findReply(replyId);
+        CourseDiscussionPost reply = findReply(replyId);
         if (reply.getStatus() == CourseDiscussionStatus.HIDDEN) {
             throw new RuntimeException("Câu trả lời này hiện không khả dụng.");
         }
         User user = findUser(email);
-        ensureDiscussionAccess(user, reply.getThread().getCourse());
-        toggleReaction(CourseDiscussionReactionTarget.REPLY, replyId, request.getType(), user);
+        ensureDiscussionAccess(user, reply.getCourse());
+        toggleReaction(reply, request.getType(), user);
         return toReplyResponse(reply, user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDiscussionReactionResponse> getThreadReactions(Long threadId) {
-        CourseDiscussionThread thread = findThread(threadId);
+        CourseDiscussionPost thread = findThread(threadId);
         if (thread.getStatus() == CourseDiscussionStatus.HIDDEN) {
             throw new RuntimeException("Thảo luận này hiện không khả dụng.");
         }
-        return getReactionResponses(CourseDiscussionReactionTarget.THREAD, threadId);
+        return getReactionResponses(thread);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CourseDiscussionReactionResponse> getReplyReactions(Long replyId) {
-        CourseDiscussionReply reply = findReply(replyId);
+        CourseDiscussionPost reply = findReply(replyId);
         if (reply.getStatus() == CourseDiscussionStatus.HIDDEN) {
             throw new RuntimeException("Câu trả lời này hiện không khả dụng.");
         }
-        return getReactionResponses(CourseDiscussionReactionTarget.REPLY, replyId);
+        return getReactionResponses(reply);
     }
 
     @Override
     public CourseDiscussionThreadResponse markResolved(Long threadId, Long replyId, String email) {
-        CourseDiscussionThread thread = findThread(threadId);
+        CourseDiscussionPost thread = findThread(threadId);
         User user = findUser(email);
         ensureDiscussionAccess(user, thread.getCourse());
         if (!canModerate(user) && !thread.getAuthor().getId().equals(user.getId())) {
@@ -275,11 +279,12 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
 
         thread.setStatus(CourseDiscussionStatus.RESOLVED);
         if (replyId != null) {
-            CourseDiscussionReply acceptedReply = findReply(replyId);
-            if (!acceptedReply.getThread().getId().equals(thread.getId())) {
+            CourseDiscussionPost acceptedReply = findReply(replyId);
+            if (acceptedReply.getParentPost() == null
+                    || !acceptedReply.getParentPost().getId().equals(thread.getId())) {
                 throw new RuntimeException("Câu trả lời không thuộc thảo luận này.");
             }
-            thread.getReplies().forEach(reply -> reply.setAccepted(reply.getId().equals(replyId)));
+            thread.getReplies().forEach(reply -> reply.setAccepted(reply.getId().equals(acceptedReply.getId())));
         }
         return toThreadResponse(thread, user);
     }
@@ -288,30 +293,31 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     public ApiResponse reportContent(CourseDiscussionReportTarget targetType, Long targetId, CourseDiscussionReportRequest request, String email) {
         User reporter = findUser(email);
         validateReportRequest(request);
-        reportRepository.findByTargetTypeAndTargetIdAndReporter(targetType, targetId, reporter)
+
+        CourseDiscussionPostType postType = targetType == CourseDiscussionReportTarget.THREAD
+                ? CourseDiscussionPostType.THREAD
+                : CourseDiscussionPostType.REPLY;
+        CourseDiscussionPost post = discussionPostIdResolver.requirePost(postType, targetId);
+
+        reportRepository.findByPostAndReporter(post, reporter)
                 .ifPresent(existing -> {
                     throw new RuntimeException("Bạn đã báo cáo nội dung này trước đó.");
                 });
 
-        if (targetType == CourseDiscussionReportTarget.THREAD) {
-            CourseDiscussionThread thread = findThread(targetId);
-            ensureDiscussionAccess(reporter, thread.getCourse());
-            thread.setReportedCount(thread.getReportedCount() + 1);
-            if (thread.getReportedCount() >= 3 && thread.getStatus() != CourseDiscussionStatus.RESOLVED) {
-                thread.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
+        ensureDiscussionAccess(reporter, post.getCourse());
+        post.setReportedCount(post.getReportedCount() + 1);
+        if (post.getPostType() == CourseDiscussionPostType.THREAD) {
+            if (post.getReportedCount() >= 3 && post.getStatus() != CourseDiscussionStatus.RESOLVED) {
+                post.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
             }
-        } else {
-            CourseDiscussionReply reply = findReply(targetId);
-            ensureDiscussionAccess(reporter, reply.getThread().getCourse());
-            reply.setReportedCount(reply.getReportedCount() + 1);
-            if (reply.getReportedCount() >= 3) {
-                reply.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
-            }
+        } else if (post.getReportedCount() >= 3) {
+            post.setStatus(CourseDiscussionStatus.PENDING_REVIEW);
         }
 
         reportRepository.save(CourseDiscussionReport.builder()
+                .post(post)
                 .targetType(targetType)
-                .targetId(targetId)
+                .targetId(post.getId())
                 .reporter(reporter)
                 .reason(clean(request.getReason()))
                 .reasonCategory(request.getReasonCategory())
@@ -357,14 +363,12 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         }
     }
 
-    private CourseDiscussionThread findThread(Long threadId) {
-        return threadRepository.findById(threadId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy thảo luận."));
+    private CourseDiscussionPost findThread(Long threadId) {
+        return discussionPostIdResolver.requirePost(CourseDiscussionPostType.THREAD, threadId);
     }
 
-    private CourseDiscussionReply findReply(Long replyId) {
-        return replyRepository.findById(replyId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu trả lời."));
+    private CourseDiscussionPost findReply(Long replyId) {
+        return discussionPostIdResolver.requirePost(CourseDiscussionPostType.REPLY, replyId);
     }
 
     private User findUser(String email) {
@@ -373,7 +377,7 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
     }
 
     private boolean canModerate(User user) {
-        return user.hasAnyRole(java.util.EnumSet.of(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONTENT_MANAGER));
+        return user.hasAnyRole(EnumSet.of(RoleEnum.ADMIN, RoleEnum.MANAGER, RoleEnum.CONTENT_MANAGER));
     }
 
     private void ensureDiscussionAccess(User user, OnlineCourse course) {
@@ -399,8 +403,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         return DIACRITICS.matcher(Normalizer.normalize(value.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)).replaceAll("");
     }
 
-    private void toggleReaction(CourseDiscussionReactionTarget targetType, Long targetId, CourseDiscussionReactionType reactionType, User user) {
-        reactionRepository.findByTargetTypeAndTargetIdAndUser(targetType, targetId, user)
+    private void toggleReaction(CourseDiscussionPost post, CourseDiscussionReactionType reactionType, User user) {
+        reactionRepository.findByPostAndUser(post, user)
                 .ifPresentOrElse(existing -> {
                     if (existing.getReactionType() == reactionType) {
                         existing.setReactionType(null);
@@ -410,16 +414,31 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                     } else {
                         existing.setReactionType(reactionType);
                     }
-                }, () -> reactionRepository.save(CourseDiscussionReaction.builder()
-                        .targetType(targetType)
-                        .targetId(targetId)
-                        .reactionType(reactionType)
-                        .user(user)
-                        .build()));
+                }, () -> reactionRepository.save(newReaction(post, user, reactionType, false)));
     }
 
-    private CourseDiscussionThreadResponse toThreadResponse(CourseDiscussionThread thread, User currentUser) {
+    private CourseDiscussionReaction newReaction(
+            CourseDiscussionPost post,
+            User user,
+            CourseDiscussionReactionType reactionType,
+            boolean helpful
+    ) {
+        CourseDiscussionReactionTarget targetType = post.getPostType() == CourseDiscussionPostType.THREAD
+                ? CourseDiscussionReactionTarget.THREAD
+                : CourseDiscussionReactionTarget.REPLY;
+        return CourseDiscussionReaction.builder()
+                .post(post)
+                .targetType(targetType)
+                .targetId(post.getId())
+                .user(user)
+                .reactionType(reactionType)
+                .helpful(helpful)
+                .build();
+    }
+
+    private CourseDiscussionThreadResponse toThreadResponse(CourseDiscussionPost thread, User currentUser) {
         List<CourseDiscussionReplyResponse> replies = thread.getReplies().stream()
+                .filter(reply -> reply.getPostType() == CourseDiscussionPostType.REPLY)
                 .filter(reply -> reply.getStatus() != CourseDiscussionStatus.HIDDEN)
                 .map(reply -> toReplyResponse(reply, currentUser))
                 .toList();
@@ -432,8 +451,8 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .status(thread.getStatus())
                 .replyCount(replies.size())
                 .helpfulCount(helpfulCount)
-                .reactionCounts(getReactionCounts(CourseDiscussionReactionTarget.THREAD, thread.getId()))
-                .myReaction(getMyReaction(CourseDiscussionReactionTarget.THREAD, thread.getId(), currentUser))
+                .reactionCounts(getReactionCounts(thread))
+                .myReaction(getMyReaction(thread, currentUser))
                 .reportedCount(thread.getReportedCount())
                 .resolved(thread.getStatus() == CourseDiscussionStatus.RESOLVED)
                 .authorName(resolveAuthorName(thread.getAuthor()))
@@ -446,15 +465,15 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .build();
     }
 
-    private CourseDiscussionReplyResponse toReplyResponse(CourseDiscussionReply reply, User currentUser) {
+    private CourseDiscussionReplyResponse toReplyResponse(CourseDiscussionPost reply, User currentUser) {
         return CourseDiscussionReplyResponse.builder()
                 .id(reply.getId())
                 .content(maskIfPending(reply.getContent(), reply.getStatus(), "Nội dung đang chờ kiểm duyệt."))
                 .status(reply.getStatus())
                 .accepted(reply.isAccepted())
                 .helpfulCount(reply.getHelpfulCount())
-                .reactionCounts(getReactionCounts(CourseDiscussionReactionTarget.REPLY, reply.getId()))
-                .myReaction(getMyReaction(CourseDiscussionReactionTarget.REPLY, reply.getId(), currentUser))
+                .reactionCounts(getReactionCounts(reply))
+                .myReaction(getMyReaction(reply, currentUser))
                 .authorName(resolveAuthorName(reply.getAuthor()))
                 .authorId(reply.getAuthor().getId())
                 .createdAt(reply.getCreatedAt())
@@ -462,9 +481,9 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
                 .build();
     }
 
-    private Map<String, Integer> getReactionCounts(CourseDiscussionReactionTarget targetType, Long targetId) {
+    private Map<String, Integer> getReactionCounts(CourseDiscussionPost post) {
         Map<CourseDiscussionReactionType, Integer> counts = new EnumMap<>(CourseDiscussionReactionType.class);
-        reactionRepository.findByTargetTypeAndTargetId(targetType, targetId)
+        reactionRepository.findByPost(post)
                 .stream()
                 .filter(reaction -> reaction.getReactionType() != null)
                 .forEach(reaction -> counts.merge(reaction.getReactionType(), 1, Integer::sum));
@@ -476,18 +495,18 @@ public class CourseDiscussionServiceImpl implements CourseDiscussionService {
         return response;
     }
 
-    private String getMyReaction(CourseDiscussionReactionTarget targetType, Long targetId, User currentUser) {
+    private String getMyReaction(CourseDiscussionPost post, User currentUser) {
         if (currentUser == null) {
             return null;
         }
-        Optional<CourseDiscussionReaction> reaction = reactionRepository.findByTargetTypeAndTargetIdAndUser(targetType, targetId, currentUser);
+        Optional<CourseDiscussionReaction> reaction = reactionRepository.findByPostAndUser(post, currentUser);
         return reaction.map(CourseDiscussionReaction::getReactionType)
                 .map(Enum::name)
                 .orElse(null);
     }
 
-    private List<CourseDiscussionReactionResponse> getReactionResponses(CourseDiscussionReactionTarget targetType, Long targetId) {
-        return reactionRepository.findByTargetTypeAndTargetIdOrderByUpdatedAtDesc(targetType, targetId)
+    private List<CourseDiscussionReactionResponse> getReactionResponses(CourseDiscussionPost post) {
+        return reactionRepository.findByPostOrderByUpdatedAtDesc(post)
                 .stream()
                 .filter(reaction -> reaction.getReactionType() != null)
                 .map(reaction -> CourseDiscussionReactionResponse.builder()
