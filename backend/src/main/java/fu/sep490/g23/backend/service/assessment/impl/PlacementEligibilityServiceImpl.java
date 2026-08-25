@@ -20,6 +20,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Decides if a scored attempt can be used for placement.
+ * TOEIC can be eligible immediately; IELTS needs staff review of Writing/Speaking;
+ * skill-only diagnostics are never eligible for course placement.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,6 +33,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
     private final PlacementTestAttemptRepository attemptRepository;
     private final UserRepository userRepository;
 
+    /** Called by getRecommendations to decide if ranking should run. Nested: evaluate(). */
     @Override
     @Transactional(readOnly = true)
     public PlacementEligibilityResult evaluateEligibility(Long learnerId, Long placementAttemptId) {
@@ -35,9 +41,10 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         if (!attempt.getStudent().getId().equals(learnerId)) {
             throw new IllegalArgumentException("Kết quả placement test không thuộc học viên này.");
         }
-        return evaluate(attempt);
+        return evaluate(attempt); // Shared checklist used by recommendations and staff review.
     }
 
+    /** Staff inbox: IELTS attempts waiting for (or currently in) Writing/Speaking review. */
     @Override
     @Transactional(readOnly = true)
     public List<PlacementTestAttemptResponse> listManualReviewQueue(String staffEmail) {
@@ -54,6 +61,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
                 .toList();
     }
 
+    /** Staff accept the attempt: store recommendedLevel and flip status to ELIGIBLE. */
     @Override
     public PlacementEligibilityResult confirmManualReview(
             Long placementAttemptId,
@@ -82,9 +90,10 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         attempt.setReviewedAt(LocalDateTime.now());
         attempt.setReviewNote(request.getNote().trim());
         attemptRepository.save(attempt);
-        return evaluate(attempt);
+        return evaluate(attempt); // Re-run checks so the response reflects the new ELIGIBLE state.
     }
 
+    /** Walk blockers (skill-only, cancelled, expired, fraud, missing scores, pending review). */
     private PlacementEligibilityResult evaluate(PlacementTestAttempt attempt) {
         List<String> missing = new ArrayList<>();
         PlacementEvaluationStatus status = attempt.getEvaluationStatus() == null
@@ -94,7 +103,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
 
         if (isSkillAssessment(attempt)) {
             status = PlacementEvaluationStatus.NOT_ELIGIBLE;
-            missing.add("FULL_PLACEMENT_REQUIRED");
+            missing.add("FULL_PLACEMENT_REQUIRED"); // Diagnostic tests cannot place a student into a course.
         } else if (attempt.getCancelledAt() != null) {
             status = PlacementEvaluationStatus.NOT_ELIGIBLE;
             missing.add("ATTEMPT_CANCELLED");
@@ -114,6 +123,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
         boolean toeic = isToeic(attempt);
         if (attempt.getListeningScore() == null) missing.add("LISTENING_SCORE");
         if (attempt.getReadingScore() == null) missing.add("READING_SCORE");
+        // IELTS Writing/Speaking still need a human confirm unless already ELIGIBLE.
         if (!terminal && !toeic && status != PlacementEvaluationStatus.ELIGIBLE) {
             missing.add("WRITING_REVIEW");
             missing.add("SPEAKING_REVIEW");
@@ -124,7 +134,7 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
 
         PlacementLevel recommendedLevel = attempt.getRecommendedLevel();
         if (recommendedLevel == null && toeic && attempt.getOverallScore() != null) {
-            recommendedLevel = toeicLevel(attempt.getOverallScore());
+            recommendedLevel = toeicLevel(attempt.getOverallScore()); // Derive level from TOEIC total if staff never set it.
         }
         if (recommendedLevel == null) missing.add("RECOMMENDED_LEVEL");
         if (attempt.getOverallScore() == null) missing.add("OVERALL_SCORE");
@@ -148,14 +158,17 @@ public class PlacementEligibilityServiceImpl implements PlacementEligibilityServ
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy kết quả placement test."));
     }
 
+    /** Detect TOEIC from stored AI JSON (set at submit time). */
     private boolean isToeic(PlacementTestAttempt attempt) {
         return String.valueOf(attempt.getAiFeedbackJson()).contains("\"examType\":\"TOEIC\"");
     }
 
+    /** Skill-only diagnostics cannot unlock course placement. */
     private boolean isSkillAssessment(PlacementTestAttempt attempt) {
         return String.valueOf(attempt.getAiFeedbackJson()).contains("\"examType\":\"SKILL\"");
     }
 
+    /** Same TOEIC cut-offs as scoring: <450 beginner, <700 intermediate, else advanced. */
     private PlacementLevel toeicLevel(BigDecimal score) {
         if (score.compareTo(BigDecimal.valueOf(450)) < 0) return PlacementLevel.BEGINNER;
         if (score.compareTo(BigDecimal.valueOf(700)) < 0) return PlacementLevel.INTERMEDIATE;

@@ -680,6 +680,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return responses;
     }
 
+    /**
+     * Catalog "recommended for you" when the learner is not coming from a specific attempt.
+     * Builds context from the latest attempt (or profile target if none), then reuses recommendCourses().
+     */
     @Override
     @Transactional(readOnly = true)
     public List<OnlineCourseResponse> getRecommendedCourses(String studentEmail) {
@@ -701,12 +705,26 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return recommendCourses(student, context);
     }
 
+    /**
+     * Core ranking for placement → online-course suggestions.
+     *
+     * Pipeline:
+     * 1. Load every PUBLISHED course.
+     * 2. Index this learner's enrollments by package id (latest row wins) to know progress.
+     * 3. Drop courses already finished (COMPLETED or 100%).
+     * 4. Drop hard exam mismatch (IELTS course vs TOEIC placement, and vice versa).
+     * 5. scoreRecommendation() — numeric match + flags (weak skill, band window).
+     * 6. Sort: higher score first; tie-break by learning-path order, then id.
+     * 7. BalancedCourseRecommendationSelector — mixed shortlist, not raw top-N,
+     *    so the UI shows both "fix a weak skill" and "match your level".
+     */
     @Override
     @Transactional(readOnly = true)
     public List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context) {
         List<OnlineCourse> publishedCourses = onlineCourseRepository
                 .findAll(courseSpec(null, null, null, null, null, null, PackageStatus.PUBLISHED), Pageable.unpaged())
                 .getContent();
+        // One enrollment per package; duplicate rows keep the first (newest, because query is desc).
         Map<Long, PackageEnrollment> enrollmentsByPackage = enrollmentRepository
                 .findByStudentOrderByRegisteredAtDesc(student)
                 .stream()
@@ -728,6 +746,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                         .thenComparing(item -> item.course().getId()))
                 .toList();
 
+        // rankedRecommendations is the full ordered list; selector only chooses which 6 to show.
         return BalancedCourseRecommendationSelector.select(
                         rankedRecommendations,
                         ScoredRecommendation::bandCompatible,
@@ -738,6 +757,21 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 .toList();
     }
 
+    /**
+     * Score one course against the placement context. Higher = better match.
+     *
+     * Weights (rough order of impact):
+     *   +15 / -3  same vs different BEGINNER|INTERMEDIATE|ADVANCED
+     *   +8 each   course focus skill overlaps a placement weak skill
+     *   +2..10    IELTS: current band sits in the course window, closer to entry min is better (target 5.5 so plus for 5.0 -> 6.5) [ 10 - (my band - min band) x 4 ]
+     *   -0..8     IELTS: current band outside that window (distance penalty)
+     *   -1..5     IELTS: course targetBand close to the learner's goal
+     *   +6        exam name appears in title / category / path name
+     *   +1        featured flag (tie-break)
+     *
+     * Also stamps recommendationReason and two flags used later by the selector:
+     * matchesWeakSkill, bandCompatible.
+     */
     private ScoredRecommendation scoreRecommendation(
             OnlineCourse course,
             PackageEnrollment enrollment,
@@ -745,6 +779,7 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
     ) {
         OnlineCourseResponse response = mapper.toPublicResponse(course);
         if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
+            // Still enrolled (not cancelled): surface progress so the UI can say "continue".
             response.setRegistered(true);
             response.setEnrollmentId(enrollment.getId());
             response.setProgressPercent(defaultInt(enrollment.getProgressPercent()));
@@ -760,9 +795,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 safe(course.getLearningPathName())
         ).toUpperCase(Locale.ROOT);
         String normalizedExam = safe(context.getExamType()).toUpperCase(Locale.ROOT);
+
+        // 1) Soft exam signal: "IELTS Writing" in the title matches an IELTS placement.
+        //    Hard mismatch is already filtered by isExamCompatible; this only boosts keyword hits.
         boolean examMatches = !normalizedExam.isBlank() && searchableCourse.contains(normalizedExam);
         if (examMatches) score += 6;
 
+        // 2) Placement level vs course level. Same level is the strongest single boost.
+        //    Wrong level is penalized so Advanced is not pushed to a Beginner.
         if (context.getRecommendedLevel() != null && course.getLevel() != null) {
             score += context.getRecommendedLevel().name().equals(course.getLevel().name()) ? 15 : -3;
         }
@@ -771,6 +811,9 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         Double currentBand = decimalToDouble(context.getOverallScore());
         Double targetBand = decimalToDouble(context.getTargetScore());
         boolean bandCompatible = isBandCompatible(course, normalizedExam, currentBand);
+
+        // 3) IELTS band window. Inside [courseMin, courseTarget]: closer to entry min = "right now" difficulty.
+        //    Outside: subtract distance so far-away bands fall down the list. Floor 2 / cap 8 keep it bounded.
         if ("IELTS".equals(normalizedExam) && currentBand != null && minBand != null) {
             if (bandCompatible) {
                 score += Math.max(2, 10 - Math.abs(currentBand - minBand) * 4);
@@ -778,10 +821,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 score -= Math.min(8, Math.abs(minBand - currentBand) * 4);
             }
         }
+        // 4) If the learner set a goal (e.g. 6.5), prefer courses whose targetBand is near that goal.
         if ("IELTS".equals(normalizedExam) && targetBand != null && course.getTargetBand() != null) {
             score += Math.max(-1, 5 - Math.abs(targetBand - course.getTargetBand()) * 2);
         }
 
+        // 5) Weak-skill overlap. Each shared skill is +8 — this is how a weak Writing learner
+        //    sees Writing courses rise above generic level-matched courses.
         Set<AssessmentSkill> matchedWeakSkills = response.getFocusSkills().stream()
                 .map(this::parseAssessmentSkill)
                 .filter(java.util.Objects::nonNull)
@@ -800,6 +846,11 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return new ScoredRecommendation(course, response, score, !matchedWeakSkills.isEmpty(), bandCompatible);
     }
 
+    /**
+     * IELTS band window: current overall must sit in [recommendedCurrentBandMin, targetBand].
+     * TOEIC / missing current band → true (do not filter by IELTS window).
+     * Missing min or target on the course → false, so the selector can fall back to the full list.
+     */
     private boolean isBandCompatible(OnlineCourse course, String normalizedExam, Double currentBand) {
         if (!"IELTS".equals(normalizedExam) || currentBand == null) {
             return true;
@@ -812,6 +863,10 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
                 && currentBand <= courseTargetBand;
     }
 
+    /**
+     * Hard exam filter before scoring.
+     * Category IELTS/TOEIC must equal the placement exam. Other categories (skills, general) stay eligible.
+     */
     private boolean isExamCompatible(OnlineCourse course, String examType) {
         String category = course.getCategory() == null ? "" : safe(course.getCategory().getCode()).toUpperCase(Locale.ROOT);
         String normalizedExam = safe(examType).toUpperCase(Locale.ROOT);
@@ -850,6 +905,14 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         if (score != null) scores.put(skill, score);
     }
 
+    /**
+     * UI reason, first match wins:
+     * 1) covers a weak skill from placement
+     * 2) course can raise band toward the learner's goal
+     * 3) same exam keyword
+     * 4) same current band
+     * 5) generic fallback
+     */
     private String buildRecommendationReason(
             Set<AssessmentSkill> matchedWeakSkills,
             boolean examMatches,
@@ -872,11 +935,13 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return "Được đề xuất dựa trên hồ sơ học tập của bạn.";
     }
 
+    /** True when this package is done, so recommendCourses must not suggest it again. */
     private boolean isCompletedEnrollment(PackageEnrollment enrollment) {
         return enrollment != null && (enrollment.getStatus() == EnrollmentStatus.COMPLETED
                 || defaultInt(enrollment.getProgressPercent()) >= 100);
     }
 
+    /** Map course focusSkills strings to enums; unknown tokens are ignored (not a scoring error). */
     private AssessmentSkill parseAssessmentSkill(String value) {
         try {
             return AssessmentSkill.valueOf(safe(value).toUpperCase(Locale.ROOT));
@@ -908,6 +973,11 @@ public class OnlineCourseServiceImpl implements OnlineCourseService {
         return value == null ? "" : BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
+    /**
+     * One scored course plus two flags the selector reads:
+     * matchesWeakSkill — course trains a placement weak skill
+     * bandCompatible — IELTS current band is inside the course [min, target] window
+     */
     private record ScoredRecommendation(
             OnlineCourse course,
             OnlineCourseResponse response,

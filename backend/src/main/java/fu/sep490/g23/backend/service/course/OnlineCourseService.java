@@ -60,6 +60,7 @@ public interface OnlineCourseService {
 
     List<PackageEnrollmentResponse> getMyEnrollments(String studentEmail);
     List<OnlineCourseResponse> getRecommendedCourses(String studentEmail);
+    /** Placement ranking: score published courses, then mix weak-skill + level-fit shortlist. */
     List<OnlineCourseResponse> recommendCourses(User student, PlacementRecommendationContext context);
     LearnerLearningPathResponse getMyLearningPath(String studentEmail);
     CourseCompletionResponse getCourseCompletion(Long courseId, String studentEmail);

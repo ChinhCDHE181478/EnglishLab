@@ -4,6 +4,23 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+/**
+ * Last step of recommendCourses: turn a fully ranked list into a mixed shortlist.
+ *
+ * Why not just take top 6 by score?
+ * Weak-skill courses and level-matched courses often compete. Taking raw top-N can
+ * hide one of the two groups. This selector caps each group at 3 so the UI shows both.
+ *
+ * Pool:
+ *   Prefer items whose current band sits in the course window (bandCompatible).
+ *   If that subset is empty (courses often lack min/target), fall back to the full ranked list
+ *   so we still recommend something.
+ *
+ * Then:
+ *   No weak-skill data → top 6 of that pool.
+ *   Has weak skills → up to 3 weak-skill courses, then up to 3 that are NOT weak-skill
+ *   (those are the best remaining level/exam matches). Weak-skill items stay first.
+ */
 public final class BalancedCourseRecommendationSelector {
 
     private BalancedCourseRecommendationSelector() {

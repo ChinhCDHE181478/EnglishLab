@@ -26,6 +26,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Pick one learning path and mark which course the learner should start at.
+ * Called from getRecommendations with preserveActivePath=true so an in-progress path is kept.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,6 +38,17 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
     private final LearningPathCourseRepository pathCourseRepository;
     private final PackageEnrollmentRepository enrollmentRepository;
 
+    /**
+     * Pick ONE learning path for this learner, then mark which course they should start at.
+     * getRecommendations always passes preserveActivePath=true.
+     *
+     * Nested:
+     *   refs()              published courses on the path, in display order
+     *   score()             +30 same exam, -1000 wrong exam, then closeness to learner target
+     *   hasActiveEnrollment keep a path the learner is already studying
+     *   examCompatible      blank category matches anyone; else must equal placement exam
+     *   toOverview()        step statuses + resolveStartIndex() for the start course
+     */
     @Override
     public LearnerLearningPathResponse.PathOverview recommend(
             User learner,
@@ -53,6 +68,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 .toList();
         if (candidates.isEmpty()) return null;
 
+        // Prefer not to yank the learner off a path they already started.
         PathCandidate selected = preserveActivePath
                 ? candidates.stream().filter(candidate -> hasActiveEnrollment(candidate, enrollments)).findFirst().orElse(null)
                 : null;
@@ -70,6 +86,17 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         return selected == null ? null : toOverview(selected, enrollments, context);
     }
 
+    /**
+     * Build the step list for the chosen path.
+     * resolveStartIndex() decides the first course they should take; earlier steps become PLACEMENT_WAIVED.
+     *
+     * Step statuses:
+     *   COMPLETED         already finished
+     *   CURRENT           in-progress enrollment, or the resolved start course
+     *   PLACEMENT_WAIVED  before startIndex — skipped because placement says they are past it
+     *   NEXT              the course right after CURRENT
+     *   LOCKED            later courses, gated on finishing CURRENT
+     */
     private LearnerLearningPathResponse.PathOverview toOverview(
             PathCandidate candidate,
             Map<Long, PackageEnrollment> enrollments,
@@ -88,9 +115,9 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
             if (completed) {
                 stepStatus = "COMPLETED";
             } else if (enrollment != null && enrollment.getStatus() != EnrollmentStatus.CANCELLED) {
-                stepStatus = "CURRENT";
+                stepStatus = "CURRENT"; // already studying this course
             } else if (index < startIndex) {
-                stepStatus = "PLACEMENT_WAIVED";
+                stepStatus = "PLACEMENT_WAIVED"; // skipped because placement says start later
             } else if (index == startIndex) {
                 stepStatus = "CURRENT";
             } else if (index == startIndex + 1) {
@@ -124,6 +151,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 .completedCourses((int) courses.stream().filter(LearnerLearningPathCourseResponse::isCompleted).count())
                 .waivedCourses((int) courses.stream().filter(course -> "PLACEMENT_WAIVED".equals(course.getStepStatus())).count())
                 .currentStepCourseId(start == null ? null : start.getCourseId())
+                // nextCourseId is only set when the start course is not enrolled yet (CTA to register).
                 .nextCourseId(start == null || !"NOT_ENROLLED".equals(start.getEnrollmentStatus()) ? null : start.getCourseId())
                 .recommendedStartCourseId(start == null ? null : start.getCourseId())
                 .recommendedStartOrder(start == null ? null : start.getLearningPathOrder())
@@ -132,6 +160,17 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 .build();
     }
 
+    /**
+     * Index of the first course this learner should take on the chosen path.
+     *
+     * Priority:
+     * 1) Resume: first course with an in-progress enrollment (not COMPLETED / not 100%).
+     * 2) Placement: first course whose level equals recommendedLevel.
+     *    IELTS also requires current overall >= that course's recommendedCurrentBandMin.
+     *    If that start course is already finished, walk forward to the next unfinished one.
+     * 3) Fallback: first course that is not COMPLETED.
+     * 4) Path fully done: last course (so the overview still has a start pointer).
+     */
     private int resolveStartIndex(
             List<LearningPathCourse> refs,
             Map<Long, PackageEnrollment> enrollments,
@@ -150,6 +189,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 double current = context.getOverallScore().doubleValue();
                 for (int index = 0; index < refs.size(); index++) {
                     OnlineCourse course = refs.get(index).getOnlineCourse();
+                    // Same placement level AND the learner already meets the course entry band.
                     if (course.getLevel() == desired && course.getRecommendedCurrentBandMin() != null
                             && current >= course.getRecommendedCurrentBandMin()) {
                         desiredIndex = index;
@@ -158,6 +198,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 }
             }
             if (desiredIndex == null) {
+                // TOEIC, or IELTS courses without an entry-band number: match on level only.
                 for (int index = 0; index < refs.size(); index++) {
                     if (refs.get(index).getOnlineCourse().getLevel() == desired) {
                         desiredIndex = index;
@@ -179,29 +220,38 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         return Math.max(0, refs.size() - 1);
     }
 
+    /**
+     * Score a whole path (not a single course).
+     * Same exam +30. Wrong exam -1000 so it cannot win unless nothing else exists.
+     * Then reward closeness to the learner's target (IELTS band or TOEIC score).
+     * No personal target: small bonus if the path also has no target (generic path) vs a numbered one.
+     */
     private double score(LearningPath path, PlacementRecommendationContext context) {
         if (context == null) return path.getExamCategory() == null ? 1 : 0;
         double score = 0;
         String exam = normalize(path.getExamCategory());
         if (exam.equals(context.getExamType())) score += 30;
-        else if (!exam.isBlank()) return -1000;
+        else if (!exam.isBlank()) return -1000; // hard-reject a path for the other exam
         BigDecimal target = context.getTargetScore();
         if (target != null && "IELTS".equals(context.getExamType()) && path.getTargetBand() != null) {
-            score += Math.max(0, 20 - path.getTargetBand().subtract(target).abs().doubleValue() * 10);
+            score += Math.max(0, 20 - path.getTargetBand().subtract(target).abs().doubleValue() * 10); // closer target band = better
         }
         if (target != null && "TOEIC".equals(context.getExamType()) && path.getTargetScore() != null) {
+            // 25-point buckets: 50 points off the goal still scores some, 500 off scores ~0.
             score += Math.max(0, 20 - Math.abs(path.getTargetScore() - target.intValue()) / 25D);
         }
         if (target == null && exam.equals(context.getExamType())) score += path.getTargetBand() == null && path.getTargetScore() == null ? 8 : 3;
         return score;
     }
 
+    /** Blank exam category matches anyone; otherwise must equal IELTS/TOEIC from placement. */
     private boolean examCompatible(LearningPath path, PlacementRecommendationContext context) {
         if (context == null) return true;
         String exam = normalize(path.getExamCategory());
         return exam.isBlank() || exam.equals(context.getExamType());
     }
 
+    /** True if the learner has an ACTIVE enrollment on any course in this path. */
     private boolean hasActiveEnrollment(PathCandidate candidate, Map<Long, PackageEnrollment> enrollments) {
         return candidate.refs().stream().anyMatch(ref -> {
             PackageEnrollment enrollment = activeEnrollment(enrollments.get(ref.getOnlineCourse().getLearningPackage().getId()));
@@ -209,6 +259,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         });
     }
 
+    /** Published, non-deleted courses on this path, in display order. */
     private List<LearningPathCourse> refs(LearningPath path) {
         return pathCourseRepository.findByLearningPathIdOrderByDisplayOrderAscIdAsc(path.getId()).stream()
                 .filter(ref -> ref.getOnlineCourse().getLearningPackage().getStatus() == PackageStatus.PUBLISHED
@@ -216,6 +267,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 .toList();
     }
 
+    /** Why this path / start course was chosen. */
     private String buildReason(PlacementRecommendationContext context, LearnerLearningPathCourseResponse start) {
         if (context == null || start == null) return "Lộ trình phù hợp nhất với hồ sơ học tập hiện tại của bạn.";
         if (context.getRecommendedLevel() == null) {
@@ -225,6 +277,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 + ", bạn nên bắt đầu từ giai đoạn “" + start.getTitle() + "”.";
     }
 
+    /** Treat CANCELLED as no enrollment. */
     private PackageEnrollment activeEnrollment(PackageEnrollment enrollment) {
         return enrollment == null || enrollment.getStatus() == EnrollmentStatus.CANCELLED ? null : enrollment;
     }
@@ -243,5 +296,6 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     }
 
+    /** Path + its published courses + match score, used while choosing. */
     private record PathCandidate(LearningPath path, List<LearningPathCourse> refs, double score) {}
 }

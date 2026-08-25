@@ -31,12 +31,21 @@ import java.time.LocalDateTime;
 import java.util.regex.Pattern;
 import java.util.*;
 
+/**
+ * Loads the placement paper and scores a student's submission.
+ *
+ * Flow: validate -> score Listening/Reading from answer keys
+ * -> AI-score Writing/Speaking (plus local off-topic guards) -> save attempt.
+ * IELTS waits for staff review; TOEIC is eligible immediately; SKILL is diagnostic only.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PlacementTestServiceImpl implements PlacementTestService {
     private static final String TEST_CODE = PlacementTestDefinitionService.TEST_CODE;
+    // Transcript that is only device metadata, not a real spoken answer.
     private static final Pattern SPEAKING_METADATA_PATTERN = Pattern.compile("speaking mock test:|part prompts shown to the learner:|recording duration seconds:|voice signal detected:", Pattern.CASE_INSENSITIVE);
+    // Topic words used to flag off-topic Writing/Speaking locally (before trusting AI).
     private static final Set<String> WRITING_TASK_1_KEYWORDS = Set.of(
             "corn", "ethanol", "fuel", "process", "production", "produce", "diagram", "stages", "ferment", "fermentation", "liquid", "milling", "cook", "cooking", "purify", "purification"
     );
@@ -56,6 +65,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
     private final PlacementTestDefinitionService definitionService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /** Build the test payload for the student UI. Answer keys are stripped so they cannot cheat. */
     @Transactional
     public Map<String, Object> getTest(String studentEmail) {
         User student = requireStudent(studentEmail);
@@ -72,17 +82,23 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         response.put("attemptCount", attemptCount);
         response.put("canRetake", true);
         Map<String, Object> sections = new LinkedHashMap<>();
+        // Objective sections: send questions only. Writing/Speaking have no answer key.
         sections.put("listening", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "listening"))));
         sections.put("reading", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "reading"))));
         sections.put("writing", toPlainObject(definitionService.getConfig(definition, "writing")));
         sections.put("speaking", toPlainObject(definitionService.getConfig(definition, "speaking")));
         sections.put("toeic", toPlainObject(withoutAnswerKey(definitionService.getConfig(definition, "toeic"))));
         response.put("sections", sections);
+        // Let the UI show the last result without a second request.
         attemptRepository.findTopByStudentAndTestCodeOrderBySubmittedAtDesc(student, TEST_CODE)
                 .ifPresent(attempt -> response.put("latestAttempt", toResponse(attempt)));
         return response;
     }
 
+    /**
+     * Score and save one attempt.
+     * Exam type picks IELTS (4 skills), TOEIC, or a skill-only diagnostic.
+     */
     @Transactional
     public PlacementTestAttemptResponse submit(PlacementTestSubmissionRequest request, String studentEmail) {
         User student = requireStudent(studentEmail);
@@ -100,7 +116,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             return submitSkillAssessment(request, student, definition);
         }
 
-        validateSubmission(request);
+        validateSubmission(request); // IELTS needs all 4 skills + a completed device check.
 
         JsonNode listeningConfig = definitionService.getConfig(definition, "listening");
         JsonNode readingConfig = definitionService.getConfig(definition, "reading");
@@ -111,14 +127,16 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         ObjectiveScore listening = scoreObjective(listeningAnswers, listeningConfig.path("answerKey"));
         ObjectiveScore reading = scoreObjective(readingAnswers, readingConfig.path("answerKey"));
 
-        BigDecimal listeningBand = listeningBand(listening.correct());
+        BigDecimal listeningBand = listeningBand(listening.correct()); // Raw correct-count -> IELTS band.
         BigDecimal readingBand = readingBand(reading.correct());
         JsonNode writingConfig = definitionService.getConfig(definition, "writing");
         JsonNode speakingConfig = definitionService.getConfig(definition, "speaking");
+        // AI CALL (IELTS): Writing + Speaking go to the LLM. Listening/Reading stay answer-key.
         AiEvaluationResult aiResult = evaluateProductiveSkills(request, writingConfig, speakingConfig);
         BigDecimal productiveBand = normalizeBand(aiResult == null ? null : aiResult.getEstimatedScore());
         BigDecimal writingBand = extractBand(aiResult, "writingBand", productiveBand);
         BigDecimal speakingBand = extractBand(aiResult, "speakingBand", productiveBand);
+        // COMPLETED when AI returned bands; otherwise only L/R are scored.
         String status = aiResult == null || (writingBand == null && speakingBand == null) ? "OBJECTIVE_EVALUATED" : "COMPLETED";
 
         BigDecimal overall = averageAvailable(listeningBand, readingBand, writingBand, speakingBand);
@@ -143,17 +161,18 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(reading.correct())
                 .aiFeedbackJson(aiResult == null ? fallbackFeedback() : aiResult.getFeedbackJson())
                 .status(status)
-                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED)
-                .recommendedLevel(null)
+                .evaluationStatus(PlacementEvaluationStatus.MANUAL_REVIEW_REQUIRED) // Staff must still confirm W/S.
+                .recommendedLevel(null) // Staff assigns the level after review.
                 .submittedAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusDays(180))
+                .expiresAt(LocalDateTime.now().plusDays(180)) // Result stays valid for 6 months.
                 .build();
         PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
-        student.setCurrentBand(overall == null ? null : overall.doubleValue());
+        student.setCurrentBand(overall == null ? null : overall.doubleValue()); // Keep learner profile in sync.
         userRepository.save(student);
         return toResponse(savedAttempt);
     }
 
+    /** Diagnostic mode: score only the skills the student picked. Not used for course placement. */
     private PlacementTestAttemptResponse submitSkillAssessment(
             PlacementTestSubmissionRequest request,
             User student,
@@ -165,6 +184,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         JsonNode writingAnswers = objectMapper.valueToTree(request.getWritingAnswers());
         JsonNode deviceCheck = objectMapper.valueToTree(request.getDeviceCheck());
 
+        // Score a skill only if the student selected it.
         ObjectiveScore listening = selectedSkills.contains(AssessmentSkill.LISTENING)
                 ? scoreObjective(listeningAnswers, definitionService.getConfig(definition, "listening").path("answerKey"))
                 : null;
@@ -176,6 +196,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
 
         boolean evaluatesProductiveSkill = selectedSkills.contains(AssessmentSkill.WRITING)
                 || selectedSkills.contains(AssessmentSkill.SPEAKING);
+        // AI CALL (SKILL): only if the learner picked Writing and/or Speaking.
         AiEvaluationResult aiResult = evaluatesProductiveSkill
                 ? evaluateProductiveSkills(
                         request,
@@ -191,6 +212,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         BigDecimal speakingBand = selectedSkills.contains(AssessmentSkill.SPEAKING)
                 ? extractBand(aiResult, "speakingBand", productiveBand)
                 : null;
+        // AI must return a band for every selected productive skill, otherwise status stays OBJECTIVE_EVALUATED.
         boolean productiveEvaluationComplete = !evaluatesProductiveSkill
                 || (selectedSkills.contains(AssessmentSkill.WRITING) ? writingBand != null : true)
                 && (selectedSkills.contains(AssessmentSkill.SPEAKING) ? speakingBand != null : true);
@@ -222,7 +244,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(reading == null ? null : reading.correct())
                 .aiFeedbackJson(skillAssessmentFeedback(aiResult, selectedSkills))
                 .status(productiveEvaluationComplete ? "COMPLETED" : "OBJECTIVE_EVALUATED")
-                .evaluationStatus(PlacementEvaluationStatus.SUBMITTED)
+                .evaluationStatus(PlacementEvaluationStatus.SUBMITTED) // Skill tests never become placement-eligible.
                 .recommendedLevel(null)
                 .submittedAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(180))
@@ -230,6 +252,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return toResponse(attemptRepository.save(attempt), "SKILL");
     }
 
+    /** TOEIC is fully objective: score L/R from the key, scale to 5–495. No AI call. */
     private PlacementTestAttemptResponse submitToeicPlacement(
             PlacementTestSubmissionRequest request,
             User student,
@@ -245,7 +268,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         ObjectiveScore reading = scoreToeicSection(readingAnswers, answerKey, toeicConfig.path("reading"), 101, 200);
         BigDecimal listeningScore = toeicScaledScore(listening);
         BigDecimal readingScore = toeicScaledScore(reading);
-        BigDecimal overall = listeningScore.add(readingScore);
+        BigDecimal overall = listeningScore.add(readingScore); // TOEIC total = Listening + Reading (max 990).
 
         ObjectNode answers = objectMapper.createObjectNode();
         answers.set("listening", listeningAnswers);
@@ -265,17 +288,18 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .correctReading(reading.correct())
                 .aiFeedbackJson("{\"examType\":\"TOEIC\",\"message\":\"Đã chấm khách quan TOEIC Listening & Reading theo answer key.\"}")
                 .status("COMPLETED")
-                .evaluationStatus(PlacementEvaluationStatus.ELIGIBLE)
+                .evaluationStatus(PlacementEvaluationStatus.ELIGIBLE) // No staff review needed for objective TOEIC.
                 .recommendedLevel(toeicLevel(overall))
                 .submittedAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(180))
                 .build();
         PlacementTestAttempt savedAttempt = attemptRepository.save(attempt);
-        student.setCurrentBand(null);
+        student.setCurrentBand(null); // TOEIC uses a 990 scale, not an IELTS band on the profile.
         userRepository.save(student);
         return toResponse(savedAttempt, "TOEIC");
     }
 
+    /** Score one TOEIC section. If the config has no question list, fall back to Q1–100 or Q101–200. */
     private ObjectiveScore scoreToeicSection(JsonNode submitted, JsonNode answerKey, JsonNode sectionConfig, int fallbackFrom, int fallbackTo) {
         List<Integer> questionNumbers = toeicQuestionNumbers(sectionConfig);
         if (questionNumbers.isEmpty()) {
@@ -288,7 +312,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         for (int number : questionNumbers) {
             JsonNode expected = answerKey.path(String.valueOf(number));
             if (expected.isMissingNode() || expected.isNull()) {
-                continue;
+                continue; // Skip questions that have no key yet.
             }
             total++;
             if (matches(submitted == null ? null : submitted.get(String.valueOf(number)), expected)) {
@@ -298,6 +322,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return new ObjectiveScore(correct, total);
     }
 
+    /** Walk TOEIC parts / question groups and collect question numbers in order. */
     private List<Integer> toeicQuestionNumbers(JsonNode sectionConfig) {
         List<Integer> numbers = new ArrayList<>();
         if (sectionConfig == null || sectionConfig.isMissingNode()) {
@@ -328,6 +353,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Map % correct onto the 5–495 TOEIC scale, rounded to the nearest 5. */
     private BigDecimal toeicScaledScore(ObjectiveScore score) {
         if (score.total() <= 0) {
             return BigDecimal.ZERO;
@@ -337,6 +363,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return BigDecimal.valueOf(scaled);
     }
 
+    /** IELTS 4-skill path: always send both Writing and Speaking to the AI. */
     private AiEvaluationResult evaluateProductiveSkills(PlacementTestSubmissionRequest request, JsonNode writingConfig, JsonNode speakingConfig) {
         return evaluateProductiveSkills(
                 request,
@@ -346,6 +373,10 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         );
     }
 
+    /**
+     * Ask the AI client to band Writing/Speaking.
+     * Attach the stored recording when available; otherwise score from transcript text only.
+     */
     private AiEvaluationResult evaluateProductiveSkills(
             PlacementTestSubmissionRequest request,
             JsonNode writingConfig,
@@ -363,10 +394,12 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                         : Optional.empty();
         boolean audioAttached = storedAudio.isPresent();
 
+        // Tell the model whether it is judging real audio or transcript text.
         String speakingAudioPolicy = audioAttached
                 ? "The learner's actual speaking audio is attached in this request. Listen to it and judge fluency/coherence, lexical resource, grammar, and pronunciation from the sound. Because real recorded speech is attached, you MUST return a numeric speakingBand on the IELTS 0-9 half-band scale. Use a low band such as 2.0-3.0 when the speech is short, hesitant, or hard to understand. Only set speakingBand to null if the audio is essentially silent or contains no spoken answer at all."
                 : "No speaking audio is attached. Judge Speaking only from the transcript text. If the transcript has no real spoken answer, set speakingBand to null.";
 
+        // Prompt sent to the LLM: tasks + learner answers. Audio is attached separately when present.
         String prompt = """
                 You are evaluating an IELTS placement test for course placement, not issuing an official IELTS result.
                 Score the learner on the IELTS 0-9 band scale using half-band increments.
@@ -399,17 +432,21 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                         evaluateSpeaking ? speaking : "Not selected"
                 );
         try {
+            // === ACTUAL AI CALL ===
+            // With audio: Gemini/OpenAI grades Writing text + Speaking recording.
+            // Text only: same prompt, transcript instead of audio.
             AiEvaluationResult aiResult = audioAttached
                     ? aiEvaluationClient.evaluateWithAudio(prompt, storedAudio.get().bytes(), storedAudio.get().contentType())
                     : aiEvaluationClient.evaluate(prompt);
-            return applyProductiveGuards(aiResult, request, selectedSkills);
+            return applyProductiveGuards(aiResult, request, selectedSkills); // Local cap/zero AFTER the AI returns.
         } catch (RuntimeException exception) {
             log.warn("Placement test AI evaluation for writing/speaking failed; falling back to objective-only result. Reason: {}",
                     exception.getMessage(), exception);
-            return null;
+            return null; // AI failed: keep L/R scores, leave W/S empty.
         }
     }
 
+    /** Cap or zero AI bands when local checks show off-topic / too-short / no real speech. */
     private AiEvaluationResult applyProductiveGuards(
             AiEvaluationResult aiResult,
             PlacementTestSubmissionRequest request,
@@ -439,19 +476,19 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                     : null;
 
             if (writingEvidence != null && writingEvidence.offTopicAllTasks()) {
-                writingBand = band(0);
+                writingBand = band(0); // Both tasks ignore the prompt -> writing is 0.
                 appendGuardFeedback(root,
                         "Phần Writing đang lệch đề nặng hoặc nội dung không liên quan tới cả hai task, nên bị chấm 0.",
                         "Viết lại đúng trọng tâm: Task 1 phải mô tả quy trình sản xuất ethanol từ ngô; Task 2 phải bàn về physical strength và mental strength trong thể thao.");
             } else if (writingEvidence != null && writingEvidence.hasSevereProblem()) {
-                writingBand = minBand(writingBand, band(2.5));
+                writingBand = minBand(writingBand, band(2.5)); // Cap AI score when a task is too short / off-topic.
                 appendGuardFeedback(root,
                         "Phần Writing có ít nhất một task quá ngắn hoặc lệch đề rõ rệt, nên điểm bị hạ mạnh.",
                         "Hoàn thành đầy đủ cả hai task, bám đúng đề và phát triển ý rõ ràng trước khi nộp lại.");
             }
 
             if (speakingEvidence != null && speakingEvidence.insufficientEvidence()) {
-                speakingBand = null;
+                speakingBand = null; // Do not invent a speaking band without real speech evidence.
                 appendGuardFeedback(root,
                         speakingEvidence.message(),
                         "Hãy nộp lại bài nói với bản ghi thật rõ hoặc transcript thực sự phản ánh câu trả lời của bạn.");
@@ -463,7 +500,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             }
 
             BigDecimal productiveAverage = averageAvailable(writingBand, speakingBand);
-            aiResult.setEstimatedScore(productiveAverage);
+            aiResult.setEstimatedScore(productiveAverage); // Rewrite AI JSON so stored feedback matches the guarded bands.
             if (productiveAverage == null) {
                 root.putNull("estimatedScore");
             } else {
@@ -489,6 +526,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Count how many submitted answers match the answer key. */
     private ObjectiveScore scoreObjective(JsonNode submitted, JsonNode answerKey) {
         int total = 0;
         int correct = 0;
@@ -503,6 +541,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return new ObjectiveScore(correct, total);
     }
 
+    /** Accept a single value or a set; ignore currency symbols and extra spaces. */
     private boolean matches(JsonNode actual, JsonNode expected) {
         if (actual == null || actual.isNull() || actual.asText().isBlank()) return false;
         if (expected.isArray()) {
@@ -528,6 +567,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .trim();
     }
 
+    /** Official-style raw-score -> IELTS Listening band. */
     private BigDecimal listeningBand(int correct) {
         if (correct >= 39) return band(9);
         if (correct >= 37) return band(8.5);
@@ -546,6 +586,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return band(0);
     }
 
+    /** Official-style raw-score -> IELTS Academic Reading band. */
     private BigDecimal readingBand(int correct) {
         if (correct >= 40) return band(9);
         if (correct >= 39) return band(8.5);
@@ -564,10 +605,12 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return band(0);
     }
 
+    /** Clamp to 0–9 and round to the nearest half-band. */
     private BigDecimal normalizeBand(BigDecimal value) {
         return IeltsBandScale.normalizeBand(value);
     }
 
+    /** Read writingBand / speakingBand from AI JSON; fall back to estimatedScore. */
     private BigDecimal extractBand(AiEvaluationResult result, String field, BigDecimal fallback) {
         if (result == null || result.getFeedbackJson() == null || result.getFeedbackJson().isBlank()) return fallback;
         try {
@@ -599,6 +642,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Average of the skill bands that exist; skip nulls (unselected / unscored skills). */
     private BigDecimal averageAvailable(BigDecimal... values) {
         List<BigDecimal> available = Arrays.stream(values).filter(Objects::nonNull).toList();
         if (available.isEmpty()) return null;
@@ -616,6 +660,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return current.compareTo(cap) <= 0 ? current : cap;
     }
 
+    /** Cheap keyword check: too few topic words or too few words => off-topic / too short. */
     private WritingEvidence evaluateWritingEvidence(Map<String, Object> writingAnswers) {
         String task1 = safe(asText(writingAnswers == null ? null : writingAnswers.get("task_1")));
         String task2 = safe(asText(writingAnswers == null ? null : writingAnswers.get("task_2")));
@@ -633,6 +678,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return new WritingEvidence(task1OffTopic, task2OffTopic, task1TooShort, task2TooShort);
     }
 
+    /** If we did not hear real audio, require a real transcript that mentions the speaking topics. */
     private SpeakingEvidence evaluateSpeakingEvidence(PlacementTestSubmissionRequest request, boolean audioAnalyzed) {
         String transcript = safe(request.getSpeakingTranscript());
         boolean hasAudioUrl = request.getSpeakingAudioUrl() != null && !request.getSpeakingAudioUrl().isBlank();
@@ -654,7 +700,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
             }
         }
 
-        return new SpeakingEvidence(false, false, "");
+        return new SpeakingEvidence(false, false, ""); // Real audio was analyzed, or transcript looks on-topic.
     }
 
     private int countWords(String text) {
@@ -664,6 +710,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return (int) Arrays.stream(text.trim().split("\\s+")).filter(token -> !token.isBlank()).count();
     }
 
+    /** Count distinct topic words present in the answer (used for off-topic guards). */
     private int countKeywordHits(String text, Set<String> keywords) {
         String normalizedText = " " + normalizeForRelevance(text) + " ";
         int hits = 0;
@@ -687,6 +734,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /** Append a weakness + suggestion into the AI feedback JSON (no duplicates). */
     private void appendGuardFeedback(ObjectNode root, String weakness, String suggestion) {
         appendArrayText(root, "weaknesses", weakness);
         appendArrayText(root, "recommendations", suggestion);
@@ -706,6 +754,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         node.add(value);
     }
 
+    /** Never send the answer key to the student client. */
     private JsonNode withoutAnswerKey(JsonNode source) {
         ObjectNode copy = source.deepCopy();
         copy.remove("answerKey");
@@ -721,6 +770,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** IELTS 4-skill submit: all skills + device check + some speaking evidence. */
     private void validateSubmission(PlacementTestSubmissionRequest request) {
         if (request == null || request.getListeningAnswers() == null || request.getReadingAnswers() == null
                 || request.getWritingAnswers() == null) {
@@ -735,6 +785,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** TOEIC submit: Listening + Reading answers and a completed device check. */
     private void validateToeicSubmission(PlacementTestSubmissionRequest request) {
         if (request == null || request.getListeningAnswers() == null || request.getReadingAnswers() == null) {
             throw new RuntimeException("Bài TOEIC chưa có đủ dữ liệu Listening và Reading.");
@@ -744,6 +795,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Skill-assessment submit: each selected skill must have matching answer data. */
     private void validateSkillAssessmentSubmission(PlacementTestSubmissionRequest request) {
         if (request == null || request.getSelectedSkills() == null || request.getSelectedSkills().isEmpty()) {
             throw new RuntimeException("Hãy chọn ít nhất một kỹ năng cần đánh giá.");
@@ -775,6 +827,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Treat null / unknown examType as IELTS (the 4-skill placement). */
     private String normalizeExamType(String value) {
         String normalized = safe(value).toUpperCase(Locale.ROOT);
         if ("TOEIC".equals(normalized)) return "TOEIC";
@@ -790,6 +843,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return toResponse(attempt, null);
     }
 
+    /** Map a saved attempt to the API response, inferring exam type / selected skills if needed. */
     private PlacementTestAttemptResponse toResponse(PlacementTestAttempt attempt, String examType) {
         String resolvedExamType = examType != null
                 ? examType
@@ -822,6 +876,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 .build();
     }
 
+    /** Map total TOEIC (0–990) to Beginner / Intermediate / Advanced. */
     private PlacementLevel toeicLevel(BigDecimal score) {
         if (score == null || score.compareTo(BigDecimal.valueOf(450)) < 0) {
             return PlacementLevel.BEGINNER;
@@ -832,6 +887,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         return PlacementLevel.ADVANCED;
     }
 
+    /** Infer exam type from stored AI JSON, or from overall score (>9 cannot be IELTS). */
     private String resolveStoredExamType(PlacementTestAttempt attempt) {
         String feedback = safe(attempt.getAiFeedbackJson());
         if (feedback.contains("\"examType\":\"SKILL\"")) {
@@ -845,6 +901,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
                 : "IELTS";
     }
 
+    /** IELTS = 4 skills, TOEIC = L/R, SKILL = whatever was stored on the attempt. */
     private List<AssessmentSkill> resolveSelectedSkills(PlacementTestAttempt attempt, String examType) {
         if ("TOEIC".equals(examType)) {
             return List.of(AssessmentSkill.LISTENING, AssessmentSkill.READING);
@@ -874,6 +931,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Wrap AI feedback with examType=SKILL so later eligibility/recommendation can detect it. */
     private String skillAssessmentFeedback(AiEvaluationResult aiResult, Set<AssessmentSkill> selectedSkills) {
         try {
             ObjectNode root = aiResult == null || aiResult.getFeedbackJson() == null || aiResult.getFeedbackJson().isBlank()
@@ -891,6 +949,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Stored when AI is down: L/R are scored, W/S will be retried later. */
     private String fallbackFeedback() {
         return "{\"message\":\"Đã lưu bài và chấm hai kỹ năng khách quan. Writing và Speaking sẽ được chấm lại khi dịch vụ AI sẵn sàng.\"}";
     }
@@ -917,6 +976,7 @@ public class PlacementTestServiceImpl implements PlacementTestService {
         }
     }
 
+    /** Local speaking checks used to override an AI band. */
     private record SpeakingEvidence(boolean offTopic, boolean insufficientEvidence, String message) {
     }
 }
